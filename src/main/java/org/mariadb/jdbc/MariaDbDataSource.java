@@ -52,22 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import java.io.PrintWriter;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.Properties;
-import java.util.logging.Logger;
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.PooledConnection;
-import javax.sql.XAConnection;
-import javax.sql.XADataSource;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.pool.Pool;
-import org.mariadb.jdbc.util.DefaultOptions;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.util.*;
+
+import javax.sql.*;
+import java.io.*;
+import java.sql.*;
+import java.util.*;
+import java.util.logging.*;
 
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 

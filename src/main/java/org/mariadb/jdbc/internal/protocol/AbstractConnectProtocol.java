@@ -52,72 +52,37 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.credential.*;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.authentication.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.tls.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.tls.*;
+import org.mariadb.jdbc.util.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.authentication.AuthenticationPluginLoader;
-import org.mariadb.jdbc.credential.Credential;
-import org.mariadb.jdbc.credential.CredentialPlugin;
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.com.read.OkPacket;
-import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.SendClosePacket;
-import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
-import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
-import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
-import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
-import org.mariadb.jdbc.internal.util.constant.ServerStatus;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-import org.mariadb.jdbc.tls.TlsSocketPlugin;
-import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
-import org.mariadb.jdbc.util.Options;
+import javax.net.ssl.*;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public abstract class AbstractConnectProtocol implements Protocol {
 
@@ -152,6 +117,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected ServerPrepareStatementCache serverPrepareStatementCache;
   protected boolean eofDeprecated = false;
   protected long serverCapabilities;
+  protected int socketTimeout;
   private HostAddress currentHost;
   private boolean hostFailed;
   private String serverVersion;
@@ -160,7 +126,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private int minorVersion;
   private int patchVersion;
   private TimeZone timeZone;
-  protected int socketTimeout;
 
   /**
    * Get a protocol instance.
@@ -209,6 +174,155 @@ public abstract class AbstractConnectProtocol implements Protocol {
       } catch (IOException e) {
         // socket closed, if any error, so not throwing error
       }
+    }
+  }
+
+  private static Socket createSocket(final String host, final int port, final Options options)
+      throws SQLException {
+    Socket socket;
+    try {
+      socket = Utils.createSocket(options, host);
+      socket.setTcpNoDelay(options.tcpNoDelay);
+
+      if (options.socketTimeout != null) {
+        socket.setSoTimeout(options.socketTimeout);
+      }
+      if (options.tcpKeepAlive) {
+        socket.setKeepAlive(true);
+      }
+      if (options.tcpRcvBuf != null) {
+        socket.setReceiveBufferSize(options.tcpRcvBuf);
+      }
+      if (options.tcpSndBuf != null) {
+        socket.setSendBufferSize(options.tcpSndBuf);
+      }
+      if (options.tcpAbortiveClose) {
+        socket.setSoLinger(true, 0);
+      }
+
+      // Bind the socket to a particular interface if the connection property
+      // localSocketAddress has been defined.
+      if (options.localSocketAddress != null) {
+        InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
+        socket.bind(localAddress);
+      }
+
+      if (!socket.isConnected()) {
+        InetSocketAddress sockAddr =
+            options.pipe == null ? new InetSocketAddress(host, port) : null;
+        socket.connect(sockAddr, options.connectTimeout);
+      }
+      return socket;
+
+    } catch (IOException ioe) {
+      throw ExceptionMapper.connException(
+          "Socket fail to connect to host:" + host + ", port:" + port + ". " + ioe.getMessage(),
+          ioe);
+    }
+  }
+
+  private static long initializeClientCapabilities(
+      final Options options, final long serverCapabilities, final String database) {
+    long capabilities =
+        MariaDbServerCapabilities.IGNORE_SPACE
+            | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
+            | MariaDbServerCapabilities.TRANSACTIONS
+            | MariaDbServerCapabilities.SECURE_CONNECTION
+            | MariaDbServerCapabilities.MULTI_RESULTS
+            | MariaDbServerCapabilities.PS_MULTI_RESULTS
+            | MariaDbServerCapabilities.PLUGIN_AUTH
+            | MariaDbServerCapabilities.CONNECT_ATTRS
+            | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
+            | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+
+    if (options.allowLocalInfile) {
+      capabilities |= MariaDbServerCapabilities.LOCAL_FILES;
+    }
+
+    // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
+    // The default (and JDBC standard) is "found rows". The other option is "affected rows".
+    // See https://jira.mariadb.org/browse/CONJ-384
+    if (!options.useAffectedRows) {
+      capabilities |= MariaDbServerCapabilities.FOUND_ROWS;
+    }
+
+    if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
+      capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
+    }
+
+    if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
+      capabilities |= MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF;
+    }
+
+    if (options.useCompression) {
+      if ((serverCapabilities & MariaDbServerCapabilities.COMPRESS) == 0) {
+        // ensure that server has compress capacity - MaxScale doesn't
+        options.useCompression = false;
+      } else {
+        capabilities |= MariaDbServerCapabilities.COMPRESS;
+      }
+    }
+
+    if (options.interactiveClient) {
+      capabilities |= MariaDbServerCapabilities.CLIENT_INTERACTIVE;
+    }
+
+    // If a database is given, but createDatabaseIfNotExist is not defined or is false,
+    // then just try to connect to the given database
+    if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
+      capabilities |= MariaDbServerCapabilities.CONNECT_WITH_DB;
+    }
+    return capabilities;
+  }
+
+  /**
+   * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
+   * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
+   * with openSSL (default). MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS
+   * is TLSv1.1.
+   *
+   * @param sslSocket current sslSocket
+   * @throws SQLException if protocol isn't a supported protocol
+   */
+  private static void enabledSslProtocolSuites(SSLSocket sslSocket, Options options)
+      throws SQLException {
+    if (options.enabledSslProtocolSuites != null) {
+      List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
+      String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
+      for (String protocol : protocols) {
+        if (!possibleProtocols.contains(protocol)) {
+          throw new SQLException(
+              "Unsupported SSL protocol '"
+                  + protocol
+                  + "'. Supported protocols : "
+                  + possibleProtocols.toString().replace("[", "").replace("]", ""));
+        }
+      }
+      sslSocket.setEnabledProtocols(protocols);
+    }
+  }
+
+  /**
+   * Set ssl socket cipher according to options.
+   *
+   * @param sslSocket current ssl socket
+   * @throws SQLException if a cipher isn't known
+   */
+  private static void enabledSslCipherSuites(SSLSocket sslSocket, Options options)
+      throws SQLException {
+    if (options.enabledSslCipherSuites != null) {
+      List<String> possibleCiphers = Arrays.asList(sslSocket.getSupportedCipherSuites());
+      String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");
+      for (String cipher : ciphers) {
+        if (!possibleCiphers.contains(cipher)) {
+          throw new SQLException(
+              "Unsupported SSL cipher '"
+                  + cipher
+                  + "'. Supported ciphers : "
+                  + possibleCiphers.toString().replace("[", "").replace("]", ""));
+        }
+      }
+      sslSocket.setEnabledCipherSuites(ciphers);
     }
   }
 
@@ -352,9 +466,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     Credential credential;
     CredentialPlugin credentialPlugin = urlParser.getCredentialPlugin();
     if (credentialPlugin != null) {
-      credential = credentialPlugin
-          .initialize(options, username, hostAddress)
-          .get();
+      credential = credentialPlugin.initialize(options, username, hostAddress).get();
     } else {
       credential = new Credential(username, urlParser.getPassword());
     }
@@ -438,50 +550,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     activeStreamingResult = null;
     hostFailed = false;
-  }
-
-  private static Socket createSocket(final String host, final int port, final Options options)
-      throws SQLException {
-    Socket socket;
-    try {
-      socket = Utils.createSocket(options, host);
-      socket.setTcpNoDelay(options.tcpNoDelay);
-
-      if (options.socketTimeout != null) {
-        socket.setSoTimeout(options.socketTimeout);
-      }
-      if (options.tcpKeepAlive) {
-        socket.setKeepAlive(true);
-      }
-      if (options.tcpRcvBuf != null) {
-        socket.setReceiveBufferSize(options.tcpRcvBuf);
-      }
-      if (options.tcpSndBuf != null) {
-        socket.setSendBufferSize(options.tcpSndBuf);
-      }
-      if (options.tcpAbortiveClose) {
-        socket.setSoLinger(true, 0);
-      }
-
-      // Bind the socket to a particular interface if the connection property
-      // localSocketAddress has been defined.
-      if (options.localSocketAddress != null) {
-        InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
-        socket.bind(localAddress);
-      }
-
-      if (!socket.isConnected()) {
-        InetSocketAddress sockAddr =
-            options.pipe == null ? new InetSocketAddress(host, port) : null;
-        socket.connect(sockAddr, options.connectTimeout);
-      }
-      return socket;
-
-    } catch (IOException ioe) {
-      throw ExceptionMapper.connException(
-          "Socket fail to connect to host:" + host + ", port:" + port + ". " + ioe.getMessage(),
-          ioe);
-    }
   }
 
   /** Closing socket in case of Connection error after socket creation. */
@@ -592,9 +660,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
       switch (buffer.getByteAt(0) & 0xFF) {
         case 0xFE:
           /**
-           * ********************************************************************
-           * Authentication Switch Request
-           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+           * ******************************************************************** Authentication
+           * Switch Request see
+           * https://mariadb.com/kb/en/library/connection/#authentication-switch-request
            * *******************************************************************
            */
           sequence.set(reader.getLastPacketSeq());
@@ -604,7 +672,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             String plugin;
             if (buffer.remaining() > 0) {
               // AuthSwitchRequest packet.
-              plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
+              plugin = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
               seed = buffer.readRawBytes(buffer.remaining());
             } else {
               // OldAuthSwitchRequest
@@ -637,9 +705,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         case 0xFF:
           /**
-           * ********************************************************************
-           * ERR_Packet
-           * see https://mariadb.com/kb/en/library/err_packet/
+           * ******************************************************************** ERR_Packet see
+           * https://mariadb.com/kb/en/library/err_packet/
            * *******************************************************************
            */
           ErrorPacket errorPacket = new ErrorPacket(buffer);
@@ -663,8 +730,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         case 0x00:
           /**
-           * ********************************************************************
-           * Authenticated !
+           * ******************************************************************** Authenticated !
            * OK_Packet see https://mariadb.com/kb/en/library/ok_packet/
            * *******************************************************************
            */
@@ -958,60 +1024,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
    */
   public boolean isClosed() {
     return !this.connected;
-  }
-
-  private static long initializeClientCapabilities(
-      final Options options, final long serverCapabilities, final String database) {
-    long capabilities =
-        MariaDbServerCapabilities.IGNORE_SPACE
-            | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
-            | MariaDbServerCapabilities.TRANSACTIONS
-            | MariaDbServerCapabilities.SECURE_CONNECTION
-            | MariaDbServerCapabilities.MULTI_RESULTS
-            | MariaDbServerCapabilities.PS_MULTI_RESULTS
-            | MariaDbServerCapabilities.PLUGIN_AUTH
-            | MariaDbServerCapabilities.CONNECT_ATTRS
-            | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-            | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
-
-    if (options.allowLocalInfile) {
-      capabilities |= MariaDbServerCapabilities.LOCAL_FILES;
-    }
-
-    // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
-    // The default (and JDBC standard) is "found rows". The other option is "affected rows".
-    // See https://jira.mariadb.org/browse/CONJ-384
-    if (!options.useAffectedRows) {
-      capabilities |= MariaDbServerCapabilities.FOUND_ROWS;
-    }
-
-    if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
-      capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
-    }
-
-    if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
-      capabilities |= MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF;
-    }
-
-    if (options.useCompression) {
-      if ((serverCapabilities & MariaDbServerCapabilities.COMPRESS) == 0) {
-        // ensure that server has compress capacity - MaxScale doesn't
-        options.useCompression = false;
-      } else {
-        capabilities |= MariaDbServerCapabilities.COMPRESS;
-      }
-    }
-
-    if (options.interactiveClient) {
-      capabilities |= MariaDbServerCapabilities.CLIENT_INTERACTIVE;
-    }
-
-    // If a database is given, but createDatabaseIfNotExist is not defined or is false,
-    // then just try to connect to the given database
-    if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
-      capabilities |= MariaDbServerCapabilities.CONNECT_WITH_DB;
-    }
-    return capabilities;
   }
 
   private void loadCalendar(final String srvTimeZone, final String srvSystemTimeZone)
@@ -1341,57 +1353,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public int getMinorServerVersion() {
     return minorVersion;
-  }
-
-  /**
-   * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
-   * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
-   * with openSSL (default). MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS
-   * is TLSv1.1.
-   *
-   * @param sslSocket current sslSocket
-   * @throws SQLException if protocol isn't a supported protocol
-   */
-  private static void enabledSslProtocolSuites(SSLSocket sslSocket, Options options)
-      throws SQLException {
-    if (options.enabledSslProtocolSuites != null) {
-      List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
-      String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
-      for (String protocol : protocols) {
-        if (!possibleProtocols.contains(protocol)) {
-          throw new SQLException(
-              "Unsupported SSL protocol '"
-                  + protocol
-                  + "'. Supported protocols : "
-                  + possibleProtocols.toString().replace("[", "").replace("]", ""));
-        }
-      }
-      sslSocket.setEnabledProtocols(protocols);
-    }
-  }
-
-  /**
-   * Set ssl socket cipher according to options.
-   *
-   * @param sslSocket current ssl socket
-   * @throws SQLException if a cipher isn't known
-   */
-  private static void enabledSslCipherSuites(SSLSocket sslSocket, Options options)
-      throws SQLException {
-    if (options.enabledSslCipherSuites != null) {
-      List<String> possibleCiphers = Arrays.asList(sslSocket.getSupportedCipherSuites());
-      String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");
-      for (String cipher : ciphers) {
-        if (!possibleCiphers.contains(cipher)) {
-          throw new SQLException(
-              "Unsupported SSL cipher '"
-                  + cipher
-                  + "'. Supported ciphers : "
-                  + possibleCiphers.toString().replace("[", "").replace("]", ""));
-        }
-      }
-      sslSocket.setEnabledCipherSuites(ciphers);
-    }
   }
 
   /**

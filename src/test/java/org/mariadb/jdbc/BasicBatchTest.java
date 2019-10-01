@@ -82,19 +82,19 @@ public class BasicBatchTest extends BaseTest {
     createTable("test_batch3", "id int not null primary key auto_increment, test varchar(10)");
     createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
     createTable("batchPrepareUpdateException", "i int,PRIMARY KEY (i)");
-    createTable("rewritetest", "id int not null primary key, a varchar(10), b int",
-        "engine=innodb");
-    createTable("rewritetest2", "id int not null primary key, a varchar(10), b int",
-        "engine=innodb");
+    createTable(
+        "rewritetest", "id int not null primary key, a varchar(10), b int", "engine=innodb");
+    createTable(
+        "rewritetest2", "id int not null primary key, a varchar(10), b int", "engine=innodb");
     createTable("bug501452", "id int not null primary key, value varchar(20)");
   }
 
   @Test
   public void batchTest() throws SQLException {
     Assume.assumeFalse(sharedIsRewrite());
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into test_batch values (null, ?)",
-            Statement.RETURN_GENERATED_KEYS);
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "insert into test_batch values (null, ?)", Statement.RETURN_GENERATED_KEYS);
     ps.setString(1, "aaa");
     ps.addBatch();
     ps.setString(1, "bbb");
@@ -124,8 +124,8 @@ public class BasicBatchTest extends BaseTest {
     for (int unitInsertNumber : batchResult) {
       assertEquals(1, unitInsertNumber);
     }
-    final ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from test_batch");
+    final ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from test_batch");
     ps.executeQuery("SELECT 1");
     try {
       rs1 = ps.getGeneratedKeys();
@@ -142,7 +142,6 @@ public class BasicBatchTest extends BaseTest {
     assertEquals("bbb", rs.getString(2));
     assertEquals(true, rs.next());
     assertEquals("ccc", rs.getString(2));
-
   }
 
   @Test
@@ -181,7 +180,6 @@ public class BasicBatchTest extends BaseTest {
       assertEquals("hej" + i, rs.getString(2));
     }
     assertEquals(false, rs.next());
-
   }
 
   @Test
@@ -204,7 +202,7 @@ public class BasicBatchTest extends BaseTest {
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
       } else {
-        //prepare or allowMultiQueries options
+        // prepare or allowMultiQueries options
         assertEquals(1, updateCounts[0]);
         assertEquals(1, updateCounts[1]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
@@ -216,8 +214,8 @@ public class BasicBatchTest extends BaseTest {
 
   @Test
   public void batchPrepareUpdateException() throws Exception {
-    PreparedStatement st = sharedConnection
-        .prepareStatement("insert into batchPrepareUpdateException values(?)");
+    PreparedStatement st =
+        sharedConnection.prepareStatement("insert into batchPrepareUpdateException values(?)");
     st.setInt(1, 1);
     st.addBatch();
     st.setInt(1, 2);
@@ -233,14 +231,14 @@ public class BasicBatchTest extends BaseTest {
     } catch (BatchUpdateException bue) {
       int[] updateCounts = bue.getUpdateCounts();
       assertEquals(4, updateCounts.length);
-      if (sharedIsRewrite() || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,
-          2))) {
+      if (sharedIsRewrite()
+          || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
       } else {
-        //prepare or allowMultiQueries options
+        // prepare or allowMultiQueries options
         assertEquals(1, updateCounts[0]);
         assertEquals(1, updateCounts[1]);
         assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
@@ -248,13 +246,12 @@ public class BasicBatchTest extends BaseTest {
       }
       assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
     }
-
   }
 
   @Test
   public void testBatchLoop() throws SQLException {
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into rewritetest values (?,?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into rewritetest values (?,?,?)");
     for (int i = 0; i < 10; i++) {
       ps.setInt(1, i);
       ps.setString(2, "bbb" + i);
@@ -272,8 +269,9 @@ public class BasicBatchTest extends BaseTest {
 
   @Test
   public void testBatchLoopWithDupKey() throws SQLException {
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "insert into rewritetest2 values (?,?,?) on duplicate key update a=values(a)");
     for (int i = 0; i < 2; i++) {
       ps.setInt(1, 0);
       ps.setString(2, "bbb" + i);
@@ -290,11 +288,10 @@ public class BasicBatchTest extends BaseTest {
     assertEquals(1, counter);
   }
 
-
   @Test
   public void testBug501452() throws SQLException {
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into bug501452 (id,value) values (?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into bug501452 (id,value) values (?,?)");
     ps.setObject(1, 1);
     ps.setObject(2, "value for 1");
     ps.addBatch();
@@ -308,11 +305,10 @@ public class BasicBatchTest extends BaseTest {
     ps.executeBatch();
   }
 
-
   @Test
   public void testMultipleStatementBatch() throws SQLException {
-    try (Connection connection = setConnection(
-        "&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
+    try (Connection connection =
+        setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
       Statement stmt = connection.createStatement();
       stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
       stmt.addBatch("INSERT INTO test_batch3(test) value ('b')");
@@ -353,21 +349,23 @@ public class BasicBatchTest extends BaseTest {
 
   @Test
   public void testBatchString() throws SQLException {
-    Assume.assumeTrue(runLongTest && (sharedOptions().useBulkStmts
-        || sharedIsRewrite())); //if not will be too long.
+    Assume.assumeTrue(
+        runLongTest
+            && (sharedOptions().useBulkStmts || sharedIsRewrite())); // if not will be too long.
     createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
     Statement stmt = sharedConnection.createStatement();
     String[] datas = new String[1_000_000];
-    String empty = "____________________________________________________________________________________________________";
+    String empty =
+        "____________________________________________________________________________________________________";
 
     for (int i = 0; i < datas.length; i++) {
-      datas[i] = (String.valueOf(i) + empty).substring(0, 100);
+      datas[i] = (i + empty).substring(0, 100);
     }
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("INSERT INTO testBatchString (charValue) values (?)")) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("INSERT INTO testBatchString (charValue) values (?)")) {
       for (String data : datas) {
-        preparedStatement.setString(1, data); //a random 100 byte data
+        preparedStatement.setString(1, data); // a random 100 byte data
         preparedStatement.addBatch();
       }
       preparedStatement.executeBatch();

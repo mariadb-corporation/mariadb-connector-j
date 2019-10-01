@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
 
 public interface CmdInformation {
 
@@ -88,5 +89,4 @@ public interface CmdInformation {
   boolean isCurrentUpdateCount();
 
   void setRewrite(boolean rewritten);
-
 }

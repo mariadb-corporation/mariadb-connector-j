@@ -79,7 +79,7 @@ public class TcpProxySocket implements Runnable {
   /**
    * Creation of proxy.
    *
-   * @param host       database host
+   * @param host database host
    * @param remoteport database port
    * @throws IOException exception
    */
@@ -102,9 +102,7 @@ public class TcpProxySocket implements Runnable {
     this.delay = delay;
   }
 
-  /**
-   * Kill proxy.
-   */
+  /** Kill proxy. */
   public void kill() {
     stop = true;
     try {
@@ -112,19 +110,19 @@ public class TcpProxySocket implements Runnable {
         server.close();
       }
     } catch (IOException e) {
-      //eat Exception
+      // eat Exception
     }
     try {
       if (client != null) {
         client.close();
       }
     } catch (IOException e) {
-      //eat Exception
+      // eat Exception
     }
     try {
       ss.close();
     } catch (IOException e) {
-      //eat Exception
+      // eat Exception
     }
   }
 
@@ -139,11 +137,11 @@ public class TcpProxySocket implements Runnable {
           ss = new ServerSocket(localport);
         }
       } catch (BindException b) {
-        //in case for testing crash and reopen too quickly
+        // in case for testing crash and reopen too quickly
         try {
           Thread.sleep(100);
         } catch (InterruptedException i) {
-          //eat Exception
+          // eat Exception
         }
         if (ss.isClosed()) {
           ss = new ServerSocket(localport);
@@ -160,37 +158,38 @@ public class TcpProxySocket implements Runnable {
             server = new Socket(host, remoteport);
           } catch (IOException e) {
             PrintWriter out = new PrintWriter(new OutputStreamWriter(toClient));
-            out.println("Proxy server cannot connect to " + host + ":"
-                + remoteport + ":\n" + e);
+            out.println("Proxy server cannot connect to " + host + ":" + remoteport + ":\n" + e);
             out.flush();
             client.close();
             continue;
           }
           final InputStream fromServer = server.getInputStream();
           final OutputStream toServer = server.getOutputStream();
-          new Thread(() -> {
-            int bytesRead;
-            try {
-              while ((bytesRead = fromClient.read(request)) != -1) {
-                if (delay > 0) {
-                  try {
-                    Thread.sleep(delay);
-                  } catch (InterruptedException e) {
-                    e.printStackTrace();
-                  }
-                }
-                toServer.write(request, 0, bytesRead);
-                toServer.flush();
-              }
-            } catch (IOException e) {
-              //eat exception
-            }
-            try {
-              toServer.close();
-            } catch (IOException e) {
-              //eat exception
-            }
-          }).start();
+          new Thread(
+                  () -> {
+                    int bytesRead;
+                    try {
+                      while ((bytesRead = fromClient.read(request)) != -1) {
+                        if (delay > 0) {
+                          try {
+                            Thread.sleep(delay);
+                          } catch (InterruptedException e) {
+                            e.printStackTrace();
+                          }
+                        }
+                        toServer.write(request, 0, bytesRead);
+                        toServer.flush();
+                      }
+                    } catch (IOException e) {
+                      // eat exception
+                    }
+                    try {
+                      toServer.close();
+                    } catch (IOException e) {
+                      // eat exception
+                    }
+                  })
+              .start();
           int bytesRead;
           try {
             while ((bytesRead = fromServer.read(reply)) != -1) {
@@ -203,11 +202,11 @@ public class TcpProxySocket implements Runnable {
               toClient.flush();
             }
           } catch (IOException e) {
-            //eat exception
+            // eat exception
           }
           toClient.close();
         } catch (IOException e) {
-          //System.err.println("ERROR socket : "+e);
+          // System.err.println("ERROR socket : "+e);
         } finally {
           try {
             if (server != null) {
@@ -217,7 +216,7 @@ public class TcpProxySocket implements Runnable {
               client.close();
             }
           } catch (IOException e) {
-            //eat exception
+            // eat exception
           }
         }
       }

@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.util.constant;
 
-
 public class ColumnFlags {
 
   public static final short NOT_NULL = 1;
@@ -68,4 +67,3 @@ public class ColumnFlags {
   public static final short TIMESTAMP = 1024;
   public static final short SET = 2048;
 }
-

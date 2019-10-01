@@ -52,11 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.Types;
+import java.sql.*;
 
-/**
- * Info about in/out parameters.
- */
+/** Info about in/out parameters. */
 class CallParameter {
 
   private boolean isInput;

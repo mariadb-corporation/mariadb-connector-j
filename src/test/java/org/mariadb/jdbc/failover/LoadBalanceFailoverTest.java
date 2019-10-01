@@ -65,22 +65,19 @@ import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 /**
- * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mariadb:loadbalance//localhost:3306,localhost:3307/test?user=root.
+ * Exemple mvn test
+ * -DdefaultLoadbalanceUrl=jdbc:mariadb:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyLoadbalanceUrl;
     Assume.assumeTrue(initialLoadbalanceUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialLoadbalanceUrl;
@@ -97,7 +94,6 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       Assert.assertNotEquals(master1ServerId, secondServerId);
     }
   }
-
 
   @Test
   public void randomConnection() throws Throwable {
@@ -122,7 +118,6 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     }
   }
 
-
   @Test
   public void testReadonly() {
     try (Connection connection = getNewConnection(false)) {
@@ -133,7 +128,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       stmt.execute(
           "create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
     } catch (SQLException sqle) {
-      //normal exception
+      // normal exception
     }
   }
 
@@ -149,5 +144,4 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       return value;
     }
   }
-
 }

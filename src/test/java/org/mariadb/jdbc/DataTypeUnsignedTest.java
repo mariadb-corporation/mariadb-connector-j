@@ -66,9 +66,7 @@ import java.sql.Statement;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class DataTypeUnsignedTest extends BaseTest {
-
 
   /**
    * Initialisation.
@@ -88,7 +86,6 @@ public class DataTypeUnsignedTest extends BaseTest {
     createTable("unsignedFloatTest", "id FLOAT UNSIGNED");
     createTable("unsignedDoubleTest", "id DOUBLE UNSIGNED");
   }
-
 
   @Test
   public void unsignedBitTest() throws SQLException {
@@ -130,7 +127,6 @@ public class DataTypeUnsignedTest extends BaseTest {
       fail("must have result !");
     }
   }
-
 
   @Test
   public void unsignedTinyIntTest() throws SQLException {
@@ -178,7 +174,6 @@ public class DataTypeUnsignedTest extends BaseTest {
       fail("must have result !");
     }
   }
-
 
   @Test
   public void unsignedSmallIntTest() throws SQLException {
@@ -279,9 +274,11 @@ public class DataTypeUnsignedTest extends BaseTest {
 
   @Test
   public void unsignedMediumIntTest() throws SQLException {
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("insert into unsignedMediumIntTest values (16777215)");
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("insert into unsignedMediumIntTest values (8388607)");
     sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedMediumIntTest values (null)");
@@ -374,12 +371,13 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
   }
 
-
   @Test
   public void unsignedBigIntTest() throws SQLException {
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("insert into unsignedBigIntTest values (18446744073709551615)");
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("insert into unsignedBigIntTest values (9223372036854775807)");
     sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (1)");
     sharedConnection.createStatement().execute("insert into unsignedBigIntTest values (null)");
@@ -425,7 +423,6 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
   }
 
-
   @Test
   public void unsignedDecimalTest() throws SQLException {
     try (Statement statement = sharedConnection.createStatement()) {
@@ -452,13 +449,20 @@ public class DataTypeUnsignedTest extends BaseTest {
       shortMustFail(rs);
       intMustFail(rs);
       longMustFail(rs);
-      assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890F,
+          rs.getFloat(1),
           1000000000000000000000000D);
-      assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890F,
+          rs.getFloat(1),
           1000000000000000000000000D);
-      assertEquals(123456789012345678901234567890.12345678901234567890D, rs.getDouble(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890D,
+          rs.getDouble(1),
           1000000000000000000000000D);
-      assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"),
+      assertEquals(
+          new BigDecimal("123456789012345678901234567890.12345678901234567890"),
           rs.getBigDecimal(1));
       assertEquals("123456789012345678901234567890.12345678901234567890", rs.getString(1));
       if (rs.next()) {
@@ -468,8 +472,8 @@ public class DataTypeUnsignedTest extends BaseTest {
         assertEquals(9223372036854775806L, rs.getLong(1));
         assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
         assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
-        assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"),
-            rs.getBigDecimal(1));
+        assertEquals(
+            new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
         assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
         if (rs.next()) {
           assertEquals(1, rs.getByte(1));
@@ -517,7 +521,6 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
   }
 
-
   private void unsignedFloatTestResult(ResultSet rs, boolean binary) throws SQLException {
     if (rs.next()) {
       byteMustFail(rs);
@@ -532,11 +535,11 @@ public class DataTypeUnsignedTest extends BaseTest {
         byteMustFail(rs);
         shortMustFail(rs);
         intMustFail(rs);
-        //real data is 9223372036854775806.
+        // real data is 9223372036854775806.
         if (binary) {
           assertEquals(9223372036854775807L, rs.getLong(1));
         } else {
-          assertEquals(9223369837831520256L, rs.getLong(1)); //text data bad precison
+          assertEquals(9223369837831520256L, rs.getLong(1)); // text data bad precison
         }
         assertEquals(9223372036854775806F, rs.getFloat(1), 1E14F);
         assertEquals(9223372036854775806F, rs.getDouble(1), 1E14F);
@@ -601,8 +604,9 @@ public class DataTypeUnsignedTest extends BaseTest {
         byteMustFail(rs);
         shortMustFail(rs);
         intMustFail(rs);
-        assertEquals(9223372036854775807L,
-            rs.getLong(1)); //not 9223372036854775806 because of float precision
+        assertEquals(
+            9223372036854775807L,
+            rs.getLong(1)); // not 9223372036854775806 because of float precision
         assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
         assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
         assertEquals(new BigDecimal("9.223372036854776E+18"), rs.getBigDecimal(1));
@@ -693,7 +697,6 @@ public class DataTypeUnsignedTest extends BaseTest {
         } else {
           assertEquals(new BigDecimal("1.00000000000000000000"), rs.getBigDecimal(1));
           assertEquals("1.00000000000000000000", rs.getString(1));
-
         }
       } else {
         assertEquals(new BigDecimal("1"), rs.getBigDecimal(1));
@@ -724,7 +727,5 @@ public class DataTypeUnsignedTest extends BaseTest {
     assertEquals(0, rs.getFloat(1), .00001);
     assertNull(rs.getBigDecimal(1));
     assertNull(rs.getString(1));
-
   }
-
 }

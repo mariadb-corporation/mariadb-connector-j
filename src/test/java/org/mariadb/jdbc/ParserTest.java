@@ -86,8 +86,9 @@ public class ParserTest extends BaseTest {
   public void poolVerification() throws Exception {
     ArrayList<HostAddress> hostAddresses = new ArrayList<>();
     hostAddresses.add(new HostAddress(hostname, port));
-    UrlParser urlParser = new UrlParser(database, hostAddresses,
-        DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
+    UrlParser urlParser =
+        new UrlParser(
+            database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     urlParser.setUsername("USER");
     urlParser.setPassword("PWD");
     urlParser.parseUrl("jdbc:mariadb://localhost:3306/db");
@@ -118,7 +119,6 @@ public class ParserTest extends BaseTest {
         UrlParser.parse("jdbc:mariadb:sequential://host1,host2/", emptyProps).isMultiMaster());
     assertTrue(
         UrlParser.parse("jdbc:mariadb:loadbalance://host1,host2/", emptyProps).isMultiMaster());
-
   }
 
   @Test
@@ -143,7 +143,8 @@ public class ParserTest extends BaseTest {
       sql = "INSERT INTO table2 VALUES (1),(2),(3),(4),(5),(6)";
       statement.execute(sql);
       // uppercase OJ
-      sql = "SELECT table1.id1, table2.id2 FROM { OJ table1 LEFT OUTER JOIN table2 ON table1.id1 = table2.id2 }";
+      sql =
+          "SELECT table1.id1, table2.id2 FROM { OJ table1 LEFT OUTER JOIN table2 ON table1.id1 = table2.id2 }";
       ResultSet rs = statement.executeQuery(sql);
       for (int count = 1; count <= 6; count++) {
         assertTrue(rs.next());
@@ -151,7 +152,8 @@ public class ParserTest extends BaseTest {
         assertEquals(count, rs.getInt(2));
       }
       // mixed oJ
-      sql = "SELECT table1.id1, table2.id2 FROM { oJ table1 LEFT OUTER JOIN table2 ON table1.id1 = table2.id2 }";
+      sql =
+          "SELECT table1.id1, table2.id2 FROM { oJ table1 LEFT OUTER JOIN table2 ON table1.id1 = table2.id2 }";
       rs = statement.executeQuery(sql);
       for (int count = 1; count <= 6; count++) {
         assertTrue(rs.next());
@@ -166,12 +168,14 @@ public class ParserTest extends BaseTest {
   @Test
   public void auroraClusterVerification() {
     try {
-      DriverManager.getConnection("jdbc:mariadb:aurora://"
-          + "1.somehex.us-east-1.rds.amazonaws.com,"
-          + "2.someOtherHex.us-east-1.rds.amazonaws.com/testj");
+      DriverManager.getConnection(
+          "jdbc:mariadb:aurora://"
+              + "1.somehex.us-east-1.rds.amazonaws.com,"
+              + "2.someOtherHex.us-east-1.rds.amazonaws.com/testj");
       fail("must have fail since not same cluster");
     } catch (Exception e) {
-      assertEquals("Connection string must contain only one aurora cluster. "
+      assertEquals(
+          "Connection string must contain only one aurora cluster. "
               + "'2.someOtherHex.us-east-1.rds.amazonaws.com' doesn't correspond to DNS prefix "
               + "'somehex.us-east-1.rds.amazonaws.com'",
           e.getMessage());

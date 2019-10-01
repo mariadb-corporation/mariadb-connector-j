@@ -59,23 +59,23 @@ public class NoLogger implements Logger {
   }
 
   public void trace(String msg) {
-    //do nothing
+    // do nothing
   }
 
   public void trace(String format, Object arg) {
-    //do nothing
+    // do nothing
   }
 
   public void trace(String format, Object arg1, Object arg2) {
-    //do nothing
+    // do nothing
   }
 
   public void trace(String format, Object... arguments) {
-    //do nothing
+    // do nothing
   }
 
   public void trace(String msg, Throwable throwable) {
-    //do nothing
+    // do nothing
   }
 
   public boolean isDebugEnabled() {
@@ -83,23 +83,23 @@ public class NoLogger implements Logger {
   }
 
   public void debug(String msg) {
-    //do nothing
+    // do nothing
   }
 
   public void debug(String format, Object arg) {
-    //do nothing
+    // do nothing
   }
 
   public void debug(String format, Object arg1, Object arg2) {
-    //do nothing
+    // do nothing
   }
 
   public void debug(String format, Object... arguments) {
-    //do nothing
+    // do nothing
   }
 
   public void debug(String msg, Throwable throwable) {
-    //do nothing
+    // do nothing
   }
 
   public boolean isInfoEnabled() {
@@ -107,23 +107,23 @@ public class NoLogger implements Logger {
   }
 
   public void info(String msg) {
-    //do nothing
+    // do nothing
   }
 
   public void info(String format, Object arg) {
-    //do nothing
+    // do nothing
   }
 
   public void info(String format, Object arg1, Object arg2) {
-    //do nothing
+    // do nothing
   }
 
   public void info(String format, Object... arguments) {
-    //do nothing
+    // do nothing
   }
 
   public void info(String msg, Throwable throwable) {
-    //do nothing
+    // do nothing
   }
 
   public boolean isWarnEnabled() {
@@ -131,23 +131,23 @@ public class NoLogger implements Logger {
   }
 
   public void warn(String msg) {
-    //do nothing
+    // do nothing
   }
 
   public void warn(String format, Object arg) {
-    //do nothing
+    // do nothing
   }
 
   public void warn(String format, Object... arguments) {
-    //do nothing
+    // do nothing
   }
 
   public void warn(String format, Object arg1, Object arg2) {
-    //do nothing
+    // do nothing
   }
 
   public void warn(String msg, Throwable throwable) {
-    //do nothing
+    // do nothing
   }
 
   public boolean isErrorEnabled() {
@@ -155,23 +155,22 @@ public class NoLogger implements Logger {
   }
 
   public void error(String msg) {
-    //do nothing
+    // do nothing
   }
 
   public void error(String format, Object arg) {
-    //do nothing
+    // do nothing
   }
 
   public void error(String format, Object arg1, Object arg2) {
-    //do nothing
+    // do nothing
   }
 
   public void error(String format, Object... arguments) {
-    //do nothing
+    // do nothing
   }
 
   public void error(String msg, Throwable throwable) {
-    //do nothing
+    // do nothing
   }
-
 }

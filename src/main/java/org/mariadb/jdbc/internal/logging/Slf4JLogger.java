@@ -179,5 +179,4 @@ public class Slf4JLogger implements Logger {
   public void error(String msg, Throwable throwable) {
     logger.error(msg, throwable);
   }
-
 }

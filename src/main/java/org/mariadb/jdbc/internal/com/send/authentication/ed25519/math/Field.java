@@ -1,15 +1,15 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
-import java.io.Serializable;
+import java.io.*;
 
 /**
  * An EdDSA finite field. Includes several pre-computed values.
@@ -29,14 +29,11 @@ public class Field implements Serializable {
 
   private final int b;
   private final FieldElement q;
-  /**
-   * q-2
-   */
+  /** q-2 */
   private final FieldElement qm2;
-  /**
-   * (q-5) / 8
-   */
+  /** (q-5) / 8 */
   private final FieldElement qm5d8;
+
   private final Encoding enc;
 
   public Field(int b, byte[] q, Encoding enc) {
@@ -93,7 +90,8 @@ public class Field implements Serializable {
     if (!(obj instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field f = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field) obj;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field f =
+        (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field) obj;
     return b == f.b && q.equals(f.q);
   }
 }

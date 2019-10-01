@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
+import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.util.*;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import org.mariadb.jdbc.internal.io.TraceObject;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.util.Options;
+import java.io.*;
+import java.util.*;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.*;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -112,24 +111,22 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
       cmdLength += pos - 4;
 
       if (traceCache != null && permitTrace) {
-        //trace last packets
-        traceCache.put(new TraceObject(true, NOT_COMPRESSED,
-            Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
+        // trace last packets
+        traceCache.put(
+            new TraceObject(
+                true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
       }
 
       if (logger.isTraceEnabled()) {
         if (permitTrace) {
-          logger.trace("send: {}{}",
-              serverThreadLog,
-              Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
+          logger.trace(
+              "send: {}{}", serverThreadLog, Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
         } else {
-          logger.trace("send: content length={} {} com=<hidden>",
-              pos - 4,
-              serverThreadLog);
+          logger.trace("send: content length={} {} com=<hidden>", pos - 4, serverThreadLog);
         }
       }
 
-      //if last com fill the max size, must send an empty com to indicate command end.
+      // if last com fill the max size, must send an empty com to indicate command end.
       if (commandEnd && pos == MAX_PACKET_LENGTH) {
         writeEmptyPacket();
       }
@@ -151,15 +148,15 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
     out.write(buf, 0, 4);
 
     if (traceCache != null) {
-      //trace last packets
+      // trace last packets
       traceCache.put(new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
     }
 
     if (logger.isTraceEnabled()) {
-      logger.trace("send com : content length=0 {}{}",
+      logger.trace(
+          "send com : content length=0 {}{}",
           serverThreadLog,
           Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
     }
   }
-
 }

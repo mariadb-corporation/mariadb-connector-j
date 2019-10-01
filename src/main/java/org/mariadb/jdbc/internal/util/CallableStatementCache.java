@@ -52,13 +52,13 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import java.sql.CallableStatement;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-public class CallableStatementCache extends
-    LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
+import java.sql.*;
+import java.util.*;
+
+public class CallableStatementCache
+    extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
 
   private final int maxSize;
 
@@ -76,5 +76,4 @@ public class CallableStatementCache extends
       Map.Entry<CallableStatementCacheKey, CallableStatement> eldest) {
     return this.size() > maxSize;
   }
-
 }

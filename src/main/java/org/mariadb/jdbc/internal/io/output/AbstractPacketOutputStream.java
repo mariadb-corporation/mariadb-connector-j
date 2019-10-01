@@ -52,17 +52,15 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import java.io.FilterOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.util.Arrays;
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
 
-public abstract class AbstractPacketOutputStream extends FilterOutputStream implements
-    PacketOutputStream {
+import java.io.*;
+import java.nio.charset.*;
+import java.util.*;
+
+public abstract class AbstractPacketOutputStream extends FilterOutputStream
+    implements PacketOutputStream {
 
   private static final byte QUOTE = (byte) '\'';
   private static final byte DBL_QUOTE = (byte) '"';
@@ -87,7 +85,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
-   * @param out               socket outputStream
+   * @param out socket outputStream
    * @param maxQuerySizeToLog maximum query size to log
    */
   public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
@@ -106,11 +104,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Buffer growing use 4 size only to avoid creating/copying that are expensive operations.
    * possible size
+   *
    * <ol>
-   * <li>SMALL_BUFFER_SIZE  = 8k (default)</li>
-   * <li>MEDIUM_BUFFER_SIZE = 128k</li>
-   * <li>LARGE_BUFFER_SIZE  = 1M</li>
-   * <li>getMaxPacketLength = 16M (+ 4 is using no compression)</li>
+   *   <li>SMALL_BUFFER_SIZE = 8k (default)
+   *   <li>MEDIUM_BUFFER_SIZE = 128k
+   *   <li>LARGE_BUFFER_SIZE = 1M
+   *   <li>getMaxPacketLength = 16M (+ 4 is using no compression)
    * </ol>
    *
    * @param len length to add
@@ -133,24 +132,24 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         newCapacity = getMaxPacketLength();
       }
     } else if (bufferContainDataAfterMark) {
-      //want to add some information to buffer without having the command Header
-      //must grow buffer until having all the query
+      // want to add some information to buffer without having the command Header
+      // must grow buffer until having all the query
       newCapacity = Math.max(len + pos, getMaxPacketLength());
     } else {
       newCapacity = getMaxPacketLength();
     }
 
     if (mark != -1 && len + pos > newCapacity) {
-      //buffer is > 16M with mark.
-      //flush until mark, reset pos at beginning
+      // buffer is > 16M with mark.
+      // flush until mark, reset pos at beginning
       flushBufferStopAtMark();
 
       if (len + pos <= bufferLength) {
         return;
       }
 
-      //need to keep all data, buffer can grow more than maxPacketLength
-      //grow buffer if needed
+      // need to keep all data, buffer can grow more than maxPacketLength
+      // grow buffer if needed
       if (len + pos > newCapacity) {
         newCapacity = len + pos;
       }
@@ -185,7 +184,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     flushBuffer(true);
     out.flush();
 
-    // if buffer is big, and last query doesn't use at least half of it, resize buffer to default value
+    // if buffer is big, and last query doesn't use at least half of it, resize buffer to default
+    // value
     if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
       buf = new byte[SMALL_BUFFER_SIZE];
     }
@@ -210,9 +210,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    */
   public void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
     if (cmdLength + length >= maxAllowedPacket && cmdLength == 0) {
-      //launch exception only if no packet has been send.
-      throw new MaxAllowedPacketException("query size (" + (cmdLength + length)
-          + ") is >= to max_allowed_packet (" + maxAllowedPacket + ")", false);
+      // launch exception only if no packet has been send.
+      throw new MaxAllowedPacketException(
+          "query size ("
+              + (cmdLength + length)
+              + ") is >= to max_allowed_packet ("
+              + maxAllowedPacket
+              + ")",
+          false);
     }
   }
 
@@ -232,7 +237,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    */
   public void writeShort(short value) throws IOException {
     if (2 > buf.length - pos) {
-      //not enough space remaining
+      // not enough space remaining
       byte[] arr = new byte[2];
       arr[0] = (byte) value;
       arr[1] = (byte) (value >> 8);
@@ -253,7 +258,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    */
   public void writeInt(int value) throws IOException {
     if (4 > buf.length - pos) {
-      //not enough space remaining
+      // not enough space remaining
       byte[] arr = new byte[4];
       arr[0] = (byte) value;
       arr[1] = (byte) (value >> 8);
@@ -278,7 +283,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    */
   public void writeLong(long value) throws IOException {
     if (8 > buf.length - pos) {
-      //not enough space remaining
+      // not enough space remaining
       byte[] arr = new byte[8];
       arr[0] = (byte) value;
       arr[1] = (byte) (value >> 8);
@@ -307,12 +312,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    * Write byte value, len times into buffer. flush buffer if too small.
    *
    * @param value byte value
-   * @param len   number of time to write value.
+   * @param len number of time to write value.
    * @throws IOException if socket error occur.
    */
   public void writeBytes(byte value, int len) throws IOException {
     if (len > buf.length - pos) {
-      //not enough space remaining
+      // not enough space remaining
       byte[] arr = new byte[len];
       Arrays.fill(arr, value);
       write(arr, 0, len);
@@ -341,7 +346,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     if (length < 65536) {
 
       if (3 > buf.length - pos) {
-        //not enough space remaining
+        // not enough space remaining
         byte[] arr = new byte[3];
         arr[0] = (byte) 0xfc;
         arr[1] = (byte) length;
@@ -360,7 +365,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     if (length < 16777216) {
 
       if (4 > buf.length - pos) {
-        //not enough space remaining
+        // not enough space remaining
         byte[] arr = new byte[4];
         arr[0] = (byte) 0xfd;
         arr[1] = (byte) length;
@@ -379,7 +384,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     }
 
     if (9 > buf.length - pos) {
-      //not enough space remaining
+      // not enough space remaining
       byte[] arr = new byte[9];
       arr[0] = (byte) 0xfe;
       arr[1] = (byte) length;
@@ -415,7 +420,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   public void write(int value) throws IOException {
     if (pos >= buf.length) {
       if (pos >= getMaxPacketLength() && !bufferContainDataAfterMark) {
-        //buffer is more than a Packet, must flushBuffer()
+        // buffer is more than a Packet, must flushBuffer()
         flushBuffer(false);
       } else {
         growBuffer(1);
@@ -442,7 +447,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         growBuffer(len);
       }
 
-      //max buffer size
+      // max buffer size
       if (len > buf.length - pos) {
 
         if (mark != -1) {
@@ -452,7 +457,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
           }
 
         } else {
-          //not enough space in buffer, will stream :
+          // not enough space in buffer, will stream :
           // fill buffer and flush until all data are snd
           int remainingLen = len;
           do {
@@ -483,8 +488,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Write string to socket.
    *
-   * @param str                string
-   * @param escape             must be escape
+   * @param str string
+   * @param escape must be escape
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -492,9 +497,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
     int charsLength = str.length();
 
-    //not enough space remaining
+    // not enough space remaining
     if (charsLength * 3 + 2 >= buf.length - pos) {
-      byte[] arr = str.getBytes("UTF-8");
+      byte[] arr = str.getBytes(StandardCharsets.UTF_8);
       if (escape) {
         write(QUOTE);
         writeBytesEscaped(arr, arr.length, noBackslashEscapes);
@@ -505,20 +510,22 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       return;
     }
 
-    //create UTF-8 byte array
-    //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
-    //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
-    //so max size is 3 * charLength
-    //(escape characters are 1 byte encoded, so length might only be 2 when escape)
+    // create UTF-8 byte array
+    // since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode
+    // characters will
+    // represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
+    // so max size is 3 * charLength
+    // (escape characters are 1 byte encoded, so length might only be 2 when escape)
     // + 2 for the quotes for text protocol
     int charsOffset = 0;
     char currChar;
 
-    //quick loop if only ASCII chars for faster escape
+    // quick loop if only ASCII chars for faster escape
     if (escape) {
       buf[pos++] = QUOTE;
       if (noBackslashEscapes) {
-        for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
+        for (;
+            charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
             charsOffset++) {
           if (currChar == QUOTE) {
             buf[pos++] = QUOTE;
@@ -526,9 +533,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
           buf[pos++] = (byte) currChar;
         }
       } else {
-        for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
+        for (;
+            charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
             charsOffset++) {
-          if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0
+          if (currChar == BACKSLASH
+              || currChar == QUOTE
+              || currChar == 0
               || currChar == DBL_QUOTE) {
             buf[pos++] = BACKSLASH;
           }
@@ -536,13 +546,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         }
       }
     } else {
-      for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
+      for (;
+          charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
           charsOffset++) {
         buf[pos++] = (byte) currChar;
       }
     }
 
-    //if quick loop not finished
+    // if quick loop not finished
     while (charsOffset < charsLength) {
       currChar = str.charAt(charsOffset++);
       if (currChar < 0x80) {
@@ -551,7 +562,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             if (currChar == QUOTE) {
               buf[pos++] = QUOTE;
             }
-          } else if (currChar == BACKSLASH || currChar == QUOTE || currChar == ZERO_BYTE
+          } else if (currChar == BACKSLASH
+              || currChar == QUOTE
+              || currChar == ZERO_BYTE
               || currChar == DBL_QUOTE) {
             buf[pos++] = BACKSLASH;
           }
@@ -561,15 +574,15 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         buf[pos++] = (byte) (0xc0 | (currChar >> 6));
         buf[pos++] = (byte) (0x80 | (currChar & 0x3f));
       } else if (currChar >= 0xD800 && currChar < 0xE000) {
-        //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+        // reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
         if (currChar < 0xDC00) {
-          //is high surrogate
+          // is high surrogate
           if (charsOffset + 1 > charsLength) {
             buf[pos++] = (byte) 0x63;
           } else {
             char nextChar = str.charAt(charsOffset);
             if (nextChar >= 0xDC00 && nextChar < 0xE000) {
-              //is low surrogate
+              // is low surrogate
               int surrogatePairs =
                   ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
               buf[pos++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
@@ -578,12 +591,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
               buf[pos++] = (byte) (0x80 | (surrogatePairs & 0x3f));
               charsOffset++;
             } else {
-              //must have low surrogate
+              // must have low surrogate
               buf[pos++] = (byte) 0x3f;
             }
           }
         } else {
-          //low surrogate without high surrogate before
+          // low surrogate without high surrogate before
           buf[pos++] = (byte) 0x3f;
         }
       } else {
@@ -595,14 +608,13 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     if (escape) {
       buf[pos++] = QUOTE;
     }
-
   }
 
   /**
    * Write stream into socket.
    *
-   * @param is                 inputStream
-   * @param escape             must be escape
+   * @param is inputStream
+   * @param escape must be escape
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -623,9 +635,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Write stream into socket.
    *
-   * @param is                 inputStream
-   * @param length             write length
-   * @param escape             must be escape
+   * @param is inputStream
+   * @param length write length
+   * @param escape must be escape
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -646,8 +658,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Write reader into socket.
    *
-   * @param reader             reader
-   * @param escape             must be escape
+   * @param reader reader
+   * @param escape must be escape
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -655,22 +667,21 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     char[] buffer = new char[4096];
     int len;
     while ((len = reader.read(buffer)) >= 0) {
-      byte[] data = new String(buffer, 0, len).getBytes("UTF-8");
+      byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
       if (escape) {
         writeBytesEscaped(data, data.length, noBackslashEscapes);
       } else {
         write(data);
       }
-
     }
   }
 
   /**
    * Write reader into socket.
    *
-   * @param reader             reader
-   * @param length             write length
-   * @param escape             must be escape
+   * @param reader reader
+   * @param length write length
+   * @param escape must be escape
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -679,7 +690,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     char[] buffer = new char[4096];
     int len;
     while (length > 0 && (len = reader.read(buffer, 0, Math.min((int) length, 4096))) >= 0) {
-      byte[] data = new String(buffer, 0, len).getBytes("UTF-8");
+      byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
       if (escape) {
         writeBytesEscaped(data, data.length, noBackslashEscapes);
       } else {
@@ -692,8 +703,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   /**
    * Write escape bytes to socket.
    *
-   * @param bytes              bytes
-   * @param len                len to write
+   * @param bytes bytes
+   * @param len len to write
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
@@ -701,13 +712,13 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       throws IOException {
     if (len * 2 > buf.length - pos) {
 
-      //makes buffer bigger (up to 16M)
+      // makes buffer bigger (up to 16M)
       if (buf.length != getMaxPacketLength()) {
         growBuffer(len * 2);
       }
 
-      //data may be bigger than buffer.
-      //must flush buffer when full (and reset position to 0)
+      // data may be bigger than buffer.
+      // must flush buffer when full (and reset position to 0)
       if (len * 2 > buf.length - pos) {
 
         if (mark != -1) {
@@ -718,7 +729,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
         } else {
 
-          //not enough space in buffer, will fill buffer
+          // not enough space in buffer, will fill buffer
           if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {
               if (QUOTE == bytes[i]) {
@@ -751,11 +762,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
           }
           return;
         }
-
       }
     }
 
-    //sure to have enough place filling buffer directly
+    // sure to have enough place filling buffer directly
     if (noBackslashEscapes) {
       for (int i = 0; i < len; i++) {
         if (QUOTE == bytes[i]) {
@@ -769,12 +779,11 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             || bytes[i] == BACKSLASH
             || bytes[i] == '"'
             || bytes[i] == ZERO_BYTE) {
-          buf[pos++] = BACKSLASH; //add escape slash
+          buf[pos++] = BACKSLASH; // add escape slash
         }
         buf[pos++] = bytes[i];
       }
     }
-
   }
 
   public int getMaxAllowedPacket() {
@@ -791,7 +800,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
    * Set server thread id.
    *
    * @param serverThreadId current server thread id.
-   * @param isMaster       is server master
+   * @param isMaster is server master
    */
   public void setServerThreadId(long serverThreadId, Boolean isMaster) {
     this.serverThreadLog =

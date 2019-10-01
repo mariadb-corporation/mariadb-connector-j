@@ -95,10 +95,13 @@ public class BlobTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("bug716378",
+    createTable(
+        "bug716378",
         "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
-    createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text"
-                    + ", strm2 text, strm3 text","CHARSET utf8");
+    createTable(
+        "BlobTeststreamtest2",
+        "id int primary key not null, st varchar(20), strm text" + ", strm2 text, strm3 text",
+        "CHARSET utf8");
     createTable("BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest", "id int not null primary key, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest2", "strm text", "CHARSET utf8");
@@ -107,38 +110,38 @@ public class BlobTest extends BaseTest {
     createTable("BlobTestclobtest5", "id int not null primary key, strm text", "CHARSET utf8");
     createTable("BlobTestblobtest", "id int not null primary key, strm blob");
     createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
-    createTable("conj77_test", "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)",
+    createTable(
+        "conj77_test",
+        "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)",
         "Engine=InnoDB DEFAULT CHARSET utf8");
-
-
   }
 
   @Test
   public void testPosition() throws SQLException {
-    byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    byte[] pattern = new byte[]{3, 4};
+    byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    byte[] pattern = new byte[] {3, 4};
     Blob blob = new MariaDbBlob(blobContent);
     assertEquals(3, blob.position(pattern, 1));
-    pattern = new byte[]{12, 13};
+    pattern = new byte[] {12, 13};
     assertEquals(-1, blob.position(pattern, 1));
-    pattern = new byte[]{11, 12};
+    pattern = new byte[] {11, 12};
     assertEquals(11, blob.position(pattern, 1));
-    pattern = new byte[]{1, 2};
+    pattern = new byte[] {1, 2};
     assertEquals(1, blob.position(pattern, 1));
   }
 
   @Test(expected = SQLException.class)
   public void testBadStart() throws SQLException {
-    byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    byte[] pattern = new byte[]{3, 4};
+    byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    byte[] pattern = new byte[] {3, 4};
     Blob blob = new MariaDbBlob(blobContent);
     blob.position(pattern, 0);
   }
 
   @Test(expected = SQLException.class)
   public void testBadStart2() throws SQLException {
-    byte[] blobContent = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-    byte[] pattern = new byte[]{3, 4};
+    byte[] blobContent = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    byte[] pattern = new byte[] {3, 4};
     Blob blob = new MariaDbBlob(blobContent);
     blob.position(pattern, 44);
   }
@@ -156,13 +159,13 @@ public class BlobTest extends BaseTest {
     assertEquals(String.class, rs.getObject(4).getClass());
   }
 
-
   @Test
   public void testCharacterStreamWithMultibyteCharacterAndLength() throws Throwable {
     String toInsert1 = "Øbbcdefgh\njklmn\"";
     String toInsert2 = "Øabcdefgh\njklmn\"";
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTeststreamtest2 (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "insert into BlobTeststreamtest2 (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
     stmt.setInt(1, 2);
     stmt.setString(2, toInsert1);
     Reader reader = new StringReader(toInsert2);
@@ -171,8 +174,8 @@ public class BlobTest extends BaseTest {
     stmt.setCharacterStream(5, null, 5);
     stmt.execute();
 
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTeststreamtest2");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest2");
     assertTrue(rs.next());
     Reader rdr = rs.getCharacterStream("strm");
     StringBuilder sb = new StringBuilder();
@@ -188,15 +191,16 @@ public class BlobTest extends BaseTest {
 
   @Test
   public void testCharacterStreamWithMultibyteCharacter() throws Throwable {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTeststreamtest3 (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "insert into BlobTeststreamtest3 (id, strm) values (?,?)");
     stmt.setInt(1, 2);
     String toInsert = "Øabcdefgh\njklmn\"";
     Reader reader = new StringReader(toInsert);
     stmt.setCharacterStream(2, reader);
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTeststreamtest3");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest3");
     assertTrue(rs.next());
     Reader rdr = rs.getCharacterStream("strm");
     StringBuilder sb = new StringBuilder();
@@ -207,11 +211,10 @@ public class BlobTest extends BaseTest {
     assertEquals(toInsert, sb.toString());
   }
 
-
   @Test
   public void testReaderWithLength() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestclobtest5 (id, strm) values (?,?)");
     byte[] arr = new byte[32000];
     Arrays.fill(arr, (byte) 'b');
 
@@ -219,8 +222,8 @@ public class BlobTest extends BaseTest {
     String clob = new String(arr);
     stmt.setCharacterStream(2, new StringReader(clob), 20000);
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestclobtest5");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest5");
     assertTrue(rs.next());
     Reader readStuff = rs.getCharacterStream("strm");
 
@@ -240,11 +243,10 @@ public class BlobTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testBlobWithLength() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestblobtest2 (id, strm) values (?,?)");
     byte[] arr = new byte[32000];
     Random rand = new Random();
     rand.nextBytes(arr);
@@ -253,15 +255,15 @@ public class BlobTest extends BaseTest {
     stmt.setBlob(2, stream, 20000);
     stmt.execute();
 
-    //check what stream not read after length:
+    // check what stream not read after length:
     int remainRead = 0;
     while (stream.read() >= 0) {
       remainRead++;
     }
     assertEquals(12000, remainRead);
 
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestblobtest2");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
     assertTrue(rs.next());
     InputStream readStuff = rs.getBlob("strm").getBinaryStream();
     int pos = 0;
@@ -270,19 +272,18 @@ public class BlobTest extends BaseTest {
       assertEquals(arr[pos++] & 0xff, ch);
     }
     assertEquals(20000, pos);
-
   }
 
   @Test
   public void testClobWithLengthAndMultibyteCharacter() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestclobtest (id, strm) values (?,?)");
     String clob = "Øclob";
     stmt.setInt(1, 1);
     stmt.setClob(2, new StringReader(clob));
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestclobtest");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest");
     if (rs.next()) {
       Reader readStuff = rs.getClob("strm").getCharacterStream();
       char[] chars = new char[5];
@@ -292,21 +293,20 @@ public class BlobTest extends BaseTest {
     } else {
       fail();
     }
-
   }
 
   @Test
   public void testClob3() throws Exception {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestclobtest2 (strm) values (?)");
     Clob clob = sharedConnection.createClob();
     Writer writer = clob.setCharacterStream(1);
     writer.write("Øhello", 0, 6);
     writer.flush();
     stmt.setClob(1, clob);
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestclobtest2");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
     assertTrue(rs.next());
     assertTrue(rs.getObject(1) instanceof String);
     String result = rs.getString(1);
@@ -315,15 +315,15 @@ public class BlobTest extends BaseTest {
 
   @Test
   public void testBlob() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
     byte[] theBlob = {1, 2, 3, 4, 5, 6};
     InputStream stream = new ByteArrayInputStream(theBlob);
     stmt.setInt(1, 1);
     stmt.setBlob(2, stream);
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestblobtest");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest");
     assertTrue(rs.next());
     InputStream readStuff = rs.getBlob("strm").getBinaryStream();
     int ch;
@@ -340,17 +340,16 @@ public class BlobTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testClobWithLength() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestclobtest3 (id, strm) values (?,?)");
     String clob = "clob";
     stmt.setInt(1, 1);
     stmt.setClob(2, new StringReader(clob));
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestclobtest3");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
     assertTrue(rs.next());
     Reader readStuff = rs.getClob("strm").getCharacterStream();
     char[] chars = new char[4];
@@ -361,8 +360,8 @@ public class BlobTest extends BaseTest {
 
   @Test
   public void testClob2() throws SQLException, IOException {
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into BlobTestclobtest4 (id, strm) values (?,?)");
     Clob clob = sharedConnection.createClob();
     OutputStream ostream = clob.setAsciiStream(1);
     byte[] bytes = "hello".getBytes();
@@ -370,8 +369,8 @@ public class BlobTest extends BaseTest {
     stmt.setInt(1, 1);
     stmt.setClob(2, clob);
     stmt.execute();
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("select * from BlobTestclobtest4");
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
     assertTrue(rs.next());
     assertTrue(rs.getObject(2) instanceof String);
     assertTrue(rs.getString(2).equals("hello"));
@@ -379,7 +378,7 @@ public class BlobTest extends BaseTest {
 
   @Test
   public void blobSerialization() throws Exception {
-    Blob blob = new MariaDbBlob(new byte[]{1, 2, 3});
+    Blob blob = new MariaDbBlob(new byte[] {1, 2, 3});
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(baos);
     oos.writeObject(blob);
@@ -392,7 +391,7 @@ public class BlobTest extends BaseTest {
     assertEquals(2, blobBytes[1]);
     assertEquals(3, blobBytes[2]);
 
-    Clob clob = new MariaDbClob(new byte[]{1, 2, 3});
+    Clob clob = new MariaDbClob(new byte[] {1, 2, 3});
     baos = new ByteArrayOutputStream();
     oos = new ObjectOutputStream(baos);
     oos.writeObject(clob);
@@ -409,8 +408,11 @@ public class BlobTest extends BaseTest {
   @Test
   public void conj73() throws Exception {
     /* CONJ-73: Assertion error: UTF8 length calculation reports invalid ut8 characters */
-    Clob clob = new MariaDbClob(
-        new byte[]{(byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e});
+    Clob clob =
+        new MariaDbClob(
+            new byte[] {
+              (byte) 0x10, (byte) 0xD0, (byte) 0xA0, (byte) 0xe0, (byte) 0xa1, (byte) 0x8e
+            });
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(baos);
     oos.writeObject(clob);
@@ -430,8 +432,9 @@ public class BlobTest extends BaseTest {
     values[2] = null;
 
     try (Statement sta1 = sharedConnection.createStatement()) {
-      try (PreparedStatement pre = sharedConnection
-          .prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
+      try (PreparedStatement pre =
+          sharedConnection.prepareStatement(
+              "INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
         pre.setString(1, "1-Empty String");
         pre.setBytes(2, values[0]);
         pre.addBatch();
@@ -490,12 +493,11 @@ public class BlobTest extends BaseTest {
       assertEquals("a 'a ", rs.getString(2));
       assertNull(rs.getBytes(3));
     }
-
   }
 
   @Test
   public void blobSerializationWithOffset() throws Exception {
-    Blob blob = new MariaDbBlob(new byte[]{1, 2, 3, 4, 5}, 1, 2);
+    Blob blob = new MariaDbBlob(new byte[] {1, 2, 3, 4, 5}, 1, 2);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     ObjectOutputStream oos = new ObjectOutputStream(baos);
     oos.writeObject(blob);
@@ -507,7 +509,7 @@ public class BlobTest extends BaseTest {
     assertEquals(2, blobBytes[0]);
     assertEquals(3, blobBytes[1]);
 
-    Clob clob = new MariaDbClob(new byte[]{1, 2, 3, 4, 5}, 1, 2);
+    Clob clob = new MariaDbClob(new byte[] {1, 2, 3, 4, 5}, 1, 2);
     baos = new ByteArrayOutputStream();
     oos = new ObjectOutputStream(baos);
     oos.writeObject(clob);
@@ -519,7 +521,6 @@ public class BlobTest extends BaseTest {
     assertEquals(2, blobBytes[0]);
     assertEquals(3, blobBytes[1]);
   }
-
 
   @Test
   public void blobDeserializationFilter() throws Exception {
@@ -557,34 +558,37 @@ public class BlobTest extends BaseTest {
     ObjectInputStream ois = new ObjectInputStream(bis);
 
     if (addFilter) {
-      //equivalent of :  (but permit compilation if java < 9)
-      //ois.setObjectInputFilter(new ObjectInputFilter() {
+      // equivalent of :  (but permit compilation if java < 9)
+      // ois.setObjectInputFilter(new ObjectInputFilter() {
       //  @Override
       //  public Status checkInput(FilterInfo filterInfo) {
       //      if (filterInfo.arrayLength() > 500) return Status.REJECTED;
       //      return Status.ALLOWED;
       //  }
-      //});
+      // });
 
       ClassLoader cl = BlobTest.class.getClassLoader();
       Class<?> objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
 
-      Object objectInputFilterImpl = Proxy
-          .newProxyInstance(cl, new Class[]{objectInputFilterClass}, (proxy, method, args) -> {
-            Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
-            Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
-            Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
-            Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
-            Field rejected = statusClass.getField("REJECTED");
-            Field allowed = statusClass.getField("ALLOWED");
-            if (arrayLength > filterSize) {
-              return rejected.get(null);
-            }
-            return allowed.get(null);
-          });
+      Object objectInputFilterImpl =
+          Proxy.newProxyInstance(
+              cl,
+              new Class[] {objectInputFilterClass},
+              (proxy, method, args) -> {
+                Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
+                Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
+                Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
+                Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
+                Field rejected = statusClass.getField("REJECTED");
+                Field allowed = statusClass.getField("ALLOWED");
+                if (arrayLength > filterSize) {
+                  return rejected.get(null);
+                }
+                return allowed.get(null);
+              });
 
-      Method setObjectInputFilterMethod = ObjectInputStream.class
-          .getDeclaredMethod("setObjectInputFilter", objectInputFilterClass);
+      Method setObjectInputFilterMethod =
+          ObjectInputStream.class.getDeclaredMethod("setObjectInputFilter", objectInputFilterClass);
       setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
     }
 
@@ -602,9 +606,8 @@ public class BlobTest extends BaseTest {
   @Test
   public void connectionBlob() throws SQLException {
     Blob blob = sharedConnection.createBlob();
-    assertArrayEquals(new byte[]{0}, blob.getBytes(1, 1));
-    blob.setBytes(5, new byte[]{1, 2, 3, 4, 5, 6});
-    assertArrayEquals(new byte[]{0, 0, 0, 0, 1, 2, 3, 4, 5}, blob.getBytes(1, 9));
+    assertArrayEquals(new byte[] {0}, blob.getBytes(1, 1));
+    blob.setBytes(5, new byte[] {1, 2, 3, 4, 5, 6});
+    assertArrayEquals(new byte[] {0, 0, 0, 0, 1, 2, 3, 4, 5}, blob.getBytes(1, 9));
   }
-
 }

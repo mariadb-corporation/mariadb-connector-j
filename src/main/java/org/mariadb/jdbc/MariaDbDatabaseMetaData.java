@@ -52,28 +52,17 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PseudoColumnUsage;
-import java.sql.ResultSet;
-import java.sql.RowIdLifetime;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.util.*;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.dao.Identifier;
-import org.mariadb.jdbc.util.Options;
+import java.sql.*;
+import java.text.*;
+import java.util.*;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
@@ -1947,8 +1936,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    *   <LI><B>SPECIFIC_NAME</B> String {@code =>} The name which uniquely identifies this procedure
    *       within its schema.
    * </OL>
+   *
    * <p>A user may not have permissions to execute any of the procedures that are returned by <code>
-   * getProcedures</code></p>
+   * getProcedures</code>
    *
    * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
    *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
@@ -3804,7 +3794,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    *   <li>DESCRIPTION String : A description of the property. This will typically contain
    *       information as to where this property is stored in the database.
    * </ol>
-   * <p>The ResultSet is sorted by the NAME column</p>
+   *
+   * <p>The ResultSet is sorted by the NAME column
    *
    * @return A ResultSet object; each row is a supported client info property
    */

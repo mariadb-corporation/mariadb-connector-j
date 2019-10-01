@@ -52,30 +52,23 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.util.List;
-import java.util.TimeZone;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
-import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
+import java.net.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
 
 public interface Protocol {
 
@@ -154,27 +147,47 @@ public interface Protocol {
   void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset)
       throws SQLException;
 
-  void executeQuery(boolean mustExecuteOnMaster, Results results,
+  void executeQuery(
+      boolean mustExecuteOnMaster,
+      Results results,
       final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters) throws SQLException;
+      ParameterHolder[] parameters)
+      throws SQLException;
 
-  void executeQuery(boolean mustExecuteOnMaster, Results results,
+  void executeQuery(
+      boolean mustExecuteOnMaster,
+      Results results,
       final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters, int timeout) throws SQLException;
+      ParameterHolder[] parameters,
+      int timeout)
+      throws SQLException;
 
-  boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
+  boolean executeBatchClient(
+      boolean mustExecuteOnMaster,
+      Results results,
       final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
+      final List<ParameterHolder[]> parametersList,
+      boolean hasLongData)
+      throws SQLException;
 
   void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
       throws SQLException;
 
-  void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-      Results results, ParameterHolder[] parameters) throws SQLException;
+  void executePreparedQuery(
+      boolean mustExecuteOnMaster,
+      ServerPrepareResult serverPrepareResult,
+      Results results,
+      ParameterHolder[] parameters)
+      throws SQLException;
 
-  boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-      Results results, String sql, List<ParameterHolder[]> parameterList,
-      boolean hasLongData) throws SQLException;
+  boolean executeBatchServer(
+      boolean mustExecuteOnMaster,
+      ServerPrepareResult serverPrepareResult,
+      Results results,
+      String sql,
+      List<ParameterHolder[]> parameterList,
+      boolean hasLongData)
+      throws SQLException;
 
   void getResult(Results results) throws SQLException;
 
@@ -232,11 +245,17 @@ public interface Protocol {
 
   TimeZone getTimeZone();
 
-  void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
-      MariaDbStatement statement) throws SQLException;
+  void prolog(
+      long maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
+      throws SQLException;
 
-  void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-      MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+  void prologProxy(
+      ServerPrepareResult serverPrepareResult,
+      long maxRows,
+      boolean hasProxy,
+      MariaDbConnection connection,
+      MariaDbStatement statement)
+      throws SQLException;
 
   Results getActiveStreamingResult();
 
@@ -262,8 +281,8 @@ public interface Protocol {
 
   void removeActiveStreamingResult();
 
-  void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database,
-      boolean autocommit)
+  void resetStateAfterFailover(
+      long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
       throws SQLException;
 
   void setActiveFutureTask(FutureTask activeFutureTask);

@@ -33,19 +33,18 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 /**
- * Permit to buffer socket data, reading not only asked bytes, but available number of bytes when possible.
+ * Permit to buffer socket data, reading not only asked bytes, but available number of bytes when
+ * possible.
  */
 public class ReadAheadBufferedStream extends FilterInputStream {
 
+  private static final int BUF_SIZE = 16384;
   private volatile byte[] buf;
   private int end;
   private int pos;
-  private static final int BUF_SIZE = 16384;
 
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
@@ -71,9 +70,9 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Returing byte array, from cache of reading socket if needed.
    *
-   * @param externalBuf   buffer to fill
-   * @param off           offset
-   * @param len           length to read
+   * @param externalBuf buffer to fill
+   * @param off offset
+   * @param len length to read
    * @return number of added bytes
    * @throws IOException if exception during socket reading
    */
@@ -86,10 +85,10 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     int totalReads = 0;
     while (true) {
 
-      //read
+      // read
       if (end - pos <= 0) {
         if (len - totalReads >= buf.length) {
-          //buffer length is less than asked byte and buffer is empty
+          // buffer length is less than asked byte and buffer is empty
           // => filling directly into external buffer
           int reads = super.read(externalBuf, off + totalReads, len - totalReads);
           if (reads <= 0) {
@@ -99,7 +98,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
 
         } else {
 
-          //filling internal buffer
+          // filling internal buffer
           fillBuffer(len - totalReads);
           if (end <= 0) {
             return (totalReads == 0) ? -1 : totalReads;
@@ -107,7 +106,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
         }
       }
 
-      //copy internal value to buffer.
+      // copy internal value to buffer.
       int copyLength = Math.min(len - totalReads, end - pos);
       System.arraycopy(buf, pos, externalBuf, off + totalReads, copyLength);
       pos += copyLength;
@@ -122,7 +121,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Fill buffer with required length, or available bytes.
    *
-   * @param minNeededBytes  asked number of bytes
+   * @param minNeededBytes asked number of bytes
    * @throws IOException in case of failing reading stream.
    */
   private void fillBuffer(int minNeededBytes) throws IOException {
@@ -130,7 +129,6 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     end = super.read(buf, 0, lengthToReallyRead);
     pos = 0;
   }
-
 
   public synchronized long skip(long n) throws IOException {
     throw new IOException("Skip from socket not implemented");
@@ -151,5 +149,4 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   public void close() throws IOException {
     super.close();
   }
-
 }

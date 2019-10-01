@@ -65,18 +65,14 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyAuroraUrl;
     Assume.assumeTrue(initialAuroraUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialAuroraUrl;
@@ -91,10 +87,14 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
   @Test
   public void testTimeZoneDiscovery() throws Throwable {
 
-    try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'",
-        false)) {
-      List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy()
-          .getListener().getUrlParser().getHostAddresses();
+    try (Connection connection =
+        getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
+      List<HostAddress> hostAddresses =
+          getProtocolFromConnection(connection)
+              .getProxy()
+              .getListener()
+              .getUrlParser()
+              .getHostAddresses();
       for (HostAddress hostAddress : hostAddresses) {
         System.out.println("hostAddress:" + hostAddress);
       }

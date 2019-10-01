@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.exceptions;
 
-import java.io.IOException;
+import java.io.*;
 
 public class MaxAllowedPacketException extends IOException {
 

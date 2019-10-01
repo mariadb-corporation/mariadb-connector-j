@@ -65,7 +65,7 @@ public class OkPacket {
    * @param buffer current stream's rawBytes
    */
   public OkPacket(Buffer buffer) {
-    buffer.skipByte(); //fieldCount
+    buffer.skipByte(); // fieldCount
     affectedRows = buffer.getLengthEncodedNumeric();
     insertId = buffer.getLengthEncodedNumeric();
     serverStatus = buffer.readShort();
@@ -99,5 +99,4 @@ public class OkPacket {
   public short getWarnings() {
     return warnings;
   }
-
 }

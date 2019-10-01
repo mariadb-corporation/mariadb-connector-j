@@ -41,7 +41,7 @@ public class DefaultOptionsTest {
 
   @Test
   public void parseDefault() throws Exception {
-    //check that default option object correspond to default
+    // check that default option object correspond to default
     Options option = new Options();
     DefaultOptions.postOptionProcess(option, null);
     for (HaMode haMode : HaMode.values()) {
@@ -49,9 +49,13 @@ public class DefaultOptionsTest {
       DefaultOptions.postOptionProcess(defaultOption, null);
       for (DefaultOptions o : DefaultOptions.values()) {
         Field field = Options.class.getField(o.getOptionName());
-        assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(HaMode.NONE)),
+        assertEquals(
+            "field :" + field.getName(),
+            field.get(DefaultOptions.defaultValues(HaMode.NONE)),
             field.get(option));
-        assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(haMode)),
+        assertEquals(
+            "field :" + field.getName(),
+            field.get(DefaultOptions.defaultValues(haMode)),
             field.get(defaultOption));
       }
     }
@@ -59,11 +63,10 @@ public class DefaultOptionsTest {
 
   @Test
   public void getDefaultPropertyInfo() throws Exception {
-    //check that default option object correspond to default
+    // check that default option object correspond to default
     Driver driver = new Driver();
-    DriverPropertyInfo[] driverPropertyInfos = driver
-        .getPropertyInfo("jdbc:mariadb://localhost:3306/testj?user=hi",
-            new Properties());
+    DriverPropertyInfo[] driverPropertyInfos =
+        driver.getPropertyInfo("jdbc:mariadb://localhost:3306/testj?user=hi", new Properties());
     assertTrue(driverPropertyInfos.length > 30);
     Assert.assertEquals(driverPropertyInfos[0].name, "user");
     Assert.assertEquals(driverPropertyInfos[0].value, "hi");
@@ -72,11 +75,9 @@ public class DefaultOptionsTest {
 
   @Test
   public void getDefaultPropertyInfoNoUrl() throws Exception {
-    //check that default option object correspond to default
+    // check that default option object correspond to default
     Driver driver = new Driver();
-    DriverPropertyInfo[] driverPropertyInfos = driver
-        .getPropertyInfo(null,
-            new Properties());
+    DriverPropertyInfo[] driverPropertyInfos = driver.getPropertyInfo(null, new Properties());
     assertTrue(driverPropertyInfos.length > 30);
     Assert.assertEquals(driverPropertyInfos[0].name, "user");
     Assert.assertEquals(driverPropertyInfos[0].value, null);
@@ -85,7 +86,7 @@ public class DefaultOptionsTest {
 
   @Test
   public void getPropertyInfoNoUrl() throws Exception {
-    //check that default option object correspond to default
+    // check that default option object correspond to default
     Driver driver = new Driver();
     Properties properties = new Properties();
     properties.put("user", "t2");
@@ -120,37 +121,51 @@ public class DefaultOptionsTest {
     for (HaMode haMode : HaMode.values()) {
       Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
       for (Field field : Options.class.getFields()) {
-        if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) && !"nonMappedOptions".equals(field.getName())) {
+        if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())
+            && !"nonMappedOptions".equals(field.getName())) {
           switch (field.getType().getName()) {
             case "java.lang.String":
-              assertEquals("field " + field.getName() + " value error for param" + param,
-                  field.get(resultOptions), field.getName() + "1");
+              assertEquals(
+                  "field " + field.getName() + " value error for param" + param,
+                  field.get(resultOptions),
+                  field.getName() + "1");
               break;
             case "int":
-              assertEquals("field " + field.getName() + " value error for param" + param,
-                  field.getInt(resultOptions), 9999);
+              assertEquals(
+                  "field " + field.getName() + " value error for param" + param,
+                  field.getInt(resultOptions),
+                  9999);
               break;
             case "java.lang.Integer":
-              assertEquals("field " + field.getName() + " value error for param" + param,
-                  ((Integer) field.get(resultOptions)).intValue(), 9999);
+              assertEquals(
+                  "field " + field.getName() + " value error for param" + param,
+                  ((Integer) field.get(resultOptions)).intValue(),
+                  9999);
               break;
             case "java.lang.Long":
-              assertEquals("field " + field.getName() + " value error for param" + param,
-                  ((Long) field.get(resultOptions)).intValue(), 9999);
+              assertEquals(
+                  "field " + field.getName() + " value error for param" + param,
+                  ((Long) field.get(resultOptions)).intValue(),
+                  9999);
               break;
             case "java.lang.Boolean":
               Boolean bool = (Boolean) field.get(option);
               if (bool == null) {
-                assertTrue("field " + field.getName() + " value error for param" + param,
+                assertTrue(
+                    "field " + field.getName() + " value error for param" + param,
                     (Boolean) field.get(resultOptions));
               } else {
-                assertEquals("field " + field.getName() + " value error for param" + param,
-                        field.get(resultOptions), !bool);
+                assertEquals(
+                    "field " + field.getName() + " value error for param" + param,
+                    field.get(resultOptions),
+                    !bool);
               }
               break;
             case "boolean":
-              assertEquals("field " + field.getName() + " value error for param" + param,
-                  field.getBoolean(resultOptions), !field.getBoolean(option));
+              assertEquals(
+                  "field " + field.getName() + " value error for param" + param,
+                  field.getBoolean(resultOptions),
+                  !field.getBoolean(option));
               break;
             default:
               fail("type not used normally ! " + field.getType().getName());
@@ -162,12 +177,12 @@ public class DefaultOptionsTest {
 
   private String generateParam() throws IllegalAccessException {
     Options option = new Options();
-    //check option url settings
+    // check option url settings
     StringBuilder sb = new StringBuilder();
     boolean first = true;
     for (DefaultOptions defaultOption : DefaultOptions.values()) {
       for (Field field : Options.class.getFields()) {
-        if (defaultOption.getOptionName().equals(field.getName())) { //for having same order
+        if (defaultOption.getOptionName().equals(field.getName())) { // for having same order
           if (first) {
             first = false;
           } else {
@@ -214,5 +229,4 @@ public class DefaultOptionsTest {
       assertEquals("?" + param, sb.toString());
     }
   }
-
 }

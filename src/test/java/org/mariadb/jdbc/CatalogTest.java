@@ -60,7 +60,6 @@ import org.junit.Test;
 
 public class CatalogTest extends BaseTest {
 
-
   @Test
   public void catalogTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
@@ -91,7 +90,7 @@ public class CatalogTest extends BaseTest {
   public void catalogTest5() throws SQLException {
     requireMinimumVersion(5, 1);
 
-    String[] weirdDbNames = new String[]{"abc 123", "\"", "`"};
+    String[] weirdDbNames = new String[] {"abc 123", "\"", "`"};
     for (String name : weirdDbNames) {
       try (Statement stmt = sharedConnection.createStatement()) {
         stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
@@ -103,5 +102,4 @@ public class CatalogTest extends BaseTest {
       sharedConnection.setCatalog(database);
     }
   }
-
 }

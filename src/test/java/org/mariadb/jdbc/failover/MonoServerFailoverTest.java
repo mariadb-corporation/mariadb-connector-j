@@ -69,17 +69,13 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public class MonoServerFailoverTest extends BaseMonoServer {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     Assume.assumeTrue(initialUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     Assume.assumeTrue(initialUrl != null);
@@ -98,7 +94,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         st.execute("SELECT 1");
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
       assertTrue(st.isClosed());
       restartProxy(masterServerId);
@@ -109,7 +105,6 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         fail();
       }
     }
-
   }
 
   @Test
@@ -123,7 +118,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         st.execute("SELECT 1");
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
 
       restartProxy(masterServerId);
@@ -131,12 +126,11 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         st.execute("SELECT 1");
         fail();
       } catch (SQLException e) {
-        //statement must be closed -> error
+        // statement must be closed -> error
       }
       assertTrue(connection.isClosed());
     }
   }
-
 
   @Test
   public void checkAutoReconnectDeconnection() throws Throwable {
@@ -149,12 +143,12 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         st.execute("SELECT 1");
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
 
       restartProxy(masterServerId);
       try {
-        //with autoreconnect -> not closed
+        // with autoreconnect -> not closed
         st = connection.createStatement();
         st.execute("SELECT 1");
       } catch (SQLException e) {
@@ -162,7 +156,6 @@ public class MonoServerFailoverTest extends BaseMonoServer {
       }
       assertFalse(connection.isClosed());
     }
-
   }
 
   /**
@@ -193,8 +186,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
       stmt.execute("drop table  if exists failt1");
       stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
 
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("insert into failt1(id, tt) values (?,?)");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("insert into failt1(id, tt) values (?,?)");
 
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
@@ -206,11 +199,10 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         preparedStatement.executeBatch();
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
       restartProxy(masterServerId);
       stmt.execute("SELECT 1");
     }
   }
-
 }

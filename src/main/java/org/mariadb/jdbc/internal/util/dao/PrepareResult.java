@@ -57,5 +57,4 @@ public interface PrepareResult {
   String getSql();
 
   int getParamCount();
-
 }

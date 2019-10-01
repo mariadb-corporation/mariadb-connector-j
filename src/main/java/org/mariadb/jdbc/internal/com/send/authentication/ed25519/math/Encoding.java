@@ -1,10 +1,10 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
@@ -42,10 +42,11 @@ public abstract class Encoding {
   public abstract FieldElement decode(byte[] in);
 
   /**
-   * From the Ed25519 paper:<br> $x$ is negative if the $(b-1)$-bit encoding of $x$ is
-   * lexicographically larger than the $(b-1)$-bit encoding of -x. If $q$ is an odd prime and the
-   * encoding is the little-endian representation of $\{0, 1,\dots, q-1\}$ then the negative
-   * elements of $F_q$ are $\{1, 3, 5,\dots, q-2\}$.
+   * From the Ed25519 paper:<br>
+   * $x$ is negative if the $(b-1)$-bit encoding of $x$ is lexicographically larger than the
+   * $(b-1)$-bit encoding of -x. If $q$ is an odd prime and the encoding is the little-endian
+   * representation of $\{0, 1,\dots, q-1\}$ then the negative elements of $F_q$ are $\{1, 3,
+   * 5,\dots, q-2\}$.
    *
    * @param x the FieldElement to check
    * @return true if negative

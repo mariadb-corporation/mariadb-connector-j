@@ -52,18 +52,17 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLTransientConnectionException;
-import java.util.List;
-import java.util.concurrent.Callable;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.BulkStatus;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
@@ -79,24 +78,31 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
   private final int paramCount;
   private final AsyncMultiReadResult asyncMultiReadResult;
 
-
   /**
    * Read results async to avoid local and remote networking stack buffer overflow "lock".
    *
-   * @param comStmtPrepare        current prepare
-   * @param status                bulk status
-   * @param protocol              protocol
+   * @param comStmtPrepare current prepare
+   * @param status bulk status
+   * @param protocol protocol
    * @param readPrepareStmtResult must read prepare statement result
-   * @param bulkSend              bulk sender object
-   * @param paramCount            number of parameters
-   * @param results               execution result
-   * @param parametersList        parameter list
-   * @param queries               queries
-   * @param prepareResult         prepare result
+   * @param bulkSend bulk sender object
+   * @param paramCount number of parameters
+   * @param results execution result
+   * @param parametersList parameter list
+   * @param queries queries
+   * @param prepareResult prepare result
    */
-  public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status, Protocol protocol,
-      boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
+  public AsyncMultiRead(
+      ComStmtPrepare comStmtPrepare,
+      BulkStatus status,
+      Protocol protocol,
+      boolean readPrepareStmtResult,
+      AbstractMultiSend bulkSend,
+      int paramCount,
+      Results results,
+      List<ParameterHolder[]> parametersList,
+      List<String> queries,
+      PrepareResult prepareResult) {
     this.comStmtPrepare = comStmtPrepare;
     this.status = status;
     this.sendCmdInitialCounter = status.sendCmdCounter - 1;
@@ -114,7 +120,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
   public AsyncMultiReadResult call() throws Exception {
     // avoid synchronisation of calls for write and read
     // since technically, getResult can be called before the write is send.
-    // Other solution would have been to synchronised write and read, but would have been less performant,
+    // Other solution would have been to synchronised write and read, but would have been less
+    // performant,
     // just to have this timeout according to set value
     int initialTimeout = protocol.getTimeout();
     if (initialTimeout != 0) {
@@ -130,13 +137,13 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
       }
     }
 
-    //read all corresponding results
+    // read all corresponding results
     int counter = 0;
 
-    //ensure to not finished loop while all bulk has not been send
+    // ensure to not finished loop while all bulk has not been send
     outerloop:
     while (!status.sendEnded || counter < status.sendSubCmdCounter) {
-      //read results for each send data
+      // read results for each send data
       while (counter < status.sendSubCmdCounter) {
         try {
           protocol.getResult(results);
@@ -147,16 +154,24 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
             break outerloop;
           }
           if (asyncMultiReadResult.getException() == null) {
-            asyncMultiReadResult.setException(bulkSend.handleResultException(qex, results,
-                    parametersList, queries, counter, sendCmdInitialCounter, paramCount,
+            asyncMultiReadResult.setException(
+                bulkSend.handleResultException(
+                    qex,
+                    results,
+                    parametersList,
+                    queries,
+                    counter,
+                    sendCmdInitialCounter,
+                    paramCount,
                     asyncMultiReadResult.getPrepareResult()));
           }
         }
         counter++;
 
         if (Thread.currentThread().isInterrupted()) {
-          asyncMultiReadResult.setException(new SQLException("Interrupted reading responses ",
-              INTERRUPTED_EXCEPTION.getSqlState(), -1));
+          asyncMultiReadResult.setException(
+              new SQLException(
+                  "Interrupted reading responses ", INTERRUPTED_EXCEPTION.getSqlState(), -1));
           break;
         }
       }
@@ -168,5 +183,4 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
     return asyncMultiReadResult;
   }
-
 }

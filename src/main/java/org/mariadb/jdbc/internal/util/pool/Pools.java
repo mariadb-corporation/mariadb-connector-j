@@ -22,13 +22,12 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
+
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 public class Pools {
 
@@ -47,8 +46,9 @@ public class Pools {
       synchronized (poolMap) {
         if (!poolMap.containsKey(urlParser)) {
           if (poolExecutor == null) {
-            poolExecutor = new ScheduledThreadPoolExecutor(1,
-                new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
+            poolExecutor =
+                new ScheduledThreadPoolExecutor(
+                    1, new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
           }
           Pool pool = new Pool(urlParser, poolIndex.incrementAndGet(), poolExecutor);
           poolMap.put(urlParser, pool);
@@ -75,16 +75,14 @@ public class Pools {
     }
   }
 
-  /**
-   * Close all pools.
-   */
+  /** Close all pools. */
   public static void close() {
     synchronized (poolMap) {
       for (Pool pool : poolMap.values()) {
         try {
           pool.close();
         } catch (InterruptedException exception) {
-          //eat
+          // eat
         }
       }
       shutdownExecutor();
@@ -107,7 +105,7 @@ public class Pools {
           try {
             pool.close();
           } catch (InterruptedException exception) {
-            //eat
+            // eat
           }
           poolMap.remove(pool.getUrlParser());
           return;
@@ -125,9 +123,8 @@ public class Pools {
     try {
       poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
     } catch (InterruptedException interrupted) {
-      //eat
+      // eat
     }
     poolExecutor = null;
-
   }
 }

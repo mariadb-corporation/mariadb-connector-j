@@ -52,40 +52,34 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+
+import java.sql.*;
+import java.util.*;
+import java.util.logging.*;
+import java.util.regex.*;
 
 public class AuroraListener extends MastersSlavesListener {
 
   private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
-  private final Pattern auroraDnsPattern = Pattern
-      .compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+  private final Pattern auroraDnsPattern =
+      Pattern.compile(
+          "(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
           Pattern.CASE_INSENSITIVE);
   private final HostAddress clusterHostAddress;
   private String clusterDnsSuffix = null;
 
   /**
    * Constructor for Aurora. This differ from standard failover because : - we don't know current
-   * master, we must check that after initial connection - master can change after he has a
-   * failover
+   * master, we must check that after initial connection - master can change after he has a failover
    *
-   * @param urlParser  connection information
+   * @param urlParser connection information
    * @param globalInfo server global variables information
    * @throws SQLException when connection string contain host with different cluster
    */
@@ -106,18 +100,22 @@ public class AuroraListener extends MastersSlavesListener {
       if (matcher.find()) {
 
         if (clusterDnsSuffix != null) {
-          //ensure there is only one cluster
+          // ensure there is only one cluster
           if (!clusterDnsSuffix.equalsIgnoreCase(matcher.group(3))) {
-            throw new SQLException("Connection string must contain only one aurora cluster. "
-                + "'" + hostAddress.host + "' doesn't correspond to DNS prefix '" + clusterDnsSuffix
-                + "'");
+            throw new SQLException(
+                "Connection string must contain only one aurora cluster. "
+                    + "'"
+                    + hostAddress.host
+                    + "' doesn't correspond to DNS prefix '"
+                    + clusterDnsSuffix
+                    + "'");
           }
         } else {
           clusterDnsSuffix = matcher.group(3);
         }
 
         if (matcher.group(2) != null && !matcher.group(2).isEmpty()) {
-          //not just an instance entry-point, but cluster entrypoint.
+          // not just an instance entry-point, but cluster entrypoint.
           return hostAddress;
         }
       } else {
@@ -149,8 +147,8 @@ public class AuroraListener extends MastersSlavesListener {
     SearchFilter searchFilter = initialSearchFilter;
     if (!searchFilter.isInitialConnection()
         && (isExplicitClosed()
-        || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-        || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+            || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
       return;
     }
 
@@ -162,7 +160,7 @@ public class AuroraListener extends MastersSlavesListener {
           return;
         }
       } catch (ReconnectDuringTransactionException e) {
-        //don't throw an exception for this specific exception
+        // don't throw an exception for this specific exception
         return;
       }
     }
@@ -171,7 +169,7 @@ public class AuroraListener extends MastersSlavesListener {
 
     resetOldsBlackListHosts();
 
-    //put the list in the following order
+    // put the list in the following order
     // - random order not connected host and not blacklisted
     // - random blacklisted host
     // - connected host at end.
@@ -183,7 +181,7 @@ public class AuroraListener extends MastersSlavesListener {
     Collections.shuffle(blacklistShuffle);
     loopAddress.addAll(blacklistShuffle);
 
-    //put connected at end
+    // put connected at end
     if (masterProtocol != null && !isMasterHostFail()) {
       loopAddress.remove(masterProtocol.getHostAddress());
       loopAddress.add(masterProtocol.getHostAddress());
@@ -197,26 +195,25 @@ public class AuroraListener extends MastersSlavesListener {
     if (hostAddresses.size() <= 1) {
       searchFilter = new SearchFilter(true, false);
     }
-    if ((isMasterHostFail() || isSecondaryHostFail())
-        || searchFilter.isInitialConnection()) {
-      //while permit to avoid case when succeeded creating a new Master connection
-      //and ping master connection fail a few milliseconds after,
-      //resulting a masterConnection not initialized.
+    if ((isMasterHostFail() || isSecondaryHostFail()) || searchFilter.isInitialConnection()) {
+      // while permit to avoid case when succeeded creating a new Master connection
+      // and ping master connection fail a few milliseconds after,
+      // resulting a masterConnection not initialized.
       do {
         AuroraProtocol.loop(this, globalInfo, loopAddress, searchFilter);
         if (!searchFilter.isFailoverLoop()) {
           try {
             checkWaitingConnection();
           } catch (ReconnectDuringTransactionException e) {
-            //don't throw an exception for this specific exception
+            // don't throw an exception for this specific exception
           }
         }
       } while (searchFilter.isInitialConnection()
-          && !(masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection
-          && secondaryProtocol != null)));
+          && !(masterProtocol != null
+              || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
     }
 
-    //When reconnecting, search if replicas list has change since first initialisation
+    // When reconnecting, search if replicas list has change since first initialisation
     if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
       retrieveAllEndpointsAndSet(getCurrentProtocol());
     }
@@ -240,7 +237,6 @@ public class AuroraListener extends MastersSlavesListener {
       List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
       setUrlParserFromEndpoints(endpoints, protocol.getPort());
     }
-
   }
 
   /**
@@ -255,10 +251,13 @@ public class AuroraListener extends MastersSlavesListener {
     try {
       proxy.lock.lock();
       try {
-        // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
+        // Deleted instance may remain in db for 24 hours so ignoring instances that have had no
+        // change
         // for 3 minutes
         Results results = new Results();
-        protocol.executeQuery(false, results,
+        protocol.executeQuery(
+            false,
+            results,
             "select server_id, session_id from information_schema.replica_host_status "
                 + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
         results.commandEnd();
@@ -268,7 +267,7 @@ public class AuroraListener extends MastersSlavesListener {
           endpoints.add(resultSet.getString(1) + "." + clusterDnsSuffix);
         }
 
-        //randomize order for distributed load-balancing
+        // randomize order for distributed load-balancing
         Collections.shuffle(endpoints);
 
       } finally {
@@ -294,7 +293,7 @@ public class AuroraListener extends MastersSlavesListener {
    * Sets urlParser accordingly to discovered hosts.
    *
    * @param endpoints instance identifiers
-   * @param port      port that is common to all endpoints
+   * @param port port that is common to all endpoints
    */
   private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
     List<HostAddress> addresses = new ArrayList<>();
@@ -316,7 +315,7 @@ public class AuroraListener extends MastersSlavesListener {
    * there.
    *
    * @param secondaryProtocol the current secondary protocol
-   * @param loopAddress       list of possible hosts
+   * @param loopAddress list of possible hosts
    * @return the probable master address or null if not found
    */
   public HostAddress searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
@@ -338,8 +337,8 @@ public class AuroraListener extends MastersSlavesListener {
 
       // Handling special case where no writer is found from secondaryProtocol
       if (currentWriter == null && getClusterHostAddress() != null) {
-        AuroraProtocol possibleMasterProtocol = AuroraProtocol
-            .getNewProtocol(getProxy(), globalInfo, getUrlParser());
+        AuroraProtocol possibleMasterProtocol =
+            AuroraProtocol.getNewProtocol(getProxy(), globalInfo, getUrlParser());
         possibleMasterProtocol.setHostAddress(getClusterHostAddress());
         try {
           possibleMasterProtocol.connect();
@@ -363,11 +362,12 @@ public class AuroraListener extends MastersSlavesListener {
 
   /**
    * Aurora replica doesn't have the master endpoint but the master instance name. since the end
-   * point normally use the instance name like "instance-name.some_unique_string.region.rds.amazonaws.com",
-   * if an endpoint start with this instance name, it will be checked first. Otherwise, the endpoint
-   * ending string is extracted and used since the writer was newly created.
+   * point normally use the instance name like
+   * "instance-name.some_unique_string.region.rds.amazonaws.com", if an endpoint start with this
+   * instance name, it will be checked first. Otherwise, the endpoint ending string is extracted and
+   * used since the writer was newly created.
    *
-   * @param protocol    current protocol
+   * @param protocol current protocol
    * @param loopAddress list of possible hosts
    * @return the probable host address or null if no valid endpoint found
    * @throws SQLException if any connection error occur
@@ -378,7 +378,9 @@ public class AuroraListener extends MastersSlavesListener {
     proxy.lock.lock();
     try {
       Results results = new Results();
-      protocol.executeQuery(false, results,
+      protocol.executeQuery(
+          false,
+          results,
           "select server_id from information_schema.replica_host_status "
               + "where session_id = 'MASTER_SESSION_ID' "
               + "and last_update_timestamp > now() - INTERVAL 3 MINUTE "
@@ -412,8 +414,8 @@ public class AuroraListener extends MastersSlavesListener {
         return null;
       }
 
-      masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix,
-          protocol.getPort(), null);
+      masterHostAddress =
+          new HostAddress(masterHostName + "." + clusterDnsSuffix, protocol.getPort(), null);
       loopAddress.add(masterHostAddress);
       if (!hostAddresses.contains(masterHostAddress)) {
         hostAddresses.add(masterHostAddress);
@@ -429,7 +431,7 @@ public class AuroraListener extends MastersSlavesListener {
     if (!isMasterHostFail()) {
       try {
         if (masterProtocol != null && !masterProtocol.checkIfMaster()) {
-          //master has been demote, is now secondary
+          // master has been demote, is now secondary
           setMasterHostFail();
           if (isSecondaryHostFail()) {
             foundActiveSecondary(masterProtocol);
@@ -457,7 +459,7 @@ public class AuroraListener extends MastersSlavesListener {
     if (!isSecondaryHostFail()) {
       try {
         if (secondaryProtocol != null && secondaryProtocol.checkIfMaster()) {
-          //secondary has been promoted to master
+          // secondary has been promoted to master
           setSecondaryHostFail();
           if (isMasterHostFail()) {
             foundActiveMaster(secondaryProtocol);
@@ -484,5 +486,4 @@ public class AuroraListener extends MastersSlavesListener {
 
     return false;
   }
-
 }

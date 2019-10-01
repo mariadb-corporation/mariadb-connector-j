@@ -29,5 +29,4 @@ public class ConnectionState {
   public static final int STATE_READ_ONLY = 4;
   public static final int STATE_AUTOCOMMIT = 8;
   public static final int STATE_TRANSACTION_ISOLATION = 16;
-
 }

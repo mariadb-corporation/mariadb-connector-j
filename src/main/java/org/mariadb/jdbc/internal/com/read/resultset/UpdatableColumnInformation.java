@@ -64,15 +64,19 @@ public class UpdatableColumnInformation extends ColumnInformation {
    * Constructor of Column metadata.
    *
    * @param columnInformation column meta information
-   * @param canBeNull         can column be null
-   * @param hasDefault        has default
-   * @param generated         is automatically generated
-   * @param primary           is column part of primary key
-   * @param autoIncrement     column has AUTO_INCREMENT attribute
+   * @param canBeNull can column be null
+   * @param hasDefault has default
+   * @param generated is automatically generated
+   * @param primary is column part of primary key
+   * @param autoIncrement column has AUTO_INCREMENT attribute
    */
-  public UpdatableColumnInformation(ColumnInformation columnInformation, boolean canBeNull,
+  public UpdatableColumnInformation(
+      ColumnInformation columnInformation,
+      boolean canBeNull,
       boolean hasDefault,
-      boolean generated, boolean primary, boolean autoIncrement) {
+      boolean generated,
+      boolean primary,
+      boolean autoIncrement) {
     super(columnInformation);
     this.canBeNull = canBeNull;
     this.hasDefault = hasDefault;

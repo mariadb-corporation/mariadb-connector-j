@@ -52,42 +52,41 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import java.sql.SQLException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.failover.impl.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.locks.*;
 
 public class MastersSlavesProtocol extends MasterProtocol {
 
   protected boolean masterConnection = false;
   private boolean mustBeMasterConnection = false;
 
-  public MastersSlavesProtocol(final UrlParser url, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+  public MastersSlavesProtocol(
+      final UrlParser url, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
     super(url, globalInfo, lock);
   }
-
 
   /**
    * loop until found the failed connection.
    *
-   * @param listener     current failover
-   * @param globalInfo   server global variables information
-   * @param addresses    list of HostAddress to loop
+   * @param listener current failover
+   * @param globalInfo server global variables information
+   * @param addresses list of HostAddress to loop
    * @param searchFilter search parameter
    * @throws SQLException if not found
    */
-  public static void loop(MastersSlavesListener listener, final GlobalStateInfo globalInfo,
-      final List<HostAddress> addresses, SearchFilter searchFilter) throws SQLException {
+  public static void loop(
+      MastersSlavesListener listener,
+      final GlobalStateInfo globalInfo,
+      final List<HostAddress> addresses,
+      SearchFilter searchFilter)
+      throws SQLException {
 
     MastersSlavesProtocol protocol;
     ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
@@ -101,8 +100,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
     while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
       protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
-      if (listener.isExplicitClosed() || (!listener.isSecondaryHostFailReconnect() && !listener
-          .isMasterHostFailReconnect())) {
+      if (listener.isExplicitClosed()
+          || (!listener.isSecondaryHostFailReconnect() && !listener.isMasterHostFailReconnect())) {
         return;
       }
       maxConnectionTry--;
@@ -144,15 +143,15 @@ public class MastersSlavesProtocol extends MasterProtocol {
         return;
       }
 
-      //in case master not found but slave is , and allowing master down
+      // in case master not found but slave is , and allowing master down
       if (loopAddresses.isEmpty()
           && (listener.isMasterHostFailReconnect()
-          && listener.urlParser.getOptions().allowMasterDownConnection
-          && !listener.isSecondaryHostFailReconnect())) {
+              && listener.urlParser.getOptions().allowMasterDownConnection
+              && !listener.isSecondaryHostFailReconnect())) {
         return;
       }
 
-      //on connection and all slaves have been tested, use master if on
+      // on connection and all slaves have been tested, use master if on
       if (loopAddresses.isEmpty()
           && searchFilter.isInitialConnection()
           && !listener.isMasterHostFailReconnect()) {
@@ -168,14 +167,13 @@ public class MastersSlavesProtocol extends MasterProtocol {
           firstLoop = false;
         } else {
           try {
-            //wait 250ms before looping through all connection another time
+            // wait 250ms before looping through all connection another time
             Thread.sleep(250);
           } catch (InterruptedException interrupted) {
-            //interrupted, continue
+            // interrupted, continue
           }
         }
       }
-
     }
 
     if (listener.isMasterHostFailReconnect() || listener.isSecondaryHostFailReconnect()) {
@@ -184,39 +182,39 @@ public class MastersSlavesProtocol extends MasterProtocol {
         error = "No active connection found for master";
       }
       if (lastQueryException != null) {
-        throw new SQLException(error + " : " + lastQueryException.getMessage(),
-            lastQueryException.getSQLState(), lastQueryException.getErrorCode(),
+        throw new SQLException(
+            error + " : " + lastQueryException.getMessage(),
+            lastQueryException.getSQLState(),
+            lastQueryException.getErrorCode(),
             lastQueryException);
       }
       throw new SQLException(error);
     }
-
   }
 
   /**
    * Reinitialize loopAddresses with all servers in randomize order.
    *
-   * @param listener      current listener
+   * @param listener current listener
    * @param loopAddresses the list to reinitialize
    */
-  private static void resetHostList(MastersSlavesListener listener,
-      Deque<HostAddress> loopAddresses) {
-    //if all servers have been connected without result
-    //add back all servers
+  private static void resetHostList(
+      MastersSlavesListener listener, Deque<HostAddress> loopAddresses) {
+    // if all servers have been connected without result
+    // add back all servers
     List<HostAddress> servers = new ArrayList<>();
     servers.addAll(listener.getUrlParser().getHostAddresses());
     Collections.shuffle(servers);
 
-    //remove current connected hosts to avoid reconnect them
+    // remove current connected hosts to avoid reconnect them
     servers.removeAll(listener.connectedHosts());
 
     loopAddresses.clear();
     loopAddresses.addAll(servers);
   }
 
-  protected static boolean foundMaster(MastersSlavesListener listener,
-      MastersSlavesProtocol protocol,
-      SearchFilter searchFilter) {
+  protected static boolean foundMaster(
+      MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter) {
     protocol.setMustBeMasterConnection(true);
     if (listener.isMasterHostFailReconnect()) {
       listener.foundActiveMaster(protocol);
@@ -228,14 +226,14 @@ public class MastersSlavesProtocol extends MasterProtocol {
       return true;
     } else {
       return listener.isExplicitClosed()
-              || searchFilter.isFineIfFoundOnlyMaster()
-              || !listener.isSecondaryHostFailReconnect();
+          || searchFilter.isFineIfFoundOnlyMaster()
+          || !listener.isSecondaryHostFailReconnect();
     }
   }
 
-  protected static boolean foundSecondary(MastersSlavesListener listener,
-      MastersSlavesProtocol protocol,
-      SearchFilter searchFilter) throws SQLException {
+  protected static boolean foundSecondary(
+      MastersSlavesListener listener, MastersSlavesProtocol protocol, SearchFilter searchFilter)
+      throws SQLException {
     protocol.setMustBeMasterConnection(false);
     if (listener.isSecondaryHostFailReconnect()) {
       listener.foundActiveSecondary(protocol);
@@ -247,22 +245,22 @@ public class MastersSlavesProtocol extends MasterProtocol {
       return true;
     } else {
       return listener.isExplicitClosed()
-              || searchFilter.isFineIfFoundOnlySlave()
-              || !listener.isMasterHostFailReconnect();
+          || searchFilter.isFineIfFoundOnlySlave()
+          || !listener.isMasterHostFailReconnect();
     }
   }
 
   /**
    * Get new instance of MastersSlavesProtocol.
    *
-   * @param proxy     proxy
+   * @param proxy proxy
    * @param urlParser connection string Object.
    * @return a new MastersSlavesProtocol instance
    */
-  private static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy,
-      final GlobalStateInfo globalInfo, UrlParser urlParser) {
-    MastersSlavesProtocol newProtocol = new MastersSlavesProtocol(urlParser, globalInfo,
-        proxy.lock);
+  private static MastersSlavesProtocol getNewProtocol(
+      FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
+    MastersSlavesProtocol newProtocol =
+        new MastersSlavesProtocol(urlParser, globalInfo, proxy.lock);
     newProtocol.setProxy(proxy);
     return newProtocol;
   }

@@ -66,9 +66,7 @@ public class MyEventListener implements ConnectionEventListener, StatementEventL
   public boolean statementClosed;
   public boolean statementErrorOccured;
 
-  /**
-   * MyEventListener initialisation.
-   */
+  /** MyEventListener initialisation. */
   public MyEventListener() {
     sqlException = null;
     closed = false;

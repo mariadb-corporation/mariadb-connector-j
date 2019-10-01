@@ -52,10 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.io.InputStream;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class StreamParameter implements Cloneable, ParameterHolder {
 
@@ -66,8 +66,8 @@ public class StreamParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param is                 stream to write
-   * @param length             max length to write (if null the whole stream will be send)
+   * @param is stream to write
+   * @param length max length to write (if null the whole stream will be send)
    * @param noBackslashEscapes must backslash be escape
    */
   public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
@@ -94,7 +94,6 @@ public class StreamParameter implements Cloneable, ParameterHolder {
       pos.write(is, length, true, noBackslashEscapes);
     }
     pos.write(QUOTE);
-
   }
 
   /**
@@ -129,7 +128,6 @@ public class StreamParameter implements Cloneable, ParameterHolder {
     return ColumnType.BLOB;
   }
 
-
   public boolean isNullData() {
     return false;
   }
@@ -137,5 +135,4 @@ public class StreamParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return true;
   }
-
 }

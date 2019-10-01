@@ -81,9 +81,11 @@ public class ScrollTypeTest extends BaseTest {
 
   @Test
   public void scrollInsensitivePrepareStmt() throws SQLException {
-    try (PreparedStatement stmt = sharedConnection
-        .prepareStatement("SELECT * FROM resultsSetReadingTest",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+    try (PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM resultsSetReadingTest",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY)) {
       stmt.setFetchSize(2);
       try (ResultSet rs = stmt.executeQuery()) {
         rs.beforeFirst();
@@ -95,8 +97,9 @@ public class ScrollTypeTest extends BaseTest {
 
   @Test
   public void scrollInsensitiveStmt() throws SQLException {
-    try (Statement stmt = sharedConnection
-        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+    try (Statement stmt =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
       stmt.setFetchSize(2);
       try (ResultSet rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest")) {
         rs.beforeFirst();
@@ -109,9 +112,11 @@ public class ScrollTypeTest extends BaseTest {
   @Test(expected = SQLException.class)
   public void scrollForwardOnlyPrepareStmt() throws SQLException {
     Assume.assumeFalse(sharedIsRewrite());
-    try (PreparedStatement stmt = sharedConnection
-        .prepareStatement("SELECT * FROM resultsSetReadingTest",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+    try (PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM resultsSetReadingTest",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY)) {
       stmt.setFetchSize(2);
       try (ResultSet rs = stmt.executeQuery()) {
         rs.beforeFirst();
@@ -122,8 +127,8 @@ public class ScrollTypeTest extends BaseTest {
 
   @Test(expected = SQLException.class)
   public void scrollForwardOnlyStmt() throws SQLException {
-    try (Statement stmt = sharedConnection
-        .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+    try (Statement stmt =
+        sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
       stmt.setFetchSize(2);
       try (ResultSet rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest")) {
         rs.beforeFirst();
@@ -131,7 +136,6 @@ public class ScrollTypeTest extends BaseTest {
       }
     }
   }
-
 
   @Test
   public void scrollMultipleFetch() throws SQLException {
@@ -142,7 +146,7 @@ public class ScrollTypeTest extends BaseTest {
     stmt.setFetchSize(1);
     ResultSet rs = stmt.executeQuery("Select * from scrollMultipleFetch");
     rs.next();
-    //don't read result-set fully
+    // don't read result-set fully
     assertEquals(1, rs.getFetchSize());
 
     ResultSet rs2 = stmt.executeQuery("Select * from scrollMultipleFetch");

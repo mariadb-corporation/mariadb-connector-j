@@ -21,16 +21,18 @@
 
 package org.mariadb.jdbc.credential.env;
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.credential.Credential;
-import org.mariadb.jdbc.credential.CredentialPlugin;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.credential.*;
+import org.mariadb.jdbc.util.*;
 
 /**
  * Authentication using environment variable.
- * <p>default implementation use environment variable MARIADB_USER and MARIADB_PWD</p>
- * <p>example : `jdbc:mariadb://host/db?identityType=ENV`</p>
- * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.</p>
+ *
+ * <p>default implementation use environment variable MARIADB_USER and MARIADB_PWD
+ *
+ * <p>example : `jdbc:mariadb://host/db?identityType=ENV`
+ *
+ * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
  */
 public class EnvCredentialPlugin implements CredentialPlugin {
 
@@ -61,8 +63,7 @@ public class EnvCredentialPlugin implements CredentialPlugin {
     String pwdKey = this.options.nonMappedOptions.getProperty("pwdKey");
     String envUser = System.getenv(userKey != null ? userKey : "MARIADB_USER");
     return new Credential(
-        envUser == null ?  userName : envUser,
+        envUser == null ? userName : envUser,
         System.getenv(pwdKey != null ? pwdKey : "MARIADB_PWD"));
   }
-
 }

@@ -52,12 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
-/**
- * Output stream for the blob.
- */
+/** Output stream for the blob. */
 class BlobOutputStream extends OutputStream {
 
   private final MariaDbBlob blob;
@@ -107,4 +104,3 @@ class BlobOutputStream extends OutputStream {
     write(buf, 0, buf.length);
   }
 }
-

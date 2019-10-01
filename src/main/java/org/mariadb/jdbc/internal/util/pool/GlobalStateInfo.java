@@ -22,7 +22,7 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import java.sql.Connection;
+import java.sql.*;
 
 public class GlobalStateInfo {
 
@@ -34,9 +34,7 @@ public class GlobalStateInfo {
   private final String systemTimeZone;
   private final int defaultTransactionIsolation;
 
-  /**
-   * Default value. ! To be used for Connection that will only Kill query/connection !
-   */
+  /** Default value. ! To be used for Connection that will only Kill query/connection ! */
   public GlobalStateInfo() {
     this.maxAllowedPacket = 1_000_000;
     this.waitTimeout = 28_800;
@@ -52,17 +50,22 @@ public class GlobalStateInfo {
    * meaning having set the option "staticGlobal". Application must not change any of the following
    * options.
    *
-   * @param maxAllowedPacket            max_allowed_packet global variable value
-   * @param waitTimeout                 wait_timeout global variable value
-   * @param autocommit                  auto_commit global variable value
-   * @param autoIncrementIncrement      auto_increment_increment global variable value
-   * @param timeZone                    time_zone global variable value
-   * @param systemTimeZone              System global variable value
+   * @param maxAllowedPacket max_allowed_packet global variable value
+   * @param waitTimeout wait_timeout global variable value
+   * @param autocommit auto_commit global variable value
+   * @param autoIncrementIncrement auto_increment_increment global variable value
+   * @param timeZone time_zone global variable value
+   * @param systemTimeZone System global variable value
    * @param defaultTransactionIsolation tx_isolation variable value
    */
-  public GlobalStateInfo(long maxAllowedPacket, int waitTimeout, boolean autocommit,
+  public GlobalStateInfo(
+      long maxAllowedPacket,
+      int waitTimeout,
+      boolean autocommit,
       int autoIncrementIncrement,
-      String timeZone, String systemTimeZone, int defaultTransactionIsolation) {
+      String timeZone,
+      String systemTimeZone,
+      int defaultTransactionIsolation) {
     this.maxAllowedPacket = maxAllowedPacket;
     this.waitTimeout = waitTimeout;
     this.autocommit = autocommit;

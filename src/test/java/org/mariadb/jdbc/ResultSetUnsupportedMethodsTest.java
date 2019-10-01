@@ -58,7 +58,6 @@ import java.sql.SQLFeatureNotSupportedException;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
   private ResultSet rs;
@@ -240,12 +239,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testupdateLong10() throws SQLException {
-    rs.updateLong(1, (long) 1);
+    rs.updateLong(1, 1);
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testupdateLong11() throws SQLException {
-    rs.updateLong("a", (long) 1);
+    rs.updateLong("a", 1);
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
@@ -260,12 +259,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testupdateDouble14() throws SQLException {
-    rs.updateDouble(1, (double) 1);
+    rs.updateDouble(1, 1);
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testupdateDouble15() throws SQLException {
-    rs.updateDouble("a", (double) 1);
+    rs.updateDouble("a", 1);
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
@@ -597,6 +596,4 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
   public void testupdateNCharacterStream81() throws SQLException {
     rs.updateNCharacterStream("a", null);
   }
-
-
 }

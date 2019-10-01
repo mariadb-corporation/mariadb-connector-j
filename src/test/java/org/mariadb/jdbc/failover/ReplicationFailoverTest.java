@@ -70,18 +70,14 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public class ReplicationFailoverTest extends BaseReplication {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyReplicationUrl;
     Assume.assumeTrue(initialReplicationUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialReplicationUrl;
@@ -105,32 +101,34 @@ public class ReplicationFailoverTest extends BaseReplication {
    * @throws SQLException if any exception
    */
   public void assureReadOnly(boolean useAlias) throws SQLException {
-    try (Connection connection = getNewConnection(
-        useAlias ? "&readOnlyPropagatesToServer=true" : "&assureReadOnly=true", false)) {
+    try (Connection connection =
+        getNewConnection(
+            useAlias ? "&readOnlyPropagatesToServer=true" : "&assureReadOnly=true", false)) {
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists replicationDelete" + jobId);
-      stmt.execute("create table replicationDelete" + jobId
-          + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute(
+          "create table replicationDelete"
+              + jobId
+              + " (id int not null primary key auto_increment, test VARCHAR(10))");
       connection.setReadOnly(true);
       assertTrue(connection.isReadOnly());
       try {
         if (!isMariaDbServer(connection) || !requireMinimumVersion(connection, 5, 7)) {
-          //on version >= 5.7 use SESSION READ-ONLY, before no control
+          // on version >= 5.7 use SESSION READ-ONLY, before no control
           Assume.assumeTrue(false);
         }
         connection.createStatement().execute("drop table  if exists replicationDelete" + jobId);
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
     }
   }
 
-
   @Test
   public void pingReconnectAfterFailover() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement st = connection.createStatement();
       final int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
@@ -138,7 +136,7 @@ public class ReplicationFailoverTest extends BaseReplication {
       try {
         st.execute("SELECT 1");
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
 
       connection.setReadOnly(true);
@@ -153,8 +151,8 @@ public class ReplicationFailoverTest extends BaseReplication {
 
   @Test
   public void failoverDuringMasterSetReadOnly() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
       connection.setReadOnly(true);
@@ -166,8 +164,8 @@ public class ReplicationFailoverTest extends BaseReplication {
 
   @Test(expected = SQLException.class)
   public void masterWithoutFailover() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
       int firstSlaveId = getServerId(connection);
@@ -183,8 +181,9 @@ public class ReplicationFailoverTest extends BaseReplication {
 
   @Test
   public void checkBackOnMasterOnSlaveFail() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true)) {
+    try (Connection connection =
+        getNewConnection(
+            "&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
@@ -205,7 +204,7 @@ public class ReplicationFailoverTest extends BaseReplication {
           connection.setReadOnly(true);
           loop = false;
         } catch (SQLException e) {
-          //eat exception
+          // eat exception
         }
         long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stoppedTime);
         if (duration > 15 * 1000) {
@@ -215,11 +214,10 @@ public class ReplicationFailoverTest extends BaseReplication {
     }
   }
 
-
   @Test
   public void testFailNotOnSlave() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement stmt = connection.createStatement();
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
@@ -227,7 +225,7 @@ public class ReplicationFailoverTest extends BaseReplication {
         stmt.execute("SELECT 1");
         fail();
       } catch (SQLException e) {
-        //normal error
+        // normal error
       }
       assertFalse(connection.isReadOnly());
     }
@@ -245,8 +243,7 @@ public class ReplicationFailoverTest extends BaseReplication {
       conn.setReadOnly(true);
       assertFalse(conn.getAutoCommit());
 
-      ResultSet rs = conn.createStatement()
-          .executeQuery("SELECT COUNT(*) FROM commitExecution");
+      ResultSet rs = conn.createStatement().executeQuery("SELECT COUNT(*) FROM commitExecution");
       rs.next();
       assertEquals(rs.getInt(1), 1);
 
@@ -260,5 +257,4 @@ public class ReplicationFailoverTest extends BaseReplication {
       assertEquals(rs.getInt(1), 2);
     }
   }
-
 }

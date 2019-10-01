@@ -52,8 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.StandardCharsets;
-
+import java.nio.charset.*;
 
 public class ErrorPacket {
 
@@ -79,12 +78,12 @@ public class ErrorPacket {
     } else {
       // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
       buffer.position -= 1;
-      message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,
-          StandardCharsets.UTF_8);
+      message =
+          new String(
+              buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
       sqlState = GENERAL_ERROR;
     }
   }
-
 
   public String getMessage() {
     return message;

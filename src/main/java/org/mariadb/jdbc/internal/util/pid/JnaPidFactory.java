@@ -52,12 +52,10 @@
 
 package org.mariadb.jdbc.internal.util.pid;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
-import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.*;
+import com.sun.jna.platform.win32.*;
 
-import java.util.function.Supplier;
+import java.util.function.*;
 
 public class JnaPidFactory {
   private static Supplier<String> instance;
@@ -65,18 +63,19 @@ public class JnaPidFactory {
   static {
     try {
       if (Platform.isLinux()) {
-        //Linux pid implementation
+        // Linux pid implementation
         CLibrary.INSTANCE.getpid();
         instance = () -> String.valueOf(CLibrary.INSTANCE.getpid());
       } else if (Platform.isWindows()) {
-        //Windows pid implementation
+        // Windows pid implementation
         try {
           Kernel32.INSTANCE.GetCurrentProcessId();
-          instance = () -> {
-            return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
-          };
+          instance =
+              () -> {
+                return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+              };
         } catch (Throwable cle) {
-          //jna plateform jar's are not in classpath, no PID returned
+          // jna plateform jar's are not in classpath, no PID returned
           instance = () -> null;
         }
       } else {
@@ -84,7 +83,7 @@ public class JnaPidFactory {
       }
 
     } catch (Throwable cle) {
-      //jna jar's are not in classpath, no PID returned
+      // jna jar's are not in classpath, no PID returned
       instance = () -> null;
     }
   }
@@ -100,7 +99,7 @@ public class JnaPidFactory {
 
   private interface CLibrary extends Library {
     CLibrary INSTANCE = Native.loadLibrary("c", CLibrary.class);
+
     int getpid();
   }
 }
-

@@ -71,16 +71,18 @@ public class RePrepareTest extends BaseTest {
     createTable("rePrepareTestSelectError", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("INSERT INTO rePrepareTestSelectError(test) VALUES (1)");
-      try (PreparedStatement preparedStatement = sharedConnection
-          .prepareStatement("SELECT * FROM rePrepareTestSelectError where test = ?")) {
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement(
+              "SELECT * FROM rePrepareTestSelectError where test = ?")) {
         preparedStatement.setInt(1, 1);
         ResultSet rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         assertFalse(rs.next());
-        stmt.execute("ALTER TABLE rePrepareTestSelectError"
-            + " CHANGE COLUMN `test` `test` VARCHAR(50) NULL DEFAULT NULL FIRST,"
-            + "ADD COLUMN `test2` VARCHAR(50) NULL DEFAULT NULL AFTER `test`;");
+        stmt.execute(
+            "ALTER TABLE rePrepareTestSelectError"
+                + " CHANGE COLUMN `test` `test` VARCHAR(50) NULL DEFAULT NULL FIRST,"
+                + "ADD COLUMN `test2` VARCHAR(50) NULL DEFAULT NULL AFTER `test`;");
         ResultSet rs2 = preparedStatement.executeQuery();
         preparedStatement.setInt(1, 1);
         assertTrue(rs2.next());
@@ -92,25 +94,28 @@ public class RePrepareTest extends BaseTest {
 
   @Test
   public void rePrepareTestInsertError() throws SQLException {
-    Assume.assumeFalse(sharedIsAurora()); //Aurora has not "flush tables with read lock" right;
-    Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0)); //froze when flush
+    Assume.assumeFalse(sharedIsAurora()); // Aurora has not "flush tables with read lock" right;
+    Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0)); // froze when flush
     createTable("rePrepareTestInsertError", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
-      try (PreparedStatement preparedStatement = sharedConnection
-          .prepareStatement("INSERT INTO rePrepareTestInsertError(test) values (?)")) {
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement(
+              "INSERT INTO rePrepareTestInsertError(test) values (?)")) {
 
         preparedStatement.setInt(1, 1);
         preparedStatement.execute();
 
-        stmt.execute("ALTER TABLE rePrepareTestInsertError"
-            + " CHANGE COLUMN `test` `test` VARCHAR(50) NULL DEFAULT NULL FIRST;");
+        stmt.execute(
+            "ALTER TABLE rePrepareTestInsertError"
+                + " CHANGE COLUMN `test` `test` VARCHAR(50) NULL DEFAULT NULL FIRST;");
 
         preparedStatement.setInt(1, 2);
         preparedStatement.execute();
 
-        stmt.execute("ALTER TABLE rePrepareTestInsertError"
-            + " CHANGE COLUMN `test` `test` VARCHAR(100) NULL DEFAULT NULL FIRST,"
-            + "ADD COLUMN `test2` VARCHAR(50) NULL DEFAULT NULL AFTER `test`;");
+        stmt.execute(
+            "ALTER TABLE rePrepareTestInsertError"
+                + " CHANGE COLUMN `test` `test` VARCHAR(100) NULL DEFAULT NULL FIRST,"
+                + "ADD COLUMN `test2` VARCHAR(50) NULL DEFAULT NULL AFTER `test`;");
 
         stmt.execute("flush tables with read lock");
         stmt.execute("unlock tables");
@@ -120,19 +125,19 @@ public class RePrepareTest extends BaseTest {
     }
   }
 
-
   @Test
   public void cannotRePrepare() throws SQLException {
     createTable("cannotRePrepare", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
-      try (PreparedStatement preparedStatement = sharedConnection
-          .prepareStatement("INSERT INTO cannotRePrepare(test) values (?)")) {
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement("INSERT INTO cannotRePrepare(test) values (?)")) {
 
         preparedStatement.setInt(1, 1);
         preparedStatement.execute();
 
-        stmt.execute("ALTER TABLE cannotRePrepare"
-            + " CHANGE COLUMN `test` `otherName` VARCHAR(50) NULL DEFAULT NULL FIRST;");
+        stmt.execute(
+            "ALTER TABLE cannotRePrepare"
+                + " CHANGE COLUMN `test` `otherName` VARCHAR(50) NULL DEFAULT NULL FIRST;");
 
         preparedStatement.setInt(1, 2);
         try {
@@ -141,7 +146,6 @@ public class RePrepareTest extends BaseTest {
         } catch (SQLException sqle) {
           assertTrue(sqle.getMessage().contains("Unknown column 'test' in 'field list'"));
         }
-
       }
     }
   }

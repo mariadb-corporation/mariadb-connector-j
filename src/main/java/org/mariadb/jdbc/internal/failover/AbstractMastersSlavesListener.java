@@ -52,26 +52,24 @@
 
 package org.mariadb.jdbc.internal.failover;
 
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.pool.*;
 
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.concurrent.atomic.*;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
-
   private static final Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
-  //These reference are when failloop reconnect failing connection, but lock is already held by
-  //another thread (query in progress), so switching the connection wait for the query to be finish.
-  //next query will reconnect those during preExecute method, or if actual used connection failed
-  //during reconnection phase.
+  // These reference are when failloop reconnect failing connection, but lock is already held by
+  // another thread (query in progress), so switching the connection wait for the query to be
+  // finish.
+  // next query will reconnect those during preExecute method, or if actual used connection failed
+  // during reconnection phase.
   protected final AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
   protected final AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
   private final AtomicBoolean secondaryHostFail = new AtomicBoolean();
@@ -86,34 +84,38 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   /**
    * Handle failover on master or slave connection.
    *
-   * @param method   called method
-   * @param args     methods parameters
+   * @param method called method
+   * @param args methods parameters
    * @param protocol current protocol
    * @return HandleErrorResult object to indicate if query has finally been relaunched or exception
    *     if not.
    * @throws SQLException if primary fail reconnection fails
    */
-  public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
-      Protocol protocol, boolean isClosed) throws SQLException {
+  public HandleErrorResult handleFailover(
+      SQLException qe, Method method, Object[] args, Protocol protocol, boolean isClosed)
+      throws SQLException {
     if (isExplicitClosed()) {
       throw new SQLException("Connection has been closed !");
     }
 
-    //check that failover is due to kill command
-    boolean killCmd = qe != null
-        && qe.getSQLState() != null
-        && qe.getSQLState().equals("70100")
-        && 1927 == qe.getErrorCode();
+    // check that failover is due to kill command
+    boolean killCmd =
+        qe != null
+            && qe.getSQLState() != null
+            && qe.getSQLState().equals("70100")
+            && 1927 == qe.getErrorCode();
 
     if (protocol != null) {
       if (protocol.mustBeMasterConnection()) {
         if (!protocol.isMasterConnection()) {
-          logger.warn("SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
+          logger.warn(
+              "SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
               this.currentProtocol.getHostAddress().toString(),
               this.currentProtocol.getServerThreadId(),
               qe.getMessage());
         } else if (setMasterHostFail()) {
-          logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
+          logger.warn(
+              "SQL Primary node [{}, conn={}] connection fail. Reason : {}",
               this.currentProtocol.getHostAddress().toString(),
               this.currentProtocol.getServerThreadId(),
               qe.getMessage());
@@ -123,7 +125,8 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         return primaryFail(method, args, killCmd, isClosed);
       } else {
         if (setSecondaryHostFail()) {
-          logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
+          logger.warn(
+              "SQL secondary node [{}, conn={}] connection fail. Reason : {}",
               this.currentProtocol.getHostAddress().toString(),
               this.currentProtocol.getServerThreadId(),
               qe.getMessage());
@@ -140,7 +143,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   protected void resetMasterFailoverData() {
     super.resetMasterFailoverData();
 
-    //if all connection are up, reset failovers timers
+    // if all connection are up, reset failovers timers
     if (!secondaryHostFail.get()) {
       currentConnectionAttempts.set(0);
       lastRetry = 0;
@@ -152,7 +155,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
       secondaryHostFailNanos = 0;
     }
 
-    //if all connection are up, reset failovers timers
+    // if all connection are up, reset failovers timers
     if (!isMasterHostFail()) {
       currentConnectionAttempts.set(0);
       lastRetry = 0;
@@ -201,5 +204,4 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
       throws SQLException;
 
   public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException;
-
 }

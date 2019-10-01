@@ -1,8 +1,9 @@
 package org.mariadb.jdbc.internal.io.socket;
 
-import java.io.IOException;
-import java.net.Socket;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
+import java.net.*;
 
 @FunctionalInterface
 public interface SocketHandlerFunction {

@@ -81,11 +81,14 @@ public class CollationTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("emojiTest",
+    createTable(
+        "emojiTest",
         "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    createTable("unicodeTestChar",
+    createTable(
+        "unicodeTestChar",
         "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
-            + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci", "DEFAULT CHARSET=utf8mb4");
+            + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+        "DEFAULT CHARSET=utf8mb4");
     createTable("textUtf8", "column1 text", "DEFAULT CHARSET=utf8");
     createTable("blobUtf8", "column1 blob", "DEFAULT CHARSET=utf8");
   }
@@ -112,9 +115,9 @@ public class CollationTest extends BaseTest {
       } else {
         connection.createStatement().execute("SET NAMES utf8mb4");
       }
-      PreparedStatement ps = connection
-          .prepareStatement("INSERT INTO emojiTest (id, field) VALUES (1, ?)");
-      byte[] emoji = new byte[]{(byte) 0xF0, (byte) 0x9F, (byte) 0x98, (byte) 0x84};
+      PreparedStatement ps =
+          connection.prepareStatement("INSERT INTO emojiTest (id, field) VALUES (1, ?)");
+      byte[] emoji = new byte[] {(byte) 0xF0, (byte) 0x9F, (byte) 0x98, (byte) 0x84};
       ps.setBytes(1, emoji);
       ps.execute();
       ps = connection.prepareStatement("SELECT field FROM emojiTest");
@@ -124,7 +127,6 @@ public class CollationTest extends BaseTest {
       assertEquals("😄", rs.getString(1));
     }
   }
-
 
   /**
    * Conj-252.
@@ -143,8 +145,9 @@ public class CollationTest extends BaseTest {
         mustThrowError = false;
       }
 
-      PreparedStatement ps = sharedConnection
-          .prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
+      PreparedStatement ps =
+          sharedConnection.prepareStatement(
+              "INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
       ps.setString(1, emoji);
       Reader reader = new StringReader(emoji);
       ps.setCharacterStream(2, reader);
@@ -165,7 +168,8 @@ public class CollationTest extends BaseTest {
           fail("Must not have thrown error");
         }
       } catch (SQLException exception) {
-        //mysql server thrown an HY000 state (not 22007), so a SQLException will be thrown, not a SQLDataException
+        // mysql server thrown an HY000 state (not 22007), so a SQLException will be thrown, not a
+        // SQLDataException
         if (isMariadbServer()) {
           fail("must have thrown a SQLDataException, not an SQLException");
         }
@@ -181,8 +185,8 @@ public class CollationTest extends BaseTest {
   @Test
   public void testText() throws SQLException {
     String str = "你好(hello in Chinese)";
-    try (PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into textUtf8 values (?)")) {
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into textUtf8 values (?)")) {
       ps.setString(1, str);
       ps.executeUpdate();
     }
@@ -198,9 +202,9 @@ public class CollationTest extends BaseTest {
   @Test
   public void testBinary() throws SQLException {
     String str = "你好(hello in Chinese)";
-    byte[] strBytes = str.getBytes(Charset.forName("UTF-8"));
-    try (PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into blobUtf8 values (?)")) {
+    byte[] strBytes = str.getBytes(StandardCharsets.UTF_8);
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into blobUtf8 values (?)")) {
       ps.setBytes(1, strBytes);
       ps.executeUpdate();
     }
@@ -211,7 +215,6 @@ public class CollationTest extends BaseTest {
         for (int i = 0; i < tmp.length; i++) {
           assertEquals(strBytes[i], tmp[i]);
         }
-
       }
     }
   }
@@ -291,8 +294,8 @@ public class CollationTest extends BaseTest {
       stmt.execute("CREATE TEMPORARY TABLE wrong_utf8_string(tt text) CHARSET utf8mb4");
       String wrongString = "a\ud800b";
 
-      try (PreparedStatement preparedStatement = conn
-          .prepareStatement("INSERT INTO wrong_utf8_string values (?)")) {
+      try (PreparedStatement preparedStatement =
+          conn.prepareStatement("INSERT INTO wrong_utf8_string values (?)")) {
         preparedStatement.setString(1, wrongString);
         preparedStatement.execute();
       }
@@ -301,5 +304,4 @@ public class CollationTest extends BaseTest {
       assertEquals("a?b", rs.getString(1));
     }
   }
-
 }

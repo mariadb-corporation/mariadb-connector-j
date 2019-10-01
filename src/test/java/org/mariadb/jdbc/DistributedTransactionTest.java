@@ -73,9 +73,7 @@ public class DistributedTransactionTest extends BaseTest {
 
   private final MariaDbDataSource dataSource;
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   public DistributedTransactionTest() throws SQLException {
     dataSource = new MariaDbDataSource();
     dataSource.setServerName(hostname);
@@ -96,13 +94,13 @@ public class DistributedTransactionTest extends BaseTest {
   }
 
   private Xid newXid() {
-    return new MariaDbXid(1, UUID.randomUUID().toString().getBytes(),
-        UUID.randomUUID().toString().getBytes());
+    return new MariaDbXid(
+        1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
   }
 
   private Xid newXid(Xid branchFrom) {
-    return new MariaDbXid(1, branchFrom.getGlobalTransactionId(),
-        UUID.randomUUID().toString().getBytes());
+    return new MariaDbXid(
+        1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
   }
 
   /**
@@ -184,14 +182,13 @@ public class DistributedTransactionTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testCommit() throws Exception {
     int connectionNumber = test2PhaseCommit(true);
 
     // check the completion
-    try (ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("SELECT * from xatable order by i")) {
+    try (ResultSet rs =
+        sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
       for (int i = 0; i < connectionNumber; i++) {
         assertTrue(rs.next());
         assertEquals(rs.getInt(1), i);
@@ -203,8 +200,8 @@ public class DistributedTransactionTest extends BaseTest {
   public void testRollback() throws Exception {
     test2PhaseCommit(false);
     // check the completion
-    try (ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("SELECT * from xatable order by i")) {
+    try (ResultSet rs =
+        sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
       assertFalse(rs.next());
     }
   }

@@ -74,7 +74,6 @@ public enum SqlStates {
 
   private final String sqlStateGroup;
 
-
   SqlStates(final String stateGroup) {
     this.sqlStateGroup = stateGroup;
   }

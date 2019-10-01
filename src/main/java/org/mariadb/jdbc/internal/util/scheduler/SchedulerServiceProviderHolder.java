@@ -52,12 +52,8 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Provider for when ever an internal thread pool is needed. This can allow library users to
@@ -163,7 +159,7 @@ public class SchedulerServiceProviderHolder {
 
   /**
    * Get the currently set {@link SchedulerProvider} from set invocations via {@link
-   * #setSchedulerProvider(SchedulerProvider)}.  If none has been set a default provider will be
+   * #setSchedulerProvider(SchedulerProvider)}. If none has been set a default provider will be
    * provided (never a {@code null} result).
    *
    * @return Provider to get scheduler pools from
@@ -173,8 +169,8 @@ public class SchedulerServiceProviderHolder {
   }
 
   /**
-   * Change the current set scheduler provider.  This provider will be provided in future requests
-   * to {@link #getSchedulerProvider()}.
+   * Change the current set scheduler provider. This provider will be provided in future requests to
+   * {@link #getSchedulerProvider()}.
    *
    * @param newProvider New provider to use, or {@code null} to use the default provider
    */
@@ -185,9 +181,7 @@ public class SchedulerServiceProviderHolder {
     currentProvider.getAndSet(newProvider).close();
   }
 
-  /**
-   * Close currentProvider.
-   */
+  /** Close currentProvider. */
   public static void close() {
     currentProvider.get().close();
   }
@@ -196,12 +190,12 @@ public class SchedulerServiceProviderHolder {
    * Get a Dynamic sized scheduler directly with the current set provider.
    *
    * @param initialThreadCount Number of threads scheduler is allowed to grow to
-   * @param poolName           name of pool to identify threads
-   * @param maximumPoolSize    maximum pool size
+   * @param poolName name of pool to identify threads
+   * @param maximumPoolSize maximum pool size
    * @return Scheduler capable of providing the needed thread count
    */
-  public static DynamicSizedSchedulerInterface getScheduler(int initialThreadCount, String poolName,
-      int maximumPoolSize) {
+  public static DynamicSizedSchedulerInterface getScheduler(
+      int initialThreadCount, String poolName, int maximumPoolSize) {
     return getSchedulerProvider().getScheduler(initialThreadCount, poolName, maximumPoolSize);
   }
 
@@ -209,11 +203,11 @@ public class SchedulerServiceProviderHolder {
    * Get a fixed sized scheduler directly with the current set provider.
    *
    * @param initialThreadCount Number of threads scheduler is allowed to grow to
-   * @param poolName           name of pool to identify threads
+   * @param poolName name of pool to identify threads
    * @return Scheduler capable of providing the needed thread count
    */
-  public static ScheduledExecutorService getFixedSizeScheduler(int initialThreadCount,
-      String poolName) {
+  public static ScheduledExecutorService getFixedSizeScheduler(
+      int initialThreadCount, String poolName) {
     return getSchedulerProvider().getFixedSizeScheduler(initialThreadCount, poolName);
   }
 
@@ -231,21 +225,21 @@ public class SchedulerServiceProviderHolder {
   }
 
   /**
-   * <p>Provider for thread pools which allow scheduling capabilities.  It is expected that the
-   * thread pools entire lifecycle (start to stop) is done through the same provider instance.</p>
+   * Provider for thread pools which allow scheduling capabilities. It is expected that the thread
+   * pools entire lifecycle (start to stop) is done through the same provider instance.
    */
   public interface SchedulerProvider {
 
     /**
      * Request to get a scheduler with a minimum number of AVAILABLE threads.
      *
-     * @param minimumThreads  Minimum number of available threads for the returned scheduler
-     * @param poolName        name of pool to identify threads
+     * @param minimumThreads Minimum number of available threads for the returned scheduler
+     * @param poolName name of pool to identify threads
      * @param maximumPoolSize maximum pool size
      * @return A new scheduler that is ready to accept tasks
      */
-    DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName,
-        int maximumPoolSize);
+    DynamicSizedSchedulerInterface getScheduler(
+        int minimumThreads, String poolName, int maximumPoolSize);
 
     ScheduledExecutorService getFixedSizeScheduler(int minimumThreads, String poolName);
 
@@ -254,7 +248,7 @@ public class SchedulerServiceProviderHolder {
      *
      * <p>This is a one Thread fixed sized scheduler. This specific scheduler is using java 1.7
      * RemoveOnCancelPolicy, so the task are removed from queue permitting to avoid memory
-     * consumption [CONJ-297]</p>
+     * consumption [CONJ-297]
      *
      * @return A new scheduler that is ready to accept tasks
      */
@@ -264,6 +258,4 @@ public class SchedulerServiceProviderHolder {
 
     void close();
   }
-
-
 }

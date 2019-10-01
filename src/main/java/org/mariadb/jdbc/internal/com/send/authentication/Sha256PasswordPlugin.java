@@ -22,117 +22,26 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.crypto.Cipher;
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
+
+import javax.crypto.*;
+import java.io.*;
+import java.nio.file.*;
+import java.security.*;
+import java.security.spec.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class Sha256PasswordPlugin implements AuthenticationPlugin {
 
   private String authenticationData;
   private Options options;
   private byte[] seed;
-
-  @Override
-  public String name() {
-    return "Sha256 authentication plugin";
-  }
-
-  @Override
-  public String type() {
-    return "sha256_password";
-  }
-
-  /**
-   * Initialization.
-   *
-   * @param authenticationData authentication data (password/token)
-   * @param seed server provided seed
-   * @param options Connection string options
-   */
-  public void initialize(String authenticationData, byte[] seed, Options options) {
-    this.seed = seed;
-    this.authenticationData = authenticationData;
-    this.options = options;
-  }
-
-  /**
-   * Process SHA 256 password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
-   *
-   * @param out out stream
-   * @param in in stream
-   * @param sequence packet sequence
-   * @return response packet
-   * @throws IOException if socket error
-   */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-      throws IOException, SQLException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
-      out.writeEmptyPacket(sequence.incrementAndGet());
-    } else if (Boolean.TRUE.equals(options.useSsl)) {
-      // send clear password
-      out.startPacket(sequence.incrementAndGet());
-      byte[] bytePwd;
-      if (options.passwordCharacterEncoding != null
-          && !options.passwordCharacterEncoding.isEmpty()) {
-        bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
-      } else {
-        bytePwd = authenticationData.getBytes();
-      }
-
-      out.write(bytePwd);
-      out.write(0);
-      out.flush();
-    } else {
-      // retrieve public key from configuration or from server
-      PublicKey publicKey;
-      if (options.serverRsaPublicKeyFile != null && !options.serverRsaPublicKeyFile.isEmpty()) {
-        publicKey = readPublicKeyFromFile(options.serverRsaPublicKeyFile);
-      } else {
-        if (!options.allowPublicKeyRetrieval) {
-          throw new SQLException(
-              "RSA public key is not available client side (option " + "serverRsaPublicKeyFile)",
-              "S1009");
-        }
-
-        // ask public Key Retrieval
-        out.startPacket(sequence.incrementAndGet());
-        out.write((byte) 1);
-        out.flush();
-        publicKey = readPublicKeyFromSocket(in, sequence);
-      }
-
-      try {
-        byte[] cipherBytes =
-            encrypt(publicKey, authenticationData, seed, options.passwordCharacterEncoding);
-        out.startPacket(sequence.incrementAndGet());
-        out.write(cipherBytes);
-        out.flush();
-      } catch (Exception ex) {
-        throw new SQLException(
-            "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
-      }
-    }
-
-    Buffer buffer = in.getPacket(true);
-    sequence.set(in.getLastPacketSeq());
-    return buffer;
-  }
 
   /**
    * Read public Key from file.
@@ -141,8 +50,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
    * @return public key
    * @throws SQLException if cannot read file or file content is not a public key.
    */
-  public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile)
-      throws SQLException {
+  public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
     byte[] keyBytes;
     try {
       keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
@@ -256,5 +164,92 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
       throw new SQLException(
           "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
     }
+  }
+
+  @Override
+  public String name() {
+    return "Sha256 authentication plugin";
+  }
+
+  @Override
+  public String type() {
+    return "sha256_password";
+  }
+
+  /**
+   * Initialization.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
+   */
+  public void initialize(String authenticationData, byte[] seed, Options options) {
+    this.seed = seed;
+    this.authenticationData = authenticationData;
+    this.options = options;
+  }
+
+  /**
+   * Process SHA 256 password plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
+   *
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
+   * @return response packet
+   * @throws IOException if socket error
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException, SQLException {
+    if (authenticationData == null || authenticationData.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else if (Boolean.TRUE.equals(options.useSsl)) {
+      // send clear password
+      out.startPacket(sequence.incrementAndGet());
+      byte[] bytePwd;
+      if (options.passwordCharacterEncoding != null
+          && !options.passwordCharacterEncoding.isEmpty()) {
+        bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
+      } else {
+        bytePwd = authenticationData.getBytes();
+      }
+
+      out.write(bytePwd);
+      out.write(0);
+      out.flush();
+    } else {
+      // retrieve public key from configuration or from server
+      PublicKey publicKey;
+      if (options.serverRsaPublicKeyFile != null && !options.serverRsaPublicKeyFile.isEmpty()) {
+        publicKey = readPublicKeyFromFile(options.serverRsaPublicKeyFile);
+      } else {
+        if (!options.allowPublicKeyRetrieval) {
+          throw new SQLException(
+              "RSA public key is not available client side (option " + "serverRsaPublicKeyFile)",
+              "S1009");
+        }
+
+        // ask public Key Retrieval
+        out.startPacket(sequence.incrementAndGet());
+        out.write((byte) 1);
+        out.flush();
+        publicKey = readPublicKeyFromSocket(in, sequence);
+      }
+
+      try {
+        byte[] cipherBytes =
+            encrypt(publicKey, authenticationData, seed, options.passwordCharacterEncoding);
+        out.startPacket(sequence.incrementAndGet());
+        out.write(cipherBytes);
+        out.flush();
+      } catch (Exception ex) {
+        throw new SQLException(
+            "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
+      }
+    }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
   }
 }

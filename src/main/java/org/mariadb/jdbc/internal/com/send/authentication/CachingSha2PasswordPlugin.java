@@ -22,20 +22,17 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
 
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import java.io.*;
+import java.security.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
@@ -44,6 +41,50 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   private String authenticationData;
   private byte[] seed;
   private Options options;
+
+  /**
+   * Send a SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
+   * SHA256(SHA256(password))))
+   *
+   * @param password password
+   * @param seed seed
+   * @param passwordCharacterEncoding option if not using default byte encoding
+   * @return encrypted pwd
+   * @throws NoSuchAlgorithmException if SHA-256 algorithm is unknown
+   * @throws UnsupportedEncodingException if SHA-256 algorithm is unknown
+   */
+  public static byte[] sha256encryptPassword(
+      final String password, final byte[] seed, String passwordCharacterEncoding)
+      throws NoSuchAlgorithmException, UnsupportedEncodingException {
+
+    if (password == null || password.isEmpty()) {
+      return new byte[0];
+    }
+
+    final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+    byte[] bytePwd;
+    if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+      bytePwd = password.getBytes(passwordCharacterEncoding);
+    } else {
+      bytePwd = password.getBytes();
+    }
+
+    final byte[] stage1 = messageDigest.digest(bytePwd);
+    messageDigest.reset();
+
+    final byte[] stage2 = messageDigest.digest(stage1);
+    messageDigest.reset();
+
+    messageDigest.update(stage2);
+    messageDigest.update(seed);
+
+    final byte[] digest = messageDigest.digest();
+    final byte[] returnBytes = new byte[digest.length];
+    for (int i = 0; i < digest.length; i++) {
+      returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
+    }
+    return returnBytes;
+  }
 
   @Override
   public String name() {
@@ -93,8 +134,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
           truncatedSeed = new byte[0];
         }
 
-        out.write(sha256encryptPassword(authenticationData, truncatedSeed,
-            options.passwordCharacterEncoding));
+        out.write(
+            sha256encryptPassword(
+                authenticationData, truncatedSeed, options.passwordCharacterEncoding));
         out.flush();
       } catch (NoSuchAlgorithmException e) {
         throw new RuntimeException("Could not use SHA-256, failing", e);
@@ -146,7 +188,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
           try {
             byte[] cipherBytes =
-                Sha256PasswordPlugin.encrypt(publicKey, authenticationData, seed, options.passwordCharacterEncoding);
+                Sha256PasswordPlugin.encrypt(
+                    publicKey, authenticationData, seed, options.passwordCharacterEncoding);
             out.startPacket(sequence.incrementAndGet());
             out.write(cipherBytes);
             out.flush();
@@ -162,53 +205,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
       default:
         throw new SQLException(
-          "Protocol exchange error. Expect login success or RSA login request message",
-          "S1009");
+            "Protocol exchange error. Expect login success or RSA login request message", "S1009");
     }
   }
-
-  /**
-   * Send a SHA-2 encrypted password.
-   * encryption  XOR(SHA256(password), SHA256(seed, SHA256(SHA256(password))))
-   *
-   * @param password password
-   * @param seed seed
-   * @param passwordCharacterEncoding option if not using default byte encoding
-   * @return encrypted pwd
-   * @throws NoSuchAlgorithmException if SHA-256 algorithm is unknown
-   * @throws UnsupportedEncodingException if SHA-256 algorithm is unknown
-   */
-  public static byte[] sha256encryptPassword(
-      final String password, final byte[] seed, String passwordCharacterEncoding)
-      throws NoSuchAlgorithmException, UnsupportedEncodingException {
-
-    if (password == null || password.isEmpty()) {
-      return new byte[0];
-    }
-
-    final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-    byte[] bytePwd;
-    if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-      bytePwd = password.getBytes(passwordCharacterEncoding);
-    } else {
-      bytePwd = password.getBytes();
-    }
-
-    final byte[] stage1 = messageDigest.digest(bytePwd);
-    messageDigest.reset();
-
-    final byte[] stage2 = messageDigest.digest(stage1);
-    messageDigest.reset();
-
-    messageDigest.update(stage2);
-    messageDigest.update(seed);
-
-    final byte[] digest = messageDigest.digest();
-    final byte[] returnBytes = new byte[digest.length];
-    for (int i = 0; i < digest.length; i++) {
-      returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
-    }
-    return returnBytes;
-  }
-
 }

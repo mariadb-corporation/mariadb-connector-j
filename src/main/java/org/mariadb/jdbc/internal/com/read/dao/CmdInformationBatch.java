@@ -52,14 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class CmdInformationBatch implements CmdInformation {
 
@@ -77,7 +75,7 @@ public class CmdInformationBatch implements CmdInformation {
    * "useBatchMultiSend" is set and batch is interrupted, will permit to reading thread to keep
    * connection in a correct state without any ConcurrentModificationException.
    *
-   * @param expectedSize  expected batch size.
+   * @param expectedSize expected batch size.
    * @param autoIncrement connection auto increment value.
    */
   public CmdInformationBatch(int expectedSize, int autoIncrement) {
@@ -145,7 +143,7 @@ public class CmdInformationBatch implements CmdInformation {
       ret[pos++] = iterator.next().intValue();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
@@ -194,7 +192,7 @@ public class CmdInformationBatch implements CmdInformation {
       ret[pos++] = iterator.next();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
@@ -263,7 +261,6 @@ public class CmdInformationBatch implements CmdInformation {
     return updateCounts.size();
   }
 
-
   @Override
   public boolean moreResults() {
     return false;
@@ -278,4 +275,3 @@ public class CmdInformationBatch implements CmdInformation {
     this.rewritten = rewritten;
   }
 }
-

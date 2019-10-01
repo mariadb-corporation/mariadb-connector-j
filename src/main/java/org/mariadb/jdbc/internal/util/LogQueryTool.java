@@ -52,14 +52,15 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.util.*;
 
-import java.net.SocketTimeoutException;
-import java.nio.ByteBuffer;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.util.Options;
+import java.net.*;
+import java.nio.*;
+import java.sql.*;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public class LogQueryTool {
 
@@ -93,8 +94,9 @@ public class LogQueryTool {
     if (options.maxQuerySizeToLog == 0) {
       queryString = new String(buffer.array(), 5, buffer.limit());
     } else {
-      queryString = new String(buffer.array(), 5,
-          Math.min(buffer.limit() - 5, (options.maxQuerySizeToLog * 3)));
+      queryString =
+          new String(
+              buffer.array(), 5, Math.min(buffer.limit() - 5, (options.maxQuerySizeToLog * 3)));
       if (queryString.length() > options.maxQuerySizeToLog - 3) {
         queryString = queryString.substring(0, options.maxQuerySizeToLog - 3) + "...";
       }
@@ -105,26 +107,31 @@ public class LogQueryTool {
   /**
    * Return exception with query information's.
    *
-   * @param sql            current sql command
-   * @param sqlException   current exception
+   * @param sql current sql command
+   * @param sqlException current exception
    * @param explicitClosed has connection been explicitly closed
    * @return exception with query information
    */
-  public SQLException exceptionWithQuery(String sql, SQLException sqlException,
-      boolean explicitClosed) {
+  public SQLException exceptionWithQuery(
+      String sql, SQLException sqlException, boolean explicitClosed) {
     if (explicitClosed) {
       return new SQLException(
           "Connection has explicitly been closed/aborted.\nQuery is: " + subQuery(sql),
           sqlException.getSQLState(),
-          sqlException.getErrorCode(), sqlException.getCause());
+          sqlException.getErrorCode(),
+          sqlException.getCause());
     }
 
     if (options.dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
-      return new SQLException(sqlException.getMessage()
-          + "\nQuery is: " + subQuery(sql)
-          + "\njava thread: " + Thread.currentThread().getName(),
+      return new SQLException(
+          sqlException.getMessage()
+              + "\nQuery is: "
+              + subQuery(sql)
+              + "\njava thread: "
+              + Thread.currentThread().getName(),
           sqlException.getSQLState(),
-          sqlException.getErrorCode(), sqlException.getCause());
+          sqlException.getErrorCode(),
+          sqlException.getCause());
     }
     return sqlException;
   }
@@ -132,13 +139,13 @@ public class LogQueryTool {
   /**
    * Return exception with query information's.
    *
-   * @param buffer         query buffer
-   * @param sqlEx          current exception
+   * @param buffer query buffer
+   * @param sqlEx current exception
    * @param explicitClosed has connection been explicitly closed
    * @return exception with query information
    */
-  public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx,
-      boolean explicitClosed) {
+  public SQLException exceptionWithQuery(
+      ByteBuffer buffer, SQLException sqlEx, boolean explicitClosed) {
     if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064 || explicitClosed) {
       return exceptionWithQuery(subQuery(buffer), sqlEx, explicitClosed);
     }
@@ -148,20 +155,22 @@ public class LogQueryTool {
   /**
    * Return exception with query information's.
    *
-   * @param parameters          query parameters
-   * @param sqlEx               current exception
+   * @param parameters query parameters
+   * @param sqlEx current exception
    * @param serverPrepareResult prepare results
    * @return exception with query information
    */
-  public SQLException exceptionWithQuery(ParameterHolder[] parameters, SQLException sqlEx,
-      PrepareResult serverPrepareResult) {
+  public SQLException exceptionWithQuery(
+      ParameterHolder[] parameters, SQLException sqlEx, PrepareResult serverPrepareResult) {
     if (sqlEx.getCause() instanceof SocketTimeoutException) {
       return new SQLException("Connection timed out", CONNECTION_EXCEPTION.getSqlState(), sqlEx);
     }
     if (options.dumpQueriesOnException) {
-      return new SQLException(exWithQuery(sqlEx.getMessage(), serverPrepareResult, parameters),
+      return new SQLException(
+          exWithQuery(sqlEx.getMessage(), serverPrepareResult, parameters),
           sqlEx.getSQLState(),
-          sqlEx.getErrorCode(), sqlEx.getCause());
+          sqlEx.getErrorCode(),
+          sqlEx.getCause());
     }
     return sqlEx;
   }
@@ -169,7 +178,7 @@ public class LogQueryTool {
   /**
    * Return exception with query information's.
    *
-   * @param sqlEx         current exception
+   * @param sqlEx current exception
    * @param prepareResult prepare results
    * @return exception with query information
    */
@@ -191,19 +200,20 @@ public class LogQueryTool {
   /**
    * Return exception message with query.
    *
-   * @param message             current exception message
+   * @param message current exception message
    * @param serverPrepareResult prepare result
-   * @param parameters          query parameters
+   * @param parameters query parameters
    * @return exception message with query
    */
-  private String exWithQuery(String message, PrepareResult serverPrepareResult,
-      ParameterHolder[] parameters) {
+  private String exWithQuery(
+      String message, PrepareResult serverPrepareResult, ParameterHolder[] parameters) {
     if (options.dumpQueriesOnException) {
       StringBuilder sql = new StringBuilder(serverPrepareResult.getSql());
       if (serverPrepareResult.getParamCount() > 0) {
         sql.append(", parameters [");
         if (parameters.length > 0) {
-          for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParamCount());
+          for (int i = 0;
+              i < Math.min(parameters.length, serverPrepareResult.getParamCount());
               i++) {
             sql.append(parameters[i].toString()).append(",");
           }
@@ -214,15 +224,19 @@ public class LogQueryTool {
 
       if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
         return message
-            + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "..."
-            + "\njava thread: " + Thread.currentThread().getName();
+            + "\nQuery is: "
+            + sql.substring(0, options.maxQuerySizeToLog - 3)
+            + "..."
+            + "\njava thread: "
+            + Thread.currentThread().getName();
       } else {
         return message
-            + "\nQuery is: " + sql
-            + "\njava thread: " + Thread.currentThread().getName();
+            + "\nQuery is: "
+            + sql
+            + "\njava thread: "
+            + Thread.currentThread().getName();
       }
     }
     return message;
   }
-
 }

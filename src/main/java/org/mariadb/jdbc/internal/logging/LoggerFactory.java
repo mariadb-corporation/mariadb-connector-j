@@ -77,7 +77,6 @@ public class LoggerFactory {
         }
       }
     }
-
   }
 
   /**
@@ -93,5 +92,4 @@ public class LoggerFactory {
       return NO_LOGGER;
     }
   }
-
 }

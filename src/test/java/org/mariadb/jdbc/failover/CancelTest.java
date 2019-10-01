@@ -68,32 +68,28 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public class CancelTest extends BaseMultiHostTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyGaleraUrl;
     Assume.assumeTrue(initialGaleraUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialGaleraUrl;
     currentType = HaMode.LOADBALANCE;
   }
 
-
   @Test(expected = SQLTimeoutException.class)
   public void timeoutSleep() throws Exception {
     try (Connection connection = getNewConnection(false)) {
-      PreparedStatement stmt = connection.prepareStatement(
-          "select * from information_schema.columns as c1,"
-              + "information_schema.tables as t1, "
-              + "information_schema.tables as t2");
+      PreparedStatement stmt =
+          connection.prepareStatement(
+              "select * from information_schema.columns as c1,"
+                  + "information_schema.tables as t1, "
+                  + "information_schema.tables as t2");
       stmt.setQueryTimeout(1);
       stmt.execute();
     }
@@ -106,7 +102,6 @@ public class CancelTest extends BaseMultiHostTest {
       stmt.setQueryTimeout(1);
       stmt.execute("select sleep(0.5)");
     }
-
   }
 
   @Test

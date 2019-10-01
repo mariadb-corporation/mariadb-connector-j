@@ -52,20 +52,18 @@
 
 package org.mariadb.jdbc.internal.failover.thread;
 
-import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import org.mariadb.jdbc.internal.failover.Listener;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
+
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 public class ConnectionValidator {
 
-  private final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder
-      .getFixedSizeScheduler(1, "validator");
   private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
-
+  private final ScheduledExecutorService fixedSizedScheduler =
+      SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "validator");
   private final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
   private final AtomicLong currentScheduledFrequency = new AtomicLong(-1);
   private final ListenerChecker checker = new ListenerChecker();
@@ -73,7 +71,7 @@ public class ConnectionValidator {
   /**
    * Add listener to validation list.
    *
-   * @param listener            listener
+   * @param listener listener
    * @param listenerCheckMillis schedule time
    */
   public void addListener(Listener listener, long listenerCheckMillis) {
@@ -81,7 +79,7 @@ public class ConnectionValidator {
 
     long newFrequency = Math.min(MINIMUM_CHECK_DELAY_MILLIS, listenerCheckMillis);
 
-    //first listener
+    // first listener
     if (currentScheduledFrequency.get() == -1) {
       if (currentScheduledFrequency.compareAndSet(-1, newFrequency)) {
         fixedSizedScheduler.schedule(checker, listenerCheckMillis, TimeUnit.MILLISECONDS);
@@ -92,7 +90,6 @@ public class ConnectionValidator {
         currentScheduledFrequency.compareAndSet(frequency, newFrequency);
       }
     }
-
   }
 
   /**
@@ -109,7 +106,6 @@ public class ConnectionValidator {
           currentScheduledFrequency.set(-1);
         }
       }
-
     }
   }
 
@@ -150,7 +146,7 @@ public class ConnectionValidator {
               try {
                 listener.primaryFail(null, null, false, false);
               } catch (Throwable t) {
-                //do nothing
+                // do nothing
               }
             }
           }

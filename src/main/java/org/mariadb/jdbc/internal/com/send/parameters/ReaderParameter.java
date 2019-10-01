@@ -52,10 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.io.Reader;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class ReaderParameter implements Cloneable, ParameterHolder {
 
@@ -66,8 +66,8 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param reader             reader to write
-   * @param length             max length to write (can be null)
+   * @param reader reader to write
+   * @param length max length to write (can be null)
    * @param noBackslashEscapes must backslash be escape
    */
   public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
@@ -123,7 +123,6 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
     return ColumnType.STRING;
   }
 
-
   @Override
   public String toString() {
     return "<Reader>";
@@ -136,5 +135,4 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return true;
   }
-
 }

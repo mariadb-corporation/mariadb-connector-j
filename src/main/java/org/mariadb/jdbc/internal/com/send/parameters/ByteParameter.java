@@ -52,14 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class ByteParameter implements Cloneable, ParameterHolder {
 
-  private final int value;
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+  private final int value;
 
   public ByteParameter(byte value) {
     this.value = value & 0xFF;
@@ -107,5 +108,4 @@ public class ByteParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return false;
   }
-
 }

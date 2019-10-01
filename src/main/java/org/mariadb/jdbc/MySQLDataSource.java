@@ -52,8 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.SQLException;
-
 /**
  * Keep the class name for compatibility
  *
@@ -65,7 +63,7 @@ public class MySQLDataSource extends MariaDbDataSource {
    * Constructor.
    *
    * @param hostname hostname (ipv4, ipv6, dns name)
-   * @param port     server port
+   * @param port server port
    * @param database database name
    */
   public MySQLDataSource(String hostname, int port, String database) {
@@ -76,9 +74,7 @@ public class MySQLDataSource extends MariaDbDataSource {
     super(url);
   }
 
-  /**
-   * Default constructor. hostname will be localhost, port 3306.
-   */
+  /** Default constructor. hostname will be localhost, port 3306. */
   public MySQLDataSource() {
     super();
   }

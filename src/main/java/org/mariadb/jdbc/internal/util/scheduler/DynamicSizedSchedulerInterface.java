@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 
 public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService {
 
@@ -62,5 +62,4 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
    * @param newSize New pool size that is superior to 0
    */
   void setPoolSize(int newSize);
-
 }

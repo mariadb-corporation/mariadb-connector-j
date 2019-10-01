@@ -52,14 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.util.*;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.Utils;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ReadInitialHandShakePacket {
 

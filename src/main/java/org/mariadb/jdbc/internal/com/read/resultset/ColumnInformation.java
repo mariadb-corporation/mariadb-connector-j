@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import java.nio.charset.StandardCharsets;
-import java.sql.Types;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+
+import java.nio.charset.*;
+import java.sql.*;
 
 public class ColumnInformation {
 
@@ -65,38 +66,38 @@ public class ColumnInformation {
   // "select  id, maxlen from information_schema.character_sets, information_schema.collations
   // where character_sets.character_set_name = collations.character_set_name order by id"
   private static final int[] maxCharlen = {
-      0, 2, 1, 1, 1, 1, 1, 1,
-      1, 1, 1, 1, 3, 2, 1, 1,
-      1, 0, 1, 2, 1, 1, 1, 1,
-      2, 1, 1, 1, 2, 1, 1, 1,
-      1, 3, 1, 2, 1, 1, 1, 1,
-      1, 1, 1, 1, 1, 4, 4, 1,
-      1, 1, 1, 1, 1, 1, 4, 4,
-      0, 1, 1, 1, 4, 4, 0, 1,
-      1, 1, 1, 1, 1, 1, 1, 1,
-      1, 1, 1, 1, 0, 1, 1, 1,
-      1, 1, 1, 3, 2, 2, 2, 2,
-      2, 1, 2, 3, 1, 1, 1, 2,
-      2, 3, 3, 1, 0, 4, 4, 4,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 0, 0, 0, 0, 0, 0, 0,
-      2, 2, 2, 2, 2, 2, 2, 2,
-      2, 2, 2, 2, 2, 2, 2, 2,
-      2, 2, 2, 2, 0, 2, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 2,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 4, 4, 4, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      3, 3, 3, 3, 3, 3, 3, 3,
-      3, 3, 3, 3, 3, 3, 3, 3,
-      3, 3, 3, 3, 0, 3, 4, 4,
-      0, 0, 0, 0, 0, 0, 0, 3,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 4, 4, 4, 4, 4, 4, 4,
-      4, 4, 4, 4, 0, 4, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0
+    0, 2, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 3, 2, 1, 1,
+    1, 0, 1, 2, 1, 1, 1, 1,
+    2, 1, 1, 1, 2, 1, 1, 1,
+    1, 3, 1, 2, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 4, 4, 1,
+    1, 1, 1, 1, 1, 1, 4, 4,
+    0, 1, 1, 1, 4, 4, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 0, 1, 1, 1,
+    1, 1, 1, 3, 2, 2, 2, 2,
+    2, 1, 2, 3, 1, 1, 1, 2,
+    2, 3, 3, 1, 0, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 0, 2, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 2,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 0, 3, 4, 4,
+    0, 0, 0, 0, 0, 0, 0, 3,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 0, 4, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
   };
 
   private final Buffer buffer;
@@ -144,7 +145,7 @@ public class ColumnInformation {
     2              filler [00] [00]
     */
 
-    //set position after length encoded value, not read most of the time
+    // set position after length encoded value, not read most of the time
     buffer.position = buffer.limit - 12;
 
     charsetNumber = buffer.readShort();
@@ -167,27 +168,27 @@ public class ColumnInformation {
     byte[] arr = new byte[23 + 2 * nameBytes.length];
     int pos = 0;
 
-    //lenenc_str     catalog
-    //lenenc_str     schema
-    //lenenc_str     table
-    //lenenc_str     org_table
+    // lenenc_str     catalog
+    // lenenc_str     schema
+    // lenenc_str     table
+    // lenenc_str     org_table
     for (int i = 0; i < 4; i++) {
       arr[pos++] = 1;
       arr[pos++] = 0;
     }
 
-    //lenenc_str     name
-    //lenenc_str     org_name
+    // lenenc_str     name
+    // lenenc_str     org_name
     for (int i = 0; i < 2; i++) {
       arr[pos++] = (byte) name.length();
       System.arraycopy(nameBytes, 0, arr, pos, nameBytes.length);
       pos += nameBytes.length;
     }
 
-    //lenenc_int     length of fixed-length fields [0c]
+    // lenenc_int     length of fixed-length fields [0c]
     arr[pos++] = 0xc;
 
-    //2              character set
+    // 2              character set
     arr[pos++] = 33; /* charset  = UTF8 */
     arr[pos++] = 0;
 
@@ -272,8 +273,8 @@ public class ColumnInformation {
     switch (type) {
       case OLDDECIMAL:
       case DECIMAL:
-        //DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
-        //so :
+        // DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
+        // so :
         // - if can be signed, 1 byte is saved for sign
         // - if decimal > 0, one byte more for dot
         if (isSigned()) {
@@ -300,7 +301,6 @@ public class ColumnInformation {
       }
 
       return (int) length / maxWidth;
-
     }
     return (int) length;
   }
@@ -345,7 +345,8 @@ public class ColumnInformation {
     return ((this.flags & 64) > 0);
   }
 
-  // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle like string), but have the binary flag
+  // doesn't use & 128 bit filter, because char binary and varchar binary are not binary (handle
+  // like string), but have the binary flag
   public boolean isBinary() {
     return (getCharsetNumber() == 63);
   }

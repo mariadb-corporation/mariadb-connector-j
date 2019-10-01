@@ -60,14 +60,14 @@ public class SearchFilter {
   private boolean failoverLoop;
 
   public SearchFilter() {
-    //empty constructor
+    // empty constructor
   }
 
   /**
    * Constructor.
    *
    * @param fineIfFoundOnlyMaster stop searching if master found
-   * @param fineIfFoundOnlySlave  stop searching if slave found
+   * @param fineIfFoundOnlySlave stop searching if slave found
    */
   public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
     this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
@@ -106,10 +106,14 @@ public class SearchFilter {
   @Override
   public String toString() {
     return "SearchFilter{"
-        + ", fineIfFoundOnlyMaster=" + fineIfFoundOnlyMaster
-        + ", fineIfFoundOnlySlave=" + fineIfFoundOnlySlave
-        + ", initialConnection=" + initialConnection
-        + ", failoverLoop=" + failoverLoop
+        + ", fineIfFoundOnlyMaster="
+        + fineIfFoundOnlyMaster
+        + ", fineIfFoundOnlySlave="
+        + fineIfFoundOnlySlave
+        + ", initialConnection="
+        + initialConnection
+        + ", failoverLoop="
+        + failoverLoop
         + "}";
   }
 }

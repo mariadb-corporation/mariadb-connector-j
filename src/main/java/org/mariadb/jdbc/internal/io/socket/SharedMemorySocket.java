@@ -52,31 +52,19 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.LastErrorException;
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
-import com.sun.jna.platform.win32.BaseTSD.SIZE_T;
-import com.sun.jna.platform.win32.WinNT.HANDLE;
-import com.sun.jna.ptr.IntByReference;
-import com.sun.jna.ptr.PointerByReference;
-import com.sun.jna.win32.StdCallLibrary;
-import com.sun.jna.win32.W32APIFunctionMapper;
-import com.sun.jna.win32.W32APITypeMapper;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import com.sun.jna.*;
+import com.sun.jna.platform.win32.BaseTSD.*;
+import com.sun.jna.platform.win32.WinNT.*;
+import com.sun.jna.ptr.*;
+import com.sun.jna.win32.*;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class SharedMemorySocket extends Socket {
 
-  //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
+  // SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
   private static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
   private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<>();
   // Size of memory mapped region
@@ -114,16 +102,16 @@ public class SharedMemorySocket extends Socket {
   }
 
   private static HANDLE openEvent(String name) {
-    return Kernel32.INSTANCE
-        .OpenEvent(Kernel32.EVENT_MODIFY_STATE | Kernel32.SYNCHRONIZE, false, name);
+    return Kernel32.INSTANCE.OpenEvent(
+        Kernel32.EVENT_MODIFY_STATE | Kernel32.SYNCHRONIZE, false, name);
   }
 
   /**
    * Map memory
    *
    * @param mapName map name
-   * @param mode    mode
-   * @param size    size
+   * @param mode mode
+   * @param size size
    * @return Pointer
    */
   private static Pointer mapMemory(String mapName, int mode, int size) {
@@ -145,9 +133,8 @@ public class SharedMemorySocket extends Socket {
   */
   private HANDLE lockMutex() throws IOException {
     PointerByReference securityDescriptor = new PointerByReference();
-    Advapi32.INSTANCE
-        .ConvertStringSecurityDescriptorToSecurityDescriptor(EVERYONE_SYNCHRONIZE_SDDL, 1,
-            securityDescriptor, null);
+    Advapi32.INSTANCE.ConvertStringSecurityDescriptorToSecurityDescriptor(
+        EVERYONE_SYNCHRONIZE_SDDL, 1, securityDescriptor, null);
     Advapi32.SECURITY_ATTRIBUTES sa = new Advapi32.SECURITY_ATTRIBUTES();
     sa.nLength = sa.size();
     sa.lpSecurityDescriptor = securityDescriptor.getValue();
@@ -185,8 +172,10 @@ public class SharedMemorySocket extends Socket {
       int ret = Kernel32.INSTANCE.WaitForSingleObject(connectAnswer, timeout);
       if (ret != 0) {
         throw new IOException(
-            "WaitForSingleObject returned " + ret + ", last error " + Kernel32.INSTANCE
-                .GetLastError());
+            "WaitForSingleObject returned "
+                + ret
+                + ", last error "
+                + Kernel32.INSTANCE.GetLastError());
       }
       return connectData.getInt(0);
     } finally {
@@ -226,23 +215,23 @@ public class SharedMemorySocket extends Socket {
   }
 
   public void setTcpNoDelay(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setKeepAlive(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setReceiveBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSendBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoLinger(boolean b, int i) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoTimeout(int t) {
@@ -254,11 +243,11 @@ public class SharedMemorySocket extends Socket {
   }
 
   public void shutdownInput() {
-    //do nothing
+    // do nothing
   }
 
   public void shutdownOutput() {
-    //do nothing
+    // do nothing
   }
 
   @Override
@@ -288,7 +277,7 @@ public class SharedMemorySocket extends Socket {
 
   public interface Kernel32 extends StdCallLibrary {
 
-    Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
+    Kernel32 INSTANCE = Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
     int FILE_MAP_WRITE = 0x0002;
     int FILE_MAP_READ = 0x0004;
     int EVENT_MODIFY_STATE = 0x0002;
@@ -301,9 +290,13 @@ public class SharedMemorySocket extends Socket {
     HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name)
         throws LastErrorException;
 
-    Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh,
+    Pointer MapViewOfFile(
+        HANDLE hFileMappingObject,
+        int dwDesiredAccess,
+        int dwFileOffsetHigh,
         int dwFileOffsetLow,
-        SIZE_T dwNumberOfBytesToMap) throws LastErrorException;
+        SIZE_T dwNumberOfBytesToMap)
+        throws LastErrorException;
 
     boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
 
@@ -323,16 +316,14 @@ public class SharedMemorySocket extends Socket {
     boolean ReleaseMutex(HANDLE hMutex);
 
     Pointer LocalFree(Pointer p);
-
   }
 
   public interface Advapi32 extends StdCallLibrary {
 
-    Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
+    Advapi32 INSTANCE = Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
 
-    boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion,
-        PointerByReference psd,
-        IntByReference length);
+    boolean ConvertStringSecurityDescriptorToSecurityDescriptor(
+        String sddl, int sddlVersion, PointerByReference psd, IntByReference length);
 
     class SECURITY_ATTRIBUTES extends Structure {
 
@@ -345,7 +336,6 @@ public class SharedMemorySocket extends Socket {
         return Arrays.asList("nLength", "lpSecurityDescriptor", "bInheritHandle");
       }
     }
-
   }
 
   class SharedMemoryInputStream extends InputStream {
@@ -424,7 +414,7 @@ public class SharedMemorySocket extends Socket {
 
     @Override
     public void write(int value) throws IOException {
-      write(new byte[]{(byte) value});
+      write(new byte[] {(byte) value});
     }
 
     @Override

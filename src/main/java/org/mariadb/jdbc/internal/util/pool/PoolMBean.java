@@ -33,5 +33,4 @@ public interface PoolMBean {
   long getConnectionRequests();
 
   void resetStaticGlobal();
-
 }

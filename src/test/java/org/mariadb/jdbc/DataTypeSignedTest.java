@@ -65,9 +65,7 @@ import java.sql.Statement;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class DataTypeSignedTest extends BaseTest {
-
 
   /**
    * Initialisation.
@@ -121,7 +119,6 @@ public class DataTypeSignedTest extends BaseTest {
     return false;
   }
 
-
   @Test
   public void signedSmallIntTest() throws SQLException {
     sharedConnection.createStatement().execute("insert into signedSmallIntTest values (32767)");
@@ -157,7 +154,6 @@ public class DataTypeSignedTest extends BaseTest {
       fail("must have result !");
     }
   }
-
 
   @Test
   public void signedMediumIntTest() throws SQLException {
@@ -230,10 +226,10 @@ public class DataTypeSignedTest extends BaseTest {
     }
   }
 
-
   @Test
   public void signedBigIntTest() throws SQLException {
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("insert into signedBigIntTest values (9223372036854775807)");
     sharedConnection.createStatement().execute("insert into signedBigIntTest values (1)");
     sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
@@ -268,7 +264,6 @@ public class DataTypeSignedTest extends BaseTest {
     }
   }
 
-
   @Test
   public void signedDecimalTest() throws SQLException {
     try (Statement statement = sharedConnection.createStatement()) {
@@ -296,13 +291,20 @@ public class DataTypeSignedTest extends BaseTest {
       shortMustFail(rs);
       intMustFail(rs);
       longMustFail(rs);
-      assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890F,
+          rs.getFloat(1),
           1000000000000000000000000D);
-      assertEquals(123456789012345678901234567890.12345678901234567890F, rs.getFloat(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890F,
+          rs.getFloat(1),
           1000000000000000000000000D);
-      assertEquals(123456789012345678901234567890.12345678901234567890D, rs.getDouble(1),
+      assertEquals(
+          123456789012345678901234567890.12345678901234567890D,
+          rs.getDouble(1),
           1000000000000000000000000D);
-      assertEquals(new BigDecimal("123456789012345678901234567890.12345678901234567890"),
+      assertEquals(
+          new BigDecimal("123456789012345678901234567890.12345678901234567890"),
           rs.getBigDecimal(1));
       assertEquals("123456789012345678901234567890.12345678901234567890", rs.getString(1));
       if (rs.next()) {
@@ -312,8 +314,8 @@ public class DataTypeSignedTest extends BaseTest {
         assertEquals(9223372036854775806L, rs.getLong(1));
         assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
         assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
-        assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"),
-            rs.getBigDecimal(1));
+        assertEquals(
+            new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
         assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
         if (rs.next()) {
           assertEquals(1, rs.getByte(1));
@@ -404,7 +406,6 @@ public class DataTypeSignedTest extends BaseTest {
         } else {
           assertEquals(new BigDecimal("1.00000000000000000000"), rs.getBigDecimal(1));
           assertEquals("1.00000000000000000000", rs.getString(1));
-
         }
       } else {
         assertEquals(new BigDecimal("1"), rs.getBigDecimal(1));
@@ -466,5 +467,4 @@ public class DataTypeSignedTest extends BaseTest {
       fail("must have result !");
     }
   }
-
 }

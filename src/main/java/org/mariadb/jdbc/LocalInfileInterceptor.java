@@ -55,5 +55,4 @@ package org.mariadb.jdbc;
 public interface LocalInfileInterceptor {
 
   boolean validate(String fileName);
-
 }

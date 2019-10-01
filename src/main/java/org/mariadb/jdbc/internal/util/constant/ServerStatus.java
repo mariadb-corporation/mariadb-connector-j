@@ -67,5 +67,4 @@ public class ServerStatus {
   public static final short QUERY_WAS_SLOW = 2048;
   public static final short PS_OUT_PARAMETERS = 4096;
   public static final short SERVER_SESSION_STATE_CHANGED = 1 << 14;
-
 }

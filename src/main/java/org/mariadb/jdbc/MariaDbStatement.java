@@ -52,35 +52,22 @@
 
 package org.mariadb.jdbc;
 
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import java.sql.BatchUpdateException;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLTimeoutException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.util.*;
 
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
+import java.util.regex.*;
 
 public class MariaDbStatement implements Statement, Cloneable {
 
@@ -89,7 +76,6 @@ public class MariaDbStatement implements Statement, Cloneable {
 
   // timeout scheduler
   private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
-  private ScheduledExecutorService timeoutScheduler;
   protected final ReentrantLock lock;
   protected final int resultSetScrollType;
   protected final int resultSetConcurrency;
@@ -106,6 +92,7 @@ public class MariaDbStatement implements Statement, Cloneable {
   protected Results results;
   protected int fetchSize;
   protected volatile boolean executing;
+  private ScheduledExecutorService timeoutScheduler;
   // are warnings cleared?
   private boolean warningsCleared;
   private boolean mustCloseOnCompletion = false;

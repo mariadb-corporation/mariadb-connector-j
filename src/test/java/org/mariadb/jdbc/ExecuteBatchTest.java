@@ -101,7 +101,8 @@ public class ExecuteBatchTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("ExecuteBatchTest",
+    createTable(
+        "ExecuteBatchTest",
         "id int not null primary key auto_increment, test varchar(100) , test2 int");
     createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
   }
@@ -114,41 +115,43 @@ public class ExecuteBatchTest extends BaseTest {
   @Test
   public void interruptExecuteBatch() throws Exception {
     Assume.assumeTrue(
-        sharedOptions().useBatchMultiSend && !(sharedOptions().useBulkStmts && isMariadbServer()
-            && minVersion(10, 2)));
+        sharedOptions().useBatchMultiSend
+            && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2)));
     ExecutorService service = Executors.newFixedThreadPool(1);
 
     final CyclicBarrier barrier = new CyclicBarrier(2);
     final AtomicBoolean wasInterrupted = new AtomicBoolean(false);
     final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
 
-    service.submit(() -> {
-      try {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-            "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+    service.submit(
+        () -> {
+          try {
+            PreparedStatement preparedStatement =
+                sharedConnection.prepareStatement(
+                    "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
 
-        // Send a large enough batch that will take long enough to allow us to interrupt it
-        for (int i = 0; i < 1_000_000; i++) {
-          preparedStatement.setString(1, String.valueOf(System.nanoTime()));
-          preparedStatement.setInt(2, i);
-          preparedStatement.addBatch();
-        }
+            // Send a large enough batch that will take long enough to allow us to interrupt it
+            for (int i = 0; i < 1_000_000; i++) {
+              preparedStatement.setString(1, String.valueOf(System.nanoTime()));
+              preparedStatement.setInt(2, i);
+              preparedStatement.addBatch();
+            }
 
-        barrier.await();
+            barrier.await();
 
-        preparedStatement.executeBatch();
-      } catch (InterruptedException ex) {
-        exceptionRef.set(ex);
-        Thread.currentThread().interrupt();
-      } catch (BrokenBarrierException ex) {
-        exceptionRef.set(ex);
-      } catch (SQLException ex) {
-        exceptionRef.set(ex);
-        wasInterrupted.set(Thread.currentThread().isInterrupted());
-      } catch (Exception ex) {
-        exceptionRef.set(ex);
-      }
-    });
+            preparedStatement.executeBatch();
+          } catch (InterruptedException ex) {
+            exceptionRef.set(ex);
+            Thread.currentThread().interrupt();
+          } catch (BrokenBarrierException ex) {
+            exceptionRef.set(ex);
+          } catch (SQLException ex) {
+            exceptionRef.set(ex);
+            wasInterrupted.set(Thread.currentThread().isInterrupted());
+          } catch (Exception ex) {
+            exceptionRef.set(ex);
+          }
+        });
 
     barrier.await();
 
@@ -158,13 +161,12 @@ public class ExecuteBatchTest extends BaseTest {
     // Interrupt the thread
     service.shutdownNow();
 
-    assertTrue(
-        service.awaitTermination(1, TimeUnit.MINUTES)
-    );
+    assertTrue(service.awaitTermination(1, TimeUnit.MINUTES));
 
     assertNotNull(exceptionRef.get());
 
-    //ensure that even interrupted, connection status is when sending in bulk (all corresponding bulk send are read)
+    // ensure that even interrupted, connection status is when sending in bulk (all corresponding
+    // bulk send are read)
     ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 123456");
     assertTrue(rs.next());
     assertEquals(123456, rs.getInt(1));
@@ -174,11 +176,9 @@ public class ExecuteBatchTest extends BaseTest {
 
     assertTrue(
         "Exception should be a SQLException: \n" + writer.toString(),
-        exceptionRef.get() instanceof SQLException
-    );
+        exceptionRef.get() instanceof SQLException);
 
     assertTrue(wasInterrupted.get());
-
   }
 
   @Test
@@ -189,11 +189,11 @@ public class ExecuteBatchTest extends BaseTest {
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-    try (Connection connection = setConnection(
-        "&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
-      //packet size : 7 200 068 kb
+    try (Connection connection =
+        setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+      // packet size : 7 200 068 kb
       addBatchData(preparedStatement, 60000, connection);
     }
   }
@@ -206,11 +206,11 @@ public class ExecuteBatchTest extends BaseTest {
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-    try (Connection connection = setConnection(
-        "&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
-      //packet size : 7 200 068 kb
+    try (Connection connection =
+        setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+      // packet size : 7 200 068 kb
       addBatchData(preparedStatement, 160000, connection);
     }
   }
@@ -221,10 +221,10 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-    try (Connection connection = setConnection(
-        "&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+    try (Connection connection =
+        setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       addBatchData(preparedStatement, 60000, connection);
     }
   }
@@ -237,11 +237,12 @@ public class ExecuteBatchTest extends BaseTest {
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
-    try (Connection connection = setConnection(
-        "&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql="
-            + profileSql)) {
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+    try (Connection connection =
+        setConnection(
+            "&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql="
+                + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       addBatchData(preparedStatement, 60000, connection);
     }
   }
@@ -251,10 +252,11 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-    try (Connection connection = setConnection(
-        "&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement = connection.prepareStatement(
-          "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
+    try (Connection connection =
+        setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
       addBatchData(preparedStatement, 60000, connection, true, true);
     }
   }
@@ -264,21 +266,27 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-    try (Connection connection = setConnection(
-        "&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement = connection.prepareStatement(
-          "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
+    try (Connection connection =
+        setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
       addBatchData(preparedStatement, 160000, connection, true, true);
     }
   }
 
-  private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
-      Connection connection) throws SQLException {
+  private void addBatchData(
+      PreparedStatement preparedStatement, int batchNumber, Connection connection)
+      throws SQLException {
     addBatchData(preparedStatement, batchNumber, connection, false, false);
   }
 
-  private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
-      Connection connection, boolean additionnalParameter, boolean sendUnique)
+  private void addBatchData(
+      PreparedStatement preparedStatement,
+      int batchNumber,
+      Connection connection,
+      boolean additionnalParameter,
+      boolean sendUnique)
       throws SQLException {
     for (int i = 0; i < batchNumber; i++) {
       preparedStatement.setString(1, oneHundredLengthString);
@@ -290,22 +298,20 @@ public class ExecuteBatchTest extends BaseTest {
     }
     int[] resultInsert = preparedStatement.executeBatch();
 
-    //test result Size
+    // test result Size
     assertEquals(batchNumber, resultInsert.length);
     for (int i = 0; i < batchNumber; i++) {
       if ((!sendUnique && sharedIsRewrite())
-              || (sharedOptions().useBulkStmts
-              && isMariadbServer()
-              && minVersion(10, 2))) {
+          || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
         assertEquals(Statement.SUCCESS_NO_INFO, resultInsert[i]);
       } else {
         assertEquals(1, resultInsert[i]);
       }
     }
 
-    //check that connection is OK and results are well inserted
-    ResultSet resultSet = connection.createStatement()
-        .executeQuery("SELECT * FROM ExecuteBatchTest");
+    // check that connection is OK and results are well inserted
+    ResultSet resultSet =
+        connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
     for (int i = 0; i < batchNumber; i++) {
       assertTrue(resultSet.next());
       if (!sharedOptions().useBulkStmts) {
@@ -331,9 +337,7 @@ public class ExecuteBatchTest extends BaseTest {
         assertEquals(10, updateCounts.length);
         for (int updateCount : updateCounts) {
           if ((sharedIsRewrite()
-              || (sharedOptions().useBulkStmts
-              && isMariadbServer()
-              && minVersion(10, 2)))) {
+              || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2)))) {
             assertEquals(Statement.SUCCESS_NO_INFO, updateCount);
           } else {
             assertEquals(1, updateCount);
@@ -366,28 +370,32 @@ public class ExecuteBatchTest extends BaseTest {
     AtomicInteger counter = new AtomicInteger();
     ExecutorService exec = Executors.newFixedThreadPool(limit + 50);
     for (int i = 0; i < limit; i++) {
-      exec.execute(() -> {
-        try (Connection connection = setConnection()) {
-          connection.setAutoCommit(false);
-          Statement stmt = connection.createStatement();
-          int connectionCounter = counter.getAndIncrement();
-          for (int j = 0; j < 1024; j++) {
-            stmt.addBatch(
-                "INSERT INTO multipleSimultaneousBatch_" + connectionCounter + "(a) VALUES (" + j
-                    + ")");
-          }
-          stmt.executeBatch();
-          connection.commit();
-        } catch (Throwable e) {
-          e.printStackTrace();
-        }
-      });
+      exec.execute(
+          () -> {
+            try (Connection connection = setConnection()) {
+              connection.setAutoCommit(false);
+              Statement stmt = connection.createStatement();
+              int connectionCounter = counter.getAndIncrement();
+              for (int j = 0; j < 1024; j++) {
+                stmt.addBatch(
+                    "INSERT INTO multipleSimultaneousBatch_"
+                        + connectionCounter
+                        + "(a) VALUES ("
+                        + j
+                        + ")");
+              }
+              stmt.executeBatch();
+              connection.commit();
+            } catch (Throwable e) {
+              e.printStackTrace();
+            }
+          });
     }
 
     exec.shutdown();
     exec.awaitTermination(150, TimeUnit.SECONDS);
 
-    //check results
+    // check results
     Statement stmt = sharedConnection.createStatement();
     for (int i = 0; i < limit; i++) {
       ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
@@ -395,7 +403,6 @@ public class ExecuteBatchTest extends BaseTest {
       assertEquals(1024, rs.getInt(1));
     }
   }
-
 
   @Test
   public void useBatchMultiSendWithError() throws Exception {
@@ -415,8 +422,9 @@ public class ExecuteBatchTest extends BaseTest {
     properties.setProperty("useBatchMultiSend", "true");
     try (Connection connection = createProxyConnection(properties)) {
       Statement stmt = connection.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE useBatchMultiSendWithError (id INT NOT NULL,"
-          + "UNIQUE INDEX `index1` (id))");
+      stmt.execute(
+          "CREATE TEMPORARY TABLE useBatchMultiSendWithError (id INT NOT NULL,"
+              + "UNIQUE INDEX `index1` (id))");
       String sql = "insert into useBatchMultiSendWithError (id) values (?)";
       try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
         for (int i = 0; i < 200000; i++) {
@@ -425,9 +433,12 @@ public class ExecuteBatchTest extends BaseTest {
         }
 
         final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
-        executor.schedule(() -> {
-          stopProxy();
-        }, 10, TimeUnit.MILLISECONDS);
+        executor.schedule(
+            () -> {
+              stopProxy();
+            },
+            10,
+            TimeUnit.MILLISECONDS);
 
         try {
           pstmt.executeBatch();
@@ -445,9 +456,7 @@ public class ExecuteBatchTest extends BaseTest {
           }
           restartProxy();
         }
-
       }
     }
   }
-
 }

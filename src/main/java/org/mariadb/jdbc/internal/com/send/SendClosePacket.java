@@ -52,10 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.com.Packet;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.com.*;
+import org.mariadb.jdbc.internal.io.output.*;
 
+import java.io.*;
 
 public class SendClosePacket {
 
@@ -70,7 +70,7 @@ public class SendClosePacket {
       pos.write(Packet.COM_QUIT);
       pos.flush();
     } catch (IOException ioe) {
-      //eat
+      // eat
     }
   }
 }

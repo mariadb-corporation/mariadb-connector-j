@@ -52,20 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Serializable;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
-import java.io.Writer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
-import java.sql.NClob;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 
@@ -83,7 +74,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   /**
    * Creates a Clob with content.
    *
-   * @param bytes  the content for the Clob.
+   * @param bytes the content for the Clob.
    * @param offset offset
    * @param length length
    */
@@ -91,9 +82,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     super(bytes, offset, length);
   }
 
-  /**
-   * Creates an empty Clob.
-   */
+  /** Creates an empty Clob. */
   public MariaDbClob() {
     super();
   }
@@ -110,7 +99,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   /**
    * Get sub string.
    *
-   * @param pos    position
+   * @param pos position
    * @param length length of sub string
    * @return substring
    * @throws SQLException if pos is less than 1 or length is less than 0
@@ -141,19 +130,18 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    * Returns a Reader object that contains a partial Clob value, starting with the character
    * specified by pos, which is length characters in length.
    *
-   * @param pos    the offset to the first character of the partial value to be retrieved. The first
-   *               character in the Clob is at position 1.
+   * @param pos the offset to the first character of the partial value to be retrieved. The first
+   *     character in the Clob is at position 1.
    * @param length the length in characters of the partial value to be retrieved.
    * @return Reader through which the partial Clob value can be read.
    * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters
-   *                      in the Clob or if pos + length is greater than the number of characters in
-   *                      the Clob
+   *     in the Clob or if pos + length is greater than the number of characters in the Clob
    */
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     String val = toString();
     if (val.length() < (int) pos - 1 + length) {
-      throw ExceptionMapper
-          .getSqlException("pos + length is greater than the number of characters in the Clob");
+      throw ExceptionMapper.getSqlException(
+          "pos + length is greater than the number of characters in the Clob");
     }
     String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);
     return new StringReader(sub);
@@ -233,22 +221,20 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     return setBinaryStream(utf8Position((int) pos - 1) + 1);
   }
 
-  /**
-   * Return character length of the Clob. Assume UTF8 encoding.
-   */
+  /** Return character length of the Clob. Assume UTF8 encoding. */
   @Override
   public long length() {
-    //The length of a character string is the number of UTF-16 units (not the number of characters)
+    // The length of a character string is the number of UTF-16 units (not the number of characters)
     long len = 0;
     int pos = offset;
 
-    //set ASCII (<= 127 chars)
+    // set ASCII (<= 127 chars)
     for (; len < length && data[pos] >= 0; ) {
       len++;
       pos++;
     }
 
-    //multi-bytes UTF-8
+    // multi-bytes UTF-8
     while (pos < offset + length) {
       byte firstByte = data[pos++];
       if (firstByte < 0) {
@@ -266,7 +252,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             pos += 3;
             len += 2;
           } else {
-            //bad truncated UTF8
+            // bad truncated UTF8
             pos += offset + length;
             len += 1;
           }
@@ -284,19 +270,19 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   @Override
   public void truncate(final long truncateLen) {
 
-    //truncate the number of UTF-16 characters
-    //this can result in a bad UTF-8 string if string finish with a
-    //character represented in 2 UTF-16
+    // truncate the number of UTF-16 characters
+    // this can result in a bad UTF-8 string if string finish with a
+    // character represented in 2 UTF-16
     long len = 0;
     int pos = offset;
 
-    //set ASCII (<= 127 chars)
+    // set ASCII (<= 127 chars)
     for (; len < length && len < truncateLen && data[pos] >= 0; ) {
       len++;
       pos++;
     }
 
-    //multi-bytes UTF-8
+    // multi-bytes UTF-8
     while (pos < offset + length && len < truncateLen) {
       byte firstByte = data[pos++];
       if (firstByte < 0) {
@@ -315,7 +301,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
               pos += 3;
               len += 2;
             } else {
-              //truncation will result in bad UTF-8 String
+              // truncation will result in bad UTF-8 String
               pos += 1;
               len = truncateLen;
             }

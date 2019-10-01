@@ -50,7 +50,6 @@
  *
  */
 
-
 package org.mariadb.jdbc.internal.util.dao;
 
 public class CallableStatementCacheKey {
@@ -73,7 +72,6 @@ public class CallableStatementCacheKey {
     }
     CallableStatementCacheKey that = (CallableStatementCacheKey) object;
     return database.equals(that.database) && query.equals(that.query);
-
   }
 
   @Override

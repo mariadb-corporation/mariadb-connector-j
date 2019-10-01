@@ -113,5 +113,4 @@ public interface Logger {
   void error(String format, Object... arguments);
 
   void error(String msg, Throwable throwable);
-
 }

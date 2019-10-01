@@ -98,39 +98,48 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("ServerPrepareStatementTest",
+    createTable(
+        "ServerPrepareStatementTest", "id int not null primary key auto_increment, test boolean");
+    createTable(
+        "ServerPrepareStatementTestt", "id int not null primary key auto_increment, test boolean");
+    createTable(
+        "ServerPrepareStatementTestt2", "id int not null primary key auto_increment, test boolean");
+    createTable(
+        "ServerPrepareStatementTestCache",
         "id int not null primary key auto_increment, test boolean");
-    createTable("ServerPrepareStatementTestt",
-        "id int not null primary key auto_increment, test boolean");
-    createTable("ServerPrepareStatementTestt2",
-        "id int not null primary key auto_increment, test boolean");
-    createTable("ServerPrepareStatementTestCache",
-        "id int not null primary key auto_increment, test boolean");
-    createTable("ServerPrepareStatementCacheSize3",
+    createTable(
+        "ServerPrepareStatementCacheSize3",
         "id int not null primary key auto_increment, test boolean");
     if (doPrecisionTest) {
-      createTable("preparetestFactionnal",
+      createTable(
+          "preparetestFactionnal",
           "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
     }
-    createTable("ServerPrepareStatementCacheSize2",
+    createTable(
+        "ServerPrepareStatementCacheSize2",
         "id int not null primary key auto_increment, test boolean");
-    createTable("ServerPrepareStatementCacheSize3",
+    createTable(
+        "ServerPrepareStatementCacheSize3",
         "id int not null primary key auto_increment, test blob");
     createTable("ServerPrepareStatementParameters", "id int, id2 int");
-    createTable("ServerPrepareStatementCacheSize4",
+    createTable(
+        "ServerPrepareStatementCacheSize4",
         "id int not null primary key auto_increment, test LONGBLOB",
         "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
     createTable("streamtest2", "id int primary key not null, strm text");
-    createTable("testServerPrepareMeta",
+    createTable(
+        "testServerPrepareMeta",
         "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
-    createTable("ServerPrepareStatementSync",
+    createTable(
+        "ServerPrepareStatementSync",
         "id int not null primary key auto_increment, test varchar(1007), tt boolean");
   }
 
   @Test
   public void testServerPrepareMeta() throws Throwable {
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO testServerPrepareMeta(id2, id3, id4) VALUES (?, ?, ?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO testServerPrepareMeta(id2, id3, id4) VALUES (?, ?, ?)");
     ParameterMetaData meta = ps.getParameterMetaData();
     assertEquals(3, meta.getParameterCount());
   }
@@ -144,8 +153,8 @@ public class ServerPrepareStatementTest extends BaseTest {
       assertTrue(rs.next());
       final int nbStatementCount = rs.getInt(2);
 
-      PreparedStatement ps = connection.prepareStatement(
-          "INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
+      PreparedStatement ps =
+          connection.prepareStatement("INSERT INTO ServerPrepareStatementTestt (test) VALUES (?)");
       ps.setBoolean(1, true);
       ps.addBatch();
       ps.execute();
@@ -163,14 +172,16 @@ public class ServerPrepareStatementTest extends BaseTest {
       Protocol protocol = getProtocolFromConnection(connection);
       int cacheSize = protocol.prepareStatementCache().size();
 
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
       preparedStatement.setBoolean(1, true);
       preparedStatement.execute();
       assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
 
-      PreparedStatement preparedStatement2 = connection
-          .prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+      PreparedStatement preparedStatement2 =
+          connection.prepareStatement(
+              "INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
       preparedStatement2.setBoolean(1, true);
       preparedStatement2.execute();
       assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
@@ -187,11 +198,11 @@ public class ServerPrepareStatementTest extends BaseTest {
         preparedStatement.execute();
         activePrepareStatement.add(preparedStatement);
       }
-      //check max cache size
+      // check max cache size
       Protocol protocol = getProtocolFromConnection(connection);
       assertTrue("Prepared cache size must be 10", protocol.prepareStatementCache().size() == 10);
 
-      //check all prepared statement worked even if not cached
+      // check all prepared statement worked even if not cached
       for (int i = 0; i < 20; i++) {
         activePrepareStatement.get(i).execute();
       }
@@ -200,20 +211,22 @@ public class ServerPrepareStatementTest extends BaseTest {
         activePrepareStatement.get(0).close();
         activePrepareStatement.remove(0);
       }
-      //check that cache hold preparedStatement
+      // check that cache hold preparedStatement
       assertTrue("Prepared cache size must be 10", protocol.prepareStatementCache().size() == 10);
 
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 10-0\n"
-          + "testj-SELECT 11-0\n"
-          + "testj-SELECT 12-0\n"
-          + "testj-SELECT 13-0\n"
-          + "testj-SELECT 14-0\n"
-          + "testj-SELECT 15-0\n"
-          + "testj-SELECT 16-0\n"
-          + "testj-SELECT 17-0\n"
-          + "testj-SELECT 18-0\n"
-          + "testj-SELECT 19-0]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 10-0\n"
+              + "testj-SELECT 11-0\n"
+              + "testj-SELECT 12-0\n"
+              + "testj-SELECT 13-0\n"
+              + "testj-SELECT 14-0\n"
+              + "testj-SELECT 15-0\n"
+              + "testj-SELECT 16-0\n"
+              + "testj-SELECT 17-0\n"
+              + "testj-SELECT 18-0\n"
+              + "testj-SELECT 19-0]",
+          protocol.prepareStatementCache().toString());
 
       for (int i = 12; i < 15; i++) {
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
@@ -221,86 +234,96 @@ public class ServerPrepareStatementTest extends BaseTest {
         activePrepareStatement.add(preparedStatement);
       }
 
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 10-0\n"
-          + "testj-SELECT 11-0\n"
-          + "testj-SELECT 15-0\n"
-          + "testj-SELECT 16-0\n"
-          + "testj-SELECT 17-0\n"
-          + "testj-SELECT 18-0\n"
-          + "testj-SELECT 19-0\n"
-          + "testj-SELECT 12-1\n"
-          + "testj-SELECT 13-1\n"
-          + "testj-SELECT 14-1]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 10-0\n"
+              + "testj-SELECT 11-0\n"
+              + "testj-SELECT 15-0\n"
+              + "testj-SELECT 16-0\n"
+              + "testj-SELECT 17-0\n"
+              + "testj-SELECT 18-0\n"
+              + "testj-SELECT 19-0\n"
+              + "testj-SELECT 12-1\n"
+              + "testj-SELECT 13-1\n"
+              + "testj-SELECT 14-1]",
+          protocol.prepareStatementCache().toString());
 
       for (int i = 1; i < 5; i++) {
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
         preparedStatement.execute();
         activePrepareStatement.add(preparedStatement);
       }
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 17-0\n"
-          + "testj-SELECT 18-0\n"
-          + "testj-SELECT 19-0\n"
-          + "testj-SELECT 12-1\n"
-          + "testj-SELECT 13-1\n"
-          + "testj-SELECT 14-1\n"
-          + "testj-SELECT 1-1\n"
-          + "testj-SELECT 2-1\n"
-          + "testj-SELECT 3-1\n"
-          + "testj-SELECT 4-1]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 17-0\n"
+              + "testj-SELECT 18-0\n"
+              + "testj-SELECT 19-0\n"
+              + "testj-SELECT 12-1\n"
+              + "testj-SELECT 13-1\n"
+              + "testj-SELECT 14-1\n"
+              + "testj-SELECT 1-1\n"
+              + "testj-SELECT 2-1\n"
+              + "testj-SELECT 3-1\n"
+              + "testj-SELECT 4-1]",
+          protocol.prepareStatementCache().toString());
       for (int i = 12; i < 15; i++) {
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
         preparedStatement.execute();
         activePrepareStatement.add(preparedStatement);
       }
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 17-0\n"
-          + "testj-SELECT 18-0\n"
-          + "testj-SELECT 19-0\n"
-          + "testj-SELECT 1-1\n"
-          + "testj-SELECT 2-1\n"
-          + "testj-SELECT 3-1\n"
-          + "testj-SELECT 4-1\n"
-          + "testj-SELECT 12-2\n"
-          + "testj-SELECT 13-2\n"
-          + "testj-SELECT 14-2]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 17-0\n"
+              + "testj-SELECT 18-0\n"
+              + "testj-SELECT 19-0\n"
+              + "testj-SELECT 1-1\n"
+              + "testj-SELECT 2-1\n"
+              + "testj-SELECT 3-1\n"
+              + "testj-SELECT 4-1\n"
+              + "testj-SELECT 12-2\n"
+              + "testj-SELECT 13-2\n"
+              + "testj-SELECT 14-2]",
+          protocol.prepareStatementCache().toString());
 
       for (int i = 20; i < 30; i++) {
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
         preparedStatement.execute();
         activePrepareStatement.add(preparedStatement);
       }
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 20-1\n"
-          + "testj-SELECT 21-1\n"
-          + "testj-SELECT 22-1\n"
-          + "testj-SELECT 23-1\n"
-          + "testj-SELECT 24-1\n"
-          + "testj-SELECT 25-1\n"
-          + "testj-SELECT 26-1\n"
-          + "testj-SELECT 27-1\n"
-          + "testj-SELECT 28-1\n"
-          + "testj-SELECT 29-1]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 20-1\n"
+              + "testj-SELECT 21-1\n"
+              + "testj-SELECT 22-1\n"
+              + "testj-SELECT 23-1\n"
+              + "testj-SELECT 24-1\n"
+              + "testj-SELECT 25-1\n"
+              + "testj-SELECT 26-1\n"
+              + "testj-SELECT 27-1\n"
+              + "testj-SELECT 28-1\n"
+              + "testj-SELECT 29-1]",
+          protocol.prepareStatementCache().toString());
 
-      //check all prepared statement worked even if not cached
+      // check all prepared statement worked even if not cached
       while (!activePrepareStatement.isEmpty()) {
         activePrepareStatement.get(0).execute();
         activePrepareStatement.get(0).close();
         activePrepareStatement.remove(0);
       }
       assertTrue(protocol.prepareStatementCache().size() == 10);
-      assertEquals("ServerPrepareStatementCache.map[\n"
-          + "testj-SELECT 20-0\n"
-          + "testj-SELECT 21-0\n"
-          + "testj-SELECT 22-0\n"
-          + "testj-SELECT 23-0\n"
-          + "testj-SELECT 24-0\n"
-          + "testj-SELECT 25-0\n"
-          + "testj-SELECT 26-0\n"
-          + "testj-SELECT 27-0\n"
-          + "testj-SELECT 28-0\n"
-          + "testj-SELECT 29-0]", protocol.prepareStatementCache().toString());
+      assertEquals(
+          "ServerPrepareStatementCache.map[\n"
+              + "testj-SELECT 20-0\n"
+              + "testj-SELECT 21-0\n"
+              + "testj-SELECT 22-0\n"
+              + "testj-SELECT 23-0\n"
+              + "testj-SELECT 24-0\n"
+              + "testj-SELECT 25-0\n"
+              + "testj-SELECT 26-0\n"
+              + "testj-SELECT 27-0\n"
+              + "testj-SELECT 28-0\n"
+              + "testj-SELECT 29-0]",
+          protocol.prepareStatementCache().toString());
     }
   }
 
@@ -321,8 +344,9 @@ public class ServerPrepareStatementTest extends BaseTest {
       Timestamp timestamp0 = new Timestamp(55549392);
       Timestamp timestamp1 = new Timestamp(55549000);
 
-      PreparedStatement ps = connection.prepareStatement(
-          "INSERT INTO preparetestFactionnal (time0, timestamp0, datetime0) VALUES (?, ?, ?)");
+      PreparedStatement ps =
+          connection.prepareStatement(
+              "INSERT INTO preparetestFactionnal (time0, timestamp0, datetime0) VALUES (?, ?, ?)");
       ps.setTime(1, time0);
       ps.setTimestamp(2, timestamp0);
       ps.setTimestamp(3, timestamp0);
@@ -333,10 +357,10 @@ public class ServerPrepareStatementTest extends BaseTest {
       ps.addBatch();
       ps.executeBatch();
 
-      ResultSet rs = connection.createStatement()
-          .executeQuery("SELECT * from preparetestFactionnal");
+      ResultSet rs =
+          connection.createStatement().executeQuery("SELECT * from preparetestFactionnal");
       if (rs.next()) {
-        //must be equal to time1 and not time0
+        // must be equal to time1 and not time0
         assertEquals(rs.getTime(1), time1);
         assertEquals(rs.getTimestamp(2), timestamp1);
         assertEquals(rs.getTimestamp(3), timestamp1);
@@ -348,12 +372,12 @@ public class ServerPrepareStatementTest extends BaseTest {
         fail("Error in query");
       }
     }
-
   }
 
   private void prepareTestTable() throws SQLException {
 
-    createTable("preparetest",
+    createTable(
+        "preparetest",
         "bit1 BIT(1),"
             + "bit2 BIT(2),"
             + "tinyint1 TINYINT(1),"
@@ -377,8 +401,9 @@ public class ServerPrepareStatementTest extends BaseTest {
             + "timestamp1 TIMESTAMP(0) null default  '2001-01-01 00:00:00',"
             + "timestamp_zero TIMESTAMP  null, "
             + "time0 TIME(6) default '22:11:00',"
-            + ((!isMariadbServer() && minVersion(5, 6)) ? "year2 YEAR(4) default 99,"
-            : "year2 YEAR(2) default 99,")
+            + ((!isMariadbServer() && minVersion(5, 6))
+                ? "year2 YEAR(4) default 99,"
+                : "year2 YEAR(2) default 99,")
             + "year4 YEAR(4) default 2011,"
             + "char0 CHAR(1) default '0',"
             + "char_binary CHAR (1) binary default '0',"
@@ -386,8 +411,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             + "varchar_binary VARCHAR(10) BINARY default 0x1,"
             + "binary0 BINARY(10) default 0x1,"
             + "varbinary0 VARBINARY(10) default 0x1, "
-            + "id int not null AUTO_INCREMENT, PRIMARY KEY (id)"
-    );
+            + "id int not null AUTO_INCREMENT, PRIMARY KEY (id)");
   }
 
   @SuppressWarnings("ConstantConditions")
@@ -397,15 +421,16 @@ public class ServerPrepareStatementTest extends BaseTest {
     TimeZone defaultTimeZone = TimeZone.getDefault();
     try {
       prepareTestTable();
-      PreparedStatement ps = sharedConnection
-          .prepareStatement("INSERT INTO preparetest (bit1,bit2,tinyint1,"
-              + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
-              + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
-              + "timestamp0,timestamp1,timestamp_zero, time0,"
-              + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
-              + "VALUES (?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
-              + "?,?,?,?,?,?,?,?)");
+      PreparedStatement ps =
+          sharedConnection.prepareStatement(
+              "INSERT INTO preparetest (bit1,bit2,tinyint1,"
+                  + "tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
+                  + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
+                  + "timestamp0,timestamp1,timestamp_zero, time0,"
+                  + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
+                  + "VALUES (?,?,?,?,?,?,?,?,?,?,"
+                  + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                  + "?,?,?,?,?,?,?,?)");
       sharedConnection.createStatement().execute("truncate preparetest");
 
       boolean bit1 = Boolean.FALSE;
@@ -475,9 +500,10 @@ public class ServerPrepareStatementTest extends BaseTest {
 
       ps.addBatch();
       ps.executeBatch();
-      ResultSet rs = sharedConnection
-          .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-          .executeQuery("SELECT * from preparetest");
+      ResultSet rs =
+          sharedConnection
+              .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+              .executeQuery("SELECT * from preparetest");
       if (rs.next()) {
         assertEquals(rs.getBoolean(1), bit1);
         assertEquals(rs.getByte(2), bit2);
@@ -508,14 +534,16 @@ public class ServerPrepareStatementTest extends BaseTest {
         assertEquals(rs.getString(27), charBinary);
         assertEquals(rs.getString(28), varchar0);
         assertEquals(rs.getString(29), varcharBinary);
-        assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+        assertEquals(
+            new String(rs.getBytes(30), StandardCharsets.UTF_8),
             new String(binary0, StandardCharsets.UTF_8));
-        assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+        assertEquals(
+            new String(rs.getBytes(31), StandardCharsets.UTF_8),
             new String(varbinary0, StandardCharsets.UTF_8));
 
-        //***************************************************************************
+        // ***************************************************************************
         // Update Row
-        //***************************************************************************
+        // ***************************************************************************
 
         rs.updateBoolean(1, Boolean.TRUE);
         rs.updateByte(2, (byte) 2);
@@ -549,7 +577,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         rs.updateBytes(30, "1234567899".getBytes());
         rs.updateRow();
 
-        //check row refresh
+        // check row refresh
         assertEquals(rs.getBoolean(1), Boolean.TRUE);
         assertEquals(rs.getByte(2), (byte) 2);
         assertEquals(rs.getByte(3), (byte) 126);
@@ -619,7 +647,6 @@ public class ServerPrepareStatementTest extends BaseTest {
           fail();
         }
 
-
       } else {
         fail();
       }
@@ -634,7 +661,7 @@ public class ServerPrepareStatementTest extends BaseTest {
       assertEquals(rs.getInt(fieldNumber), comparaison);
     } else {
       if (minVersion(5, 6)) {
-        //year on 2 bytes is deprecated since 5.5.27
+        // year on 2 bytes is deprecated since 5.5.27
         assertEquals(rs.getInt(fieldNumber), comparaison + 2000);
       } else {
         assertEquals(rs.getInt(fieldNumber), comparaison);
@@ -645,8 +672,9 @@ public class ServerPrepareStatementTest extends BaseTest {
   @Test
   public void blobTest() throws Throwable {
     try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
-      PreparedStatement ps = connection.prepareStatement(
-          "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+      PreparedStatement ps =
+          connection.prepareStatement(
+              "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       InputStream input = classLoader.getResourceAsStream("logback-test.xml");
 
@@ -659,10 +687,12 @@ public class ServerPrepareStatementTest extends BaseTest {
   @Test
   public void readerTest() throws Throwable {
     try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
-      PreparedStatement ps = connection.prepareStatement(
-          "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
-      Reader reader = new BufferedReader(new InputStreamReader(
-          ClassLoader.getSystemResourceAsStream("style.xml")));
+      PreparedStatement ps =
+          connection.prepareStatement(
+              "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+      Reader reader =
+          new BufferedReader(
+              new InputStreamReader(ClassLoader.getSystemResourceAsStream("style.xml")));
 
       ps.setCharacterStream(1, reader);
       ps.addBatch();
@@ -673,8 +703,9 @@ public class ServerPrepareStatementTest extends BaseTest {
   @Test(expected = SQLException.class)
   public void parametersNotSetTest() throws Throwable {
     Assume.assumeTrue(sharedUsePrepare());
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
     ps.setInt(1, 1);
     ps.addBatch();
     ps.executeBatch();
@@ -682,8 +713,9 @@ public class ServerPrepareStatementTest extends BaseTest {
 
   @Test
   public void checkSendDifferentParameterTypeTest() throws Throwable {
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
     ps.setByte(1, (byte) 1);
     ps.setShort(2, (short) 1);
     ps.addBatch();
@@ -701,8 +733,9 @@ public class ServerPrepareStatementTest extends BaseTest {
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("blobMultipleSizeTest"));
     Assume.assumeTrue(sharedUsePrepare());
 
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO ServerPrepareStatementCacheSize4(test) VALUES (?)");
     byte[] arr = new byte[20000000];
     Arrays.fill(arr, (byte) 'b');
     InputStream input = new ByteArrayInputStream(arr);
@@ -749,8 +782,9 @@ public class ServerPrepareStatementTest extends BaseTest {
   private PreparedStatement prepareInsert() throws Throwable {
     Statement statement = sharedConnection.createStatement();
     statement.execute("truncate ServerPrepareStatementParameters");
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
     ps.setByte(1, (byte) 1);
     ps.setShort(2, (short) 1);
     ps.addBatch();
@@ -766,8 +800,9 @@ public class ServerPrepareStatementTest extends BaseTest {
   @Test
   public void directExecuteNumber() throws Throwable {
     sharedConnection.createStatement().execute("truncate ServerPrepareStatementParameters");
-    PreparedStatement ps = sharedConnection.prepareStatement(
-        "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO ServerPrepareStatementParameters(id, id2) VALUES (?,?)");
     ps.setByte(1, (byte) 1);
     ps.setShort(2, (short) 1);
     ps.execute();
@@ -776,20 +811,21 @@ public class ServerPrepareStatementTest extends BaseTest {
     assertEquals(rs.getInt(1), 1);
   }
 
-
   @Test
   public void dataConformity2() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
     prepareTestTable();
 
-    PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest "
-        + "(bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
-        + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
-        + "timestamp0,timestamp1,timestamp_zero, time0,"
-        + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
-        + "VALUES (?,?,?,?,?,?,?,?,?,?,"
-        + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
-        + "?,?,?,?,?,?,?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "INSERT INTO preparetest "
+                + "(bit1,bit2,tinyint1,tinyint2,bool0,smallint0,smallint_unsigned,mediumint0,mediumint_unsigned,int0,"
+                + "int_unsigned,bigint0,bigint_unsigned, float0, double0, decimal0,decimal1, date0,datetime0, "
+                + "timestamp0,timestamp1,timestamp_zero, time0,"
+                + "year2,year4,char0, char_binary, varchar0, varchar_binary, binary0, varbinary0)  "
+                + "VALUES (?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                + "?,?,?,?,?,?,?,?)");
     boolean bit1 = Boolean.FALSE;
     ps.setBoolean(1, bit1);
     byte bit2 = (byte) 3;
@@ -857,8 +893,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     ps.addBatch();
     ps.executeBatch();
 
-    PreparedStatement prepStmt = sharedConnection
-        .prepareStatement("SELECT * from preparetest where bit1 = ?");
+    PreparedStatement prepStmt =
+        sharedConnection.prepareStatement("SELECT * from preparetest where bit1 = ?");
     prepStmt.setBoolean(1, false);
     ResultSet rs = prepStmt.executeQuery();
     if (rs.next()) {
@@ -892,29 +928,32 @@ public class ServerPrepareStatementTest extends BaseTest {
       assertEquals(rs.getString(28), varchar0);
       assertEquals(rs.getString(29), varcharBinary);
 
-      assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),
+      assertEquals(
+          new String(rs.getBytes(30), StandardCharsets.UTF_8),
           new String(binary0, StandardCharsets.UTF_8));
-      assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
+      assertEquals(
+          new String(rs.getBytes(31), StandardCharsets.UTF_8),
           new String(varbinary0, StandardCharsets.UTF_8));
     } else {
       fail();
     }
-
   }
 
   @Test
   public void testPrepareStatementCache() throws Throwable {
     Assume.assumeTrue(sharedOptions().useServerPrepStmts);
 
-    //tester le cache prepareStatement
+    // tester le cache prepareStatement
     try (Connection connection = setConnection()) {
       Protocol protocol = getProtocolFromConnection(connection);
-      createTable("test_cache_table1",
+      createTable(
+          "test_cache_table1",
           "id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20)");
       PreparedStatement[] map = new PreparedStatement[280];
       for (int i = 0; i < 280; i++) {
-        map[i] = connection.prepareStatement(
-            "INSERT INTO test_cache_table1 (text1, text2) values (" + i + ", ?)");
+        map[i] =
+            connection.prepareStatement(
+                "INSERT INTO test_cache_table1 (text1, text2) values (" + i + ", ?)");
         map[i].setString(1, i + "");
         map[i].setString(2, i + "");
         map[i].addBatch();
@@ -956,21 +995,24 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void serverPrepareStatementSync() throws Throwable {
-    Assume.assumeTrue(!checkMaxAllowedPacketMore20m("serverPrepareStatementSync", false)
-        && sharedIsRewrite()); // to avoid
+    Assume.assumeTrue(
+        !checkMaxAllowedPacketMore20m("serverPrepareStatementSync", false)
+            && sharedIsRewrite()); // to avoid
     Statement st = sharedConnection.createStatement();
     ResultSet rs = st.executeQuery("select @@max_allowed_packet");
     if (rs.next()) {
       long maxAllowedPacket = rs.getInt(1);
-      int totalInsertCommands = (int) Math
-          .ceil(3 * maxAllowedPacket / 1000); //mean that there will be 2 commands
+      int totalInsertCommands =
+          (int) Math.ceil(3 * maxAllowedPacket / 1000); // mean that there will be 2 commands
       try (Connection connection2 = setConnection()) {
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-            "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ",
-            Statement.RETURN_GENERATED_KEYS);
-        PreparedStatement preparedStatement2 = connection2.prepareStatement(
-            "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ",
-            Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement preparedStatement =
+            sharedConnection.prepareStatement(
+                "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ",
+                Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement preparedStatement2 =
+            connection2.prepareStatement(
+                "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ",
+                Statement.RETURN_GENERATED_KEYS);
         char[] thousandChars = new char[1000];
         Arrays.fill(thousandChars, 'a');
         String thousandLength = new String(thousandChars);
@@ -986,15 +1028,17 @@ public class ServerPrepareStatementTest extends BaseTest {
         BatchThread thread1 = new BatchThread(preparedStatement);
         BatchThread thread2 = new BatchThread(preparedStatement2);
         executor.execute(thread1);
-        //Thread.sleep(500);
+        // Thread.sleep(500);
         executor.execute(thread2);
         executor.shutdown();
         executor.awaitTermination(400, TimeUnit.SECONDS);
         ResultSet rs1 = preparedStatement.getGeneratedKeys();
         ResultSet rs2 = preparedStatement2.getGeneratedKeys();
 
-        ResultSet rs3 = sharedConnection.createStatement()
-            .executeQuery("select id, tt from ServerPrepareStatementSync");
+        ResultSet rs3 =
+            sharedConnection
+                .createStatement()
+                .executeQuery("select id, tt from ServerPrepareStatementSync");
         while (rs3.next()) {
           if (rs3.getBoolean(2)) {
             rs2.next();
@@ -1023,13 +1067,14 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void ensureRowStateWithNullValues() throws SQLException {
-    createTable("ensureRowStateWithNullValues",
+    createTable(
+        "ensureRowStateWithNullValues",
         "t1 varchar(20), t2 varchar(20), t3 varchar(20), t4 varchar(20), t5 varchar(20), t6 varchar(20)");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO ensureRowStateWithNullValues VALUES ('12345678901234567890', null, 'otherString', '1234567890', null, '12345')");
-    try (PreparedStatement ps = sharedConnection
-        .prepareStatement("SELECT * FROM ensureRowStateWithNullValues")) {
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("SELECT * FROM ensureRowStateWithNullValues")) {
       try (ResultSet rs = ps.executeQuery()) {
         assertTrue(rs.next());
         assertEquals("12345678901234567890", rs.getString(1));
@@ -1049,7 +1094,8 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void ensureRowStateWithNullValuesSecond() throws Exception {
-    createTable("ensureRowStateWithNullValuesSecond",
+    createTable(
+        "ensureRowStateWithNullValuesSecond",
         " ID int(11) NOT NULL,"
             + " COLUMN_1 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
             + " COLUMN_2 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
@@ -1104,7 +1150,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
   @Test
   public void dateAsString() throws SQLException {
-    //cancel for MySQL 5.5 since no Datetime with microseconds
+    // cancel for MySQL 5.5 since no Datetime with microseconds
     if (!isMariadbServer()) {
       cancelForVersion(5, 5);
     }
@@ -1113,10 +1159,11 @@ public class ServerPrepareStatementTest extends BaseTest {
   }
 
   private void dateAddTest(boolean useBinary) throws SQLException {
-    try (Connection connection = setConnection(
-        "&log=true&useServerPrepStmts=" + (useBinary ? "true" : "false"))) {
-      try (PreparedStatement preparedStatement = connection.prepareStatement(
-          "SELECT DATE_ADD('2010-12-31 23:59:59', INTERVAL 2 SECOND) as t")) {
+    try (Connection connection =
+        setConnection("&log=true&useServerPrepStmts=" + (useBinary ? "true" : "false"))) {
+      try (PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "SELECT DATE_ADD('2010-12-31 23:59:59', INTERVAL 2 SECOND) as t")) {
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {
           assertEquals(Date.valueOf("2011-01-01"), rs.getDate(1));
@@ -1124,8 +1171,9 @@ public class ServerPrepareStatementTest extends BaseTest {
           assertEquals("2011-01-01 00:00:01", rs.getString(1));
         }
       }
-      try (PreparedStatement preparedStatement = connection.prepareStatement(
-          "SELECT DATE_ADD(CONVERT('2010-12-31 23:59:59',datetime(6)), INTERVAL 2 SECOND) as t")) {
+      try (PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "SELECT DATE_ADD(CONVERT('2010-12-31 23:59:59',datetime(6)), INTERVAL 2 SECOND) as t")) {
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {
           assertEquals("2011-01-01", rs.getDate(1).toString());
@@ -1153,5 +1201,4 @@ public class ServerPrepareStatementTest extends BaseTest {
       }
     }
   }
-
 }

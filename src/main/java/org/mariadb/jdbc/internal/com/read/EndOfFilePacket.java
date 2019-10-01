@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-
 public class EndOfFilePacket {
 
   private final short warningCount;
@@ -80,8 +79,10 @@ public class EndOfFilePacket {
   @Override
   public String toString() {
     return "EndOfFilePacket{"
-        + ", warningCount=" + warningCount
-        + ", statusFlags=" + statusFlags
+        + ", warningCount="
+        + warningCount
+        + ", statusFlags="
+        + statusFlags
         + "}";
   }
 }

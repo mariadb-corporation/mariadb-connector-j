@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.time.OffsetTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
+import java.sql.*;
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
 
 public class OffsetTimeParameter implements Cloneable, ParameterHolder {
 
@@ -71,18 +70,21 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param offsetTime        time with offset
-   * @param serverZoneId      server session zoneId
+   * @param offsetTime time with offset
+   * @param serverZoneId server session zoneId
    * @param fractionalSeconds must fractional Seconds be send to database.
-   * @param options           session options
+   * @param options session options
    * @throws SQLException if offset cannot be converted to server offset
    */
-  public OffsetTimeParameter(OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds,
-      Options options) throws SQLException {
+  public OffsetTimeParameter(
+      OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds, Options options)
+      throws SQLException {
     ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
     if (zoneId instanceof ZoneOffset) {
-      throw new SQLException("cannot set OffsetTime, since server time zone is set to '"
-          + serverZoneId.toString() + "' (check server variables time_zone and system_time_zone)");
+      throw new SQLException(
+          "cannot set OffsetTime, since server time zone is set to '"
+              + serverZoneId.toString()
+              + "' (check server variables time_zone and system_time_zone)");
     }
     this.time = offsetTime.withOffsetSameInstant((ZoneOffset) zoneId);
     this.fractionalSeconds = fractionalSeconds;
@@ -94,8 +96,9 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
    * @param pos the stream to write to
    */
   public void writeTo(final PacketOutputStream pos) throws IOException {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-        fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss", Locale.ENGLISH);
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern(
+            fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss", Locale.ENGLISH);
     pos.write(QUOTE);
     pos.write(formatter.format(time).getBytes());
     pos.write(QUOTE);
@@ -113,7 +116,7 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
     if (fractionalSeconds) {
-      pos.write((byte) 12);//length
+      pos.write((byte) 12); // length
       pos.write((byte) 0);
       pos.writeInt(0);
       pos.write((byte) time.getHour());
@@ -121,7 +124,7 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
       pos.write((byte) time.getSecond());
       pos.writeInt(time.getNano() / 1000);
     } else {
-      pos.write((byte) 8);//length
+      pos.write((byte) 8); // length
       pos.write((byte) 0);
       pos.writeInt(0);
       pos.write((byte) time.getHour());

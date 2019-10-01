@@ -21,16 +21,13 @@
 
 package org.mariadb.jdbc.credential.aws;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.regions.DefaultAwsRegionProviderChain;
-import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
-import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
-import java.util.Properties;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.credential.Credential;
+import com.amazonaws.auth.*;
+import com.amazonaws.regions.*;
+import com.amazonaws.services.rds.auth.*;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.credential.*;
+
+import java.util.*;
 
 public class AwsCredentialGenerator {
 
@@ -45,8 +42,8 @@ public class AwsCredentialGenerator {
    * @param userName user
    * @param hostAddress current server information
    */
-  public AwsCredentialGenerator(Properties nonMappedOptions, String userName,
-                                HostAddress hostAddress) {
+  public AwsCredentialGenerator(
+      Properties nonMappedOptions, String userName, HostAddress hostAddress) {
     // Build RDS IAM-auth token generator
     this.userName = userName;
     AWSCredentialsProvider awsCredentialsProvider;
@@ -72,7 +69,6 @@ public class AwsCredentialGenerator {
             .port(hostAddress.port)
             .userName(userName)
             .build();
-
   }
 
   public Credential getToken() {

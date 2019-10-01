@@ -52,12 +52,9 @@
 
 package org.mariadb.jdbc.internal.failover.thread;
 
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
 
 public abstract class TerminableRunnable implements Runnable {
 
@@ -65,10 +62,8 @@ public abstract class TerminableRunnable implements Runnable {
   private final AtomicBoolean unschedule = new AtomicBoolean();
   private volatile ScheduledFuture<?> scheduledFuture = null;
 
-  public TerminableRunnable(ScheduledExecutorService scheduler,
-      long initialDelay,
-      long delay,
-      TimeUnit unit) {
+  public TerminableRunnable(
+      ScheduledExecutorService scheduler, long initialDelay, long delay, TimeUnit unit) {
     this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
   }
 
@@ -88,9 +83,7 @@ public abstract class TerminableRunnable implements Runnable {
     }
   }
 
-  /**
-   * Unschedule next launched, and wait for the current task to complete before closing it.
-   */
+  /** Unschedule next launched, and wait for the current task to complete before closing it. */
   public void blockTillTerminated() {
     while (!runState.compareAndSet(State.IDLE, State.REMOVED)) {
       // wait and retry
@@ -114,7 +107,6 @@ public abstract class TerminableRunnable implements Runnable {
       scheduledFuture.cancel(false);
       scheduledFuture = null;
     }
-
   }
 
   private enum State {
@@ -122,6 +114,4 @@ public abstract class TerminableRunnable implements Runnable {
     IDLE,
     ACTIVE
   }
-
 }
-

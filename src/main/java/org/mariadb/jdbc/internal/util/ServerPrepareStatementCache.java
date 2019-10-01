@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import java.sql.SQLException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
+import java.sql.*;
+import java.util.*;
 
 public final class ServerPrepareStatementCache extends LinkedHashMap<String, ServerPrepareResult> {
 
@@ -91,7 +90,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
         try {
           protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
         } catch (SQLException e) {
-          //eat exception
+          // eat exception
         }
       }
     }
@@ -103,18 +102,18 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
    * contained a mapping for the key, the existing cached prepared result shared counter will be
    * incremented.
    *
-   * @param key    key
+   * @param key key
    * @param result new prepare result.
    * @return the previous value associated with key if not been deallocate, or null if there was no
    *     mapping for key.
    */
   public synchronized ServerPrepareResult put(String key, ServerPrepareResult result) {
     ServerPrepareResult cachedServerPrepareResult = super.get(key);
-    //if there is already some cached data (and not been deallocate), return existing cached data
+    // if there is already some cached data (and not been deallocate), return existing cached data
     if (cachedServerPrepareResult != null && cachedServerPrepareResult.incrementShareCounter()) {
       return cachedServerPrepareResult;
     }
-    //if no cache data, or been deallocate, put new result in cache
+    // if no cache data, or been deallocate, put new result in cache
     result.setAddToCache();
     super.put(key, result);
     return null;
@@ -124,7 +123,10 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
   public String toString() {
     StringBuilder stringBuilder = new StringBuilder("ServerPrepareStatementCache.map[");
     for (Map.Entry<String, ServerPrepareResult> entry : this.entrySet()) {
-      stringBuilder.append("\n").append(entry.getKey()).append("-")
+      stringBuilder
+          .append("\n")
+          .append(entry.getKey())
+          .append("-")
           .append(entry.getValue().getShareCounter());
     }
     stringBuilder.append("]");

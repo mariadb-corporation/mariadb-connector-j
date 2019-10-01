@@ -52,22 +52,21 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.StringTokenizer;
-import java.util.function.Supplier;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.credential.*;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.send.authentication.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.pid.*;
+import org.mariadb.jdbc.util.*;
 
-import org.mariadb.jdbc.MariaDbDatabaseMetaData;
-import org.mariadb.jdbc.credential.Credential;
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
-import org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.pid.PidFactory;
-import org.mariadb.jdbc.util.Options;
+import java.io.*;
+import java.security.*;
+import java.util.*;
+import java.util.function.*;
 
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
@@ -120,7 +119,6 @@ public class SendHandshakeResponsePacket {
     final byte[] authData;
 
     switch (authenticationPluginType) {
-
       case ClearPasswordPlugin.TYPE:
         pos.permitTrace(false);
         if (credential.getPassword() == null) {
@@ -139,8 +137,9 @@ public class SendHandshakeResponsePacket {
         authenticationPluginType = NativePasswordPlugin.TYPE;
         pos.permitTrace(false);
         try {
-          authData = Utils.encryptPassword(credential.getPassword(), seed,
-              options.passwordCharacterEncoding);
+          authData =
+              Utils.encryptPassword(
+                  credential.getPassword(), seed, options.passwordCharacterEncoding);
           break;
         } catch (NoSuchAlgorithmException e) {
           // cannot occur :

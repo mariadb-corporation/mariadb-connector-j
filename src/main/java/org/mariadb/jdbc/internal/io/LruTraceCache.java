@@ -52,14 +52,12 @@
 
 package org.mariadb.jdbc.internal.io;
 
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.*;
+
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
@@ -121,8 +119,7 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
         sb.append("\nread at -exchange:");
       }
 
-      sb.append(key).append(indicator)
-          .append(Utils.hexdump(traceObj.getBuf()));
+      sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
 
       traceObj.remove();
     }
@@ -130,9 +127,7 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     return sb.toString();
   }
 
-  /**
-   * Permit to clear array's of array, to help garbage.
-   */
+  /** Permit to clear array's of array, to help garbage. */
   public synchronized void clearMemory() {
     Collection<TraceObject> traceObjects = values();
     for (TraceObject traceObject : traceObjects) {

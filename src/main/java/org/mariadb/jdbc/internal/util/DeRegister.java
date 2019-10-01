@@ -1,7 +1,8 @@
 package org.mariadb.jdbc.internal.util;
 
-import java.sql.DriverAction;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.internal.util.scheduler.*;
+
+import java.sql.*;
 
 public class DeRegister implements DriverAction {
 

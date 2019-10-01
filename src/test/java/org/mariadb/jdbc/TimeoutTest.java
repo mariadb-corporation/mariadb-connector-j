@@ -67,8 +67,7 @@ import org.junit.Test;
 
 public class TimeoutTest extends BaseTest {
 
-  private static int selectValue(Connection conn, int value)
-      throws SQLException {
+  private static int selectValue(Connection conn, int value) throws SQLException {
     try (Statement stmt = conn.createStatement()) {
       try (ResultSet rs = stmt.executeQuery("select " + value)) {
         if (rs.next()) {
@@ -80,12 +79,10 @@ public class TimeoutTest extends BaseTest {
     }
   }
 
-  /**
-   * Conj-79.
-   */
+  /** Conj-79. */
   @Test
   public void resultSetAfterSocketTimeoutTest() {
-    //appveyor vm are very slow, cannot compare time
+    // appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(System.getenv("APPVEYOR") == null && System.getenv("DOCKER_SOCKET") == null);
 
     Assume.assumeFalse(sharedIsAurora());
@@ -105,14 +102,14 @@ public class TimeoutTest extends BaseTest {
             }
             went++;
           } catch (SQLNonTransientConnectionException e) {
-            //error due to socketTimeout
+            // error due to socketTimeout
           } catch (SQLException e) {
             e.printStackTrace();
           }
         }
         assertFalse(bugReproduced); // either Exception or fine
       } catch (SQLException e) {
-        //SQLNonTransientConnectionException error
+        // SQLNonTransientConnectionException error
       }
     }
     assertTrue(went > 0);
@@ -149,7 +146,7 @@ public class TimeoutTest extends BaseTest {
         ps.execute();
         fail("Connection must have thrown error");
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
 
       // the connection should  be closed
@@ -173,7 +170,7 @@ public class TimeoutTest extends BaseTest {
           statement.execute("SELECT 1");
           fail("Connection must have thrown error");
         } catch (SQLException e) {
-          //normal exception
+          // normal exception
         }
       }
     }
@@ -198,9 +195,8 @@ public class TimeoutTest extends BaseTest {
         assertTrue(rs.next());
         fail("Connection must have thrown error");
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
     }
   }
-
 }

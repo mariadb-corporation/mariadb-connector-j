@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
 
@@ -60,7 +60,7 @@ public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
    * Create scheduler with fixed size.
    *
    * @param corePoolSize core pool size
-   * @param poolName     name of pool to identify threads
+   * @param poolName name of pool to identify threads
    */
   public FixedSizedSchedulerImpl(int corePoolSize, String poolName) {
     super(corePoolSize, new MariaDbThreadFactory(poolName));

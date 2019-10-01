@@ -53,8 +53,8 @@
 package org.mariadb.jdbc.internal.util.dao;
 
 /*
- Identifier, i.e table, or column name. Put into ` quotes in SHOW CREATE TABLE. Can be "multi-part", i.e `schema`.`table`
- */
+Identifier, i.e table, or column name. Put into ` quotes in SHOW CREATE TABLE. Can be "multi-part", i.e `schema`.`table`
+*/
 public class Identifier {
 
   public String schema;

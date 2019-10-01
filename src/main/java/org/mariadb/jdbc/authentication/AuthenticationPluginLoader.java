@@ -22,15 +22,14 @@
 
 package org.mariadb.jdbc.authentication;
 
-import java.sql.SQLException;
-import java.util.ServiceLoader;
+import java.sql.*;
+import java.util.*;
 
 public class AuthenticationPluginLoader {
 
   /**
-   * Get authentication plugin from type String.
-   * Customs authentication plugin can be added implementing AuthenticationPlugin and registering
-   * new type in resources services.
+   * Get authentication plugin from type String. Customs authentication plugin can be added
+   * implementing AuthenticationPlugin and registering new type in resources services.
    *
    * @param type authentication plugin type
    * @return Authentication plugin corresponding to type
@@ -53,6 +52,4 @@ public class AuthenticationPluginLoader {
         "08004",
         1251);
   }
-
-
 }

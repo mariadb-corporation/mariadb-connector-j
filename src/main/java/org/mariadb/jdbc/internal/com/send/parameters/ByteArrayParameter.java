@@ -52,10 +52,11 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.util.Arrays;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
+import java.util.*;
 
 public class ByteArrayParameter implements Cloneable, ParameterHolder {
 
@@ -114,5 +115,4 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return false;
   }
-
 }

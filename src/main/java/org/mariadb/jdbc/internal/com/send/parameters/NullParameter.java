@@ -52,9 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class NullParameter implements ParameterHolder, Cloneable {
 
@@ -73,7 +74,6 @@ public class NullParameter implements ParameterHolder, Cloneable {
     os.write(NULL);
   }
 
-
   public long getApproximateTextProtocolLength() {
     return 4;
   }
@@ -84,7 +84,7 @@ public class NullParameter implements ParameterHolder, Cloneable {
    * @param pos socket output stream
    */
   public void writeBinary(final PacketOutputStream pos) {
-    //null data are not send in binary format.
+    // null data are not send in binary format.
   }
 
   public ColumnType getColumnType() {
@@ -103,5 +103,4 @@ public class NullParameter implements ParameterHolder, Cloneable {
   public boolean isLongData() {
     return false;
   }
-
 }

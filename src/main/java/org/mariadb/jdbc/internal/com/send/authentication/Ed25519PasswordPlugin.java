@@ -22,78 +22,26 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
 
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSANamedCurveTable;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import java.io.*;
+import java.security.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
   private String authenticationData;
   private String passwordCharacterEncoding;
   private byte[] seed;
-
-  @Override
-  public String name() {
-    return "Ed25519 authentication plugin";
-  }
-
-  @Override
-  public String type() {
-    return "client_ed25519";
-  }
-
-  /**
-   * Initialization.
-   *
-   * @param authenticationData authentication data (password/token)
-   * @param seed server provided seed
-   * @param options Connection string options
-   */
-  public void initialize(String authenticationData, byte[] seed, Options options) {
-    this.seed = seed;
-    this.authenticationData = authenticationData;
-    this.passwordCharacterEncoding = options.passwordCharacterEncoding;
-  }
-
-  /**
-   * Process Ed25519 password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
-   *
-   * @param out out stream
-   * @param in in stream
-   * @param sequence packet sequence
-   * @return response packet
-   * @throws IOException if socket error
-   */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-      throws IOException, SQLException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
-      out.writeEmptyPacket(sequence.incrementAndGet());
-    } else {
-      out.startPacket(sequence.incrementAndGet());
-      out.write(ed25519SignWithPassword(authenticationData, seed, passwordCharacterEncoding));
-      out.flush();
-    }
-
-    Buffer buffer = in.getPacket(true);
-    sequence.set(in.getLastPacketSeq());
-    return buffer;
-  }
-
 
   private static byte[] ed25519SignWithPassword(
       final String password, final byte[] seed, String passwordCharacterEncoding)
@@ -153,5 +101,53 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
               + "' (option passwordCharacterEncoding)",
           use);
     }
+  }
+
+  @Override
+  public String name() {
+    return "Ed25519 authentication plugin";
+  }
+
+  @Override
+  public String type() {
+    return "client_ed25519";
+  }
+
+  /**
+   * Initialization.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
+   */
+  public void initialize(String authenticationData, byte[] seed, Options options) {
+    this.seed = seed;
+    this.authenticationData = authenticationData;
+    this.passwordCharacterEncoding = options.passwordCharacterEncoding;
+  }
+
+  /**
+   * Process Ed25519 password plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
+   *
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
+   * @return response packet
+   * @throws IOException if socket error
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException, SQLException {
+    if (authenticationData == null || authenticationData.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      out.write(ed25519SignWithPassword(authenticationData, seed, passwordCharacterEncoding));
+      out.flush();
+    }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
   }
 }

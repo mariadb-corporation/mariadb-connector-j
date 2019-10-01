@@ -52,17 +52,12 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.LastErrorException;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
-import com.sun.jna.Structure;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.sun.jna.*;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class UnixDomainSocket extends Socket {
 
@@ -100,11 +95,6 @@ public class UnixDomainSocket extends Socket {
     }
   }
 
-  @Override
-  public boolean isConnected() {
-    return connected;
-  }
-
   public static native int socket(int domain, int type, int protocol) throws LastErrorException;
 
   public static native int connect(int sockfd, SockAddr sockaddr, int addrlen)
@@ -126,6 +116,11 @@ public class UnixDomainSocket extends Socket {
     } catch (Throwable t) {
       return lee.getMessage();
     }
+  }
+
+  @Override
+  public boolean isConnected() {
+    return connected;
   }
 
   @Override
@@ -168,35 +163,35 @@ public class UnixDomainSocket extends Socket {
   }
 
   public void setTcpNoDelay(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setKeepAlive(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setReceiveBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSendBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoLinger(boolean b, int i) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoTimeout(int timeout) {
-    //do nothing
+    // do nothing
   }
 
   public void shutdownInput() {
-    //do nothing
+    // do nothing
   }
 
   public void shutdownOutput() {
-    //do nothing
+    // do nothing
   }
 
   public static class SockAddr extends Structure {
@@ -221,7 +216,6 @@ public class UnixDomainSocket extends Socket {
     protected java.util.List<String> getFieldOrder() {
       return Arrays.asList("sun_family", "sun_path");
     }
-
   }
 
   class UnixSocketInputStream extends InputStream {
@@ -301,7 +295,7 @@ public class UnixDomainSocket extends Socket {
 
     @Override
     public void write(int value) throws IOException {
-      write(new byte[]{(byte) value});
+      write(new byte[] {(byte) value});
     }
 
     @Override

@@ -52,60 +52,18 @@
 
 package org.mariadb.jdbc;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.URL;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+
+import java.io.*;
+import java.math.*;
+import java.net.*;
 import java.sql.Date;
-import java.sql.NClob;
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.Ref;
-import java.sql.RowId;
-import java.sql.SQLException;
-import java.sql.SQLType;
-import java.sql.SQLXML;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.util.Calendar;
-import java.util.TimeZone;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.send.parameters.BigDecimalParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.BooleanParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ByteArrayParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ByteParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.DateParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.DoubleParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.FloatParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.IntParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.LocalTimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.LongParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.OffsetTimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.send.parameters.ReaderParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.SerializableParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ShortParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.StreamParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.TimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.TimestampParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ZonedDateTimeParameter;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import java.sql.*;
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
 
 public abstract class BasePrepareStatement extends MariaDbStatement implements PreparedStatement {
 

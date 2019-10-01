@@ -50,12 +50,12 @@
  *
  */
 
-
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class LongParameter implements Cloneable, ParameterHolder {
 
@@ -98,5 +98,4 @@ public class LongParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return false;
   }
-
 }

@@ -68,16 +68,18 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
     try (Connection connection = getNewConnection(false)) {
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists auroraMultiNode" + jobId);
-      stmt.execute("create table auroraMultiNode" + jobId
-          + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute(
+          "create table auroraMultiNode"
+              + jobId
+              + " (id int not null primary key auto_increment, test VARCHAR(10))");
       stmt.execute("drop table  if exists auroraMultiNode" + jobId);
     }
   }
 
   @Test
   public void relaunchWithoutError() throws Throwable {
-    try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000",
-        true)) {
+    try (Connection connection =
+        getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
       long startTime = System.currentTimeMillis();
@@ -85,8 +87,9 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
       try {
         st.execute("SELECT 1");
         if (System.currentTimeMillis() - startTime < 4 * 1000) {
-          fail("Auto-reconnection must have been done after 4000ms but was " + (
-              System.currentTimeMillis() - startTime));
+          fail(
+              "Auto-reconnection must have been done after 4000ms but was "
+                  + (System.currentTimeMillis() - startTime));
         }
       } catch (SQLException e) {
         fail("must not have thrown error");
@@ -96,12 +99,14 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
 
   @Test
   public void relaunchWithErrorWhenInTransaction() throws Throwable {
-    try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000",
-        true)) {
+    try (Connection connection =
+        getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement st = connection.createStatement();
       st.execute("drop table if exists baseReplicationTransaction" + jobId);
-      st.execute("create table baseReplicationTransaction" + jobId
-          + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      st.execute(
+          "create table baseReplicationTransaction"
+              + jobId
+              + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
       connection.setAutoCommit(false);
       st.execute("INSERT INTO baseReplicationTransaction" + jobId + "(test) VALUES ('test')");
@@ -115,7 +120,8 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
       } catch (SQLException e) {
         assertEquals(
             "error type not normal after " + (System.currentTimeMillis() - startTime) + "ms",
-            "25S03", e.getSQLState());
+            "25S03",
+            e.getSQLState());
       }
       Thread.sleep(2500);
       st.execute("drop table if exists baseReplicationTransaction" + jobId);
@@ -124,15 +130,17 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
 
   @Test
   public void failoverRelaunchedWhenSelect() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+    try (Connection connection =
+        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
 
       final int masterServerId = getServerId(connection);
       st.execute("drop table if exists selectFailover" + jobId);
-      st.execute("create table selectFailover" + jobId
-          + " (id int not null primary key , amount int not null) "
-          + "ENGINE = InnoDB");
+      st.execute(
+          "create table selectFailover"
+              + jobId
+              + " (id int not null primary key , amount int not null) "
+              + "ENGINE = InnoDB");
       stopProxy(masterServerId, 2);
       try {
         st.execute("SELECT * from selectFailover" + jobId);
@@ -152,18 +160,19 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
     }
   }
 
-
   @Test
   public void failoverRelaunchedWhenInTransaction() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+    try (Connection connection =
+        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
 
       final int masterServerId = getServerId(connection);
       st.execute("drop table if exists selectFailoverTrans" + jobId);
-      st.execute("create table selectFailoverTrans" + jobId
-          + " (id int not null primary key , amount int not null) "
-          + "ENGINE = InnoDB");
+      st.execute(
+          "create table selectFailoverTrans"
+              + jobId
+              + " (id int not null primary key , amount int not null) "
+              + "ENGINE = InnoDB");
       connection.setAutoCommit(false);
       st.execute("INSERT INTO selectFailoverTrans" + jobId + " VALUES (0,0)");
       stopProxy(masterServerId, 2);
@@ -188,8 +197,8 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
 
   @Test
   public void pingReconnectAfterRestart() throws Throwable {
-    try (Connection connection = getNewConnection(
-        "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+    try (Connection connection =
+        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
@@ -197,7 +206,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
       try {
         st.execute("SELECT 1");
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
       }
       restartProxy(masterServerId);
       long restartTime = System.nanoTime();

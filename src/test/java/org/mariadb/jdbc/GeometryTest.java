@@ -97,8 +97,9 @@ public class GeometryTest extends BaseTest {
       String sql =
           "INSERT INTO geom_test VALUES (" + prefix + "GeomFromText('" + geometryString + "'))";
       stmt.execute(sql);
-      try (ResultSet rs = stmt.executeQuery(
-          "SELECT " + prefix + "AsText(g), " + prefix + "AsBinary(g), g FROM geom_test")) {
+      try (ResultSet rs =
+          stmt.executeQuery(
+              "SELECT " + prefix + "AsText(g), " + prefix + "AsBinary(g), g FROM geom_test")) {
         assertTrue(rs.next());
         // as text
         assertEquals(geometryString, rs.getString(1));
@@ -147,5 +148,4 @@ public class GeometryTest extends BaseTest {
     }
     return builder.toString();
   }
-
 }

@@ -21,8 +21,8 @@
 
 package org.mariadb.jdbc.credential;
 
-import java.sql.SQLException;
-import java.util.ServiceLoader;
+import java.sql.*;
+import java.util.*;
 
 /**
  * Provider to handle plugin authentication. This can allow library users to override our default
@@ -50,5 +50,4 @@ public class CredentialPluginLoader {
     throw new SQLException(
         "No identity plugin registered with the type \"" + type + "\".", "08004", 1251);
   }
-
 }

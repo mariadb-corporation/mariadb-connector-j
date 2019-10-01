@@ -60,5 +60,4 @@ public class StateChange {
   public static final short SESSION_TRACK_GTIDS = 3;
   public static final short SESSION_TRACK_TRANSACTION_CHARACTERISTICS = 4;
   public static final short SESSION_TRACK_TRANSACTION_STATE = 5;
-
 }

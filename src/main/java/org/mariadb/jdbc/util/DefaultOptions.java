@@ -22,12 +22,12 @@
 
 package org.mariadb.jdbc.util;
 
-import java.lang.reflect.Field;
-import java.util.Properties;
+import org.mariadb.jdbc.credential.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
 
-import org.mariadb.jdbc.credential.CredentialPlugin;
-import org.mariadb.jdbc.internal.util.OptionUtils;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import java.lang.reflect.*;
+import java.util.*;
 
 public enum DefaultOptions {
   USER("user", "1.0.0", "Database user name", false),
@@ -680,11 +680,7 @@ public enum DefaultOptions {
       "Permit to get MySQL server key retrieval",
       false),
   TLS_SOCKET_TYPE(
-      "tlsSocketType",
-      (String) null,
-      "2.5.0",
-      "Indicate TLS socket type implementation",
-      false);
+      "tlsSocketType", (String) null, "2.5.0", "Indicate TLS socket type implementation", false);
 
   private final String optionName;
   private final String description;

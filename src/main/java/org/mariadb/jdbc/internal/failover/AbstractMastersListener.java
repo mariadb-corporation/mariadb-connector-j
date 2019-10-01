@@ -52,40 +52,28 @@
 
 package org.mariadb.jdbc.internal.failover;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.thread.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.util.pool.*;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.SocketException;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import java.lang.reflect.*;
+import java.net.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public abstract class AbstractMastersListener implements Listener {
 
-  /**
-   * List the recent failedConnection.
-   */
+  /** List the recent failedConnection. */
   private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
+
   private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
   private static final Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
 
@@ -95,7 +83,8 @@ public abstract class AbstractMastersListener implements Listener {
   protected final AtomicBoolean explicitClosed = new AtomicBoolean(false);
   protected final GlobalStateInfo globalInfo;
   private final AtomicBoolean masterHostFail = new AtomicBoolean();
-  // currentReadOnlyAsked is volatile so can be queried without lock, but can only be updated when proxy.lock is locked
+  // currentReadOnlyAsked is volatile so can be queried without lock, but can only be updated when
+  // proxy.lock is locked
   protected volatile boolean currentReadOnlyAsked = false;
   protected Protocol currentProtocol = null;
   protected FailoverProxy proxy;
@@ -110,9 +99,7 @@ public abstract class AbstractMastersListener implements Listener {
     this.lastQueryNanos = System.nanoTime();
   }
 
-  /**
-   * Clear blacklist data.
-   */
+  /** Clear blacklist data. */
   public static void clearBlacklist() {
     blacklist.clear();
   }
@@ -125,8 +112,8 @@ public abstract class AbstractMastersListener implements Listener {
    * @throws SQLException if any exception occur.
    */
   public void initializeConnection() throws SQLException {
-    long connectionTimeoutMillis = TimeUnit.SECONDS
-        .toMillis(urlParser.getOptions().validConnectionTimeout);
+    long connectionTimeoutMillis =
+        TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
     lastQueryNanos = System.nanoTime();
     if (connectionTimeoutMillis > 0) {
       connectionValidationLoop.addListener(this, connectionTimeoutMillis);
@@ -144,7 +131,7 @@ public abstract class AbstractMastersListener implements Listener {
         boolean currentReadOnlyAsked = this.currentReadOnlyAsked;
         reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked, currentReadOnlyAsked));
       } catch (SQLException e) {
-        //eat exception
+        // eat exception
       }
       handleFailLoop();
     } else {
@@ -165,21 +152,24 @@ public abstract class AbstractMastersListener implements Listener {
   }
 
   /**
-   * Call when a failover is detected on master connection. Will  : <ol>
-   * <li> set fail variable</li>
-   * <li> try to reconnect</li>
-   * <li> relaunch query if possible</li>
+   * Call when a failover is detected on master connection. Will :
+   *
+   * <ol>
+   *   <li>set fail variable
+   *   <li>try to reconnect
+   *   <li>relaunch query if possible
    * </ol>
    *
-   * @param method   called method
-   * @param args     methods parameters
+   * @param method called method
+   * @param args methods parameters
    * @param protocol current protocol
    * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception
    *     if not
    * @throws SQLException when method and parameters does not exist.
    */
-  public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
-      Protocol protocol, boolean isClosed) throws SQLException {
+  public HandleErrorResult handleFailover(
+      SQLException qe, Method method, Object[] args, Protocol protocol, boolean isClosed)
+      throws SQLException {
     if (isExplicitClosed()) {
       throw new SQLException("Connection has been closed !");
     }
@@ -194,11 +184,12 @@ public abstract class AbstractMastersListener implements Listener {
       addToBlacklist(currentProtocol.getHostAddress());
     }
 
-    //check that failover is due to kill command
-    boolean killCmd = qe != null
-        && qe.getSQLState() != null
-        && qe.getSQLState().equals("70100")
-        && 1927 == qe.getErrorCode();
+    // check that failover is due to kill command
+    boolean killCmd =
+        qe != null
+            && qe.getSQLState() != null
+            && qe.getSQLState().equals("70100")
+            && 1927 == qe.getErrorCode();
 
     return primaryFail(method, args, killCmd, isClosed);
   }
@@ -226,9 +217,7 @@ public abstract class AbstractMastersListener implements Listener {
     }
   }
 
-  /**
-   * Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds.
-   */
+  /** Permit to remove Host to blacklist after loadBalanceBlacklistTimeout seconds. */
   public void resetOldsBlackListHosts() {
     long currentTimeNanos = System.nanoTime();
     Set<Map.Entry<HostAddress, Long>> entries = blacklist.entrySet();
@@ -249,7 +238,8 @@ public abstract class AbstractMastersListener implements Listener {
 
   protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws SQLException {
     if (protocol.versionGreaterOrEqual(5, 6, 5)) {
-      logger.info("SQL node [{}, conn={}] is now in {} mode.",
+      logger.info(
+          "SQL node [{}, conn={}] is now in {} mode.",
           protocol.getHostAddress().toString(),
           protocol.getServerThreadId(),
           readOnly ? "read-only" : "write");
@@ -298,23 +288,22 @@ public abstract class AbstractMastersListener implements Listener {
    * special operation that crash server, doesn't relaunched it;
    *
    * @param method the method accessed
-   * @param args   the parameters
+   * @param args the parameters
    * @return An object that indicate the result or that the exception as to be thrown
    * @throws SQLException if there is any error relaunching initial method
    */
-  public HandleErrorResult relaunchOperation(Method method, Object[] args)
-      throws SQLException {
+  public HandleErrorResult relaunchOperation(Method method, Object[] args) throws SQLException {
     HandleErrorResult handleErrorResult = new HandleErrorResult(true);
     if (method != null) {
       switch (method.getName()) {
-
         case "executeQuery":
           if (args[2] instanceof String) {
             String query = ((String) args[2]).toUpperCase(Locale.ROOT);
-            if (!"ALTER SYSTEM CRASH".equals(query)
-                && !query.startsWith("KILL")) {
-              logger.debug("relaunch query to new connection {}",
-                  ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")"
+            if (!"ALTER SYSTEM CRASH".equals(query) && !query.startsWith("KILL")) {
+              logger.debug(
+                  "relaunch query to new connection {}",
+                  ((currentProtocol != null)
+                      ? "(conn=" + currentProtocol.getServerThreadId() + ")"
                       : ""));
               try {
                 handleErrorResult.resultObject = method.invoke(currentProtocol, args);
@@ -327,20 +316,22 @@ public abstract class AbstractMastersListener implements Listener {
           break;
 
         case "executePreparedQuery":
-          //the statementId has been discarded with previous session
+          // the statementId has been discarded with previous session
           try {
             boolean mustBeOnMaster = (Boolean) args[0];
             ServerPrepareResult oldServerPrepareResult = (ServerPrepareResult) args[1];
-            ServerPrepareResult serverPrepareResult = currentProtocol
-                .prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
+            ServerPrepareResult serverPrepareResult =
+                currentProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
             oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), currentProtocol);
-            logger.debug("relaunch query to new connection "
-                + ((currentProtocol != null) ? "server thread id " + currentProtocol
-                .getServerThreadId() : ""));
+            logger.debug(
+                "relaunch query to new connection "
+                    + ((currentProtocol != null)
+                        ? "server thread id " + currentProtocol.getServerThreadId()
+                        : ""));
             handleErrorResult.resultObject = method.invoke(currentProtocol, args);
             handleErrorResult.mustThrowError = false;
           } catch (Exception e) {
-            //if retry prepare fail, discard error. execution error will indicate the error.
+            // if retry prepare fail, discard error. execution error will indicate the error.
           }
           break;
 
@@ -361,7 +352,7 @@ public abstract class AbstractMastersListener implements Listener {
    * Check if query can be re-executed.
    *
    * @param method invoke method
-   * @param args   invoke arguments
+   * @param args invoke arguments
    * @return true if can be re-executed
    */
   public boolean isQueryRelaunchable(Method method, Object[] args) {
@@ -369,20 +360,21 @@ public abstract class AbstractMastersListener implements Listener {
       switch (method.getName()) {
         case "executeQuery":
           if (!((Boolean) args[0])) {
-            return true; //launched on slave connection
+            return true; // launched on slave connection
           }
           if (args[2] instanceof String) {
             return ((String) args[2]).toUpperCase(Locale.ROOT).startsWith("SELECT");
           } else if (args[2] instanceof ClientPrepareResult) {
             @SuppressWarnings("unchecked")
-            String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0))
-                .toUpperCase(Locale.ROOT);
+            String query =
+                new String(((ClientPrepareResult) args[2]).getQueryParts().get(0))
+                    .toUpperCase(Locale.ROOT);
             return query.startsWith("SELECT");
           }
           break;
         case "executePreparedQuery":
           if (!((Boolean) args[0])) {
-            return true; //launched on slave connection
+            return true; // launched on slave connection
           }
           ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
           return (serverPrepareResult.getSql()).toUpperCase(Locale.ROOT).startsWith("SELECT");
@@ -410,7 +402,7 @@ public abstract class AbstractMastersListener implements Listener {
    * connection.
    *
    * @param from used connection
-   * @param to   will-be-current connection
+   * @param to will-be-current connection
    * @throws SQLException if catalog cannot be set
    */
   public void syncConnection(Protocol from, Protocol to) throws SQLException {
@@ -419,12 +411,14 @@ public abstract class AbstractMastersListener implements Listener {
 
       proxy.lock.lock();
       try {
-        to.resetStateAfterFailover(from.getMaxRows(), from.getTransactionIsolationLevel(),
-            from.getDatabase(), from.getAutocommit());
+        to.resetStateAfterFailover(
+            from.getMaxRows(),
+            from.getTransactionIsolationLevel(),
+            from.getDatabase(),
+            from.getAutocommit());
       } finally {
         proxy.lock.unlock();
       }
-
     }
   }
 
@@ -492,33 +486,41 @@ public abstract class AbstractMastersListener implements Listener {
 
   public abstract void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-  public abstract HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean isClosed)
-      throws SQLException;
+  public abstract HandleErrorResult primaryFail(
+      Method method, Object[] args, boolean killCmd, boolean isClosed) throws SQLException;
 
   /**
    * Throw a human readable message after a failoverException.
    *
    * @param failHostAddress failedHostAddress
-   * @param wasMaster       was failed connection master
-   * @param queryException  internal error
-   * @param reconnected     connection status
+   * @param wasMaster was failed connection master
+   * @param queryException internal error
+   * @param reconnected connection status
    * @throws SQLException error with failover information
    */
   @Override
-  public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
+  public void throwFailoverMessage(
+      HostAddress failHostAddress,
+      boolean wasMaster,
       SQLException queryException,
-      boolean reconnected) throws SQLException {
-    String firstPart = "Communications link failure with "
-        + (wasMaster ? "primary" : "secondary")
-        + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port
-        : "") + ". ";
+      boolean reconnected)
+      throws SQLException {
+    String firstPart =
+        "Communications link failure with "
+            + (wasMaster ? "primary" : "secondary")
+            + ((failHostAddress != null)
+                ? " host " + failHostAddress.host + ":" + failHostAddress.port
+                : "")
+            + ". ";
     String error = "";
     if (reconnected) {
       error += " Driver has reconnect connection";
     } else {
       if (currentConnectionAttempts.get() > urlParser.getOptions().retriesAllDown) {
-        error += " Driver will not try to reconnect (too much failure > " + urlParser
-            .getOptions().retriesAllDown + ")";
+        error +=
+            " Driver will not try to reconnect (too much failure > "
+                + urlParser.getOptions().retriesAllDown
+                + ")";
       }
     }
 
@@ -539,7 +541,8 @@ public abstract class AbstractMastersListener implements Listener {
 
     if (sqlState != null && sqlState.startsWith("08")) {
       if (reconnected) {
-        //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
+        // change sqlState to "Transaction has been rolled back", to transaction exception, since
+        // reconnection has succeed
         sqlState = "25S03";
       } else {
         throw new SQLNonTransientConnectionException(message, sqlState, vendorCode, cause);
@@ -547,13 +550,11 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     throw new SQLException(message, sqlState, vendorCode, cause);
-
   }
 
   public boolean canRetryFailLoop() {
     return currentConnectionAttempts.get() < urlParser.getOptions().failoverLoopRetries;
   }
-
 
   public void prolog(long maxRows, MariaDbConnection connection, MariaDbStatement statement)
       throws SQLException {
@@ -582,7 +583,7 @@ public abstract class AbstractMastersListener implements Listener {
         return true;
       }
     } catch (SQLException e) {
-      //eat exception
+      // eat exception
     }
 
     proxy.lock.lock();
@@ -618,5 +619,4 @@ public abstract class AbstractMastersListener implements Listener {
       protocol.abort();
     }
   }
-
 }

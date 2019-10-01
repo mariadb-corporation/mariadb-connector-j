@@ -50,16 +50,15 @@
  *
  */
 
-
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.sql.Time;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
+import java.sql.*;
+import java.text.*;
+import java.util.*;
 
 public class TimeParameter implements Cloneable, ParameterHolder {
 
@@ -70,8 +69,8 @@ public class TimeParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param time              time to write
-   * @param timeZone          timezone
+   * @param time time to write
+   * @param timeZone timezone
    * @param fractionalSeconds must fractional seconds be send.
    */
   public TimeParameter(Time time, TimeZone timeZone, boolean fractionalSeconds) {
@@ -116,7 +115,6 @@ public class TimeParameter implements Cloneable, ParameterHolder {
    * @param pos socket output stream
    * @throws IOException if socket error occur
    */
-
   public void writeBinary(final PacketOutputStream pos) throws IOException {
     Calendar calendar = Calendar.getInstance(timeZone);
     calendar.setTime(time);
@@ -130,7 +128,7 @@ public class TimeParameter implements Cloneable, ParameterHolder {
       pos.write((byte) calendar.get(Calendar.SECOND));
       pos.writeInt(calendar.get(Calendar.MILLISECOND) * 1000);
     } else {
-      pos.write((byte) 8);//length
+      pos.write((byte) 8); // length
       pos.write((byte) 0);
       pos.writeInt(0);
       pos.write((byte) calendar.get(Calendar.HOUR_OF_DAY));

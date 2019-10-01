@@ -14,7 +14,6 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class Sha256AuthenticationTest extends BaseTest {
 
   private String serverPublicKey;
@@ -34,12 +33,12 @@ public class Sha256AuthenticationTest extends BaseTest {
     try {
       stmt.execute("DROP USER 'sha256User'@'%'");
     } catch (SQLException e) {
-      //eat
+      // eat
     }
     try {
       stmt.execute("DROP USER 'cachingSha256User'@'%'");
     } catch (SQLException e) {
-      //eat
+      // eat
     }
 
     stmt.execute("CREATE USER 'sha256User'@'%'");
@@ -114,9 +113,7 @@ public class Sha256AuthenticationTest extends BaseTest {
               + "?user=sha256User&password=password");
       fail("must have throw exception");
     } catch (SQLException sqle) {
-      assertTrue(
-          sqle.getMessage()
-              .contains("RSA public key is not available client side"));
+      assertTrue(sqle.getMessage().contains("RSA public key is not available client side"));
     }
   }
 
@@ -146,15 +143,15 @@ public class Sha256AuthenticationTest extends BaseTest {
     Assume.assumeNotNull(serverPublicKey);
     Assume.assumeTrue(minVersion(8, 0, 0));
     try (Connection conn =
-             DriverManager.getConnection(
-                 "jdbc:mariadb://"
-                     + ((hostname == null) ? "localhost" : hostname)
-                     + ":"
-                     + port
-                     + "/"
-                     + ((database == null) ? "" : database)
-                     + "?user=cachingSha256User&password=password&serverRsaPublicKeyFile="
-                     + serverPublicKey)) {
+        DriverManager.getConnection(
+            "jdbc:mariadb://"
+                + ((hostname == null) ? "localhost" : hostname)
+                + ":"
+                + port
+                + "/"
+                + ((database == null) ? "" : database)
+                + "?user=cachingSha256User&password=password&serverRsaPublicKeyFile="
+                + serverPublicKey)) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -167,14 +164,14 @@ public class Sha256AuthenticationTest extends BaseTest {
   public void cachingSha256PluginTestWithoutServerRsaKey() throws SQLException {
     Assume.assumeTrue(minVersion(8, 0, 0));
     try (Connection conn =
-             DriverManager.getConnection(
-                 "jdbc:mariadb://"
-                     + ((hostname == null) ? "localhost" : hostname)
-                     + ":"
-                     + port
-                     + "/"
-                     + ((database == null) ? "" : database)
-                     + "?user=cachingSha256User&password=password&allowPublicKeyRetrieval")) {
+        DriverManager.getConnection(
+            "jdbc:mariadb://"
+                + ((hostname == null) ? "localhost" : hostname)
+                + ":"
+                + port
+                + "/"
+                + ((database == null) ? "" : database)
+                + "?user=cachingSha256User&password=password&allowPublicKeyRetrieval")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -197,9 +194,7 @@ public class Sha256AuthenticationTest extends BaseTest {
               + "?user=cachingSha256User&password=password");
       fail("must have throw exception");
     } catch (SQLException sqle) {
-      assertTrue(
-          sqle.getMessage()
-              .contains("RSA public key is not available client side"));
+      assertTrue(sqle.getMessage().contains("RSA public key is not available client side"));
     }
   }
 
@@ -208,14 +203,14 @@ public class Sha256AuthenticationTest extends BaseTest {
     Assume.assumeTrue(haveSsl(sharedConnection));
     Assume.assumeTrue(minVersion(8, 0, 0));
     try (Connection conn =
-             DriverManager.getConnection(
-                 "jdbc:mariadb://"
-                     + ((hostname == null) ? "localhost" : hostname)
-                     + ":"
-                     + port
-                     + "/"
-                     + ((database == null) ? "" : database)
-                     + "?user=cachingSha256User&password=password&useSsl&trustServerCertificate=true")) {
+        DriverManager.getConnection(
+            "jdbc:mariadb://"
+                + ((hostname == null) ? "localhost" : hostname)
+                + ":"
+                + port
+                + "/"
+                + ((database == null) ? "" : database)
+                + "?user=cachingSha256User&password=password&useSsl&trustServerCertificate=true")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");

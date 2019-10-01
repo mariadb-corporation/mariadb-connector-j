@@ -1,8 +1,9 @@
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.Platform;
-import java.io.IOException;
-import org.mariadb.jdbc.internal.util.Utils;
+import com.sun.jna.*;
+import org.mariadb.jdbc.internal.util.*;
+
+import java.io.*;
 
 public class SocketUtility {
 
@@ -15,7 +16,7 @@ public class SocketUtility {
   @SuppressWarnings("unchecked")
   public static SocketHandlerFunction getSocketHandler() {
     try {
-      //forcing use of JNA to ensure AOT compilation
+      // forcing use of JNA to ensure AOT compilation
       Platform.getOSType();
 
       return (options, host) -> {
@@ -36,10 +37,9 @@ public class SocketUtility {
         } else {
           return Utils.standardSocket(options, host);
         }
-
       };
     } catch (Throwable cle) {
-      //jna jar's are not in classpath
+      // jna jar's are not in classpath
     }
     return (options, host) -> Utils.standardSocket(options, host);
   }

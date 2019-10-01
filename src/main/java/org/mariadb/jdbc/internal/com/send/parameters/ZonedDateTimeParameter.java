@@ -52,15 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
 
 /**
  * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String
@@ -74,13 +73,13 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param tz                zone date time
-   * @param serverZoneId      server session zoneId
+   * @param tz zone date time
+   * @param serverZoneId server session zoneId
    * @param fractionalSeconds must fractional Seconds be send to database.
-   * @param options           session options
+   * @param options session options
    */
-  public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds,
-      Options options) {
+  public ZonedDateTimeParameter(
+      ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
     ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
     this.tz = tz.withZoneSameInstant(zoneId);
     this.fractionalSeconds = fractionalSeconds;
@@ -92,8 +91,10 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
    * @param pos the stream to write to
    */
   public void writeTo(final PacketOutputStream pos) throws IOException {
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-        fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern(
+            fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss",
+            Locale.ENGLISH);
     pos.write(QUOTE);
     pos.write(formatter.format(tz).getBytes());
     pos.write(QUOTE);
@@ -110,7 +111,7 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
    * @throws IOException if socket error occur
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
-    pos.write((byte) (fractionalSeconds ? 11 : 7));//length
+    pos.write((byte) (fractionalSeconds ? 11 : 7)); // length
     pos.writeShort((short) tz.getYear());
     pos.write((byte) ((tz.getMonth().getValue()) & 0xff));
     pos.write((byte) (tz.getDayOfMonth() & 0xff));

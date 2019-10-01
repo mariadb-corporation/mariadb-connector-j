@@ -74,8 +74,8 @@ public class MariaDbCompatibilityTest extends BaseTest {
   @BeforeClass()
   public static void initClass() throws SQLException {
     createTable("datatypesTest", "type_longvarchar TEXT NULL");
-    createTable("mysqlcompatibilitytest",
-        "id int not null primary key auto_increment, test bit(1)");
+    createTable(
+        "mysqlcompatibilitytest", "id int not null primary key auto_increment, test bit(1)");
   }
 
   /**
@@ -86,8 +86,9 @@ public class MariaDbCompatibilityTest extends BaseTest {
   @Test
   public void datatypesTest() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      try (PreparedStatement preparedStmt = sharedConnection.prepareStatement(
-          "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
+      try (PreparedStatement preparedStmt =
+          sharedConnection.prepareStatement(
+              "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
         preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
         preparedStmt.executeUpdate();
       }
@@ -119,5 +120,4 @@ public class MariaDbCompatibilityTest extends BaseTest {
     assertTrue(rs.next());
     assertTrue("1".equalsIgnoreCase(rs.getString(2)));
   }
-
 }

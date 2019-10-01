@@ -84,11 +84,13 @@ public class CallStatementTest extends BaseTest {
     createProcedure("inoutParam", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
     createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
     createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
-    createProcedure("TEST_SP1", "() BEGIN\n"
-        + "SELECT @Something := 'Something';\n"
-        + "SIGNAL SQLSTATE '70100'\n"
-        + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
-        + "END");
+    createProcedure(
+        "TEST_SP1",
+        "() BEGIN\n"
+            + "SELECT @Something := 'Something';\n"
+            + "SIGNAL SQLSTATE '70100'\n"
+            + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+            + "END");
   }
 
   @Before
@@ -108,8 +110,8 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void prepareStmtSimple() throws SQLException {
     createProcedure("prepareStmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
-    PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("{call prepareStmtSimple(?,?)}");
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("{call prepareStmtSimple(?,?)}");
     preparedStatement.setInt(1, 2);
     preparedStatement.setInt(2, 2);
     ResultSet rs = preparedStatement.executeQuery();
@@ -121,12 +123,14 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void stmtSimpleFunction() throws SQLException {
     try {
-      createFunction("stmtSimpleFunction",
+      createFunction(
+          "stmtSimpleFunction",
           "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
       sharedConnection.createStatement().execute("{call stmtSimpleFunction(2,2,2)}");
       fail("call mustn't work for function, use SELECT <function>");
     } catch (SQLSyntaxErrorException sqle) {
-      assertTrue("error : " + sqle.getMessage(),
+      assertTrue(
+          "error : " + sqle.getMessage(),
           sqle.getMessage().contains("stmtSimpleFunction does not exist"));
     }
   }
@@ -134,17 +138,19 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void prepareStmtSimpleFunction() throws SQLException {
     try {
-      createFunction("stmtSimpleFunction",
+      createFunction(
+          "stmtSimpleFunction",
           "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
-      PreparedStatement preparedStatement = sharedConnection
-          .prepareStatement("{call stmtSimpleFunction(?,?,?)}");
+      PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement("{call stmtSimpleFunction(?,?,?)}");
       preparedStatement.setInt(1, 2);
       preparedStatement.setInt(2, 2);
       preparedStatement.setInt(3, 2);
       preparedStatement.execute();
       fail("call mustn't work for function, use SELECT <function>");
     } catch (SQLSyntaxErrorException sqle) {
-      assertTrue("error : " + sqle.getMessage(),
+      assertTrue(
+          "error : " + sqle.getMessage(),
           sqle.getMessage().contains("stmtSimpleFunction does not exist"));
     }
   }
@@ -152,11 +158,10 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void prepareStmtWithOutParameter() throws SQLException {
     Assume.assumeTrue(sharedUsePrepare());
-    createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
-        + "BEGIN\n"
-        + "SELECT 1;end\n");
-    PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
+    createProcedure(
+        "prepareStmtWithOutParameter", "(x int, INOUT y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
     preparedStatement.setInt(1, 2);
     preparedStatement.setInt(2, 3);
     assertTrue(preparedStatement.execute());
@@ -214,16 +219,18 @@ public class CallStatementTest extends BaseTest {
       stmt.execute("{call inOutParam(1)}");
       fail("must fail : statement cannot be use when there is out parameter");
     } catch (SQLSyntaxErrorException e) {
-      assertTrue(e.getMessage().contains("OUT or INOUT argument 1 for routine")
-          && e.getMessage().contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
-          && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
+      assertTrue(
+          e.getMessage().contains("OUT or INOUT argument 1 for routine")
+              && e.getMessage()
+                  .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
+              && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
     }
   }
 
   @Test
   public void prepareStmtInoutParam() throws SQLException {
     Assume.assumeTrue(sharedUsePrepare());
-    //must work, but out parameter isn't accessible
+    // must work, but out parameter isn't accessible
     PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call inOutParam(?)}");
     preparedStatement.setInt(1, 1);
     preparedStatement.execute();
@@ -255,14 +262,11 @@ public class CallStatementTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testMetaWildcard() throws Exception {
-    createProcedure("testMetaWildcard", "(x int, out y int)\n"
-        + "BEGIN\n"
-        + "SELECT 1;end\n");
-    ResultSet rs = sharedConnection.getMetaData()
-        .getProcedureColumns(null, null, "testMetaWildcard%", "%");
+    createProcedure("testMetaWildcard", "(x int, out y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
+    ResultSet rs =
+        sharedConnection.getMetaData().getProcedureColumns(null, null, "testMetaWildcard%", "%");
     if (rs.next()) {
       assertEquals("testMetaWildcard", rs.getString(3));
       assertEquals("x", rs.getString(4));
@@ -277,17 +281,19 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void testMetaCatalog() throws Exception {
     createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSELECT 1;end\n");
-    ResultSet rs = sharedConnection.getMetaData()
-        .getProcedures(sharedConnection.getCatalog(), null, "testMetaCatalog");
+    ResultSet rs =
+        sharedConnection
+            .getMetaData()
+            .getProcedures(sharedConnection.getCatalog(), null, "testMetaCatalog");
     assertTrue(rs.next());
     assertTrue("testMetaCatalog".equals(rs.getString(3)));
     assertFalse(rs.next());
 
-    //test with bad catalog
+    // test with bad catalog
     rs = sharedConnection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
     assertFalse(rs.next());
 
-    //test without catalog
+    // test without catalog
     rs = sharedConnection.getMetaData().getProcedures(null, null, "testMetaCatalog");
     assertTrue(rs.next());
     assertTrue("testMetaCatalog".equals(rs.getString(3)));
@@ -296,13 +302,10 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void prepareWithNoParameters() throws SQLException {
-    createProcedure("prepareWithNoParameters", "()\n"
-        + "begin\n"
-        + "    SELECT 'mike';"
-        + "end\n");
+    createProcedure("prepareWithNoParameters", "()\n" + "begin\n" + "    SELECT 'mike';" + "end\n");
 
-    PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("{call prepareWithNoParameters()}");
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
     ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
     assertEquals("mike", rs.getString(1));
@@ -323,5 +326,4 @@ public class CallStatementTest extends BaseTest {
       statement.execute("SELECT 1");
     }
   }
-
 }

@@ -52,13 +52,13 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
+import java.sql.*;
+import java.text.*;
+import java.util.*;
 
 public class TimestampParameter implements Cloneable, ParameterHolder {
 
@@ -69,8 +69,8 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param ts                timestamps
-   * @param timeZone          timeZone
+   * @param ts timestamps
+   * @param timeZone timeZone
    * @param fractionalSeconds must fractional Seconds be send to database.
    */
   public TimestampParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds) {
@@ -119,7 +119,7 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
     Calendar calendar = Calendar.getInstance(timeZone);
     calendar.setTimeInMillis(ts.getTime());
 
-    pos.write((byte) (fractionalSeconds ? 11 : 7));//length
+    pos.write((byte) (fractionalSeconds ? 11 : 7)); // length
 
     pos.writeShort((short) calendar.get(Calendar.YEAR));
     pos.write((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
@@ -130,7 +130,6 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
     if (fractionalSeconds) {
       pos.writeInt(ts.getNanos() / 1000);
     }
-
   }
 
   public ColumnType getColumnType() {

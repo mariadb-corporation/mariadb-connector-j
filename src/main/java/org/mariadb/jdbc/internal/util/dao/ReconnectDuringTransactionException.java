@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import java.sql.SQLException;
+import java.sql.*;
 
 public class ReconnectDuringTransactionException extends SQLException {
 
   public ReconnectDuringTransactionException(String message, int errorCode, String sqlState) {
     super(message, sqlState, errorCode);
   }
-
 }

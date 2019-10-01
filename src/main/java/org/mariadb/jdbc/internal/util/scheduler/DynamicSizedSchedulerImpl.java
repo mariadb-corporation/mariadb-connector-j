@@ -52,16 +52,16 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
 
-public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements
-    DynamicSizedSchedulerInterface {
+public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor
+    implements DynamicSizedSchedulerInterface {
 
   /**
    * Initialize a scheduler with dynamic pool size.
    *
-   * @param corePoolSize    initial Core pool size
-   * @param poolName        name of pool to identify threads
+   * @param corePoolSize initial Core pool size
+   * @param poolName name of pool to identify threads
    * @param maximumPoolSize maximum pool size
    */
   public DynamicSizedSchedulerImpl(int corePoolSize, String poolName, int maximumPoolSize) {
@@ -75,5 +75,4 @@ public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor imple
       super.setCorePoolSize(newSize);
     }
   }
-
 }

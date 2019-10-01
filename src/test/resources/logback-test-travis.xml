@@ -62,7 +62,7 @@
   <property name="DEV_HOME" value="/tmp"/>
 
   <appender class="ch.qos.logback.core.rolling.RollingFileAppender"
-    name="FILE-AUDIT">
+            name="FILE-AUDIT">
     <file>${DEV_HOME}/debug.log</file>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
       <Pattern>

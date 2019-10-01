@@ -52,36 +52,26 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
-import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Locale;
-import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-import javax.net.SocketFactory;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
-import org.mariadb.jdbc.internal.io.socket.SocketUtility;
-import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
-import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.failover.impl.*;
+import org.mariadb.jdbc.internal.io.socket.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.util.*;
 
+import javax.net.*;
+import java.io.*;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
+import java.net.*;
+import java.security.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.locks.*;
+import java.util.regex.*;
 
 @SuppressWarnings("Annotator")
 public class Utils {
@@ -266,7 +256,7 @@ public class Utils {
    * </ul>
    *
    * <p>caution: this use MariaDB server conversion: 'SELECT CONVERT('2147483648', INTEGER)' will
-   * return a BIGINT. MySQL will throw a syntax error.</p>
+   * return a BIGINT. MySQL will throw a syntax error.
    *
    * @param functionString input string
    * @param protocol protocol
@@ -352,7 +342,7 @@ public class Utils {
 
           case "DOUBLE":
           case "FLOAT":
-            if (protocol.isServerMariaDb() || protocol.versionGreaterOrEqual(8,0,17)) {
+            if (protocol.isServerMariaDb() || protocol.versionGreaterOrEqual(8, 0, 17)) {
               typeParam = "DOUBLE";
               break;
             }
@@ -396,8 +386,7 @@ public class Utils {
     }
   }
 
-  private static String resolveEscapes(String escaped, Protocol protocol)
-      throws SQLException {
+  private static String resolveEscapes(String escaped, Protocol protocol) throws SQLException {
     if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}') {
       throw new SQLException("unexpected escaped string");
     }
@@ -982,13 +971,6 @@ public class Utils {
     }
   }
 
-  private enum Parse {
-    Normal,
-    String, /* inside string */
-    Quote,
-    Escape /* found backslash */
-  }
-
   /**
    * Validate that file name correspond to send query.
    *
@@ -1019,5 +1001,12 @@ public class Utils {
       }
     }
     return false;
+  }
+
+  private enum Parse {
+    Normal,
+    String, /* inside string */
+    Quote,
+    Escape /* found backslash */
   }
 }

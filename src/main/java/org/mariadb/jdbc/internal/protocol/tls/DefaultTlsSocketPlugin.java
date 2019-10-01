@@ -22,20 +22,60 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import java.io.*;
-import java.net.*;
-import java.security.*;
-import java.security.cert.*;
-import java.security.cert.Certificate;
-import java.sql.*;
-import javax.net.ssl.*;
 import org.mariadb.jdbc.internal.logging.*;
 import org.mariadb.jdbc.internal.util.exceptions.*;
 import org.mariadb.jdbc.tls.*;
 import org.mariadb.jdbc.util.*;
 
+import javax.net.ssl.*;
+import java.io.*;
+import java.net.*;
+import java.security.*;
+import java.security.cert.Certificate;
+import java.security.cert.*;
+import java.sql.*;
+
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static final Logger logger = LoggerFactory.getLogger(DefaultTlsSocketPlugin.class);
+
+  private static KeyManager loadClientCerts(
+      String keyStoreUrl, String keyStorePassword, String keyPassword, String storeType)
+      throws SQLException {
+    InputStream inStream = null;
+    try {
+
+      char[] keyStorePasswordChars =
+          keyStorePassword == null ? null : keyStorePassword.toCharArray();
+
+      try {
+        inStream = new URL(keyStoreUrl).openStream();
+      } catch (IOException ioexception) {
+        inStream = new FileInputStream(keyStoreUrl);
+      }
+
+      KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
+      ks.load(inStream, keyStorePasswordChars);
+      char[] keyStoreChars =
+          (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
+      return new MariaDbX509KeyManager(ks, keyStoreChars);
+    } catch (GeneralSecurityException generalSecurityEx) {
+      throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
+    } catch (FileNotFoundException fileNotFoundEx) {
+      throw ExceptionMapper.connException(
+          "Failed to find keyStore file. Option keyStore=" + keyStoreUrl, fileNotFoundEx);
+    } catch (IOException ioEx) {
+      throw ExceptionMapper.connException(
+          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
+    } finally {
+      try {
+        if (inStream != null) {
+          inStream.close();
+        }
+      } catch (IOException ioEx) {
+        // ignore error
+      }
+    }
+  }
 
   @Override
   public String name() {
@@ -107,45 +147,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       Certificate[] certs = session.getPeerCertificates();
       X509Certificate cert = (X509Certificate) certs[0];
       hostnameVerifier.verify(host, cert, serverThreadId);
-    }
-  }
-
-  private static KeyManager loadClientCerts(
-      String keyStoreUrl, String keyStorePassword, String keyPassword, String storeType)
-      throws SQLException {
-    InputStream inStream = null;
-    try {
-
-      char[] keyStorePasswordChars =
-          keyStorePassword == null ? null : keyStorePassword.toCharArray();
-
-      try {
-        inStream = new URL(keyStoreUrl).openStream();
-      } catch (IOException ioexception) {
-        inStream = new FileInputStream(keyStoreUrl);
-      }
-
-      KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
-      ks.load(inStream, keyStorePasswordChars);
-      char[] keyStoreChars =
-          (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
-      return new MariaDbX509KeyManager(ks, keyStoreChars);
-    } catch (GeneralSecurityException generalSecurityEx) {
-      throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
-    } catch (FileNotFoundException fileNotFoundEx) {
-      throw ExceptionMapper.connException(
-          "Failed to find keyStore file. Option keyStore=" + keyStoreUrl, fileNotFoundEx);
-    } catch (IOException ioEx) {
-      throw ExceptionMapper.connException(
-          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
-    } finally {
-      try {
-        if (inStream != null) {
-          inStream.close();
-        }
-      } catch (IOException ioEx) {
-        // ignore error
-      }
     }
   }
 }

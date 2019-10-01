@@ -50,16 +50,13 @@
  *
  */
 
-
 package org.mariadb.jdbc;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import javax.transaction.xa.XAException;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.Xid;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.*;
+
+import javax.transaction.xa.*;
+import java.sql.*;
+import java.util.*;
 
 public class MariaXaResource implements XAResource {
 
@@ -70,9 +67,12 @@ public class MariaXaResource implements XAResource {
   }
 
   protected static String xidToString(Xid xid) {
-    return "0x" + Utils.byteArrayToHexString(xid.getGlobalTransactionId())
-        + ",0x" + Utils.byteArrayToHexString(xid.getBranchQualifier())
-        + ",0x" + Utils.intToHexString(xid.getFormatId());
+    return "0x"
+        + Utils.byteArrayToHexString(xid.getGlobalTransactionId())
+        + ",0x"
+        + Utils.byteArrayToHexString(xid.getBranchQualifier())
+        + ",0x"
+        + Utils.intToHexString(xid.getFormatId());
   }
 
   private static String flagsToString(int flags) {
@@ -143,9 +143,9 @@ public class MariaXaResource implements XAResource {
   /**
    * Commits the global transaction specified by xid.
    *
-   * @param xid      A global transaction identifier
+   * @param xid A global transaction identifier
    * @param onePhase If true, the resource manager should use a one-phase commit protocol to commit
-   *                 the work done on behalf of xid.
+   *     the work done on behalf of xid.
    * @throws XAException exception
    */
   public void commit(Xid xid, boolean onePhase) throws XAException {
@@ -159,18 +159,21 @@ public class MariaXaResource implements XAResource {
   /**
    * Ends the work performed on behalf of a transaction branch. The resource manager disassociates
    * the XA resource from the transaction branch specified and lets the transaction complete.
+   *
    * <p>If TMSUSPEND is specified in the flags, the transaction branch is temporarily suspended in
    * an incomplete state. The transaction context is in a suspended state and must be resumed via
-   * the start method with TMRESUME specified.</p>
-   * <p>If TMFAIL is specified, the portion of work has failed. The resource manager may mark the
-   * transaction as rollback-only</p>
-   * <p>If TMSUCCESS is specified, the portion of work has completed successfully.</p>
+   * the start method with TMRESUME specified.
    *
-   * @param xid   A global transaction identifier that is the same as the identifier used previously
-   *              in the start method.
+   * <p>If TMFAIL is specified, the portion of work has failed. The resource manager may mark the
+   * transaction as rollback-only
+   *
+   * <p>If TMSUCCESS is specified, the portion of work has completed successfully.
+   *
+   * @param xid A global transaction identifier that is the same as the identifier used previously
+   *     in the start method.
    * @param flags One of TMSUCCESS, TMFAIL, or TMSUSPEND.
    * @throws XAException An error has occurred. (XAException values are XAER_RMERR, XAER_RMFAILED,
-   *                     XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
+   *     XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
    */
   public void end(Xid xid, int flags) throws XAException {
     if (flags != TMSUCCESS && flags != TMSUSPEND && flags != TMFAIL) {
@@ -207,7 +210,7 @@ public class MariaXaResource implements XAResource {
    * object is the same as the resource manager instance represented by the parameter xares.
    *
    * @param xaResource An XAResource object whose resource manager instance is to be compared with
-   *                   the target object.
+   *     the target object.
    * @return true if it's the same RM instance; otherwise false.
    */
   @Override
@@ -224,7 +227,7 @@ public class MariaXaResource implements XAResource {
    * @param xid A global transaction identifier.
    * @return A value indicating the resource manager's vote on the outcome of the transaction.
    * @throws XAException An error has occurred. Possible exception values are: XA_RB*, XAER_RMERR,
-   *                     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
+   *     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
    */
   public int prepare(Xid xid) throws XAException {
     execute("XA PREPARE " + xidToString(xid));
@@ -237,10 +240,10 @@ public class MariaXaResource implements XAResource {
    * currently in prepared or heuristically completed states.
    *
    * @param flags One of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS. TMNOFLAGS must be used when no other
-   *              flags are set in the parameter.
+   *     flags are set in the parameter.
    * @return The resource manager returns zero or more XIDs of the transaction branches.
    * @throws XAException An error has occurred. Possible values are XAER_RMERR, XAER_RMFAIL,
-   *                     XAER_INVAL, and XAER_PROTO.
+   *     XAER_INVAL, and XAER_PROTO.
    */
   public Xid[] recover(int flags) throws XAException {
     // Return all Xid  at once, when STARTRSCAN is specified
@@ -311,7 +314,7 @@ public class MariaXaResource implements XAResource {
    * previously been seen by the resource manager, the resource manager throws the XAException
    * exception with XAER_DUPID error code.
    *
-   * @param xid   A global transaction identifier to be associated with the resource.
+   * @param xid A global transaction identifier to be associated with the resource.
    * @param flags One of TMNOFLAGS, TMJOIN, or TMRESUME.
    * @throws XAException An error has occurred.
    */
@@ -319,8 +322,13 @@ public class MariaXaResource implements XAResource {
     if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
       throw new XAException(XAException.XAER_INVAL);
     }
-    execute("XA START " + xidToString(xid) + " "
-        + flagsToString(
-        flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME : flags));
+    execute(
+        "XA START "
+            + xidToString(xid)
+            + " "
+            + flagsToString(
+                flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection()
+                    ? TMRESUME
+                    : flags));
   }
 }

@@ -52,21 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import org.mariadb.jdbc.internal.util.DeRegister;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.util.DefaultOptions;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.util.*;
 
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
 
 public final class Driver implements java.sql.Driver {
 
@@ -93,7 +85,6 @@ public final class Driver implements java.sql.Driver {
     } else {
       return MariaDbConnection.newConnection(urlParser, null);
     }
-
   }
 
   /**
@@ -110,14 +101,12 @@ public final class Driver implements java.sql.Driver {
   /**
    * Get the property info.
    *
-   * @param url  the url to get properties for
+   * @param url the url to get properties for
    * @param info the info props
    * @return all possible connector options
    * @throws SQLException if there is a problem getting the property info
    */
-  public DriverPropertyInfo[] getPropertyInfo(String url,
-      Properties info)
-      throws SQLException {
+  public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
     Options options;
     if (url != null && !url.isEmpty()) {
       UrlParser urlParser = UrlParser.parse(url, info);
@@ -126,7 +115,7 @@ public final class Driver implements java.sql.Driver {
       }
       options = urlParser.getOptions();
     } else {
-      options = DefaultOptions.parse(HaMode.NONE, "", info, null);;
+      options = DefaultOptions.parse(HaMode.NONE, "", info, null);
     }
 
     List<DriverPropertyInfo> props = new ArrayList<>();
@@ -134,13 +123,13 @@ public final class Driver implements java.sql.Driver {
       try {
         Field field = Options.class.getField(o.getOptionName());
         Object value = field.get(options);
-        DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(),
-            value == null ? null : value.toString());
+        DriverPropertyInfo propertyInfo =
+            new DriverPropertyInfo(field.getName(), value == null ? null : value.toString());
         propertyInfo.description = o.getDescription();
         propertyInfo.required = o.isRequired();
         props.add(propertyInfo);
       } catch (NoSuchFieldException | IllegalAccessException e) {
-        //eat error
+        // eat error
       }
     }
     return props.toArray(new DriverPropertyInfo[props.size()]);

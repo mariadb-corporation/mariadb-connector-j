@@ -52,14 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
 import java.sql.Date;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.TimeZone;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
+import java.text.*;
+import java.util.*;
 
 public class DateParameter implements Cloneable, ParameterHolder {
 
@@ -70,16 +70,15 @@ public class DateParameter implements Cloneable, ParameterHolder {
   /**
    * Represents a date, constructed with time in millis since epoch.
    *
-   * @param date     the date
+   * @param date the date
    * @param timeZone timezone to use
-   * @param options  jdbc options
+   * @param options jdbc options
    */
   public DateParameter(Date date, TimeZone timeZone, Options options) {
     this.date = date;
     this.timeZone = timeZone;
     this.options = options;
   }
-
 
   /**
    * Write to server OutputStream in text protocol.
@@ -107,7 +106,6 @@ public class DateParameter implements Cloneable, ParameterHolder {
     return 16;
   }
 
-
   /**
    * Write data to socket in binary format.
    *
@@ -118,7 +116,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     Calendar calendar = Calendar.getInstance(timeZone);
     calendar.setTimeInMillis(date.getTime());
 
-    pos.write((byte) 7);//length
+    pos.write((byte) 7); // length
     pos.writeShort((short) calendar.get(Calendar.YEAR));
     pos.write((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
     pos.write((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
@@ -143,5 +141,4 @@ public class DateParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return false;
   }
-
 }

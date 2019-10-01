@@ -76,7 +76,8 @@ public class TransactionTest extends BaseTest {
       stmt.execute("drop table if exists tx_fore_key");
       stmt.execute("drop table if exists tx_prim_key");
       createTable("tx_prim_key", "id int not null primary key", "engine=innodb");
-      createTable("tx_fore_key",
+      createTable(
+          "tx_fore_key",
           "id int not null primary key, id_ref int not null, "
               + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict",
           "engine=innodb");
@@ -117,11 +118,11 @@ public class TransactionTest extends BaseTest {
       sharedConnection.rollback();
     }
 
-    try (Connection conn2 = openNewConnection(connUri); Statement st = conn2.createStatement()) {
+    try (Connection conn2 = openNewConnection(connUri);
+        Statement st = conn2.createStatement()) {
       st.setQueryTimeout(30000);
       st.executeUpdate("delete from tx_fore_key where id = 42");
       st.executeUpdate("delete from tx_prim_key where id = 32");
     }
   }
-
 }

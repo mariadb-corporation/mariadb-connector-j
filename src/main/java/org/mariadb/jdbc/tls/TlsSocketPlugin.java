@@ -22,11 +22,12 @@
 
 package org.mariadb.jdbc.tls;
 
+import org.mariadb.jdbc.util.*;
+
+import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
 import java.sql.*;
-import javax.net.ssl.*;
-import org.mariadb.jdbc.util.Options;
 
 public interface TlsSocketPlugin {
 

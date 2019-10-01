@@ -71,7 +71,8 @@ public class GeneratedTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("genkeys",
+    createTable(
+        "genkeys",
         "priKey INT NOT NULL AUTO_INCREMENT, dataField VARCHAR(64), PRIMARY KEY (priKey)");
   }
 
@@ -110,5 +111,4 @@ public class GeneratedTest extends BaseTest {
       assertEquals(autoInc[1] + 3 * autoInc[0], rs.getInt(columnNames[i]));
     }
   }
-
 }

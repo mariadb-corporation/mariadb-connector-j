@@ -52,17 +52,15 @@
 
 package org.mariadb.jdbc.internal.failover;
 
-import java.lang.reflect.Method;
-import java.net.SocketException;
-import java.sql.SQLException;
-import java.util.Set;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+
+import java.lang.reflect.*;
+import java.net.*;
+import java.sql.*;
+import java.util.*;
 
 public interface Listener {
 
@@ -84,13 +82,15 @@ public interface Listener {
 
   void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-  HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean wasClosed) throws SQLException;
+  HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean wasClosed)
+      throws SQLException;
 
   Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
   Object invoke(Method method, Object[] args) throws Throwable;
 
-  HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol, boolean wasClosed)
+  HandleErrorResult handleFailover(
+      SQLException qe, Method method, Object[] args, Protocol protocol, boolean wasClosed)
       throws Throwable;
 
   void foundActiveMaster(Protocol protocol) throws SQLException;
@@ -105,9 +105,12 @@ public interface Listener {
 
   UrlParser getUrlParser();
 
-  void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
+  void throwFailoverMessage(
+      HostAddress failHostAddress,
+      boolean wasMaster,
       SQLException queryException,
-      boolean reconnected) throws SQLException;
+      boolean reconnected)
+      throws SQLException;
 
   boolean isAutoReconnect();
 

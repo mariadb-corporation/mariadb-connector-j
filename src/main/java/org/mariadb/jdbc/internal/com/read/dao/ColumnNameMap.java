@@ -52,13 +52,11 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
 
+import java.sql.*;
+import java.util.*;
 
 public class ColumnNameMap {
 
@@ -83,7 +81,8 @@ public class ColumnNameMap {
     }
     String lowerName = name.toLowerCase(Locale.ROOT);
     // The specs in JDBC 4.0 specify that ResultSet.findColumn and
-    // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use
+    // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not
+    // found, we use
     // original table name.
     if (aliasMap == null) {
       aliasMap = new HashMap<>();
@@ -119,8 +118,8 @@ public class ColumnNameMap {
 
           String tableName = ci.getOriginalTable();
           if (tableName != null) {
-            originalMap
-                .putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
+            originalMap.putIfAbsent(
+                tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
           }
         }
         counter++;
@@ -133,6 +132,5 @@ public class ColumnNameMap {
       throw ExceptionMapper.get("No such column: " + name, "42S22", 1054, null, false);
     }
     return res;
-
   }
 }

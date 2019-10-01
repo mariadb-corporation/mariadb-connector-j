@@ -124,67 +124,81 @@ public class BaseTest {
   protected static boolean doPrecisionTest = true;
   private static TcpProxy proxy = null;
   private static UrlParser urlParser;
+
   @Rule
-  public TestRule watcher = new TestWatcher() {
-    private long ttime;
+  public TestRule watcher =
+      new TestWatcher() {
+        private long ttime;
 
-    protected void starting(Description description) {
-      if (testSingleHost) {
-        System.out.println(
-            "start test : " + description.getClassName() + "." + description.getMethodName());
-        ttime = System.nanoTime();
-      }
-    }
-
-    //execute another query to ensure connection is stable
-    protected void finished(Description description) {
-      if (testSingleHost) {
-        Random random = new Random();
-        int randInt = random.nextInt();
-        try (PreparedStatement preparedStatement = sharedConnection
-            .prepareStatement("SELECT " + randInt)) {
-          ResultSet rs = preparedStatement.executeQuery();
-          assertTrue(rs.next());
-          assertEquals(randInt, rs.getInt(1));
-        } catch (SQLNonTransientConnectionException connFail) {
-          connFail.printStackTrace();
-          try {
-            beforeClassBaseTest();
-          } catch (SQLException e) {
-            System.out.println("ERROR reconnecting");
-            e.printStackTrace();
+        protected void starting(Description description) {
+          if (testSingleHost) {
+            System.out.println(
+                "start test : " + description.getClassName() + "." + description.getMethodName());
+            ttime = System.nanoTime();
           }
-          fail("Prepare after test fail for " + description.getClassName() + "." + description
-                  .getMethodName());
-
-        } catch (Exception e) {
-          e.printStackTrace();
-          fail("Prepare after test fail for " + description.getClassName() + "." + description
-              .getMethodName());
         }
-      }
-    }
 
-    protected void succeeded(Description description) {
-      if (testSingleHost) {
-        System.out.println(
-            "finished test success : " + description.getClassName() + "." + description
-                .getMethodName()
-                + " after " + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000)
-                + " ms");
-      }
-    }
+        // execute another query to ensure connection is stable
+        protected void finished(Description description) {
+          if (testSingleHost) {
+            Random random = new Random();
+            int randInt = random.nextInt();
+            try (PreparedStatement preparedStatement =
+                sharedConnection.prepareStatement("SELECT " + randInt)) {
+              ResultSet rs = preparedStatement.executeQuery();
+              assertTrue(rs.next());
+              assertEquals(randInt, rs.getInt(1));
+            } catch (SQLNonTransientConnectionException connFail) {
+              connFail.printStackTrace();
+              try {
+                beforeClassBaseTest();
+              } catch (SQLException e) {
+                System.out.println("ERROR reconnecting");
+                e.printStackTrace();
+              }
+              fail(
+                  "Prepare after test fail for "
+                      + description.getClassName()
+                      + "."
+                      + description.getMethodName());
 
-    protected void failed(Throwable throwable, Description description) {
-      if (testSingleHost) {
-        System.out.println(
-            "finished test failed : " + description.getClassName() + "." + description
-                .getMethodName()
-                + " after " + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000)
-                + " ms");
-      }
-    }
-  };
+            } catch (Exception e) {
+              e.printStackTrace();
+              fail(
+                  "Prepare after test fail for "
+                      + description.getClassName()
+                      + "."
+                      + description.getMethodName());
+            }
+          }
+        }
+
+        protected void succeeded(Description description) {
+          if (testSingleHost) {
+            System.out.println(
+                "finished test success : "
+                    + description.getClassName()
+                    + "."
+                    + description.getMethodName()
+                    + " after "
+                    + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000)
+                    + " ms");
+          }
+        }
+
+        protected void failed(Throwable throwable, Description description) {
+          if (testSingleHost) {
+            System.out.println(
+                "finished test failed : "
+                    + description.getClassName()
+                    + "."
+                    + description.getMethodName()
+                    + " after "
+                    + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000)
+                    + " ms");
+          }
+        }
+      };
 
   /**
    * Initialization.
@@ -217,8 +231,8 @@ public class BaseTest {
       String additionalParameters;
       if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
         additionalParameters = urlSecondPart.substring(paramIndex);
-      } else if ((dbIndex < paramIndex && dbIndex > -1) || (dbIndex > paramIndex
-          && paramIndex < 0)) {
+      } else if ((dbIndex < paramIndex && dbIndex > -1)
+          || (dbIndex > paramIndex && paramIndex < 0)) {
         additionalParameters = urlSecondPart.substring(dbIndex);
       } else {
         additionalParameters = null;
@@ -248,17 +262,31 @@ public class BaseTest {
 
       String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
       doPrecisionTest =
-          isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision
+          isMariadbServer() || !dbVersion.startsWith("5.5"); // MySQL 5.5 doesn't support precision
     }
   }
 
   private static void setUri() {
-    connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
-        + ((database == null) ? "" : database);
-    connUri = connU + "?" + parameters
-        + (password != null && !"".equals(password) ? "&password=" + password : "");
-    connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?" + parameters
-        + (password != null && !"".equals(password) ? "&password=" + password : "");
+    connU =
+        "jdbc:mariadb://"
+            + ((hostname == null) ? "localhost" : hostname)
+            + ":"
+            + port
+            + "/"
+            + ((database == null) ? "" : database);
+    connUri =
+        connU
+            + "?"
+            + parameters
+            + (password != null && !"".equals(password) ? "&password=" + password : "");
+    connDnsUri =
+        "jdbc:mariadb://mariadb.example.com:"
+            + port
+            + "/"
+            + database
+            + "?"
+            + parameters
+            + (password != null && !"".equals(password) ? "&password=" + password : "");
   }
 
   /**
@@ -275,7 +303,7 @@ public class BaseTest {
           try {
             stmt.execute("DROP VIEW IF EXISTS " + viewName);
           } catch (SQLException e) {
-            //eat exception
+            // eat exception
           }
         }
       }
@@ -285,7 +313,7 @@ public class BaseTest {
           try {
             stmt.execute("DROP TABLE IF EXISTS " + tableName);
           } catch (SQLException e) {
-            //eat exception
+            // eat exception
           }
         }
       }
@@ -295,7 +323,7 @@ public class BaseTest {
           try {
             stmt.execute("DROP procedure IF EXISTS " + procedureName);
           } catch (SQLException e) {
-            //eat exception
+            // eat exception
           }
         }
       }
@@ -305,7 +333,7 @@ public class BaseTest {
           try {
             stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
           } catch (SQLException e) {
-            //eat exception
+            // eat exception
           }
         }
       }
@@ -323,7 +351,7 @@ public class BaseTest {
         thread = it.next();
         if (thread.getName().contains("MariaDb-bulk-")) {
           if (thread.getState() != State.WAITING) {
-            //print stack trace to console.
+            // print stack trace to console.
             for (StackTraceElement ste : thread.getStackTrace()) {
               System.out.println(ste);
             }
@@ -342,7 +370,7 @@ public class BaseTest {
   /**
    * Create a table that will be detroyed a the end of tests.
    *
-   * @param tableName    table name
+   * @param tableName table name
    * @param tableColumns table columns
    * @throws SQLException exception
    */
@@ -353,9 +381,9 @@ public class BaseTest {
   /**
    * Create a table that will be detroyed a the end of tests.
    *
-   * @param tableName    table name
+   * @param tableName table name
    * @param tableColumns table columns
-   * @param engine       engine type
+   * @param engine engine type
    * @throws SQLException exception
    */
   public static void createTable(String tableName, String tableColumns, String engine)
@@ -364,8 +392,12 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop table if exists " + tableName);
       stmt.execute(
-          "create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine
-              : ""));
+          "create table "
+              + tableName
+              + " ("
+              + tableColumns
+              + ") "
+              + ((engine != null) ? engine : ""));
       if (!tempFunctionList.contains(tableName)) {
         tempTableList.add(tableName);
       }
@@ -375,7 +407,7 @@ public class BaseTest {
   /**
    * Create a view that will be detroyed a the end of tests.
    *
-   * @param viewName     table name
+   * @param viewName table name
    * @param tableColumns table columns
    * @throws SQLException exception
    */
@@ -453,6 +485,18 @@ public class BaseTest {
   }
 
   /**
+   * Check if version if at minimum the version asked.
+   *
+   * @param major database major version
+   * @param minor database minor version
+   * @param patch database patch version
+   * @throws SQLException exception
+   */
+  public static boolean minVersion(int major, int minor, int patch) {
+    return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
+  }
+
+  /**
    * Indicate if there is a anonymous user.
    *
    * @return true if anonymous user exist
@@ -461,8 +505,8 @@ public class BaseTest {
   public boolean anonymousUser() throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
-      ResultSet rs = stmt
-          .executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
+      ResultSet rs =
+          stmt.executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
       return rs.next();
     }
     return false;
@@ -484,14 +528,16 @@ public class BaseTest {
     try {
       hostAddress = tmpUrlParser.getHostAddresses().get(0);
       proxy = new TcpProxy(hostAddress.host, hostAddress.port);
-      sockethosts += "address=(host=localhost)(port=" + proxy.getLocalPort() + ")"
-          + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
+      sockethosts +=
+          "address=(host=localhost)(port="
+              + proxy.getLocalPort()
+              + ")"
+              + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
     } catch (IOException e) {
       e.printStackTrace();
     }
 
     return openConnection("jdbc:mariadb://" + sockethosts + "/" + connUri.split("/")[3], info);
-
   }
 
   /**
@@ -503,9 +549,7 @@ public class BaseTest {
     proxy.restart(millissecond);
   }
 
-  /**
-   * Stop proxy.
-   */
+  /** Stop proxy. */
   public void stopProxy() {
     proxy.stop();
   }
@@ -518,22 +562,18 @@ public class BaseTest {
     proxy.removeDelay();
   }
 
-  /**
-   * Restart proxy.
-   */
+  /** Restart proxy. */
   public void restartProxy() {
     proxy.restart();
   }
 
-  /**
-   * Clean proxies.
-   */
+  /** Clean proxies. */
   public void closeProxy() {
     try {
       proxy.stop();
       proxy = null;
     } catch (Exception e) {
-      //Eat exception
+      // Eat exception
     }
   }
 
@@ -590,10 +630,13 @@ public class BaseTest {
   }
 
   protected Connection setBlankConnection(String parameters) throws SQLException {
-    return openConnection(connU
-        + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + parameters, null);
+    return openConnection(
+        connU
+            + "?user="
+            + username
+            + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + parameters,
+        null);
   }
 
   protected Connection setConnection() throws SQLException {
@@ -641,18 +684,21 @@ public class BaseTest {
   }
 
   protected Connection setDnsConnection(String parameters) throws SQLException {
-    String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/"
-        + ((database == null) ? "" : database);
-    String connUri = connU + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + (parameters != null ? "&" + parameters : "");
+    String connU =
+        "jdbc:mariadb://mariadb.example.com:" + port + "/" + ((database == null) ? "" : database);
+    String connUri =
+        connU
+            + "?user="
+            + username
+            + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + (parameters != null ? "&" + parameters : "");
     return openConnection(connUri + parameters, null);
   }
 
   /**
    * Permit to reconstruct a connection.
    *
-   * @param uri  base uri
+   * @param uri base uri
    * @param info additionnal properties
    * @return A connection
    * @throws SQLException is any error occur
@@ -681,7 +727,7 @@ public class BaseTest {
         return rs.getInt(2) > 0;
       }
     } catch (SQLException sqle) {
-      //skip
+      // skip
     }
     return false;
   }
@@ -723,7 +769,7 @@ public class BaseTest {
   /**
    * Check if max_allowed_packet value is equal or greater then 20m.
    *
-   * @param testName       test method name
+   * @param testName test method name
    * @param displayMessage message to display in case of error.
    * @return true if max_allowed_packet value is equal or greater then 20m.
    * @throws SQLException if connection fail
@@ -761,7 +807,7 @@ public class BaseTest {
   /**
    * Check if max_allowed_packet value is equal or greater then 40m.
    *
-   * @param testName   test method name
+   * @param testName test method name
    * @param displayMsg message to display in case of error.
    * @return true if max_allowed_packet value is equal or greater then 40m.
    * @throws SQLException if connection fail
@@ -795,15 +841,22 @@ public class BaseTest {
     boolean superPrivilege = false;
     try (Statement st = sharedConnection.createStatement()) {
       // first test for specific user and host combination
-      try (ResultSet rs = st.executeQuery(
-          "SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
-              + hostname + "'")) {
+      try (ResultSet rs =
+          st.executeQuery(
+              "SELECT Super_Priv FROM mysql.user WHERE user = '"
+                  + username
+                  + "' AND host = '"
+                  + hostname
+                  + "'")) {
         if (rs.next()) {
           superPrivilege = (rs.getString(1).equals("Y"));
         } else {
           // then check for user on whatever (%) host
-          try (ResultSet rs2 = st.executeQuery(
-              "SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
+          try (ResultSet rs2 =
+              st.executeQuery(
+                  "SELECT Super_Priv FROM mysql.user WHERE user = '"
+                      + username
+                      + "' AND host = '%'")) {
             if (rs2.next()) {
               superPrivilege = (rs2.getString(1).equals("Y"));
             }
@@ -813,8 +866,12 @@ public class BaseTest {
     }
 
     if (!superPrivilege) {
-      System.out.println("test '" + testName + "' skipped because user '" + username
-          + "' doesn't have SUPER privileges");
+      System.out.println(
+          "test '"
+              + testName
+              + "' skipped because user '"
+              + username
+              + "' doesn't have SUPER privileges");
     }
 
     return superPrivilege;
@@ -830,8 +887,8 @@ public class BaseTest {
     boolean isLocal = false;
 
     try {
-      if (InetAddress.getByName(hostname).isAnyLocalAddress() || InetAddress.getByName(hostname)
-          .isLoopbackAddress()) {
+      if (InetAddress.getByName(hostname).isAnyLocalAddress()
+          || InetAddress.getByName(hostname).isLoopbackAddress()) {
         isLocal = true;
       }
     } catch (UnknownHostException e) {
@@ -873,21 +930,7 @@ public class BaseTest {
     DatabaseMetaData md = sharedConnection.getMetaData();
     int dbMajor = md.getDatabaseMajorVersion();
     int dbMinor = md.getDatabaseMinorVersion();
-    return (dbMajor > major
-        || (dbMajor == major && dbMinor >= minor));
-
-  }
-
-  /**
-   * Check if version if at minimum the version asked.
-   *
-   * @param major database major version
-   * @param minor database minor version
-   * @param patch database patch version
-   * @throws SQLException exception
-   */
-  public static boolean minVersion(int major, int minor, int patch) {
-    return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
+    return (dbMajor > major || (dbMajor == major && dbMinor >= minor));
   }
 
   /**
@@ -902,7 +945,6 @@ public class BaseTest {
     int dbMajor = md.getDatabaseMajorVersion();
     int dbMinor = md.getDatabaseMinorVersion();
     return (dbMajor < major || (dbMajor == major && dbMinor < minor));
-
   }
 
   /**
@@ -916,7 +958,6 @@ public class BaseTest {
 
     String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
     Assume.assumeFalse(dbVersion.startsWith(major + "." + minor));
-
   }
 
   /**
@@ -934,7 +975,6 @@ public class BaseTest {
 
   public void requireMinimumVersion(int major, int minor) throws SQLException {
     Assume.assumeTrue(minVersion(major, minor));
-
   }
 
   /**
@@ -954,7 +994,7 @@ public class BaseTest {
     int majorVersion = 0;
     int minorVersion = 0;
 
-    //standard version
+    // standard version
     if (versionArray.length > 2) {
 
       majorVersion = Integer.parseInt(versionArray[0]);
@@ -969,18 +1009,16 @@ public class BaseTest {
       if (versionArray.length > 1) {
         minorVersion = Integer.parseInt(versionArray[1]);
       }
-
     }
 
-    Assume.assumeTrue(majorVersion > major
-        || (majorVersion == major && minorVersion >= minor));
+    Assume.assumeTrue(majorVersion > major || (majorVersion == major && minorVersion >= minor));
   }
 
   /**
    * Change session time zone.
    *
    * @param connection connection
-   * @param timeZone   timezone to set
+   * @param timeZone timezone to set
    * @throws SQLException exception
    */
   public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
@@ -997,8 +1035,8 @@ public class BaseTest {
    * @throws SQLException if error occur
    */
   public int getRowCount(String tableName) throws SQLException {
-    ResultSet rs = sharedConnection.createStatement()
-        .executeQuery("SELECT COUNT(*) FROM " + tableName);
+    ResultSet rs =
+        sharedConnection.createStatement().executeQuery("SELECT COUNT(*) FROM " + tableName);
     if (rs.next()) {
       return rs.getInt(1);
     }
@@ -1071,7 +1109,7 @@ public class BaseTest {
         }
       }
     } catch (SQLException sqle) {
-      //eat
+      // eat
     }
     return true;
   }
@@ -1088,18 +1126,19 @@ public class BaseTest {
   /**
    * Get current autoincrement value, since Galera values are automatically set.
    *
-   * @param autoIncInit       default increment
+   * @param autoIncInit default increment
    * @param autoIncOffsetInit default increment offset
    * @throws SQLException if any error occur
-   * @see <a href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
+   * @see <a
+   *     href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
    */
   public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
 
     int autoInc = autoIncInit;
     int autoIncOffset = autoIncOffsetInit;
     if (isGalera()) {
-      ResultSet rs = sharedConnection.createStatement()
-          .executeQuery("show variables like '%auto_increment%'");
+      ResultSet rs =
+          sharedConnection.createStatement().executeQuery("show variables like '%auto_increment%'");
       while (rs.next()) {
         if ("auto_increment_increment".equals(rs.getString(1))) {
           autoInc = rs.getInt(2);
@@ -1109,11 +1148,10 @@ public class BaseTest {
         }
       }
       if (autoInc == 1) {
-        //galera with one node only, then offset is not used
+        // galera with one node only, then offset is not used
         autoIncOffset = 0;
       }
     }
-    return new int[]{autoInc, autoIncOffset};
+    return new int[] {autoInc, autoIncOffset};
   }
-
 }
