@@ -353,7 +353,7 @@ public class MariaDbStatement implements Statement, Cloneable {
   }
 
   /**
-   * Enquote String value
+   * Enquote String value.
    *
    * @param val string value to enquote
    * @return enquoted string value

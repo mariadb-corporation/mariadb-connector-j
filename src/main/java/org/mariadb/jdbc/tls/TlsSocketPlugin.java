@@ -47,19 +47,30 @@ public interface TlsSocketPlugin {
   /**
    * Get socket factory.
    *
-   * @param options connection string option. Non standard option are stored in
-   *                `nonMappedOptions` if any specific option is needed.
+   * @param options connection string option. Non standard option are stored in `nonMappedOptions`
+   *     if any specific option is needed.
    * @return custom SSL socket factory
    * @throws SQLException if socket factory configuration failed.
    */
   SSLSocketFactory getSocketFactory(Options options) throws SQLException;
 
-  default SSLSocket createSocket(Socket socket, SSLSocketFactory sslSocketFactory) throws IOException {
-    return (SSLSocket) sslSocketFactory.createSocket(
-        socket,
-        socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(),
-        socket.getPort(),
-        true);
+  /**
+   * Returns a socket layered over an existing socket negotiating the use of SSL over an existing
+   * socket.
+   *
+   * @param socket existing socket
+   * @param sslSocketFactory SSL socket factory
+   * @return SSL socket
+   * @throws IOException if any socket error occurs.
+   */
+  default SSLSocket createSocket(Socket socket, SSLSocketFactory sslSocketFactory)
+      throws IOException {
+    return (SSLSocket)
+        sslSocketFactory.createSocket(
+            socket,
+            socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(),
+            socket.getPort(),
+            true);
   }
 
   /**
@@ -68,7 +79,7 @@ public interface TlsSocketPlugin {
    * @param host hostname
    * @param sslSession ssl session
    * @param options connection string option. Non standard option are stored in * `nonMappedOptions`
-   *                if any specific option is needed.
+   *     if any specific option is needed.
    * @param serverThreadId current server threadId
    * @throws SSLException if verification fail
    */
