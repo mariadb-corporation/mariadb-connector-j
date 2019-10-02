@@ -35,7 +35,7 @@ import static java.time.LocalDateTime.*;
 /**
  * Permit AWS database IAM authentication.
  *
- * <p>Token is generated and from IAM credential and region.
+ * <p>Token is generated using IAM credential and region.
  *
  * <p>Implementation use SDK DefaultAWSCredentialsProviderChain and DefaultAwsRegionProviderChain
  * (environment variable / system properties, files, ...) or using connection string options :
@@ -44,7 +44,7 @@ import static java.time.LocalDateTime.*;
  * @see <a
  *     href="https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html">DefaultAWSCredentialsProviderChain</a>
  * @see <a
- *     href="https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html">DefaultAwsRegionProviderChain</a>
+ *     href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/regions/providers/DefaultAwsRegionProviderChain.html">DefaultAwsRegionProviderChain</a>
  */
 public class AwsIamCredentialPlugin implements CredentialPlugin {
 

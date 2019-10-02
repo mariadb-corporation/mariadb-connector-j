@@ -40,7 +40,7 @@ import org.mariadb.jdbc.util.*;
  *
  * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
  *
- * <p>example : `jdbc:mariadb://host/db?identityType=PROPERTY`
+ * <p>example : `jdbc:mariadb://host/db?credentialType=PROPERTY`
  *
  * <p>2 options `userKey` and `pwdKey` permits to indicate which system properties to use .
  */
