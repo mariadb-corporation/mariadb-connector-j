@@ -1415,8 +1415,7 @@ public class MultiTest extends BaseTest {
         try (ResultSet rs = pstmt.getGeneratedKeys()) {
           assertTrue(rs.next());
           assertEquals(1, rs.getInt(1));
-          // will be corrected in 2.5.0
-          // assertTrue(rs.next());
+          assertFalse(rs.next());
         }
       }
     }
@@ -1468,8 +1467,7 @@ public class MultiTest extends BaseTest {
         try (ResultSet rs = pstmt.getGeneratedKeys()) {
           assertTrue(rs.next());
           assertEquals(1, rs.getInt(1));
-          // Will change in 2.5.0
-          assertTrue(rs.next());
+          assertFalse(rs.next());
         }
       }
     }
