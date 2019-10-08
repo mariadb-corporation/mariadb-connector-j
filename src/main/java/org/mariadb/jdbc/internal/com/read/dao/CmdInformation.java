@@ -78,7 +78,7 @@ public interface CmdInformation {
 
   void addResultSetStat();
 
-  ResultSet getGeneratedKeys(Protocol protocol);
+  ResultSet getGeneratedKeys(Protocol protocol, String sql);
 
   ResultSet getBatchGeneratedKeys(Protocol protocol);
 

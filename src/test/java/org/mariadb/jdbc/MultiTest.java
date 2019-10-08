@@ -1467,6 +1467,58 @@ public class MultiTest extends BaseTest {
         try (ResultSet rs = pstmt.getGeneratedKeys()) {
           assertTrue(rs.next());
           assertEquals(1, rs.getInt(1));
+          assertTrue(rs.next());
+          assertEquals(2, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void multiInsertReturnOneGeneratedOnDuplicate() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
+      }
+      try (PreparedStatement pstmt =
+                   con.prepareStatement(
+                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) ON DUPLICATE  key UPDATE id = id + 10",
+                           Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "changed");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(11, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void multiInsertReturnOneGeneratedOnDuplicateMultiple() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
+      }
+      try (PreparedStatement pstmt =
+                   con.prepareStatement(
+                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?), (?, ?) ON DUPLICATE KEY UPDATE id = id + 10",
+                           Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "changed");
+        pstmt.setInt(3, 12);
+        pstmt.setString(4, "other");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(12, rs.getInt(1));
           assertFalse(rs.next());
         }
       }

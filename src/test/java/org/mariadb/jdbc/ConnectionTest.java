@@ -683,7 +683,7 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void slaveDownConnection() throws SQLException {
     String url =
-        "jdbc:mariadb:replication//"
+        "jdbc:mariadb:replication://"
             + hostname
             + ((port == 0) ? "" : ":" + port)
             + ","
@@ -694,7 +694,7 @@ public class ConnectionTest extends BaseTest {
             + "?user="
             + username
             + ((password != null) ? "&password=" + password : "")
-            + "&retriesAllDown=10&allowMasterDownConnection";
+            + "&retriesAllDown=10&allowMasterDownConnection&connectTimeout=100&socketTimeout=100";
     try (Connection connection = DriverManager.getConnection(url)) {
       Assert.assertFalse(connection.isReadOnly());
       connection.isValid(0);

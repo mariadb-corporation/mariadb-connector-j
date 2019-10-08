@@ -120,19 +120,31 @@ public class CmdInformationSingle implements CmdInformation {
    * Get generated Keys.
    *
    * @param protocol current protocol
+   * @param sql SQL command
    * @return a resultSet containing the single insert ids.
    */
-  public ResultSet getGeneratedKeys(Protocol protocol) {
+  public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
     if (insertId == 0) {
       return SelectResultSet.createEmptyResultSet();
     }
-
+    //to be removed in 2.5.0. cannot in 2.4.x
+    if (updateCount > 1 && sql != null && !isDuplicateKeyUpdate(sql)) {
+      long[] insertIds = new long[(int) updateCount];
+      for (int i = 0; i < updateCount; i++) {
+        insertIds[i] = insertId + i * autoIncrement;
+      }
+      return SelectResultSet.createGeneratedData(insertIds, protocol, true);
+    }
     return SelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+  }
+
+  private boolean isDuplicateKeyUpdate(String sql) {
+    return sql.matches("(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
   }
 
   @Override
   public ResultSet getBatchGeneratedKeys(Protocol protocol) {
-    return getGeneratedKeys(protocol);
+    return getGeneratedKeys(protocol, null);
   }
 
   public int getCurrentStatNumber() {

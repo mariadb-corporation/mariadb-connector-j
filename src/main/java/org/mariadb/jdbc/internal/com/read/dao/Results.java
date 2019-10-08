@@ -436,7 +436,7 @@ public class Results {
       if (batch) {
         return cmdInformation.getBatchGeneratedKeys(protocol);
       }
-      return cmdInformation.getGeneratedKeys(protocol);
+      return cmdInformation.getGeneratedKeys(protocol, sql);
     }
     return SelectResultSet.createEmptyResultSet();
   }

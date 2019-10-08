@@ -212,9 +212,10 @@ public class CmdInformationMultiple implements CmdInformation {
    * value.
    *
    * @param protocol current protocol
+   * @param sql SQL command
    * @return a resultSet with insert ids.
    */
-  public ResultSet getGeneratedKeys(Protocol protocol) {
+  public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
     long[] ret = new long[insertIdNumber];
     int position = 0;
     long insertId;
