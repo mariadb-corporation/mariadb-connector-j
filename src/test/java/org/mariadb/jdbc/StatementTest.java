@@ -721,4 +721,13 @@ public class StatementTest extends BaseTest {
       // expected
     }
   }
+
+  @Test
+  public void statementEnquoteString() throws SQLException {
+    MariaDbStatement stmt = (MariaDbStatement) sharedConnection.createStatement();
+
+    assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
+    assertEquals("'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+  }
+
 }

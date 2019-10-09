@@ -73,6 +73,19 @@ public class MariaDbStatement implements Statement, Cloneable {
 
   private static final Pattern identifierPattern =
       Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
+  private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
+  private static final Map<String,String> mapper  = new HashMap<>();
+  static {
+    mapper.put("\u0000", "\\0");
+    mapper.put("'", "\\\\'");
+    mapper.put("\"", "\\\\\"");
+    mapper.put("\b", "\\\\b");
+    mapper.put("\n", "\\\\n");
+    mapper.put("\r", "\\\\r");
+    mapper.put("\t", "\\\\t");
+    mapper.put("\u001A", "\\\\Z");
+    mapper.put("\\", "\\\\");
+  }
 
   // timeout scheduler
   private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
@@ -347,7 +360,17 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @throws SQLException -not possible-
    */
   public String enquoteLiteral(String val) throws SQLException {
-    return "'" + val.replace("'", "\'") + "'";
+
+    Matcher matcher = escapePattern.matcher(val);
+    StringBuffer escapedVal = new StringBuffer("'");
+
+    while(matcher.find()) {
+      matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
+    }
+    matcher.appendTail(escapedVal);
+    escapedVal.append("'");
+    return escapedVal.toString();
+
   }
 
   /**
