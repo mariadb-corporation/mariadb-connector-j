@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+
+import java.util.*;
+import java.util.regex.*;
 
 public class HostAddress {
 
@@ -69,9 +66,7 @@ public class HostAddress {
   public int port;
   public String type = null;
 
-
-  private HostAddress() {
-  }
+  private HostAddress() {}
 
   /**
    * Constructor. type is master.
@@ -101,8 +96,8 @@ public class HostAddress {
   /**
    * parse - parse server addresses from the URL fragment.
    *
-   * @param spec   list of endpoints in one of the forms 1 - host1,....,hostN:port (missing port
-   *               default to MariaDB default 3306 2 - host:port,...,host:port
+   * @param spec list of endpoints in one of the forms 1 - host1,....,hostN:port (missing port
+   *     default to MariaDB default 3306 2 - host:port,...,host:port
    * @param haMode High availability mode
    * @return parsed endpoints
    */
@@ -119,15 +114,17 @@ public class HostAddress {
 
     // Aurora using cluster end point mustn't have any other host
     if (haMode == HaMode.AURORA) {
-      Pattern clusterPattern = Pattern
-          .compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+      Pattern clusterPattern =
+          Pattern.compile(
+              "(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
               Pattern.CASE_INSENSITIVE);
       Matcher matcher = clusterPattern.matcher(spec);
 
       if (!matcher.find()) {
-        logger.warn("Aurora recommended connection URL must only use cluster end-point like "
-            + "\"jdbc:mariadb:aurora://xx.cluster-yy.zz.rds.amazonaws.com\". "
-            + "Using end-point permit auto-discovery of new replicas");
+        logger.warn(
+            "Aurora recommended connection URL must only use cluster end-point like "
+                + "\"jdbc:mariadb:aurora://xx.cluster-yy.zz.rds.amazonaws.com\". "
+                + "Using end-point permit auto-discovery of new replicas");
       }
     }
 
@@ -197,8 +194,8 @@ public class HostAddress {
       } else if ("port".equals(key)) {
         result.port = getPort(value);
       } else if ("type".equals(key)
-          && (value.equals(ParameterConstant.TYPE_MASTER) || value
-          .equals(ParameterConstant.TYPE_SLAVE))) {
+          && (value.equals(ParameterConstant.TYPE_MASTER)
+              || value.equals(ParameterConstant.TYPE_SLAVE))) {
         result.type = value;
       }
     }
@@ -267,8 +264,11 @@ public class HostAddress {
   @Override
   public String toString() {
     return "HostAddress{"
-        + "host='" + host + '\''
-        + ", port=" + port
+        + "host='"
+        + host
+        + '\''
+        + ", port="
+        + port
         + ((type != null) ? (", type='" + type + "'") : "")
         + "}";
   }
@@ -284,9 +284,10 @@ public class HostAddress {
 
     HostAddress that = (HostAddress) obj;
 
-    return port == that.port && (host != null ? host.equals(that.host) : that.host == null
-        && !(type != null ? !type.equals(that.type) : that.type != null));
-
+    return port == that.port
+        && (host != null
+            ? host.equals(that.host)
+            : that.host == null && !(type != null ? !type.equals(that.type) : that.type != null));
   }
 
   @Override
@@ -295,6 +296,4 @@ public class HostAddress {
     result = 31 * result + port;
     return result;
   }
-
-
 }

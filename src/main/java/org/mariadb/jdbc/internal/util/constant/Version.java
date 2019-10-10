@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -53,9 +53,9 @@
 package org.mariadb.jdbc.internal.util.constant;
 
 public final class Version {
-  public static final String version = "2.4.0";
+  public static final String version = "2.5.0";
   public static final int majorVersion = 2;
-  public static final int minorVersion = 4;
+  public static final int minorVersion = 5;
   public static final int patchVersion = 0;
   public static final String qualifier = "";
 }

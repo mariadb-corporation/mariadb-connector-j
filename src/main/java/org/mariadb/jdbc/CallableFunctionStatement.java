@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,59 +50,40 @@
  *
  */
 
-
 package org.mariadb.jdbc;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.net.URL;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.NClob;
-import java.sql.ParameterMetaData;
-import java.sql.Ref;
-import java.sql.RowId;
-import java.sql.SQLException;
-import java.sql.SQLType;
-import java.sql.SQLXML;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Calendar;
-import java.util.Map;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
 
-public abstract class CallableFunctionStatement extends ClientSidePreparedStatement implements
-    CallableStatement {
+import java.io.*;
+import java.math.*;
+import java.net.*;
+import java.sql.Date;
+import java.sql.*;
+import java.util.*;
+
+public abstract class CallableFunctionStatement extends ClientSidePreparedStatement
+    implements CallableStatement {
 
   protected CallableParameterMetaData parameterMetadata;
-  /**
-   * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
-   */
+  /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
   private CallParameter[] params;
 
   /**
    * Constructor for getter/setter of callableStatement.
    *
-   * @param connection           current connection
-   * @param sql                  query
-   * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-   *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-   *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param connection current connection
+   * @param sql query
+   * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+   *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-   *                             or
-   *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+   *     or <code>ResultSet.CONCUR_UPDATABLE</code>
    * @throws SQLException if clientPrepareStatement creation throw an exception
    */
-  public CallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetType,
-      final int resultSetConcurrency) throws SQLException {
+  public CallableFunctionStatement(
+      MariaDbConnection connection, String sql, int resultSetType, final int resultSetConcurrency)
+      throws SQLException {
     super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
   }
 
@@ -164,7 +145,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     }
     throw new SQLException("there is no parameter with the name " + parameterName);
   }
-
 
   /**
    * Convert parameter name to output parameter index in the query.
@@ -360,7 +340,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     return getResult().getTimestamp(nameToOutputIndex(parameterName));
   }
 
-
   @Override
   public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
     return getResult().getTimestamp(nameToOutputIndex(parameterName), cal);
@@ -368,13 +347,12 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
   @Override
   public Object getObject(int parameterIndex) throws SQLException {
-    Class<?> classType = ColumnType
-        .classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
+    Class<?> classType =
+        ColumnType.classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
     if (classType != null) {
       return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
     }
     return getResult().getObject(indexToOutputIndex(parameterIndex));
-
   }
 
   @Override
@@ -457,7 +435,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     return getResult().getURL(nameToOutputIndex(parameterName));
   }
 
-
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
@@ -519,33 +496,31 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
   }
 
   /**
-   * <p>Registers the designated output parameter.
-   * This version of the method <code>registerOutParameter</code> should be used for a user-defined
-   * or <code>REF</code> output parameter.  Examples of user-defined types include:
-   * <code>STRUCT</code>, <code>DISTINCT</code>,
-   * <code>JAVA_OBJECT</code>, and named array types.</p>
-   * <p>All OUT parameters must be registered
-   * before a stored procedure is executed.</p>
-   * <p>  For a user-defined parameter, the fully-qualified SQL
-   * type name of the parameter should also be given, while a <code>REF</code> parameter requires
-   * that the fully-qualified type name of the referenced type be given.  A JDBC driver that does
-   * not need the type code and type name information may ignore it.   To be portable, however,
-   * applications should always provide these values for user-defined and <code>REF</code>
-   * parameters.</p>
-   * <p>Although it is intended for user-defined and <code>REF</code> parameters,
-   * this method may be used to register a parameter of any JDBC type. If the parameter does not
-   * have a user-defined or <code>REF</code> type, the
-   * <i>typeName</i> parameter is ignored.</p>
-   * <p><B>Note:</B> When reading the value of an out parameter, you
-   * must use the getter method whose Java type corresponds to the parameter's registered SQL
-   * type.</p>
+   * Registers the designated output parameter. This version of the method <code>
+   * registerOutParameter</code> should be used for a user-defined or <code>REF</code> output
+   * parameter. Examples of user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>,
+   * <code>JAVA_OBJECT</code>, and named array types.
+   *
+   * <p>All OUT parameters must be registered before a stored procedure is executed.
+   *
+   * <p>For a user-defined parameter, the fully-qualified SQL type name of the parameter should also
+   * be given, while a <code>REF</code> parameter requires that the fully-qualified type name of the
+   * referenced type be given. A JDBC driver that does not need the type code and type name
+   * information may ignore it. To be portable, however, applications should always provide these
+   * values for user-defined and <code>REF</code> parameters.
+   *
+   * <p>Although it is intended for user-defined and <code>REF</code> parameters, this method may be
+   * used to register a parameter of any JDBC type. If the parameter does not have a user-defined or
+   * <code>REF</code> type, the <i>typeName</i> parameter is ignored.
+   *
+   * <p><B>Note:</B> When reading the value of an out parameter, you must use the getter method
+   * whose Java type corresponds to the parameter's registered SQL type.
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
-   * @param sqlType        a value from {@link Types}
-   * @param typeName       the fully-qualified name of an SQL structured type
-   * @throws SQLException                    if the parameterIndex is not valid; if a database
-   *                                         access error occurs or this method is called on a
-   *                                         closed <code>CallableStatement</code>
+   * @param sqlType a value from {@link Types}
+   * @param typeName the fully-qualified name of an SQL structured type
+   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
+   *     this method is called on a closed <code>CallableStatement</code>
    * @see Types
    */
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
@@ -562,23 +537,22 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
   }
 
   /**
-   * <p>Registers the parameter in ordinal position
-   * <code>parameterIndex</code> to be of JDBC type
-   * <code>sqlType</code>. All OUT parameters must be registered
-   * before a stored procedure is executed.</p>
-   * <p>The JDBC type specified by <code>sqlType</code> for an OUT
-   * parameter determines the Java type that must be used in the <code>get</code> method to read the
-   * value of that parameter.</p>
-   * <p>This version of <code>registerOutParameter</code> should be
-   * used when the parameter is of JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>.</p>
+   * Registers the parameter in ordinal position <code>parameterIndex</code> to be of JDBC type
+   * <code>sqlType</code>. All OUT parameters must be registered before a stored procedure is
+   * executed.
+   *
+   * <p>The JDBC type specified by <code>sqlType</code> for an OUT parameter determines the Java
+   * type that must be used in the <code>get</code> method to read the value of that parameter.
+   *
+   * <p>This version of <code>registerOutParameter</code> should be used when the parameter is of
+   * JDBC type <code>NUMERIC</code> or <code>DECIMAL</code>.
    *
    * @param parameterIndex the first parameter is 1, the second is 2, and so on
-   * @param sqlType        the SQL type code defined by <code>java.sql.Types</code>.
-   * @param scale          the desired number of digits to the right of the decimal point.  It must
-   *                       be greater than or equal to zero.
-   * @throws SQLException                    if the parameterIndex is not valid; if a database
-   *                                         access error occurs or this method is called on a
-   *                                         closed <code>CallableStatement</code>
+   * @param sqlType the SQL type code defined by <code>java.sql.Types</code>.
+   * @param scale the desired number of digits to the right of the decimal point. It must be greater
+   *     than or equal to zero.
+   * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
+   *     this method is called on a closed <code>CallableStatement</code>
    * @see Types
    */
   @Override
@@ -599,7 +573,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
       throws SQLException {
     registerOutParameter(nameToIndex(parameterName), sqlType, scale);
   }
-
 
   @Override
   public void registerOutParameter(String parameterName, int sqlType, String typeName)
@@ -743,7 +716,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     setBinaryStream(nameToIndex(parameterName), inputStream, length);
   }
 
-
   @Override
   public void setBinaryStream(String parameterName, InputStream inputStream) throws SQLException {
     setBinaryStream(nameToIndex(parameterName), inputStream);
@@ -790,7 +762,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
   @Override
   public void setBoolean(String parameterName, boolean booleanValue) throws SQLException {
     setBoolean(nameToIndex(parameterName), booleanValue);
-
   }
 
   @Override
@@ -869,7 +840,6 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     setTimestamp(nameToIndex(parameterName), timestamp, cal);
   }
 
-
   @Override
   public void setObject(String parameterName, Object obj, int targetSqlType, int scale)
       throws SQLException {
@@ -897,5 +867,4 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
       throws SQLException {
     setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
   }
-
 }

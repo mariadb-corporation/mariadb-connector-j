@@ -1,34 +1,32 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import java.util.Arrays;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
+
+import java.util.*;
 
 /**
  * Class to represent a field element of the finite field $p = 2^{255} - 19$ elements.
- * <p>
- * An element $t$, entries $t[0] \dots t[9]$, represents the integer $t[0]+2^{26} t[1]+2^{51}
+ *
+ * <p>An element $t$, entries $t[0] \dots t[9]$, represents the integer $t[0]+2^{26} t[1]+2^{51}
  * t[2]+2^{77} t[3]+2^{102} t[4]+\dots+2^{230} t[9]$. Bounds on each $t[i]$ vary depending on
  * context.
- * <p>
- * Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
+ *
+ * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class Ed25519FieldElement extends FieldElement {
 
   private static final byte[] ZERO = new byte[32];
-  /**
-   * Variable is package private for encoding.
-   */
+  /** Variable is package private for encoding. */
   final int[] t;
 
   /**
@@ -57,73 +55,92 @@ public class Ed25519FieldElement extends FieldElement {
 
   /**
    * $h = f + g$
-   * <p>
-   * TODO-CR BR: $h$ is allocated via new, probably not a good idea. Do we need the copying into
+   *
+   * <p>TODO-CR BR: $h$ is allocated via new, probably not a good idea. Do we need the copying into
    * temp variables if we do that?
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
-   * <li>$|g|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25},$ etc.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   *   <li>$|g|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25},$ etc.
    * </ul>
    *
    * @param val The field element to add.
    * @return The field element this + val.
    */
   public FieldElement add(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g =
+        ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+                    .Ed25519FieldElement)
+                val)
+            .t;
     int[] h = new int[10];
     for (int i = 0; i < 10; i++) {
       h[i] = t[i] + g[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * $h = f - g$
-   * <p>
-   * Can overlap $h$ with $f$ or $g$.
-   * <p>
-   * TODO-CR BR: See above.
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
-   * <li>$|g|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25},$ etc.
+   *
+   * <p>Can overlap $h$ with $f$ or $g$.
+   *
+   * <p>TODO-CR BR: See above.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   *   <li>$|g|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25},$ etc.
    * </ul>
    *
    * @param val The field element to subtract.
    * @return The field element this - val.
-   **/
+   */
   public FieldElement subtract(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g =
+        ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+                    .Ed25519FieldElement)
+                val)
+            .t;
     int[] h = new int[10];
     for (int i = 0; i < 10; i++) {
       h[i] = t[i] - g[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * $h = -f$
-   * <p>
-   * TODO-CR BR: see above.
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   *
+   * <p>TODO-CR BR: see above.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.1*2^{25},1.1*2^{24},1.1*2^{25},1.1*2^{24},$ etc.
    * </ul>
    *
    * @return The field element (-1) * this.
@@ -133,46 +150,52 @@ public class Ed25519FieldElement extends FieldElement {
     for (int i = 0; i < 10; i++) {
       h[i] = -t[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * $h = f * g$
-   * <p>
-   * Can overlap $h$ with $f$ or $g$.
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by
-   * $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
-   * <li>$|g|$ bounded by
-   * $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by
-   * $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
-   * </ul><p>
-   * Notes on implementation strategy:
-   * <p>
-   * Using schoolbook multiplication. Karatsuba would save a little in some cost models.
-   * <p>
-   * Most multiplications by 2 and 19 are 32-bit precomputations; cheaper than 64-bit
+   *
+   * <p>Can overlap $h$ with $f$ or $g$.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
+   *   <li>$|g|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>Notes on implementation strategy:
+   *
+   * <p>Using schoolbook multiplication. Karatsuba would save a little in some cost models.
+   *
+   * <p>Most multiplications by 2 and 19 are 32-bit precomputations; cheaper than 64-bit
    * postcomputations.
-   * <p>
-   * There is one remaining multiplication by 19 in the carry chain; one *19 precomputation can be
-   * merged into this, but the resulting data flow is considerably less clean.
-   * <p>
-   * There are 12 carries below. 10 of them are 2-way parallelizable and vectorizable. Can get away
-   * with 11 carries, but then data flow is much deeper.
-   * <p>
-   * With tighter constraints on inputs can squeeze carries into int32.
+   *
+   * <p>There is one remaining multiplication by 19 in the carry chain; one *19 precomputation can
+   * be merged into this, but the resulting data flow is considerably less clean.
+   *
+   * <p>There are 12 carries below. 10 of them are 2-way parallelizable and vectorizable. Can get
+   * away with 11 carries, but then data flow is much deeper.
+   *
+   * <p>With tighter constraints on inputs can squeeze carries into int32.
    *
    * @param val The field element to multiply.
    * @return The (reasonably reduced) field element this * val.
    */
   public FieldElement multiply(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g =
+        ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+                    .Ed25519FieldElement)
+                val)
+            .t;
     int g1_19 = 19 * g[1]; /* 1.959375*2^29 */
     int g2_19 = 19 * g[2]; /* 1.959375*2^30; still ok */
     int g3_19 = 19 * g[3];
@@ -289,18 +312,18 @@ public class Ed25519FieldElement extends FieldElement {
     long f9g9_38 = f9_2 * (long) g9_19;
 
     /**
-     * Remember: 2^255 congruent 19 modulo p.
-     * h = h0 * 2^0 + h1 * 2^26 + h2 * 2^(26+25) + h3 * 2^(26+25+26) + ... + h9 * 2^(5*26+5*25).
-     * So to get the real number we would have to multiply the coefficients with the corresponding powers of 2.
-     * To get an idea what is going on below, look at the calculation of h0:
-     * h0 is the coefficient to the power 2^0 so it collects (sums) all products that have the power 2^0.
-     * f0 * g0 really is f0 * 2^0 * g0 * 2^0 = (f0 * g0) * 2^0.
-     * f1 * g9 really is f1 * 2^26 * g9 * 2^230 = f1 * g9 * 2^256 = 2 * f1 * g9 * 2^255 congruent 2 * 19 * f1 * g9 * 2^0 modulo p.
-     * f2 * g8 really is f2 * 2^51 * g8 * 2^204 = f2 * g8 * 2^255 congruent 19 * f2 * g8 * 2^0 modulo p.
-     * and so on...
+     * Remember: 2^255 congruent 19 modulo p. h = h0 * 2^0 + h1 * 2^26 + h2 * 2^(26+25) + h3 *
+     * 2^(26+25+26) + ... + h9 * 2^(5*26+5*25). So to get the real number we would have to multiply
+     * the coefficients with the corresponding powers of 2. To get an idea what is going on below,
+     * look at the calculation of h0: h0 is the coefficient to the power 2^0 so it collects (sums)
+     * all products that have the power 2^0. f0 * g0 really is f0 * 2^0 * g0 * 2^0 = (f0 * g0) *
+     * 2^0. f1 * g9 really is f1 * 2^26 * g9 * 2^230 = f1 * g9 * 2^256 = 2 * f1 * g9 * 2^255
+     * congruent 2 * 19 * f1 * g9 * 2^0 modulo p. f2 * g8 really is f2 * 2^51 * g8 * 2^204 = f2 * g8
+     * * 2^255 congruent 19 * f2 * g8 * 2^0 modulo p. and so on...
      */
-    long h0 = f0g0 + f1g9_38 + f2g8_19 + f3g7_38 + f4g6_19 + f5g5_38 + f6g4_19 + f7g3_38 + f8g2_19
-        + f9g1_38;
+    long h0 =
+        f0g0 + f1g9_38 + f2g8_19 + f3g7_38 + f4g6_19 + f5g5_38 + f6g4_19 + f7g3_38 + f8g2_19
+            + f9g1_38;
     long h1 =
         f0g1 + f1g0 + f2g9_19 + f3g8_19 + f4g7_19 + f5g6_19 + f6g5_19 + f7g4_19 + f8g3_19 + f9g2_19;
     long h2 =
@@ -324,12 +347,12 @@ public class Ed25519FieldElement extends FieldElement {
     long carry8;
     long carry9;
 
-        /*
-        |h0| <= (1.65*1.65*2^52*(1+19+19+19+19)+1.65*1.65*2^50*(38+38+38+38+38))
-          i.e. |h0| <= 1.4*2^60; narrower ranges for h2, h4, h6, h8
-        |h1| <= (1.65*1.65*2^51*(1+1+19+19+19+19+19+19+19+19))
-          i.e. |h1| <= 1.7*2^59; narrower ranges for h3, h5, h7, h9
-        */
+    /*
+    |h0| <= (1.65*1.65*2^52*(1+19+19+19+19)+1.65*1.65*2^50*(38+38+38+38+38))
+      i.e. |h0| <= 1.4*2^60; narrower ranges for h2, h4, h6, h8
+    |h1| <= (1.65*1.65*2^51*(1+1+19+19+19+19+19+19+19+19))
+      i.e. |h1| <= 1.7*2^59; narrower ranges for h3, h5, h7, h9
+    */
 
     carry0 = (h0 + (long) (1 << 25)) >> 26;
     h1 += carry0;
@@ -409,23 +432,28 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * $h = f * f$
-   * <p>
-   * Can overlap $h$ with $f$.
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
-   * </ul><p>
-   * See {@link #multiply(FieldElement)} for discussion of implementation strategy.
+   *
+   * <p>Can overlap $h$ with $f$.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>See {@link #multiply(FieldElement)} for discussion of implementation strategy.
    *
    * @return The (reasonably reduced) square of this field element.
    */
@@ -510,8 +538,9 @@ public class Ed25519FieldElement extends FieldElement {
     long f9f9_38 = f9 * (long) f9_38;
 
     /**
-     * Same procedure as in multiply, but this time we have a higher symmetry leading to less summands.
-     * e.g. f1f9_76 really stands for f1 * 2^26 * f9 * 2^230 + f9 * 2^230 + f1 * 2^26 congruent 2 * 2 * 19 * f1 * f9  2^0 modulo p.
+     * Same procedure as in multiply, but this time we have a higher symmetry leading to less
+     * summands. e.g. f1f9_76 really stands for f1 * 2^26 * f9 * 2^230 + f9 * 2^230 + f1 * 2^26
+     * congruent 2 * 2 * 19 * f1 * f9 2^0 modulo p.
      */
     long h0 = f0f0 + f1f9_76 + f2f8_38 + f3f7_76 + f4f6_38 + f5f5_38;
     long h1 = f0f1_2 + f2f9_38 + f3f8_38 + f4f7_38 + f5f6_38;
@@ -588,23 +617,28 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * $h = 2 * f * f$
-   * <p>
-   * Can overlap $h$ with $f$.
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|f|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
-   * </ul><p>
-   * Postconditions:
-   * </p><ul>
-   * <li>$|h|$ bounded by $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
-   * </ul><p>
-   * See {@link #multiply(FieldElement)} for discussion of implementation strategy.
+   *
+   * <p>Can overlap $h$ with $f$.
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|f|$ bounded by $1.65*2^{26},1.65*2^{25},1.65*2^{26},1.65*2^{25},$ etc.
+   * </ul>
+   *
+   * <p>Postconditions:
+   *
+   * <ul>
+   *   <li>$|h|$ bounded by $1.01*2^{25},1.01*2^{24},1.01*2^{25},1.01*2^{24},$ etc.
+   * </ul>
+   *
+   * <p>See {@link #multiply(FieldElement)} for discussion of implementation strategy.
    *
    * @return The (reasonably reduced) square of this field element times 2.
    */
@@ -773,14 +807,15 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(f, h);
   }
 
   /**
    * Invert this field element.
-   * <p>
-   * The inverse is found via Fermat's little theorem:<br> $a^p \cong a \mod p$ and therefore
-   * $a^{(p-2)} \cong a^{-1} \mod p$
+   *
+   * <p>The inverse is found via Fermat's little theorem:<br>
+   * $a^p \cong a \mod p$ and therefore $a^{(p-2)} \cong a^{-1} \mod p$
    *
    * @return The inverse of this field element.
    */
@@ -900,8 +935,8 @@ public class Ed25519FieldElement extends FieldElement {
   /**
    * Gets this field element to the power of $(2^{252} - 3)$. This is a helper function for
    * calculating the square root.
-   * <p>
-   * TODO-CR BR: I think it makes sense to have a sqrt function.
+   *
+   * <p>TODO-CR BR: I think it makes sense to have a sqrt function.
    *
    * @return This field element to the power of $(2^{252} - 3)$.
    */
@@ -1018,15 +1053,20 @@ public class Ed25519FieldElement extends FieldElement {
 
   /**
    * Constant-time conditional move. Well, actually it is a conditional copy. Logic is inspired by
-   * the SUPERCOP implementation at: https://github.com/floodyberry/supercop/blob/master/crypto_sign/ed25519/ref10/fe_cmov.c
+   * the SUPERCOP implementation at:
+   * https://github.com/floodyberry/supercop/blob/master/crypto_sign/ed25519/ref10/fe_cmov.c
    *
    * @param val the other field element.
-   * @param b   must be 0 or 1, otherwise results are undefined.
+   * @param b must be 0 or 1, otherwise results are undefined.
    * @return a copy of this if $b == 0$, or a copy of val if $b == 1$.
    */
   @Override
   public FieldElement cmov(FieldElement val, int b) {
-    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement that = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement
+        that =
+            (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+                    .Ed25519FieldElement)
+                val;
     b = -b;
     int[] result = new int[10];
     for (int i = 0; i < 10; i++) {
@@ -1035,8 +1075,8 @@ public class Ed25519FieldElement extends FieldElement {
       x &= b;
       result[i] ^= x;
     }
-    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(this.f,
-        result);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+        .Ed25519FieldElement(this.f, result);
   }
 
   @Override
@@ -1046,10 +1086,15 @@ public class Ed25519FieldElement extends FieldElement {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement)) {
+    if (!(obj
+        instanceof
+        org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519
+            .Ed25519FieldElement)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement fe = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) obj;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement fe =
+        (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement)
+            obj;
     return 1 == Utils.equal(toByteArray(), fe.toByteArray());
   }
 

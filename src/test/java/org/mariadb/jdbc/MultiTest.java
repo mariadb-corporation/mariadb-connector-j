@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -71,12 +71,9 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-
 public class MultiTest extends BaseTest {
 
-  /**
-   * Tables initialisation.
-   */
+  /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
     createTable("MultiTestt1", "id int, test varchar(100)");
@@ -88,19 +85,21 @@ public class MultiTest extends BaseTest {
     createTable("MultiTestt7", "id int, test varchar(100)");
     createTable("MultiTestt8", "id int, test varchar(100)");
     createTable("MultiTestt10", "id int");
-    createTable("MultiTestreWriteDuplicateTestTable",
-        "id int, name varchar(100), PRIMARY KEY (`id`)");
+    createTable(
+        "MultiTestreWriteDuplicateTestTable", "id int, name varchar(100), PRIMARY KEY (`id`)");
     createTable("MultiTesttselect1", "LAST_UPDATE_DATETIME TIMESTAMP , nn int");
     createTable("MultiTesttselect2", "nn int");
     createTable("MultiTesttselect3", "LAST_UPDATE_DATETIME TIMESTAMP , nn int");
     createTable("MultiTesttselect4", "nn int");
-    createTable("MultiTestt3_dupp",
-        "col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY "
-            + "(`pkey`)");
-    createTable("MultiTesttest_table",
+    createTable(
+        "MultiTestt3_dupp",
+        "col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY " + "(`pkey`)");
+    createTable(
+        "MultiTesttest_table",
         "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
             + "col5 VARCHAR(32)");
-    createTable("MultiTesttest_table2",
+    createTable(
+        "MultiTesttest_table2",
         "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
             + "col5 VARCHAR(32)");
     createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
@@ -115,16 +114,16 @@ public class MultiTest extends BaseTest {
       st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
       st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
     }
-
   }
 
   @Test
   public void rewriteSelectQuery() throws Throwable {
     Statement st = sharedConnection.createStatement();
     st.execute("INSERT INTO MultiTesttselect2 VALUES (1)");
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("/*CLIENT*/ insert into MultiTesttselect1 "
-            + "(LAST_UPDATE_DATETIME, nn) select ?, nn from MultiTesttselect2");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "/*CLIENT*/ insert into MultiTesttselect1 "
+                + "(LAST_UPDATE_DATETIME, nn) select ?, nn from MultiTesttselect2");
     ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
     ps.executeUpdate();
 
@@ -149,7 +148,6 @@ public class MultiTest extends BaseTest {
       assertTrue(rs.next());
       assertEquals(rs.getString(1), "\\");
     }
-
   }
 
   private void parsingDoubleSlash(Connection conn) throws SQLException {
@@ -162,14 +160,14 @@ public class MultiTest extends BaseTest {
     }
   }
 
-
   @Test
   public void rewriteSelectQueryServerPrepared() throws Throwable {
     Statement st = sharedConnection.createStatement();
     st.execute("INSERT INTO MultiTesttselect4 VALUES (1)");
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into MultiTesttselect3 (LAST_UPDATE_DATETIME,"
-            + " nn) select ?, nn from MultiTesttselect4");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement(
+            "insert into MultiTesttselect3 (LAST_UPDATE_DATETIME,"
+                + " nn) select ?, nn from MultiTesttselect4");
     ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
     ps.executeUpdate();
 
@@ -203,10 +201,12 @@ public class MultiTest extends BaseTest {
   public void updateTest() throws SQLException {
     try (Connection connection = setConnection("&allowMultiQueries=true")) {
       Statement statement = connection.createStatement();
-      statement.execute("update MultiTestt5 set test='a " + System.currentTimeMillis()
-          + "' where id = 2;select * from MultiTestt2;update MultiTestt5 set test='a2 " + System
-          .currentTimeMillis()
-          + "' where id = 1;");
+      statement.execute(
+          "update MultiTestt5 set test='a "
+              + System.currentTimeMillis()
+              + "' where id = 2;select * from MultiTestt2;update MultiTestt5 set test='a2 "
+              + System.currentTimeMillis()
+              + "' where id = 1;");
       assertNull(statement.getResultSet());
       assertEquals(2, statement.getUpdateCount());
       assertTrue(statement.getMoreResults());
@@ -223,7 +223,6 @@ public class MultiTest extends BaseTest {
       assertNull(statement.getResultSet());
       assertFalse(statement.getMoreResults());
       assertEquals(-1, statement.getUpdateCount());
-
     }
   }
 
@@ -232,7 +231,8 @@ public class MultiTest extends BaseTest {
     try (Connection connection = setConnection("&allowMultiQueries=true")) {
       Statement statement = connection.createStatement();
       statement.execute(
-          "select * from MultiTestt2;update MultiTestt5 set test='a " + System.currentTimeMillis()
+          "select * from MultiTestt2;update MultiTestt5 set test='a "
+              + System.currentTimeMillis()
               + "' where id = 2;");
       ResultSet rs = statement.getResultSet();
       int count = 0;
@@ -310,7 +310,6 @@ public class MultiTest extends BaseTest {
     verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000);
   }
 
-
   /**
    * Conj-206: rewriteBatchedStatements parameter take care of max_allowed_size.
    *
@@ -336,8 +335,8 @@ public class MultiTest extends BaseTest {
   @Test
   public void rewriteBatchedWithoutParam() throws SQLException {
     try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO MultiTestt10 VALUES (1)");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO MultiTestt10 VALUES (1)");
       for (int i = 0; i < 100; i++) {
         preparedStatement.addBatch();
       }
@@ -396,7 +395,6 @@ public class MultiTest extends BaseTest {
     assertTrue(rs.getBoolean(1));
   }
 
-
   @Test
   public void testServerPrepareMeta() throws Throwable {
     try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
@@ -405,10 +403,11 @@ public class MultiTest extends BaseTest {
       Statement stmt = connection.createStatement();
       stmt.execute("INSERT INTO insertSelectTable2(tt) VALUES (1),(2),(1)");
 
-      PreparedStatement ps = connection.prepareStatement(
-          "INSERT INTO insertSelectTable1 "
-              + "SELECT a1.tt FROM insertSelectTable2 a1 "
-              + "WHERE a1.tt = ? ");
+      PreparedStatement ps =
+          connection.prepareStatement(
+              "INSERT INTO insertSelectTable1 "
+                  + "SELECT a1.tt FROM insertSelectTable2 a1 "
+                  + "WHERE a1.tt = ? ");
       ps.setInt(1, 1);
       ps.addBatch();
       ps.setInt(1, 2);
@@ -421,8 +420,8 @@ public class MultiTest extends BaseTest {
     }
   }
 
-  private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,
-      int totalInsertCommands) throws SQLException {
+  private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(
+      Boolean rewriteBatchedStatements, int totalInsertCommands) throws SQLException {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
     props.setProperty("allowMultiQueries", "true");
@@ -459,7 +458,6 @@ public class MultiTest extends BaseTest {
     throw new SQLException("Unable to retrieve, variable value from Server " + variable);
   }
 
-
   /**
    * Conj-141 : Batch Statement Rewrite: Support for ON DUPLICATE KEY.
    *
@@ -468,9 +466,10 @@ public class MultiTest extends BaseTest {
   @Test
   public void rewriteBatchedStatementsWithQueryFirstAndLAst() throws SQLException {
     try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-      PreparedStatement sqlInsert = connection
-          .prepareStatement("INSERT INTO MultiTestt3_dupp(col1, pkey,col2,"
-              + "col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10");
+      PreparedStatement sqlInsert =
+          connection.prepareStatement(
+              "INSERT INTO MultiTestt3_dupp(col1, pkey,col2,"
+                  + "col3,col4) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE pkey=pkey+10");
       sqlInsert.setInt(1, 1);
       sqlInsert.setInt(2, 2);
       sqlInsert.addBatch();
@@ -484,7 +483,6 @@ public class MultiTest extends BaseTest {
       sqlInsert.addBatch();
       sqlInsert.executeBatch();
     }
-
   }
 
   /**
@@ -502,8 +500,8 @@ public class MultiTest extends BaseTest {
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
       final int currentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
-      PreparedStatement sqlInsert = tmpConnection.prepareStatement(
-          "INSERT INTO MultiTestt3 (message) VALUES (?)");
+      PreparedStatement sqlInsert =
+          tmpConnection.prepareStatement("INSERT INTO MultiTestt3 (message) VALUES (?)");
       sqlInsert.setString(1, "aa");
       sqlInsert.addBatch();
       sqlInsert.setString(1, "b;b");
@@ -523,19 +521,21 @@ public class MultiTest extends BaseTest {
       assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[2]);
       assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[3]);
       assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
-      assertEquals(1,
-          retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
+      assertEquals(
+          1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
       int[] realUpdateCount = ((ClientSidePreparedStatement) sqlInsert).getServerUpdateCounts();
       assertEquals(1, realUpdateCount.length);
       assertEquals(5, realUpdateCount[0]);
 
-      final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection,
-          "Com_insert");
+      final int secondCurrentInsert =
+          retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
       // rewrite for multiple statements isn't possible, so use allowMutipleQueries
-      sqlInsert = tmpConnection.prepareStatement("INSERT INTO MultiTestt3 (message) VALUES (?); "
-          + "INSERT INTO MultiTestt3 (message) VALUES ('multiple')");
+      sqlInsert =
+          tmpConnection.prepareStatement(
+              "INSERT INTO MultiTestt3 (message) VALUES (?); "
+                  + "INSERT INTO MultiTestt3 (message) VALUES ('multiple')");
       sqlInsert.setString(1, "aa");
       sqlInsert.addBatch();
       sqlInsert.setString(1, "b;b");
@@ -548,7 +548,8 @@ public class MultiTest extends BaseTest {
         assertEquals(1, updateCounts[2]);
         assertEquals(1, updateCounts[3]);
 
-        assertEquals(4,
+        assertEquals(
+            4,
             retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
       } catch (BatchUpdateException bue) {
         if ((sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
@@ -557,14 +558,13 @@ public class MultiTest extends BaseTest {
           fail(bue.getMessage());
         }
       }
-
     }
   }
 
   private PreparedStatement prepareStatementBatch(Connection tmpConnection, int size)
       throws SQLException {
-    PreparedStatement preparedStatement = tmpConnection
-        .prepareStatement("INSERT INTO MultiTestt7 VALUES (?, ?)");
+    PreparedStatement preparedStatement =
+        tmpConnection.prepareStatement("INSERT INTO MultiTestt7 VALUES (?, ?)");
     for (int i = 0; i < size; i++) {
       preparedStatement.setInt(1, i);
       preparedStatement.setString(2, "testValue" + i);
@@ -576,7 +576,6 @@ public class MultiTest extends BaseTest {
     }
     return preparedStatement;
   }
-
 
   /**
    * Conj-215: Batched statements with rewriteBatchedStatements that end with a semicolon fails.
@@ -593,20 +592,19 @@ public class MultiTest extends BaseTest {
       verifyInsertCount(tmpConnection, 0);
 
       for (int i = 0; i < 100; i++) {
-        sqlInsert
-            .addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
+        sqlInsert.addBatch(
+            "insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
       }
       sqlInsert.executeBatch();
       verifyInsertCount(tmpConnection, 100);
       for (int i = 0; i < 100; i++) {
-        sqlInsert
-            .addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "')");
+        sqlInsert.addBatch(
+            "insert into MultiTestprepsemi (text) values ('This is a test" + i + "')");
       }
       sqlInsert.executeBatch();
       verifyInsertCount(tmpConnection, 200);
     }
   }
-
 
   /**
    * Conj-99: rewriteBatchedStatements parameter.
@@ -623,9 +621,9 @@ public class MultiTest extends BaseTest {
       tmpConnection.setClientInfo(props);
       verifyUpdateCount(tmpConnection, 0);
       int cycles = 1000;
-      prepareStatementBatch(tmpConnection, cycles).executeBatch();  // populate the table
-      PreparedStatement preparedStatement = tmpConnection.prepareStatement(
-          "UPDATE MultiTestt7 SET test = ? WHERE id = ?");
+      prepareStatementBatch(tmpConnection, cycles).executeBatch(); // populate the table
+      PreparedStatement preparedStatement =
+          tmpConnection.prepareStatement("UPDATE MultiTestt7 SET test = ? WHERE id = ?");
       for (int i = 0; i < cycles; i++) {
         preparedStatement.setString(1, "updated testValue" + i);
         preparedStatement.setInt(2, i);
@@ -634,14 +632,14 @@ public class MultiTest extends BaseTest {
       int[] updateCounts = preparedStatement.executeBatch();
       assertEquals(cycles, updateCounts.length);
       for (int updateCount : updateCounts) {
-        assertTrue(updateCount == 2
-            || updateCount == Statement.SUCCESS_NO_INFO); //2 rows updated by update.
+        assertTrue(
+            updateCount == 2
+                || updateCount == Statement.SUCCESS_NO_INFO); // 2 rows updated by update.
       }
 
-      verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
+      verifyUpdateCount(tmpConnection, cycles); // 1000 update commande launched
     }
   }
-
 
   /**
    * Conj-152: rewriteBatchedStatements and multiple executeBatch check.
@@ -659,8 +657,8 @@ public class MultiTest extends BaseTest {
       verifyUpdateCount(tmpConnection, 0);
       tmpConnection.createStatement().execute("insert into MultiTestt8 values(1,'a'),(2,'a')");
 
-      PreparedStatement preparedStatement = tmpConnection.prepareStatement(
-          "UPDATE MultiTestt8 SET test = ? WHERE id = ?");
+      PreparedStatement preparedStatement =
+          tmpConnection.prepareStatement("UPDATE MultiTestt8 SET test = ? WHERE id = ?");
       preparedStatement.setString(1, "executebatch");
       preparedStatement.setInt(2, 1);
       preparedStatement.addBatch();
@@ -688,10 +686,14 @@ public class MultiTest extends BaseTest {
       verifyInsertCount(tmpConnection, 0);
       Statement statement = tmpConnection.createStatement();
       for (int i = 0; i < 100; i++) {
-        int newId = i % 20; //to create duplicate id's
+        int newId = i % 20; // to create duplicate id's
         String roleTxt = "VAMPIRE" + newId;
-        statement.addBatch("INSERT IGNORE  INTO MultiTestreWriteDuplicateTestTable VALUES (" + newId
-            + ", '" + roleTxt + "')");
+        statement.addBatch(
+            "INSERT IGNORE  INTO MultiTestreWriteDuplicateTestTable VALUES ("
+                + newId
+                + ", '"
+                + roleTxt
+                + "')");
       }
       int[] updateCounts = statement.executeBatch();
       assertEquals(100, updateCounts.length);
@@ -711,8 +713,8 @@ public class MultiTest extends BaseTest {
     props.setProperty("allowMultiQueries", "true");
     props.setProperty("useBulkStmts", "false");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      PreparedStatement sqlInsert = tmpConnection.prepareStatement(
-          "INSERT IGNORE INTO MultiTestt4 (id,test) VALUES (?,?)");
+      PreparedStatement sqlInsert =
+          tmpConnection.prepareStatement("INSERT IGNORE INTO MultiTestt4 (id,test) VALUES (?,?)");
       sqlInsert.setInt(1, 1);
       sqlInsert.setString(2, "value1");
       sqlInsert.addBatch();
@@ -727,15 +729,15 @@ public class MultiTest extends BaseTest {
       sqlInsert.addBatch();
       int[] insertCounts = sqlInsert.executeBatch();
 
-      //Insert in prepare statement, cannot know the number og each one
+      // Insert in prepare statement, cannot know the number og each one
       assertEquals(4, insertCounts.length);
       assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[0]);
       assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[1]);
       assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[2]);
       assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[3]);
 
-      PreparedStatement sqlUpdate = tmpConnection.prepareStatement(
-          "UPDATE MultiTestt4 SET test = ? WHERE test = ?");
+      PreparedStatement sqlUpdate =
+          tmpConnection.prepareStatement("UPDATE MultiTestt4 SET test = ? WHERE test = ?");
       sqlUpdate.setString(1, "value1 - updated");
       sqlUpdate.setString(2, "value1");
       sqlUpdate.addBatch();
@@ -754,7 +756,6 @@ public class MultiTest extends BaseTest {
     }
   }
 
-
   private void verifyUpdateCount(Connection tmpConnection, int updateCount) throws SQLException {
     assertEquals(updateCount, retrieveSessionVariableFromServer(tmpConnection, "Com_update"));
   }
@@ -765,9 +766,10 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      PreparedStatement insertStmt = tmpConnection
-          .prepareStatement("INSERT INTO MultiTesttest_table (col1, col2,"
-              + " col3, col4, col5) values('some value', ?, 'other value', ?, 'third value')");
+      PreparedStatement insertStmt =
+          tmpConnection.prepareStatement(
+              "INSERT INTO MultiTesttest_table (col1, col2,"
+                  + " col3, col4, col5) values('some value', ?, 'other value', ?, 'third value')");
       insertStmt.setString(1, "a1");
       insertStmt.setString(2, "a2");
       insertStmt.addBatch();
@@ -778,16 +780,16 @@ public class MultiTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testInsertWithoutFirstContent() throws Exception {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      PreparedStatement insertStmt = tmpConnection
-          .prepareStatement("INSERT INTO MultiTesttest_table2 "
-              + "(col2, col3, col4, col5) values(?, 'other value', ?, 'third value')");
+      PreparedStatement insertStmt =
+          tmpConnection.prepareStatement(
+              "INSERT INTO MultiTesttest_table2 "
+                  + "(col2, col3, col4, col5) values(?, 'other value', ?, 'third value')");
       insertStmt.setString(1, "a1");
       insertStmt.setString(2, "a2");
       insertStmt.addBatch();
@@ -800,10 +802,12 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testduplicate() throws Exception {
-    createTable("SOME_TABLE",
+    createTable(
+        "SOME_TABLE",
         "ID INT(11) not null, FOO INT(11), PRIMARY KEY (ID), UNIQUE INDEX `FOO` (`FOO`)");
-    String sql = "insert into `SOME_TABLE` (`ID`, `FOO`) values (?, ?) "
-        + "on duplicate key update `SOME_TABLE`.`FOO` = ?";
+    String sql =
+        "insert into `SOME_TABLE` (`ID`, `FOO`) values (?, ?) "
+            + "on duplicate key update `SOME_TABLE`.`FOO` = ?";
     PreparedStatement st = sharedConnection.prepareStatement(sql);
     st.setInt(1, 1);
     st.setInt(2, 1);
@@ -830,15 +834,14 @@ public class MultiTest extends BaseTest {
     st.executeBatch();
   }
 
-
   @Test
   public void valuesWithoutSpace() throws Exception {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      PreparedStatement insertStmt = tmpConnection
-          .prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
+      PreparedStatement insertStmt =
+          tmpConnection.prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
       insertStmt.setString(1, "a");
       insertStmt.setString(2, "b");
       insertStmt.addBatch();
@@ -859,8 +862,8 @@ public class MultiTest extends BaseTest {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      PreparedStatement insertStmt = tmpConnection
-          .prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
+      PreparedStatement insertStmt =
+          tmpConnection.prepareStatement("INSERT INTO MultiTestValues (col1, col2)VALUES (?, ?)");
       insertStmt.setString(1, "a");
       insertStmt.setString(2, "b");
       insertStmt.addBatch();
@@ -871,7 +874,6 @@ public class MultiTest extends BaseTest {
     }
   }
 
-
   @Test
   public void continueOnBatchError() throws SQLException {
     for (int i = 0; i < 16; i++) {
@@ -879,22 +881,33 @@ public class MultiTest extends BaseTest {
     }
   }
 
-  private void continueOnBatchError(boolean continueBatch, boolean serverPrepare,
-      boolean rewrite, boolean batchMulti) throws SQLException {
-    System.out.println("continueBatch:" + continueBatch
-        + " serverPrepare:" + serverPrepare
-        + " rewrite:" + rewrite
-        + " batchMulti:" + batchMulti);
+  private void continueOnBatchError(
+      boolean continueBatch, boolean serverPrepare, boolean rewrite, boolean batchMulti)
+      throws SQLException {
+    System.out.println(
+        "continueBatch:"
+            + continueBatch
+            + " serverPrepare:"
+            + serverPrepare
+            + " rewrite:"
+            + rewrite
+            + " batchMulti:"
+            + batchMulti);
     createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
     Assume.assumeTrue(!batchMulti || !sharedIsAurora());
 
-    try (Connection connection = setBlankConnection(
-        "&useServerPrepStmts=" + serverPrepare
-            + "&useBatchMultiSend=" + batchMulti
-            + "&continueBatchOnError=" + continueBatch
-            + "&rewriteBatchedStatements=" + rewrite)) {
-      PreparedStatement pstmt = connection
-          .prepareStatement("INSERT INTO MultiTestt9 (id, test) VALUES (?, ?)");
+    try (Connection connection =
+        setBlankConnection(
+            "&useServerPrepStmts="
+                + serverPrepare
+                + "&useBatchMultiSend="
+                + batchMulti
+                + "&continueBatchOnError="
+                + continueBatch
+                + "&rewriteBatchedStatements="
+                + rewrite)) {
+      PreparedStatement pstmt =
+          connection.prepareStatement("INSERT INTO MultiTestt9 (id, test) VALUES (?, ?)");
       for (int i = 0; i < 10; i++) {
         pstmt.setInt(1, (i == 5) ? 0 : i);
         pstmt.setString(2, String.valueOf(i));
@@ -908,7 +921,7 @@ public class MultiTest extends BaseTest {
         int[] updateCount = e.getUpdateCounts();
         assertEquals(10, updateCount.length);
         if (rewrite) {
-          //rewrite exception is all or nothing
+          // rewrite exception is all or nothing
           assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
           assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
           assertEquals(Statement.EXECUTE_FAILED, updateCount[2]);
@@ -933,7 +946,7 @@ public class MultiTest extends BaseTest {
             assertEquals(1, updateCount[9]);
           } else {
             if (batchMulti) {
-              //send in batch, so continue will be handle, but send packet is executed.
+              // send in batch, so continue will be handle, but send packet is executed.
               assertEquals(1, updateCount[6]);
               assertEquals(1, updateCount[7]);
               assertEquals(1, updateCount[8]);
@@ -948,7 +961,7 @@ public class MultiTest extends BaseTest {
         }
 
         ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM MultiTestt9");
-        //check result
+        // check result
         if (!rewrite) {
           checkNextData(0, rs);
           checkNextData(1, rs);
@@ -1010,10 +1023,11 @@ public class MultiTest extends BaseTest {
   @Test
   public void testClosePrepareStatement() throws SQLException {
     createTable("testPrepareStatementClose", "id int");
-    sharedConnection.createStatement()
+    sharedConnection
+        .createStatement()
         .execute("INSERT INTO testPrepareStatementClose(id) VALUES (1),(2),(3)");
-    final PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT * FROM testPrepareStatementClose");
+    final PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("SELECT * FROM testPrepareStatementClose");
     preparedStatement.execute();
     // Make sure it is a streaming statement:
     preparedStatement.setFetchSize(1);
@@ -1022,7 +1036,6 @@ public class MultiTest extends BaseTest {
       preparedStatement.close();
     }
   }
-
 
   @Test
   public void rewriteErrorRewriteValues() throws SQLException {
@@ -1039,9 +1052,8 @@ public class MultiTest extends BaseTest {
     prepareBatchUpdateException(false, false);
   }
 
-
-  private void prepareBatchUpdateException(Boolean rewriteBatchedStatements,
-      Boolean allowMultiQueries) throws SQLException {
+  private void prepareBatchUpdateException(
+      Boolean rewriteBatchedStatements, Boolean allowMultiQueries) throws SQLException {
 
     createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
     Properties props = new Properties();
@@ -1052,8 +1064,8 @@ public class MultiTest extends BaseTest {
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
       verifyInsertCount(tmpConnection, 0);
 
-      PreparedStatement ps = tmpConnection
-          .prepareStatement("insert into batchUpdateException values(?)");
+      PreparedStatement ps =
+          tmpConnection.prepareStatement("insert into batchUpdateException values(?)");
       ps.setInt(1, 1);
       ps.addBatch();
       ps.setInt(1, 2);
@@ -1068,8 +1080,8 @@ public class MultiTest extends BaseTest {
         fail("exception should be throw above");
       } catch (BatchUpdateException bue) {
         int[] updateCounts = bue.getUpdateCounts();
-        if (rewriteBatchedStatements || (sharedOptions().useBulkStmts && isMariadbServer()
-            && minVersion(10, 2))) {
+        if (rewriteBatchedStatements
+            || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
           assertEquals(4, updateCounts.length);
           assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
           assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
@@ -1085,7 +1097,6 @@ public class MultiTest extends BaseTest {
           verifyInsertCount(tmpConnection, 4);
         }
         assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
-
       }
     }
   }
@@ -1099,27 +1110,25 @@ public class MultiTest extends BaseTest {
   @Test
   public void testLastPrepareDiscarded() throws Throwable {
 
-    PreparedStatement preparedStatement1 = sharedConnection
-        .prepareStatement("INSERT INTO MultiTestA (data) VALUES (?)");
+    PreparedStatement preparedStatement1 =
+        sharedConnection.prepareStatement("INSERT INTO MultiTestA (data) VALUES (?)");
     preparedStatement1.setString(1, "A");
     preparedStatement1.execute();
 
-    PreparedStatement preparedStatement2 = sharedConnection
-        .prepareStatement("select * from (select ? `field1` from dual) as tt");
+    PreparedStatement preparedStatement2 =
+        sharedConnection.prepareStatement("select * from (select ? `field1` from dual) as tt");
     preparedStatement2.setString(1, "B");
     try {
       preparedStatement2.execute();
-      //must have thrown error if server prepare.
+      // must have thrown error if server prepare.
     } catch (Exception e) {
-      //server prepare.
+      // server prepare.
       ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM MultiTestA");
       assertTrue(rs.next());
       assertEquals("A", rs.getString(1));
-      assertFalse(rs.next()); //"B" must not have been saved in Table MultiTestA
+      assertFalse(rs.next()); // "B" must not have been saved in Table MultiTestA
     }
-
   }
-
 
   @Test
   public void testMultiGeneratedKeyRewrite() throws Throwable {
@@ -1153,16 +1162,16 @@ public class MultiTest extends BaseTest {
       checkResultsPrepareMulti(tmpConnection);
       checkResultsPrepareBatch(tmpConnection);
     }
-
   }
 
   private void checkResultsPrepareBatch(Connection connection) throws SQLException {
     try (Statement stmt = connection.createStatement()) {
       stmt.executeQuery("truncate table testMultiGeneratedKey");
 
-      //test single execution
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+      // test single execution
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
               Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, "data1");
       preparedStatement.addBatch();
@@ -1189,9 +1198,10 @@ public class MultiTest extends BaseTest {
     try (Statement stmt = connection.createStatement()) {
       stmt.executeQuery("truncate table testMultiGeneratedKey");
 
-      //test single execution
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+      // test single execution
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
               Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, "data1");
       int update = preparedStatement.executeUpdate();
@@ -1208,9 +1218,10 @@ public class MultiTest extends BaseTest {
     try (Statement stmt = connection.createStatement()) {
       stmt.executeQuery("truncate table testMultiGeneratedKey");
 
-      //test single execution
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?);"
+      // test single execution
+      PreparedStatement preparedStatement =
+          connection.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?);"
                   + "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
               Statement.RETURN_GENERATED_KEYS);
       preparedStatement.setString(1, "data1");
@@ -1230,7 +1241,6 @@ public class MultiTest extends BaseTest {
       assertEquals(4, rs.getInt(1));
       assertFalse(rs.next());
       assertFalse(preparedStatement.getMoreResults());
-
     }
   }
 
@@ -1238,11 +1248,12 @@ public class MultiTest extends BaseTest {
     try (Statement stmt = connection.createStatement()) {
       stmt.executeQuery("truncate table testMultiGeneratedKey");
 
-      //test single execution
-      int update = stmt.executeUpdate(
-          "INSERT INTO testMultiGeneratedKey (text) VALUES ('data1'), ('data2'), ('data3');"
-              + "INSERT INTO testMultiGeneratedKey (text) VALUES ('data4'), ('data5')",
-          Statement.RETURN_GENERATED_KEYS);
+      // test single execution
+      int update =
+          stmt.executeUpdate(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES ('data1'), ('data2'), ('data3');"
+                  + "INSERT INTO testMultiGeneratedKey (text) VALUES ('data4'), ('data5')",
+              Statement.RETURN_GENERATED_KEYS);
       assertEquals(3, update);
 
       ResultSet rs = stmt.getGeneratedKeys();
@@ -1267,8 +1278,10 @@ public class MultiTest extends BaseTest {
       assertFalse(stmt.getMoreResults());
       assertEquals(-1, stmt.getUpdateCount());
 
-      update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')",
-          Statement.RETURN_GENERATED_KEYS);
+      update =
+          stmt.executeUpdate(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')",
+              Statement.RETURN_GENERATED_KEYS);
       assertEquals(1, update);
 
       rs = stmt.getGeneratedKeys();
@@ -1277,15 +1290,16 @@ public class MultiTest extends BaseTest {
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
 
-      update = stmt
-          .executeUpdate("SELECT * FROM testMultiGeneratedKey", Statement.RETURN_GENERATED_KEYS);
+      update =
+          stmt.executeUpdate(
+              "SELECT * FROM testMultiGeneratedKey", Statement.RETURN_GENERATED_KEYS);
       assertEquals(0, update);
 
       rs = stmt.getGeneratedKeys();
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
 
-      //test batch
+      // test batch
       stmt.executeQuery("truncate table testMultiGeneratedKey");
       stmt.addBatch(
           "INSERT INTO testMultiGeneratedKey (text) VALUES ('data0');INSERT INTO testMultiGeneratedKey (text) VALUES ('data1')");
@@ -1317,9 +1331,7 @@ public class MultiTest extends BaseTest {
       assertTrue(rs.next());
       assertEquals(13, rs.getInt(1));
       assertFalse(rs.next());
-
     }
-
   }
 
   @Test
@@ -1332,9 +1344,10 @@ public class MultiTest extends BaseTest {
       statement.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
       statement.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
 
-      try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-          "INSERT INTO testInsertSelectBulk2(col, val) VALUES "
-              + "(?, (SELECT val FROM testInsertSelectBulk where col = ?))")) {
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement(
+              "INSERT INTO testInsertSelectBulk2(col, val) VALUES "
+                  + "(?, (SELECT val FROM testInsertSelectBulk where col = ?))")) {
 
         preparedStatement.setInt(1, 4);
         preparedStatement.setInt(2, 0);
@@ -1372,6 +1385,279 @@ public class MultiTest extends BaseTest {
       stmt.execute("INSERT INTO testAffectedRow values (1), (1), (2), (3)");
       int rowCount = stmt.executeUpdate("UPDATE testAffectedRow set id = 1");
       assertEquals(useAffectedRows ? 2 : 4, rowCount);
+    }
+  }
+
+  @Test
+  public void shouldDuplicateKeyUpdateNotReturnExtraRows() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt =
+          con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) "
+                  + "ON DUPLICATE KEY UPDATE text = VALUES(text)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "initial");
+        assertEquals(1, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+        // Update the row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "updated");
+        assertEquals(2, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void insertBatchMultiInsert() throws Throwable {
+    Properties properties = new Properties();
+    properties.setProperty("allowMultiQueries", "true");
+    try (Connection con = openNewConnection(connUri, properties)) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt =
+          con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.addBatch();
+        pstmt.setString(1, "updated");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertTrue(rs.next());
+          assertEquals(2, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void multiInsertReturnOneGenerated() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt =
+          con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?), (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.setString(2, "updated");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertTrue(rs.next());
+          assertEquals(2, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void multiInsertReturnOneGeneratedOnDuplicate() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
+      }
+      try (PreparedStatement pstmt =
+                   con.prepareStatement(
+                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) ON DUPLICATE  key UPDATE id = id + 10",
+                           Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "changed");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(11, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void multiInsertReturnOneGeneratedOnDuplicateMultiple() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
+      }
+      try (PreparedStatement pstmt =
+                   con.prepareStatement(
+                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?), (?, ?) ON DUPLICATE KEY UPDATE id = id + 10",
+                           Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "changed");
+        pstmt.setInt(3, 12);
+        pstmt.setString(4, "other");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(12, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testAffectedRowBatch() throws SQLException {
+    createTable("testAffectedRowBatch", "id int PRIMARY KEY, data varchar(10)");
+    testAffectedRowBatch(false);
+    testAffectedRowBatch(true);
+
+    testAffectedRowLongBatch(false);
+    testAffectedRowLongBatch(true);
+  }
+
+  private void testAffectedRowBatch(boolean useAffectedRows) throws SQLException {
+    try (Connection con =
+        setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRowBatch");
+      try (PreparedStatement preparedStatement =
+          con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setString(2, "1");
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        int[] res = preparedStatement.executeBatch();
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 3);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+      }
+      try (PreparedStatement preparedStatement =
+          con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        int[] res = preparedStatement.executeBatch();
+
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 6);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+
+        preparedStatement.setInt(1, 1);
+
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+        assertEquals(2, res.length);
+        if (useAffectedRows) {
+          assertEquals(0, res[0]);
+          assertEquals(0, res[1]);
+        } else {
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+        }
+      }
+    }
+  }
+
+  private void testAffectedRowLongBatch(boolean useAffectedRows) throws SQLException {
+    try (Connection con =
+        setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRowBatch");
+      try (PreparedStatement preparedStatement =
+          con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setString(2, "1");
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        long[] res = preparedStatement.executeLargeBatch();
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 3);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+      }
+      try (PreparedStatement preparedStatement =
+          con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        long[] res = preparedStatement.executeLargeBatch();
+
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 6);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+
+        preparedStatement.setInt(1, 1);
+
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+        assertEquals(2, res.length);
+        if (useAffectedRows) {
+          assertEquals(0, res[0]);
+          assertEquals(0, res[1]);
+        } else {
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+        }
+      }
     }
   }
 }

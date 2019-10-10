@@ -1,3 +1,55 @@
+== 2.5.0 - Released on 02 Oct. 2019
+
+* [CONJ-663] Client authentication plugins are now defined as services. The driver has 2 new plugins `caching_sha2_password` and `sha256_password plugin` for MySQL compatibility
+* [CONJ-733] Credential service: AWS IAM authentication
+* [CONJ-727] Support configuration of custom SSLSocketFactory
+* [CONJ-561] JDBC 4.3 partial implementation java.sql.Statement methods isSimpleIdentifier, enquoteIdentifier, enquoteLiteral and enquoteNCharLiteral
+* [CONJ-692] ConnectionPoolDataSource interface addition to MariaDbPoolDataSource
+* [CONJ-563] closing possible option batch thread on driver deregistration.
+* [CONJ-732] Driver getPropertyInfo returns no options information when url is empty
+* [CONJ-734] DatabaseMetaData.getSchemaTerm now return "schema", not empty string
+
+== 2.4.4 - Released on 14 Sept. 2019
+
+* [CONJ-724] Do not ignore the Calendar parameter in ResultSet#getTime(int, Calendar)
+* [CONJ-725] Connection Failure when using PAM authenticated user on 10.4 MariaDB server
+* [CONJ-729] master-slave regression: commit on read-only server Executed only when there is an active transaction on master connection
+* [CONJ-726] removing possible NPE after failover on aurora cluster
+
+== 2.4.3 - Released on 02 Jul. 2019
+
+* [CONJ-717] conversion function support for other data type than default MariaDB conversion type
+* [CONJ-722] Permit suppression of result-set metadata getTableName for oracle compatibility
+* [CONJ-719] Saving values using Java 8 LocalTime does not store fractional parts of seconds
+* [CONJ-716] Correcting possible NPE on non thread safe NumberFormat (logging)
+
+== 2.4.2 - Released on 17 Jun. 2019
+
+Security
+* [CONJ-679] parse Query when receiving LOAD LOCAL INFILE
+
+Bugs
+* [CONJ-703] ClassNotFoundException when trying to connect using two-authentication in an OSGI environment.
+* [CONJ-711] Xid format id is unsigned integer, currently sending as signed value.
+* [CONJ-700] autoReconnect=true on Basic Failover doesn't reconnect
+* [CONJ-707] failover might throw an unexpected exception with using "failover"/"sequential" configuration on socket error
+* [CONJ-709] includeThreadDumpInDeadlockExceptions is thrown only if option includeInnodbStatusInDeadlockExceptions is set
+* [CONJ-710] Throw complete stackTrace when having an exception on XA Commands
+* [CONJ-714] Error on connection on galera server when in detached mode.
+* [CONJ-701] typo in error message in SelectResultSet.java
+
+== 2.4.1 - Released on 15 Mar. 2019
+
+Evolutions
+* [misc] enabled running of 'SHOW ENGINE INNODB STATUS' for error code 1213 (@mtykhenko)
+* [misc] reduce mutex using select @@innodb_read_only for aurora (@matsuzayaws)
+
+Bugs
+* [misc] updating checkstyle version dependency
+* [misc] permit using SSL on localsocket
+* [CONJ-687] addition of option "useMysqlMetadata" to permit MySQL meta compatibility
+* [misc] java PID using java 9 ProcessHandle if existing, relying on JNA if present
+* [CONJ-682] internal pool correction: when receiving an RST during connection validation, the pool will end up throwing connection timeout exception in place of reusing another connection.
 
 == 2.4.0 - Released on 28 Jan. 2019
 

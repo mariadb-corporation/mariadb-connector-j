@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -59,15 +59,21 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class UpdateResultSetMethodsTest extends BaseTest {
 
   private ResultSet rs;
 
+  /**
+   * Initialisation.
+   *
+   * @throws SQLException exception
+   */
   @Before
   public void before() throws SQLException {
-    rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-        .executeQuery("select 1");
+    rs =
+        sharedConnection
+            .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("select 1");
   }
 
   @Test
@@ -82,7 +88,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -98,7 +104,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -114,7 +120,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -130,7 +136,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -141,7 +147,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -152,7 +158,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -163,7 +169,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -174,7 +180,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -185,7 +191,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -196,7 +202,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -207,7 +213,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -218,7 +224,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -229,7 +235,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -240,7 +246,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -251,7 +257,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -262,7 +268,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -273,7 +279,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -284,7 +290,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -295,7 +301,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -306,7 +312,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -317,29 +323,29 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
   @Test
   public void testupdateLong10() {
     try {
-      rs.updateLong(1, (long) 1);
+      rs.updateLong(1, 1);
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
   @Test
   public void testupdateLong11() {
     try {
-      rs.updateLong("a", (long) 1);
+      rs.updateLong("a", 1);
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -350,7 +356,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -361,29 +367,29 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
   @Test
   public void testupdateDouble14() {
     try {
-      rs.updateDouble(1, (double) 1);
+      rs.updateDouble(1, 1);
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
   @Test
   public void testupdateDouble15() {
     try {
-      rs.updateDouble("a", (double) 1);
+      rs.updateDouble("a", 1);
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -394,7 +400,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -405,7 +411,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -416,7 +422,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -427,7 +433,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -438,7 +444,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -449,7 +455,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -460,7 +466,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -471,7 +477,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -482,7 +488,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -493,7 +499,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -504,7 +510,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -515,7 +521,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -526,7 +532,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -537,7 +543,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -548,7 +554,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -559,7 +565,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -570,7 +576,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -581,7 +587,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -592,7 +598,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -603,7 +609,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -614,7 +620,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -625,7 +631,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -636,7 +642,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -647,7 +653,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -658,7 +664,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -669,7 +675,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -680,7 +686,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -691,7 +697,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -702,7 +708,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -713,7 +719,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -724,7 +730,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -735,7 +741,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -746,7 +752,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -757,7 +763,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -768,7 +774,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -779,7 +785,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -790,7 +796,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -801,7 +807,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -812,7 +818,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -823,7 +829,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -834,7 +840,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -845,7 +851,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -856,7 +862,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -867,7 +873,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -878,7 +884,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -889,7 +895,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -900,7 +906,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -911,7 +917,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -922,7 +928,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -933,7 +939,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -944,7 +950,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -955,7 +961,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -966,7 +972,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -977,7 +983,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -988,7 +994,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -999,7 +1005,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -1010,7 +1016,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
 
@@ -1021,9 +1027,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     } catch (SQLFeatureNotSupportedException sqle) {
       Assert.fail();
     } catch (SQLException sqlee) {
-      //eat
+      // eat
     }
   }
-
-
 }

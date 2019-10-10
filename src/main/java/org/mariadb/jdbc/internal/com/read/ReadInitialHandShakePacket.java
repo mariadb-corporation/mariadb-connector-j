@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.util.*;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.Utils;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ReadInitialHandShakePacket {
 
@@ -74,14 +75,14 @@ public class ReadInitialHandShakePacket {
   private final short serverStatus;
   private final byte[] seed;
   private String serverVersion;
-  private String pluginName;
+  private String authenticationPluginType = "";
   private boolean serverMariaDb;
 
   /**
    * Read database initial stream.
    *
    * @param reader packetFetcher
-   * @throws IOException  if a connection error occur
+   * @throws IOException if a connection error occur
    * @throws SQLException if received an error packet
    */
   public ReadInitialHandShakePacket(final PacketInputStream reader)
@@ -91,7 +92,6 @@ public class ReadInitialHandShakePacket {
       ErrorPacket errorPacket = new ErrorPacket(buffer);
       throw new SQLException(errorPacket.getMessage());
     }
-    pluginName = "";
     protocolVersion = buffer.readByte();
     serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
     serverThreadId = buffer.readInt();
@@ -110,8 +110,8 @@ public class ReadInitialHandShakePacket {
     }
     buffer.skipBytes(6);
 
-    //mariaDb additional capabilities.valid only if mariadb server.
-    //has value since server 10.2 (was 0 before)
+    // MariaDB additional capabilities.
+    // Filled only if MariaDB server 10.2+
     long mariaDbAdditionalCapacities = buffer.readInt();
 
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
@@ -119,7 +119,7 @@ public class ReadInitialHandShakePacket {
       if (saltLength > 0) {
         seed2 = buffer.readRawBytes(saltLength);
       } else {
-        //for servers before 5.5 version
+        // for servers before 5.5 version
         seed2 = buffer.readBytesNullEnd();
       }
       seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
@@ -141,7 +141,7 @@ public class ReadInitialHandShakePacket {
       serverMariaDb = this.serverVersion.contains("MariaDB");
     }
 
-    //since MariaDB 10.2
+    // since MariaDB 10.2
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.CLIENT_MYSQL) == 0) {
       serverCapabilities =
           (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
@@ -151,31 +151,34 @@ public class ReadInitialHandShakePacket {
     }
 
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-      pluginName = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
+      authenticationPluginType = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
     }
   }
 
   @Override
   public String toString() {
-    return protocolVersion + ":"
-        + serverVersion + ":"
-        + serverThreadId + ":"
-        + new String(seed) + ":"
-        + serverCapabilities + ":"
-        + serverLanguage + ":"
+    return protocolVersion
+        + ":"
+        + serverVersion
+        + ":"
+        + serverThreadId
+        + ":"
+        + new String(seed)
+        + ":"
+        + serverCapabilities
+        + ":"
+        + serverLanguage
+        + ":"
         + serverStatus;
   }
-
 
   public String getServerVersion() {
     return serverVersion;
   }
 
-
   public byte getProtocolVersion() {
     return protocolVersion;
   }
-
 
   public long getServerThreadId() {
     return serverThreadId;
@@ -197,8 +200,8 @@ public class ReadInitialHandShakePacket {
     return serverStatus;
   }
 
-  public String getPluginName() {
-    return pluginName;
+  public String getAuthenticationPluginType() {
+    return authenticationPluginType;
   }
 
   public boolean isServerMariaDb() {

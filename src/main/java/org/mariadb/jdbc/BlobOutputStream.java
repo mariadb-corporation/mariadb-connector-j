@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
-/**
- * Output stream for the blob.
- */
+/** Output stream for the blob. */
 class BlobOutputStream extends OutputStream {
 
   private final MariaDbBlob blob;
@@ -107,4 +104,3 @@ class BlobOutputStream extends OutputStream {
     write(buf, 0, buf.length);
   }
 }
-

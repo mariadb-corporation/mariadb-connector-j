@@ -1,39 +1,29 @@
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.StringTokenizer;
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.security.auth.x500.X500Principal;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.util.*;
+
+import javax.naming.*;
+import javax.naming.ldap.*;
+import javax.net.ssl.*;
+import javax.security.auth.x500.*;
+import java.net.*;
+import java.security.cert.*;
+import java.util.*;
 
 public class HostnameVerifierImpl implements HostnameVerifier {
 
   private static final Logger logger = LoggerFactory.getLogger(HostnameVerifierImpl.class);
 
   /**
-   * DNS verification : Matching is performed using the matching rules specified by [RFC2459].  If
+   * DNS verification : Matching is performed using the matching rules specified by [RFC2459]. If
    * more than one identity of a given type is present in the certificate (e.g., more than one
    * dNSName name, a match in any one of the set is considered acceptable.) Names may contain the
    * wildcard character * which is considered to match any single domain name component or component
    * fragment. E.g., *.a.com matches foo.a.com but not bar.foo.a.com. f*.com matches foo.com but not
    * bar.com.
    *
-   * @param hostname      hostname
+   * @param hostname hostname
    * @param tlsDnsPattern DNS pattern (may contain wildcard)
    * @return true if matching
    */
@@ -53,7 +43,9 @@ public class HostnameVerifierImpl implements HostnameVerifier {
       }
     } catch (SSLException exception) {
       throw new SSLException(
-          normalizedHostMsg(hostname) + " doesn't correspond to certificate CN \"" + tlsDnsPattern
+          normalizedHostMsg(hostname)
+              + " doesn't correspond to certificate CN \""
+              + tlsDnsPattern
               + "\" : wildcards not possible for IPs");
     }
     return true;
@@ -88,9 +80,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
       return token.endsWith(afterWildcard);
     }
 
-    //no wildcard -> token must be equal.
+    // no wildcard -> token must be equal.
     return token.equals(tlsDnsToken);
-
   }
 
   private static String extractCommonName(String principal) throws SSLException {
@@ -148,7 +139,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
         if (entry.size() >= 2) {
           int type = (Integer) entry.get(0);
 
-          if (type == 2) { //DNS
+          if (type == 2) { // DNS
             String altNameDns = (String) entry.get(1);
             if (altNameDns != null) {
               String normalizedSubjectAlt = altNameDns.toLowerCase(Locale.ROOT);
@@ -156,7 +147,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
             }
           }
 
-          if (type == 7) { //IP
+          if (type == 7) { // IP
             String altNameIp = (String) entry.get(1);
             if (altNameIp != null) {
               subjectAltNames.add(new GeneralName(altNameIp, Extension.IP));
@@ -177,8 +168,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
    * Verification, like HostnameVerifier.verify() with an additional server thread id to identify
    * connection in logs.
    *
-   * @param host           host to connect (DNS/IP)
-   * @param session        SSL session
+   * @param host host to connect (DNS/IP)
+   * @param session SSL session
    * @param serverThreadId connection id to identify connection in logs
    * @return true if valid
    */
@@ -199,30 +190,31 @@ public class HostnameVerifierImpl implements HostnameVerifier {
   /**
    * Verification that throw an exception with a detailed error message in case of error.
    *
-   * @param host           hostname
-   * @param cert           certificate
+   * @param host hostname
+   * @param cert certificate
    * @param serverThreadId server thread Identifier to identify connection in logs
    * @throws SSLException exception
    */
   public void verify(String host, X509Certificate cert, long serverThreadId) throws SSLException {
     if (host == null) {
-      return; //no validation if no host (possible for name pipe)
+      return; // no validation if no host (possible for name pipe)
     }
     String lowerCaseHost = host.toLowerCase(Locale.ROOT);
     try {
-      //***********************************************************
+      // ***********************************************************
       // RFC 6125 : check Subject Alternative Name (SAN)
-      //***********************************************************
+      // ***********************************************************
       SubjectAltNames subjectAltNames = getSubjectAltNames(cert);
       if (!subjectAltNames.isEmpty()) {
 
-        //***********************************************************
+        // ***********************************************************
         // Host is IPv4 : Check corresponding entries in subject alternative names
-        //***********************************************************
+        // ***********************************************************
         if (Utils.isIPv4(lowerCaseHost)) {
           for (GeneralName entry : subjectAltNames.getGeneralNames()) {
             if (logger.isTraceEnabled()) {
-              logger.trace("Conn={}. IPv4 verification of hostname : type={} value={} to {}",
+              logger.trace(
+                  "Conn={}. IPv4 verification of hostname : type={} value={} to {}",
                   serverThreadId,
                   entry.extension,
                   entry.value,
@@ -234,13 +226,14 @@ public class HostnameVerifierImpl implements HostnameVerifier {
             }
           }
         } else if (Utils.isIPv6(lowerCaseHost)) {
-          //***********************************************************
+          // ***********************************************************
           // Host is IPv6 : Check corresponding entries in subject alternative names
-          //***********************************************************
+          // ***********************************************************
           String normalisedHost = normaliseAddress(lowerCaseHost);
           for (GeneralName entry : subjectAltNames.getGeneralNames()) {
             if (logger.isTraceEnabled()) {
-              logger.trace("Conn={}. IPv6 verification of hostname : type={} value={} to {}",
+              logger.trace(
+                  "Conn={}. IPv6 verification of hostname : type={} value={} to {}",
                   serverThreadId,
                   entry.extension,
                   entry.value,
@@ -254,12 +247,13 @@ public class HostnameVerifierImpl implements HostnameVerifier {
             }
           }
         } else {
-          //***********************************************************
+          // ***********************************************************
           // Host is not IP = DNS : Check corresponding entries in alternative subject names
-          //***********************************************************
+          // ***********************************************************
           for (GeneralName entry : subjectAltNames.getGeneralNames()) {
             if (logger.isTraceEnabled()) {
-              logger.trace("Conn={}. DNS verification of hostname : type={} value={} to {}",
+              logger.trace(
+                  "Conn={}. DNS verification of hostname : type={} value={} to {}",
                   serverThreadId,
                   entry.extension,
                   entry.value,
@@ -274,32 +268,43 @@ public class HostnameVerifierImpl implements HostnameVerifier {
         }
       }
 
-      //***********************************************************
+      // ***********************************************************
       // RFC 2818 : legacy fallback using CN (recommendation is using alt-names)
-      //***********************************************************
+      // ***********************************************************
       X500Principal subjectPrincipal = cert.getSubjectX500Principal();
       String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
 
       if (cn == null) {
         if (subjectAltNames.isEmpty()) {
-          throw new SSLException("CN not found in certificate principal \"{}" + subjectPrincipal
-              + "\" and certificate doesn't contain SAN");
+          throw new SSLException(
+              "CN not found in certificate principal \"{}"
+                  + subjectPrincipal
+                  + "\" and certificate doesn't contain SAN");
         } else {
-          throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
-              + "\" and " + normalizedHostMsg(lowerCaseHost) + " doesn't correspond to "
-              + subjectAltNames.toString());
+          throw new SSLException(
+              "CN not found in certificate principal \""
+                  + subjectPrincipal
+                  + "\" and "
+                  + normalizedHostMsg(lowerCaseHost)
+                  + " doesn't correspond to "
+                  + subjectAltNames.toString());
         }
       }
 
       String normalizedCn = cn.toLowerCase(Locale.ROOT);
       if (logger.isTraceEnabled()) {
-        logger.trace("Conn={}. DNS verification of hostname : CN={} to {}", serverThreadId,
-            normalizedCn, lowerCaseHost);
+        logger.trace(
+            "Conn={}. DNS verification of hostname : CN={} to {}",
+            serverThreadId,
+            normalizedCn,
+            lowerCaseHost);
       }
       if (!matchDns(lowerCaseHost, normalizedCn)) {
         String errorMsg =
-            normalizedHostMsg(lowerCaseHost) + " doesn't correspond to certificate CN \""
-                + normalizedCn + "\"";
+            normalizedHostMsg(lowerCaseHost)
+                + " doesn't correspond to certificate CN \""
+                + normalizedCn
+                + "\"";
         if (!subjectAltNames.isEmpty()) {
           errorMsg += " and " + subjectAltNames.toString();
         }
@@ -312,7 +317,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
   }
 
   private enum Extension {
-    DNS, IP
+    DNS,
+    IP
   }
 
   private class GeneralName {

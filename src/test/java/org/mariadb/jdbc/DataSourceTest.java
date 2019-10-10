@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -69,9 +69,7 @@ public class DataSourceTest extends BaseTest {
   protected static final String defConnectToIP = null;
   protected static String connectToIP;
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass
   public static void beforeClassDataSourceTest() {
     connectToIP = System.getProperty("testConnectToIP", defConnectToIP);
@@ -79,8 +77,8 @@ public class DataSourceTest extends BaseTest {
 
   @Test
   public void testDataSource() throws SQLException {
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
 
     try (Connection connection = ds.getConnection(username, password)) {
       assertEquals(connection.isValid(0), true);
@@ -89,8 +87,8 @@ public class DataSourceTest extends BaseTest {
 
   @Test
   public void testDataSource2() throws SQLException {
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
       assertEquals(connection.isValid(0), true);
     }
@@ -134,7 +132,6 @@ public class DataSourceTest extends BaseTest {
     assertEquals(ds.getUrlParser().getOptions().connectTimeout, 2_000);
   }
 
-
   @Test
   public void testDataSourceTimeout4() throws SQLException {
     MariaDbDataSource ds = new MariaDbDataSource();
@@ -153,8 +150,8 @@ public class DataSourceTest extends BaseTest {
   @Test
   public void setDatabaseNameTest() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
       connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
       ds.setDatabaseName("test2");
@@ -175,8 +172,8 @@ public class DataSourceTest extends BaseTest {
   @Test
   public void setServerNameTest() throws SQLException {
     Assume.assumeTrue(connectToIP != null);
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
       ds.setServerName(connectToIP);
 
@@ -192,38 +189,38 @@ public class DataSourceTest extends BaseTest {
    *
    * @throws SQLException exception
    */
-  @Test(timeout = 20000) // unless port 3307 can be used
+  @Test(timeout = 50000) // unless port 3307 can be used
   public void setPortTest() throws SQLException {
     Assume.assumeFalse("true".equals(System.getenv("AURORA")));
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection2 = ds.getConnection(username, password)) {
-      //delete blacklist, because can failover on 3306 is filled
+      // delete blacklist, because can failover on 3306 is filled
       assureBlackList(connection2);
-      connection2.close();
     }
 
     ds.setPort(3407);
 
-    //must throw SQLException
+    // must throw SQLException
     try {
       ds.getConnection(username, password);
       fail();
     } catch (SQLException e) {
-      //normal error
+      // normal error
     }
   }
 
   /**
-   * Conj-123:Session variables lost and exception if set via MariaDbDataSource.setProperties/setURL.
+   * Conj-123:Session variables lost and exception if set via
+   * MariaDbDataSource.setProperties/setURL.
    *
    * @throws SQLException exception
    */
   @Test
   @SuppressWarnings("deprecation")
   public void setPropertiesTest() throws SQLException {
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
     try (Connection connection = ds.getConnection(username, password)) {
       ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
@@ -239,16 +236,14 @@ public class DataSourceTest extends BaseTest {
         fail();
       }
     }
-
   }
 
   @Test
   public void setLoginTimeOut() {
-    MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
-        database);
+    MariaDbDataSource ds =
+        new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     assertEquals(30, ds.getLoginTimeout());
     ds.setLoginTimeout(10);
     assertEquals(10, ds.getLoginTimeout());
   }
-
 }

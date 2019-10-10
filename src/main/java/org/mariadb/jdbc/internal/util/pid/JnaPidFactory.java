@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,64 +50,56 @@
  *
  */
 
-package org.mariadb.jdbc.internal.protocol.authentication;
+package org.mariadb.jdbc.internal.util.pid;
 
-import java.sql.SQLException;
+import com.sun.jna.*;
+import com.sun.jna.platform.win32.*;
 
-import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.internal.util.Options;
+import java.util.function.*;
 
+public class JnaPidFactory {
+  private static Supplier<String> instance;
 
-/**
- * Provider to handle plugin authentication. This can allow library users to override our default
- * Authentication provider.
- */
-public class AuthenticationProviderHolder {
+  static {
+    try {
+      if (Platform.isLinux()) {
+        // Linux pid implementation
+        CLibrary.INSTANCE.getpid();
+        instance = () -> String.valueOf(CLibrary.INSTANCE.getpid());
+      } else if (Platform.isWindows()) {
+        // Windows pid implementation
+        try {
+          Kernel32.INSTANCE.GetCurrentProcessId();
+          instance =
+              () -> {
+                return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+              };
+        } catch (Throwable cle) {
+          // jna plateform jar's are not in classpath, no PID returned
+          instance = () -> null;
+        }
+      } else {
+        instance = () -> null;
+      }
 
-  /**
-   * The default provider will construct a new pool on every request.
-   */
-  public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
-
-  private static volatile AuthenticationProvider currentProvider = null;
-
-  /**
-   * Get the currently set {@link AuthenticationProvider} from set invocations via {@link
-   * #setAuthenticationProvider(AuthenticationProvider)}. If none has been set a default provider
-   * will be provided (never a {@code null} result).
-   *
-   * @return Provider to get an AuthenticationProvider
-   */
-  public static AuthenticationProvider getAuthenticationProvider() {
-    AuthenticationProvider result = currentProvider;
-    if (result == null) {
-      return DEFAULT_PROVIDER;
-    } else {
-      return result;
+    } catch (Throwable cle) {
+      // jna jar's are not in classpath, no PID returned
+      instance = () -> null;
     }
   }
 
   /**
-   * Change the current set authentication provider.  This provider will be provided in future
-   * requests to {@link #getAuthenticationProvider()}.
+   * Factory method to avoid loading JNA classes every connection.
    *
-   * @param newProvider New provider to use, or {@code null} to use the default provider
+   * @return factory that implement PID according to environment.
    */
-  public static void setAuthenticationProvider(AuthenticationProvider newProvider) {
-    currentProvider = newProvider;
+  public static Supplier<String> getInstance() {
+    return instance;
   }
 
-  /**
-   * Provider to handle authentication.
-   */
-  public interface AuthenticationProvider {
+  private interface CLibrary extends Library {
+    CLibrary INSTANCE = Native.loadLibrary("c", CLibrary.class);
 
-    AuthenticationPlugin processAuthPlugin(String plugin,
-                                           String password,
-                                           byte[] authData,
-                                           Options options)
-        throws SQLException;
+    int getpid();
   }
-
-
 }

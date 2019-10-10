@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,18 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicLong;
-import javax.sql.ConnectionEvent;
-import javax.sql.ConnectionEventListener;
-import javax.sql.PooledConnection;
-import javax.sql.StatementEvent;
-import javax.sql.StatementEventListener;
+import javax.sql.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 public class MariaDbPooledConnection implements PooledConnection {
 
@@ -88,8 +81,8 @@ public class MariaDbPooledConnection implements PooledConnection {
   /**
    * Creates and returns a <code>Connection</code> object that is a handle for the physical
    * connection that this <code>PooledConnection</code> object represents. The connection pool
-   * manager calls this method when an application has called the method
-   * <code>DataSource.getConnection</code> and there are no <code>PooledConnection</code> objects
+   * manager calls this method when an application has called the method <code>
+   * DataSource.getConnection</code> and there are no <code>PooledConnection</code> objects
    * available. See the {@link PooledConnection interface description} for more information.
    *
    * @return a <code>Connection</code> object that is a handle to this <code>PooledConnection</code>
@@ -100,10 +93,9 @@ public class MariaDbPooledConnection implements PooledConnection {
   }
 
   /**
-   * Closes the physical connection that this <code>PooledConnection</code> object represents.  An
+   * Closes the physical connection that this <code>PooledConnection</code> object represents. An
    * application never calls this method directly; it is called by the connection pool module, or
-   * manager.
-   * <br>
+   * manager. <br>
    * See the {@link PooledConnection interface description} for more information.
    *
    * @throws SQLException if a database access error occurs
@@ -129,8 +121,8 @@ public class MariaDbPooledConnection implements PooledConnection {
    * <code>PooledConnection</code> object.
    *
    * @param listener a component, usually the connection pool manager, that has implemented the
-   *                 <code>ConnectionEventListener</code> interface and wants to be
-   *                 notified when the connection is closed or has an error
+   *     <code>ConnectionEventListener</code> interface and wants to be notified when the connection
+   *     is closed or has an error
    * @see #removeConnectionEventListener
    */
   public void addConnectionEventListener(ConnectionEventListener listener) {
@@ -139,12 +131,11 @@ public class MariaDbPooledConnection implements PooledConnection {
 
   /**
    * Removes the given event failover from the list of components that will be notified when an
-   * event occurs on this
-   * <code>PooledConnection</code> object.
+   * event occurs on this <code>PooledConnection</code> object.
    *
    * @param listener a component, usually the connection pool manager, that has implemented the
-   *                 <code>ConnectionEventListener</code> interface and
-   *                 been registered with this <code>PooledConnection</code> object as a failover
+   *     <code>ConnectionEventListener</code> interface and been registered with this <code>
+   *     PooledConnection</code> object as a failover
    * @see #addConnectionEventListener
    */
   public void removeConnectionEventListener(ConnectionEventListener listener) {
@@ -153,14 +144,12 @@ public class MariaDbPooledConnection implements PooledConnection {
 
   /**
    * Registers a <code>StatementEventListener</code> with this <code>PooledConnection</code> object.
-   * Components that wish to be notified when  <code>PreparedStatement</code>s created by the
-   * connection are closed or are detected to be invalid may use this method to register a
-   * <code>StatementEventListener</code> with this <code>PooledConnection</code> object.
-   * <br>
+   * Components that wish to be notified when <code>PreparedStatement</code>s created by the
+   * connection are closed or are detected to be invalid may use this method to register a <code>
+   * StatementEventListener</code> with this <code>PooledConnection</code> object. <br>
    *
    * @param listener an component which implements the <code>StatementEventListener</code> interface
-   *                 that is to be registered with this <code>PooledConnection</code> object
-   *                 <br>
+   *     that is to be registered with this <code>PooledConnection</code> object <br>
    */
   public void addStatementEventListener(StatementEventListener listener) {
     statementEventListeners.add(listener);
@@ -168,14 +157,12 @@ public class MariaDbPooledConnection implements PooledConnection {
 
   /**
    * Removes the specified <code>StatementEventListener</code> from the list of components that will
-   * be notified when the driver detects that a
-   * <code>PreparedStatement</code> has been closed or is invalid.
-   * <br>
+   * be notified when the driver detects that a <code>PreparedStatement</code> has been closed or is
+   * invalid. <br>
    *
-   * @param listener the component which implements the
-   *                 <code>StatementEventListener</code> interface that was previously
-   *                 registered with this <code>PooledConnection</code> object
-   *                 <br>
+   * @param listener the component which implements the <code>StatementEventListener</code>
+   *     interface that was previously registered with this <code>PooledConnection</code> object
+   *     <br>
    */
   public void removeStatementEventListener(StatementEventListener listener) {
     statementEventListeners.remove(listener);
@@ -210,9 +197,7 @@ public class MariaDbPooledConnection implements PooledConnection {
     }
   }
 
-  /**
-   * Fire Connection close to listening listeners.
-   */
+  /** Fire Connection close to listening listeners. */
   public void fireConnectionClosed() {
     ConnectionEvent event = new ConnectionEvent(this);
     for (ConnectionEventListener listener : connectionEventListeners) {
@@ -250,9 +235,7 @@ public class MariaDbPooledConnection implements PooledConnection {
     return lastUsed;
   }
 
-  /**
-   * Set last poolConnection use to now.
-   */
+  /** Set last poolConnection use to now. */
   public void lastUsedToNow() {
     lastUsed.set(System.nanoTime());
   }

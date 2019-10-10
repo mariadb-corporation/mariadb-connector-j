@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -79,24 +79,19 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
  */
 public class GaleraFailoverTest extends SequentialFailoverTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyGaleraUrl;
     Assume.assumeTrue(initialGaleraUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialGaleraUrl;
-    currentType = HaMode.FAILOVER;
+    currentType = HaMode.LOADBALANCE;
   }
-
 
   @Test
   public void showRep() throws Exception {
@@ -104,34 +99,38 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
     List<HostAddress> initAddresses = urlParser.getHostAddresses();
 
     for (int i = 0; i < initAddresses.size(); i++) {
-      urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
-      try (Connection master = MariaDbConnection.newConnection(urlParser, null)) {
+      UrlParser urlParserMono =
+          new UrlParser(
+              urlParser.getDatabase(),
+              Arrays.asList(initAddresses.get(i)),
+              urlParser.getOptions(),
+              urlParser.getHaMode());
+      try (Connection master = MariaDbConnection.newConnection(urlParserMono, null)) {
         Statement stmt = master.createStatement();
         ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
         assertTrue(rs.next());
         System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
       }
     }
-
   }
 
   @Test
   public void validGaleraPing() throws Exception {
     long start = System.currentTimeMillis();
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
-        initialGaleraUrl + "&maxPoolSize=1")) {
+    try (MariaDbPoolDataSource pool =
+        new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         statement.execute("SELECT 1 ");
       }
       Thread.sleep(2000);
-      //Galera ping must occur
+      // Galera ping must occur
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         statement.execute("SELECT 1 ");
       }
     }
-    //if fail, will loop until connectTimeout = 30s
+    // if fail, will loop until connectTimeout = 30s
     assertTrue(System.currentTimeMillis() - start < 5000);
   }
 

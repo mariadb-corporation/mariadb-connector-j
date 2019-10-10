@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.util.constant;
 
-
 public class ColumnFlags {
 
   public static final short NOT_NULL = 1;
@@ -68,4 +67,3 @@ public class ColumnFlags {
   public static final short TIMESTAMP = 1024;
   public static final short SET = 2048;
 }
-

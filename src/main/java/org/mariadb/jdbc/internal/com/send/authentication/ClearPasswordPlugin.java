@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,48 +52,62 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
 
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import java.io.*;
+import java.util.concurrent.atomic.*;
 
 public class ClearPasswordPlugin implements AuthenticationPlugin {
 
-  private final String password;
-  private final String passwordCharacterEncoding;
+  public static final String TYPE = "mysql_clear_password";
 
-  /**
-   * Clear text password plugin constructor.
-   *
-   * @param password                    password
-   * @param passwordCharacterEncoding   password encoding
-   */
-  public ClearPasswordPlugin(String password, String passwordCharacterEncoding) {
-    this.password = password;
-    this.passwordCharacterEncoding = passwordCharacterEncoding;
+  private String authenticationData;
+  private String passwordCharacterEncoding;
+
+  @Override
+  public String name() {
+    return "mysql clear password";
+  }
+
+  @Override
+  public String type() {
+    return TYPE;
+  }
+
+  @Override
+  public boolean mustUseSsl() {
+    return true;
+  }
+
+  public void initialize(String authenticationData, byte[] authData, Options options) {
+    this.authenticationData = authenticationData;
+    this.passwordCharacterEncoding = options.passwordCharacterEncoding;
   }
 
   /**
    * Send password in clear text to server.
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
-    if (password == null || password.isEmpty()) {
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException {
+    if (authenticationData == null || authenticationData.isEmpty()) {
       out.writeEmptyPacket(sequence.incrementAndGet());
     } else {
       out.startPacket(sequence.incrementAndGet());
       byte[] bytePwd;
       if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-        bytePwd = password.getBytes(passwordCharacterEncoding);
+        bytePwd = authenticationData.getBytes(passwordCharacterEncoding);
       } else {
-        bytePwd = password.getBytes();
+        bytePwd = authenticationData.getBytes();
       }
       out.write(bytePwd);
       out.write(0);
@@ -103,6 +117,5 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
     Buffer buffer = in.getPacket(true);
     sequence.set(in.getLastPacketSeq());
     return buffer;
-
   }
 }

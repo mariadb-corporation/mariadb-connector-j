@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -78,23 +78,18 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
  * - AURORA_ACCESS_KEY = access key - AURORA_SECRET_KEY = secret key - AURORA_CLUSTER_IDENTIFIER =
  * cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
  *
- * <p>"AURORA" environment variable must be set to a value</p>
- *
+ * <p>"AURORA" environment variable must be set to a value
  */
 public class AuroraFailoverTest extends BaseReplication {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyAuroraUrl;
     Assume.assumeTrue(initialAuroraUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialAuroraUrl;
@@ -106,8 +101,10 @@ public class AuroraFailoverTest extends BaseReplication {
     try (Connection connection = getNewConnection(false)) {
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists auroraDelete" + jobId);
-      stmt.execute("create table auroraDelete" + jobId
-          + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute(
+          "create table auroraDelete"
+              + jobId
+              + " (id int not null primary key auto_increment, test VARCHAR(10))");
       connection.setReadOnly(true);
       assertTrue(connection.isReadOnly());
       try {
@@ -116,7 +113,7 @@ public class AuroraFailoverTest extends BaseReplication {
             "ERROR - > must not be able to write on slave. check if you database is start with --read-only");
         fail();
       } catch (SQLException e) {
-        //normal exception
+        // normal exception
         connection.setReadOnly(false);
         stmt.execute("drop table if exists auroraDelete" + jobId);
       }
@@ -128,10 +125,12 @@ public class AuroraFailoverTest extends BaseReplication {
     try (Connection connection = getNewConnection(false)) {
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists auroraReadSlave" + jobId);
-      stmt.execute("create table auroraReadSlave" + jobId
-          + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute(
+          "create table auroraReadSlave"
+              + jobId
+              + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
-      //wait to be sure slave have replicate data
+      // wait to be sure slave have replicate data
       Thread.sleep(1500);
 
       connection.setReadOnly(true);
@@ -142,24 +141,21 @@ public class AuroraFailoverTest extends BaseReplication {
     }
   }
 
-
   @Test
   public void testReadOnly() throws SQLException {
     try (Connection connection = getNewConnection(false)) {
-      ResultSet rs = connection.createStatement()
-          .executeQuery("show global variables like 'innodb_read_only'");
+      ResultSet rs = connection.createStatement().executeQuery("select @@innodb_read_only");
 
       assertTrue(rs.next());
-      assertEquals("OFF", rs.getString(2));
+      assertEquals(0, rs.getInt(1));
       assertFalse(connection.isReadOnly());
 
       connection.setReadOnly(true);
 
-      rs = connection.createStatement()
-          .executeQuery("show global variables like 'innodb_read_only'");
+      rs = connection.createStatement().executeQuery("select @@innodb_read_only");
 
       assertTrue(rs.next());
-      assertNotEquals("OFF", rs.getString(2));
+      assertNotEquals(0, rs.getInt(1));
       assertTrue(connection.isReadOnly());
     }
   }
@@ -179,7 +175,7 @@ public class AuroraFailoverTest extends BaseReplication {
           fail();
         }
       } catch (SQLException e) {
-        //normal error
+        // normal error
       }
       assertFalse(connection.isReadOnly());
       long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
@@ -230,10 +226,7 @@ public class AuroraFailoverTest extends BaseReplication {
     }
   }
 
-  /**
-   * Conj-166 Connection error code must be thrown.
-   *
-   */
+  /** Conj-166 Connection error code must be thrown. */
   @Test
   public void testAccessDeniedErrorCode() {
     try {
@@ -256,7 +249,7 @@ public class AuroraFailoverTest extends BaseReplication {
       Statement st = connection.createStatement();
       try {
         st.execute("SELECT 1 ");
-        //switch connection to master -> slave blacklisted
+        // switch connection to master -> slave blacklisted
       } catch (SQLException e) {
         fail("must not have been here");
       }
@@ -276,13 +269,13 @@ public class AuroraFailoverTest extends BaseReplication {
       connection.setReadOnly(true);
       int current = getServerId(connection);
       protocol = getProtocolFromConnection(connection);
-      assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener()
-              .getBlacklistKeys().size(),
+      assertTrue(
+          "Blacklist would normally be zero, but was "
+              + protocol.getProxy().getListener().getBlacklistKeys().size(),
           protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
       stopProxy(current);
     }
-    //check that after error connection have not been put to blacklist
+    // check that after error connection have not been put to blacklist
     assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
   }
-
 }

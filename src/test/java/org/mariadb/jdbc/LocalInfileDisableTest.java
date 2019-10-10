@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -76,7 +76,8 @@ public class LocalInfileDisableTest extends BaseTest {
 
   @Test
   public void testLocalInfileWithoutInputStream() throws SQLException {
-    Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
+    Assume.assumeFalse(
+        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=false")) {
       Exception ex = null;
       try (Statement stmt = connection.createStatement()) {
@@ -87,10 +88,9 @@ public class LocalInfileDisableTest extends BaseTest {
 
       assertNotNull("Expected an exception to be thrown", ex);
       String message = ex.getMessage();
-      String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
+      String expectedMessage =
+          "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
       assertTrue(message.contains(expectedMessage));
     }
   }
-
-
 }

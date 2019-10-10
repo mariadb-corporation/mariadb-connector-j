@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -78,22 +78,26 @@ public class UpdateResultSetTest extends BaseTest {
    */
   @Test
   public void testNoPrimaryKey() throws Exception {
-    createTable("testnoprimarykey", "`id` INT NOT NULL,"
-        + "`t1` VARCHAR(50) NOT NULL");
+    createTable("testnoprimarykey", "`id` INT NOT NULL," + "`t1` VARCHAR(50) NOT NULL");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO testnoprimarykey VALUES (1, 't1'), (2, 't2')");
 
-    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-        "SELECT * FROM testnoprimarykey", ResultSet.TYPE_FORWARD_ONLY,
-        ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM testnoprimarykey",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery("SELECT * FROM testnoprimarykey");
       assertTrue(rs.next());
       try {
         rs.updateString(1, "1");
         fail();
       } catch (SQLException sqle) {
-        assertEquals("ResultSet cannot be updated. Table "
-                + "`" + sharedConnection.getCatalog() + "`.`testnoprimarykey` has no primary key",
+        assertEquals(
+            "ResultSet cannot be updated. Table "
+                + "`"
+                + sharedConnection.getCatalog()
+                + "`.`testnoprimarykey` has no primary key",
             sqle.getMessage());
       }
     }
@@ -101,72 +105,86 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testNoDatabase() throws Exception {
-    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-        "SELECT 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       try {
         rs.updateString(1, "1");
         fail();
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(), sqle.getMessage()
-            .contains("The result-set contains fields without without any database information"));
+        assertTrue(
+            sqle.getMessage(),
+            sqle.getMessage()
+                .contains(
+                    "The result-set contains fields without without any database information"));
       }
-
     }
   }
 
   @Test
   public void testMultipleTable() throws Exception {
 
-    createTable("testMultipleTable1", "`id1` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NULL,"
-        + "PRIMARY KEY (`id1`)");
+    createTable(
+        "testMultipleTable1",
+        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
 
-    createTable("testMultipleTable2", "`id2` INT NOT NULL AUTO_INCREMENT,"
-        + "`t2` VARCHAR(50) NULL,"
-        + "PRIMARY KEY (`id2`)");
+    createTable(
+        "testMultipleTable2",
+        "`id2` INT NOT NULL AUTO_INCREMENT," + "`t2` VARCHAR(50) NULL," + "PRIMARY KEY (`id2`)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO testMultipleTable1(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testMultipleTable2(t2) values ('2')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT * FROM testMultipleTable1, testMultipleTable2",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM testMultipleTable1, testMultipleTable2",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       try {
         rs.updateString("t1", "new value");
         fail("must have failed since there is different tables");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(), sqle.getMessage().contains("ResultSet cannot be updated. "
-            + "The result-set contains fields on different tables"));
+        assertTrue(
+            sqle.getMessage(),
+            sqle.getMessage()
+                .contains(
+                    "ResultSet cannot be updated. "
+                        + "The result-set contains fields on different tables"));
       }
     }
   }
 
-
   @Test
   public void testOneNoTable() throws Exception {
-    createTable("testOneNoTable", "`id1` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NULL,"
-        + "PRIMARY KEY (`id1`)");
+    createTable(
+        "testOneNoTable",
+        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO testOneNoTable(t1) values ('1')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT *, now() FROM testOneNoTable",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT *, now() FROM testOneNoTable",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       try {
         rs.updateString("t1", "new value");
         fail("must have failed since there is a field without database");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(), sqle.getMessage().contains("ResultSet cannot be updated. "
-            + "The result-set contains fields without without any database information"));
+        assertTrue(
+            sqle.getMessage(),
+            sqle.getMessage()
+                .contains(
+                    "ResultSet cannot be updated. "
+                        + "The result-set contains fields without without any database information"));
       }
     }
   }
@@ -178,53 +196,59 @@ public class UpdateResultSetTest extends BaseTest {
     try {
       stmt.execute("DROP DATABASE testConnectorJ");
     } catch (SQLException sqle) {
-      //eat
+      // eat
     }
 
     stmt.execute("CREATE DATABASE testConnectorJ");
-    createTable(sharedConnection.getCatalog() + ".testMultipleDatabase",
-        "`id1` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NULL,"
-            + "PRIMARY KEY (`id1`)");
+    createTable(
+        sharedConnection.getCatalog() + ".testMultipleDatabase",
+        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
 
-    createTable("testConnectorJ.testMultipleDatabase", "`id2` INT NOT NULL AUTO_INCREMENT,"
-        + "`t2` VARCHAR(50) NULL,"
-        + "PRIMARY KEY (`id2`)");
+    createTable(
+        "testConnectorJ.testMultipleDatabase",
+        "`id2` INT NOT NULL AUTO_INCREMENT," + "`t2` VARCHAR(50) NULL," + "PRIMARY KEY (`id2`)");
 
     stmt.executeQuery(
         "INSERT INTO " + sharedConnection.getCatalog() + ".testMultipleDatabase(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
 
-    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM "
-            + sharedConnection.getCatalog()
-            + ".testMultipleDatabase, testConnectorJ.testMultipleDatabase",
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM "
+                + sharedConnection.getCatalog()
+                + ".testMultipleDatabase, testConnectorJ.testMultipleDatabase",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       try {
         rs.updateString("t1", "new value");
         fail("must have failed since there is different database");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(),
+        assertTrue(
+            sqle.getMessage(),
             sqle.getMessage().contains("The result-set contains more than one database"));
       }
     }
   }
 
-
   @Test
   public void testUpdateWithoutPrimary() throws Exception {
-    createTable("UpdateWithoutPrimary", "`id` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NOT NULL,"
-        + "`t2` VARCHAR(50) NULL default 'default-value',"
-        + "PRIMARY KEY (`id`)");
+    createTable(
+        "UpdateWithoutPrimary",
+        "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL,"
+            + "`t2` VARCHAR(50) NULL default 'default-value',"
+            + "PRIMARY KEY (`id`)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO UpdateWithoutPrimary(t1,t2) values ('1-1','1-2')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT t1, t2 FROM UpdateWithoutPrimary",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT t1, t2 FROM UpdateWithoutPrimary",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       try {
@@ -232,16 +256,23 @@ public class UpdateResultSetTest extends BaseTest {
         rs.updateRow();
         fail();
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(),
-            sqle.getMessage().contains("ResultSet cannot be updated. Primary key "
-                + "field `id` is not in result-set"));
+        assertTrue(
+            sqle.getMessage(),
+            sqle.getMessage()
+                .contains(
+                    "ResultSet cannot be updated. Primary key "
+                        + "field `id` is not in result-set"));
       }
       try {
         rs.deleteRow();
         fail();
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(), sqle.getMessage().contains("ResultSet cannot be updated. "
-            + "Primary key field `id` is not in result-set"));
+        assertTrue(
+            sqle.getMessage(),
+            sqle.getMessage()
+                .contains(
+                    "ResultSet cannot be updated. "
+                        + "Primary key field `id` is not in result-set"));
       }
     }
     int[] autoInc = setAutoInc();
@@ -256,10 +287,13 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testUpdateWithPrimary() throws Exception {
-    createTable("testUpdateWithPrimary", "`id` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NOT NULL,"
-        + "`t2` VARCHAR(50) NULL default 'default-value',"
-        + "PRIMARY KEY (`id`)", "DEFAULT CHARSET=utf8");
+    createTable(
+        "testUpdateWithPrimary",
+        "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL,"
+            + "`t2` VARCHAR(50) NULL default 'default-value',"
+            + "PRIMARY KEY (`id`)",
+        "DEFAULT CHARSET=utf8");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery(
@@ -267,9 +301,11 @@ public class UpdateResultSetTest extends BaseTest {
 
     String utf8escapeQuote = "你好 '\' \" \\";
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT id, t1, t2 FROM testUpdateWithPrimary",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT id, t1, t2 FROM testUpdateWithPrimary",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       rs.moveToInsertRow();
@@ -305,17 +341,19 @@ public class UpdateResultSetTest extends BaseTest {
     assertFalse(rs.next());
   }
 
-
   @Test
   public void testUpdateWhenFetch() throws Exception {
-    createTable("testUpdateWhenFetch", "`id` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NOT NULL,"
-        + "`t2` VARCHAR(50) NULL default 'default-value',"
-        + "PRIMARY KEY (`id`)", "DEFAULT CHARSET=utf8");
+    createTable(
+        "testUpdateWhenFetch",
+        "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL,"
+            + "`t2` VARCHAR(50) NULL default 'default-value',"
+            + "PRIMARY KEY (`id`)",
+        "DEFAULT CHARSET=utf8");
 
     final Statement stmt = sharedConnection.createStatement();
-    PreparedStatement pstmt = sharedConnection
-        .prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
+    PreparedStatement pstmt =
+        sharedConnection.prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
     for (int i = 1; i < 100; i++) {
       pstmt.setString(1, i + "-1");
       pstmt.setString(2, i + "-2");
@@ -324,9 +362,11 @@ public class UpdateResultSetTest extends BaseTest {
     pstmt.executeBatch();
 
     String utf8escapeQuote = "你好 '\' \" \\";
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT id, t1, t2 FROM testUpdateWhenFetch",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT id, t1, t2 FROM testUpdateWhenFetch",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       preparedStatement.setFetchSize(2);
       ResultSet rs = preparedStatement.executeQuery();
 
@@ -370,17 +410,21 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testPrimaryGenerated() throws Exception {
-    createTable("PrimaryGenerated", "`id` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NOT NULL,"
-        + "`t2` VARCHAR(50) NULL default 'default-value',"
-        + "PRIMARY KEY (`id`)");
+    createTable(
+        "PrimaryGenerated",
+        "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL,"
+            + "`t2` VARCHAR(50) NULL default 'default-value',"
+            + "PRIMARY KEY (`id`)");
 
     Statement stmt = sharedConnection.createStatement();
     int[] autoInc = setAutoInc();
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT t1, t2, id FROM PrimaryGenerated",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT t1, t2, id FROM PrimaryGenerated",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertFalse(rs.next());
 
@@ -399,7 +443,8 @@ public class UpdateResultSetTest extends BaseTest {
         rs.insertRow();
         fail("must not occur since t1 cannot be null");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(),
+        assertTrue(
+            sqle.getMessage(),
             sqle.getMessage().contains("Field 't1' doesn't have a default value"));
       }
 
@@ -414,7 +459,6 @@ public class UpdateResultSetTest extends BaseTest {
       assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(3));
 
       assertFalse(rs.next());
-
     }
 
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
@@ -431,17 +475,20 @@ public class UpdateResultSetTest extends BaseTest {
     assertFalse(rs.next());
   }
 
-
   @Test
   public void testPrimaryGeneratedDefault() throws Exception {
-    createTable("testPrimaryGeneratedDefault", "`id` INT NOT NULL AUTO_INCREMENT,"
-        + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
-        + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-        + "PRIMARY KEY (`id`)");
+    createTable(
+        "testPrimaryGeneratedDefault",
+        "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
+            + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            + "PRIMARY KEY (`id`)");
     int[] autoInc = setAutoInc();
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertFalse(rs.next());
       rs.moveToInsertRow();
@@ -480,24 +527,27 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testDelete() throws Exception {
-    createTable("testDelete", "`id` INT NOT NULL,"
-        + "`id2` INT NOT NULL,"
-        + "`t1` VARCHAR(50),"
-        + "PRIMARY KEY (`id`,`id2`)");
+    createTable(
+        "testDelete",
+        "`id` INT NOT NULL,"
+            + "`id2` INT NOT NULL,"
+            + "`t1` VARCHAR(50),"
+            + "PRIMARY KEY (`id`,`id2`)");
 
-    Statement stmt = sharedConnection
-        .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    Statement stmt =
+        sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     stmt.execute("INSERT INTO testDelete values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT * FROM testDelete",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM testDelete", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       try {
         rs.deleteRow();
         fail();
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage(),
+        assertTrue(
+            sqle.getMessage(),
             sqle.getMessage().contains("Current position is before the first row"));
       }
 
@@ -527,25 +577,29 @@ public class UpdateResultSetTest extends BaseTest {
       rs.getInt(1);
       fail();
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage(),
+      assertTrue(
+          sqle.getMessage(),
           sqle.getMessage().contains("Current position is before the first row"));
     }
-
   }
 
   @Test
   public void testUpdateChangingMultiplePrimaryKey() throws Exception {
-    createTable("testUpdateChangingMultiplePrimaryKey", "`id` INT NOT NULL,"
-        + "`id2` INT NOT NULL,"
-        + "`t1` VARCHAR(50),"
-        + "PRIMARY KEY (`id`,`id2`)");
+    createTable(
+        "testUpdateChangingMultiplePrimaryKey",
+        "`id` INT NOT NULL,"
+            + "`id2` INT NOT NULL,"
+            + "`t1` VARCHAR(50),"
+            + "PRIMARY KEY (`id`,`id2`)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("SELECT * FROM testUpdateChangingMultiplePrimaryKey",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT * FROM testUpdateChangingMultiplePrimaryKey",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       assertTrue(rs.next());
@@ -584,8 +638,8 @@ public class UpdateResultSetTest extends BaseTest {
   public void updateBlob() throws SQLException, IOException {
     createTable("updateBlob", "id int not null primary key, strm blob");
 
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into updateBlob (id, strm) values (?,?)");
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
     byte[] theBlob = {1, 2, 3, 4, 5, 6};
     InputStream stream = new ByteArrayInputStream(theBlob);
 
@@ -595,9 +649,9 @@ public class UpdateResultSetTest extends BaseTest {
 
     byte[] updatedBlob = {1, 3, 6, 9, 15, 21};
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select * from updateBlob",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
@@ -608,9 +662,9 @@ public class UpdateResultSetTest extends BaseTest {
       checkResult(rs, updatedBlob);
     }
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select * from updateBlob",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       checkResult(rs, updatedBlob);
@@ -633,7 +687,6 @@ public class UpdateResultSetTest extends BaseTest {
     }
   }
 
-
   @Test
   public void updateMeta() throws SQLException {
     DatabaseMetaData meta = sharedConnection.getMetaData();
@@ -649,19 +702,22 @@ public class UpdateResultSetTest extends BaseTest {
     assertTrue(meta.ownUpdatesAreVisible(ResultSet.TYPE_SCROLL_INSENSITIVE));
     assertTrue(meta.ownDeletesAreVisible(ResultSet.TYPE_SCROLL_INSENSITIVE));
     assertTrue(meta.ownInsertsAreVisible(ResultSet.TYPE_SCROLL_INSENSITIVE));
-    assertTrue(meta.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_READ_ONLY));
-    assertTrue(meta.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE,
-        ResultSet.CONCUR_UPDATABLE));
+    assertTrue(
+        meta.supportsResultSetConcurrency(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
+    assertTrue(
+        meta.supportsResultSetConcurrency(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE));
 
     assertFalse(meta.ownUpdatesAreVisible(ResultSet.TYPE_SCROLL_SENSITIVE));
     assertFalse(meta.ownDeletesAreVisible(ResultSet.TYPE_SCROLL_SENSITIVE));
     assertFalse(meta.ownInsertsAreVisible(ResultSet.TYPE_SCROLL_SENSITIVE));
-    assertFalse(meta.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_SENSITIVE,
-        ResultSet.CONCUR_READ_ONLY));
-    assertFalse(meta.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_SENSITIVE,
-        ResultSet.CONCUR_UPDATABLE));
-
+    assertFalse(
+        meta.supportsResultSetConcurrency(
+            ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY));
+    assertFalse(
+        meta.supportsResultSetConcurrency(
+            ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE));
   }
 
   @Test
@@ -671,19 +727,19 @@ public class UpdateResultSetTest extends BaseTest {
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
 
-    stmt = sharedConnection
-        .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    stmt =
+        sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
     rs = stmt.executeQuery("SELECT 1");
     assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
-
   }
 
   @Test
   public void insertNoRow() throws SQLException {
     createTable("insertNoRow", "id int not null primary key, strm blob");
-    Statement st = sharedConnection
-        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select * from insertNoRow");
     assertFalse(rs.next());
     rs.moveToInsertRow();
@@ -691,7 +747,7 @@ public class UpdateResultSetTest extends BaseTest {
       rs.refreshRow();
       fail("Can't refresh when on the insert row.");
     } catch (SQLException sqle) {
-      //expected
+      // expected
     }
     rs.moveToCurrentRow();
   }
@@ -700,8 +756,9 @@ public class UpdateResultSetTest extends BaseTest {
   public void refreshRow() throws SQLException {
     createTable("refreshRow", "id int not null primary key, strm blob");
 
-    Statement st = sharedConnection
-        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    Statement st =
+        sharedConnection.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     st.execute("INSERT INTO refreshRow values (1, '555')");
     ResultSet rs = st.executeQuery("select * from refreshRow");
 
@@ -710,7 +767,7 @@ public class UpdateResultSetTest extends BaseTest {
       rs.refreshRow();
       fail("Can't refresh when not on row.");
     } catch (SQLException sqle) {
-      //expected
+      // expected
     }
 
     assertTrue(rs.next());
@@ -724,7 +781,7 @@ public class UpdateResultSetTest extends BaseTest {
       rs.refreshRow();
       fail("Can't refresh when on insert row");
     } catch (SQLException sqle) {
-      //expected
+      // expected
     }
     rs.moveToCurrentRow();
 
@@ -733,18 +790,19 @@ public class UpdateResultSetTest extends BaseTest {
       rs.refreshRow();
       fail("Can't refresh when not on row.");
     } catch (SQLException sqle) {
-      //expected
+      // expected
     }
   }
-
 
   @Test
   public void testMoveToInsertRow() throws SQLException {
     createTable("testMoveToInsertRow", "t2 text, t1 text, id int primary key");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select id, t1, t2 from testMoveToInsertRow",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select id, t1, t2 from testMoveToInsertRow",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       assertNotNull(rs);
@@ -787,9 +845,11 @@ public class UpdateResultSetTest extends BaseTest {
       assertNull(rs.getString("t2"));
     }
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select id, t1, t2 from testMoveToInsertRow",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select id, t1, t2 from testMoveToInsertRow",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       assertTrue(rs.first());
@@ -830,9 +890,11 @@ public class UpdateResultSetTest extends BaseTest {
     st.executeUpdate(
         "INSERT INTO cancelRowUpdatesTest(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select id,c from cancelRowUpdatesTest order by id",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select id,c from cancelRowUpdatesTest order by id",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       assertTrue(rs.next());
@@ -851,7 +913,6 @@ public class UpdateResultSetTest extends BaseTest {
       assertTrue(rs.first());
       assertTrue(rs.next());
       assertEquals("2bis", rs.getString("c"));
-
     }
   }
 
@@ -862,9 +923,11 @@ public class UpdateResultSetTest extends BaseTest {
     Statement st = sharedConnection.createStatement();
     st.executeUpdate("INSERT INTO deleteRows(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select id,c from deleteRows order by id",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select id,c from deleteRows order by id",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
 
       assertTrue(rs.next());
@@ -880,7 +943,6 @@ public class UpdateResultSetTest extends BaseTest {
 
       rs.deleteRow();
       assertEquals(2, rs.getInt("id"));
-
     }
   }
 
@@ -891,9 +953,11 @@ public class UpdateResultSetTest extends BaseTest {
     Statement st = sharedConnection.createStatement();
     st.executeUpdate("INSERT INTO updatePosTest(id,c) values (1,'1')");
 
-    try (PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("select id,c from updatePosTest",
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "select id,c from updatePosTest",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE)) {
 
       ResultSet rs = preparedStatement.executeQuery();
 
@@ -943,7 +1007,6 @@ public class UpdateResultSetTest extends BaseTest {
       } catch (SQLException sqle) {
         assertEquals("Current position is after the last row", sqle.getMessage());
       }
-
     }
   }
 
@@ -954,16 +1017,17 @@ public class UpdateResultSetTest extends BaseTest {
    */
   @Test
   public void repeatedFieldUpdatable() throws SQLException {
-    createTable("repeatedFieldUpdatable",
-        "t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1)");
+    createTable(
+        "repeatedFieldUpdatable", "t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
-    PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-        "SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable",
-        ResultSet.TYPE_FORWARD_ONLY,
-        ResultSet.CONCUR_UPDATABLE);
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = preparedStatement.executeQuery();
     while (rs.next()) {
       rs.getObject(3);

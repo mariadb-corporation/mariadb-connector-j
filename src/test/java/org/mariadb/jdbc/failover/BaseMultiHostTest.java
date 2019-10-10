@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -81,14 +81,14 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 /**
- * Base util class. For testing example mvn test -DdbUrl=jdbc:mariadb://localhost:3306,localhost:3307/test?user=root
- * -DlogLevel=FINEST specific parameters : defaultMultiHostUrl : If testing Aurora, set the region.
- * Default is US_EAST_1.
+ * Base util class. For testing example mvn test
+ * -DdbUrl=jdbc:mariadb://localhost:3306,localhost:3307/test?user=root -DlogLevel=FINEST specific
+ * parameters : defaultMultiHostUrl : If testing Aurora, set the region. Default is US_EAST_1.
  */
 @Ignore
 public class BaseMultiHostTest {
 
-  //hosts
+  // hosts
   private static final HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<>();
   protected static String initialGaleraUrl;
   protected static String initialAuroraUrl;
@@ -106,23 +106,32 @@ public class BaseMultiHostTest {
   protected static String username;
   private static String hostname;
   public HaMode currentType;
+
   @Rule
-  public TestRule watcher = new TestWatcher() {
-    protected void starting(Description description) {
-      System.out.println(
-          "start test : " + description.getClassName() + "." + description.getMethodName());
-    }
+  public TestRule watcher =
+      new TestWatcher() {
+        protected void starting(Description description) {
+          System.out.println(
+              "start test : " + description.getClassName() + "." + description.getMethodName());
+        }
 
-    protected void succeeded(Description description) {
-      System.out.println("finished test success : " + description.getClassName() + "." + description
-          .getMethodName());
-    }
+        protected void succeeded(Description description) {
+          System.out.println(
+              "finished test success : "
+                  + description.getClassName()
+                  + "."
+                  + description.getMethodName());
+        }
 
-    protected void failed(Throwable throwable, Description description) {
-      System.out.println("finished test failed : " + description.getClassName() + "." + description
-          .getMethodName());
-    }
-  };
+        protected void failed(Throwable throwable, Description description) {
+          System.out.println(
+              "finished test failed : "
+                  + description.getClassName()
+                  + "."
+                  + description.getMethodName());
+        }
+      };
+
   protected String defaultUrl;
 
   /**
@@ -137,9 +146,14 @@ public class BaseMultiHostTest {
     initialGaleraUrl = System.getProperty("defaultGaleraUrl");
     initialReplicationUrl = System.getProperty("defaultReplicationUrl");
     initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
+    initialSequentialUrl = System.getProperty("defaultSequentialUrl");
     initialAuroraUrl = System.getProperty("defaultAuroraUrl");
     jobId = System.getProperty("jobId", "_0");
 
+    if (initialUrl == null && !"true".equals(System.getenv("AURORA"))) {
+      String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
+      initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
+    }
     if (initialUrl != null) {
       proxyUrl = createProxies(initialUrl, HaMode.NONE);
     }
@@ -150,10 +164,10 @@ public class BaseMultiHostTest {
       proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, HaMode.LOADBALANCE);
     }
     if (initialGaleraUrl != null) {
-      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.FAILOVER);
+      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
     }
-    if (initialGaleraUrl != null) {
-      proxySequentialUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
+    if (initialSequentialUrl != null) {
+      proxySequentialUrl = createProxies(initialSequentialUrl, HaMode.SEQUENTIAL);
     }
     if (initialAuroraUrl != null) {
       proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);
@@ -164,8 +178,8 @@ public class BaseMultiHostTest {
    * Check server minimum version.
    *
    * @param connection connection to use
-   * @param major      major minimal number
-   * @param minor      minor minimal number
+   * @param major major minimal number
+   * @param minor minor minimal number
    * @return is server compatible
    * @throws SQLException exception
    */
@@ -174,14 +188,13 @@ public class BaseMultiHostTest {
     DatabaseMetaData md = connection.getMetaData();
     int dbMajor = md.getDatabaseMajorVersion();
     int dbMinor = md.getDatabaseMinorVersion();
-    return (dbMajor > major
-        || (dbMajor == major && dbMinor >= minor));
+    return (dbMajor > major || (dbMajor == major && dbMinor >= minor));
   }
 
   private static String createProxies(String tmpUrl, HaMode proxyType) throws SQLException {
     UrlParser tmpUrlParser;
     if (proxyType == HaMode.AURORA) {
-      //if using cluster end-point, permit to retrieve current master and replica instances
+      // if using cluster end-point, permit to retrieve current master and replica instances
       tmpUrlParser = retrieveEndpointsForProxies(tmpUrl);
     } else {
       tmpUrlParser = UrlParser.parse(tmpUrl);
@@ -196,7 +209,9 @@ public class BaseMultiHostTest {
       try {
         hostAddress = tmpUrlParser.getHostAddresses().get(i);
         tcpProxies[i] = new TcpProxy(hostAddress.host, hostAddress.port);
-        sockethosts.append(",address=(host=localhost)(port=").append(tcpProxies[i].getLocalPort())
+        sockethosts
+            .append(",address=(host=localhost)(port=")
+            .append(tcpProxies[i].getLocalPort())
             .append(")")
             .append((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
       } catch (IOException e) {
@@ -207,11 +222,13 @@ public class BaseMultiHostTest {
     if (tmpUrlParser.getHaMode().equals(HaMode.NONE)) {
       return "jdbc:mariadb://" + sockethosts.substring(1) + "/" + tmpUrl.split("/")[3];
     } else {
-      return "jdbc:mariadb:" + tmpUrlParser.getHaMode().toString().toLowerCase() + "://"
+      return "jdbc:mariadb:"
+          + tmpUrlParser.getHaMode().toString().toLowerCase()
+          + "://"
           + sockethosts.substring(1)
-          + "/" + tmpUrl.split("/")[3];
+          + "/"
+          + tmpUrl.split("/")[3];
     }
-
   }
 
   private static UrlParser retrieveEndpointsForProxies(String tmpUrl) throws SQLException {
@@ -230,9 +247,7 @@ public class BaseMultiHostTest {
     }
   }
 
-  /**
-   * Clean proxies.
-   */
+  /** Clean proxies. */
   @AfterClass
   public static void afterClass() {
     for (TcpProxy[] tcpProxies : proxySet.values()) {
@@ -240,15 +255,13 @@ public class BaseMultiHostTest {
         try {
           tcpProxy.stop();
         } catch (Exception e) {
-          //Eat exception
+          // Eat exception
         }
       }
     }
   }
 
-  /**
-   * Delete table and procedure if created. Close connection if needed
-   */
+  /** Delete table and procedure if created. Close connection if needed */
   @After
   public void afterBaseTest() {
     assureProxy();
@@ -268,9 +281,8 @@ public class BaseMultiHostTest {
     return getNewConnection(additionnalConnectionData, proxy, false);
   }
 
-  protected Connection getNewConnection(String additionnalConnectionData, boolean proxy,
-      boolean forceNewProxy)
-      throws SQLException {
+  protected Connection getNewConnection(
+      String additionnalConnectionData, boolean proxy, boolean forceNewProxy) throws SQLException {
     if (proxy) {
       String tmpProxyUrl = proxyUrl;
       if (forceNewProxy) {
@@ -291,7 +303,7 @@ public class BaseMultiHostTest {
   /**
    * Stop proxy, and restart it after a certain amount of time.
    *
-   * @param hostNumber   hostnumber (first is one)
+   * @param hostNumber hostnumber (first is one)
    * @param millissecond milliseconds
    */
   public void stopProxy(int hostNumber, long millissecond) {
@@ -324,7 +336,7 @@ public class BaseMultiHostTest {
   /**
    * Restart proxy.
    *
-   * @param hostNumber host number (first is  1)
+   * @param hostNumber host number (first is 1)
    */
   public void restartProxy(int hostNumber) {
     if (hostNumber != -1) {
@@ -332,9 +344,7 @@ public class BaseMultiHostTest {
     }
   }
 
-  /**
-   * Assure that proxies are reset after each test.
-   */
+  /** Assure that proxies are reset after each test. */
   public void assureProxy() {
     for (TcpProxy[] tcpProxies : proxySet.values()) {
       for (TcpProxy tcpProxy : tcpProxies) {
@@ -343,30 +353,33 @@ public class BaseMultiHostTest {
     }
   }
 
-  /**
-   * Assure that blacklist is reset after each test.
-   */
+  /** Assure that blacklist is reset after each test. */
   public void assureBlackList() {
     AbstractMastersListener.clearBlacklist();
   }
 
-  /**
-   * Does the user have super privileges or not.
-   */
+  /** Does the user have super privileges or not. */
   public boolean hasSuperPrivilege(Connection connection, String testName) throws SQLException {
     boolean superPrivilege = false;
     Statement st = connection.createStatement();
 
     // first test for specific user and host combination
-    try (ResultSet rs = st.executeQuery(
-        "SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
-            + hostname + "'")) {
+    try (ResultSet rs =
+        st.executeQuery(
+            "SELECT Super_Priv FROM mysql.user WHERE user = '"
+                + username
+                + "' AND host = '"
+                + hostname
+                + "'")) {
       if (rs.next()) {
         superPrivilege = (rs.getString(1).equals("Y"));
       } else {
         // then check for user on whatever (%) host
-        try (ResultSet rs2 = st.executeQuery(
-            "SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
+        try (ResultSet rs2 =
+            st.executeQuery(
+                "SELECT Super_Priv FROM mysql.user WHERE user = '"
+                    + username
+                    + "' AND host = '%'")) {
           if (rs2.next()) {
             superPrivilege = (rs2.getString(1).equals("Y"));
           }
@@ -427,9 +440,10 @@ public class BaseMultiHostTest {
 
   protected ServerPrepareResult getPrepareResult(ServerSidePreparedStatement preparedStatement)
       throws IllegalAccessException, NoSuchFieldException {
-    Field prepareResultField = ServerSidePreparedStatement.class
-        .getDeclaredField("serverPrepareResult");
+    Field prepareResultField =
+        ServerSidePreparedStatement.class.getDeclaredField("serverPrepareResult");
     prepareResultField.setAccessible(true);
-    return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
+    return (ServerPrepareResult)
+        prepareResultField.get(preparedStatement); // IllegalAccessException
   }
 }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,46 +52,39 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import java.io.Closeable;
-import java.sql.SQLException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.failover.Listener;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.util.pool.*;
 
+import java.io.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.locks.*;
 
 public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
 
   /**
    * Get a protocol instance.
    *
-   * @param urlParser  connection URL infos
+   * @param urlParser connection URL infos
    * @param globalInfo server global variables information
-   * @param lock       the lock for thread synchronisation
+   * @param lock the lock for thread synchronisation
    */
-
-  public MasterProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+  public MasterProtocol(
+      final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
   }
 
   /**
    * Get new instance.
    *
-   * @param proxy     proxy
+   * @param proxy proxy
    * @param urlParser url connection object
    * @return new instance
    */
-  private static MasterProtocol getNewProtocol(FailoverProxy proxy,
-      final GlobalStateInfo globalInfo, UrlParser urlParser) {
+  private static MasterProtocol getNewProtocol(
+      FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
     MasterProtocol newProtocol = new MasterProtocol(urlParser, globalInfo, proxy.lock);
     newProtocol.setProxy(proxy);
     return newProtocol;
@@ -100,15 +93,18 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
   /**
    * loop until found the failed connection.
    *
-   * @param listener     current failover
-   * @param globalInfo   server global variables information
-   * @param addresses    list of HostAddress to loop
+   * @param listener current failover
+   * @param globalInfo server global variables information
+   * @param addresses list of HostAddress to loop
    * @param searchFilter search parameter
    * @throws SQLException if not found
    */
-  public static void loop(Listener listener, final GlobalStateInfo globalInfo,
+  public static void loop(
+      Listener listener,
+      final GlobalStateInfo globalInfo,
       final List<HostAddress> addresses,
-      SearchFilter searchFilter) throws SQLException {
+      SearchFilter searchFilter)
+      throws SQLException {
 
     MasterProtocol protocol;
     ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
@@ -156,20 +152,20 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
           firstLoop = false;
         } else {
           try {
-            //wait 250ms before looping through all connection another time
+            // wait 250ms before looping through all connection another time
             Thread.sleep(250);
           } catch (InterruptedException interrupted) {
-            //interrupted, continue
+            // interrupted, continue
           }
         }
-
       }
-
     }
     if (lastQueryException != null) {
       throw new SQLException(
           "No active connection found for master : " + lastQueryException.getMessage(),
-          lastQueryException.getSQLState(), lastQueryException.getErrorCode(), lastQueryException);
+          lastQueryException.getSQLState(),
+          lastQueryException.getErrorCode(),
+          lastQueryException);
     }
     throw new SQLException("No active connection found for master");
   }
@@ -178,12 +174,12 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
    * Reinitialize loopAddresses with all hosts : all servers in randomize order without connected
    * host.
    *
-   * @param listener      current listener
+   * @param listener current listener
    * @param loopAddresses the list to reinitialize
    */
   private static void resetHostList(Listener listener, Deque<HostAddress> loopAddresses) {
-    //if all servers have been connected without result
-    //add back all servers
+    // if all servers have been connected without result
+    // add back all servers
     List<HostAddress> servers = new ArrayList<>();
     servers.addAll(listener.getUrlParser().getHostAddresses());
     Collections.shuffle(servers);

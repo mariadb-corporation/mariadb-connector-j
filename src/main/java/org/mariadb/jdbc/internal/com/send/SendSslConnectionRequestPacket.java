@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,30 +52,30 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.io.output.*;
 
-/**
- * Used for starting ssl connections.
- */
+import java.io.*;
+
+/** Used for starting ssl connections. */
 public class SendSslConnectionRequestPacket {
 
   /**
-   * Send SSL request packet.
-   * See https://mariadb.com/kb/en/library/connection/#sslrequest-packet
+   * Send SSL request packet. See https://mariadb.com/kb/en/library/connection/#sslrequest-packet
    *
-   * @param pos                  output stream
-   * @param clientCapabilities   client capabilities
-   * @param serverLanguage       connection charset
+   * @param pos output stream
+   * @param clientCapabilities client capabilities
+   * @param serverLanguage connection charset
    * @throws IOException if any connection error occur
    */
-  public static void send(final PacketOutputStream pos, final long clientCapabilities, final byte serverLanguage) throws IOException {
+  public static void send(
+      final PacketOutputStream pos, final long clientCapabilities, final byte serverLanguage)
+      throws IOException {
     pos.startPacket(1);
     pos.writeInt((int) clientCapabilities);
     pos.writeInt(1024 * 1024 * 1024);
-    pos.write(serverLanguage); //1
-    pos.writeBytes((byte) 0, 19);    //19
-    pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+    pos.write(serverLanguage); // 1
+    pos.writeBytes((byte) 0, 19); // 19
+    pos.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
     pos.flush();
   }
 }

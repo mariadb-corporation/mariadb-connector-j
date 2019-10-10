@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,10 @@
 
 package org.mariadb.jdbc.internal;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.*;
 
+import java.math.*;
+import java.sql.*;
 
 public enum ColumnType {
   OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
@@ -177,16 +173,16 @@ public enum ColumnType {
         return Time.class;
 
       default:
-        //DISTINCT
-        //STRUCT
-        //ARRAY
-        //REF
-        //DATALINK
-        //ROWID
-        //SQLXML
-        //REF_CURSOR
-        //TIME_WITH_TIMEZONE
-        //TIMESTAMP_WITH_TIMEZONE
+        // DISTINCT
+        // STRUCT
+        // ARRAY
+        // REF
+        // DATALINK
+        // ROWID
+        // SQLXML
+        // REF_CURSOR
+        // TIME_WITH_TIMEZONE
+        // TIMESTAMP_WITH_TIMEZONE
         break;
     }
     return null;
@@ -219,14 +215,14 @@ public enum ColumnType {
   /**
    * Get columnTypeName.
    *
-   * @param type   type
-   * @param len    len
+   * @param type type
+   * @param len len
    * @param signed signed
    * @param binary binary
    * @return type
    */
-  public static String getColumnTypeName(ColumnType type, long len, boolean signed,
-      boolean binary) {
+  public static String getColumnTypeName(
+      ColumnType type, long len, boolean signed, boolean binary) {
     switch (type) {
       case SMALLINT:
       case MEDIUMINT:
@@ -272,7 +268,7 @@ public enum ColumnType {
   /**
    * Convert server Type to server type.
    *
-   * @param typeValue     type value
+   * @param typeValue type value
    * @param charsetNumber charset
    * @return MariaDb type
    */
@@ -312,15 +308,15 @@ public enum ColumnType {
   /**
    * Get class name.
    *
-   * @param type    type
-   * @param len     len
-   * @param signed  signed
-   * @param binary  binary
+   * @param type type
+   * @param len len
+   * @param signed signed
+   * @param binary binary
    * @param options options
    * @return class name
    */
-  public static String getClassName(ColumnType type, int len, boolean signed, boolean binary,
-      Options options) {
+  public static String getClassName(
+      ColumnType type, int len, boolean signed, boolean binary, Options options) {
     switch (type) {
       case TINYINT:
         if (len == 1 && options.tinyInt1isBit) {
@@ -367,5 +363,4 @@ public enum ColumnType {
   public String getJavaTypeName() {
     return javaTypeName;
   }
-
 }

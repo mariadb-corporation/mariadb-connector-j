@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,20 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
 
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import java.io.*;
+import java.sql.*;
+import java.util.concurrent.atomic.*;
 
 public interface GssapiAuth {
 
-  void authenticate(PacketOutputStream writer, PacketInputStream in, AtomicInteger sequence,
-                    String servicePrincipalName, String mechanisms) throws SQLException, IOException;
-
+  void authenticate(
+      PacketOutputStream writer,
+      PacketInputStream in,
+      AtomicInteger sequence,
+      String servicePrincipalName,
+      String mechanisms)
+      throws SQLException, IOException;
 }

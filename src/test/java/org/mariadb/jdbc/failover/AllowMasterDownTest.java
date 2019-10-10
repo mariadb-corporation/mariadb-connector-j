@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2018 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -73,18 +73,24 @@ public class AllowMasterDownTest extends BaseTest {
 
   private String masterDownUrl;
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     Assume.assumeTrue(testSingleHost);
     if (testSingleHost) {
-      masterDownUrl = "jdbc:mariadb:replication//" + hostname + ":9999"
-          + "," + hostname + ((port == 0) ? "" : ":" + port)
-          + "/" + database + "?user=" + username
-          + ((password != null) ? "&password=" + password : "")
-          + "&retriesAllDown=10&allowMasterDownConnection";
+      masterDownUrl =
+          "jdbc:mariadb:replication//"
+              + hostname
+              + ":9999"
+              + ","
+              + hostname
+              + ((port == 0) ? "" : ":" + port)
+              + "/"
+              + database
+              + "?user="
+              + username
+              + ((password != null) ? "&password=" + password : "")
+              + "&retriesAllDown=10&allowMasterDownConnection";
     }
   }
 
@@ -126,7 +132,8 @@ public class AllowMasterDownTest extends BaseTest {
   @Test
   public void masterDownGetMeta() {
     try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
-      createTable("checkMetaData",
+      createTable(
+          "checkMetaData",
           "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
       DatabaseMetaData meta = connection.getMetaData();
       meta.getColumns(null, null, "checkMetaData", null);
@@ -139,7 +146,8 @@ public class AllowMasterDownTest extends BaseTest {
   @Test
   public void masterDownGetMetaRead() throws SQLException {
     try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
-      createTable("checkMetaData",
+      createTable(
+          "checkMetaData",
           "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
       connection.setReadOnly(true);
       DatabaseMetaData meta = connection.getMetaData();
@@ -210,5 +218,4 @@ public class AllowMasterDownTest extends BaseTest {
       }
     }
   }
-
 }

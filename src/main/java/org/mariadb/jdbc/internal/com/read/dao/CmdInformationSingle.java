@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,9 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
 
 public class CmdInformationSingle implements CmdInformation {
 
@@ -65,8 +66,8 @@ public class CmdInformationSingle implements CmdInformation {
   /**
    * Object containing update / insert ids, optimized for only one result.
    *
-   * @param insertId      auto generated id.
-   * @param updateCount   update count
+   * @param insertId auto generated id.
+   * @param updateCount update count
    * @param autoIncrement connection auto increment value.
    */
   public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
@@ -77,19 +78,18 @@ public class CmdInformationSingle implements CmdInformation {
 
   @Override
   public int[] getUpdateCounts() {
-    return new int[]{(int) updateCount};
+    return new int[] {(int) updateCount};
   }
 
   @Override
   public int[] getServerUpdateCounts() {
-    return new int[]{(int) updateCount};
+    return new int[] {(int) updateCount};
   }
 
   @Override
   public long[] getLargeUpdateCounts() {
-    return new long[]{updateCount};
+    return new long[] {updateCount};
   }
-
 
   @Override
   public int getUpdateCount() {
@@ -103,45 +103,48 @@ public class CmdInformationSingle implements CmdInformation {
 
   @Override
   public void addErrorStat() {
-    //not expected
+    // not expected
   }
 
   @Override
   public void reset() {
-    //not expected
+    // not expected
   }
 
   @Override
   public void addResultSetStat() {
-    //not expected
+    // not expected
   }
-
 
   /**
    * Get generated Keys.
    *
    * @param protocol current protocol
+   * @param sql SQL command
    * @return a resultSet containing the single insert ids.
    */
-  public ResultSet getGeneratedKeys(Protocol protocol) {
+  public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
     if (insertId == 0) {
       return SelectResultSet.createEmptyResultSet();
     }
-
-    if (updateCount > 1) {
+    //to be removed in 2.5.0. cannot in 2.4.x
+    if (updateCount > 1 && sql != null && !isDuplicateKeyUpdate(sql)) {
       long[] insertIds = new long[(int) updateCount];
       for (int i = 0; i < updateCount; i++) {
         insertIds[i] = insertId + i * autoIncrement;
       }
       return SelectResultSet.createGeneratedData(insertIds, protocol, true);
     }
+    return SelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+  }
 
-    return SelectResultSet.createGeneratedData(new long[]{insertId}, protocol, true);
+  private boolean isDuplicateKeyUpdate(String sql) {
+    return sql.matches("(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
   }
 
   @Override
   public ResultSet getBatchGeneratedKeys(Protocol protocol) {
-    return getGeneratedKeys(protocol);
+    return getGeneratedKeys(protocol, null);
   }
 
   public int getCurrentStatNumber() {
@@ -160,12 +163,10 @@ public class CmdInformationSingle implements CmdInformation {
 
   @Override
   public void addSuccessStat(long updateCount, long insertId) {
-    //cannot occur
+    // cannot occur
   }
-
 
   public void setRewrite(boolean rewritten) {
-    //no need
+    // no need
   }
 }
-

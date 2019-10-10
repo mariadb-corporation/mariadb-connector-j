@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,22 +52,21 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssUtility;
-import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssapiAuth;
-import org.mariadb.jdbc.internal.com.send.authentication.gssapi.StandardGssapiAuthentication;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.authentication.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.util.*;
+
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.concurrent.atomic.*;
 
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   private static final GssapiAuth gssapiAuth;
-  private byte[] authData;
-  private String optionServicePrincipalName;
 
   static {
     GssapiAuth init;
@@ -79,30 +78,52 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     gssapiAuth = init;
   }
 
+  private byte[] seed;
+  private String optionServicePrincipalName;
 
-  public SendGssApiAuthPacket(byte[] authData, String servicePrincipalName) {
-    this.authData = authData;
-    this.optionServicePrincipalName = servicePrincipalName;
+  @Override
+  public String name() {
+    return "GSSAPI client authentication";
+  }
+
+  @Override
+  public String type() {
+    return "auth_gssapi_client";
   }
 
   /**
-   * Process gssapi plugin authentication.
-   * see https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
+   * Initialization.
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
+   */
+  public void initialize(String authenticationData, byte[] seed, Options options) {
+    this.seed = seed;
+    this.optionServicePrincipalName = options.servicePrincipalName;
+  }
+
+  /**
+   * Process gssapi plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
+   *
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
-    Buffer buffer = new Buffer(authData);
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException, SQLException {
+    Buffer buffer = new Buffer(seed);
 
     final String serverSpn = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-    //using provided connection string SPN if set, or if not, using to server information
-    final String servicePrincipalName = (optionServicePrincipalName != null && !optionServicePrincipalName.isEmpty())
-        ? optionServicePrincipalName : serverSpn;
+    // using provided connection string SPN if set, or if not, using to server information
+    final String servicePrincipalName =
+        (optionServicePrincipalName != null && !optionServicePrincipalName.isEmpty())
+            ? optionServicePrincipalName
+            : serverSpn;
     String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
     if (mechanisms.isEmpty()) {
       mechanisms = "Kerberos";
@@ -114,6 +135,4 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     sequence.set(in.getLastPacketSeq());
     return buffer;
   }
-
 }
-

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-public class MariaDbProcedureStatement extends CallableProcedureStatement implements
-    CloneableCallableStatement {
+import java.sql.*;
+import java.util.*;
+
+public class MariaDbProcedureStatement extends CallableProcedureStatement
+    implements CloneableCallableStatement {
 
   private SelectResultSet outputResultSet = null;
 
@@ -68,24 +68,27 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
    * Specific implementation of CallableStatement to handle function call, represent by call like
    * {?= call procedure-name[(arg1,arg2, ...)]}.
    *
-   * @param query                query
-   * @param connection           current connection
-   * @param procedureName        procedure name
-   * @param database             database
-   * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-   *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-   *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param query query
+   * @param connection current connection
+   * @param procedureName procedure name
+   * @param database database
+   * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+   *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-   *                             or
-   *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+   *     or <code>ResultSet.CONCUR_UPDATABLE</code>
    * @throws SQLException exception
    */
-  public MariaDbProcedureStatement(String query, MariaDbConnection connection,
-      String procedureName, String database, int resultSetType, int resultSetConcurrency)
+  public MariaDbProcedureStatement(
+      String query,
+      MariaDbConnection connection,
+      String procedureName,
+      String database,
+      int resultSetType,
+      int resultSetConcurrency)
       throws SQLException {
     super(connection, query, resultSetType, resultSetConcurrency);
-    this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName,
-        false);
+    this.parameterMetadata =
+        new CallableParameterMetaData(connection, database, procedureName, false);
     setParamsAccordingToSetArguments();
     setParametersVariables();
   }
@@ -138,7 +141,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
   }
 
   private void retrieveOutputResult() throws SQLException {
-    //resultSet will be just before last packet
+    // resultSet will be just before last packet
     outputResultSet = results.getCallableResultSet();
     if (outputResultSet != null) {
       outputResultSet.next();
@@ -164,7 +167,6 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
     }
   }
 
-
   /**
    * Valid that all parameters are set.
    *
@@ -173,7 +175,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
   private void validAllParameters() throws SQLException {
 
     setInputOutputParameterMap();
-    //Set value for OUT parameters
+    // Set value for OUT parameters
     for (int index = 0; index < params.size(); index++) {
       if (!params.get(index).isInput()) {
         super.setParameter(index + 1, new NullParameter());
@@ -190,5 +192,4 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
       throw new SQLException("executeBatch not permit for procedure with output parameter");
     }
   }
-
 }

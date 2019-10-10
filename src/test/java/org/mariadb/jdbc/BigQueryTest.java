@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -84,13 +84,14 @@ public class BigQueryTest extends BaseTest {
   @BeforeClass()
   public static void initClass() throws SQLException {
     createTable("bigblob", "id int not null primary key auto_increment, test longblob");
-    createTable("bigblob2",
-        "id int not null primary key auto_increment, test longblob, test2 longblob");
-    createTable("bigblob3",
+    createTable(
+        "bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
+    createTable(
+        "bigblob3",
         "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
     createTable("bigblob4", "test longblob");
-    createTable("bigblob5",
-        "id int not null primary key auto_increment, test longblob, test2 text");
+    createTable(
+        "bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
     createTable("bigblob6", "id int not null primary key auto_increment, test longblob");
   }
 
@@ -153,8 +154,8 @@ public class BigQueryTest extends BaseTest {
     byte[] arr2 = new byte[20000000];
     Arrays.fill(arr2, (byte) 'b');
 
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into bigblob2 values(null, ?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into bigblob2 values(null, ?,?)");
     ps.setBytes(1, arr);
     ps.setBytes(2, arr2);
     ps.executeUpdate();
@@ -171,9 +172,7 @@ public class BigQueryTest extends BaseTest {
     for (int i = 0; i < arr2.length; i++) {
       assertEquals(arr2[i], newBytes2[i]);
     }
-
   }
-
 
   @Test
   public void sendBigBlobPreparedQuery() throws SQLException {
@@ -201,8 +200,8 @@ public class BigQueryTest extends BaseTest {
       pos++;
     }
 
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into bigblob3 values(null, ?,?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into bigblob3 values(null, ?,?,?)");
     ps.setBlob(1, new MariaDbBlob(arr));
     ps.setBlob(2, new MariaDbBlob(arr2));
     ps.setString(3, "bob");
@@ -221,9 +220,7 @@ public class BigQueryTest extends BaseTest {
       assertEquals(arr2[i], newBytes2[i]);
     }
     assertEquals("bob", rs.getString(4));
-
   }
-
 
   @Test
   public void testError() throws SQLException {
@@ -240,7 +237,6 @@ public class BigQueryTest extends BaseTest {
       assertEquals(arr.length, rs.getString(1).length());
     }
   }
-
 
   @Test
   public void sendStreamComData() throws Exception {
@@ -261,39 +257,40 @@ public class BigQueryTest extends BaseTest {
     try (FileInputStream fis = new FileInputStream(tmpFile)) {
       try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
         try (FileInputStream fis3 = new FileInputStream(tmpFile)) {
-          try (PreparedStatement ps = sharedConnection
-              .prepareStatement("insert into bigblob4 values(?)")) {
+          try (PreparedStatement ps =
+              sharedConnection.prepareStatement("insert into bigblob4 values(?)")) {
 
-            //testing char stream
+            // testing char stream
             ps.setCharacterStream(1, new InputStreamReader(fis, StandardCharsets.UTF_8));
             ps.executeUpdate();
 
-            //testing byte stream
+            // testing byte stream
             ps.setBlob(1, fis2);
             ps.executeUpdate();
 
-            //testing char stream with length
-            ps.setCharacterStream(1, new InputStreamReader(fis3, StandardCharsets.UTF_8), 10_000_000);
+            // testing char stream with length
+            ps.setCharacterStream(
+                1, new InputStreamReader(fis3, StandardCharsets.UTF_8), 10_000_000);
             ps.executeUpdate();
           }
         }
       }
     }
 
-    //test using binary resultSet
+    // test using binary resultSet
     PreparedStatement ps = sharedConnection.prepareStatement("select * from bigblob4");
     checkResult(tmpFile, ps.executeQuery(), 10_000_000);
 
-    //test using text resultSet
+    // test using text resultSet
     Statement stmt = sharedConnection.createStatement();
     checkResult(tmpFile, stmt.executeQuery("select * from bigblob4"), 10_000_000);
-
   }
 
   private void checkResult(File tmpFile, ResultSet rs, int length) throws Exception {
     assertTrue(rs.next());
     String res = rs.getString(1);
-    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
+    try (Reader initialReader =
+        new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
       char[] bb = new char[64 * 1024];
       int len;
       int pos = 0;
@@ -320,7 +317,8 @@ public class BigQueryTest extends BaseTest {
     assertTrue(rs.next());
     res = rs.getString(1);
     assertEquals(length, res.length());
-    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
+    try (Reader initialReader =
+        new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
       char[] bb = new char[64 * 1024];
       int len;
       int pos = 0;
@@ -337,7 +335,6 @@ public class BigQueryTest extends BaseTest {
     assertFalse(rs.next());
   }
 
-
   @Test
   public void maxFieldSizeTest() throws SQLException {
 
@@ -349,8 +346,8 @@ public class BigQueryTest extends BaseTest {
     byte[] arr2 = new byte[200];
     Arrays.fill(arr2, bbyte);
 
-    PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into bigblob5 values(null, ?,?)");
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into bigblob5 values(null, ?,?)");
 
     ps.setBytes(1, arr);
     ps.setBytes(2, arr2);
@@ -362,8 +359,7 @@ public class BigQueryTest extends BaseTest {
     assertTrue(rs.next());
     assertEquals(2, rs.getBytes(2).length);
     assertEquals(2, rs.getString(3).length());
-    assertArrayEquals(new byte[]{abyte, abyte}, rs.getBytes(2));
+    assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
     assertEquals("bb", rs.getString(3));
-
   }
 }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,24 +52,34 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import java.io.IOException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import java.io.*;
 
 public class ByteParameter implements Cloneable, ParameterHolder {
 
-  private final byte value;
+  private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+  private final int value;
 
   public ByteParameter(byte value) {
-    this.value = value;
+    this.value = value & 0xFF;
   }
 
+  /**
+   * Write Byte value to stream using TEXT protocol.
+   *
+   * @param os the stream to write to
+   * @throws IOException if any socket error occur
+   */
   public void writeTo(final PacketOutputStream os) throws IOException {
-    os.write(String.valueOf(value).getBytes());
+    os.write("0x");
+    os.write(hexArray[value >>> 4]);
+    os.write(hexArray[value & 0x0F]);
   }
 
   public long getApproximateTextProtocolLength() {
-    return String.valueOf(value).getBytes().length * 2;
+    return 4;
   }
 
   /**
@@ -88,7 +98,7 @@ public class ByteParameter implements Cloneable, ParameterHolder {
 
   @Override
   public String toString() {
-    return Byte.toString(value);
+    return "0x" + hexArray[value >>> 4] + hexArray[value & 0x0F];
   }
 
   public boolean isNullData() {
@@ -98,5 +108,4 @@ public class ByteParameter implements Cloneable, ParameterHolder {
   public boolean isLongData() {
     return false;
   }
-
 }

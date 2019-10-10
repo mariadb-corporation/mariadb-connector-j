@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
 
 public interface CmdInformation {
 
@@ -77,7 +78,7 @@ public interface CmdInformation {
 
   void addResultSetStat();
 
-  ResultSet getGeneratedKeys(Protocol protocol);
+  ResultSet getGeneratedKeys(Protocol protocol, String sql);
 
   ResultSet getBatchGeneratedKeys(Protocol protocol);
 
@@ -88,5 +89,4 @@ public interface CmdInformation {
   boolean isCurrentUpdateCount();
 
   void setRewrite(boolean rewritten);
-
 }

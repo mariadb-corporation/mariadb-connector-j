@@ -49,7 +49,8 @@ cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}  \
     -Dkeystore2Path="$SSLCERT/fullclient-keystore.jks" \
     -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="$SSLCERT/fullclient-keystore.p12" \
-    -DrunLongTest=true )
+    -DrunLongTest=true \
+    -DserverPublicKey="$SSLCERT/public.key" )
 
 if [ -n "$AURORA" ] ; then
     if [ -n "$AURORA_STRING_URL" ] ; then
@@ -83,7 +84,7 @@ else
                 export COMPOSE_FILE=.travis/galera-compose.yml
 
                 urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
-                cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
+                cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:sequential://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" -DdefaultSequentialUrl="jdbc:mariadb:sequential://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" -DdefaultLoadbalanceUrl="jdbc:mariadb:loadbalance://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
                 docker-compose -f ${COMPOSE_FILE} up -d
                 SLEEP 10
             else

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -67,9 +67,7 @@ import org.junit.Test;
 
 public class FetchSizeTest extends BaseTest {
 
-  /**
-   * Tables initialisation.
-   */
+  /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
     createTable("fetchSizeTest1", "id int, test varchar(100)");
@@ -82,11 +80,11 @@ public class FetchSizeTest extends BaseTest {
   @Test
   public void batchFetchSizeTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    PreparedStatement pstmt = sharedConnection
-        .prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
+    PreparedStatement pstmt =
+        sharedConnection.prepareStatement("INSERT INTO fetchSizeTest1 (test) values (?)");
     stmt.setFetchSize(1);
     pstmt.setFetchSize(1);
-    //check that fetch isn't use by batch execution
+    // check that fetch isn't use by batch execution
     for (int i = 0; i < 10; i++) {
       pstmt.setString(1, "" + i);
       pstmt.addBatch();
@@ -101,7 +99,6 @@ public class FetchSizeTest extends BaseTest {
     } else {
       fail("must have resultset");
     }
-
   }
 
   @Test
@@ -117,7 +114,6 @@ public class FetchSizeTest extends BaseTest {
     }
     assertFalse(resultSet.next());
   }
-
 
   @Test
   public void fetchSizeErrorWhileFetchTest() throws SQLException {
@@ -181,7 +177,7 @@ public class FetchSizeTest extends BaseTest {
       assertEquals("" + counter, resultSet.getString(1));
     }
     stmt.execute("Select 1");
-    //result must be completely loaded
+    // result must be completely loaded
     for (int counter = 100; counter < 200; counter++) {
       assertTrue(resultSet.next());
       assertEquals("" + counter, resultSet.getString(1));
@@ -192,8 +188,8 @@ public class FetchSizeTest extends BaseTest {
   }
 
   private void prepareRecords(int recordNumber, String tableName) throws SQLException {
-    PreparedStatement pstmt = sharedConnection
-        .prepareStatement("INSERT INTO " + tableName + " (test) values (?)");
+    PreparedStatement pstmt =
+        sharedConnection.prepareStatement("INSERT INTO " + tableName + " (test) values (?)");
     for (int i = 0; i < recordNumber; i++) {
       pstmt.setString(1, "" + i);
       pstmt.addBatch();
@@ -226,14 +222,18 @@ public class FetchSizeTest extends BaseTest {
     }
     long interruptedExecutionTime = System.currentTimeMillis() - start;
 
-    Assume.assumeTrue(minVersion(10, 1)); //10.1.2 in fact
+    Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
 
-    //ensure that query is a long query. if not cancelling the query (that might lead to creating a new connection)
-    //may not render the test reliable
+    // ensure that query is a long query. if not cancelling the query (that might lead to creating a
+    // new connection)
+    // may not render the test reliable
     String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
     if (maxscaleVersion == null && normalExecutionTime > 500) {
-      assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
-              + " normalExecutionTime:" + normalExecutionTime,
+      assertTrue(
+          "interruptedExecutionTime:"
+              + interruptedExecutionTime
+              + " normalExecutionTime:"
+              + normalExecutionTime,
           interruptedExecutionTime < normalExecutionTime);
     }
   }
@@ -246,8 +246,9 @@ public class FetchSizeTest extends BaseTest {
     long start;
     long normalExecutionTime;
 
-    try (PreparedStatement stmt = sharedConnection.prepareStatement(
-        "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
+    try (PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
       start = System.currentTimeMillis();
       stmt.executeQuery();
       normalExecutionTime = System.currentTimeMillis() - start;
@@ -262,10 +263,13 @@ public class FetchSizeTest extends BaseTest {
 
     System.out.println(normalExecutionTime);
     System.out.println(interruptedExecutionTime);
-    //normalExecutionTime = 1500
-    //interruptedExecutionTime = 77
-    assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
-            + " normalExecutionTime:" + normalExecutionTime,
+    // normalExecutionTime = 1500
+    // interruptedExecutionTime = 77
+    assertTrue(
+        "interruptedExecutionTime:"
+            + interruptedExecutionTime
+            + " normalExecutionTime:"
+            + normalExecutionTime,
         interruptedExecutionTime < normalExecutionTime);
   }
 }

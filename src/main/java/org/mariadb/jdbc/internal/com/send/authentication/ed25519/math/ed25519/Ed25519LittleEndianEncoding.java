@@ -1,21 +1,20 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Encoding;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
 
 /**
  * Helper class for encoding/decoding from/to the 32 byte representation.
- * <p>
- * Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
+ *
+ * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class Ed25519LittleEndianEncoding extends Encoding {
 
@@ -36,50 +35,54 @@ public class Ed25519LittleEndianEncoding extends Encoding {
 
   /**
    * Encodes a given field element in its 32 byte representation. This is done in two steps:
+   *
    * <ol>
-   * <li>Reduce the value of the field element modulo $p$.
-   * <li>Convert the field element to the 32 byte representation.
-   * </ol><p>
-   * The idea for the modulo $p$ reduction algorithm is as follows:
-   * </p>
+   *   <li>Reduce the value of the field element modulo $p$.
+   *   <li>Convert the field element to the 32 byte representation.
+   * </ol>
+   *
+   * <p>The idea for the modulo $p$ reduction algorithm is as follows:
+   *
    * <h2>Assumption:</h2>
+   *
    * <ul>
-   * <li>$p = 2^{255} - 19$
-   * <li>$h = h_0 + 2^{25} * h_1 + 2^{(26+25)} * h_2 + \dots + 2^{230} * h_9$ where $0 \le |h_i|
-   * \lt 2^{27}$ for all $i=0,\dots,9$.
-   * <li>$h \cong r \mod p$, i.e. $h = r + q * p$ for some suitable $0 \le r \lt p$ and an integer
-   * $q$.
-   * </ul><p>
-   * Then $q = [2^{-255} * (h + 19 * 2^{-25} * h_9 + 1/2)]$ where $[x] = floor(x)$.
-   * </p>
+   *   <li>$p = 2^{255} - 19$
+   *   <li>$h = h_0 + 2^{25} * h_1 + 2^{(26+25)} * h_2 + \dots + 2^{230} * h_9$ where $0 \le |h_i|
+   *       \lt 2^{27}$ for all $i=0,\dots,9$.
+   *   <li>$h \cong r \mod p$, i.e. $h = r + q * p$ for some suitable $0 \le r \lt p$ and an integer
+   *       $q$.
+   * </ul>
+   *
+   * <p>Then $q = [2^{-255} * (h + 19 * 2^{-25} * h_9 + 1/2)]$ where $[x] = floor(x)$.
+   *
    * <h2>Proof:</h2>
-   * <p>
-   * We begin with some very raw estimation for the bounds of some expressions:
-   * <p>
-   * $$ \begin{equation} |h| \lt 2^{230} * 2^{30} = 2^{260} \Rightarrow |r + q * p| \lt 2^{260}
+   *
+   * <p>We begin with some very raw estimation for the bounds of some expressions:
+   *
+   * <p>$$ \begin{equation} |h| \lt 2^{230} * 2^{30} = 2^{260} \Rightarrow |r + q * p| \lt 2^{260}
    * \Rightarrow |q| \lt 2^{10}. \\ \Rightarrow -1/4 \le a := 19^2 * 2^{-255} * q \lt 1/4. \\ |h -
    * 2^{230} * h_9| = |h_0 + \dots + 2^{204} * h_8| \lt 2^{204} * 2^{30} = 2^{234}. \\ \Rightarrow
    * -1/4 \le b := 19 * 2^{-255} * (h - 2^{230} * h_9) \lt 1/4 \end{equation} $$
-   * <p>
-   * Therefore $0 \lt 1/2 - a - b \lt 1$.
-   * <p>
-   * Set $x := r + 19 * 2^{-255} * r + 1/2 - a - b$. Then:
-   * <p>
-   * $$ 0 \le x \lt 255 - 20 + 19 + 1 = 2^{255} \\ \Rightarrow 0 \le 2^{-255} * x \lt 1. $$
-   * <p>
-   * Since $q$ is an integer we have
-   * <p>
-   * $$ [q + 2^{-255} * x] = q \quad (1) $$
-   * <p>
-   * Have a closer look at $x$:
-   * <p>
-   * $$ \begin{align} x &amp;= h - q * (2^{255} - 19) + 19 * 2^{-255} * (h - q * (2^{255} - 19)) +
-   * 1/2 - 19^2 * 2^{-255} * q - 19 * 2^{-255} * (h - 2^{230} * h_9) \\ &amp;= h - q * 2^{255} + 19
-   * * q + 19 * 2^{-255} * h - 19 * q + 19^2 * 2^{-255} * q + 1/2 - 19^2 * 2^{-255} * q - 19 *
+   *
+   * <p>Therefore $0 \lt 1/2 - a - b \lt 1$.
+   *
+   * <p>Set $x := r + 19 * 2^{-255} * r + 1/2 - a - b$. Then:
+   *
+   * <p>$$ 0 \le x \lt 255 - 20 + 19 + 1 = 2^{255} \\ \Rightarrow 0 \le 2^{-255} * x \lt 1. $$
+   *
+   * <p>Since $q$ is an integer we have
+   *
+   * <p>$$ [q + 2^{-255} * x] = q \quad (1) $$
+   *
+   * <p>Have a closer look at $x$:
+   *
+   * <p>$$ \begin{align} x &amp;= h - q * (2^{255} - 19) + 19 * 2^{-255} * (h - q * (2^{255} - 19))
+   * + 1/2 - 19^2 * 2^{-255} * q - 19 * 2^{-255} * (h - 2^{230} * h_9) \\ &amp;= h - q * 2^{255} +
+   * 19 * q + 19 * 2^{-255} * h - 19 * q + 19^2 * 2^{-255} * q + 1/2 - 19^2 * 2^{-255} * q - 19 *
    * 2^{-255} * h + 19 * 2^{-25} * h_9 \\ &amp;= h + 19 * 2^{-25} * h_9 + 1/2 - q^{255}. \end{align}
    * $$
-   * <p>
-   * Inserting the expression for $x$ into $(1)$ we get the desired expression for $q$.
+   *
+   * <p>Inserting the expression for $x$ into $(1)$ we get the desired expression for $q$.
    */
   public byte[] encode(FieldElement x) {
     int[] h = ((Ed25519FieldElement) x).t;
@@ -267,13 +270,14 @@ public class Ed25519LittleEndianEncoding extends Encoding {
 
   /**
    * Is the FieldElement negative in this encoding?
-   * <p>
-   * Return true if $x$ is in $\{1,3,5,\dots,q-2\}$<br> Return false if $x$ is in
-   * $\{0,2,4,\dots,q-1\}$
-   * <p>
-   * Preconditions:
-   * </p><ul>
-   * <li>$|x|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25}$, etc.
+   *
+   * <p>Return true if $x$ is in $\{1,3,5,\dots,q-2\}$<br>
+   * Return false if $x$ is in $\{0,2,4,\dots,q-1\}$
+   *
+   * <p>Preconditions:
+   *
+   * <ul>
+   *   <li>$|x|$ bounded by $1.1*2^{26},1.1*2^{25},1.1*2^{26},1.1*2^{25}$, etc.
    * </ul>
    *
    * @return true if $x$ is in $\{1,3,5,\dots,q-2\}$, false otherwise.
@@ -282,5 +286,4 @@ public class Ed25519LittleEndianEncoding extends Encoding {
     byte[] s = encode(x);
     return (s[0] & 1) != 0;
   }
-
 }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -65,10 +65,10 @@ public class TraceObject {
   /**
    * Permit to store MariaDB packets.
    *
-   * @param send          was packet send or received
+   * @param send was packet send or received
    * @param indicatorFlag indicator. can be NOT_COMPRESSED, COMPRESSED_PROTOCOL_COMPRESSED_PACKET or
-   *                      COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
-   * @param buf           buffers
+   *     COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
+   * @param buf buffers
    */
   public TraceObject(boolean send, int indicatorFlag, byte[]... buf) {
     this.send = send;
@@ -76,12 +76,10 @@ public class TraceObject {
     this.buf = buf;
   }
 
-  /**
-   * Clear trace array for easy garbage.
-   */
+  /** Clear trace array for easy garbage. */
   public void remove() {
     for (int i = 0; i < buf.length; i++) {
-      buf[i] = null;// force null for easier garbage
+      buf[i] = null; // force null for easier garbage
     }
     buf = null;
   }

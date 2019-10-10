@@ -50,28 +50,42 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send.authentication;
+package org.mariadb.jdbc;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.*;
+import org.mariadb.jdbc.internal.protocol.*;
 
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
 
+import static org.junit.Assert.*;
 
-public interface AuthenticationPlugin {
+public class AttributeTest extends BaseTest {
 
-  /**
-   * Process plugin authentication.
-   *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
-   * @return response packet
-   * @throws IOException  if socket error
-   * @throws SQLException if plugin exception
-   */
-  Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException;
+  @Test
+  public void testServerHost() throws Exception {
+    // test for _server_host attribute
+    Assume.assumeTrue(
+        (isMariadbServer() && minVersion(10, 0))
+            || minVersion(
+                5,
+                6)); // session_connect_attrs does not exist in MySQL 5.5, or before MariaDB 10.0.5
+
+    try (Connection connection = setConnection("")) {
+      Field protocolField = MariaDbConnection.class.getDeclaredField("protocol");
+      protocolField.setAccessible(true);
+      Protocol protocolVal = (Protocol) protocolField.get(connection);
+
+      Statement attributeStatement = connection.createStatement();
+      ResultSet result =
+          attributeStatement.executeQuery(
+              "select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
+      while (result.next()) {
+        String str = result.getString("ATTR_NAME");
+        String strVal = result.getString("ATTR_VALUE");
+        Assume.assumeTrue(protocolVal.getHost().matches(strVal));
+      }
+		}
+  }
 }

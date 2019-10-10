@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -67,8 +67,8 @@ public class PooledConnectionTest extends BaseTest {
 
   @Test(expected = SQLException.class)
   public void testPooledConnectionClosed() throws Exception {
-    ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost",
-        port, database);
+    ConnectionPoolDataSource ds =
+        new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
     PooledConnection pc = ds.getPooledConnection(username, password);
     Connection connection = pc.getConnection();
     MyEventListener listener = new MyEventListener();
@@ -90,8 +90,8 @@ public class PooledConnectionTest extends BaseTest {
   public void testPooledConnectionException() throws Exception {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
 
-    ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost",
-        port, database);
+    ConnectionPoolDataSource ds =
+        new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
     PooledConnection pc = null;
     try {
       pc = ds.getPooledConnection(username, password);
@@ -117,11 +117,10 @@ public class PooledConnectionTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testPooledConnectionStatementError() throws Exception {
-    ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost",
-        port, database);
+    ConnectionPoolDataSource ds =
+        new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
     PooledConnection pc = ds.getPooledConnection(username, password);
     MyEventListener listener = new MyEventListener();
     pc.addStatementEventListener(listener);
@@ -132,12 +131,14 @@ public class PooledConnectionTest extends BaseTest {
     } catch (Exception e) {
       assertTrue(listener.statementErrorOccured);
       if (sharedBulkCapacity()) {
-        assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
-            || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
+        assertTrue(
+            e.getMessage().contains("Parameter at position 1 is not set")
+                || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
       } else {
-        //HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
-        assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000"
-            .equals(listener.sqlException.getSQLState()));
+        // HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
+        assertTrue(
+            "07004".equals(listener.sqlException.getSQLState())
+                || "HY000".equals(listener.sqlException.getSQLState()));
       }
     }
     assertTrue(listener.statementClosed);

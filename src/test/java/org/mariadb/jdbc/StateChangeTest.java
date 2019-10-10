@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -68,8 +68,8 @@ public class StateChangeTest extends BaseTest {
 
   @Test
   public void databaseStateChange() throws SQLException {
-    Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
-        || (!isMariadbServer() && minVersion(5, 7)));
+    Assume.assumeTrue(
+        (isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7)));
     try (Connection connection = setConnection()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier("_test_db"));
@@ -83,8 +83,8 @@ public class StateChangeTest extends BaseTest {
 
   @Test
   public void timeZoneChange() throws SQLException {
-    Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
-        || (!isMariadbServer() && minVersion(5, 7)));
+    Assume.assumeTrue(
+        (isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7)));
     try (Connection connection = setConnection()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier("_test_db"));
@@ -95,7 +95,6 @@ public class StateChangeTest extends BaseTest {
       }
     }
   }
-
 
   @Test
   public void autocommitChange() throws SQLException {
@@ -111,13 +110,14 @@ public class StateChangeTest extends BaseTest {
   @Test
   public void autoIncrementChange() throws SQLException {
     Assume.assumeFalse(isGalera());
-    Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
-        || (!isMariadbServer() && minVersion(5, 7)));
+    Assume.assumeTrue(
+        (isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7)));
     createTable("autoIncrementChange", "id int not null primary key auto_increment, name char(20)");
     try (Connection connection = setConnection()) {
       try (Statement stmt = connection.createStatement()) {
         try (PreparedStatement preparedStatement =
-            connection.prepareStatement("INSERT INTO autoIncrementChange(name) value (?)",
+            connection.prepareStatement(
+                "INSERT INTO autoIncrementChange(name) value (?)",
                 Statement.RETURN_GENERATED_KEYS)) {
 
           preparedStatement.setString(1, "a");
@@ -133,8 +133,9 @@ public class StateChangeTest extends BaseTest {
           assertEquals(2, rs.getInt(1));
 
           stmt.execute("SET @@session.auto_increment_increment=10");
-          ResultSet rs2 = stmt
-              .executeQuery("SHOW VARIABLES WHERE Variable_name like 'auto_increment_increment'");
+          ResultSet rs2 =
+              stmt.executeQuery(
+                  "SHOW VARIABLES WHERE Variable_name like 'auto_increment_increment'");
           assertTrue(rs2.next());
           assertEquals(10, rs2.getInt(2));
 
@@ -159,6 +160,4 @@ public class StateChangeTest extends BaseTest {
       }
     }
   }
-
-
 }

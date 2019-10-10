@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -58,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 
-
 public class TcpProxy {
 
   private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
@@ -69,7 +68,7 @@ public class TcpProxy {
   /**
    * Initialise proxy.
    *
-   * @param host       host (ip / dns)
+   * @param host host (ip / dns)
    * @param remoteport port
    * @throws IOException exception
    */
@@ -102,21 +101,17 @@ public class TcpProxy {
     Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
   }
 
-  /**
-   * Restart proxy.
-   */
+  /** Restart proxy. */
   public void restart() {
     Executors.newSingleThreadExecutor().execute(socket);
     try {
       Thread.sleep(10);
     } catch (InterruptedException e) {
-      //eat Exception
+      // eat Exception
     }
   }
 
-  /**
-   * Assure that proxy is in a stable status.
-   */
+  /** Assure that proxy is in a stable status. */
   public void assureProxyOk() {
     if (socket.isClosed()) {
       restart();
@@ -126,5 +121,4 @@ public class TcpProxy {
   public int getLocalPort() {
     return socket.getLocalPort();
   }
-
 }

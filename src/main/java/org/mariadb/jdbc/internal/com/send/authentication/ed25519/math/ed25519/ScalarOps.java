@@ -1,33 +1,32 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_3;
-import static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_4;
+import static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding.*;
 
 /**
  * Class for reducing a huge integer modulo the group order q and doing a combined multiply plus add
  * plus reduce operation.
- * <p>
- * $q = 2^{252} + 27742317777372353535851937790883648493$.
- * <p>
- * Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
+ *
+ * <p>$q = 2^{252} + 27742317777372353535851937790883648493$.
+ *
+ * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class ScalarOps {
 
   /**
    * Reduction modulo the group order $q$.
-   * <p>
-   * Input: $s[0]+256*s[1]+\dots+256^{63}*s[63] = s$
-   * <p>
-   * Output: $s[0]+256*s[1]+\dots+256^{31}*s[31] = s \bmod q$ where $q = 2^{252} +
+   *
+   * <p>Input: $s[0]+256*s[1]+\dots+256^{63}*s[63] = s$
+   *
+   * <p>Output: $s[0]+256*s[1]+\dots+256^{31}*s[31] = s \bmod q$ where $q = 2^{252} +
    * 27742317777372353535851937790883648493$.
    *
    * @param s byte array
@@ -78,20 +77,19 @@ public class ScalarOps {
     long carry16;
 
     /**
-     * Lots of magic numbers :)
-     * To understand what's going on below, note that
+     * Lots of magic numbers :) To understand what's going on below, note that
      *
-     * (1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493.
-     * (2) s11 is the coefficient of 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)).
-     * (3) 2^252 congruent -q0 modulo q.
-     * (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)
+     * <p>(1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493. (2) s11 is the
+     * coefficient of 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)).
+     * (3) 2^252 congruent -q0 modulo q. (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21)
+     * - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)
      *
-     * Thus
-     * s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent
-     * s23 * (666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)) * 2^(11*21) modulo q =
-     * s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) + 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657 * 2^(15*21) - 683901 * 2^(16*21)).
+     * <p>Thus s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent s23
+     * * (666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) -
+     * 683901 * 2^(5*21)) * 2^(11*21) modulo q = s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) +
+     * 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657 * 2^(15*21) - 683901 * 2^(16*21)).
      *
-     * The same procedure is then applied for s22,...,s18.
+     * <p>The same procedure is then applied for s22,...,s18.
      */
     s11 += s23 * 666643;
     s12 += s23 * 470296;
@@ -100,7 +98,7 @@ public class ScalarOps {
     s15 += s23 * 136657;
     s16 -= s23 * 683901;
     // not used again
-    //s23 = 0;
+    // s23 = 0;
 
     s10 += s22 * 666643;
     s11 += s22 * 470296;
@@ -109,7 +107,7 @@ public class ScalarOps {
     s14 += s22 * 136657;
     s15 -= s22 * 683901;
     // not used again
-    //s22 = 0;
+    // s22 = 0;
 
     s9 += s21 * 666643;
     s10 += s21 * 470296;
@@ -118,7 +116,7 @@ public class ScalarOps {
     s13 += s21 * 136657;
     s14 -= s21 * 683901;
     // not used again
-    //s21 = 0;
+    // s21 = 0;
 
     s8 += s20 * 666643;
     s9 += s20 * 470296;
@@ -127,7 +125,7 @@ public class ScalarOps {
     s12 += s20 * 136657;
     s13 -= s20 * 683901;
     // not used again
-    //s20 = 0;
+    // s20 = 0;
 
     s7 += s19 * 666643;
     s8 += s19 * 470296;
@@ -136,7 +134,7 @@ public class ScalarOps {
     s11 += s19 * 136657;
     s12 -= s19 * 683901;
     // not used again
-    //s19 = 0;
+    // s19 = 0;
 
     s6 += s18 * 666643;
     s7 += s18 * 470296;
@@ -145,11 +143,9 @@ public class ScalarOps {
     s10 += s18 * 136657;
     s11 -= s18 * 683901;
     // not used again
-    //s18 = 0;
+    // s18 = 0;
 
-    /**
-     * Time to reduce the coefficient in order not to get an overflow.
-     */
+    /** Time to reduce the coefficient in order not to get an overflow. */
     carry6 = (s6 + (1 << 20)) >> 21;
     s7 += carry6;
     s6 -= carry6 << 21;
@@ -185,9 +181,7 @@ public class ScalarOps {
     s16 += carry15;
     s15 -= carry15 << 21;
 
-    /**
-     * Continue with above procedure.
-     */
+    /** Continue with above procedure. */
     s5 += s17 * 666643;
     s6 += s17 * 470296;
     s7 += s17 * 654183;
@@ -195,7 +189,7 @@ public class ScalarOps {
     s9 += s17 * 136657;
     s10 -= s17 * 683901;
     // not used again
-    //s17 = 0;
+    // s17 = 0;
 
     s4 += s16 * 666643;
     s5 += s16 * 470296;
@@ -204,7 +198,7 @@ public class ScalarOps {
     s8 += s16 * 136657;
     s9 -= s16 * 683901;
     // not used again
-    //s16 = 0;
+    // s16 = 0;
 
     s3 += s15 * 666643;
     s4 += s15 * 470296;
@@ -213,7 +207,7 @@ public class ScalarOps {
     s7 += s15 * 136657;
     s8 -= s15 * 683901;
     // not used again
-    //s15 = 0;
+    // s15 = 0;
 
     s2 += s14 * 666643;
     s3 += s14 * 470296;
@@ -222,7 +216,7 @@ public class ScalarOps {
     s6 += s14 * 136657;
     s7 -= s14 * 683901;
     // not used again
-    //s14 = 0;
+    // s14 = 0;
 
     s1 += s13 * 666643;
     s2 += s13 * 470296;
@@ -231,7 +225,7 @@ public class ScalarOps {
     s5 += s13 * 136657;
     s6 -= s13 * 683901;
     // not used again
-    //s13 = 0;
+    // s13 = 0;
 
     s0 += s12 * 666643;
     s1 += s12 * 470296;
@@ -240,11 +234,9 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // set below
-    //s12 = 0;
+    // s12 = 0;
 
-    /**
-     * Reduce coefficients again.
-     */
+    /** Reduce coefficients again. */
     carry0 = (s0 + (1 << 20)) >> 21;
     s1 += carry0;
     s0 -= carry0 << 21;
@@ -279,7 +271,7 @@ public class ScalarOps {
     carry9 = (s9 + (1 << 20)) >> 21;
     s10 += carry9;
     s9 -= carry9 << 21;
-    //carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
+    // carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
     carry11 = (s11 + (1 << 20)) >> 21;
     s12 = carry11;
     s11 -= carry11 << 21;
@@ -291,7 +283,7 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // set below
-    //s12 = 0;
+    // s12 = 0;
 
     carry0 = s0 >> 21;
     s1 += carry0;
@@ -326,7 +318,7 @@ public class ScalarOps {
     carry10 = s10 >> 21;
     s11 += carry10;
     s10 -= carry10 << 21;
-    //carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 << 21;
+    // carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 << 21;
     carry11 = s11 >> 21;
     s12 = carry11;
     s11 -= carry11 << 21;
@@ -339,7 +331,7 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // not used again
-    //s12 = 0;
+    // s12 = 0;
 
     carry0 = s0 >> 21;
     s1 += carry0;
@@ -412,20 +404,21 @@ public class ScalarOps {
     return result;
   }
 
-
   /**
    * $(ab+c) \bmod q$
-   * <p>
-   * Input:
-   * </p><ul>
-   * <li>$a[0]+256*a[1]+\dots+256^{31}*a[31] = a$
-   * <li>$b[0]+256*b[1]+\dots+256^{31}*b[31] = b$
-   * <li>$c[0]+256*c[1]+\dots+256^{31}*c[31] = c$
-   * </ul><p>
-   * Output: $result[0]+256*result[1]+\dots+256^{31}*result[31] = (ab+c) \bmod q$ where $q = 2^{252}
-   * + 27742317777372353535851937790883648493$.
-   * <p>
-   * See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
+   *
+   * <p>Input:
+   *
+   * <ul>
+   *   <li>$a[0]+256*a[1]+\dots+256^{31}*a[31] = a$
+   *   <li>$b[0]+256*b[1]+\dots+256^{31}*b[31] = b$
+   *   <li>$c[0]+256*c[1]+\dots+256^{31}*c[31] = c$
+   * </ul>
+   *
+   * <p>Output: $result[0]+256*result[1]+\dots+256^{31}*result[31] = (ab+c) \bmod q$ where $q =
+   * 2^{252} + 27742317777372353535851937790883648493$.
+   *
+   * <p>See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
    *
    * @param a a
    * @param b b
@@ -525,19 +518,24 @@ public class ScalarOps {
     s5 = c5 + a0 * b5 + a1 * b4 + a2 * b3 + a3 * b2 + a4 * b1 + a5 * b0;
     s6 = c6 + a0 * b6 + a1 * b5 + a2 * b4 + a3 * b3 + a4 * b2 + a5 * b1 + a6 * b0;
     s7 = c7 + a0 * b7 + a1 * b6 + a2 * b5 + a3 * b4 + a4 * b3 + a5 * b2 + a6 * b1 + a7 * b0;
-    s8 = c8 + a0 * b8 + a1 * b7 + a2 * b6 + a3 * b5 + a4 * b4 + a5 * b3 + a6 * b2 + a7 * b1
-        + a8 * b0;
+    s8 =
+        c8 + a0 * b8 + a1 * b7 + a2 * b6 + a3 * b5 + a4 * b4 + a5 * b3 + a6 * b2 + a7 * b1
+            + a8 * b0;
     s9 =
         c9 + a0 * b9 + a1 * b8 + a2 * b7 + a3 * b6 + a4 * b5 + a5 * b4 + a6 * b3 + a7 * b2 + a8 * b1
             + a9 * b0;
-    s10 = c10 + a0 * b10 + a1 * b9 + a2 * b8 + a3 * b7 + a4 * b6 + a5 * b5 + a6 * b4 + a7 * b3
-        + a8 * b2 + a9 * b1 + a10 * b0;
-    s11 = c11 + a0 * b11 + a1 * b10 + a2 * b9 + a3 * b8 + a4 * b7 + a5 * b6 + a6 * b5 + a7 * b4
-        + a8 * b3 + a9 * b2 + a10 * b1 + a11 * b0;
-    s12 = a1 * b11 + a2 * b10 + a3 * b9 + a4 * b8 + a5 * b7 + a6 * b6 + a7 * b5 + a8 * b4 + a9 * b3
-        + a10 * b2 + a11 * b1;
-    s13 = a2 * b11 + a3 * b10 + a4 * b9 + a5 * b8 + a6 * b7 + a7 * b6 + a8 * b5 + a9 * b4 + a10 * b3
-        + a11 * b2;
+    s10 =
+        c10 + a0 * b10 + a1 * b9 + a2 * b8 + a3 * b7 + a4 * b6 + a5 * b5 + a6 * b4 + a7 * b3
+            + a8 * b2 + a9 * b1 + a10 * b0;
+    s11 =
+        c11 + a0 * b11 + a1 * b10 + a2 * b9 + a3 * b8 + a4 * b7 + a5 * b6 + a6 * b5 + a7 * b4
+            + a8 * b3 + a9 * b2 + a10 * b1 + a11 * b0;
+    s12 =
+        a1 * b11 + a2 * b10 + a3 * b9 + a4 * b8 + a5 * b7 + a6 * b6 + a7 * b5 + a8 * b4 + a9 * b3
+            + a10 * b2 + a11 * b1;
+    s13 =
+        a2 * b11 + a3 * b10 + a4 * b9 + a5 * b8 + a6 * b7 + a7 * b6 + a8 * b5 + a9 * b4 + a10 * b3
+            + a11 * b2;
     s14 =
         a3 * b11 + a4 * b10 + a5 * b9 + a6 * b8 + a7 * b7 + a8 * b6 + a9 * b5 + a10 * b4 + a11 * b3;
     s15 = a4 * b11 + a5 * b10 + a6 * b9 + a7 * b8 + a8 * b7 + a9 * b6 + a10 * b5 + a11 * b4;
@@ -549,7 +547,7 @@ public class ScalarOps {
     s21 = a10 * b11 + a11 * b10;
     s22 = a11 * b11;
     // set below
-    //s23 = 0;
+    // s23 = 0;
 
     carry0 = (s0 + (1 << 20)) >> 21;
     s1 += carry0;
@@ -584,7 +582,7 @@ public class ScalarOps {
     carry20 = (s20 + (1 << 20)) >> 21;
     s21 += carry20;
     s20 -= carry20 << 21;
-    //carry22 = (s22 + (1<<20)) >> 21; s23 += carry22; s22 -= carry22 << 21;
+    // carry22 = (s22 + (1<<20)) >> 21; s23 += carry22; s22 -= carry22 << 21;
     carry22 = (s22 + (1 << 20)) >> 21;
     s23 = carry22;
     s22 -= carry22 << 21;
@@ -630,7 +628,7 @@ public class ScalarOps {
     s15 += s23 * 136657;
     s16 -= s23 * 683901;
     // not used again
-    //s23 = 0;
+    // s23 = 0;
 
     s10 += s22 * 666643;
     s11 += s22 * 470296;
@@ -639,7 +637,7 @@ public class ScalarOps {
     s14 += s22 * 136657;
     s15 -= s22 * 683901;
     // not used again
-    //s22 = 0;
+    // s22 = 0;
 
     s9 += s21 * 666643;
     s10 += s21 * 470296;
@@ -648,7 +646,7 @@ public class ScalarOps {
     s13 += s21 * 136657;
     s14 -= s21 * 683901;
     // not used again
-    //s21 = 0;
+    // s21 = 0;
 
     s8 += s20 * 666643;
     s9 += s20 * 470296;
@@ -657,7 +655,7 @@ public class ScalarOps {
     s12 += s20 * 136657;
     s13 -= s20 * 683901;
     // not used again
-    //s20 = 0;
+    // s20 = 0;
 
     s7 += s19 * 666643;
     s8 += s19 * 470296;
@@ -666,7 +664,7 @@ public class ScalarOps {
     s11 += s19 * 136657;
     s12 -= s19 * 683901;
     // not used again
-    //s19 = 0;
+    // s19 = 0;
 
     s6 += s18 * 666643;
     s7 += s18 * 470296;
@@ -675,7 +673,7 @@ public class ScalarOps {
     s10 += s18 * 136657;
     s11 -= s18 * 683901;
     // not used again
-    //s18 = 0;
+    // s18 = 0;
 
     carry6 = (s6 + (1 << 20)) >> 21;
     s7 += carry6;
@@ -719,7 +717,7 @@ public class ScalarOps {
     s9 += s17 * 136657;
     s10 -= s17 * 683901;
     // not used again
-    //s17 = 0;
+    // s17 = 0;
 
     s4 += s16 * 666643;
     s5 += s16 * 470296;
@@ -728,7 +726,7 @@ public class ScalarOps {
     s8 += s16 * 136657;
     s9 -= s16 * 683901;
     // not used again
-    //s16 = 0;
+    // s16 = 0;
 
     s3 += s15 * 666643;
     s4 += s15 * 470296;
@@ -737,7 +735,7 @@ public class ScalarOps {
     s7 += s15 * 136657;
     s8 -= s15 * 683901;
     // not used again
-    //s15 = 0;
+    // s15 = 0;
 
     s2 += s14 * 666643;
     s3 += s14 * 470296;
@@ -746,7 +744,7 @@ public class ScalarOps {
     s6 += s14 * 136657;
     s7 -= s14 * 683901;
     // not used again
-    //s14 = 0;
+    // s14 = 0;
 
     s1 += s13 * 666643;
     s2 += s13 * 470296;
@@ -755,7 +753,7 @@ public class ScalarOps {
     s5 += s13 * 136657;
     s6 -= s13 * 683901;
     // not used again
-    //s13 = 0;
+    // s13 = 0;
 
     s0 += s12 * 666643;
     s1 += s12 * 470296;
@@ -764,7 +762,7 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // set below
-    //s12 = 0;
+    // s12 = 0;
 
     carry0 = (s0 + (1 << 20)) >> 21;
     s1 += carry0;
@@ -800,7 +798,7 @@ public class ScalarOps {
     carry9 = (s9 + (1 << 20)) >> 21;
     s10 += carry9;
     s9 -= carry9 << 21;
-    //carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
+    // carry11 = (s11 + (1<<20)) >> 21; s12 += carry11; s11 -= carry11 << 21;
     carry11 = (s11 + (1 << 20)) >> 21;
     s12 = carry11;
     s11 -= carry11 << 21;
@@ -812,7 +810,7 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // set below
-    //s12 = 0;
+    // s12 = 0;
 
     carry0 = s0 >> 21;
     s1 += carry0;
@@ -847,7 +845,7 @@ public class ScalarOps {
     carry10 = s10 >> 21;
     s11 += carry10;
     s10 -= carry10 << 21;
-    //carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 << 21;
+    // carry11 = s11 >> 21; s12 += carry11; s11 -= carry11 << 21;
     carry11 = s11 >> 21;
     s12 = carry11;
     s11 -= carry11 << 21;
@@ -859,7 +857,7 @@ public class ScalarOps {
     s4 += s12 * 136657;
     s5 -= s12 * 683901;
     // not used again
-    //s12 = 0;
+    // s12 = 0;
 
     carry0 = s0 >> 21;
     s1 += carry0;

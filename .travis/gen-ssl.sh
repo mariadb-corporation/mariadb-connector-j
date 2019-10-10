@@ -30,6 +30,7 @@ main () {
   local caKeyFile="${sslDir}/ca.key"
   local certFile="${sslDir}/server.crt"
   local keyFile="${sslDir}/server.key"
+  local pubkeyFile="${sslDir}/public.key"
   local csrFile=$(mktemp)
   local clientCertFile="${sslDir}/client.crt"
   local clientKeyFile="${sslDir}/client.key"
@@ -55,6 +56,9 @@ main () {
 
   log "Generating private key"
   openssl genrsa -out "${keyFile}" 2048
+
+  log "Generating public key"
+  openssl rsa -in "${keyFile}" -pubout -out "${pubkeyFile}"
 
   log "Generating certificate signing request"
   openssl req \

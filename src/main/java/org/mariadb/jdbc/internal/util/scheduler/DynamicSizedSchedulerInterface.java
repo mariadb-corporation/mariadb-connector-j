@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 
 public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService {
 
@@ -62,5 +62,4 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
    * @param newSize New pool size that is superior to 0
    */
   void setPoolSize(int newSize);
-
 }

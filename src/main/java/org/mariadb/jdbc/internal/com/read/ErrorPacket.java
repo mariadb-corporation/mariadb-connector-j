@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,8 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.StandardCharsets;
-
+import java.nio.charset.*;
 
 public class ErrorPacket {
 
@@ -79,12 +78,12 @@ public class ErrorPacket {
     } else {
       // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
       buffer.position -= 1;
-      message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,
-          StandardCharsets.UTF_8);
+      message =
+          new String(
+              buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
       sqlState = GENERAL_ERROR;
     }
   }
-
 
   public String getMessage() {
     return message;
@@ -95,7 +94,7 @@ public class ErrorPacket {
   }
 
   public String getSqlState() {
-    return new String(sqlState);
+    return sqlState;
   }
 
   public byte getSqlStateMarker() {

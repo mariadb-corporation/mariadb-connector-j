@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,24 +52,13 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import java.net.Socket;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.security.PrivateKey;
-import java.security.UnrecoverableEntryException;
+import javax.net.ssl.*;
+import javax.security.auth.x500.*;
+import java.net.*;
+import java.security.*;
 import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.X509ExtendedKeyManager;
-import javax.security.auth.x500.X500Principal;
+import java.security.cert.*;
+import java.util.*;
 
 /**
  * Key manager implementation that implement only client verification and rely only on private key
@@ -83,7 +72,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
    * Creates Key manager.
    *
    * @param keyStore keyStore (must have been initialized)
-   * @param pwd      keyStore password
+   * @param pwd keyStore password
    * @throws KeyStoreException if keyStore hasn't been initialized.
    */
   public MariaDbX509KeyManager(KeyStore keyStore, char[] pwd) throws KeyStoreException {
@@ -93,10 +82,12 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
       String alias = aliases.nextElement();
       if (keyStore.entryInstanceOf(alias, KeyStore.PrivateKeyEntry.class)) {
         try {
-          privateKeyHash.put(alias, (KeyStore.PrivateKeyEntry) keyStore
-              .getEntry(alias, new KeyStore.PasswordProtection(pwd)));
+          privateKeyHash.put(
+              alias,
+              (KeyStore.PrivateKeyEntry)
+                  keyStore.getEntry(alias, new KeyStore.PasswordProtection(pwd)));
         } catch (UnrecoverableEntryException | NoSuchAlgorithmException unrecoverableEntryEx) {
-          //password invalid | algorithm error
+          // password invalid | algorithm error
         }
       }
     }
@@ -104,7 +95,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
 
   @Override
   public String[] getClientAliases(String keyType, Principal[] issuers) {
-    List<String> accurateAlias = searchAccurateAliases(new String[]{keyType}, issuers);
+    List<String> accurateAlias = searchAccurateAliases(new String[] {keyType}, issuers);
     if (accurateAlias.size() == 0) {
       return null;
     }
@@ -150,7 +141,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
    * Search aliases corresponding to algorithms and issuers.
    *
    * @param keyTypes list of algorithms
-   * @param issuers  list of issuers;
+   * @param issuers list of issuers;
    * @return list of corresponding aliases
    */
   private ArrayList<String> searchAccurateAliases(String[] keyTypes, Principal[] issuers) {

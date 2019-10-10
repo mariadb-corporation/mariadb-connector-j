@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,10 +52,11 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.util.concurrent.atomic.*;
 
 public class ServerPrepareResult implements PrepareResult {
 
@@ -66,20 +67,23 @@ public class ServerPrepareResult implements PrepareResult {
   private int statementId;
   private ColumnType[] parameterTypeHeader;
   private Protocol unProxiedProtocol;
-  //share indicator
+  // share indicator
   private volatile int shareCounter = 1;
   private volatile boolean isBeingDeallocate;
 
   /**
    * PrepareStatement Result object.
    *
-   * @param sql               query
-   * @param statementId       server statement Id.
-   * @param columns           columns information
-   * @param parameters        parameters information
+   * @param sql query
+   * @param statementId server statement Id.
+   * @param columns columns information
+   * @param parameters parameters information
    * @param unProxiedProtocol indicate the protocol on which the prepare has been done
    */
-  public ServerPrepareResult(String sql, int statementId, ColumnInformation[] columns,
+  public ServerPrepareResult(
+      String sql,
+      int statementId,
+      ColumnInformation[] columns,
       ColumnInformation[] parameters,
       Protocol unProxiedProtocol) {
     this.sql = sql;
@@ -97,7 +101,7 @@ public class ServerPrepareResult implements PrepareResult {
   /**
    * Update information after a failover.
    *
-   * @param statementId       new statement Id
+   * @param statementId new statement Id
    * @param unProxiedProtocol the protocol on which the prepare has been done
    */
   public void failover(int statementId, Protocol unProxiedProtocol) {
@@ -106,7 +110,6 @@ public class ServerPrepareResult implements PrepareResult {
     this.parameterTypeHeader = new ColumnType[parameters.length];
     this.shareCounter = 1;
     this.isBeingDeallocate = false;
-
   }
 
   public void setAddToCache() {
@@ -157,7 +160,7 @@ public class ServerPrepareResult implements PrepareResult {
     return parameters.length;
   }
 
-  //for unit test
+  // for unit test
   public synchronized int getShareCounter() {
     return shareCounter;
   }
@@ -185,5 +188,4 @@ public class ServerPrepareResult implements PrepareResult {
   public ColumnType[] getParameterTypeHeader() {
     return parameterTypeHeader;
   }
-
 }

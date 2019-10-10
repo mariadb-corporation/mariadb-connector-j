@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,47 +52,41 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
-import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Locale;
-import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-import javax.net.SocketFactory;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
-import org.mariadb.jdbc.internal.io.socket.SocketUtility;
-import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
-import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.failover.impl.*;
+import org.mariadb.jdbc.internal.io.socket.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.util.*;
 
+import javax.net.*;
+import java.io.*;
+import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
+import java.net.*;
+import java.security.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.locks.*;
+import java.util.regex.*;
 
 @SuppressWarnings("Annotator")
 public class Utils {
 
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
-  private static final Pattern IP_V4 = Pattern
-      .compile("^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
-          + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
-          + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+  private static final Pattern IP_V4 =
+      Pattern.compile(
+          "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
+              + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
+              + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
   private static final Pattern IP_V6 = Pattern.compile("^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}$");
-  private static final Pattern IP_V6_COMPRESSED = Pattern
-      .compile("^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
-          + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
+  private static final Pattern IP_V6_COMPRESSED =
+      Pattern.compile(
+          "^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
+              + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
 
   private static final SocketHandlerFunction socketHandler;
 
@@ -101,8 +95,8 @@ public class Utils {
     try {
       init = SocketUtility.getSocketHandler();
     } catch (Throwable t) {
-      SocketHandlerFunction defaultSocketHandler = (urlParser, host) -> Utils
-          .standardSocket(urlParser, host);
+      SocketHandlerFunction defaultSocketHandler =
+          (options, host) -> Utils.standardSocket(options, host);
       init = defaultSocketHandler;
     }
     socketHandler = init;
@@ -111,19 +105,19 @@ public class Utils {
   /**
    * Use standard socket implementation.
    *
-   * @param urlParser url parser
-   * @param host      host to connect
+   * @param options url options
+   * @param host host to connect
    * @return socket
    * @throws IOException in case of error establishing socket.
    */
-  public static Socket standardSocket(UrlParser urlParser, String host) throws IOException {
+  public static Socket standardSocket(Options options, String host) throws IOException {
     SocketFactory socketFactory;
-    String socketFactoryName = urlParser.getOptions().socketFactory;
+    String socketFactoryName = options.socketFactory;
     if (socketFactoryName != null) {
       try {
         @SuppressWarnings("unchecked")
-        Class<? extends SocketFactory> socketFactoryClass = (Class<? extends SocketFactory>) Class
-            .forName(socketFactoryName);
+        Class<? extends SocketFactory> socketFactoryClass =
+            (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
         if (socketFactoryClass != null) {
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
@@ -132,7 +126,9 @@ public class Utils {
       } catch (Exception exp) {
         throw new IOException(
             "Socket factory failed to initialized with option \"socketFactory\" set to \""
-                + urlParser.getOptions().socketFactory + "\"", exp);
+                + options.socketFactory
+                + "\"",
+            exp);
       }
     }
     socketFactory = SocketFactory.getDefault();
@@ -142,7 +138,7 @@ public class Utils {
   /**
    * Escape String.
    *
-   * @param value              value to escape
+   * @param value value to escape
    * @param noBackslashEscapes must backslash be escaped
    * @return escaped string.
    */
@@ -165,21 +161,21 @@ public class Utils {
   /**
    * Encrypts a password.
    *
-   * <p>protocol for authentication is like this: 1. Server sends a random array of bytes (the
-   * seed) 2. client makes a sha1 digest of the password 3. client hashes the output of 2 4. client
+   * <p>protocol for authentication is like this: 1. Server sends a random array of bytes (the seed)
+   * 2. client makes a sha1 digest of the password 3. client hashes the output of 2 4. client
    * digests the seed 5. client updates the digest with the output from 3 6. an xor of the output of
    * 5 and 2 is sent to server 7. server does the same thing and verifies that the scrambled
-   * passwords match</p>
+   * passwords match
    *
-   * @param password                  the password to encrypt
-   * @param seed                      the seed to use
+   * @param password the password to encrypt
+   * @param seed the seed to use
    * @param passwordCharacterEncoding password character encoding
    * @return a scrambled password
-   * @throws NoSuchAlgorithmException     if SHA1 is not available on the platform we are using
+   * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
    * @throws UnsupportedEncodingException if passwordCharacterEncoding is not a valid charset name
    */
-  public static byte[] encryptPassword(final String password, final byte[] seed,
-      String passwordCharacterEncoding)
+  public static byte[] encryptPassword(
+      final String password, final byte[] seed, String passwordCharacterEncoding)
       throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
     if (password == null || password.isEmpty()) {
@@ -217,7 +213,7 @@ public class Utils {
    * truncated. If length is bigger than the original byte array, the resulting byte array is filled
    * with zero bytes.
    *
-   * @param orig   the original byte array
+   * @param orig the original byte array
    * @param length how big the resulting byte array will be
    * @return the copied byte array
    */
@@ -235,8 +231,8 @@ public class Utils {
    *
    * @param orig the original byte array
    * @param from index of first byte in original byte array which will be copied
-   * @param to   index of last byte in original byte array which will be copied. This can be outside
-   *             of the original byte array
+   * @param to index of last byte in original byte array which will be copied. This can be outside
+   *     of the original byte array
    * @return resulting array
    */
   public static byte[] copyRange(byte[] orig, int from, int to) {
@@ -248,19 +244,25 @@ public class Utils {
   }
 
   /**
-   * Helper function to replace function parameters in escaped string. 3 functions are handles : -
-   * CONVERT(value, type) , we replace SQL_XXX types with XXX, i.e SQL_INTEGER with INTEGER -
-   * TIMESTAMPDIFF(type, ...) or TIMESTAMPADD(type, ...) , we replace SQL_TSI_XXX in type with XXX,
-   * i.e SQL_TSI_HOUR with HOUR
+   * Helper function to replace function parameters in escaped string. 3 functions are handles :
    *
-   * @param functionString - input string
+   * <ul>
+   *   <li>CONVERT(value, type): replacing SQL_XXX types to convertible type, i.e SQL_BIGINT to
+   *       INTEGER
+   *   <li>TIMESTAMPDIFF(type, ...): replacing type SQL_TSI_XXX in type with XXX, i.e SQL_TSI_HOUR
+   *       with HOUR
+   *   <li>TIMESTAMPADD(type, ...): replacing type SQL_TSI_XXX in type with XXX, i.e SQL_TSI_HOUR
+   *       with HOUR
+   * </ul>
+   *
+   * <p>caution: this use MariaDB server conversion: 'SELECT CONVERT('2147483648', INTEGER)' will
+   * return a BIGINT. MySQL will throw a syntax error.
+   *
+   * @param functionString input string
+   * @param protocol protocol
    * @return unescaped string
    */
-  private static String replaceFunctionParameter(String functionString) {
-
-    if (!functionString.contains("SQL_")) {
-      return functionString;
-    }
+  private static String replaceFunctionParameter(String functionString, Protocol protocol) {
 
     char[] input = functionString.toCharArray();
     StringBuilder sb = new StringBuilder();
@@ -271,73 +273,132 @@ public class Utils {
       }
     }
 
-    for (; ((input[index] >= 'a' && index <= 'z') || (input[index] >= 'A' && input[index] <= 'Z'))
-        && index < input.length; index++) {
+    for (;
+        ((input[index] >= 'a' && index <= 'z') || (input[index] >= 'A' && input[index] <= 'Z'))
+            && index < input.length;
+        index++) {
       sb.append(input[index]);
     }
     String func = sb.toString().toLowerCase(Locale.ROOT);
+    switch (func) {
+      case "convert":
+        // Handle "convert(value, type)" case
+        // extract last parameter, after the last ','
+        int lastCommaIndex = functionString.lastIndexOf(',');
+        int firstParentheses = functionString.indexOf('(');
+        String value = functionString.substring(firstParentheses + 1, lastCommaIndex);
+        for (index = lastCommaIndex + 1; index < input.length; index++) {
+          if (!Character.isWhitespace(input[index])) {
+            break;
+          }
+        }
 
-    if ("convert".equals(func) || "timestampdiff".equals(func) || "timestampadd".equals(func)) {
-      String paramPrefix;
+        int endParam = index + 1;
+        for (; endParam < input.length; endParam++) {
+          if ((input[endParam] < 'a' || input[endParam] > 'z')
+              && (input[endParam] < 'A' || input[endParam] > 'Z')
+              && input[endParam] != '_') {
+            break;
+          }
+        }
+        String typeParam = new String(input, index, endParam - index).toUpperCase(Locale.ROOT);
+        if (typeParam.startsWith("SQL_")) {
+          typeParam = typeParam.substring(4);
+        }
 
-      if ("timestampdiff".equals(func) || "timestampadd".equals(func)) {
+        switch (typeParam) {
+          case "BOOLEAN":
+            return "1=" + value;
+
+          case "BIGINT":
+          case "SMALLINT":
+          case "TINYINT":
+            typeParam = "SIGNED INTEGER";
+            break;
+
+          case "BIT":
+            typeParam = "UNSIGNED INTEGER";
+            break;
+
+          case "BLOB":
+          case "VARBINARY":
+          case "LONGVARBINARY":
+          case "ROWID":
+            typeParam = "BINARY";
+            break;
+
+          case "NCHAR":
+          case "CLOB":
+          case "NCLOB":
+          case "DATALINK":
+          case "VARCHAR":
+          case "NVARCHAR":
+          case "LONGVARCHAR":
+          case "LONGNVARCHAR":
+          case "SQLXML":
+          case "LONGNCHAR":
+            typeParam = "CHAR";
+            break;
+
+          case "DOUBLE":
+          case "FLOAT":
+            if (protocol.isServerMariaDb() || protocol.versionGreaterOrEqual(8, 0, 17)) {
+              typeParam = "DOUBLE";
+              break;
+            }
+            return "0.0+" + value;
+
+          case "REAL":
+          case "NUMERIC":
+            typeParam = "DECIMAL";
+            break;
+
+          case "TIMESTAMP":
+            typeParam = "DATETIME";
+            break;
+
+          default:
+            break;
+        }
+        return new String(input, 0, index)
+            + typeParam
+            + new String(input, endParam, input.length - endParam);
+
+      case "timestampdiff":
+      case "timestampadd":
         // Skip to first parameter
         for (; index < input.length; index++) {
           if (!Character.isWhitespace(input[index]) && input[index] != '(') {
             break;
           }
         }
-        if (index == input.length) {
-          return new String(input);
+        if (index < input.length - 8) {
+          String paramPrefix = new String(input, index, 8);
+          if ("SQL_TSI_".equals(paramPrefix)) {
+            return new String(input, 0, index)
+                + new String(input, index + 8, input.length - (index + 8));
+          }
         }
+        return functionString;
 
-        if (index >= input.length - 8) {
-          return new String(input);
-        }
-        paramPrefix = new String(input, index, 8);
-        if ("SQL_TSI_".equals(paramPrefix)) {
-          return new String(input, 0, index) + new String(input, index + 8,
-              input.length - (index + 8));
-        }
-        return new String(input);
-      }
-
-      // Handle "convert(value, type)" case
-      // extract last parameter, after the last ','
-      int lastCommaIndex = functionString.lastIndexOf(',');
-
-      for (index = lastCommaIndex + 1; index < input.length; index++) {
-        if (!Character.isWhitespace(input[index])) {
-          break;
-        }
-      }
-      if (index >= input.length - 4) {
-        return new String(input);
-      }
-      paramPrefix = new String(input, index, 4);
-      if ("SQL_".equals(paramPrefix)) {
-        return new String(input, 0, index) + new String(input, index + 4,
-            input.length - (index + 4));
-      }
-
+      default:
+        return functionString;
     }
-    return new String(input);
   }
 
-  private static String resolveEscapes(String escaped, boolean noBackslashEscapes)
-      throws SQLException {
+  private static String resolveEscapes(String escaped, Protocol protocol) throws SQLException {
     if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}') {
       throw new SQLException("unexpected escaped string");
     }
     int endIndex = escaped.length() - 1;
     String escapedLower = escaped.toLowerCase(Locale.ROOT);
     if (escaped.startsWith("{fn ")) {
-      String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex));
-      return nativeSql(resolvedParams, noBackslashEscapes);
+      String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex), protocol);
+      return nativeSql(resolvedParams, protocol);
     } else if (escapedLower.startsWith("{oj ")) {
       // Outer join
       // the server supports "oj" in any case, even "oJ"
-      return nativeSql(escaped.substring(4, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(4, endIndex), protocol);
     } else if (escaped.startsWith("{d ")) {
       // date literal
       return escaped.substring(3, endIndex);
@@ -345,7 +406,7 @@ public class Utils {
       // time literal
       return escaped.substring(3, endIndex);
     } else if (escaped.startsWith("{ts ")) {
-      //timestamp literal
+      // timestamp literal
       return escaped.substring(4, endIndex);
     } else if (escaped.startsWith("{d'")) {
       // date literal, no space
@@ -354,31 +415,34 @@ public class Utils {
       // time literal
       return escaped.substring(2, endIndex);
     } else if (escaped.startsWith("{ts'")) {
-      //timestamp literal
+      // timestamp literal
       return escaped.substring(3, endIndex);
     } else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
-      // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC spec.
+      // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC
+      // spec.
 
-      return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(1, endIndex), protocol);
     } else if (escaped.startsWith("{escape ")) {
       return escaped.substring(1, endIndex);
     } else if (escaped.startsWith("{?")) {
       // likely ?=call(...)
-      return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(1, endIndex), protocol);
     } else if (escaped.startsWith("{ ") || escaped.startsWith("{\n")) {
-      // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
+      // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in
+      // some drivers,
       // so we support it, too
       for (int i = 2; i < escaped.length(); i++) {
         if (!Character.isWhitespace(escaped.charAt(i))) {
-          return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+          return resolveEscapes("{" + escaped.substring(i), protocol);
         }
       }
     } else if (escaped.startsWith("{\r\n")) {
-      // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
+      // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in
+      // some drivers,
       // so we support it, too
       for (int i = 3; i < escaped.length(); i++) {
         if (!Character.isWhitespace(escaped.charAt(i))) {
-          return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+          return resolveEscapes("{" + escaped.substring(i), protocol);
         }
       }
     }
@@ -388,13 +452,13 @@ public class Utils {
   /**
    * Escape sql String.
    *
-   * @param sql                initial sql
-   * @param noBackslashEscapes must backslash be escape
+   * @param sql initial sql
+   * @param protocol protocol
    * @return escaped sql string
    * @throws SQLException if escape sequence is incorrect.
    */
   @SuppressWarnings("ConstantConditions")
-  public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
+  public static String nativeSql(String sql, Protocol protocol) throws SQLException {
     if (!sql.contains("{")) {
       return sql;
     }
@@ -412,7 +476,7 @@ public class Utils {
 
     for (int i = 0; i < charArray.length; i++) {
       char car = charArray[i];
-      if (lastChar == '\\' && !noBackslashEscapes) {
+      if (lastChar == '\\' && !protocol.noBackslashEscapes()) {
         sqlBuffer.append(car);
         continue;
       }
@@ -459,27 +523,6 @@ public class Utils {
             }
           }
           break;
-        case 'S':
-          // skip SQL_xxx and SQL_TSI_xxx in functions
-          // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
-
-          if (!inQuote && !inComment && inEscapeSeq > 0
-              && i + 4 < charArray.length && charArray[i + 1] == 'Q'
-              && charArray[i + 2] == 'L' && charArray[i + 3] == 'L'
-              && charArray[i + 4] == '_') {
-
-            if (i + 8 < charArray.length
-                && charArray[i + 5] == 'T'
-                && charArray[i + 6] == 'S'
-                && charArray[i + 7] == 'I'
-                && charArray[i + 8] == '_') {
-              i += 8;
-              continue;
-            }
-            i += 4;
-            continue;
-          }
-          break;
         case '\n':
           if (inComment && isSlashSlashComment) {
             // slash-slash and dash-dash comments ends with the end of line
@@ -497,7 +540,7 @@ public class Utils {
             inEscapeSeq--;
             if (inEscapeSeq == 0) {
               escapeSequenceBuf.append(car);
-              sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
+              sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), protocol));
               escapeSequenceBuf.setLength(0);
               continue;
             }
@@ -506,7 +549,6 @@ public class Utils {
 
         default:
           break;
-
       }
       lastChar = car;
       if (inEscapeSeq > 0) {
@@ -527,7 +569,7 @@ public class Utils {
    * not be proxied. if a failover option is precised, protocol will be proxied so that any
    * connection error will be handle directly.
    *
-   * @param urlParser  urlParser corresponding to connection url string.
+   * @param urlParser urlParser corresponding to connection url string.
    * @param globalInfo global variable information
    * @return protocol
    * @throws SQLException if any error occur during connection
@@ -538,25 +580,33 @@ public class Utils {
     Protocol protocol;
     switch (urlParser.getHaMode()) {
       case AURORA:
-        return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
-            AuroraProtocol.class.getClassLoader(),
-            new Class[]{Protocol.class},
-            new FailoverProxy(new AuroraListener(urlParser, globalInfo), lock)));
+        return getProxyLoggingIfNeeded(
+            urlParser,
+            (Protocol)
+                Proxy.newProxyInstance(
+                    AuroraProtocol.class.getClassLoader(),
+                    new Class[] {Protocol.class},
+                    new FailoverProxy(new AuroraListener(urlParser, globalInfo), lock)));
       case REPLICATION:
-        return getProxyLoggingIfNeeded(urlParser,
-            (Protocol) Proxy.newProxyInstance(
-                MastersSlavesProtocol.class.getClassLoader(),
-                new Class[]{Protocol.class},
-                new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
-      case FAILOVER:
+        return getProxyLoggingIfNeeded(
+            urlParser,
+            (Protocol)
+                Proxy.newProxyInstance(
+                    MastersSlavesProtocol.class.getClassLoader(),
+                    new Class[] {Protocol.class},
+                    new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
+      case LOADBALANCE:
       case SEQUENTIAL:
-        return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
-            MasterProtocol.class.getClassLoader(),
-            new Class[]{Protocol.class},
-            new FailoverProxy(new MastersFailoverListener(urlParser, globalInfo), lock)));
+        return getProxyLoggingIfNeeded(
+            urlParser,
+            (Protocol)
+                Proxy.newProxyInstance(
+                    MasterProtocol.class.getClassLoader(),
+                    new Class[] {Protocol.class},
+                    new FailoverProxy(new MastersFailoverListener(urlParser, globalInfo), lock)));
       default:
-        protocol = getProxyLoggingIfNeeded(urlParser,
-            new MasterProtocol(urlParser, globalInfo, lock));
+        protocol =
+            getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, globalInfo, lock));
         protocol.connectWithoutProxy();
         return protocol;
     }
@@ -565,10 +615,11 @@ public class Utils {
   private static Protocol getProxyLoggingIfNeeded(UrlParser urlParser, Protocol protocol) {
     if (urlParser.getOptions().profileSql
         || urlParser.getOptions().slowQueryThresholdNanos != null) {
-      return (Protocol) Proxy.newProxyInstance(
-          MasterProtocol.class.getClassLoader(),
-          new Class[]{Protocol.class},
-          new ProtocolLoggingProxy(protocol, urlParser.getOptions()));
+      return (Protocol)
+          Proxy.newProxyInstance(
+              MasterProtocol.class.getClassLoader(),
+              new Class[] {Protocol.class},
+              new ProtocolLoggingProxy(protocol, urlParser.getOptions()));
     }
     return protocol;
   }
@@ -594,13 +645,13 @@ public class Utils {
   /**
    * Create socket accordingly to options.
    *
-   * @param urlParser urlParser
-   * @param host      hostName ( mandatory only for named pipe)
+   * @param options Url options
+   * @param host hostName ( mandatory only for named pipe)
    * @return a nex socket
    * @throws IOException if connection error occur
    */
-  public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
-    return socketHandler.apply(urlParser, host);
+  public static Socket createSocket(Options options, String host) throws IOException {
+    return socketHandler.apply(options, host);
   }
 
   /**
@@ -616,31 +667,30 @@ public class Utils {
   /**
    * Hexdump.
    *
-   * <p>String output example :</p>
-   * <pre>
-   * {@code
-   *    7D 00 00 01 C5 00 00                                 }......            &lt;- first byte array
-   *    01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   &lt;- second byte array
-   *    73 74 6A 0A 74 65 73 74  5F 62 61 74 63 68 0A 74     stj.test_batch.t
-   *    65 73 74 5F 62 61 74 63  68 02 69 64 02 69 64 0C     est_batch.id.id.
-   *    3F 00 0B 00 00 00 03 03  42 00 00 00 37 00 00 03     ?.......B...7...
-   *    03 64 65 66 05 74 65 73  74 6A 0A 74 65 73 74 5F     .def.testj.test_
-   *    62 61 74 63 68 0A 74 65  73 74 5F 62 61 74 63 68     batch.test_batch
-   *    04 74 65 73 74 04 74 65  73 74 0C 21 00 1E 00 00     .test.test.!....
-   *    00 FD 00 00 00 00 00 05  00 00 04 FE 00 00 22 00     ..............".
-   *    06 00 00 05 01 31 03 61  61 61 06 00 00 06 01 32     .....1.aaa.....2
-   *    03 62 62 62 06 00 00 07  01 33 03 63 63 63 06 00     .bbb.....3.ccc..
-   *    00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
-   *    62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
-   *    FE 00 00 22 00                                       ...".
-   * }
-   * </pre>
+   * <p>String output example :
+   *
+   * <pre>{@code
+   * 7D 00 00 01 C5 00 00                                 }......            &lt;- first byte array
+   * 01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   &lt;- second byte array
+   * 73 74 6A 0A 74 65 73 74  5F 62 61 74 63 68 0A 74     stj.test_batch.t
+   * 65 73 74 5F 62 61 74 63  68 02 69 64 02 69 64 0C     est_batch.id.id.
+   * 3F 00 0B 00 00 00 03 03  42 00 00 00 37 00 00 03     ?.......B...7...
+   * 03 64 65 66 05 74 65 73  74 6A 0A 74 65 73 74 5F     .def.testj.test_
+   * 62 61 74 63 68 0A 74 65  73 74 5F 62 61 74 63 68     batch.test_batch
+   * 04 74 65 73 74 04 74 65  73 74 0C 21 00 1E 00 00     .test.test.!....
+   * 00 FD 00 00 00 00 00 05  00 00 04 FE 00 00 22 00     ..............".
+   * 06 00 00 05 01 31 03 61  61 61 06 00 00 06 01 32     .....1.aaa.....2
+   * 03 62 62 62 06 00 00 07  01 33 03 63 63 63 06 00     .bbb.....3.ccc..
+   * 00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
+   * 62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
+   * FE 00 00 22 00                                       ...".
+   * }</pre>
    *
    * @param maxQuerySizeToLog max log size
-   * @param offset            offset of last byte array
-   * @param length            length of last byte array
-   * @param byteArr           byte arrays. if many, only the last may have offset and size
-   *                          limitation others will be displayed completely.
+   * @param offset offset of last byte array
+   * @param length length of last byte array
+   * @param byteArr byte arrays. if many, only the last may have offset and size limitation others
+   *     will be displayed completely.
    * @return String
    */
   public static String hexdump(int maxQuerySizeToLog, int offset, int length, byte[]... byteArr) {
@@ -672,7 +722,6 @@ public class Utils {
         int dataLength2 = Math.min(maxQuerySizeToLog, Math.min(arr.length - offset, length));
         writeHex(arr, offset, dataLength2, sb);
         return sb.toString();
-
     }
   }
 
@@ -680,22 +729,21 @@ public class Utils {
    * Write bytes/hexadecimal value of a byte array to a StringBuilder.
    *
    * <p>String output example :
-   * <pre>
-   * {@code
+   *
+   * <pre>{@code
    * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....create tabl
    * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTestclobte
    * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (strm text)
    * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET utf8
-   * }
-   * </pre></p>
+   * }</pre>
    *
-   * @param bytes         byte array
-   * @param offset        offset
-   * @param dataLength    byte length to write
+   * @param bytes byte array
+   * @param offset offset
+   * @param dataLength byte length to write
    * @param outputBuilder string builder
    */
-  private static void writeHex(byte[] bytes, int offset, int dataLength,
-      StringBuilder outputBuilder) {
+  private static void writeHex(
+      byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
 
     if (bytes == null || bytes.length == 0) {
       return;
@@ -709,7 +757,8 @@ public class Utils {
 
     while (pos < dataLength + offset) {
       int byteValue = bytes[pos] & 0xFF;
-      outputBuilder.append(hexArray[byteValue >>> 4])
+      outputBuilder
+          .append(hexArray[byteValue >>> 4])
           .append(hexArray[byteValue & 0x0F])
           .append(" ");
 
@@ -719,9 +768,7 @@ public class Utils {
         outputBuilder.append(" ");
       }
       if (posHexa == 16) {
-        outputBuilder.append("    ")
-            .append(hexaValue)
-            .append("\n");
+        outputBuilder.append("    ").append(hexaValue).append("\n");
         posHexa = 0;
       }
       pos++;
@@ -740,23 +787,42 @@ public class Utils {
         outputBuilder.append("   ");
       }
 
-      outputBuilder.append("    ")
-          .append(hexaValue, 0, posHexa)
-          .append("\n");
+      outputBuilder.append("    ").append(hexaValue, 0, posHexa).append("\n");
     }
   }
 
   private static String getHex(final byte[] raw) {
     final StringBuilder hex = new StringBuilder(2 * raw.length);
     for (final byte b : raw) {
-      hex.append(hexArray[(b & 0xF0) >> 4])
-          .append(hexArray[(b & 0x0F)]);
+      hex.append(hexArray[(b & 0xF0) >> 4]).append(hexArray[(b & 0x0F)]);
     }
     return hex.toString();
   }
 
   public static String byteArrayToHexString(final byte[] bytes) {
     return (bytes != null) ? getHex(bytes) : "";
+  }
+
+  /**
+   * Convert int value to hexadecimal String.
+   *
+   * @param value value to transform
+   * @return Hexadecimal String value of integer.
+   */
+  public static String intToHexString(final int value) {
+    final StringBuilder hex = new StringBuilder(8);
+    int offset = 24;
+    byte b;
+    boolean nullEnd = false;
+    while (offset >= 0) {
+      b = (byte) (value >> offset);
+      offset -= 8;
+      if (b != 0 || nullEnd) {
+        nullEnd = true;
+        hex.append(hexArray[(b & 0xF0) >> 4]).append(hexArray[(b & 0x0F)]);
+      }
+    }
+    return hex.toString();
   }
 
   /**
@@ -846,7 +912,7 @@ public class Utils {
           break;
 
         default:
-          //nothing
+          // nothing
       }
 
       sb.append(car);
@@ -883,11 +949,11 @@ public class Utils {
    * @return java corresponding value (Connection.TRANSACTION_READ_UNCOMMITTED,
    *     Connection.TRANSACTION_READ_COMMITTED, Connection.TRANSACTION_REPEATABLE_READ or
    *     Connection.TRANSACTION_SERIALIZABLE)
-   * @throws SQLException if String value doesn't correspond to @@tx_isolation/@@transaction_isolation
-   *                      possible value
+   * @throws SQLException if String value doesn't correspond
+   *     to @@tx_isolation/@@transaction_isolation possible value
    */
   public static int transactionFromString(String txIsolation) throws SQLException {
-    switch (txIsolation) { //tx_isolation
+    switch (txIsolation) { // tx_isolation
       case "READ-UNCOMMITTED":
         return Connection.TRANSACTION_READ_UNCOMMITTED;
 
@@ -905,6 +971,37 @@ public class Utils {
     }
   }
 
+  /**
+   * Validate that file name correspond to send query.
+   *
+   * @param sql sql command
+   * @param parameters sql parameter
+   * @param fileName server file name
+   * @return true if correspond
+   */
+  public static boolean validateFileName(
+      String sql, ParameterHolder[] parameters, String fileName) {
+    Pattern pattern =
+        Pattern.compile(
+            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+                + fileName
+                + "'",
+            Pattern.CASE_INSENSITIVE);
+    if (pattern.matcher(sql).find()) {
+      return true;
+    }
+
+    if (parameters != null) {
+      pattern =
+          Pattern.compile(
+              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              Pattern.CASE_INSENSITIVE);
+      if (pattern.matcher(sql).find() && parameters.length > 0) {
+        return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+      }
+    }
+    return false;
+  }
 
   private enum Parse {
     Normal,

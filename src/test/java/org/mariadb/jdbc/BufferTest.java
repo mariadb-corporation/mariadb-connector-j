@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -133,7 +133,6 @@ public class BufferTest extends BaseTest {
     sendByteBufferData(true, array40m);
   }
 
-
   @Test
   public void send20mSqlNotCompressDataException() {
     try {
@@ -141,7 +140,8 @@ public class BufferTest extends BaseTest {
       sendSqlData(false, array20m);
       fail("must have thrown exception");
     } catch (SQLException sqlexception) {
-      assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+      assertTrue(
+          "not the expected exception. was " + sqlexception.getMessage(),
           sqlexception.getMessage().contains("is >= to max_allowed_packet"));
     }
   }
@@ -153,7 +153,8 @@ public class BufferTest extends BaseTest {
       sendSqlData(true, array20m);
       fail("must have thrown exception");
     } catch (SQLException sqlexception) {
-      assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+      assertTrue(
+          "not the expected exception. was " + sqlexception.getMessage(),
           sqlexception.getMessage().contains("is >= to max_allowed_packet"));
     }
   }
@@ -165,7 +166,8 @@ public class BufferTest extends BaseTest {
       sendSqlData(false, array40m);
       fail("must have thrown exception");
     } catch (SQLException sqlexception) {
-      assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+      assertTrue(
+          "not the expected exception. was " + sqlexception.getMessage(),
           sqlexception.getMessage().contains("is >= to max_allowed_packet"));
     }
   }
@@ -177,11 +179,11 @@ public class BufferTest extends BaseTest {
       sendSqlData(true, array40m);
       fail("must have thrown exception");
     } catch (SQLException sqlexception) {
-      assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+      assertTrue(
+          "not the expected exception. was " + sqlexception.getMessage(),
           sqlexception.getMessage().contains("is >= to max_allowed_packet"));
     }
   }
-
 
   @Test
   public void send20mByteBufferNotCompressDataException() {
@@ -243,15 +245,15 @@ public class BufferTest extends BaseTest {
    * Insert data using bytebuffer implementation on PacketOutputStream.
    *
    * @param compression use packet compression
-   * @param arr         data to insert
+   * @param arr data to insert
    * @throws SQLException if anything wrong append
    */
   private void sendByteBufferData(boolean compression, char[] arr) throws SQLException {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
       stmt.execute("TRUNCATE BufferTest");
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("INSERT INTO BufferTest VALUES (?)");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
       preparedStatement.setString(1, new String(arr));
       preparedStatement.execute();
       checkResult(arr);
@@ -262,7 +264,7 @@ public class BufferTest extends BaseTest {
    * Insert data using sql buffer implementation on PacketOutputStream.
    *
    * @param compression use packet compression
-   * @param arr         data to insert
+   * @param arr data to insert
    * @throws SQLException if anything wrong append
    */
   private void sendSqlData(boolean compression, char[] arr) throws SQLException {
@@ -287,5 +289,4 @@ public class BufferTest extends BaseTest {
       fail("Error, must have result");
     }
   }
-
 }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,19 @@
 
 package org.mariadb.jdbc;
 
-import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.util.*;
 
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
 
 public final class Driver implements java.sql.Driver {
 
   static {
     try {
-      DriverManager.registerDriver(new Driver());
+      DriverManager.registerDriver(new Driver(), new DeRegister());
     } catch (SQLException e) {
       throw new RuntimeException("Could not register driver", e);
     }
@@ -91,7 +85,6 @@ public final class Driver implements java.sql.Driver {
     } else {
       return MariaDbConnection.newConnection(urlParser, null);
     }
-
   }
 
   /**
@@ -108,38 +101,38 @@ public final class Driver implements java.sql.Driver {
   /**
    * Get the property info.
    *
-   * @param url  the url to get properties for
+   * @param url the url to get properties for
    * @param info the info props
-   * @return something - not implemented
+   * @return all possible connector options
    * @throws SQLException if there is a problem getting the property info
    */
-  public DriverPropertyInfo[] getPropertyInfo(String url,
-      Properties info)
-      throws SQLException {
-    if (url != null) {
+  public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
+    Options options;
+    if (url != null && !url.isEmpty()) {
       UrlParser urlParser = UrlParser.parse(url, info);
       if (urlParser == null || urlParser.getOptions() == null) {
         return new DriverPropertyInfo[0];
       }
-
-      List<DriverPropertyInfo> props = new ArrayList<>();
-      for (DefaultOptions o : DefaultOptions.values()) {
-        try {
-          Field field = Options.class.getField(o.getOptionName());
-          Object value = field.get(urlParser.getOptions());
-          DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(),
-              value == null ? null : value.toString());
-          propertyInfo.description = o.getDescription();
-          propertyInfo.required = o.isRequired();
-          props.add(propertyInfo);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-          //eat error
-        }
-      }
-      return props.toArray(new DriverPropertyInfo[props.size()]);
+      options = urlParser.getOptions();
+    } else {
+      options = DefaultOptions.parse(HaMode.NONE, "", info, null);
     }
 
-    return new DriverPropertyInfo[0];
+    List<DriverPropertyInfo> props = new ArrayList<>();
+    for (DefaultOptions o : DefaultOptions.values()) {
+      try {
+        Field field = Options.class.getField(o.getOptionName());
+        Object value = field.get(options);
+        DriverPropertyInfo propertyInfo =
+            new DriverPropertyInfo(field.getName(), value == null ? null : value.toString());
+        propertyInfo.description = o.getDescription();
+        propertyInfo.required = o.isRequired();
+        props.add(propertyInfo);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        // eat error
+      }
+    }
+    return props.toArray(new DriverPropertyInfo[props.size()]);
   }
 
   /**
@@ -161,12 +154,12 @@ public final class Driver implements java.sql.Driver {
   }
 
   /**
-   * checks if the driver is jdbc compliant (not yet!).
+   * checks if the driver is jdbc compliant.
    *
-   * @return false since the driver is not compliant
+   * @return true since the driver is not compliant
    */
   public boolean jdbcCompliant() {
-    return false;
+    return true;
   }
 
   public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {

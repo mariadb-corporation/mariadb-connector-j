@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,23 +52,16 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.util.*;
+
+import java.math.*;
 import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.util.Calendar;
-import java.util.TimeZone;
-import java.util.regex.Pattern;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.Options;
+import java.sql.*;
+import java.time.*;
+import java.time.format.*;
+import java.util.*;
+import java.util.regex.*;
 
 public abstract class RowProtocol {
 
@@ -79,7 +72,6 @@ public abstract class RowProtocol {
   public static final int TINYINT1_IS_BIT = 1;
   public static final int YEAR_IS_DATE_TYPE = 2;
 
-
   public static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
   public static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
   public static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
@@ -88,27 +80,30 @@ public abstract class RowProtocol {
   protected static final int NULL_LENGTH = -1;
 
   static {
-    TEXT_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
-        .parseCaseInsensitive()
-        .append(DateTimeFormatter.ISO_LOCAL_DATE)
-        .appendLiteral(' ')
-        .append(DateTimeFormatter.ISO_LOCAL_TIME)
-        .toFormatter();
+    TEXT_LOCAL_DATE_TIME =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE)
+            .appendLiteral(' ')
+            .append(DateTimeFormatter.ISO_LOCAL_TIME)
+            .toFormatter();
 
-    TEXT_OFFSET_DATE_TIME = new DateTimeFormatterBuilder()
-        .parseCaseInsensitive()
-        .append(TEXT_LOCAL_DATE_TIME)
-        .appendOffsetId()
-        .toFormatter();
+    TEXT_OFFSET_DATE_TIME =
+        new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(TEXT_LOCAL_DATE_TIME)
+            .appendOffsetId()
+            .toFormatter();
 
-    TEXT_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
-        .append(TEXT_OFFSET_DATE_TIME)
-        .optionalStart()
-        .appendLiteral('[')
-        .parseCaseSensitive()
-        .appendZoneRegionId()
-        .appendLiteral(']')
-        .toFormatter();
+    TEXT_ZONED_DATE_TIME =
+        new DateTimeFormatterBuilder()
+            .append(TEXT_OFFSET_DATE_TIME)
+            .optionalStart()
+            .appendLiteral('[')
+            .parseCaseSensitive()
+            .appendZoneRegionId()
+            .appendLiteral(']')
+            .toFormatter();
   }
 
   protected final int maxFieldSize;
@@ -139,9 +134,8 @@ public abstract class RowProtocol {
     return maxFieldSize;
   }
 
-
-  public abstract String getInternalString(ColumnInformation columnInfo, Calendar cal,
-      TimeZone timeZone) throws SQLException;
+  public abstract String getInternalString(
+      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 
   public abstract int getInternalInt(ColumnInformation columnInfo) throws SQLException;
 
@@ -154,14 +148,14 @@ public abstract class RowProtocol {
   public abstract BigDecimal getInternalBigDecimal(ColumnInformation columnInfo)
       throws SQLException;
 
-  public abstract Date getInternalDate(ColumnInformation columnInfo, Calendar cal,
-      TimeZone timeZone) throws SQLException;
+  public abstract Date getInternalDate(
+      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 
-  public abstract Time getInternalTime(ColumnInformation columnInfo, Calendar cal,
-      TimeZone timeZone) throws SQLException;
+  public abstract Time getInternalTime(
+      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 
-  public abstract Timestamp getInternalTimestamp(ColumnInformation columnInfo,
-      Calendar userCalendar, TimeZone timeZone) throws SQLException;
+  public abstract Timestamp getInternalTimestamp(
+      ColumnInformation columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
   public abstract Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone)
       throws SQLException;
@@ -177,8 +171,8 @@ public abstract class RowProtocol {
   public abstract BigInteger getInternalBigInteger(ColumnInformation columnInfo)
       throws SQLException;
 
-  public abstract ZonedDateTime getInternalZonedDateTime(ColumnInformation columnInfo, Class clazz,
-      TimeZone timeZone) throws SQLException;
+  public abstract ZonedDateTime getInternalZonedDateTime(
+      ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException;
 
   public abstract OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone)
       throws SQLException;
@@ -218,7 +212,6 @@ public abstract class RowProtocol {
     return value;
   }
 
-
   protected long parseBit() {
     if (length == 1) {
       return buf[pos];
@@ -239,7 +232,7 @@ public abstract class RowProtocol {
     if (!columnInfo.isSigned()) {
       return value & 0xffff;
     }
-    //short cast here is important : -1 will be received as -1, -1 -> 65535
+    // short cast here is important : -1 will be received as -1, -1 -> 65535
     return (short) value;
   }
 
@@ -247,37 +240,55 @@ public abstract class RowProtocol {
     if (lastValueWasNull()) {
       return 0;
     }
-    long value = ((buf[pos] & 0xff)
-        + ((buf[pos + 1] & 0xff) << 8)
-        + ((buf[pos + 2] & 0xff) << 16)
-        + ((buf[pos + 3] & 0xff) << 24));
+    long value =
+        ((buf[pos] & 0xff)
+            + ((buf[pos + 1] & 0xff) << 8)
+            + ((buf[pos + 2] & 0xff) << 16)
+            + ((buf[pos + 3] & 0xff) << 24));
     if (!columnInfo.isSigned()) {
       value = value & 0xffffffffL;
     }
     return value;
   }
 
-  protected void rangeCheck(Object className, long minValue, long maxValue, BigDecimal value,
-      ColumnInformation columnInfo) throws SQLException {
+  protected void rangeCheck(
+      Object className,
+      long minValue,
+      long maxValue,
+      BigDecimal value,
+      ColumnInformation columnInfo)
+      throws SQLException {
     if (value.compareTo(BigDecimal.valueOf(minValue)) < 0
         || value.compareTo(BigDecimal.valueOf(maxValue)) > 0) {
       throw new SQLException(
-          "Out of range value for column '" + columnInfo.getName() + "' : value " + value
+          "Out of range value for column '"
+              + columnInfo.getName()
+              + "' : value "
+              + value
               + " is not in "
-              + className + " range", "22003", 1264);
+              + className
+              + " range",
+          "22003",
+          1264);
     }
   }
 
-  protected void rangeCheck(Object className, long minValue, long maxValue, long value,
-      ColumnInformation columnInfo) throws SQLException {
+  protected void rangeCheck(
+      Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo)
+      throws SQLException {
     if (value < minValue || value > maxValue) {
       throw new SQLException(
-          "Out of range value for column '" + columnInfo.getName() + "' : value " + value
+          "Out of range value for column '"
+              + columnInfo.getName()
+              + "' : value "
+              + value
               + " is not in "
-              + className + " range", "22003", 1264);
+              + className
+              + " range",
+          "22003",
+          1264);
     }
   }
-
 
   protected int extractNanos(String timestring) throws SQLException {
     int index = timestring.indexOf('.');
@@ -310,8 +321,6 @@ public abstract class RowProtocol {
    * @return true true if the last column value read was null and false otherwise
    */
   public boolean wasNull() {
-    return (lastValueNull & BIT_LAST_FIELD_NULL) != 0
-        || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
+    return (lastValueNull & BIT_LAST_FIELD_NULL) != 0 || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
   }
-
 }

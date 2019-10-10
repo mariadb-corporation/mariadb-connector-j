@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -76,7 +76,8 @@ public class BooleanTest extends BaseTest {
   public static void initClass() throws SQLException {
     createTable("booleantest", "id int not null primary key auto_increment, test boolean");
     createTable("booleanvalue", "test boolean");
-    createTable("booleanAllField",
+    createTable(
+        "booleanAllField",
         "t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
             + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1)");
   }
@@ -97,6 +98,24 @@ public class BooleanTest extends BaseTest {
     } else {
       fail("must have a result !");
     }
+  }
+
+  @Test
+  public void testBooleanSet() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("CREATE TEMPORARY TABLE testBooleanSet (test BOOLEAN)");
+    try (PreparedStatement prep =
+        sharedConnection.prepareStatement("INSERT INTO testBooleanSet VALUE (?)")) {
+      prep.setBoolean(1, true);
+      prep.execute();
+      prep.setBoolean(1, false);
+      prep.execute();
+    }
+    ResultSet rs = stmt.executeQuery("select * from testBooleanSet");
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(1));
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(1));
   }
 
   @Test
@@ -127,7 +146,6 @@ public class BooleanTest extends BaseTest {
     }
   }
 
-
   /**
    * CONJ-254 error when using scala anorm string interpolation.
    *
@@ -152,8 +170,8 @@ public class BooleanTest extends BaseTest {
       checkBooleanValue(rs, true, true);
       checkBooleanValue(rs, true, true);
 
-      PreparedStatement preparedStatement = connection
-          .prepareStatement("SELECT * FROM booleanAllField WHERE 1 = ?");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("SELECT * FROM booleanAllField WHERE 1 = ?");
       preparedStatement.setInt(1, 1);
       rs = preparedStatement.executeQuery();
       checkBooleanValue(rs, false, null);

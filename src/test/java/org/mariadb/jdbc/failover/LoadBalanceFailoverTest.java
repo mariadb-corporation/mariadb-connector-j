@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -65,37 +65,35 @@ import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 /**
- * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mariadb:loadbalance//localhost:3306,localhost:3307/test?user=root.
+ * Exemple mvn test
+ * -DdefaultLoadbalanceUrl=jdbc:mariadb:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxyLoadbalanceUrl;
     Assume.assumeTrue(initialLoadbalanceUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
     defaultUrl = initialLoadbalanceUrl;
     currentType = HaMode.LOADBALANCE;
   }
 
-  @Test(expected = SQLException.class)
+  @Test
   public void failover() throws Throwable {
-    try (Connection connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true)) {
+    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
       int master1ServerId = getServerId(connection);
       stopProxy(master1ServerId);
-      connection.createStatement().execute("SELECT 1");
+      connection.createStatement().executeQuery("SELECT 1");
+      int secondServerId = getServerId(connection);
+      Assert.assertNotEquals(master1ServerId, secondServerId);
     }
   }
-
 
   @Test
   public void randomConnection() throws Throwable {
@@ -120,7 +118,6 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     }
   }
 
-
   @Test
   public void testReadonly() {
     try (Connection connection = getNewConnection(false)) {
@@ -131,7 +128,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       stmt.execute(
           "create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
     } catch (SQLException sqle) {
-      //normal exception
+      // normal exception
     }
   }
 
@@ -147,5 +144,4 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
       return value;
     }
   }
-
 }

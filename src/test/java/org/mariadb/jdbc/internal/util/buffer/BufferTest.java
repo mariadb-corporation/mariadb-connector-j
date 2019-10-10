@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -60,15 +60,29 @@ public class BufferTest {
 
   @Test
   public void testGetLengthEncodedBinary() {
-    Assert.assertEquals(15, new Buffer(new byte[]{(byte) 0x0f}).getLengthEncodedNumeric());
-    Assert.assertEquals(65535,
-        new Buffer(new byte[]{(byte) 0xfc, (byte) 0xff, (byte) 0xff}).getLengthEncodedNumeric());
-    Assert.assertEquals(16777215,
-        new Buffer(new byte[]{(byte) 0xfd, (byte) 0xff, (byte) 0xff, (byte) 0xff})
+    Assert.assertEquals(15, new Buffer(new byte[] {(byte) 0x0f}).getLengthEncodedNumeric());
+    Assert.assertEquals(
+        65535,
+        new Buffer(new byte[] {(byte) 0xfc, (byte) 0xff, (byte) 0xff}).getLengthEncodedNumeric());
+    Assert.assertEquals(
+        16777215,
+        new Buffer(new byte[] {(byte) 0xfd, (byte) 0xff, (byte) 0xff, (byte) 0xff})
             .getLengthEncodedNumeric());
-    Assert.assertEquals(Long.MAX_VALUE, new Buffer(
-        new byte[]{(byte) 0xfe, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
-            (byte) 0xff, (byte) 0xff, (byte) 0x7f}).getLengthEncodedNumeric());
+    Assert.assertEquals(
+        Long.MAX_VALUE,
+        new Buffer(
+                new byte[] {
+                  (byte) 0xfe,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0xff,
+                  (byte) 0x7f
+                })
+            .getLengthEncodedNumeric());
   }
 
   @Test
@@ -109,7 +123,5 @@ public class BufferTest {
     Buffer buf4 = new Buffer(arr4);
     buf4.skipLengthEncodedBytes();
     Assert.assertEquals(Integer.MAX_VALUE - 15 + 9, buf4.position);
-
   }
-
 }

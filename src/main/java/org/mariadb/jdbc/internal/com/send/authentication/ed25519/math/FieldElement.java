@@ -1,19 +1,17 @@
 /**
  * EdDSA-Java by str4d
- * <p>
- * To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
+ *
+ * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
  * copyright and related or neighboring rights to EdDSA-Java.
- * <p>
- * You should have received a copy of the CC0 legalcode along with this work. If not, see
+ *
+ * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
-import java.io.Serializable;
+import java.io.*;
 
-/**
- * Note: concrete subclasses must implement hashCode() and equals()
- */
+/** Note: concrete subclasses must implement hashCode() and equals() */
 public abstract class FieldElement implements Serializable {
 
   private static final long serialVersionUID = 1239527465875676L;

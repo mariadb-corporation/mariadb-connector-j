@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,35 +52,39 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import com.sun.jna.platform.win32.Sspi;
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.sun.jna.platform.win32.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import waffle.windows.auth.*;
+import waffle.windows.auth.impl.*;
 
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import waffle.windows.auth.IWindowsSecurityContext;
-import waffle.windows.auth.impl.WindowsSecurityContextImpl;
+import java.io.*;
+import java.util.concurrent.atomic.*;
 
 public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
   /**
    * Process native windows GSS plugin authentication.
    *
-   * @param out                   out stream
-   * @param in                    in stream
-   * @param sequence              packet sequence
-   * @param servicePrincipalName  principal name
-   * @param mechanisms            gssapi mechanism
-   * @throws IOException  if socket error
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
+   * @param servicePrincipalName principal name
+   * @param mechanisms gssapi mechanism
+   * @throws IOException if socket error
    */
-  public void authenticate(final PacketOutputStream out, final PacketInputStream in, final AtomicInteger sequence,
-                           final String servicePrincipalName, final String mechanisms) throws IOException {
+  public void authenticate(
+      final PacketOutputStream out,
+      final PacketInputStream in,
+      final AtomicInteger sequence,
+      final String servicePrincipalName,
+      final String mechanisms)
+      throws IOException {
 
     // initialize a security context on the client
-    IWindowsSecurityContext clientContext = WindowsSecurityContextImpl
-        .getCurrent(mechanisms, servicePrincipalName);
+    IWindowsSecurityContext clientContext =
+        WindowsSecurityContextImpl.getCurrent(mechanisms, servicePrincipalName);
 
     do {
 
@@ -95,8 +99,8 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         Buffer buffer = in.getPacket(true);
         sequence.set(in.getLastPacketSeq());
         byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
-        Sspi.SecBufferDesc continueToken = new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN,
-            tokenForTheClientOnTheServer);
+        Sspi.SecBufferDesc continueToken =
+            new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
         clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 

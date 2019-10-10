@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -73,25 +73,22 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 /**
- * Test for sequential connection exemple mvn test  -DdefaultGaleraUrl=jdbc:mariadb:sequential//localhost:3306,localhost:3307/test?user=root.
+ * Test for sequential connection exemple mvn test
+ * -DdefaultGaleraUrl=jdbc:mariadb:sequential//localhost:3306,localhost:3307/test?user=root.
  */
 public class SequentialFailoverTest extends BaseMultiHostTest {
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxySequentialUrl;
-    Assume.assumeTrue(initialGaleraUrl != null);
+    Assume.assumeTrue(initialSequentialUrl != null);
   }
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @Before
   public void init() {
-    defaultUrl = initialGaleraUrl;
+    defaultUrl = initialSequentialUrl;
     currentType = HaMode.SEQUENTIAL;
   }
 
@@ -117,8 +114,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
       Statement st = connection.createStatement();
 
       int firstServerId = getServerId(connection);
-      int blackListSize = getProtocolFromConnection(connection)
-          .getProxy().getListener().getBlacklistKeys().size();
+      int blackListSize =
+          getProtocolFromConnection(connection).getProxy().getListener().getBlacklistKeys().size();
       System.out.println("blackListSize:" + blackListSize);
       stopProxy(firstServerId);
 
@@ -126,30 +123,33 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         st.execute("show variables like 'slow_query_log'");
         fail();
       } catch (SQLException e) {
-        //normal exception that permit to blacklist the failing connection.
+        // normal exception that permit to blacklist the failing connection.
       }
 
-      //check blacklist size
+      // check blacklist size
       try {
         Protocol protocol = getProtocolFromConnection(connection);
-        assertEquals(blackListSize + 1,
-            protocol.getProxy().getListener().getBlacklistKeys().size());
+        assertEquals(
+            blackListSize + 1, protocol.getProxy().getListener().getBlacklistKeys().size());
 
-        //replace proxified HostAddress by normal one
+        // replace proxified HostAddress by normal one
         UrlParser urlParser = UrlParser.parse(defaultUrl);
-        protocol.getProxy().getListener()
+        protocol
+            .getProxy()
+            .getListener()
             .addToBlacklist(urlParser.getHostAddresses().get(firstServerId - 1));
       } catch (Throwable e) {
         e.printStackTrace();
         fail();
       }
 
-      //add first Host to blacklist
+      // add first Host to blacklist
       Protocol protocol = getProtocolFromConnection(connection);
-      ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1,
-          new MariaDbThreadFactory("MariaDB-testable-scheduler"));
+      ScheduledThreadPoolExecutor scheduler =
+          new ScheduledThreadPoolExecutor(
+              1, new MariaDbThreadFactory("MariaDB-testable-scheduler"));
 
-      //check blacklist shared
+      // check blacklist shared
       scheduler.execute(
           new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
       scheduler.execute(
@@ -184,7 +184,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
       try {
         st.execute("SELECT 1");
       } catch (SQLException e) {
-        //eat exception
+        // eat exception
       }
       restartProxy(masterServerId);
       long restartTime = System.nanoTime();
@@ -217,8 +217,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         int otherServerId = getServerId(connection2);
         assertTrue(otherServerId != firstServerId);
         Protocol protocol = getProtocolFromConnection(connection2);
-        assertTrue(blacklistKeys.toArray()[0].equals(protocol.getProxy().getListener()
-            .getBlacklistKeys().toArray()[0]));
+        assertTrue(
+            blacklistKeys.toArray()[0].equals(
+                protocol.getProxy().getListener().getBlacklistKeys().toArray()[0]));
 
       } catch (Throwable e) {
         e.printStackTrace();
@@ -239,5 +240,4 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
       return value;
     }
   }
-
 }

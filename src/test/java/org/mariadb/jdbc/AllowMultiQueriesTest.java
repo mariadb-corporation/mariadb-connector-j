@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -73,17 +73,16 @@ public class AllowMultiQueriesTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("AllowMultiQueriesTest",
-        "id int not null primary key auto_increment, test varchar(10)");
-    createTable("AllowMultiQueriesTest2",
-        "id int not null primary key auto_increment, test varchar(10)");
+    createTable(
+        "AllowMultiQueriesTest", "id int not null primary key auto_increment, test varchar(10)");
+    createTable(
+        "AllowMultiQueriesTest2", "id int not null primary key auto_increment, test varchar(10)");
     if (testSingleHost) {
       try (Statement stmt = sharedConnection.createStatement()) {
         stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
       }
     }
   }
-
 
   @Test
   public void allowMultiQueriesSingleTest() throws SQLException {
@@ -124,8 +123,8 @@ public class AllowMultiQueriesTest extends BaseTest {
     try (Connection connection = setConnection("&allowMultiQueries=true")) {
       try (Statement statement = connection.createStatement()) {
         statement.setFetchSize(1);
-        statement
-            .execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+        statement.execute(
+            "SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
         do {
           ResultSet resultSet = statement.getResultSet();
           assertEquals(-1, statement.getUpdateCount());
@@ -187,7 +186,6 @@ public class AllowMultiQueriesTest extends BaseTest {
     }
   }
 
-
   @Test
   public void allowMultiQueriesFetchInsertSelectTest() throws SQLException {
     try (Connection connection = setConnection("&allowMultiQueries=true")) {
@@ -198,5 +196,4 @@ public class AllowMultiQueriesTest extends BaseTest {
       }
     }
   }
-
 }

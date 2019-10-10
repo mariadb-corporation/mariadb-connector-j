@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,28 +52,26 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.StringTokenizer;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbDatabaseMetaData;
-import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.PidFactory;
-import org.mariadb.jdbc.internal.util.PidRequestInter;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.credential.*;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.send.authentication.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.pid.*;
+import org.mariadb.jdbc.util.*;
 
-/**
- * See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference.
- */
+import java.io.*;
+import java.security.*;
+import java.util.*;
+import java.util.function.*;
+
+/** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
-  private static final PidRequestInter pidRequest;
+  private static final Supplier<String> pidRequest = PidFactory.getInstance();
   private static final byte[] _CLIENT_NAME = "_client_name".getBytes();
   private static final byte[] _CLIENT_VERSION = "_client_version".getBytes();
   private static final byte[] _SERVER_HOST = "_server_host".getBytes();
@@ -83,88 +81,86 @@ public class SendHandshakeResponsePacket {
   private static final byte[] _JAVA_VENDOR = "_java_vendor".getBytes();
   private static final byte[] _JAVA_VERSION = "_java_version".getBytes();
 
-  static {
-    PidRequestInter init;
-    try {
-      init = PidFactory.getInstance();
-    } catch (Throwable t) {
-      init = () -> null;
-    }
-    pidRequest = init;
-  }
-
   /**
    * Send handshake response packet.
    *
-   * @param pos                output stream
-   * @param username           user name
-   * @param password           password
-   * @param currentHost        current hostname
-   * @param database           database name
+   * @param pos output stream
+   * @param credential credential
+   * @param host current hostname
+   * @param database database name
    * @param clientCapabilities client capabilities
    * @param serverCapabilities server capabilities
-   * @param serverLanguage     server language (utf8 / utf8mb4 collation)
-   * @param packetSeq          packet sequence
-   * @param options            user options
-   * @param greetingPacket     server handshake packet information
+   * @param serverLanguage server language (utf8 / utf8mb4 collation)
+   * @param packetSeq packet sequence
+   * @param options user options
+   * @param authenticationPluginType Authentication plugin type. ex: mysql_native_password
+   * @param seed seed
    * @throws IOException if socket exception occur
-   * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
-   * documentation</a>
+   * @see <a
+   *     href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
+   *     documentation</a>
    */
-  public static void send(final PacketOutputStream pos,
-      final String username,
-      final String password,
-      final HostAddress currentHost,
+  public static void send(
+      final PacketOutputStream pos,
+      final Credential credential,
+      final String host,
       final String database,
       final long clientCapabilities,
       final long serverCapabilities,
       final byte serverLanguage,
       final byte packetSeq,
       final Options options,
-      final ReadInitialHandShakePacket greetingPacket) throws IOException {
+      String authenticationPluginType,
+      final byte[] seed)
+      throws IOException {
 
     pos.startPacket(packetSeq);
 
     final byte[] authData;
-    switch (greetingPacket.getPluginName()) {
-      case "": //CONJ-274 : permit connection mysql 5.1 db
-      case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
+
+    switch (authenticationPluginType) {
+      case ClearPasswordPlugin.TYPE:
         pos.permitTrace(false);
-        try {
-          authData = Utils.encryptPassword(password, greetingPacket.getSeed(),
-              options.passwordCharacterEncoding);
-          break;
-        } catch (NoSuchAlgorithmException e) {
-          //cannot occur :
-          throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
-        }
-      case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
-        pos.permitTrace(false);
-        if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding
-            .isEmpty()) {
-          authData = password.getBytes(options.passwordCharacterEncoding);
+        if (credential.getPassword() == null) {
+          authData = new byte[0];
         } else {
-          authData = password.getBytes();
+          if (options.passwordCharacterEncoding != null
+              && !options.passwordCharacterEncoding.isEmpty()) {
+            authData = credential.getPassword().getBytes(options.passwordCharacterEncoding);
+          } else {
+            authData = credential.getPassword().getBytes();
+          }
         }
         break;
+
       default:
-        authData = new byte[0];
+        authenticationPluginType = NativePasswordPlugin.TYPE;
+        pos.permitTrace(false);
+        try {
+          authData =
+              Utils.encryptPassword(
+                  credential.getPassword(), seed, options.passwordCharacterEncoding);
+          break;
+        } catch (NoSuchAlgorithmException e) {
+          // cannot occur :
+          throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
+        }
     }
 
     pos.writeInt((int) clientCapabilities);
     pos.writeInt(1024 * 1024 * 1024);
-    pos.write(serverLanguage); //1
+    pos.write(serverLanguage); // 1
 
-    pos.writeBytes((byte) 0, 19);    //19
-    pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+    pos.writeBytes((byte) 0, 19); // 19
+    pos.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
-    if (username == null || username.isEmpty()) {
-      pos.write(System.getProperty("user.name").getBytes()); //to permit SSO
+    if (credential.getUser() == null || credential.getUser().isEmpty()) {
+      pos.write(System.getProperty("user.name").getBytes()); // to permit SSO
     } else {
-      pos.write(username.getBytes());     //strlen username
+      pos.write(credential.getUser().getBytes()); // strlen username
     }
 
-    pos.write((byte) 0);        //1
+    pos.write((byte) 0); // 1
 
     if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
       pos.writeFieldLength(authData.length);
@@ -183,20 +179,20 @@ public class SendHandshakeResponsePacket {
     }
 
     if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-      pos.write(greetingPacket.getPluginName());
+      pos.write(authenticationPluginType);
       pos.write((byte) 0);
     }
 
     if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
-      writeConnectAttributes(pos, options.connectionAttributes, currentHost);
+      writeConnectAttributes(pos, options.connectionAttributes, host);
     }
 
     pos.flush();
     pos.permitTrace(true);
   }
 
-  private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-      HostAddress currentHost) throws IOException {
+  private static void writeConnectAttributes(
+      PacketOutputStream pos, String connectionAttributes, String host) throws IOException {
     Buffer buffer = new Buffer(new byte[200]);
 
     buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -206,11 +202,11 @@ public class SendHandshakeResponsePacket {
     buffer.writeStringLength(Version.version);
 
     buffer.writeStringSmallLength(_SERVER_HOST);
-    buffer.writeStringLength((currentHost != null) ? currentHost.host : "");
+    buffer.writeStringLength((host != null) ? host : "");
 
     buffer.writeStringSmallLength(_OS);
     buffer.writeStringLength(System.getProperty("os.name"));
-    String pid = pidRequest.getPid();
+    String pid = pidRequest.get();
     if (pid != null) {
       buffer.writeStringSmallLength(_PID);
       buffer.writeStringLength(pid);
@@ -242,5 +238,4 @@ public class SendHandshakeResponsePacket {
     pos.writeFieldLength(buffer.position);
     pos.write(buffer.buf, 0, buffer.position);
   }
-
 }

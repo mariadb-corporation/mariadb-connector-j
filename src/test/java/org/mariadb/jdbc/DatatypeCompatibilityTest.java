@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -87,11 +87,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("pk_test",
+    createTable(
+        "pk_test",
         "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
         "engine=innodb");
     createTable("datetime_test", "dt datetime");
-    createTable("`manycols`",
+    createTable(
+        "`manycols`",
         "  `tiny` tinyint(4) DEFAULT NULL,\n"
             + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n"
             + "  `small` smallint(6) DEFAULT NULL,\n"
@@ -123,16 +125,19 @@ public class DatatypeCompatibilityTest extends BaseTest {
             + "  `longblob_col` longblob,\n"
             + "  `text_col` text,\n"
             + "  `mediumtext_col` mediumtext,\n"
-            + "  `longtext_col` longtext"
-    );
+            + "  `longtext_col` longtext");
     createTable("ytab", "y year");
     createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
     if (doPrecisionTest) {
-      createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)",
+      createTable(
+          "time_test",
+          "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)",
           "engine=InnoDB");
       if (testSingleHost) {
-        sharedConnection.createStatement().execute(
-            "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+        sharedConnection
+            .createStatement()
+            .execute(
+                "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
       }
     }
   }
@@ -150,7 +155,11 @@ public class DatatypeCompatibilityTest extends BaseTest {
     assertType("INTEGER", Integer.class, Types.INTEGER, "0x7FFFFFFF", 0x7FFFFFFF);
     assertType("INTEGER UNSIGNED", Long.class, Types.INTEGER, "0xFFFFFFFF", 0xFFFFFFFFL);
     assertType("BIGINT", Long.class, Types.BIGINT, "0x7FFFFFFFFFFFFFFF", Long.MAX_VALUE);
-    assertType("BIGINT UNSIGNED", BigInteger.class, Types.BIGINT, "0xFFFFFFFFFFFFFFFF",
+    assertType(
+        "BIGINT UNSIGNED",
+        BigInteger.class,
+        Types.BIGINT,
+        "0xFFFFFFFFFFFFFFFF",
         new BigInteger("FFFFFFFFFFFFFFFF", 16));
   }
 
@@ -158,16 +167,30 @@ public class DatatypeCompatibilityTest extends BaseTest {
   @Test
   public void testFixedPointTypes() throws SQLException {
     requireMinimumVersion(5, 0);
-    assertType("DECIMAL(5,2)", BigDecimal.class, Types.DECIMAL, "-999.99", new BigDecimal(-99999)
-        .divide(new BigDecimal(100)));
-    assertType("DECIMAL(5,2) UNSIGNED", BigDecimal.class, Types.DECIMAL, "999.99",
-        new BigDecimal(99999)
-            .divide(new BigDecimal(100)));
-    assertType("NUMERIC(5,2)", BigDecimal.class, Types.DECIMAL, "-999.99", new BigDecimal(-99999)
-        .divide(new BigDecimal(100))); // not Types.NUMERIC!
-    assertType("NUMERIC(5,2) UNSIGNED", BigDecimal.class, Types.DECIMAL, "999.99",
-        new BigDecimal(99999)
-            .divide(new BigDecimal(100))); // not Types.NUMERIC!
+    assertType(
+        "DECIMAL(5,2)",
+        BigDecimal.class,
+        Types.DECIMAL,
+        "-999.99",
+        new BigDecimal(-99999).divide(new BigDecimal(100)));
+    assertType(
+        "DECIMAL(5,2) UNSIGNED",
+        BigDecimal.class,
+        Types.DECIMAL,
+        "999.99",
+        new BigDecimal(99999).divide(new BigDecimal(100)));
+    assertType(
+        "NUMERIC(5,2)",
+        BigDecimal.class,
+        Types.DECIMAL,
+        "-999.99",
+        new BigDecimal(-99999).divide(new BigDecimal(100))); // not Types.NUMERIC!
+    assertType(
+        "NUMERIC(5,2) UNSIGNED",
+        BigDecimal.class,
+        Types.DECIMAL,
+        "999.99",
+        new BigDecimal(99999).divide(new BigDecimal(100))); // not Types.NUMERIC!
   }
 
   @Test
@@ -183,21 +206,37 @@ public class DatatypeCompatibilityTest extends BaseTest {
     requireMinimumVersion(5, 0);
     assertType("BIT", Boolean.class, Types.BIT, "0", false);
     assertType("BIT(1)", Boolean.class, Types.BIT, "1", true);
-    assertType("BIT(2)", byte[].class, Types.VARBINARY, "b'11'", new byte[]{3});
-    assertType("BIT(8)", byte[].class, Types.VARBINARY, "b'11111111'", new byte[]{-1});
-    assertType("BIT(16)", byte[].class, Types.VARBINARY, "b'1111111111111111'", new byte[]{-1, -1});
-    assertType("BIT(24)", byte[].class, Types.VARBINARY, "b'111111111111111111111111'",
-        new byte[]{-1, -1, -1});
-    assertType("BIT(32)", byte[].class, Types.VARBINARY, "b'11111111111111111111111111111111'",
-        new byte[]{-1, -1, -1, -1});
-    assertType("BIT(64)", byte[].class, Types.VARBINARY,
-        "b'1111111111111111111111111111111111111111111111111111"
-            + "111111111111'", new byte[]{-1, -1, -1, -1, -1, -1, -1, -1});
+    assertType("BIT(2)", byte[].class, Types.VARBINARY, "b'11'", new byte[] {3});
+    assertType("BIT(8)", byte[].class, Types.VARBINARY, "b'11111111'", new byte[] {-1});
+    assertType(
+        "BIT(16)", byte[].class, Types.VARBINARY, "b'1111111111111111'", new byte[] {-1, -1});
+    assertType(
+        "BIT(24)",
+        byte[].class,
+        Types.VARBINARY,
+        "b'111111111111111111111111'",
+        new byte[] {-1, -1, -1});
+    assertType(
+        "BIT(32)",
+        byte[].class,
+        Types.VARBINARY,
+        "b'11111111111111111111111111111111'",
+        new byte[] {-1, -1, -1, -1});
+    assertType(
+        "BIT(64)",
+        byte[].class,
+        Types.VARBINARY,
+        "b'1111111111111111111111111111111111111111111111111111" + "111111111111'",
+        new byte[] {-1, -1, -1, -1, -1, -1, -1, -1});
   }
 
-  private void assertType(String columnType, Class expectedClass, int expectedJdbcType,
+  private void assertType(
+      String columnType,
+      Class expectedClass,
+      int expectedJdbcType,
       String strValue,
-      Object expectedObjectValue) throws SQLException {
+      Object expectedObjectValue)
+      throws SQLException {
     assertNotNull(expectedObjectValue);
     assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
 
@@ -208,10 +247,12 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
       try (ResultSet resultSet = statement.getResultSet()) {
         ResultSetMetaData metaData = resultSet.getMetaData();
-        assertEquals("class name  for " + columnType, expectedClass.getName(),
+        assertEquals(
+            "class name  for " + columnType,
+            expectedClass.getName(),
             metaData.getColumnClassName(1));
-        assertEquals("java.sql.Types code for " + columnType, expectedJdbcType,
-            metaData.getColumnType(1));
+        assertEquals(
+            "java.sql.Types code for " + columnType, expectedJdbcType, metaData.getColumnType(1));
         resultSet.next();
         Object objectValue = resultSet.getObject(1);
         assertEquals(expectedClass, objectValue.getClass());

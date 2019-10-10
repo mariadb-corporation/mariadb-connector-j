@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,63 +52,20 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
+
+import java.io.*;
+import java.math.*;
 import java.sql.Date;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.Ref;
-import java.sql.ResultSet;
-import java.sql.RowId;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLXML;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.TimeZone;
-import org.mariadb.jdbc.BasePrepareStatement;
-import org.mariadb.jdbc.ClientSidePreparedStatement;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.parameters.BigDecimalParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ByteArrayParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ByteParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.DateParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.DefaultParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.DoubleParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.FloatParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.IntParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.LongParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.OffsetTimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.send.parameters.ReaderParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ShortParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.StreamParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.TimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.TimestampParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ZonedDateTimeParameter;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import java.sql.*;
+import java.time.*;
+import java.util.*;
 
 public class UpdatableResultSet extends SelectResultSet {
 
@@ -133,27 +90,30 @@ public class UpdatableResultSet extends SelectResultSet {
   private ClientSidePreparedStatement insertPreparedStatement = null;
   private ClientSidePreparedStatement deletePreparedStatement = null;
 
-
   /**
    * Constructor.
    *
    * @param columnsInformation column information
-   * @param results            results
-   * @param protocol           current protocol
-   * @param reader             stream fetcher
-   * @param callableResult     is it from a callableStatement ?
-   * @param eofDeprecated      is EOF deprecated
-   * @throws IOException  if any connection error occur
+   * @param results results
+   * @param protocol current protocol
+   * @param reader stream fetcher
+   * @param callableResult is it from a callableStatement ?
+   * @param eofDeprecated is EOF deprecated
+   * @throws IOException if any connection error occur
    * @throws SQLException if any connection error occur
    */
-  public UpdatableResultSet(ColumnInformation[] columnsInformation, Results results,
-      Protocol protocol, PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
+  public UpdatableResultSet(
+      ColumnInformation[] columnsInformation,
+      Results results,
+      Protocol protocol,
+      PacketInputStream reader,
+      boolean callableResult,
+      boolean eofDeprecated)
       throws IOException, SQLException {
     super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated);
     checkIfUpdatable(results);
     parameterHolders = new ParameterHolder[columnInformationLength];
   }
-
 
   @Override
   public int getConcurrency() {
@@ -168,11 +128,10 @@ public class UpdatableResultSet extends SelectResultSet {
     canBeInserted = true;
     canBeRefresh = false;
 
-    //check that resultSet concern one table and database exactly
+    // check that resultSet concern one table and database exactly
     for (ColumnInformation columnInformation : columnsInformation) {
 
-      if (columnInformation.getDatabase() == null
-          || columnInformation.getDatabase().isEmpty()) {
+      if (columnInformation.getDatabase() == null || columnInformation.getDatabase().isEmpty()) {
 
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database information");
@@ -216,20 +175,22 @@ public class UpdatableResultSet extends SelectResultSet {
       return;
     }
 
-    //read table metadata
+    // read table metadata
     if (canBeUpdate) {
       if (results.getStatement() != null && results.getStatement().getConnection() != null) {
 
         connection = results.getStatement().getConnection();
-        Statement stmt = connection
-            .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        Statement stmt =
+            connection.createStatement(
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
-        UpdatableColumnInformation[] updatableColumns = new UpdatableColumnInformation[columnInformationLength];
+        UpdatableColumnInformation[] updatableColumns =
+            new UpdatableColumnInformation[columnInformationLength];
 
         boolean primaryFound = false;
         while (rs.next()) {
-          //read SHOW COLUMNS informations
+          // read SHOW COLUMNS informations
           String fieldName = rs.getString("Field");
           boolean canBeNull = "YES".equals(rs.getString("Null"));
           boolean hasDefault = rs.getString("Default") == null;
@@ -240,12 +201,13 @@ public class UpdatableResultSet extends SelectResultSet {
 
           boolean found = false;
 
-          //update column information with SHOW COLUMNS additional informations
+          // update column information with SHOW COLUMNS additional informations
           for (int index = 0; index < columnInformationLength; index++) {
             ColumnInformation columnInformation = columnsInformation[index];
             if (fieldName.equals(columnInformation.getOriginalName())) {
-              updatableColumns[index] = new UpdatableColumnInformation(
-                  columnInformation, canBeNull, hasDefault, generated, primary, autoIncrement);
+              updatableColumns[index] =
+                  new UpdatableColumnInformation(
+                      columnInformation, canBeNull, hasDefault, generated, primary, autoIncrement);
               found = true;
             }
           }
@@ -256,8 +218,8 @@ public class UpdatableResultSet extends SelectResultSet {
 
           if (!found) {
             if (primary) {
-              //without primary key in resultSet, update/delete cannot be done, since query need
-              //to be updated/deleted for this unknown identifier
+              // without primary key in resultSet, update/delete cannot be done, since query need
+              // to be updated/deleted for this unknown identifier
               //
               // For insert, key is not mandatory in resultSet if automatically generated, but data
               // cannot be added to rows in adequate format
@@ -265,19 +227,22 @@ public class UpdatableResultSet extends SelectResultSet {
               return;
             }
 
-            //check that missing field can be null / have default values / are generated automatically
+            // check that missing field can be null / have default values / are generated
+            // automatically
             if (!canBeNull && !hasDefault && !generated) {
-              cannotInsertRow("Field `" + fieldName + "` is not present in query returning "
-                  + "fields and cannot be null");
+              cannotInsertRow(
+                  "Field `"
+                      + fieldName
+                      + "` is not present in query returning "
+                      + "fields and cannot be null");
             }
           }
         }
 
         if (!primaryFound) {
-          //if there is no primary key (UNIQUE key are considered as primary by SHOW COLUMNS),
-          //rows cannot be updated.
-          cannotUpdateInsertRow("Table `" + database + "`.`" + table
-              + "` has no primary key");
+          // if there is no primary key (UNIQUE key are considered as primary by SHOW COLUMNS),
+          // rows cannot be updated.
+          cannotUpdateInsertRow("Table `" + database + "`.`" + table + "` has no primary key");
           return;
         } else {
           canBeRefresh = true;
@@ -286,10 +251,15 @@ public class UpdatableResultSet extends SelectResultSet {
         boolean ensureAllColumnHaveMeta = true;
         for (int index = 0; index < columnInformationLength; index++) {
           if (updatableColumns[index] == null) {
-            //abnormal error : some field in META are not listed in SHOW COLUMNS
-            cannotUpdateInsertRow("Metadata information not available for table `"
-                + database + "`.`" + table + "`, field `" + columnsInformation[index]
-                .getOriginalName() + "`");
+            // abnormal error : some field in META are not listed in SHOW COLUMNS
+            cannotUpdateInsertRow(
+                "Metadata information not available for table `"
+                    + database
+                    + "`.`"
+                    + table
+                    + "`, field `"
+                    + columnsInformation[index].getOriginalName()
+                    + "`");
             ensureAllColumnHaveMeta = false;
           }
         }
@@ -351,115 +321,85 @@ public class UpdatableResultSet extends SelectResultSet {
     }
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNull(int columnIndex) throws SQLException {
     checkUpdatable(columnIndex);
 
     parameterHolders[columnIndex - 1] = new NullParameter();
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNull(String columnLabel) throws SQLException {
     updateNull(findColumn(columnLabel));
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new ByteParameter(bool ? (byte) 1 : (byte) 0);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBoolean(String columnLabel, boolean value) throws SQLException {
     updateBoolean(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateByte(int columnIndex, byte value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new ByteParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateByte(String columnLabel, byte value) throws SQLException {
     updateByte(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateShort(int columnIndex, short value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new ShortParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateShort(String columnLabel, short value) throws SQLException {
     updateShort(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateInt(int columnIndex, int value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new IntParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateInt(String columnLabel, int value) throws SQLException {
     updateInt(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateFloat(int columnIndex, float value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new FloatParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateFloat(String columnLabel, float value) throws SQLException {
     updateFloat(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateDouble(int columnIndex, double value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new DoubleParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateDouble(String columnLabel, double value) throws SQLException {
     updateDouble(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
     checkUpdatable(columnIndex);
     if (value == null) {
@@ -469,16 +409,12 @@ public class UpdatableResultSet extends SelectResultSet {
     parameterHolders[columnIndex - 1] = new BigDecimalParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
     updateBigDecimal(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateString(int columnIndex, String value) throws SQLException {
     checkUpdatable(columnIndex);
     if (value == null) {
@@ -488,16 +424,12 @@ public class UpdatableResultSet extends SelectResultSet {
     parameterHolders[columnIndex - 1] = new StringParameter(value, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateString(String columnLabel, String value) throws SQLException {
     updateString(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBytes(int columnIndex, byte[] value) throws SQLException {
     checkUpdatable(columnIndex);
     if (value == null) {
@@ -507,16 +439,12 @@ public class UpdatableResultSet extends SelectResultSet {
     parameterHolders[columnIndex - 1] = new ByteArrayParameter(value, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBytes(String columnLabel, byte[] value) throws SQLException {
     updateBytes(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateDate(int columnIndex, Date date) throws SQLException {
     checkUpdatable(columnIndex);
     if (date == null) {
@@ -526,87 +454,66 @@ public class UpdatableResultSet extends SelectResultSet {
     parameterHolders[columnIndex - 1] = new DateParameter(date, TimeZone.getDefault(), options);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateDate(String columnLabel, Date value) throws SQLException {
     updateDate(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateTime(int columnIndex, Time time) throws SQLException {
     checkUpdatable(columnIndex);
     if (time == null) {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.TIME);
       return;
     }
-    parameterHolders[columnIndex - 1] = new TimeParameter(time, TimeZone.getDefault(),
-        options.useFractionalSeconds);
+    parameterHolders[columnIndex - 1] =
+        new TimeParameter(time, TimeZone.getDefault(), options.useFractionalSeconds);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateTime(String columnLabel, Time value) throws SQLException {
     updateTime(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
     checkUpdatable(columnIndex);
     if (timeStamp == null) {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.DATETIME);
       return;
     }
-    parameterHolders[columnIndex - 1] = new TimestampParameter(timeStamp, timeZone,
-        options.useFractionalSeconds);
+    parameterHolders[columnIndex - 1] =
+        new TimestampParameter(timeStamp, timeZone, options.useFractionalSeconds);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
     updateTimestamp(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
     updateAsciiStream(columnIndex, inputStream, Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
     updateAsciiStream(findColumn(columnLabel), inputStream);
   }
 
-
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream, int length)
       throws SQLException {
     updateAsciiStream(columnIndex, inputStream, (long) length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream inputStream, int length)
       throws SQLException {
     updateAsciiStream(findColumn(columnLabel), inputStream, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
     checkUpdatable(columnIndex);
@@ -614,29 +521,23 @@ public class UpdatableResultSet extends SelectResultSet {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
       return;
     }
-    parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-        noBackslashEscapes);
+    parameterHolders[columnIndex - 1] =
+        new StreamParameter(inputStream, length, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
     updateAsciiStream(findColumn(columnLabel), inputStream, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream, int length)
       throws SQLException {
     updateBinaryStream(columnIndex, inputStream, (long) length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
     checkUpdatable(columnIndex);
@@ -644,66 +545,50 @@ public class UpdatableResultSet extends SelectResultSet {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
       return;
     }
-    parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-        noBackslashEscapes);
+    parameterHolders[columnIndex - 1] =
+        new StreamParameter(inputStream, length, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream inputStream, int length)
       throws SQLException {
     updateBinaryStream(findColumn(columnLabel), inputStream, (long) length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
     updateBinaryStream(findColumn(columnLabel), inputStream, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
     updateBinaryStream(columnIndex, inputStream, Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
     updateBinaryStream(findColumn(columnLabel), inputStream);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader reader, int length)
       throws SQLException {
     updateCharacterStream(columnIndex, reader, (long) length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
     updateCharacterStream(columnIndex, value, Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader, int length)
       throws SQLException {
     updateCharacterStream(findColumn(columnLabel), reader, (long) length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader value, long length)
       throws SQLException {
     checkUpdatable(columnIndex);
@@ -714,25 +599,20 @@ public class UpdatableResultSet extends SelectResultSet {
     parameterHolders[columnIndex - 1] = new ReaderParameter(value, length, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader, long length)
       throws SQLException {
     updateCharacterStream(findColumn(columnLabel), reader, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
     updateCharacterStream(findColumn(columnLabel), reader, Long.MAX_VALUE);
   }
 
-
-  private void updateInternalObject(final int parameterIndex, final Object obj,
-      final int targetSqlType,
-      final long scaleOrLength) throws SQLException {
+  private void updateInternalObject(
+      final int parameterIndex, final Object obj, final int targetSqlType, final long scaleOrLength)
+      throws SQLException {
     switch (targetSqlType) {
       case Types.ARRAY:
       case Types.DATALINK:
@@ -803,14 +683,14 @@ public class UpdatableResultSet extends SelectResultSet {
             updateTime(parameterIndex, Time.valueOf((String) obj));
             break;
           case Types.TIME_WITH_TIMEZONE:
-            parameterHolders[parameterIndex - 1] = new OffsetTimeParameter(
-                OffsetTime.parse(str),
-                timeZone.toZoneId(),
-                options.useFractionalSeconds,
-                options);
+            parameterHolders[parameterIndex - 1] =
+                new OffsetTimeParameter(
+                    OffsetTime.parse(str),
+                    timeZone.toZoneId(),
+                    options.useFractionalSeconds,
+                    options);
             break;
           case Types.TIMESTAMP_WITH_TIMEZONE:
-
             parameterHolders[parameterIndex - 1] =
                 new ZonedDateTimeParameter(
                     ZonedDateTime.parse(str, BasePrepareStatement.SPEC_ISO_ZONED_DATE_TIME),
@@ -819,12 +699,12 @@ public class UpdatableResultSet extends SelectResultSet {
                     options);
             break;
           default:
-            throw ExceptionMapper
-                .getSqlException("Could not convert [" + str + "] to " + targetSqlType);
+            throw ExceptionMapper.getSqlException(
+                "Could not convert [" + str + "] to " + targetSqlType);
         }
       } catch (IllegalArgumentException e) {
-        throw ExceptionMapper
-            .getSqlException("Could not convert [" + str + "] to " + targetSqlType, e);
+        throw ExceptionMapper.getSqlException(
+            "Could not convert [" + str + "] to " + targetSqlType, e);
       }
     } else if (obj instanceof Number) {
       Number bd = (Number) obj;
@@ -866,21 +746,21 @@ public class UpdatableResultSet extends SelectResultSet {
           updateString(parameterIndex, bd.toString());
           break;
         default:
-          throw ExceptionMapper
-              .getSqlException("Could not convert [" + bd + "] to " + targetSqlType);
-
+          throw ExceptionMapper.getSqlException(
+              "Could not convert [" + bd + "] to " + targetSqlType);
       }
     } else if (obj instanceof byte[]) {
-      if (targetSqlType == Types.BINARY || targetSqlType == Types.VARBINARY
+      if (targetSqlType == Types.BINARY
+          || targetSqlType == Types.VARBINARY
           || targetSqlType == Types.LONGVARBINARY) {
         updateBytes(parameterIndex, (byte[]) obj);
       } else {
-        throw ExceptionMapper
-            .getSqlException("Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
+        throw ExceptionMapper.getSqlException(
+            "Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
       }
 
     } else if (obj instanceof Time) {
-      updateTime(parameterIndex, (Time) obj);      // it is just a string anyway
+      updateTime(parameterIndex, (Time) obj); // it is just a string anyway
     } else if (obj instanceof Timestamp) {
       updateTimestamp(parameterIndex, (Timestamp) obj);
     } else if (obj instanceof Date) {
@@ -920,125 +800,101 @@ public class UpdatableResultSet extends SelectResultSet {
     } else if (obj instanceof OffsetTime) {
       parameterHolders[parameterIndex - 1] =
           new OffsetTimeParameter(
-                  (OffsetTime) obj,
-              timeZone.toZoneId(),
-              options.useFractionalSeconds,
-              options);
+              (OffsetTime) obj, timeZone.toZoneId(), options.useFractionalSeconds, options);
     } else if (obj instanceof ZonedDateTime) {
       parameterHolders[parameterIndex - 1] =
           new ZonedDateTimeParameter(
-                  (ZonedDateTime) obj,
-              timeZone.toZoneId(),
-              options.useFractionalSeconds,
-              options);
+              (ZonedDateTime) obj, timeZone.toZoneId(), options.useFractionalSeconds, options);
     } else if (obj instanceof LocalTime) {
       updateTime(parameterIndex, Time.valueOf((LocalTime) obj));
     } else {
       throw ExceptionMapper.getSqlException(
-          "Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
+          "Could not set parameter in setObject, could not convert: "
+              + obj.getClass()
+              + " to "
               + targetSqlType);
     }
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
     checkUpdatable(columnIndex);
-    updateInternalObject(columnIndex, value,
-        columnsInformation[columnIndex - 1].getColumnType().getSqlType(), scaleOrLength);
+    updateInternalObject(
+        columnIndex,
+        value,
+        columnsInformation[columnIndex - 1].getColumnType().getSqlType(),
+        scaleOrLength);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateObject(int columnIndex, Object value) throws SQLException {
     checkUpdatable(columnIndex);
-    updateInternalObject(columnIndex, value,
-        columnsInformation[columnIndex - 1].getColumnType().getSqlType(), Long.MAX_VALUE);
+    updateInternalObject(
+        columnIndex,
+        value,
+        columnsInformation[columnIndex - 1].getColumnType().getSqlType(),
+        Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateObject(String columnLabel, Object value, int scaleOrLength)
       throws SQLException {
     updateObject(findColumn(columnLabel), value, scaleOrLength);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateObject(String columnLabel, Object value) throws SQLException {
     updateObject(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateLong(int columnIndex, long value) throws SQLException {
     checkUpdatable(columnIndex);
     parameterHolders[columnIndex - 1] = new LongParameter(value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateLong(String columnLabel, long value) throws SQLException {
     updateLong(findColumn(columnLabel), value);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateRef(int columnIndex, Ref ref) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("REF not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateRef(String columnLabel, Ref ref) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("REF not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(int columnIndex, Blob blob) throws SQLException {
     checkUpdatable(columnIndex);
     if (blob == null) {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
       return;
     }
-    parameterHolders[columnIndex - 1] = new StreamParameter(blob.getBinaryStream(), blob.length(),
-        noBackslashEscapes);
+    parameterHolders[columnIndex - 1] =
+        new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(String columnLabel, Blob blob) throws SQLException {
     updateBlob(findColumn(columnLabel), blob);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
     updateBlob(columnIndex, inputStream, Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
     updateBlob(findColumn(columnLabel), inputStream, Long.MAX_VALUE);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
     checkUpdatable(columnIndex);
@@ -1046,208 +902,154 @@ public class UpdatableResultSet extends SelectResultSet {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
       return;
     }
-    parameterHolders[columnIndex - 1] = new StreamParameter(inputStream, length,
-        noBackslashEscapes);
+    parameterHolders[columnIndex - 1] =
+        new StreamParameter(inputStream, length, noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateBlob(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
     updateBlob(findColumn(columnLabel), inputStream, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(int columnIndex, Clob clob) throws SQLException {
     checkUpdatable(columnIndex);
     if (clob == null) {
       parameterHolders[columnIndex - 1] = new NullParameter(ColumnType.BLOB);
       return;
     }
-    parameterHolders[columnIndex - 1] = new ReaderParameter(clob.getCharacterStream(),
-        clob.length(), noBackslashEscapes);
+    parameterHolders[columnIndex - 1] =
+        new ReaderParameter(clob.getCharacterStream(), clob.length(), noBackslashEscapes);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(String columnLabel, Clob clob) throws SQLException {
     updateClob(findColumn(columnLabel), clob);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
     updateCharacterStream(columnIndex, reader, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
     updateCharacterStream(findColumn(columnLabel), reader, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(int columnIndex, Reader reader) throws SQLException {
     updateCharacterStream(columnIndex, reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateClob(String columnLabel, Reader reader) throws SQLException {
     updateCharacterStream(findColumn(columnLabel), reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateArray(int columnIndex, Array array) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateArray(String columnLabel, Array array) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
-
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNString(int columnIndex, String nstring) throws SQLException {
     updateString(columnIndex, nstring);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNString(String columnLabel, String nstring) throws SQLException {
     updateString(columnLabel, nstring);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(int columnIndex, NClob nclob) throws SQLException {
     updateClob(columnIndex, nclob);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(String columnLabel, NClob nclob) throws SQLException {
     updateClob(columnLabel, nclob);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(int columnIndex, Reader reader) throws SQLException {
     updateClob(columnIndex, reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(String columnLabel, Reader reader) throws SQLException {
     updateClob(columnLabel, reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
     updateClob(columnIndex, reader, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
     updateClob(columnLabel, reader, length);
   }
 
-
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("SQlXML not supported");
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
   }
 
-
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNCharacterStream(int columnIndex, Reader value, long length)
       throws SQLException {
     updateCharacterStream(columnIndex, value, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNCharacterStream(String columnLabel, Reader reader, long length)
       throws SQLException {
     updateCharacterStream(columnLabel, reader, length);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
     updateCharacterStream(columnIndex, reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
     updateCharacterStream(columnLabel, reader);
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void insertRow() throws SQLException {
     if (state == STATE_INSERT) {
       if (insertPreparedStatement == null) {
-        //Create query will all field with WHERE clause contain primary field.
-        //if field are not updated, value DEFAULT will be set
-        //(if field has no default, then insert will throw an exception that will be return to user)
+        // Create query will all field with WHERE clause contain primary field.
+        // if field are not updated, value DEFAULT will be set
+        // (if field has no default, then insert will throw an exception that will be return to
+        // user)
         StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
         StringBuilder valueClause = new StringBuilder();
 
@@ -1259,9 +1061,7 @@ public class UpdatableResultSet extends SelectResultSet {
             valueClause.append(", ");
           }
 
-          insertSql.append("`")
-              .append(colInfo.getOriginalName())
-              .append("`");
+          insertSql.append("`").append(colInfo.getOriginalName()).append("`");
           valueClause.append("?");
         }
         insertSql.append(") VALUES (").append(valueClause).append(")");
@@ -1288,7 +1088,7 @@ public class UpdatableResultSet extends SelectResultSet {
       insertPreparedStatement.execute();
 
       if (hasGeneratedPrimaryFields) {
-        //primary is auto_increment (only one field)
+        // primary is auto_increment (only one field)
         ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
         if (rsKey.next()) {
 
@@ -1296,7 +1096,7 @@ public class UpdatableResultSet extends SelectResultSet {
           refreshPreparedStatement.setObject(1, rsKey.getObject(1), generatedSqlType);
           SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
 
-          //update row data only if not deleted externally
+          // update row data only if not deleted externally
           if (rs.next()) {
             addRowData(rs.getCurrentRowData());
           }
@@ -1310,9 +1110,7 @@ public class UpdatableResultSet extends SelectResultSet {
     }
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void updateRow() throws SQLException {
 
     if (state == STATE_INSERT) {
@@ -1321,8 +1119,9 @@ public class UpdatableResultSet extends SelectResultSet {
 
     if (state == STATE_UPDATE) {
 
-      //state is STATE_UPDATE, meaning that at least one field is modified, update query can be run.
-      //Construct UPDATE query according to modified field only
+      // state is STATE_UPDATE, meaning that at least one field is modified, update query can be
+      // run.
+      // Construct UPDATE query according to modified field only
       StringBuilder updateSql = new StringBuilder("UPDATE `" + database + "`.`" + table + "` SET ");
       StringBuilder whereClause = new StringBuilder(" WHERE ");
 
@@ -1338,9 +1137,7 @@ public class UpdatableResultSet extends SelectResultSet {
             whereClause.append("AND ");
           }
           firstPrimary = false;
-          whereClause.append("`")
-              .append(colInfo.getOriginalName())
-              .append("` = ? ");
+          whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
         }
 
         if (value != null) {
@@ -1349,15 +1146,13 @@ public class UpdatableResultSet extends SelectResultSet {
           }
           firstUpdate = false;
           fieldsToUpdate++;
-          updateSql.append("`")
-              .append(colInfo.getOriginalName())
-              .append("` = ? ");
+          updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
         }
       }
       updateSql.append(whereClause.toString());
 
-      ClientSidePreparedStatement preparedStatement = connection
-          .clientPrepareStatement(updateSql.toString());
+      ClientSidePreparedStatement preparedStatement =
+          connection.clientPrepareStatement(updateSql.toString());
       int fieldsIndex = 0;
       int fieldsPrimaryIndex = 0;
       for (int pos = 0; pos < columnInformationLength; pos++) {
@@ -1369,7 +1164,8 @@ public class UpdatableResultSet extends SelectResultSet {
         }
 
         if (colInfo.isPrimary()) {
-          preparedStatement.setObject(fieldsToUpdate + (fieldsPrimaryIndex++) + 1,
+          preparedStatement.setObject(
+              fieldsToUpdate + (fieldsPrimaryIndex++) + 1,
               getObject(pos + 1),
               colInfo.getColumnType().getSqlType());
         }
@@ -1383,12 +1179,9 @@ public class UpdatableResultSet extends SelectResultSet {
       Arrays.fill(parameterHolders, null);
       state = STATE_STANDARD;
     }
-
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void deleteRow() throws SQLException {
 
     if (state == STATE_INSERT) {
@@ -1408,9 +1201,9 @@ public class UpdatableResultSet extends SelectResultSet {
     }
 
     if (deletePreparedStatement == null) {
-      //Create query with WHERE clause contain primary field.
-      StringBuilder deleteSql = new StringBuilder(
-          "DELETE FROM `" + database + "`.`" + table + "` WHERE ");
+      // Create query with WHERE clause contain primary field.
+      StringBuilder deleteSql =
+          new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
       boolean firstPrimary = true;
       for (int pos = 0; pos < columnInformationLength; pos++) {
         UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
@@ -1420,9 +1213,7 @@ public class UpdatableResultSet extends SelectResultSet {
             deleteSql.append("AND ");
           }
           firstPrimary = false;
-          deleteSql.append("`")
-              .append(colInfo.getOriginalName())
-              .append("` = ? ");
+          deleteSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
         }
       }
       deletePreparedStatement = connection.clientPrepareStatement(deleteSql.toString());
@@ -1433,8 +1224,8 @@ public class UpdatableResultSet extends SelectResultSet {
     for (int pos = 0; pos < columnInformationLength; pos++) {
       UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
       if (colInfo.isPrimary()) {
-        deletePreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1),
-            colInfo.getColumnType().getSqlType());
+        deletePreparedStatement.setObject(
+            fieldsPrimaryIndex++, getObject(pos + 1), colInfo.getColumnType().getSqlType());
       }
     }
 
@@ -1443,10 +1234,10 @@ public class UpdatableResultSet extends SelectResultSet {
     deleteCurrentRowData();
   }
 
-
   private void prepareRefreshStmt() throws SQLException {
     if (refreshPreparedStatement == null) {
-      //Construct SELECT query according to column metadata, with WHERE part containing primary fields
+      // Construct SELECT query according to column metadata, with WHERE part containing primary
+      // fields
       StringBuilder selectSql = new StringBuilder("SELECT ");
       StringBuilder whereClause = new StringBuilder(" WHERE ");
 
@@ -1456,25 +1247,26 @@ public class UpdatableResultSet extends SelectResultSet {
         if (pos != 0) {
           selectSql.append(",");
         }
-        selectSql.append("`")
-            .append(colInfo.getOriginalName())
-            .append("`");
+        selectSql.append("`").append(colInfo.getOriginalName()).append("`");
 
         if (colInfo.isPrimary()) {
           if (!firstPrimary) {
             whereClause.append("AND ");
           }
           firstPrimary = false;
-          whereClause.append("`")
-              .append(colInfo.getOriginalName())
-              .append("` = ? ");
+          whereClause.append("`").append(colInfo.getOriginalName()).append("` = ? ");
         }
       }
-      selectSql.append(" FROM `").append(database).append("`.`").append(table).append("`")
+      selectSql
+          .append(" FROM `")
+          .append(database)
+          .append("`.`")
+          .append(table)
+          .append("`")
           .append(whereClause);
 
-      //row's raw bytes must be encoded according to current resultSet type
-      //Create Server or Client PrepareStatement accordingly
+      // row's raw bytes must be encoded according to current resultSet type
+      // Create Server or Client PrepareStatement accordingly
       if (isBinaryEncoded()) {
         refreshPreparedStatement = connection.serverPrepareStatement(selectSql.toString());
       } else {
@@ -1492,8 +1284,8 @@ public class UpdatableResultSet extends SelectResultSet {
         ParameterHolder value = parameterHolders[pos];
 
         if (state != STATE_STANDARD && value != null) {
-          //Row has just been updated using updateRow() methods.
-          //updateRow has changed primary key, must use the new value.
+          // Row has just been updated using updateRow() methods.
+          // updateRow has changed primary key, must use the new value.
           if (isBinaryEncoded()) {
             ((ServerSidePreparedStatement) refreshPreparedStatement)
                 .setParameter(fieldsPrimaryIndex++, value);
@@ -1502,25 +1294,22 @@ public class UpdatableResultSet extends SelectResultSet {
                 .setParameter(fieldsPrimaryIndex++, value);
           }
         } else {
-          refreshPreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1),
-              colInfo.getColumnType().getSqlType());
+          refreshPreparedStatement.setObject(
+              fieldsPrimaryIndex++, getObject(pos + 1), colInfo.getColumnType().getSqlType());
         }
-
       }
     }
 
     SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
 
-    //update row data only if not deleted externally
+    // update row data only if not deleted externally
     if (rs.next()) {
       return rs.getCurrentRowData();
     }
     return new byte[0];
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void refreshRow() throws SQLException {
     if (state == STATE_INSERT) {
       throw new SQLException("Cannot call deleteRow() when inserting a new row");
@@ -1539,17 +1328,13 @@ public class UpdatableResultSet extends SelectResultSet {
     }
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void cancelRowUpdates() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void moveToInsertRow() throws SQLException {
     if (!canBeInserted) {
       throw new SQLException(exceptionInsertMsg);
@@ -1559,15 +1344,12 @@ public class UpdatableResultSet extends SelectResultSet {
     notInsertRowPointer = getRowPointer();
   }
 
-  /**
-   * {inheritDoc}.
-   */
+  /** {inheritDoc}. */
   public void moveToCurrentRow() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
     setRowPointer(notInsertRowPointer);
   }
-
 
   @Override
   public void beforeFirst() throws SQLException {
@@ -1640,5 +1422,4 @@ public class UpdatableResultSet extends SelectResultSet {
     }
     return super.previous();
   }
-
 }

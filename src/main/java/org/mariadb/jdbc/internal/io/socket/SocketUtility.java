@@ -1,8 +1,9 @@
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.Platform;
-import java.io.IOException;
-import org.mariadb.jdbc.internal.util.Utils;
+import com.sun.jna.*;
+import org.mariadb.jdbc.internal.util.*;
+
+import java.io.*;
 
 public class SocketUtility {
 
@@ -15,32 +16,31 @@ public class SocketUtility {
   @SuppressWarnings("unchecked")
   public static SocketHandlerFunction getSocketHandler() {
     try {
-      //forcing use of JNA to ensure AOT compilation
+      // forcing use of JNA to ensure AOT compilation
       Platform.getOSType();
 
-      return (urlParser, host) -> {
-        if (urlParser.getOptions().pipe != null) {
-          return new NamedPipeSocket(host, urlParser.getOptions().pipe);
-        } else if (urlParser.getOptions().localSocket != null) {
+      return (options, host) -> {
+        if (options.pipe != null) {
+          return new NamedPipeSocket(host, options.pipe);
+        } else if (options.localSocket != null) {
           try {
-            return new UnixDomainSocket(urlParser.getOptions().localSocket);
+            return new UnixDomainSocket(options.localSocket);
           } catch (RuntimeException re) {
             throw new IOException(re.getMessage(), re.getCause());
           }
-        } else if (urlParser.getOptions().sharedMemory != null) {
+        } else if (options.sharedMemory != null) {
           try {
-            return new SharedMemorySocket(urlParser.getOptions().sharedMemory);
+            return new SharedMemorySocket(options.sharedMemory);
           } catch (RuntimeException re) {
             throw new IOException(re.getMessage(), re.getCause());
           }
         } else {
-          return Utils.standardSocket(urlParser, host);
+          return Utils.standardSocket(options, host);
         }
-
       };
     } catch (Throwable cle) {
-      //jna jar's are not in classpath
+      // jna jar's are not in classpath
     }
-    return (urlParser, host) -> Utils.standardSocket(urlParser, host);
+    return (options, host) -> Utils.standardSocket(options, host);
   }
 }

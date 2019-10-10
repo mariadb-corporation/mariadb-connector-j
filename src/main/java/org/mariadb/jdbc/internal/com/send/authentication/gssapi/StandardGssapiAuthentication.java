@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,46 +52,44 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.UncheckedIOException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSException;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.ietf.jgss.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+
+import javax.security.auth.*;
+import javax.security.auth.login.*;
+import java.io.*;
+import java.security.*;
+import java.sql.*;
+import java.util.concurrent.atomic.*;
 
 public class StandardGssapiAuthentication implements GssapiAuth {
 
   /**
    * Process default GSS plugin authentication.
    *
-   * @param out                   out stream
-   * @param in                    in stream
-   * @param sequence              packet sequence
-   * @param servicePrincipalName  service principal name
-   * @param mechanisms            gssapi mechanism
-   * @throws IOException  if socket error
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
+   * @param servicePrincipalName service principal name
+   * @param mechanisms gssapi mechanism
+   * @throws IOException if socket error
    * @throws SQLException in any Exception occur
    */
-  public void authenticate(final PacketOutputStream out, final PacketInputStream in, final AtomicInteger sequence,
-                           final String servicePrincipalName, String mechanisms) throws SQLException, IOException {
+  public void authenticate(
+      final PacketOutputStream out,
+      final PacketInputStream in,
+      final AtomicInteger sequence,
+      final String servicePrincipalName,
+      String mechanisms)
+      throws SQLException, IOException {
 
     if ("".equals(servicePrincipalName)) {
-      throw new SQLException("No principal name defined on server. "
-          + "Please set server variable \"gssapi-principal-name\" or set option \"servicePrincipalName\"", "28000");
+      throw new SQLException(
+          "No principal name defined on server. "
+              + "Please set server variable \"gssapi-principal-name\" or set option \"servicePrincipalName\"",
+          "28000");
     }
 
     if (System.getProperty("java.security.auth.login.config") == null) {
@@ -99,12 +97,13 @@ public class StandardGssapiAuthentication implements GssapiAuth {
       try {
         jaasConfFile = File.createTempFile("jaas.conf", null);
         try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
-          bos.print("Krb5ConnectorContext {\n"
-              + "com.sun.security.auth.module.Krb5LoginModule required "
-              + "useTicketCache=true "
-              + "debug=true "
-              + "renewTGT=true "
-              + "doNotPrompt=true; };");
+          bos.print(
+              "Krb5ConnectorContext {\n"
+                  + "com.sun.security.auth.module.Krb5LoginModule required "
+                  + "useTicketCache=true "
+                  + "debug=true "
+                  + "renewTGT=true "
+                  + "doNotPrompt=true; };");
         }
         jaasConfFile.deleteOnExit();
       } catch (final IOException ex) {
@@ -120,50 +119,49 @@ public class StandardGssapiAuthentication implements GssapiAuth {
       final Subject mySubject = loginContext.getSubject();
       if (!mySubject.getPrincipals().isEmpty()) {
         try {
-          PrivilegedExceptionAction<Void> action = () -> {
-            try {
-              Oid krb5Mechanism = new Oid("1.2.840.113554.1.2.2");
+          PrivilegedExceptionAction<Void> action =
+              () -> {
+                try {
+                  Oid krb5Mechanism = new Oid("1.2.840.113554.1.2.2");
 
-              GSSManager manager = GSSManager.getInstance();
-              GSSName peerName = manager.createName(servicePrincipalName, GSSName.NT_USER_NAME);
-              GSSContext context =
-                  manager.createContext(peerName,
-                      krb5Mechanism,
-                      null,
-                      GSSContext.DEFAULT_LIFETIME);
-              context.requestMutualAuth(true);
+                  GSSManager manager = GSSManager.getInstance();
+                  GSSName peerName = manager.createName(servicePrincipalName, GSSName.NT_USER_NAME);
+                  GSSContext context =
+                      manager.createContext(
+                          peerName, krb5Mechanism, null, GSSContext.DEFAULT_LIFETIME);
+                  context.requestMutualAuth(true);
 
-              byte[] inToken = new byte[0];
-              byte[] outToken;
-              while (!context.isEstablished()) {
+                  byte[] inToken = new byte[0];
+                  byte[] outToken;
+                  while (!context.isEstablished()) {
 
-                outToken = context.initSecContext(inToken, 0, inToken.length);
+                    outToken = context.initSecContext(inToken, 0, inToken.length);
 
-                // Send a token to the peer if one was generated by acceptSecContext
-                if (outToken != null) {
-                  out.startPacket(sequence.incrementAndGet());
-                  out.write(outToken);
-                  out.flush();
+                    // Send a token to the peer if one was generated by acceptSecContext
+                    if (outToken != null) {
+                      out.startPacket(sequence.incrementAndGet());
+                      out.write(outToken);
+                      out.flush();
+                    }
+                    if (!context.isEstablished()) {
+                      Buffer buffer = in.getPacket(true);
+                      sequence.set(in.getLastPacketSeq());
+                      inToken = buffer.readRawBytes(buffer.remaining());
+                    }
+                  }
+
+                } catch (GSSException le) {
+                  throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
                 }
-                if (!context.isEstablished()) {
-                  Buffer buffer = in.getPacket(true);
-                  sequence.set(in.getLastPacketSeq());
-                  inToken = buffer.readRawBytes(buffer.remaining());
-                }
-              }
-
-            } catch (GSSException le) {
-              throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
-            }
-            return null;
-          };
+                return null;
+              };
           Subject.doAs(mySubject, action);
         } catch (PrivilegedActionException exception) {
           throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
         }
       } else {
-        throw new SQLException("GSS-API authentication exception : no credential cache not found.",
-            "28000", 1045);
+        throw new SQLException(
+            "GSS-API authentication exception : no credential cache not found.", "28000", 1045);
       }
 
     } catch (LoginException le) {

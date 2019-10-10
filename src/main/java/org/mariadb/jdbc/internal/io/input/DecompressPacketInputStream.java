@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,21 +52,16 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.util.*;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.zip.DataFormatException;
-import java.util.zip.Inflater;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.io.TraceObject;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Utils;
+import java.io.*;
+import java.util.*;
+import java.util.zip.*;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.*;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
@@ -77,7 +72,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
-  //compress packet can contain multiple standard packet
+  // compress packet can contain multiple standard packet
   private byte[] cacheData = new byte[0];
   private int cachePos;
   private int cacheEnd;
@@ -90,7 +85,6 @@ public class DecompressPacketInputStream implements PacketInputStream {
     inputStream = in;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
   }
-
 
   @Override
   public Buffer getPacket(boolean reUsable) throws IOException {
@@ -111,9 +105,9 @@ public class DecompressPacketInputStream implements PacketInputStream {
       return cachePacket;
     }
 
-    //loop until having the whole packet
+    // loop until having the whole packet
     do {
-      //Read 7 byte header
+      // Read 7 byte header
       readBlocking(header, 7);
 
       int compressedLength =
@@ -133,16 +127,20 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
       if (traceCache != null) {
         int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-        traceCache.put(new TraceObject(false,
-            decompressedLength == 0 ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
-                : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
-            Arrays.copyOfRange(header, 0, 7),
-            Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
+        traceCache.put(
+            new TraceObject(
+                false,
+                decompressedLength == 0
+                    ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
+                    : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                Arrays.copyOfRange(header, 0, 7),
+                Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
       }
 
       if (logger.isTraceEnabled()) {
         int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-        logger.trace("read {} {}{}",
+        logger.trace(
+            "read {} {}{}",
             (decompressedLength == 0 ? "uncompress" : "compress"),
             serverThreadLog,
             Utils.hexdump(maxQuerySizeToLog - 7, 0, length, header, rawBytes));
@@ -162,7 +160,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
     if (decompressedLength != 0) {
 
       byte[] compressedBuffer = new byte[compressedLength];
-      //Read compress content
+      // Read compress content
       readBlocking(compressedBuffer, compressedLength);
 
       Inflater inflater = new Inflater();
@@ -171,7 +169,9 @@ public class DecompressPacketInputStream implements PacketInputStream {
         int actualUncompressBytes = inflater.inflate(arr);
         if (actualUncompressBytes != decompressedLength) {
           throw new IOException(
-              "Invalid exception length after decompression " + actualUncompressBytes + ",expected "
+              "Invalid exception length after decompression "
+                  + actualUncompressBytes
+                  + ",expected "
                   + decompressedLength);
         }
       } catch (DataFormatException dfe) {
@@ -180,10 +180,9 @@ public class DecompressPacketInputStream implements PacketInputStream {
       inflater.end();
 
     } else {
-      //Read standard content
+      // Read standard content
       readBlocking(arr, compressedLength);
     }
-
   }
 
   private void readBlocking(byte[] arr, int length) throws IOException {
@@ -193,7 +192,10 @@ public class DecompressPacketInputStream implements PacketInputStream {
       int count = inputStream.read(arr, off, remaining);
       if (count < 0) {
         throw new EOFException(
-            "unexpected end of stream, read " + (length - remaining) + " bytes from " + length
+            "unexpected end of stream, read "
+                + (length - remaining)
+                + " bytes from "
+                + length
                 + " (socket was closed by server)");
       }
       remaining -= count;
@@ -207,7 +209,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
       cachePos = 0;
       cacheEnd = length;
     } else {
-      //must add to cache
+      // must add to cache
       byte[] newCache = new byte[length + cacheEnd - cachePos];
       System.arraycopy(cacheData, cachePos, newCache, 0, cacheEnd - cachePos);
       System.arraycopy(rawBytes, 0, newCache, cacheEnd - cachePos, length);
@@ -220,18 +222,19 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private byte[] getNextCachePacket() {
     int packetOffset = 0;
 
-    //if packet is not totally fetch, return null
+    // if packet is not totally fetch, return null
     while (cacheEnd > cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4)) {
-      int lastPacketLength = (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
-          + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 1] & 0xff) << 8)
-          + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 2] & 0xff) << 16);
+      int lastPacketLength =
+          (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
+              + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 1] & 0xff) << 8)
+              + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 2] & 0xff) << 16);
       if (lastPacketLength == MAX_PACKET_SIZE) {
         packetOffset += 1;
-      } else if (cacheEnd >= cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4)
-          + lastPacketLength) {
-        //packet is totally fetched.
+      } else if (cacheEnd
+          >= cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4) + lastPacketLength) {
+        // packet is totally fetched.
 
-        //if packet was less than 16M
+        // if packet was less than 16M
         if (packetOffset == 0) {
           packetSeq = cacheData[cachePos + 3];
 
@@ -240,7 +243,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
             System.arraycopy(cacheData, cachePos + 4, packet, 0, lastPacketLength);
 
             if (logger.isTraceEnabled()) {
-              logger.trace("read packet: seq={} len={} {}{}",
+              logger.trace(
+                  "read packet: seq={} len={} {}{}",
                   packetSeq,
                   lastPacketLength,
                   serverThreadLog,
@@ -254,15 +258,17 @@ public class DecompressPacketInputStream implements PacketInputStream {
           byte[] packet = new byte[lastPacketLength + packetOffset * MAX_PACKET_SIZE];
           int offset = 0;
           do {
-            lastPacketLength = (cacheData[cachePos] & 0xff)
-                + ((cacheData[cachePos + 1] & 0xff) << 8)
-                + ((cacheData[cachePos + 2] & 0xff) << 16);
+            lastPacketLength =
+                (cacheData[cachePos] & 0xff)
+                    + ((cacheData[cachePos + 1] & 0xff) << 8)
+                    + ((cacheData[cachePos + 2] & 0xff) << 16);
             packetSeq = cacheData[cachePos + 3];
             System.arraycopy(cacheData, cachePos + 4, packet, offset, lastPacketLength);
             offset += lastPacketLength;
 
             if (logger.isTraceEnabled()) {
-              logger.trace("read packet: seq={} len={} {}{}",
+              logger.trace(
+                  "read packet: seq={} len={} {}{}",
                   packetSeq,
                   lastPacketLength,
                   serverThreadLog,
@@ -273,7 +279,6 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
           } while (lastPacketLength == MAX_PACKET_SIZE);
           return packet;
-
         }
       } else {
         return null;
@@ -301,7 +306,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
    * Set server thread id.
    *
    * @param serverThreadId current server thread id.
-   * @param isMaster       is server master
+   * @param isMaster is server master
    */
   public void setServerThreadId(long serverThreadId, Boolean isMaster) {
     this.serverThreadLog =
@@ -311,5 +316,4 @@ public class DecompressPacketInputStream implements PacketInputStream {
   public void setTraceCache(LruTraceCache traceCache) {
     this.traceCache = traceCache;
   }
-
 }

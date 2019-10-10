@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,9 +52,8 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.nio.charset.*;
+import java.util.*;
 
 public class Buffer {
 
@@ -142,8 +141,7 @@ public class Buffer {
    * @return an short
    */
   public short readShort() {
-    return (short) ((buf[position++] & 0xff)
-        + ((buf[position++] & 0xff) << 8));
+    return (short) ((buf[position++] & 0xff) + ((buf[position++] & 0xff) << 8));
   }
 
   /**
@@ -215,9 +213,7 @@ public class Buffer {
     position += bytesToSkip;
   }
 
-  /**
-   * Skip next length encode binary data.
-   */
+  /** Skip next length encode binary data. */
   public void skipLengthEncodedBytes() {
     int type = this.buf[this.position++] & 0xff;
     switch (type) {
@@ -229,20 +225,25 @@ public class Buffer {
         break;
 
       case 253:
-        position += 3 + (0xffffff & ((buf[position] & 0xff)
-            + ((buf[position + 1] & 0xff) << 8)
-            + ((buf[position + 2] & 0xff) << 16)));
+        position +=
+            3
+                + (0xffffff
+                    & ((buf[position] & 0xff)
+                        + ((buf[position + 1] & 0xff) << 8)
+                        + ((buf[position + 2] & 0xff) << 16)));
         break;
 
       case 254:
-        position += 8 + ((buf[position] & 0xff)
-            + ((long) (buf[position + 1] & 0xff) << 8)
-            + ((long) (buf[position + 2] & 0xff) << 16)
-            + ((long) (buf[position + 3] & 0xff) << 24)
-            + ((long) (buf[position + 4] & 0xff) << 32)
-            + ((long) (buf[position + 5] & 0xff) << 40)
-            + ((long) (buf[position + 6] & 0xff) << 48)
-            + ((long) (buf[position + 7] & 0xff) << 56));
+        position +=
+            8
+                + ((buf[position] & 0xff)
+                    + ((long) (buf[position + 1] & 0xff) << 8)
+                    + ((long) (buf[position + 2] & 0xff) << 16)
+                    + ((long) (buf[position + 3] & 0xff) << 24)
+                    + ((long) (buf[position + 4] & 0xff) << 32)
+                    + ((long) (buf[position + 5] & 0xff) << 40)
+                    + ((long) (buf[position + 6] & 0xff) << 48)
+                    + ((long) (buf[position + 7] & 0xff) << 56));
         break;
 
       default:
@@ -299,14 +300,16 @@ public class Buffer {
         length = 0xffffff & read24bitword();
         break;
       case 254:
-        length = (int) ((buf[position++] & 0xff)
-            + ((long) (buf[position++] & 0xff) << 8)
-            + ((long) (buf[position++] & 0xff) << 16)
-            + ((long) (buf[position++] & 0xff) << 24)
-            + ((long) (buf[position++] & 0xff) << 32)
-            + ((long) (buf[position++] & 0xff) << 40)
-            + ((long) (buf[position++] & 0xff) << 48)
-            + ((long) (buf[position++] & 0xff) << 56));
+        length =
+            (int)
+                ((buf[position++] & 0xff)
+                    + ((long) (buf[position++] & 0xff) << 8)
+                    + ((long) (buf[position++] & 0xff) << 16)
+                    + ((long) (buf[position++] & 0xff) << 24)
+                    + ((long) (buf[position++] & 0xff) << 32)
+                    + ((long) (buf[position++] & 0xff) << 40)
+                    + ((long) (buf[position++] & 0xff) << 48)
+                    + ((long) (buf[position++] & 0xff) << 56));
         break;
       default:
         length = type;
@@ -369,12 +372,11 @@ public class Buffer {
     position += length;
   }
 
-
   /**
    * Write bytes.
    *
    * @param header header byte
-   * @param bytes  command bytes
+   * @param bytes command bytes
    */
   public void writeBytes(byte header, byte[] bytes) {
     int length = bytes.length;
@@ -417,9 +419,7 @@ public class Buffer {
     }
   }
 
-  /**
-   * Grow data array.
-   */
+  /** Grow data array. */
   private void grow() {
     int newCapacity = buf.length + (buf.length >> 1);
     if (newCapacity - (Integer.MAX_VALUE - 8) > 0) {
@@ -428,5 +428,4 @@ public class Buffer {
     buf = Arrays.copyOf(buf, newCapacity);
     this.limit = newCapacity;
   }
-
 }

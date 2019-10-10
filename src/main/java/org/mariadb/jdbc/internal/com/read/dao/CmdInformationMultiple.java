@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,13 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
+import java.util.*;
 
 public class CmdInformationMultiple implements CmdInformation {
-
 
   private final ArrayList<Long> insertIds;
   private final ArrayList<Long> updateCounts;
@@ -75,7 +72,7 @@ public class CmdInformationMultiple implements CmdInformation {
   /**
    * Object containing update / insert ids, optimized for only multiple result.
    *
-   * @param expectedSize  expected batch size.
+   * @param expectedSize expected batch size.
    * @param autoIncrement connection auto increment value.
    */
   public CmdInformationMultiple(int expectedSize, int autoIncrement) {
@@ -104,7 +101,6 @@ public class CmdInformationMultiple implements CmdInformation {
     hasException = false;
     rewritten = false;
   }
-
 
   public void addResultSetStat() {
     updateCounts.add((long) RESULT_SET_VALUE);
@@ -145,14 +141,13 @@ public class CmdInformationMultiple implements CmdInformation {
       ret[pos++] = iterator.next().intValue();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
 
     return ret;
   }
-
 
   @Override
   public long[] getLargeUpdateCounts() {
@@ -170,7 +165,7 @@ public class CmdInformationMultiple implements CmdInformation {
       ret[pos++] = iterator.next();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
@@ -217,9 +212,10 @@ public class CmdInformationMultiple implements CmdInformation {
    * value.
    *
    * @param protocol current protocol
+   * @param sql SQL command
    * @return a resultSet with insert ids.
    */
-  public ResultSet getGeneratedKeys(Protocol protocol) {
+  public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
     long[] ret = new long[insertIdNumber];
     int position = 0;
     long insertId;
@@ -244,7 +240,6 @@ public class CmdInformationMultiple implements CmdInformation {
     return updateCounts.size();
   }
 
-
   @Override
   public boolean moreResults() {
     return moreResults++ < updateCounts.size() - 1
@@ -260,4 +255,3 @@ public class CmdInformationMultiple implements CmdInformation {
     this.rewritten = rewritten;
   }
 }
-

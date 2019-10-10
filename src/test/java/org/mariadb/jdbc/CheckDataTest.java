@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -69,8 +69,9 @@ public class CheckDataTest extends BaseTest {
   public void testStatementExecuteAutoincrement() throws SQLException {
     createTable("CheckDataTest1", "id int not null primary key auto_increment, test varchar(10)");
     Statement stmt = sharedConnection.createStatement();
-    int insert = stmt.executeUpdate("INSERT INTO CheckDataTest1 (test) VALUES ('test1')",
-        Statement.RETURN_GENERATED_KEYS);
+    int insert =
+        stmt.executeUpdate(
+            "INSERT INTO CheckDataTest1 (test) VALUES ('test1')", Statement.RETURN_GENERATED_KEYS);
     assertEquals(1, insert);
 
     int[] autoInc = setAutoInc();
@@ -131,9 +132,9 @@ public class CheckDataTest extends BaseTest {
   @Test
   public void testPrepareStatementExecuteAutoincrement() throws SQLException {
     createTable("CheckDataTest3", "id int not null primary key auto_increment, test varchar(10)");
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("INSERT INTO CheckDataTest3 (test) VALUES (?)",
-            Statement.RETURN_GENERATED_KEYS);
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "INSERT INTO CheckDataTest3 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
     stmt.setString(1, "test1");
 
     int[] autoInc = setAutoInc();
@@ -146,11 +147,11 @@ public class CheckDataTest extends BaseTest {
     assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
     assertFalse(rs.next());
 
-    //without addBatch -> no execution
+    // without addBatch -> no execution
     int[] noBatch = stmt.executeBatch();
     assertEquals(0, noBatch.length);
 
-    //with addBatch
+    // with addBatch
     stmt.addBatch();
     int[] nbBatch = stmt.executeBatch();
     assertEquals(1, nbBatch.length);
@@ -174,9 +175,9 @@ public class CheckDataTest extends BaseTest {
   @Test
   public void testPrepareStatementBatch() throws SQLException {
     createTable("CheckDataTest4", "id int not null primary key auto_increment, test varchar(10)");
-    PreparedStatement stmt = sharedConnection
-        .prepareStatement("INSERT INTO CheckDataTest4 (test) VALUES (?)",
-            Statement.RETURN_GENERATED_KEYS);
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "INSERT INTO CheckDataTest4 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
     stmt.setString(1, "test1");
     stmt.addBatch();
     stmt.setString(1, "test2");

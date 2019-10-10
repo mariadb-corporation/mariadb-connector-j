@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,24 +52,20 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.RejectedExecutionException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.BulkStatus;
-import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import java.io.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public abstract class AbstractMultiSend {
 
@@ -84,21 +80,29 @@ public abstract class AbstractMultiSend {
   private PrepareResult prepareResult;
   private List<String> queries;
   private String sql;
+  private ThreadPoolExecutor readScheduler;
 
   /**
    * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
    *
-   * @param protocol              protocol
-   * @param writer                outputStream
-   * @param results               query results
-   * @param serverPrepareResult   Prepare result
-   * @param parametersList        parameters
+   * @param protocol protocol
+   * @param writer outputStream
+   * @param results query results
+   * @param serverPrepareResult Prepare result
+   * @param parametersList parameters
    * @param readPrepareStmtResult must execute prepare result
-   * @param sql                   sql query.
+   * @param sql sql query.
+   * @param readScheduler reading thread-pool
    */
-  public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
+  public AbstractMultiSend(
+      Protocol protocol,
+      PacketOutputStream writer,
+      Results results,
       ServerPrepareResult serverPrepareResult,
-      List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult, String sql) {
+      List<ParameterHolder[]> parametersList,
+      boolean readPrepareStmtResult,
+      String sql,
+      ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -107,19 +111,26 @@ public abstract class AbstractMultiSend {
     this.binaryProtocol = true;
     this.readPrepareStmtResult = readPrepareStmtResult;
     this.sql = sql;
+    this.readScheduler = readScheduler;
   }
 
   /**
    * Bulk execute for client-side PreparedStatement.executeBatch (no prepare).
    *
-   * @param protocol            current protocol
-   * @param writer              outputStream
-   * @param results             results
+   * @param protocol current protocol
+   * @param writer outputStream
+   * @param results results
    * @param clientPrepareResult clientPrepareResult
-   * @param parametersList      parameters
+   * @param parametersList parameters
+   * @param readScheduler reading thread-pool
    */
-  public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList) {
+  public AbstractMultiSend(
+      Protocol protocol,
+      PacketOutputStream writer,
+      Results results,
+      final ClientPrepareResult clientPrepareResult,
+      List<ParameterHolder[]> parametersList,
+      ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -127,46 +138,63 @@ public abstract class AbstractMultiSend {
     this.parametersList = parametersList;
     this.binaryProtocol = false;
     this.readPrepareStmtResult = false;
+    this.readScheduler = readScheduler;
   }
 
   /**
    * Bulk execute for statement.executeBatch().
    *
    * @param protocol protocol
-   * @param writer   outputStream
-   * @param results  results
-   * @param queries  query list
+   * @param writer outputStream
+   * @param results results
+   * @param queries query list
+   * @param readScheduler reading thread-pool
    */
-  public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      List<String> queries) {
+  public AbstractMultiSend(
+      Protocol protocol,
+      PacketOutputStream writer,
+      Results results,
+      List<String> queries,
+      ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
     this.queries = queries;
     this.binaryProtocol = false;
     this.readPrepareStmtResult = false;
+    this.readScheduler = readScheduler;
   }
 
-  public abstract void sendCmd(PacketOutputStream writer, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
+  public abstract void sendCmd(
+      PacketOutputStream writer,
+      Results results,
+      List<ParameterHolder[]> parametersList,
+      List<String> queries,
+      int paramCount,
       BulkStatus status,
-      PrepareResult prepareResult) throws SQLException, IOException;
+      PrepareResult prepareResult)
+      throws SQLException, IOException;
 
-  public abstract SQLException handleResultException(SQLException qex, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-      int sendCmdCounter, int paramCount, PrepareResult prepareResult);
+  public abstract SQLException handleResultException(
+      SQLException qex,
+      Results results,
+      List<ParameterHolder[]> parametersList,
+      List<String> queries,
+      int currentCounter,
+      int sendCmdCounter,
+      int paramCount,
+      PrepareResult prepareResult);
 
   public abstract int getParamCount();
 
   public abstract int getTotalExecutionNumber();
-
 
   public PrepareResult getPrepareResult() {
     return prepareResult;
   }
 
   /**
-   * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is
+   * Execute Bulk execution (send packets by batch of useBatchMultiSendNumber or when max packet is
    * reached) before reading results.
    *
    * @return prepare result
@@ -182,9 +210,9 @@ public abstract class AbstractMultiSend {
             && protocol.getOptions().useServerPrepStmts) {
           String key = protocol.getDatabase() + "-" + sql;
           prepareResult = protocol.prepareStatementCache().get(key);
-          if (prepareResult != null && !((ServerPrepareResult) prepareResult)
-              .incrementShareCounter()) {
-            //in cache but been de-allocated
+          if (prepareResult != null
+              && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
+            // in cache but been de-allocated
             prepareResult = null;
           }
         }
@@ -198,7 +226,7 @@ public abstract class AbstractMultiSend {
   }
 
   /**
-   * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is
+   * Execute Bulk execution (send packets by batch of useBatchMultiSendNumber or when max packet is
    * reached) before reading results.
    *
    * @param estimatedParameterCount parameter counter
@@ -219,17 +247,19 @@ public abstract class AbstractMultiSend {
       do {
         status.sendEnded = false;
         status.sendSubCmdCounter = 0;
-        requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter,
-            protocol.getOptions().useBatchMultiSendNumber);
-        protocol.changeSocketTcpNoDelay(false); //enable NAGLE algorithm temporary.
+        requestNumberByBulk =
+            Math.min(
+                totalExecutionNumber - status.sendCmdCounter,
+                protocol.getOptions().useBatchMultiSendNumber);
+        protocol.changeSocketTcpNoDelay(false); // enable NAGLE algorithm temporary.
 
-        //add prepare sub-command
+        // add prepare sub-command
         if (readPrepareStmtResult && prepareResult == null) {
 
           comStmtPrepare = new ComStmtPrepare(protocol, sql);
           comStmtPrepare.send(writer);
 
-          //read prepare result
+          // read prepare result
           prepareResult = comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated());
           statementId = ((ServerPrepareResult) prepareResult).getStatementId();
           paramCount = getParamCount();
@@ -245,8 +275,8 @@ public abstract class AbstractMultiSend {
             try {
               protocol.getResult(results);
             } catch (SQLException qex) {
-              if (((readPrepareStmtResult && prepareResult == null) || !protocol
-                  .getOptions().continueBatchOnError)) {
+              if (((readPrepareStmtResult && prepareResult == null)
+                  || !protocol.getOptions().continueBatchOnError)) {
                 throw qex;
               } else {
                 exception = qex;
@@ -254,17 +284,27 @@ public abstract class AbstractMultiSend {
             }
           } else if (futureReadTask == null) {
             try {
-              futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
-                  protocol, false, this, paramCount,
-                  results, parametersList, queries, prepareResult));
-              AbstractQueryProtocol.readScheduler.execute(futureReadTask);
+              futureReadTask =
+                  new FutureTask<>(
+                      new AsyncMultiRead(
+                          comStmtPrepare,
+                          status,
+                          protocol,
+                          false,
+                          this,
+                          paramCount,
+                          results,
+                          parametersList,
+                          queries,
+                          prepareResult));
+              readScheduler.execute(futureReadTask);
             } catch (RejectedExecutionException r) {
               useCurrentThread = true;
               try {
                 protocol.getResult(results);
               } catch (SQLException qex) {
-                if (((readPrepareStmtResult && prepareResult == null) || !protocol
-                    .getOptions().continueBatchOnError)) {
+                if (((readPrepareStmtResult && prepareResult == null)
+                    || !protocol.getOptions().continueBatchOnError)) {
                   throw qex;
                 } else {
                   exception = qex;
@@ -280,7 +320,8 @@ public abstract class AbstractMultiSend {
           try {
             AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
 
-            if (binaryProtocol && prepareResult == null
+            if (binaryProtocol
+                && prepareResult == null
                 && asyncMultiReadResult.getPrepareResult() != null) {
               prepareResult = asyncMultiReadResult.getPrepareResult();
               statementId = ((ServerPrepareResult) prepareResult).getStatementId();
@@ -288,8 +329,8 @@ public abstract class AbstractMultiSend {
             }
 
             if (asyncMultiReadResult.getException() != null) {
-              if (((readPrepareStmtResult && prepareResult == null) || !protocol
-                  .getOptions().continueBatchOnError)) {
+              if (((readPrepareStmtResult && prepareResult == null)
+                  || !protocol.getOptions().continueBatchOnError)) {
                 throw asyncMultiReadResult.getException();
               } else {
                 exception = asyncMultiReadResult.getException();
@@ -304,17 +345,20 @@ public abstract class AbstractMultiSend {
           } catch (InterruptedException interruptedException) {
             protocol.setActiveFutureTask(futureReadTask);
             Thread.currentThread().interrupt();
-            throw new SQLException("Interrupted awaiting response ",
-                INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
+            throw new SQLException(
+                "Interrupted awaiting response ",
+                INTERRUPTED_EXCEPTION.getSqlState(),
+                interruptedException);
           } finally {
-            //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
-            //this permit to release those old prepared statement without conflict.
+            // bulk can prepare, and so if prepare cache is enable, can replace an already cached
+            // prepareStatement
+            // this permit to release those old prepared statement without conflict.
             protocol.forceReleaseWaitingPrepareStatement();
           }
         }
 
         if (protocol.isInterrupted()) {
-          //interrupted during read, must throw an exception manually
+          // interrupted during read, must throw an exception manually
           futureReadTask.cancel(true);
           throw new SQLTimeoutException("Timeout during batch execution");
         }
@@ -330,10 +374,8 @@ public abstract class AbstractMultiSend {
 
     } catch (IOException e) {
       status.sendEnded = true;
-      status.sendCmdCounter = 0; //to ensure read doesn't hang
+      status.sendCmdCounter = 0; // to ensure read doesn't hang
       throw protocol.handleIoException(e);
     }
-
   }
-
 }

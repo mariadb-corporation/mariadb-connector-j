@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,8 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.SQLException;
-
 /**
  * Keep the class name for compatibility
  *
@@ -65,7 +63,7 @@ public class MySQLDataSource extends MariaDbDataSource {
    * Constructor.
    *
    * @param hostname hostname (ipv4, ipv6, dns name)
-   * @param port     server port
+   * @param port server port
    * @param database database name
    */
   public MySQLDataSource(String hostname, int port, String database) {
@@ -76,9 +74,7 @@ public class MySQLDataSource extends MariaDbDataSource {
     super(url);
   }
 
-  /**
-   * Default constructor. hostname will be localhost, port 3306.
-   */
+  /** Default constructor. hostname will be localhost, port 3306. */
   public MySQLDataSource() {
     super();
   }

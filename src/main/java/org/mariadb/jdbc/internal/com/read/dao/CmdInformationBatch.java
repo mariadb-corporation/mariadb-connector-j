@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.protocol.*;
+
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class CmdInformationBatch implements CmdInformation {
 
@@ -77,7 +75,7 @@ public class CmdInformationBatch implements CmdInformation {
    * "useBatchMultiSend" is set and batch is interrupted, will permit to reading thread to keep
    * connection in a correct state without any ConcurrentModificationException.
    *
-   * @param expectedSize  expected batch size.
+   * @param expectedSize expected batch size.
    * @param autoIncrement connection auto increment value.
    */
   public CmdInformationBatch(int expectedSize, int autoIncrement) {
@@ -119,7 +117,21 @@ public class CmdInformationBatch implements CmdInformation {
   public int[] getUpdateCounts() {
     if (rewritten) {
       int[] ret = new int[expectedSize];
-      Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+      int resultValue;
+      if (hasException) {
+        resultValue = Statement.EXECUTE_FAILED;
+      } else if (expectedSize == 1) {
+        resultValue = updateCounts.element().intValue();
+      } else {
+        resultValue = 0;
+        Iterator<Long> iterator = updateCounts.iterator();
+        while (iterator.hasNext()) {
+          if (iterator.next().intValue() != 0) {
+            resultValue = Statement.SUCCESS_NO_INFO;
+          }
+        }
+      }
+      Arrays.fill(ret, resultValue);
       return ret;
     }
 
@@ -131,7 +143,7 @@ public class CmdInformationBatch implements CmdInformation {
       ret[pos++] = iterator.next().intValue();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
@@ -154,7 +166,21 @@ public class CmdInformationBatch implements CmdInformation {
   public long[] getLargeUpdateCounts() {
     if (rewritten) {
       long[] ret = new long[expectedSize];
-      Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+      long resultValue;
+      if (hasException) {
+        resultValue = Statement.EXECUTE_FAILED;
+      } else if (expectedSize == 1) {
+        resultValue = updateCounts.element().longValue();
+      } else {
+        resultValue = 0;
+        Iterator<Long> iterator = updateCounts.iterator();
+        while (iterator.hasNext()) {
+          if (iterator.next().intValue() != 0) {
+            resultValue = Statement.SUCCESS_NO_INFO;
+          }
+        }
+      }
+      Arrays.fill(ret, resultValue);
       return ret;
     }
 
@@ -166,7 +192,7 @@ public class CmdInformationBatch implements CmdInformation {
       ret[pos++] = iterator.next();
     }
 
-    //in case of Exception
+    // in case of Exception
     while (pos < ret.length) {
       ret[pos++] = Statement.EXECUTE_FAILED;
     }
@@ -210,9 +236,10 @@ public class CmdInformationBatch implements CmdInformation {
    * value.
    *
    * @param protocol current protocol
+   * @param sql SQL command
    * @return a resultSet with insert ids.
    */
-  public ResultSet getGeneratedKeys(Protocol protocol) {
+  public ResultSet getGeneratedKeys(Protocol protocol, String sql) {
     long[] ret = new long[insertIdNumber];
     int position = 0;
     long insertId;
@@ -235,7 +262,6 @@ public class CmdInformationBatch implements CmdInformation {
     return updateCounts.size();
   }
 
-
   @Override
   public boolean moreResults() {
     return false;
@@ -250,4 +276,3 @@ public class CmdInformationBatch implements CmdInformation {
     this.rewritten = rewritten;
   }
 }
-

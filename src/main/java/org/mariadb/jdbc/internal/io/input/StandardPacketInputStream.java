@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,21 +52,17 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.util.*;
 
-import java.io.BufferedInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.io.TraceObject;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.Utils;
+import java.io.*;
+import java.util.*;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.*;
 
 public class StandardPacketInputStream implements PacketInputStream {
 
@@ -87,12 +83,14 @@ public class StandardPacketInputStream implements PacketInputStream {
   /**
    * Constructor of standard socket MySQL packet stream reader.
    *
-   * @param in        stream
-   * @param options   connection options
+   * @param in stream
+   * @param options connection options
    */
   public StandardPacketInputStream(InputStream in, Options options) {
-    inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)
-        : new BufferedInputStream(in, 16384);
+    inputStream =
+        options.useReadAheadInput
+            ? new ReadAheadBufferedStream(in)
+            : new BufferedInputStream(in, 16384);
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
   }
 
@@ -104,7 +102,7 @@ public class StandardPacketInputStream implements PacketInputStream {
    */
   public static byte[] create(byte[] value) {
     if (value == null) {
-      return new byte[]{(byte) 251};
+      return new byte[] {(byte) 251};
     }
 
     int length = value.length;
@@ -142,17 +140,16 @@ public class StandardPacketInputStream implements PacketInputStream {
       buf[2] = (byte) (length >>> 8);
       buf[3] = (byte) (length >>> 16);
       buf[4] = (byte) (length >>> 24);
-      //byte[] cannot have a more than 4 byte length size, so buf[5] -> buf[8] = 0x00;
+      // byte[] cannot have a more than 4 byte length size, so buf[5] -> buf[8] = 0x00;
       System.arraycopy(value, 0, buf, 9, length);
       return buf;
     }
-
   }
 
   /**
    * Create Buffer with Text protocol values.
    *
-   * @param rowDatas    datas
+   * @param rowDatas datas
    * @param columnTypes column types
    * @return Buffer
    */
@@ -200,7 +197,7 @@ public class StandardPacketInputStream implements PacketInputStream {
           buf[pos++] = (byte) (length >>> 8);
           buf[pos++] = (byte) (length >>> 16);
           buf[pos++] = (byte) (length >>> 24);
-          //byte[] cannot have more than 4 byte length size, so buf[pos+5] -> buf[pos+8] = 0x00;
+          // byte[] cannot have more than 4 byte length size, so buf[pos+5] -> buf[pos+8] = 0x00;
           pos += 4;
         }
         System.arraycopy(arr, 0, buf, pos, length);
@@ -216,8 +213,8 @@ public class StandardPacketInputStream implements PacketInputStream {
   }
 
   /**
-   * Get current input stream for creating compress input stream, to avoid losing already
-   * read bytes in case of pipelining.
+   * Get current input stream for creating compress input stream, to avoid losing already read bytes
+   * in case of pipelining.
    *
    * @return input stream.
    */
@@ -235,16 +232,18 @@ public class StandardPacketInputStream implements PacketInputStream {
    */
   public byte[] getPacketArray(boolean reUsable) throws IOException {
 
-    //***************************************************
-    //Read 4 byte header
-    //***************************************************
+    // ***************************************************
+    // Read 4 byte header
+    // ***************************************************
     int remaining = 4;
     int off = 0;
     do {
       int count = inputStream.read(header, off, remaining);
       if (count < 0) {
-        throw new EOFException("unexpected end of stream, read " + off
-            + " bytes from 4 (socket was closed by server)");
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + off
+                + " bytes from 4 (socket was closed by server)");
       }
       remaining -= count;
       off += count;
@@ -253,7 +252,7 @@ public class StandardPacketInputStream implements PacketInputStream {
     lastPacketLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
     packetSeq = header[3];
 
-    //prepare array
+    // prepare array
     byte[] rawBytes;
     if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
       rawBytes = reusableArray;
@@ -261,16 +260,18 @@ public class StandardPacketInputStream implements PacketInputStream {
       rawBytes = new byte[lastPacketLength];
     }
 
-    //***************************************************
-    //Read content
-    //***************************************************
+    // ***************************************************
+    // Read content
+    // ***************************************************
     remaining = lastPacketLength;
     off = 0;
     do {
       int count = inputStream.read(rawBytes, off, remaining);
       if (count < 0) {
         throw new EOFException(
-            "unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from "
+            "unexpected end of stream, read "
+                + (lastPacketLength - remaining)
+                + " bytes from "
                 + lastPacketLength
                 + " (socket was closed by server)");
       }
@@ -279,19 +280,24 @@ public class StandardPacketInputStream implements PacketInputStream {
     } while (remaining > 0);
 
     if (traceCache != null) {
-      traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
-          Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
+      traceCache.put(
+          new TraceObject(
+              false,
+              NOT_COMPRESSED,
+              Arrays.copyOfRange(header, 0, 4),
+              Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
     }
 
     if (logger.isTraceEnabled()) {
-      logger.trace("read: {}{}",
+      logger.trace(
+          "read: {}{}",
           serverThreadLog,
           Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
     }
 
-    //***************************************************
-    //In case content length is big, content will be separate in many 16Mb packets
-    //***************************************************
+    // ***************************************************
+    // In case content length is big, content will be separate in many 16Mb packets
+    // ***************************************************
     if (lastPacketLength == MAX_PACKET_SIZE) {
       int packetLength;
       do {
@@ -314,16 +320,18 @@ public class StandardPacketInputStream implements PacketInputStream {
         System.arraycopy(rawBytes, 0, newRawBytes, 0, currentBufferLength);
         rawBytes = newRawBytes;
 
-        //***************************************************
-        //Read content
-        //***************************************************
+        // ***************************************************
+        // Read content
+        // ***************************************************
         remaining = packetLength;
         off = currentBufferLength;
         do {
           int count = inputStream.read(rawBytes, off, remaining);
           if (count < 0) {
             throw new EOFException(
-                "unexpected end of stream, read " + (packetLength - remaining) + " bytes from "
+                "unexpected end of stream, read "
+                    + (packetLength - remaining)
+                    + " bytes from "
                     + packetLength);
           }
           remaining -= count;
@@ -331,15 +339,20 @@ public class StandardPacketInputStream implements PacketInputStream {
         } while (remaining > 0);
 
         if (traceCache != null) {
-          traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
-              Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
+          traceCache.put(
+              new TraceObject(
+                  false,
+                  NOT_COMPRESSED,
+                  Arrays.copyOfRange(header, 0, 4),
+                  Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
 
         if (logger.isTraceEnabled()) {
-          logger.trace("read: {}{}",
+          logger.trace(
+              "read: {}{}",
               serverThreadLog,
-              Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header,
-                  rawBytes));
+              Utils.hexdump(
+                  maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
         }
 
         lastPacketLength += packetLength;
@@ -368,13 +381,12 @@ public class StandardPacketInputStream implements PacketInputStream {
    * Set server thread id.
    *
    * @param serverThreadId current server thread id.
-   * @param isMaster       is server master
+   * @param isMaster is server master
    */
   public void setServerThreadId(long serverThreadId, Boolean isMaster) {
     this.serverThreadLog =
         "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
   }
-
 
   public void setTraceCache(LruTraceCache traceCache) {
     this.traceCache = traceCache;

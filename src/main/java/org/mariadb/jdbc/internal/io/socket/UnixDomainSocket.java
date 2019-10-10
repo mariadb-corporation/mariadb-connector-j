@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,12 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.LastErrorException;
-import com.sun.jna.Native;
-import com.sun.jna.Platform;
-import com.sun.jna.Structure;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.sun.jna.*;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.atomic.*;
 
 public class UnixDomainSocket extends Socket {
 
@@ -85,6 +80,7 @@ public class UnixDomainSocket extends Socket {
   private final int fd;
   private InputStream is;
   private OutputStream os;
+  private boolean connected;
 
   public UnixDomainSocket(String path) throws IOException {
     if (Platform.isWindows() || Platform.isWindowsCE()) {
@@ -123,6 +119,11 @@ public class UnixDomainSocket extends Socket {
   }
 
   @Override
+  public boolean isConnected() {
+    return connected;
+  }
+
+  @Override
   public void close() throws IOException {
     if (!closeLock.getAndSet(true)) {
       try {
@@ -130,6 +131,7 @@ public class UnixDomainSocket extends Socket {
       } catch (LastErrorException lee) {
         throw new IOException("native close() failed : " + formatError(lee));
       }
+      connected = false;
     }
   }
 
@@ -144,6 +146,7 @@ public class UnixDomainSocket extends Socket {
       if (ret != 0) {
         throw new IOException(strerror(Native.getLastError()));
       }
+      connected = true;
     } catch (LastErrorException lee) {
       throw new IOException("native connect() failed : " + formatError(lee));
     }
@@ -160,35 +163,35 @@ public class UnixDomainSocket extends Socket {
   }
 
   public void setTcpNoDelay(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setKeepAlive(boolean b) {
-    //do nothing
+    // do nothing
   }
 
   public void setReceiveBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSendBufferSize(int size) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoLinger(boolean b, int i) {
-    //do nothing
+    // do nothing
   }
 
   public void setSoTimeout(int timeout) {
-    //do nothing
+    // do nothing
   }
 
   public void shutdownInput() {
-    //do nothing
+    // do nothing
   }
 
   public void shutdownOutput() {
-    //do nothing
+    // do nothing
   }
 
   public static class SockAddr extends Structure {
@@ -209,10 +212,10 @@ public class UnixDomainSocket extends Socket {
       allocateMemory();
     }
 
-    protected java.util.List getFieldOrder() {
+    @Override
+    protected java.util.List<String> getFieldOrder() {
       return Arrays.asList("sun_family", "sun_path");
     }
-
   }
 
   class UnixSocketInputStream extends InputStream {
@@ -292,7 +295,7 @@ public class UnixDomainSocket extends Socket {
 
     @Override
     public void write(int value) throws IOException {
-      write(new byte[]{(byte) value});
+      write(new byte[] {(byte) value});
     }
 
     @Override

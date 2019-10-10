@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -56,16 +56,15 @@ import java.sql.PreparedStatement;
 
 public class ComMultiPrepareStatementTest extends BaseTest {
 
-
   @org.junit.Test
   public void insertSelectTempTable2() throws Exception {
     requireMinimumVersion(10, 2);
     createTable("test_insert_select_com_multi", "`field1` varchar(20)");
-    //prepare doesn't work.
-    PreparedStatement stmt = sharedConnection.prepareStatement(
-        "select  TMP.field1 from (select CAST(? as binary) `field1` from dual) TMP");
+    // prepare doesn't work.
+    PreparedStatement stmt =
+        sharedConnection.prepareStatement(
+            "select  TMP.field1 from (select CAST(? as binary) `field1` from dual) TMP");
     stmt.setString(1, "test");
     stmt.executeUpdate();
   }
-
 }

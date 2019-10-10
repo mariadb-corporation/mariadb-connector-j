@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,21 @@
 
 package org.mariadb.jdbc.internal.logging;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.Charset;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.List;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.LogQueryTool;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.util.*;
+
+import java.lang.reflect.*;
+import java.nio.charset.*;
+import java.text.*;
+import java.util.*;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 
-  private static final NumberFormat numberFormat = DecimalFormat.getInstance();
   private static final Logger logger = LoggerFactory.getLogger(ProtocolLoggingProxy.class);
+  private final NumberFormat numberFormat;
   private final boolean profileSql;
   private final Long slowQueryThresholdNanos;
   private final int maxQuerySizeToLog;
@@ -81,7 +77,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
    * Constructor. Will create a proxy around protocol to log queries.
    *
    * @param protocol protocol to proxy
-   * @param options  options
+   * @param options options
    */
   public ProtocolLoggingProxy(Protocol protocol, Options options) {
     this.protocol = protocol;
@@ -89,28 +85,29 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
     this.logQuery = new LogQueryTool(options);
+    this.numberFormat = DecimalFormat.getInstance();
   }
 
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-    long startTime = System.nanoTime();
     try {
 
       switch (method.getName()) {
-
         case "executeQuery":
         case "executePreparedQuery":
         case "executeBatchStmt":
         case "executeBatchClient":
         case "executeBatchServer":
-
+          final long startTime = System.nanoTime();
           Object returnObj = method.invoke(protocol, args);
-          if (logger.isInfoEnabled() && (profileSql
-              || (slowQueryThresholdNanos != null
-              && System.nanoTime() - startTime > slowQueryThresholdNanos))) {
+          if (logger.isInfoEnabled()
+              && (profileSql
+                  || (slowQueryThresholdNanos != null
+                      && System.nanoTime() - startTime > slowQueryThresholdNanos))) {
 
             String sql = logQuery(method.getName(), args);
-            logger.info("conn={}({}) - {} ms - Query: {}",
+            logger.info(
+                "conn={}({}) - {} ms - Query: {}",
                 protocol.getServerThreadId(),
                 protocol.isMasterConnection() ? "M" : "S",
                 numberFormat.format(((double) System.nanoTime() - startTime) / 1000000),
@@ -147,13 +144,14 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 (ParameterHolder[]) args[3],
                 clientPrepareResult.getParamCount());
           default:
-            //no default
+            // no default
         }
         break;
 
       case "executeBatchClient":
         ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-        return getQueryFromPrepareParameters(clientPrepareResult.getSql(),
+        return getQueryFromPrepareParameters(
+            clientPrepareResult.getSql(),
             (List<ParameterHolder[]>) args[3],
             clientPrepareResult.getParamCount());
 
@@ -180,28 +178,29 @@ public class ProtocolLoggingProxy implements InvocationHandler {
       case "executeBatchServer":
         List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
         ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-        return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList,
-            serverPrepareResult.getParamCount());
+        return getQueryFromPrepareParameters(
+            serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
 
       case "executePreparedQuery":
         ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
         if (args[3] instanceof ParameterHolder[]) {
-          return getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3],
-              prepareResult.getParamCount());
+          return getQueryFromPrepareParameters(
+              prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
         } else {
-          return getQueryFromPrepareParameters(prepareResult.getSql(),
+          return getQueryFromPrepareParameters(
+              prepareResult.getSql(),
               (List<ParameterHolder[]>) args[3],
               prepareResult.getParameters().length);
         }
 
       default:
-        //no default
+        // no default
     }
     return "-unknown-";
   }
 
-  private String getQueryFromPrepareParameters(String sql, List<ParameterHolder[]> parameterList,
-      int parameterLength) {
+  private String getQueryFromPrepareParameters(
+      String sql, List<ParameterHolder[]> parameterList, int parameterLength) {
 
     if (parameterLength == 0) {
       return sql;
@@ -230,8 +229,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     }
   }
 
-  private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult,
-      ParameterHolder[] paramHolders, int parameterLength) {
+  private String getQueryFromPrepareParameters(
+      PrepareResult serverPrepareResult, ParameterHolder[] paramHolders, int parameterLength) {
     StringBuilder sb = new StringBuilder(serverPrepareResult.getSql());
     if (paramHolders.length > 0) {
       sb.append(", parameters [");
@@ -248,5 +247,4 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     }
     return serverPrepareResult.getSql();
   }
-
 }

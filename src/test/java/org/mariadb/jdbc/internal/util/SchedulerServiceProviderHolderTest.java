@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -78,8 +78,9 @@ public class SchedulerServiceProviderHolderTest {
 
   @Test
   public void getDefaultProviderTest() {
-    assertTrue(SchedulerServiceProviderHolder.DEFAULT_PROVIDER == SchedulerServiceProviderHolder
-        .getSchedulerProvider());
+    assertTrue(
+        SchedulerServiceProviderHolder.DEFAULT_PROVIDER
+            == SchedulerServiceProviderHolder.getSchedulerProvider());
   }
 
   @Test
@@ -92,13 +93,14 @@ public class SchedulerServiceProviderHolderTest {
     try {
       assertNotNull(scheduler);
       // verify scheduler works
-      scheduler.execute(() -> {
-        try {
-          Thread.sleep(10);
-        } catch (InterruptedException ie) {
-          //eat
-        }
-      });
+      scheduler.execute(
+          () -> {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException ie) {
+              // eat
+            }
+          });
       scheduler.shutdown();
       Assert.assertTrue(scheduler.awaitTermination(1000, TimeUnit.MILLISECONDS));
     } catch (InterruptedException ie) {
@@ -116,8 +118,7 @@ public class SchedulerServiceProviderHolderTest {
   private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
     scheduler.shutdown();
     try {
-      scheduler.execute(() -> {
-      });
+      scheduler.execute(() -> {});
       fail("Exception should have thrown");
     } catch (RejectedExecutionException expected) {
       // ignore
@@ -126,29 +127,35 @@ public class SchedulerServiceProviderHolderTest {
 
   @Test
   public void setAndGetProviderTest() {
-    SchedulerProvider emptyProvider = new SchedulerProvider() {
-      @Override
-      public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName,
-          int maximumPoolSize) {
-        throw new UnsupportedOperationException();
-      }
+    SchedulerProvider emptyProvider =
+        new SchedulerProvider() {
+          @Override
+          public DynamicSizedSchedulerInterface getScheduler(
+              int minimumThreads, String poolName, int maximumPoolSize) {
+            throw new UnsupportedOperationException();
+          }
 
-      @Override
-      public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads,
-          String poolName) {
-        throw new UnsupportedOperationException();
-      }
+          @Override
+          public ScheduledThreadPoolExecutor getFixedSizeScheduler(
+              int minimumThreads, String poolName) {
+            throw new UnsupportedOperationException();
+          }
 
-      @Override
-      public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-        throw new UnsupportedOperationException();
-      }
+          @Override
+          public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+            throw new UnsupportedOperationException();
+          }
 
-      @Override
-      public ScheduledThreadPoolExecutor getBulkScheduler() {
-        throw new UnsupportedOperationException();
-      }
-    };
+          @Override
+          public ScheduledThreadPoolExecutor getBulkScheduler() {
+            throw new UnsupportedOperationException();
+          }
+
+          @Override
+          public void close() {
+            // do nothing
+          }
+        };
 
     SchedulerServiceProviderHolder.setSchedulerProvider(emptyProvider);
     assertTrue(emptyProvider == SchedulerServiceProviderHolder.getSchedulerProvider());

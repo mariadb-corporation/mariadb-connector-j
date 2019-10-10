@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -74,8 +74,8 @@ public class ConnectionPoolTest extends BaseTest {
   @BeforeClass()
   public static void initClass() throws SQLException {
     for (int i = 0; i < 50; i++) {
-      createTable("test_pool_batch" + i,
-          "id int not null primary key auto_increment, test varchar(10)");
+      createTable(
+          "test_pool_batch" + i, "id int not null primary key auto_increment, test varchar(10)");
     }
   }
 
@@ -110,7 +110,6 @@ public class ConnectionPoolTest extends BaseTest {
     try (HikariDataSource ds = new HikariDataSource(config)) {
       Assert.assertTrue(validateDataSource(ds));
     }
-
   }
 
   private boolean validateDataSource(DataSource ds) throws SQLException {
@@ -140,9 +139,9 @@ public class ConnectionPoolTest extends BaseTest {
     public void run() {
 
       try (Connection connection = dataSource.getConnection()) {
-        PreparedStatement preparedStatement = connection
-            .prepareStatement("INSERT INTO test_pool_batch"
-                + tableNumber + "(test) VALUES (?)");
+        PreparedStatement preparedStatement =
+            connection.prepareStatement(
+                "INSERT INTO test_pool_batch" + tableNumber + "(test) VALUES (?)");
         for (int i = 1; i < insertNumber; i++) {
           preparedStatement.setString(1, i + "");
           preparedStatement.addBatch();

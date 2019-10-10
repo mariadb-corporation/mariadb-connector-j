@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,19 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.failover.HandleErrorResult;
-import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.failover.thread.*;
+import org.mariadb.jdbc.internal.failover.tools.*;
+import org.mariadb.jdbc.internal.logging.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 
@@ -80,7 +74,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
   /**
    * Initialisation.
    *
-   * @param urlParser  url options.
+   * @param urlParser url options.
    * @param globalInfo server global variables information
    */
   public MastersFailoverListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
@@ -98,7 +92,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
   public void initializeConnection() throws SQLException {
     super.initializeConnection();
     this.currentProtocol = null;
-    //launching initial loop
+    // launching initial loop
     reconnectFailedConnection(new SearchFilter(true, false));
     resetMasterFailoverData();
   }
@@ -110,7 +104,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
    */
   public void preExecute() throws SQLException {
     lastQueryNanos = System.nanoTime();
-    //if connection is closed or failed on slave
+    // if connection is closed or failed on slave
     if (this.currentProtocol != null && this.currentProtocol.isClosed()) {
       preAutoReconnect();
     }
@@ -147,8 +141,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
   }
 
   @Override
-  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) {
-    boolean alreadyClosed = !currentProtocol.isConnected();
+  public HandleErrorResult primaryFail(
+      Method method, Object[] args, boolean killCmd, boolean alreadyClosed) {
     boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
     if (currentProtocol.isConnected()) {
@@ -164,14 +158,15 @@ public class MastersFailoverListener extends AbstractMastersListener {
       }
 
       if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
-        logger.info("Connection to master lost, new master {} found"
+        logger.info(
+            "Connection to master lost, new master {} found"
                 + ", query type permit to be re-execute on new server without throwing exception",
             currentProtocol.getHostAddress());
         return relaunchOperation(method, args);
       }
       return new HandleErrorResult(true);
     } catch (Exception e) {
-      //we will throw a Connection exception that will close connection
+      // we will throw a Connection exception that will close connection
       if (e.getCause() != null
           && proxy.hasToHandleFailover((SQLException) e.getCause())
           && currentProtocol.isConnected()) {
@@ -192,8 +187,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
   public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
     proxy.lock.lock();
     try {
-      if (!searchFilter.isInitialConnection()
-          && (isExplicitClosed() || !isMasterHostFail())) {
+      if (!searchFilter.isInitialConnection() && (isExplicitClosed() || !isMasterHostFail())) {
         return;
       }
 
@@ -201,8 +195,8 @@ public class MastersFailoverListener extends AbstractMastersListener {
       resetOldsBlackListHosts();
 
       List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-      if (HaMode.FAILOVER.equals(mode)) {
-        //put the list in the following order
+      if (HaMode.LOADBALANCE.equals(mode)) {
+        // put the list in the following order
         // - random order not connected host
         // - random order blacklist host
         // - random order connected host
@@ -213,25 +207,25 @@ public class MastersFailoverListener extends AbstractMastersListener {
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
       } else {
-        //order in sequence
+        // order in sequence
         loopAddress.removeAll(getBlacklistKeys());
         loopAddress.addAll(getBlacklistKeys());
         loopAddress.retainAll(urlParser.getHostAddresses());
       }
 
-      //put connected at end
+      // put connected at end
       if (currentProtocol != null && !isMasterHostFail()) {
         loopAddress.remove(currentProtocol.getHostAddress());
-        //loopAddress.add(currentProtocol.getHostAddress());
+        // loopAddress.add(currentProtocol.getHostAddress());
       }
 
       MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
-      //close loop if all connection are retrieved
+      // close loop if all connection are retrieved
       if (!isMasterHostFail()) {
         FailoverLoop.removeListener(this);
       }
 
-      //if no error, reset failover variables
+      // if no error, reset failover variables
       resetMasterFailoverData();
     } finally {
       proxy.lock.unlock();
@@ -338,9 +332,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
     return false;
   }
 
-  public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult,
-      boolean mustExecuteOnSlave) {
-    //no slave
+  public void rePrepareOnSlave(
+      ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnSlave) {
+    // no slave
   }
 
   /**
@@ -353,8 +347,5 @@ public class MastersFailoverListener extends AbstractMastersListener {
     if (!isMasterHostFail()) {
       currentProtocol.reset();
     }
-
   }
-
-
 }

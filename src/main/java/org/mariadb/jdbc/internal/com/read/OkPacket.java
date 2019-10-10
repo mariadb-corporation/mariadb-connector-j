@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -65,7 +65,7 @@ public class OkPacket {
    * @param buffer current stream's rawBytes
    */
   public OkPacket(Buffer buffer) {
-    buffer.skipByte(); //fieldCount
+    buffer.skipByte(); // fieldCount
     affectedRows = buffer.getLengthEncodedNumeric();
     insertId = buffer.getLengthEncodedNumeric();
     serverStatus = buffer.readShort();
@@ -99,5 +99,4 @@ public class OkPacket {
   public short getWarnings() {
     return warnings;
   }
-
 }

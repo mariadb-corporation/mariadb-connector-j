@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-public class MariaDbFunctionStatement extends CallableFunctionStatement implements
-    CloneableCallableStatement {
+import java.sql.*;
+
+public class MariaDbFunctionStatement extends CallableFunctionStatement
+    implements CloneableCallableStatement {
 
   private SelectResultSet outputResultSet = null;
 
@@ -67,25 +67,31 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
    * Specific implementation of CallableStatement to handle function call, represent by call like
    * {?= call procedure-name[(arg1,arg2, ...)]}.
    *
-   * @param connection           current connection
-   * @param databaseName         database name
-   * @param procedureName        function name
-   * @param arguments            function args
-   * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-   *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-   *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param connection current connection
+   * @param databaseName database name
+   * @param procedureName function name
+   * @param arguments function args
+   * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
+   *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
-   *                             or
-   *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+   *     or <code>ResultSet.CONCUR_UPDATABLE</code>
    * @throws SQLException exception
    */
-  public MariaDbFunctionStatement(MariaDbConnection connection, String databaseName,
+  public MariaDbFunctionStatement(
+      MariaDbConnection connection,
+      String databaseName,
       String procedureName,
-      String arguments, int resultSetType, final int resultSetConcurrency) throws SQLException {
-    super(connection, "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
-        resultSetType, resultSetConcurrency);
-    parameterMetadata = new CallableParameterMetaData(connection, databaseName, procedureName,
-        true);
+      String arguments,
+      int resultSetType,
+      final int resultSetConcurrency)
+      throws SQLException {
+    super(
+        connection,
+        "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
+        resultSetType,
+        resultSetConcurrency);
+    parameterMetadata =
+        new CallableParameterMetaData(connection, databaseName, procedureName, true);
     super.initFunctionData(getParameterCount() + 1);
   }
 
@@ -116,8 +122,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
    * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0
    *     for SQL statements that return nothing
    * @throws SQLException if a database access error occurs; this method is called on a closed
-   *                      <code>PreparedStatement</code> or the SQL statement returns a
-   *                      <code>ResultSet</code> object
+   *     <code>PreparedStatement</code> or the SQL statement returns a <code>ResultSet</code> object
    */
   @Override
   public int executeUpdate() throws SQLException {
@@ -134,14 +139,12 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
     }
   }
 
-
   private void retrieveOutputResult() throws SQLException {
     outputResultSet = results.getResultSet();
     if (outputResultSet != null) {
       outputResultSet.next();
     }
   }
-
 
   public void setParameter(final int parameterIndex, final ParameterHolder holder)
       throws SQLException {
@@ -174,5 +177,4 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
       connection.lock.unlock();
     }
   }
-
 }

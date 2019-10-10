@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -38,9 +38,7 @@ public class DataSourcePoolTest extends BaseTest {
   protected static final String defConnectToIP = null;
   protected static String connectToIP;
 
-  /**
-   * Initialisation.
-   */
+  /** Initialisation. */
   @BeforeClass
   public static void beforeClassDataSourceTest() {
     connectToIP = System.getProperty("testConnectToIP", defConnectToIP);
@@ -48,8 +46,8 @@ public class DataSourcePoolTest extends BaseTest {
 
   @Test
   public void testDataSource() throws SQLException {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
         assertEquals(connection.isValid(0), true);
       }
@@ -58,8 +56,8 @@ public class DataSourcePoolTest extends BaseTest {
 
   @Test
   public void testDataSource2() throws SQLException {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
         assertEquals(connection.isValid(0), true);
       }
@@ -77,7 +75,6 @@ public class DataSourcePoolTest extends BaseTest {
       }
     }
   }
-
 
   @Test
   public void testDataSourcePool() throws SQLException {
@@ -114,16 +111,17 @@ public class DataSourcePoolTest extends BaseTest {
   @Test
   public void setDatabaseNameTest() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
         connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
         try {
           ds.setDatabaseName("test2");
           fail();
         } catch (SQLException sqle) {
-          assertTrue(sqle.getMessage().contains(
-              "can not perform a configuration change once initialized"));
+          assertTrue(
+              sqle.getMessage()
+                  .contains("can not perform a configuration change once initialized"));
         }
       }
     }
@@ -137,15 +135,16 @@ public class DataSourcePoolTest extends BaseTest {
   @Test
   public void setServerNameTest() throws SQLException {
     Assume.assumeTrue(connectToIP != null);
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
         try {
           ds.setServerName(connectToIP);
           fail();
         } catch (SQLException sqle) {
-          assertTrue(sqle.getMessage().contains(
-              "can not perform a configuration change once initialized"));
+          assertTrue(
+              sqle.getMessage()
+                  .contains("can not perform a configuration change once initialized"));
         }
       }
     }
@@ -159,10 +158,10 @@ public class DataSourcePoolTest extends BaseTest {
   @Test(timeout = 20000) // unless port 3307 can be used
   public void setPortTest() throws SQLException {
     Assume.assumeFalse("true".equals(System.getenv("AURORA")));
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection2 = ds.getConnection(username, password)) {
-        //delete blacklist, because can failover on 3306 is filled
+        // delete blacklist, because can failover on 3306 is filled
         assureBlackList(connection2);
         connection2.close();
       }
@@ -175,9 +174,9 @@ public class DataSourcePoolTest extends BaseTest {
             sqle.getMessage().contains("can not perform a configuration change once initialized"));
       }
 
-      //must throw SQLException
+      // must throw SQLException
       try (Connection connection = ds.getConnection(username, password)) {
-        //do nothing
+        // do nothing
       } catch (SQLException e) {
         fail();
       }
@@ -185,14 +184,15 @@ public class DataSourcePoolTest extends BaseTest {
   }
 
   /**
-   * Conj-123:Session variables lost and exception if set via MariaDbPoolDataSource.setProperties/setURL.
+   * Conj-123:Session variables lost and exception if set via
+   * MariaDbPoolDataSource.setProperties/setURL.
    *
    * @throws SQLException exception
    */
   @Test
   public void setPropertiesTest() throws SQLException {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       ds.setUrl(connUri + "&sessionVariables=sql_mode='PIPES_AS_CONCAT'");
       try (Connection connection = ds.getConnection(username, password)) {
         ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
@@ -202,8 +202,10 @@ public class DataSourcePoolTest extends BaseTest {
             ds.setUrl(connUri + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
             fail();
           } catch (SQLException sqlException) {
-            assertTrue(sqlException.getMessage().contains(
-                "can not perform a configuration change once initialized"));
+            assertTrue(
+                sqlException
+                    .getMessage()
+                    .contains("can not perform a configuration change once initialized"));
           }
           try (Connection connection2 = ds.getConnection()) {
             rs = connection2.createStatement().executeQuery("SELECT @@sql_mode");
@@ -219,12 +221,11 @@ public class DataSourcePoolTest extends BaseTest {
 
   @Test
   public void setLoginTimeOut() throws SQLException {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(
-        hostname == null ? "localhost" : hostname, port, database)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       assertEquals(0, ds.getLoginTimeout());
       ds.setLoginTimeout(10);
       assertEquals(10, ds.getLoginTimeout());
     }
   }
-
 }

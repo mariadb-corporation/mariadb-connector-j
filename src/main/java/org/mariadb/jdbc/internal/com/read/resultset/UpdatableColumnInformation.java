@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -64,15 +64,19 @@ public class UpdatableColumnInformation extends ColumnInformation {
    * Constructor of Column metadata.
    *
    * @param columnInformation column meta information
-   * @param canBeNull         can column be null
-   * @param hasDefault        has default
-   * @param generated         is automatically generated
-   * @param primary           is column part of primary key
-   * @param autoIncrement     column has AUTO_INCREMENT attribute
+   * @param canBeNull can column be null
+   * @param hasDefault has default
+   * @param generated is automatically generated
+   * @param primary is column part of primary key
+   * @param autoIncrement column has AUTO_INCREMENT attribute
    */
-  public UpdatableColumnInformation(ColumnInformation columnInformation, boolean canBeNull,
+  public UpdatableColumnInformation(
+      ColumnInformation columnInformation,
+      boolean canBeNull,
       boolean hasDefault,
-      boolean generated, boolean primary, boolean autoIncrement) {
+      boolean generated,
+      boolean primary,
+      boolean autoIncrement) {
     super(columnInformation);
     this.canBeNull = canBeNull;
     this.hasDefault = hasDefault;

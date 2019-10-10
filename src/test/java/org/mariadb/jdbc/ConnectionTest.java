@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -98,20 +98,23 @@ public class ConnectionTest extends BaseTest {
     createTable("dummy", "a BLOB");
   }
 
-  /**
-   * Conj-166. Connection error code must be thrown
-   *
-   */
+  /** Conj-166. Connection error code must be thrown */
   @Test
   public void testAccessDeniedErrorCode() {
     try {
-      DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
-          + ":" + port + "/" + database + "?user=foo");
+      DriverManager.getConnection(
+          "jdbc:mariadb://"
+              + ((hostname != null) ? hostname : "localhost")
+              + ":"
+              + port
+              + "/"
+              + database
+              + "?user=foo");
       fail();
     } catch (SQLException e) {
       switch (e.getErrorCode()) {
         case (1524):
-          //GSSAPI plugin not loaded
+          // GSSAPI plugin not loaded
           assertTrue("HY000".equals(e.getSQLState()));
           break;
 
@@ -120,7 +123,7 @@ public class ConnectionTest extends BaseTest {
           break;
 
         case (1044):
-          //mysql
+          // mysql
           assertTrue("42000".equals(e.getSQLState()));
           break;
 
@@ -162,7 +165,7 @@ public class ConnectionTest extends BaseTest {
           stmt.executeQuery("SELECT 1");
           fail();
         } catch (SQLException sqle) {
-          //normal exception
+          // normal exception
         }
       }
     }
@@ -232,9 +235,7 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
-  /**
-   * Conj-120 Fix Connection.isValid method.
-   */
+  /** Conj-120 Fix Connection.isValid method. */
   @Test
   public void isValidShouldThrowExceptionWithNegativeTimeout() {
     try {
@@ -248,7 +249,7 @@ public class ConnectionTest extends BaseTest {
   /**
    * Conj-116: Make SQLException prettier when too large stream is sent to the server.
    *
-   * @throws Throwable                 exception
+   * @throws Throwable exception
    */
   @Test
   public void checkMaxAllowedPacket() throws Throwable {
@@ -256,8 +257,9 @@ public class ConnectionTest extends BaseTest {
     ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
     assertTrue(rs.next());
     int maxAllowedPacket = rs.getInt(2);
+    Assume.assumeTrue(maxAllowedPacket < 40_000_000);
 
-    //Create a SQL stream bigger than maxAllowedPacket
+    // Create a SQL stream bigger than maxAllowedPacket
     StringBuilder sb = new StringBuilder();
     String rowData = "('this is a dummy row values')";
     int rowsToWrite = (maxAllowedPacket / rowData.getBytes(StandardCharsets.UTF_8).length) + 1;
@@ -279,11 +281,11 @@ public class ConnectionTest extends BaseTest {
       fail("The previous statement should throw an SQLException not a general Exception");
     }
 
-    statement.execute("select count(*) from dummy"); //check that the connection is still working
+    statement.execute("select count(*) from dummy"); // check that the connection is still working
 
-    //added in CONJ-151 to check the 2 different type of query implementation
-    PreparedStatement preparedStatement = sharedConnection
-        .prepareStatement("INSERT INTO dummy VALUES (?)");
+    // added in CONJ-151 to check the 2 different type of query implementation
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("INSERT INTO dummy VALUES (?)");
     try {
       byte[] arr = new byte[maxAllowedPacket + 1000];
       Arrays.fill(arr, (byte) 'a');
@@ -292,8 +294,8 @@ public class ConnectionTest extends BaseTest {
       preparedStatement.executeBatch();
       fail("The previous statement should throw an SQLException");
     } catch (OutOfMemoryError e) {
-      System.out
-          .println("skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
+      System.out.println(
+          "skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
       Assume.assumeNoException(e);
     } catch (SQLException e) {
       assertTrue(e.getMessage().contains("max_allowed_packet"));
@@ -301,10 +303,9 @@ public class ConnectionTest extends BaseTest {
       e.printStackTrace();
       fail("The previous statement should throw an SQLException not a general Exception");
     } finally {
-      statement.execute("select count(*) from dummy"); //to check that connection is open
+      statement.execute("select count(*) from dummy"); // to check that connection is open
     }
   }
-
 
   @Test
   public void isValidTestWorkingConnection() throws SQLException {
@@ -328,7 +329,7 @@ public class ConnectionTest extends BaseTest {
   /**
    * CONJ-120 Fix Connection.isValid method
    *
-   * @throws SQLException         exception
+   * @throws SQLException exception
    * @throws InterruptedException exception
    */
   @Test
@@ -426,7 +427,8 @@ public class ConnectionTest extends BaseTest {
     } catch (SQLClientInfoException sqle) {
       assertEquals(
           "setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
-              + "but was : NotPermitted", sqle.getMessage());
+              + "but was : NotPermitted",
+          sqle.getMessage());
       Map<String, ClientInfoStatus> failedProperties = sqle.getFailedProperties();
       assertTrue(failedProperties.containsKey("NotPermitted"));
       assertEquals(1, failedProperties.size());
@@ -460,28 +462,28 @@ public class ConnectionTest extends BaseTest {
     String db3 = sharedConnection.getCatalog();
     assertNull(db3);
     stmt.execute("USE " + db);
-
   }
-
 
   @Test(timeout = 15_000L)
   public void testValidTimeout() throws Throwable {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = createProxyConnection(new Properties())) {
 
-      assertTrue(connection.isValid(1)); //1 second
+      assertTrue(connection.isValid(1)); // 1 second
 
-      //ensuring to reactivate proxy
+      // ensuring to reactivate proxy
       Timer timer = new Timer();
-      timer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          removeDelayProxy();
-        }
-      }, 1000);
+      timer.schedule(
+          new TimerTask() {
+            @Override
+            public void run() {
+              removeDelayProxy();
+            }
+          },
+          1000);
 
       delayProxy(200);
-      assertTrue(connection.isValid(1)); //1 second
+      assertTrue(connection.isValid(1)); // 1 second
       Thread.sleep(2000);
     } finally {
       closeProxy();
@@ -494,21 +496,23 @@ public class ConnectionTest extends BaseTest {
     properties.setProperty("usePipelineAuth", "false");
     try (Connection connection = createProxyConnection(properties)) {
 
-      assertTrue(connection.isValid(1)); //1 second
+      assertTrue(connection.isValid(1)); // 1 second
 
-      //ensuring to reactivate proxy
+      // ensuring to reactivate proxy
       Timer timer = new Timer();
-      timer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          removeDelayProxy();
-        }
-      }, 2000);
+      timer.schedule(
+          new TimerTask() {
+            @Override
+            public void run() {
+              removeDelayProxy();
+            }
+          },
+          2000);
 
       delayProxy(1500);
       long start = System.currentTimeMillis();
-      assertFalse(connection.isValid(1)); //1 second
-      assertTrue(System.currentTimeMillis() - start < 1050);
+      assertFalse(connection.isValid(1)); // 1 second
+      assertTrue(System.currentTimeMillis() - start < 1250);
       Thread.sleep(5000);
     } finally {
       closeProxy();
@@ -523,7 +527,7 @@ public class ConnectionTest extends BaseTest {
     ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1");
     assertTrue(rs.next());
     connection.close();
-    //must still work
+    // must still work
     try {
       assertTrue(rs.next());
       fail();
@@ -537,11 +541,13 @@ public class ConnectionTest extends BaseTest {
     Connection connection = setConnection();
     Statement stmt = connection.createStatement();
     stmt.setFetchSize(1);
-    ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1, "
-        + "information_schema.tables, information_schema.tables as t2");
+    ResultSet rs =
+        stmt.executeQuery(
+            "select * from information_schema.columns as c1, "
+                + "information_schema.tables, information_schema.tables as t2");
     assertTrue(rs.next());
     connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
-    //must still work
+    // must still work
 
     Thread.sleep(20);
     try {
@@ -556,16 +562,18 @@ public class ConnectionTest extends BaseTest {
   public void verificationAbort() throws Throwable {
     Timer timer = new Timer();
     try (Connection connection = setConnection()) {
-      timer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          try {
-            connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
-          } catch (SQLException sqle) {
-            fail(sqle.getMessage());
-          }
-        }
-      }, 10);
+      timer.schedule(
+          new TimerTask() {
+            @Override
+            public void run() {
+              try {
+                connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
+              } catch (SQLException sqle) {
+                fail(sqle.getMessage());
+              }
+            }
+          },
+          10);
 
       Statement stmt = connection.createStatement();
       try {
@@ -579,6 +587,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -588,60 +597,73 @@ public class ConnectionTest extends BaseTest {
       throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
-          + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+      if (minVersion(10, 4)) {
+        stmt.execute(
+            "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
+      } else {
+        stmt.execute(
+            "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
+      }
     } catch (SQLException sqle) {
-      //already existing
+      // already existing
     }
-    stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
+    stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin");
 
-    String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-        + "?user=verificationEd25519AuthPlugin&password=secret&debug=true";
+    String url =
+        "jdbc:mariadb://"
+            + hostname
+            + ((port == 0) ? "" : ":" + port)
+            + "/"
+            + database
+            + "?user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord";
 
     try (Connection connection = openNewConnection(url)) {
-      //must have succeed
+      // must have succeed
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    stmt.execute("drop user verificationEd25519AuthPlugin");
   }
-
 
   private void initializeDns(String host) {
     try {
       InetAddress.getByName(host);
       fail();
     } catch (UnknownHostException e) {
-      //normal error
+      // normal error
     }
-
   }
 
   @Test
   public void loopSleepTest() {
-    //appveyor vm are very slow, cannot compare time
+    // appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(System.getenv("APPVEYOR") == null);
 
-    //initialize DNS to avoid having wrong timeout
+    // initialize DNS to avoid having wrong timeout
     initializeDns("host1");
     initializeDns("host2");
     initializeDns("host1.555-rds.amazonaws.com");
 
-    //failover
+    // failover
     checkConnection(
         "jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        2000, 3200);
-    //replication
+        2000,
+        3200);
+    // replication
     checkConnection(
         "jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        2000, 3200);
-    //aurora - no cluster end point
+        2000,
+        3200);
+    // aurora - no cluster end point
     checkConnection(
         "jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        2000, 3200);
-    //aurora - using cluster end point
+        2000,
+        3200);
+    // aurora - using cluster end point
     checkConnection(
         "jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20",
-        4500, 10000);
-
+        4500,
+        10000);
   }
 
   private void checkConnection(String conUrl, int min, int max) {
@@ -649,8 +671,8 @@ public class ConnectionTest extends BaseTest {
     try (Connection connection = DriverManager.getConnection(conUrl)) {
       fail();
     } catch (SQLException e) {
-      //excepted exception
-      //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+      // excepted exception
+      // since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
       // first loop has not sleep, last too, so 8 * 250 = 2s
       System.out.println(System.currentTimeMillis() - start);
       assertTrue(System.currentTimeMillis() - start > min);
@@ -660,11 +682,19 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void slaveDownConnection() throws SQLException {
-    String url = "jdbc:mariadb:replication//" + hostname + ((port == 0) ? "" : ":" + port)
-        + "," + hostname + ":8888"
-        + "/" + database + "?user=" + username
-        + ((password != null) ? "&password=" + password : "")
-        + "&retriesAllDown=10&allowMasterDownConnection";
+    String url =
+        "jdbc:mariadb:replication://"
+            + hostname
+            + ((port == 0) ? "" : ":" + port)
+            + ","
+            + hostname
+            + ":8888"
+            + "/"
+            + database
+            + "?user="
+            + username
+            + ((password != null) ? "&password=" + password : "")
+            + "&retriesAllDown=10&allowMasterDownConnection&connectTimeout=100&socketTimeout=100";
     try (Connection connection = DriverManager.getConnection(url)) {
       Assert.assertFalse(connection.isReadOnly());
       connection.isValid(0);
@@ -678,9 +708,9 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
-
   @Test
   public void multiAuthPlugin() throws Throwable {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
@@ -691,26 +721,37 @@ public class ConnectionTest extends BaseTest {
 
     stmt.execute("drop user IF EXISTS mysqltest1@'%'");
     try {
-      stmt.execute("CREATE USER mysqltest1@'%' IDENTIFIED "
-              + "VIA mysql_old_password USING '021bec665bf663f1' "
-              + " OR ed25519 as password('good') "
-              + " OR mysql_native_password as password('works')");
+      stmt.execute(
+          "CREATE USER mysqltest1@'%' IDENTIFIED "
+              + "VIA ed25519 as password('!Passw0rd3') "
+              + " OR mysql_native_password as password('!Passw0rd3Works')");
+
     } catch (SQLException sqle) {
-      //already existing
+      // already existing
       sqle.printStackTrace();
     }
     stmt.execute("GRANT ALL on " + database + ".* to mysqltest1@'%'");
 
-    try (Connection connection = openNewConnection(
-            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-            + "?user=mysqltest1&password=good")) {
-      //must have succeed
+    try (Connection connection =
+        openNewConnection(
+            "jdbc:mariadb://"
+                + hostname
+                + ((port == 0) ? "" : ":" + port)
+                + "/"
+                + database
+                + "?user=mysqltest1&password=!Passw0rd3")) {
+      // must have succeed
     }
 
-    try (Connection connection = openNewConnection(
-            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                    + "?user=mysqltest1&password=works")) {
-      //must have succeed
+    try (Connection connection =
+        openNewConnection(
+            "jdbc:mariadb://"
+                + hostname
+                + ((port == 0) ? "" : ":" + port)
+                + "/"
+                + database
+                + "?user=mysqltest1&password=!Passw0rd3Works")) {
+      // must have succeed
     }
 
     stmt.execute("drop user mysqltest1@'%'");
@@ -728,17 +769,24 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void connectionUnexpectedClose() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:failover//" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : "")
-                    + "&socketTimeout=1000&useServerPrepStmts=true")) {
+    try (Connection connection =
+        DriverManager.getConnection(
+            "jdbc:mariadb:failover//"
+                + ((hostname != null) ? hostname : "localhost")
+                + ":"
+                + port
+                + "/"
+                + database
+                + "?user="
+                + username
+                + ((password != null) ? "&password=" + password : "")
+                + "&socketTimeout=1000&useServerPrepStmts=true")) {
       Statement stmt = connection.createStatement();
       try {
         stmt.executeQuery("KILL CONNECTION_ID()");
         fail();
       } catch (SQLException e) {
-        //eat
+        // eat
       }
       try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
         preparedStatement.execute();
@@ -748,10 +796,12 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void prepareStatementCols() throws SQLException {
-    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1", new int[]{})) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("SELECT 1", new int[] {})) {
       preparedStatement.execute();
     }
-    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1", new String[]{})) {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("SELECT 1", new String[] {})) {
       preparedStatement.execute();
     }
     try {
@@ -761,22 +811,32 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
-
   @Test
   public void nativeSql() throws SQLException {
-    assertEquals("select timestampdiff(HOUR, convert('SQL_', INTEGER))",
-            sharedConnection.nativeSQL("select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}"));
+    assertEquals(
+        "select timestampdiff(HOUR, convert('SQL_', INTEGER))",
+        sharedConnection.nativeSQL(
+            "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}"));
   }
 
   @Test
   public void setReadonlyError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port
-                    + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : ""))) {
+    try (Connection connection =
+        DriverManager.getConnection(
+            "jdbc:mariadb:replication://"
+                + ((hostname != null) ? hostname : "localhost")
+                + ":"
+                + port
+                + ","
+                + ((hostname != null) ? hostname : "localhost")
+                + ":"
+                + port
+                + "/"
+                + database
+                + "?user="
+                + username
+                + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
       connection.setReadOnly(false);
@@ -786,7 +846,7 @@ public class ConnectionTest extends BaseTest {
         stmt.executeQuery("KILL CONNECTION_ID()");
         fail();
       } catch (SQLException e) {
-        //eat
+        // eat
       }
       connection.setReadOnly(true);
     }
@@ -798,7 +858,7 @@ public class ConnectionTest extends BaseTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
     SQLWarning warning = sharedConnection.getWarnings();
-    assertTrue(warning.getMessage().contains("Incorrect datetime value: '1'"));
+    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
     sharedConnection.clearWarnings();
     assertNull(sharedConnection.getWarnings());
   }
@@ -820,7 +880,6 @@ public class ConnectionTest extends BaseTest {
     sharedConnection.setHoldability(10_000);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConnection.getHoldability());
   }
-
 
   @Test
   public void notSupported() throws SQLException {
@@ -857,12 +916,24 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port
-                    + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : ""))) {
+    // only mariadb return a specific error when connection has explicitly been killed
+    Assume.assumeTrue(isMariadbServer());
+
+    try (Connection connection =
+        DriverManager.getConnection(
+            "jdbc:mariadb:replication://"
+                + ((hostname != null) ? hostname : "localhost")
+                + ":"
+                + port
+                + ","
+                + ((hostname != null) ? hostname : "localhost")
+                + ":"
+                + port
+                + "/"
+                + database
+                + "?log&user="
+                + username
+                + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
       connection.setReadOnly(false);
@@ -872,7 +943,7 @@ public class ConnectionTest extends BaseTest {
         stmt.executeQuery("KILL CONNECTION_ID()");
         fail();
       } catch (SQLException e) {
-        //eat
+        // eat
       }
       connection.setClientInfo("ClientUser", "otherValue");
     }
@@ -887,18 +958,21 @@ public class ConnectionTest extends BaseTest {
     try {
       connection.setNetworkTimeout(null, -5_000);
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("Connection.setNetworkTimeout cannot be called with a negative timeout"));
+      assertTrue(
+          e.getMessage()
+              .contains("Connection.setNetworkTimeout cannot be called with a negative timeout"));
     }
     connection.close();
     try {
       connection.setNetworkTimeout(null, 3_000);
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("Connection.setNetworkTimeout cannot be called on a closed connection"));
+      assertTrue(
+          e.getMessage()
+              .contains("Connection.setNetworkTimeout cannot be called on a closed connection"));
     }
 
     try (Connection connection2 = setConnection("&socketTimeout=10000")) {
       assertEquals(10_000, connection2.getNetworkTimeout());
     }
   }
-
 }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -122,7 +122,6 @@ public class ClientPreparedStatementTest extends BaseTest {
 
     preparedStatement.setString(1, "1");
     preparedStatement.executeUpdate();
-
   }
 
   @Test
@@ -154,7 +153,7 @@ public class ClientPreparedStatementTest extends BaseTest {
   @Test
   public void batchParamNumber() throws SQLException {
     PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ?");
-    //batch with no parameter
+    // batch with no parameter
     assertEquals(0, preparedStatement.executeBatch().length);
     assertEquals(0, preparedStatement.executeLargeBatch().length);
 
@@ -163,8 +162,9 @@ public class ClientPreparedStatementTest extends BaseTest {
       preparedStatement.addBatch();
       fail();
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-          || e.getMessage().contains("Parameter at position 2 is not set"));
+      assertTrue(
+          e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
+              || e.getMessage().contains("Parameter at position 2 is not set"));
     }
 
     try {
@@ -185,11 +185,11 @@ public class ClientPreparedStatementTest extends BaseTest {
       preparedStatement.addBatch();
       fail();
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
-          || e.getMessage().contains("Parameter at position 1 is not set"));
+      assertTrue(
+          e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
+              || e.getMessage().contains("Parameter at position 1 is not set"));
     }
   }
-
 
   @Test
   public void setParameterError() throws SQLException {
@@ -212,7 +212,6 @@ public class ClientPreparedStatementTest extends BaseTest {
       assertTrue(e.getMessage().contains("Could not set parameter at position 0 (values was 'a')"));
     }
   }
-
 
   @Test
   public void closedBatchError() throws SQLException {
@@ -237,8 +236,8 @@ public class ClientPreparedStatementTest extends BaseTest {
 
   @Test
   public void executeLargeBatchError() throws SQLException {
-    PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-        "INSERT INTO unknownTable values (?, ?)");
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("INSERT INTO unknownTable values (?, ?)");
     preparedStatement.setString(1, "1");
     preparedStatement.setString(2, "1");
     preparedStatement.addBatch();
@@ -253,12 +252,13 @@ public class ClientPreparedStatementTest extends BaseTest {
 
   @Test
   public void executeBatchOneByOne() throws SQLException {
-    try (Connection connection = setConnection(
-        "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
+    try (Connection connection =
+        setConnection(
+            "&rewriteBatchedStatements=false&useBulkStmts=false&useBatchMultiSend=false")) {
       Statement stmt = connection.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
-      PreparedStatement preparedStatement = connection.prepareStatement(
-              "INSERT INTO executeBatchOneByOne values (?, ?)");
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO executeBatchOneByOne values (?, ?)");
       preparedStatement.setString(1, "1");
       preparedStatement.setString(2, "1");
       preparedStatement.addBatch();
@@ -292,10 +292,11 @@ public class ClientPreparedStatementTest extends BaseTest {
 
   @Test
   public void prepareToString() throws SQLException {
-    PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ? as a, ? as b");
+    PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement("SELECT ? as a, ? as b");
     preparedStatement.setString(1, "a");
     preparedStatement.setNull(2, Types.VARCHAR);
-    assertEquals("sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]", preparedStatement.toString());
+    assertEquals(
+        "sql : 'SELECT ? as a, ? as b', parameters : ['a',<null>]", preparedStatement.toString());
   }
-
 }

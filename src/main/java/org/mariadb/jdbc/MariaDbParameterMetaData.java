@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,18 +50,15 @@
  *
  */
 
-
 package org.mariadb.jdbc;
 
-import java.sql.ParameterMetaData;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.util.exceptions.*;
 
-/**
- * Very basic info about the parameterized query, only reliable method is getParameterCount().
- */
+import java.sql.*;
+
+/** Very basic info about the parameterized query, only reliable method is getParameterCount(). */
 public class MariaDbParameterMetaData implements ParameterMetaData {
 
   private final ColumnInformation[] parametersInformation;
@@ -88,7 +85,9 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
       return parametersInformation[param - 1];
     }
     throw new SQLException(
-        "Parameter metadata out of range : param was " + param + " and must be 1 <= param <="
+        "Parameter metadata out of range : param was "
+            + param
+            + " and must be 1 <= param <="
             + parametersInformation.length,
         "07009");
   }
@@ -122,8 +121,8 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
   }
 
   /**
-   * Parameter type are not sent by server.
-   * See https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
+   * Parameter type are not sent by server. See https://jira.mariadb.org/browse/CONJ-568 and
+   * https://jira.mariadb.org/browse/MDEV-15031
    *
    * @param param parameter number
    * @return SQL type from java.sql.Types
@@ -131,8 +130,8 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
    */
   @Override
   public int getParameterType(int param) throws SQLException {
-    throw ExceptionMapper
-        .getFeatureNotSupportedException("Getting parameter type metadata are not supported");
+    throw ExceptionMapper.getFeatureNotSupportedException(
+        "Getting parameter type metadata are not supported");
   }
 
   @Override

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.sql.*;
+import java.util.*;
+import java.util.regex.*;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
@@ -71,7 +63,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
           "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
           Pattern.CASE_INSENSITIVE);
   private static final Pattern RETURN_PATTERN =
-      Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+      Pattern.compile(
+          "\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
           Pattern.CASE_INSENSITIVE);
   private final MariaDbConnection con;
   private final String name;
@@ -83,13 +76,13 @@ public class CallableParameterMetaData implements ParameterMetaData {
   /**
    * Retrieve Callable metaData.
    *
-   * @param con        connection
-   * @param database   database name
-   * @param name       procedure/function name
+   * @param con connection
+   * @param database database name
+   * @param name procedure/function name
    * @param isFunction is it a function
    */
-  public CallableParameterMetaData(MariaDbConnection con, String database, String name,
-      boolean isFunction) {
+  public CallableParameterMetaData(
+      MariaDbConnection con, String database, String name, boolean isFunction) {
     this.params = null;
     this.con = con;
     if (database != null) {
@@ -185,16 +178,15 @@ public class CallableParameterMetaData implements ParameterMetaData {
       default:
         return Types.OTHER;
     }
-
   }
-
 
   private String[] queryMetaInfos(boolean isFunction) throws SQLException {
     String paramList;
     String functionReturn;
-    try (PreparedStatement preparedStatement = con.prepareStatement(
-        "select param_list, returns, db, type from mysql.proc where name=? and db="
-            + (database != null ? "?" : "DATABASE()"))) {
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement(
+            "select param_list, returns, db, type from mysql.proc where name=? and db="
+                + (database != null ? "?" : "DATABASE()"))) {
 
       preparedStatement.setString(1, name);
       if (database != null) {
@@ -210,15 +202,15 @@ public class CallableParameterMetaData implements ParameterMetaData {
         functionReturn = rs.getString(2);
         database = rs.getString(3);
         this.isFunction = "FUNCTION".equals(rs.getString(4));
-        return new String[]{paramList, functionReturn};
+        return new String[] {paramList, functionReturn};
       }
 
     } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
       throw new SQLException(
           "Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
-              + " or avoid using parameter by name", sqlSyntaxErrorException);
+              + " or avoid using parameter by name",
+          sqlSyntaxErrorException);
     }
-
   }
 
   private void parseFunctionReturnParam(String functionReturn) throws SQLException {
@@ -244,7 +236,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
   private void parseParamList(boolean isFunction, String paramList) throws SQLException {
     params = new ArrayList<>();
     if (isFunction) {
-      //output parameter
+      // output parameter
       params.add(new CallParameter());
     }
 
@@ -306,7 +298,6 @@ public class CallableParameterMetaData implements ParameterMetaData {
     if (isFunction) {
       parseFunctionReturnParam(functionReturn);
     }
-
   }
 
   public int getParameterCount() {
@@ -351,11 +342,12 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
   /**
    * Get mode info.
+   *
    * <ul>
-   * <li>0 : unknown</li>
-   * <li>1 : IN</li>
-   * <li>2 : INOUT</li>
-   * <li>4 : OUT</li>
+   *   <li>0 : unknown
+   *   <li>1 : IN
+   *   <li>2 : INOUT
+   *   <li>4 : OUT
    * </ul>
    *
    * @param param parameter index
@@ -387,5 +379,4 @@ public class CallableParameterMetaData implements ParameterMetaData {
   public boolean isWrapperFor(Class<?> iface) {
     return false;
   }
-
 }

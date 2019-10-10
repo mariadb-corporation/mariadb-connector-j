@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,19 +52,17 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import static org.mariadb.jdbc.internal.com.Packet.COM_STMT_PREPARE;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
-import static org.mariadb.jdbc.internal.com.Packet.OK;
+import org.mariadb.jdbc.internal.com.read.*;
+import org.mariadb.jdbc.internal.com.read.resultset.*;
+import org.mariadb.jdbc.internal.io.input.*;
+import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.dao.*;
 
-import java.io.IOException;
-import java.sql.SQLException;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import java.io.*;
+import java.sql.*;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ComStmtPrepare {
 
@@ -92,10 +90,10 @@ public class ComStmtPrepare {
   /**
    * Read COM_PREPARE_RESULT.
    *
-   * @param reader        inputStream
+   * @param reader inputStream
    * @param eofDeprecated are EOF_packet deprecated
    * @return ServerPrepareResult prepare result
-   * @throws IOException  if connection has error
+   * @throws IOException if connection has error
    * @throws SQLException if server answer with error.
    */
   public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated)
@@ -143,21 +141,22 @@ public class ComStmtPrepare {
             protocol.readEofPacket();
           }
         } else {
-          //read warning only if no param / columns, because will be overwritten by EOF warning data
+          // read warning only if no param / columns, because will be overwritten by EOF warning
+          // data
           buffer.readByte(); // reserved
           protocol.setHasWarnings(buffer.readShort() > 0);
         }
       }
 
-      ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns,
-          params, protocol);
+      ServerPrepareResult serverPrepareResult =
+          new ServerPrepareResult(sql, statementId, columns, params, protocol);
       if (protocol.getOptions().cachePrepStmts
           && protocol.getOptions().useServerPrepStmts
           && sql != null
           && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
         String key = protocol.getDatabase() + "-" + sql;
-        ServerPrepareResult cachedServerPrepareResult = protocol
-            .addPrepareInCache(key, serverPrepareResult);
+        ServerPrepareResult cachedServerPrepareResult =
+            protocol.addPrepareInCache(key, serverPrepareResult);
         return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
       }
       return serverPrepareResult;
@@ -171,13 +170,14 @@ public class ComStmtPrepare {
     ErrorPacket ep = new ErrorPacket(buffer);
     String message = ep.getMessage();
     if (1054 == ep.getErrorNumber()) {
-      return new SQLException(message
-          + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
-          + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-          ep.getSqlState(), ep.getErrorNumber());
+      return new SQLException(
+          message
+              + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+              + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+          ep.getSqlState(),
+          ep.getErrorNumber());
     } else {
       return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
     }
   }
-
 }
