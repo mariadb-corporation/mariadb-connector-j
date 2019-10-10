@@ -52,16 +52,10 @@
 
 package org.mariadb.jdbc.failover;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.BindException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.logging.*;
+
+import java.io.*;
+import java.net.*;
 
 public class TcpProxySocket implements Runnable {
 

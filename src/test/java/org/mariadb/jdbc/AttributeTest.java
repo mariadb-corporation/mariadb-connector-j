@@ -57,9 +57,6 @@ import org.mariadb.jdbc.internal.protocol.*;
 
 import java.lang.reflect.*;
 import java.sql.*;
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 public class AttributeTest extends BaseTest {
 
@@ -86,6 +83,6 @@ public class AttributeTest extends BaseTest {
         String strVal = result.getString("ATTR_VALUE");
         Assume.assumeTrue(protocolVal.getHost().matches(strVal));
       }
-		}
+    }
   }
 }

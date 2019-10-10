@@ -1310,42 +1310,6 @@ public class MariaDbConnection implements Connection {
   }
 
   /**
-   * Returns a list containing the name and current value of each client info property supported by
-   * the driver. The value of a client info property may be null if the property has not been set
-   * and does not have a default value.
-   *
-   * @return A <code>Properties</code> object that contains the name and current value of each of
-   *     the client info properties supported by the driver.
-   * @throws SQLException if the database server returns an error when fetching the client info
-   *     values from the database or this method is called on a closed connection
-   */
-  public Properties getClientInfo() throws SQLException {
-    checkConnection();
-    Properties properties = new Properties();
-    try (Statement statement = createStatement()) {
-      try (ResultSet rs =
-          statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
-        if (rs.next()) {
-          if (rs.getString(1) != null) {
-            properties.setProperty("ApplicationName", rs.getString(1));
-          }
-          if (rs.getString(2) != null) {
-            properties.setProperty("ClientUser", rs.getString(2));
-          }
-          if (rs.getString(3) != null) {
-            properties.setProperty("ClientHostname", rs.getString(3));
-          }
-          return properties;
-        }
-      }
-    }
-    properties.setProperty("ApplicationName", null);
-    properties.setProperty("ClientUser", null);
-    properties.setProperty("ClientHostname", null);
-    return properties;
-  }
-
-  /**
    * Sets the value of the connection's client info properties. The <code>Properties</code> object
    * contains the names and values of the client info properties to be set. The set of client info
    * properties contained in the properties list replaces the current set of client info properties
@@ -1383,6 +1347,42 @@ public class MariaDbConnection implements Connection {
               + propertiesExceptions.keySet();
       throw new SQLClientInfoException(errorMsg, propertiesExceptions);
     }
+  }
+
+  /**
+   * Returns a list containing the name and current value of each client info property supported by
+   * the driver. The value of a client info property may be null if the property has not been set
+   * and does not have a default value.
+   *
+   * @return A <code>Properties</code> object that contains the name and current value of each of
+   *     the client info properties supported by the driver.
+   * @throws SQLException if the database server returns an error when fetching the client info
+   *     values from the database or this method is called on a closed connection
+   */
+  public Properties getClientInfo() throws SQLException {
+    checkConnection();
+    Properties properties = new Properties();
+    try (Statement statement = createStatement()) {
+      try (ResultSet rs =
+          statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
+        if (rs.next()) {
+          if (rs.getString(1) != null) {
+            properties.setProperty("ApplicationName", rs.getString(1));
+          }
+          if (rs.getString(2) != null) {
+            properties.setProperty("ClientUser", rs.getString(2));
+          }
+          if (rs.getString(3) != null) {
+            properties.setProperty("ClientHostname", rs.getString(3));
+          }
+          return properties;
+        }
+      }
+    }
+    properties.setProperty("ApplicationName", null);
+    properties.setProperty("ClientUser", null);
+    properties.setProperty("ClientHostname", null);
+    return properties;
   }
 
   /**

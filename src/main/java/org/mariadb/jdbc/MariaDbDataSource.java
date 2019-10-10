@@ -429,8 +429,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    *
    * @return a <code>PooledConnection</code> object that is a physical connection to the database
    *     that this <code>ConnectionPoolDataSource</code> object represents
-   * @throws SQLException if a database access error occurs if the JDBC driver does not support this
-   *     method
+   * @throws SQLException if a database access error occurs
    */
   public PooledConnection getPooledConnection() throws SQLException {
     return new MariaDbPooledConnection((MariaDbConnection) getConnection());

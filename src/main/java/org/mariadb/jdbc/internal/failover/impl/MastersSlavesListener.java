@@ -953,9 +953,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
               "Connection to slave lost, using master connection"
                   + ", query is re-execute on master server without throwing exception");
           return relaunchOperation(
-              method,
-              args); // now that we are on master, relaunched result if the result was not crashing
-          // the master
+              method, args); // relaunched result if the result was not crashing the master
         }
       } catch (Exception e) {
         // ping fail on master

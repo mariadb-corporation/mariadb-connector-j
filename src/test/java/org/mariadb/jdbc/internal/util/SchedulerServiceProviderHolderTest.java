@@ -52,21 +52,13 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder.*;
 
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder.SchedulerProvider;
+import java.util.concurrent.*;
+
+import static org.junit.Assert.*;
 
 public class SchedulerServiceProviderHolderTest {
 
@@ -118,7 +110,7 @@ public class SchedulerServiceProviderHolderTest {
   private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
     scheduler.shutdown();
     try {
-      scheduler.execute(() -> {});
+      scheduler.execute(() -> { });
       fail("Exception should have thrown");
     } catch (RejectedExecutionException expected) {
       // ignore

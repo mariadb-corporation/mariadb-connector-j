@@ -51,16 +51,18 @@
 
 package org.mariadb.jdbc.internal.osgi;
 
+import java.sql.*;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.scheduler.*;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.jdbc.DataSourceFactory;
+import org.osgi.service.jdbc.*;
 
 /**
  * The MariaDbActivator registers the JDBC Service with the OSGi-Framework.
@@ -76,12 +78,21 @@ public class MariaDbActivator implements BundleActivator {
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, MariaDbDatabaseMetaData.DRIVER_NAME);
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Version.version);
-    service = context.registerService(DataSourceFactory.class, new MariaDbDataSourceFactory(), properties);
+    service = context.registerService(DataSourceFactory.class, new MariaDbDataSourceFactory(),
+        properties);
   }
 
   @Override
   public void stop(BundleContext context) throws Exception {
-    service.unregister();
+
+    if (service != null) {
+      service.unregister();
+      service = null;
+    }
+
+    if (DriverManager.getDriver("jdbc:mariadb:") != null) {
+      SchedulerServiceProviderHolder.close();
+    }
   }
 
 }

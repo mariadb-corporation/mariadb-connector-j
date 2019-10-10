@@ -51,79 +51,51 @@
 
 package org.mariadb.jdbc.internal.osgi;
 
-import java.sql.SQLException;
-import java.util.Properties;
-
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.XADataSource;
-
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.MariaDbDataSource;
-import org.osgi.service.jdbc.DataSourceFactory;
+import org.mariadb.jdbc.*;
+import org.osgi.service.jdbc.*;
+
+import javax.sql.*;
+import java.sql.*;
+import java.util.*;
 
 public class MariaDbDataSourceFactory implements DataSourceFactory {
 
   @Override
-  public MariaDbDataSource createDataSource(Properties props) throws SQLException {
-    MariaDbDataSource source = new MariaDbDataSource();
-    if (props != null) {
-      if (props.containsKey(JDBC_DATABASE_NAME)) {
-        source.setDatabaseName(props.getProperty(JDBC_DATABASE_NAME));
-      }
-      if (props.containsKey(JDBC_DATASOURCE_NAME)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_DESCRIPTION)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_NETWORK_PROTOCOL)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_PASSWORD)) {
-        source.setPassword(props.getProperty(JDBC_PASSWORD));
-      }
-      if (props.containsKey(JDBC_PORT_NUMBER)) {
-        source.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
-      }
-      if (props.containsKey(JDBC_ROLE_NAME)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_SERVER_NAME)) {
-        source.setServerName(props.getProperty(JDBC_SERVER_NAME));
-      }
-      if (props.containsKey(JDBC_URL)) {
-        source.setUrl(props.getProperty(JDBC_URL));
-      }
-      if (props.containsKey(JDBC_USER)) {
-        source.setUser(props.getProperty(JDBC_USER));
-      }
-      if (props.containsKey(JDBC_INITIAL_POOL_SIZE)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_MAX_IDLE_TIME)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_MAX_STATEMENTS)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
-        // not supported?
-      }
-      if (props.containsKey(JDBC_MIN_POOL_SIZE)) {
-        // not supported?
-      }
+  public DataSource createDataSource(Properties props) throws SQLException {
+    if (props != null
+        || props.containsKey(JDBC_MIN_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+      return createPoolDataSource(props);
+    } else {
+      return createBasicDataSource(props);
     }
-    return source;
   }
 
   @Override
-  public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props) throws SQLException {
-    return createDataSource(props);
+  public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
+      throws SQLException {
+    if (props != null
+        || props.containsKey(JDBC_MIN_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+      return createPoolDataSource(props);
+    } else {
+      return createBasicDataSource(props);
+    }
   }
 
   @Override
   public XADataSource createXADataSource(Properties props) throws SQLException {
-    return createDataSource(props);
+    if (props != null
+        || props.containsKey(JDBC_MIN_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_POOL_SIZE)
+        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+      return createPoolDataSource(props);
+    } else {
+      return createBasicDataSource(props);
+    }
   }
 
   @Override
@@ -131,4 +103,79 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
     return new Driver();
   }
 
+  private MariaDbDataSource createBasicDataSource(Properties props) throws SQLException {
+    MariaDbDataSource dataSource = new MariaDbDataSource();
+
+    if (props.containsKey(JDBC_URL)) {
+      dataSource.setUrl(props.getProperty(JDBC_URL));
+    }
+    if (props.containsKey(JDBC_SERVER_NAME)) {
+      dataSource.setServerName(props.getProperty(JDBC_SERVER_NAME));
+    }
+    if (props.containsKey(JDBC_PORT_NUMBER)) {
+      try {
+        dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
+      } catch (NumberFormatException nfe) {
+        throw new SQLException("Port format must be integer, but value is '" + props.getProperty(JDBC_PORT_NUMBER) + "'");
+      }
+    }
+    if (props.containsKey(JDBC_USER)) {
+      dataSource.setUser(props.getProperty(JDBC_USER));
+    }
+    if (props.containsKey(JDBC_PASSWORD)) {
+      dataSource.setPassword(props.getProperty(JDBC_PASSWORD));
+    }
+    if (props.containsKey(JDBC_DATABASE_NAME)) {
+      dataSource.setDatabaseName(props.getProperty(JDBC_DATABASE_NAME));
+    }
+    return dataSource;
+  }
+
+  private MariaDbPoolDataSource createPoolDataSource(Properties props) throws SQLException {
+    MariaDbPoolDataSource dataSource = new MariaDbPoolDataSource();
+    if (props.containsKey(JDBC_URL)) {
+      dataSource.setUrl(props.getProperty(JDBC_URL));
+    }
+    if (props.containsKey(JDBC_SERVER_NAME)) {
+      dataSource.setServerName(props.getProperty(JDBC_SERVER_NAME));
+    }
+    if (props.containsKey(JDBC_PORT_NUMBER)) {
+      try {
+        dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
+      } catch (NumberFormatException nfe) {
+        throw new SQLException("Port number format must be integer, but value is '" + props.getProperty(JDBC_PORT_NUMBER) + "'");
+      }
+    }
+    if (props.containsKey(JDBC_USER)) {
+      dataSource.setUser(props.getProperty(JDBC_USER));
+    }
+    if (props.containsKey(JDBC_PASSWORD)) {
+      dataSource.setPassword(props.getProperty(JDBC_PASSWORD));
+    }
+    if (props.containsKey(JDBC_DATABASE_NAME)) {
+      dataSource.setDatabaseName(props.getProperty(JDBC_DATABASE_NAME));
+    }
+    if (props.containsKey(JDBC_MAX_IDLE_TIME)) {
+      try {
+        dataSource.setMaxIdleTime(Integer.parseInt(props.getProperty(JDBC_MAX_IDLE_TIME)));
+      } catch (NumberFormatException nfe) {
+        throw new SQLException("Max idle time format must be integer, but value is '" + props.getProperty(JDBC_MAX_IDLE_TIME) + "'");
+      }
+    }
+    if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
+      try {
+        dataSource.setMaxPoolSize(Integer.parseInt(props.getProperty(JDBC_MAX_POOL_SIZE)));
+      } catch (NumberFormatException nfe) {
+        throw new SQLException("Max pool size format must be integer, but value is '" + props.getProperty(JDBC_MAX_POOL_SIZE) + "'");
+      }
+    }
+    if (props.containsKey(JDBC_MIN_POOL_SIZE)) {
+      try {
+        dataSource.setMinPoolSize(Integer.parseInt(props.getProperty(JDBC_MIN_POOL_SIZE)));
+      } catch (NumberFormatException nfe) {
+        throw new SQLException("Min pool size format must be integer, but value is '" + props.getProperty(JDBC_MIN_POOL_SIZE) + "'");
+      }
+    }
+    return dataSource;
+  }
 }

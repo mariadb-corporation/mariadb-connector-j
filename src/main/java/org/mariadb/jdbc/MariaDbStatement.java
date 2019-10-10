@@ -74,7 +74,8 @@ public class MariaDbStatement implements Statement, Cloneable {
   private static final Pattern identifierPattern =
       Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
   private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
-  private static final Map<String,String> mapper  = new HashMap<>();
+  private static final Map<String, String> mapper = new HashMap<>();
+
   static {
     mapper.put("\u0000", "\\0");
     mapper.put("'", "\\\\'");
@@ -364,13 +365,12 @@ public class MariaDbStatement implements Statement, Cloneable {
     Matcher matcher = escapePattern.matcher(val);
     StringBuffer escapedVal = new StringBuffer("'");
 
-    while(matcher.find()) {
+    while (matcher.find()) {
       matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
     }
     matcher.appendTail(escapedVal);
     escapedVal.append("'");
     return escapedVal.toString();
-
   }
 
   /**
