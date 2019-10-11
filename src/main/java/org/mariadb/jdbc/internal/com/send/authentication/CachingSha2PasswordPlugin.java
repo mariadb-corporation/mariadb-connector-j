@@ -145,67 +145,80 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
     Buffer buffer = in.getPacket(true);
     sequence.set(in.getLastPacketSeq());
+    switch (buffer.getByteAt(0)) {
 
-    switch (buffer.getByteAt(1)) {
-      case 3:
-        buffer = in.getPacket(true);
-        sequence.set(in.getLastPacketSeq());
+        // success or error
+      case (byte) 0x00:
+      case (byte) 0xFF:
         return buffer;
-      case 4:
-        if (Boolean.TRUE.equals(options.useSsl)) {
-          // send clear password
-          out.startPacket(sequence.incrementAndGet());
-          byte[] bytePwd;
-          if (options.passwordCharacterEncoding != null
-              && !options.passwordCharacterEncoding.isEmpty()) {
-            bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
-          } else {
-            bytePwd = authenticationData.getBytes();
-          }
 
-          out.write(bytePwd);
-          out.write(0);
-          out.flush();
-        } else {
-          // retrieve public key from configuration or from server
-          PublicKey publicKey;
-          if (options.serverRsaPublicKeyFile != null && !options.serverRsaPublicKeyFile.isEmpty()) {
-            publicKey = Sha256PasswordPlugin.readPublicKeyFromFile(options.serverRsaPublicKeyFile);
-          } else {
-            if (!options.allowPublicKeyRetrieval) {
-              throw new SQLException(
-                  "RSA public key is not available client side (option serverRsaPublicKeyFile not"
-                      + " set)",
-                  "S1009");
+        // fast authentication result
+      default:
+        byte[] authResult = buffer.getLengthEncodedBytes();
+        switch (authResult[0]) {
+          case 3:
+            buffer = in.getPacket(true);
+            sequence.set(in.getLastPacketSeq());
+            return buffer;
+          case 4:
+            if (Boolean.TRUE.equals(options.useSsl)) {
+              // send clear password
+              out.startPacket(sequence.incrementAndGet());
+              byte[] bytePwd;
+              if (options.passwordCharacterEncoding != null
+                  && !options.passwordCharacterEncoding.isEmpty()) {
+                bytePwd = authenticationData.getBytes(options.passwordCharacterEncoding);
+              } else {
+                bytePwd = authenticationData.getBytes();
+              }
+
+              out.write(bytePwd);
+              out.write(0);
+              out.flush();
+            } else {
+              // retrieve public key from configuration or from server
+              PublicKey publicKey;
+              if (options.serverRsaPublicKeyFile != null
+                  && !options.serverRsaPublicKeyFile.isEmpty()) {
+                publicKey =
+                    Sha256PasswordPlugin.readPublicKeyFromFile(options.serverRsaPublicKeyFile);
+              } else {
+                if (!options.allowPublicKeyRetrieval) {
+                  throw new SQLException(
+                      "RSA public key is not available client side (option serverRsaPublicKeyFile not"
+                          + " set)",
+                      "S1009");
+                }
+
+                // ask public Key Retrieval
+                out.startPacket(sequence.incrementAndGet());
+                out.write((byte) 2);
+                out.flush();
+                publicKey = Sha256PasswordPlugin.readPublicKeyFromSocket(in, sequence);
+              }
+
+              try {
+                byte[] cipherBytes =
+                    Sha256PasswordPlugin.encrypt(
+                        publicKey, authenticationData, seed, options.passwordCharacterEncoding);
+                out.startPacket(sequence.incrementAndGet());
+                out.write(cipherBytes);
+                out.flush();
+              } catch (Exception ex) {
+                throw new SQLException(
+                    "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
+              }
             }
 
-            // ask public Key Retrieval
-            out.startPacket(sequence.incrementAndGet());
-            out.write((byte) 2);
-            out.flush();
-            publicKey = Sha256PasswordPlugin.readPublicKeyFromSocket(in, sequence);
-          }
+            buffer = in.getPacket(true);
+            sequence.set(in.getLastPacketSeq());
+            return buffer;
 
-          try {
-            byte[] cipherBytes =
-                Sha256PasswordPlugin.encrypt(
-                    publicKey, authenticationData, seed, options.passwordCharacterEncoding);
-            out.startPacket(sequence.incrementAndGet());
-            out.write(cipherBytes);
-            out.flush();
-          } catch (Exception ex) {
+          default:
             throw new SQLException(
-                "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
-          }
+                "Protocol exchange error. Expect login success or RSA login request message",
+                "S1009");
         }
-
-        buffer = in.getPacket(true);
-        sequence.set(in.getLastPacketSeq());
-        return buffer;
-
-      default:
-        throw new SQLException(
-            "Protocol exchange error. Expect login success or RSA login request message", "S1009");
     }
   }
 }
