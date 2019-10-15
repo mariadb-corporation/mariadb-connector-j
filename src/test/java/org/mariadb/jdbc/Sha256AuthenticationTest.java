@@ -41,16 +41,22 @@ public class Sha256AuthenticationTest extends BaseTest {
       // eat
     }
 
-    stmt.execute("CREATE USER 'sha256User'@'%'");
-    stmt.execute(
-        "GRANT ALL PRIVILEGES ON *.* TO 'sha256User'@'%' IDENTIFIED WITH "
-            + "sha256_password BY 'password'");
     if (minVersion(8, 0, 0)) {
-
-      stmt.execute("CREATE USER 'cachingSha256User'@'%'");
       stmt.execute(
-          "GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%' IDENTIFIED WITH "
-              + "caching_sha2_password BY 'password'");
+          "CREATE USER 'sha256User'@'%' IDENTIFIED WITH sha256_password BY 'password'");
+      stmt.execute(
+          "GRANT ALL PRIVILEGES ON *.* TO 'sha256User'@'%'");
+    } else {
+      stmt.execute("CREATE USER 'sha256User'@'%'");
+      stmt.execute(
+          "GRANT ALL PRIVILEGES ON *.* TO 'sha256User'@'%' IDENTIFIED WITH "
+              + "sha256_password BY 'password'");
+    }
+    if (minVersion(8, 0, 0)) {
+      stmt.execute(
+          "CREATE USER 'cachingSha256User'@'%'  IDENTIFIED WITH caching_sha2_password BY 'password'");
+      stmt.execute(
+          "GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     } else {
       forceTls = "&enabledSslProtocolSuites=TLSv1.1";
     }
