@@ -58,19 +58,16 @@ import org.mariadb.jdbc.internal.io.input.*;
 import org.mariadb.jdbc.internal.io.output.*;
 import org.mariadb.jdbc.util.*;
 
-import javax.swing.*;
-import javax.swing.event.*;
-import java.awt.*;
 import java.io.*;
 import java.sql.*;
-import java.util.*;
 import java.util.concurrent.atomic.*;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {
 
   private String authenticationData;
   private String passwordCharacterEncoding;
-  private byte[] seed;
+  private Options options;
+  private int counter = 0;
 
   @Override
   public String name() {
@@ -90,9 +87,9 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * @param options Connection string options
    */
   public void initialize(String authenticationData, byte[] seed, Options options) {
-    this.seed = seed;
     this.authenticationData = authenticationData;
     this.passwordCharacterEncoding = options.passwordCharacterEncoding;
+    this.options = options;
   }
 
   /**
@@ -108,52 +105,34 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
       throws IOException, SQLException {
-    int type = seed.length == 0 ? 0 : seed[0];
-    String promptb;
-    // conversation is :
-    // - first byte is information tell if question is a password or clear text.
-    // - other bytes are the question to user
-
     while (true) {
-      promptb = seed.length <= 1 ? null : new String(Arrays.copyOfRange(seed, 1, seed.length));
-      if ((promptb == null || "Password: ".equals(promptb))
-          && authenticationData != null
-          && !"".equals(authenticationData)) {
-        // ask for password
-        out.startPacket(sequence.incrementAndGet());
-        byte[] bytePwd;
-        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-          bytePwd = authenticationData.getBytes(passwordCharacterEncoding);
-        } else {
-          bytePwd = authenticationData.getBytes();
-        }
-        out.write(bytePwd, 0, bytePwd.length);
-        out.write(0);
+      counter++;
+      String password;
+      if (counter == 1) {
+        password = authenticationData;
       } else {
-        // 2 means "read the input with the echo enabled"
-        // 4 means "password-like input, echo disabled"
-
-        boolean isPassword = type == 4;
-        // ask user to answer
-        String password = showInputDialog(promptb, isPassword);
-        if (password == null) {
-          throw new SQLException("Error during PAM authentication : dialog input cancelled");
+        if (!options.nonMappedOptions.containsKey("password" + counter)) {
+          throw new SQLException("PAM authentication request multiple passwords, but "
+              + "'password" + counter + "' is not set");
         }
-        out.startPacket(sequence.incrementAndGet());
-        byte[] bytePwd;
-        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-          bytePwd = password.getBytes(passwordCharacterEncoding);
-        } else {
-          bytePwd = password.getBytes();
-        }
-        out.write(bytePwd, 0, bytePwd.length);
-        out.write(0);
+        password = (String) options.nonMappedOptions.get("password" + counter);
       }
+
+      out.startPacket(sequence.incrementAndGet());
+      byte[] bytePwd;
+      if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+        bytePwd = password.getBytes(passwordCharacterEncoding);
+      } else {
+        bytePwd = password.getBytes();
+      }
+
+      out.write(bytePwd, 0, bytePwd.length);
+      out.write(0);
       out.flush();
 
       Buffer buffer = in.getPacket(true);
       sequence.set(in.getLastPacketSeq());
-      type = buffer.getByteAt(0) & 0xff;
+      int type = buffer.getByteAt(0) & 0xff;
 
       // PAM continue until finish.
       if (type == 0xfe // Switch Request
@@ -161,76 +140,6 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
           || type == 0xff) { // ERR_Packet
         return buffer;
       }
-      seed = buffer.readRawBytes(buffer.remaining());
-    }
-  }
-
-  private String showInputDialog(String label, boolean isPassword) throws IOException {
-    String password;
-    try {
-      if (isPassword) {
-        JPasswordField pwd = new JPasswordField();
-        pwd.addAncestorListener(new RequestFocusListener());
-        int action = JOptionPane.showConfirmDialog(null, pwd, label, JOptionPane.OK_CANCEL_OPTION);
-        if (action == JOptionPane.OK_OPTION) {
-          password = new String(pwd.getPassword());
-        } else {
-          throw new IOException("Error during PAM authentication : dialog input cancelled");
-        }
-      } else {
-        password = JOptionPane.showInputDialog(label);
-      }
-    } catch (HeadlessException noGraphicalEnvironment) {
-      // no graphical environment
-      Console console = System.console();
-      if (console == null) {
-        throw new IOException("Error during PAM authentication : input by console not possible");
-      }
-      if (isPassword) {
-        char[] passwordChar = console.readPassword(label);
-        password = new String(passwordChar);
-      } else {
-        password = console.readLine(label);
-      }
-    }
-
-    if (password != null) {
-      return password;
-    } else {
-      throw new IOException("Error during PAM authentication : dialog input cancelled");
-    }
-  }
-
-  /** Force focus to input field. */
-  public class RequestFocusListener implements AncestorListener {
-
-    private final boolean removeListener;
-
-    public RequestFocusListener() {
-      this(true);
-    }
-
-    public RequestFocusListener(boolean removeListener) {
-      this.removeListener = removeListener;
-    }
-
-    @Override
-    public void ancestorAdded(AncestorEvent ancestorEvent) {
-      JComponent component = ancestorEvent.getComponent();
-      component.requestFocusInWindow();
-      if (removeListener) {
-        component.removeAncestorListener(this);
-      }
-    }
-
-    @Override
-    public void ancestorMoved(AncestorEvent ancestorEvent) {
-      // do nothing
-    }
-
-    @Override
-    public void ancestorRemoved(AncestorEvent ancestorEvent) {
-      // do nothing
     }
   }
 }
