@@ -52,34 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.lang.Thread.State;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.io.*;
+import java.lang.Thread.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+
+import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
@@ -182,19 +164,18 @@ public class ExecuteBatchTest extends BaseTest {
   }
 
   @Test
-  public void serverBulk8mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverBulk8mTest"));
+  public void serverBulk1mTest() throws SQLException {
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverBulk1mTest"));
     Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
-
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-        setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+        setConnection("&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
-      addBatchData(preparedStatement, 60000, connection);
+      addBatchData(preparedStatement, 10000, connection, false, false);
     }
   }
 
@@ -203,11 +184,14 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(checkMaxAllowedPacketMore20m("serverBulk20mTest"));
     Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(isMariadbServer());
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-        setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+        setConnection(
+            "&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql="
+                + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
@@ -216,40 +200,64 @@ public class ExecuteBatchTest extends BaseTest {
   }
 
   @Test
-  public void serverStd8mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd8mTest"));
+  public void serverStd1mTest() throws SQLException {
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd1mTest"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-        setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
+        setConnection(
+            "&useComMulti=false&useBatchMultiSend=false&profileSql="
+                + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
-      addBatchData(preparedStatement, 60000, connection);
+      addBatchData(preparedStatement, 10000, connection, false, !sharedIsRewrite());
     }
   }
 
   @Test
   public void clientBulkTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd8mTest"));
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientBulkTest"));
     Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(isMariadbServer());
 
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
         setConnection(
-            "&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql="
+            "&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts"
+                + "=false&profileSql="
                 + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
-      addBatchData(preparedStatement, 60000, connection);
+      addBatchData(preparedStatement, 10000, connection, false, false);
+    }
+  }
+
+  @Test
+  public void clientMultipleTest() throws SQLException {
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientMultipleTest"));
+    Assume.assumeTrue(runLongTest);
+    Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(isMariadbServer());
+
+    sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
+
+    try (Connection connection =
+             setConnection(
+                 "&useBulkStmts=false&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts"
+                     + "=false&profileSql="
+                     + profileSql)) {
+      PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+      addBatchData(preparedStatement, 10000, connection, false, !sharedIsRewrite());
     }
   }
 
   @Test
   public void clientRewriteValuesNotPossible8mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossible8mTest"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
     try (Connection connection =
@@ -263,7 +271,7 @@ public class ExecuteBatchTest extends BaseTest {
 
   @Test
   public void clientRewriteValuesNotPossible20mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossible20Test"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
     try (Connection connection =
@@ -301,7 +309,7 @@ public class ExecuteBatchTest extends BaseTest {
     // test result Size
     assertEquals(batchNumber, resultInsert.length);
     for (int i = 0; i < batchNumber; i++) {
-      if ((!sendUnique && sharedIsRewrite())
+      if (!sendUnique
           || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
         assertEquals(Statement.SUCCESS_NO_INFO, resultInsert[i]);
       } else {
