@@ -23,7 +23,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 |:------------:|:-------------------------:|
 | 6 | 1.7.4 |
 | 7 | 1.7.4 |
-| 8+ | 2.5.0 |
+| 8+ | 2.5.1 |
 
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 or maven : 
