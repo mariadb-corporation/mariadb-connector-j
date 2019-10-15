@@ -168,6 +168,8 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverBulk1mTest"));
     Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(isMariadbServer());
+
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
@@ -175,7 +177,7 @@ public class ExecuteBatchTest extends BaseTest {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
-      addBatchData(preparedStatement, 10000, connection, false, false);
+      addBatchData(preparedStatement, 10000, connection, false, false || !minVersion(10, 2));
     }
   }
 
@@ -195,7 +197,7 @@ public class ExecuteBatchTest extends BaseTest {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
-      addBatchData(preparedStatement, 160000, connection);
+      addBatchData(preparedStatement, 160000, connection, false, false || !minVersion(10, 2));
     }
   }
 
@@ -231,7 +233,7 @@ public class ExecuteBatchTest extends BaseTest {
                 + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
-      addBatchData(preparedStatement, 10000, connection, false, false);
+      addBatchData(preparedStatement, 10000, connection, false, false || !minVersion(10, 2));
     }
   }
 
@@ -256,8 +258,8 @@ public class ExecuteBatchTest extends BaseTest {
   }
 
   @Test
-  public void clientRewriteValuesNotPossible8mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossible8mTest"));
+  public void clientRewriteValuesNotPossible1mTest() throws SQLException {
+    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossible1mTest"));
     Assume.assumeTrue(runLongTest);
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
     try (Connection connection =
@@ -265,21 +267,7 @@ public class ExecuteBatchTest extends BaseTest {
       PreparedStatement preparedStatement =
           connection.prepareStatement(
               "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
-      addBatchData(preparedStatement, 60000, connection, true, true);
-    }
-  }
-
-  @Test
-  public void clientRewriteValuesNotPossible20mTest() throws SQLException {
-    Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossible20Test"));
-    Assume.assumeTrue(runLongTest);
-    sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-    try (Connection connection =
-        setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
-      PreparedStatement preparedStatement =
-          connection.prepareStatement(
-              "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
-      addBatchData(preparedStatement, 160000, connection, true, true);
+      addBatchData(preparedStatement, 10000, connection, true, true);
     }
   }
 
@@ -322,7 +310,8 @@ public class ExecuteBatchTest extends BaseTest {
         connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
     for (int i = 0; i < batchNumber; i++) {
       assertTrue(resultSet.next());
-      if (!sharedOptions().useBulkStmts) {
+      if (sendUnique
+          && (!sharedOptions().useBulkStmts || !isMariadbServer() || !minVersion(10, 2))) {
         assertEquals(i + 1, resultSet.getInt(1));
       }
       assertEquals(oneHundredLengthString, resultSet.getString(2));
