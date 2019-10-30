@@ -22,10 +22,15 @@
 
 package org.mariadb.jdbc.authentication;
 
+import org.mariadb.jdbc.Driver;
+
 import java.sql.*;
 import java.util.*;
 
 public class AuthenticationPluginLoader {
+
+  private static ServiceLoader<AuthenticationPlugin> loader =
+      ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
 
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added
@@ -39,7 +44,7 @@ public class AuthenticationPluginLoader {
     if (type == null || type.isEmpty()) {
       return null;
     }
-    ServiceLoader<AuthenticationPlugin> loader = ServiceLoader.load(AuthenticationPlugin.class);
+
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
         return implClass;
@@ -47,8 +52,8 @@ public class AuthenticationPluginLoader {
     }
     throw new SQLException(
         "Client does not support authentication protocol requested by server. "
-            + "plugin type was = "
-            + type,
+            + "plugin type was = '"
+            + type + "'",
         "08004",
         1251);
   }

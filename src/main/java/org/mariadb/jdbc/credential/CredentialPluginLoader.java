@@ -21,6 +21,8 @@
 
 package org.mariadb.jdbc.credential;
 
+import org.mariadb.jdbc.Driver;
+
 import java.sql.*;
 import java.util.*;
 
@@ -29,6 +31,9 @@ import java.util.*;
  * Authentication provider.
  */
 public class CredentialPluginLoader {
+
+  private static ServiceLoader<CredentialPlugin> loader =
+      ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
 
   /**
    * Get current Identity plugin according to option `identityType`.
@@ -41,7 +46,7 @@ public class CredentialPluginLoader {
     if (type == null || type.isEmpty()) {
       return null;
     }
-    ServiceLoader<CredentialPlugin> loader = ServiceLoader.load(CredentialPlugin.class);
+
     for (CredentialPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
         return implClass;
