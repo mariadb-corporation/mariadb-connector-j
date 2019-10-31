@@ -1523,7 +1523,7 @@ public class DriverTest extends BaseTest {
       ps.setDouble(6, 1.5);
       ps.setByte(7, (byte) 0xfe);
       assertEquals(
-          "sql : 'SELECT ?,?,?,?,?,?,?', parameters : [1,1,'one',true,'1972-04-22',1.5,0xFE]",
+          "sql : 'SELECT ?,?,?,?,?,?,?', parameters : [1,1,'one',true,'1972-04-22',1.5,-2]",
           ps.toString());
     }
   }

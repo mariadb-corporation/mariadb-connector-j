@@ -50,60 +50,55 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send.parameters;
+package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
+import org.junit.*;
 
-import java.io.*;
+import java.sql.*;
 
-public class ByteParameter implements Cloneable, ParameterHolder {
+import static org.junit.Assert.*;
 
-  private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
-  private final int value;
+public class ByteTest extends BaseTest {
 
-  public ByteParameter(byte value) {
-    this.value = value;
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    createTable("ByteTest", "test tinyint, test2 TINYBLOB");
   }
 
-  /**
-   * Write Byte value to stream using TEXT protocol.
-   *
-   * @param os the stream to write to
-   * @throws IOException if any socket error occur
-   */
-  public void writeTo(final PacketOutputStream os) throws IOException {
-    os.write(String.valueOf(value).getBytes());
+  @Test
+  public void byteSending() throws SQLException {
+    Assume.assumeFalse(sharedUsePrepare());
+    try (PreparedStatement prep = sharedConnection.prepareStatement("INSERT INTO ByteTest value "
+        + "(?, ?)")) {
+      prep.setByte(1, (byte) -6);
+      prep.setByte(2, (byte) -6);
+      prep.execute();
+      Statement stmt = sharedConnection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT * FROM ByteTest");
+      assertTrue(rs.next());
+      assertEquals(rs.getByte(1), (byte) -6);
+      assertEquals(rs.getByte(2), (byte) -6);
+      assertEquals(rs.getInt(1), -6);
+      assertEquals(rs.getInt(2), -6);
+    }
   }
 
-  public long getApproximateTextProtocolLength() {
-    return String.valueOf(value).length();
-  }
-
-  /**
-   * Write data to socket in binary format.
-   *
-   * @param pos socket output stream
-   * @throws IOException if socket error occur
-   */
-  public void writeBinary(final PacketOutputStream pos) throws IOException {
-    pos.write(value);
-  }
-
-  public ColumnType getColumnType() {
-    return ColumnType.TINYINT;
-  }
-
-  @Override
-  public String toString() {
-    return String.valueOf(value);
-  }
-
-  public boolean isNullData() {
-    return false;
-  }
-
-  public boolean isLongData() {
-    return false;
+  @Test
+  public void byteSendingBinary() throws SQLException {
+    try (Connection conn = setConnection("&useServerPrepStmts")) {
+      try (PreparedStatement prep =
+               conn.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
+        prep.setByte(1, (byte) -6);
+        prep.setByte(2, (byte) -6);
+        prep.execute();
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM ByteTest");
+        assertTrue(rs.next());
+        assertEquals(rs.getByte(1), (byte) -6);
+        assertEquals(rs.getByte(2), (byte) -6);
+        assertEquals(rs.getInt(1), -6);
+        assertEquals(rs.getInt(2), -6);
+      }
+    }
   }
 }
