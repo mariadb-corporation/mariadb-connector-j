@@ -543,7 +543,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           isUsingRedirectInfo = true;
           handleConnectionPhases(redirectHost, redirectUser);
           redirectionInfoCache.putRedirectionInfo(username, currentHost, redirectUser, redirectHost);
-        } catch (IOException | SQLException e) {
+        } catch (SQLException e) {
             isUsingRedirectInfo = false;
             destroySocket();
             this.reader = originalReader;
@@ -553,7 +553,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       }
 
       compressionHandler(options);
-    } catch (IOException | SQLException ioException) {
+    } catch (SQLException ioException) {
       destroySocket();
       throw ioException;
     }

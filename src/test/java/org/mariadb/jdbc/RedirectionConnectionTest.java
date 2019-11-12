@@ -97,16 +97,14 @@ public class RedirectionConnectionTest extends BaseTest {
 			Assume.assumeTrue(redirectHostVal.port == socket.getPort());;
 			Assume.assumeTrue(socket.getRemoteSocketAddress().toString().contains(redirectHostVal.host));
 
-		  }
-		  catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-				e.printStackTrace();
-				fail();
-		  }
-		  catch (SQLException e) {
-	          e.printStackTrace();
-	          fail();
-	    }
-		  
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			  e.printStackTrace();
+			  fail();
+		  } catch (SQLException e) {
+			  e.printStackTrace();
+			  fail();
+	      }
+
 	  }
 	  
 	  @Test
@@ -124,15 +122,13 @@ public class RedirectionConnectionTest extends BaseTest {
 			Assume.assumeTrue(protocolVal.getPort() == socket.getPort());;
 			Assume.assumeTrue(socket.getRemoteSocketAddress().toString().contains(protocolVal.getHost()));
 
-		  }
-		  catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-				e.printStackTrace();
-				fail();
-		  }
-		  catch (SQLException e) {
-	          e.printStackTrace();
-	          fail();
-	    }
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			  e.printStackTrace();
+			  fail();
+		  } catch (SQLException e) {
+			  e.printStackTrace();
+			  fail();
+	      }
 
 	  }
 	  
@@ -174,31 +170,30 @@ public class RedirectionConnectionTest extends BaseTest {
 					break;
 				}
 			}
-		  }
-		  catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-				e.printStackTrace();
-				fail();
-		  }
-		  catch (SQLException e) {
-	          e.printStackTrace();
-	          fail();
-	    }
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+			  e.printStackTrace();
+			  fail();
+		  } catch (SQLException e) {
+			  e.printStackTrace();
+			  fail();
+	      }
+
 	  }
 	  
 	  @Test 
 	  public void basicSelectTest() {
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=true")) {
-			    Statement stmt = sharedConnection.createStatement();
-			    ResultSet result = stmt.executeQuery("select 1");
-			    assertTrue(-1 == stmt.getUpdateCount());
-			    assert(result.next());
-			    assertTrue(result.getLong("1") == 1);
-			  
-		} catch (SQLException e) {
-			e.printStackTrace();
-			fail();
-		}
+			  Statement stmt = sharedConnection.createStatement();
+			  ResultSet result = stmt.executeQuery("select 1");
+			  assertTrue(-1 == stmt.getUpdateCount());
+			  assert(result.next());
+			  assertTrue(result.getLong("1") == 1);
+		  } catch (SQLException e) {
+			  e.printStackTrace();
+			  fail();
+		  }
+
 	  }
 	  
 	  @Test
@@ -209,9 +204,9 @@ public class RedirectionConnectionTest extends BaseTest {
 			  stmt = connection.createStatement();
 			  stmt.executeQuery("whraoaooa");
 			  fail("should not come here, query should fail");
-			  
-		} catch (SQLException e) {
-			assertTrue(e.getMessage().contains("You have an error in your SQL syntax"));
-		}   
+		  } catch (SQLException e) {
+			  assertTrue(e.getMessage().contains("You have an error in your SQL syntax"));
+		}
+
 	  }
 }
