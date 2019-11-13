@@ -63,6 +63,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -78,6 +79,14 @@ public class RedirectionConnectionTest extends BaseTest {
 		Protocol protocolVal = (Protocol) protocolField.get(connection);
 		return isUsingRedirect.getBoolean(protocolVal);
 	 }
+
+	  @Before
+	  public void checkRedirectionEnabled() throws SQLException {
+		  Statement stmt = sharedConnection.createStatement();
+		  ResultSet result = stmt.executeQuery("show variables like \"%redirect_enabled%\";");
+		  Assume.assumeTrue(result.next());
+		  Assume.assumeTrue(result.getString("Value").equals("ON"));
+	  }
 
 	  @Test
 	  public void testUsingRedirectedConnnection() {
