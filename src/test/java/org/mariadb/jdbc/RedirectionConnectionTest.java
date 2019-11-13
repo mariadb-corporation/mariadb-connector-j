@@ -81,8 +81,9 @@ public class RedirectionConnectionTest extends BaseTest {
 	 }
 
 	 @Before
-	  public void checkSsl() throws SQLException {
-		    Assume.assumeTrue(haveSsl(sharedConnection));
+	  public void check() throws SQLException {
+		 Assume.assumeFalse(hostname.equals("localhost"));
+		 Assume.assumeTrue(haveSsl(sharedConnection));
 	  }
 
 	  @Test
