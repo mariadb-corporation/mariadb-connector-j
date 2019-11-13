@@ -80,6 +80,11 @@ public class RedirectionConnectionTest extends BaseTest {
 		return isUsingRedirect.getBoolean(protocolVal);
 	 }
 
+	 @Before
+	  public void checkSsl() throws SQLException {
+		    Assume.assumeTrue(haveSsl(sharedConnection));
+	  }
+
 	  @Test
 	  public void testUsingRedirectedConnnection() {
 
