@@ -80,14 +80,6 @@ public class RedirectionConnectionTest extends BaseTest {
 		return isUsingRedirect.getBoolean(protocolVal);
 	 }
 
-	  @Before
-	  public void checkRedirectionEnabled() throws SQLException {
-		  Statement stmt = sharedConnection.createStatement();
-		  ResultSet result = stmt.executeQuery("show variables like \"%redirect_enabled%\";");
-		  Assume.assumeTrue(result.next());
-		  Assume.assumeTrue(result.getString("Value").equals("ON"));
-	  }
-
 	  @Test
 	  public void testUsingRedirectedConnnection() {
 
