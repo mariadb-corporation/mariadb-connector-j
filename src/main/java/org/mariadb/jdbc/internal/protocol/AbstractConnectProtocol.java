@@ -543,6 +543,21 @@ public abstract class AbstractConnectProtocol implements Protocol {
           isUsingRedirectInfo = true;
           handleConnectionPhases(redirectHost, redirectUser);
           redirectionInfoCache.putRedirectionInfo(username, currentHost, redirectUser, redirectHost);
+
+          //close the original connection
+          try {
+        	  if(originalSocket != null) {
+        		  originalSocket.close();
+        	  }
+        	  if(originalReader != null) {
+        		  originalReader.close();
+        	  }
+        	  if(originalWriter != null) {
+        		  originalWriter.close();
+        	  }
+          } catch (IOException e) {
+        	  //eat exception
+          }
         } catch (SQLException e) {
             isUsingRedirectInfo = false;
             destroySocket();
