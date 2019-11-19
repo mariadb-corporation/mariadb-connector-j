@@ -130,6 +130,10 @@ public class AuroraListener extends MastersSlavesListener {
     return null;
   }
 
+  public String getClusterDnsSuffix() {
+    return clusterDnsSuffix;
+  }
+
   public HostAddress getClusterHostAddress() {
     return clusterHostAddress;
   }
