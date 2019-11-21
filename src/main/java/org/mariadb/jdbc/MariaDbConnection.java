@@ -1663,10 +1663,16 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if resetting operation failed
    */
   public void reset() throws SQLException {
+    // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
+    // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633 correction.
+    // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
     boolean useComReset =
         options.useResetConnection
-            && ((protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(10, 2, 4))
-                || (!protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(5, 7, 3)));
+            && protocol.isServerMariaDb()
+            && (protocol.versionGreaterOrEqual(10, 3, 13)
+                || (protocol.getMajorServerVersion() == 10
+                    && protocol.getMinorServerVersion() == 2
+                    && protocol.versionGreaterOrEqual(10, 2, 22)));
 
     if (useComReset) {
       protocol.reset();
