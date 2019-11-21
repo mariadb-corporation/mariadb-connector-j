@@ -165,7 +165,7 @@ public class ColumnInformation {
   public static ColumnInformation create(String name, ColumnType type) {
     byte[] nameBytes = name.getBytes();
 
-    byte[] arr = new byte[23 + 2 * nameBytes.length];
+    byte[] arr = new byte[19 + 2 * nameBytes.length];
     int pos = 0;
 
     // lenenc_str     catalog
@@ -173,14 +173,13 @@ public class ColumnInformation {
     // lenenc_str     table
     // lenenc_str     org_table
     for (int i = 0; i < 4; i++) {
-      arr[pos++] = 1;
       arr[pos++] = 0;
     }
 
     // lenenc_str     name
     // lenenc_str     org_name
     for (int i = 0; i < 2; i++) {
-      arr[pos++] = (byte) name.length();
+      arr[pos++] = (byte) nameBytes.length;
       System.arraycopy(nameBytes, 0, arr, pos, nameBytes.length);
       pos += nameBytes.length;
     }
@@ -216,14 +215,6 @@ public class ColumnInformation {
     pos += 4;
 
     arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
-
-    arr[pos++] = (byte) len; /* 2 bytes : flags */
-    arr[pos++] = 0;
-
-    arr[pos++] = 0; /* decimals */
-
-    arr[pos++] = 0; /* 2 bytes filler */
-    arr[pos] = 0;
 
     return new ColumnInformation(new Buffer(arr));
   }
