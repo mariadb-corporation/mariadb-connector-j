@@ -163,7 +163,7 @@ public class ColumnInformation {
    * @return ColumnInformation
    */
   public static ColumnInformation create(String name, ColumnType type) {
-    byte[] nameBytes = name.getBytes();
+    byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 
     byte[] arr = new byte[19 + 2 * nameBytes.length];
     int pos = 0;
