@@ -23,7 +23,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 |:------------:|:-------------------------:|
 | 6 | 1.7.4 |
 | 7 | 1.7.4 |
-| 8+ | 2.5.1 |
+| 8+ | 2.5.2 |
 
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 or maven : 
@@ -59,7 +59,7 @@ Development snapshot are available on sonatype nexus repository
 For a Getting started guide, API docs, recipes,  etc. see the 
 * [About MariaDB connector/J](/documentation/about-mariadb-connector-j.creole)
 * [Use MariaDB connector/j driver](/documentation/use-mariadb-connector-j-driver.creole)
-* [Changelog](/documentation/changelog.creole)
+* [Changelog](/CHANGELOG.md)
 * [Failover and high-availability](/documentation/failover-and-high-availability-with-mariadb-connector-j.creole)
 
 
