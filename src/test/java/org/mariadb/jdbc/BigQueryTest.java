@@ -52,27 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class BigQueryTest extends BaseTest {
 

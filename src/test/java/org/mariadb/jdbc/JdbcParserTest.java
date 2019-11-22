@@ -52,16 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.constant.*;
 
-import java.sql.SQLException;
-import java.util.Properties;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
 public class JdbcParserTest {

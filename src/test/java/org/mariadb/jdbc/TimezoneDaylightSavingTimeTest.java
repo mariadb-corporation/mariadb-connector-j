@@ -52,39 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.InputStream;
-import java.sql.Connection;
+import java.io.*;
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
-import java.util.Calendar;
-import java.util.Locale;
-import java.util.Scanner;
-import java.util.TimeZone;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.sql.*;
+import java.text.*;
+import java.time.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings("deprecation")
 public class TimezoneDaylightSavingTimeTest extends BaseTest {

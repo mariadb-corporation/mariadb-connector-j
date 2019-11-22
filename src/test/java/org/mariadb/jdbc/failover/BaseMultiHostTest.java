@@ -52,33 +52,19 @@
 
 package org.mariadb.jdbc.failover;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.List;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.junit.*;
+import org.junit.rules.*;
+import org.junit.runner.*;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.util.dao.*;
+
+import java.io.*;
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
 
 /**
  * Base util class. For testing example mvn test

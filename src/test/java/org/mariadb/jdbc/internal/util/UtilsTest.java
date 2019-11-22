@@ -52,13 +52,10 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
 
-import org.junit.Test;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
+import static org.junit.Assert.*;
 
 public class UtilsTest {
 

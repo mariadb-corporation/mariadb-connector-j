@@ -52,25 +52,14 @@
 
 package org.mariadb.jdbc.failover;
 
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.util.constant.*;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbPoolDataSource;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 /**
  * test for galera The node must be configure with specific names : node 1 : wsrep_node_name =

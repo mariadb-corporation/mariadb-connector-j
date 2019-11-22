@@ -52,16 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.PooledConnection;
-import org.junit.Assume;
-import org.junit.Test;
+import javax.sql.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class PooledConnectionTest extends BaseTest {
 

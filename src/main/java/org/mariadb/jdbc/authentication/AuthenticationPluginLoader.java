@@ -53,7 +53,8 @@ public class AuthenticationPluginLoader {
     throw new SQLException(
         "Client does not support authentication protocol requested by server. "
             + "plugin type was = '"
-            + type + "'",
+            + type
+            + "'",
         "08004",
         1251);
   }

@@ -52,11 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.Test;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class CatalogTest extends BaseTest {
 

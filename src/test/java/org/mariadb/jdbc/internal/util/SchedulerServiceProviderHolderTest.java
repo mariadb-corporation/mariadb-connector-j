@@ -110,7 +110,7 @@ public class SchedulerServiceProviderHolderTest {
   private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
     scheduler.shutdown();
     try {
-      scheduler.execute(() -> { });
+      scheduler.execute(() -> {});
       fail("Exception should have thrown");
     } catch (RejectedExecutionException expected) {
       // ignore

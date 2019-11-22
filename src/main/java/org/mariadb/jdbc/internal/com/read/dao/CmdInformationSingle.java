@@ -127,7 +127,6 @@ public class CmdInformationSingle implements CmdInformation {
     if (insertId == 0) {
       return SelectResultSet.createEmptyResultSet();
     }
-    //to be removed in 2.5.0. cannot in 2.4.x
     if (updateCount > 1 && sql != null && !isDuplicateKeyUpdate(sql)) {
       long[] insertIds = new long[(int) updateCount];
       for (int i = 0; i < updateCount; i++) {

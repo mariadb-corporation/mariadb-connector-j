@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc.failover;
 
-import java.sql.Connection;
-import java.sql.Statement;
-import org.junit.Assert;
-import org.junit.Test;
-import org.mariadb.jdbc.BaseTest;
+import org.junit.*;
+import org.mariadb.jdbc.*;
+
+import java.sql.*;
 
 public class OldFailoverTest extends BaseTest {
 

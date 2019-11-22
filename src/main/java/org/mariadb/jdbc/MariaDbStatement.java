@@ -75,6 +75,8 @@ public class MariaDbStatement implements Statement, Cloneable {
       Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
   private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
   private static final Map<String, String> mapper = new HashMap<>();
+  // timeout scheduler
+  private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
 
   static {
     mapper.put("\u0000", "\\0");
@@ -88,8 +90,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     mapper.put("\\", "\\\\");
   }
 
-  // timeout scheduler
-  private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
   protected final ReentrantLock lock;
   protected final int resultSetScrollType;
   protected final int resultSetConcurrency;

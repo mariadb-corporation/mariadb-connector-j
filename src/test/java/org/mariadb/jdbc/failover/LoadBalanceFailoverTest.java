@@ -52,17 +52,11 @@
 
 package org.mariadb.jdbc.failover;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+
+import java.sql.*;
+import java.util.*;
 
 /**
  * Exemple mvn test

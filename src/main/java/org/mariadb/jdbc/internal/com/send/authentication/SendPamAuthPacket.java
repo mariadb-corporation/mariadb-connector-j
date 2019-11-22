@@ -112,8 +112,11 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
         password = authenticationData;
       } else {
         if (!options.nonMappedOptions.containsKey("password" + counter)) {
-          throw new SQLException("PAM authentication request multiple passwords, but "
-              + "'password" + counter + "' is not set");
+          throw new SQLException(
+              "PAM authentication request multiple passwords, but "
+                  + "'password"
+                  + counter
+                  + "' is not set");
         }
         password = (String) options.nonMappedOptions.get("password" + counter);
       }

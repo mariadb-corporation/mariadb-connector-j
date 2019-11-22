@@ -52,15 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLTransientConnectionException;
-import java.sql.Statement;
+import org.junit.*;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import java.sql.*;
 
 public class AutoReconnectTest extends BaseTest {
 

@@ -52,47 +52,22 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.sun.jna.*;
+import org.junit.*;
+import org.mariadb.jdbc.tls.*;
+import org.mariadb.jdbc.util.*;
 
-import com.sun.jna.Platform;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.lang.reflect.Field;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import javax.net.ssl.*;
+import java.io.*;
+import java.lang.reflect.*;
+import java.net.*;
+import java.security.*;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
-import org.mariadb.jdbc.util.Options;
+import java.security.cert.*;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {

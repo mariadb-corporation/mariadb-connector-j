@@ -52,14 +52,12 @@
 
 package org.mariadb.jdbc.failover;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import java.sql.*;
+import java.util.concurrent.*;
+
+import static org.junit.Assert.*;
 
 public abstract class BaseMonoServer extends BaseMultiHostTest {
 

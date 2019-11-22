@@ -52,25 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.Reader;
-import java.io.StringReader;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Locale;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class CollationTest extends BaseTest {
 

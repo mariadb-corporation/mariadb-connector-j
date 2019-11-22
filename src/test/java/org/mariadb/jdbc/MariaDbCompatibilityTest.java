@@ -52,17 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Types;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class MariaDbCompatibilityTest extends BaseTest {
 

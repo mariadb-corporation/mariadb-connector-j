@@ -52,19 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.protocol.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import javax.sql.DataSource;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import javax.sql.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class ErrorMessageTest extends BaseTest {
 

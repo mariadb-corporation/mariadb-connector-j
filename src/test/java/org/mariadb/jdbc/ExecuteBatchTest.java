@@ -173,7 +173,9 @@ public class ExecuteBatchTest extends BaseTest {
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-        setConnection("&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+        setConnection(
+            "&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql="
+                + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
@@ -208,9 +210,7 @@ public class ExecuteBatchTest extends BaseTest {
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-        setConnection(
-            "&useComMulti=false&useBatchMultiSend=false&profileSql="
-                + profileSql)) {
+        setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       addBatchData(preparedStatement, 10000, connection, false, !sharedIsRewrite());
@@ -247,10 +247,10 @@ public class ExecuteBatchTest extends BaseTest {
     sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
     try (Connection connection =
-             setConnection(
-                 "&useBulkStmts=false&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts"
-                     + "=false&profileSql="
-                     + profileSql)) {
+        setConnection(
+            "&useBulkStmts=false&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts"
+                + "=false&profileSql="
+                + profileSql)) {
       PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       addBatchData(preparedStatement, 10000, connection, false, !sharedIsRewrite());
@@ -297,8 +297,7 @@ public class ExecuteBatchTest extends BaseTest {
     // test result Size
     assertEquals(batchNumber, resultInsert.length);
     for (int i = 0; i < batchNumber; i++) {
-      if (!sendUnique
-          || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
+      if (!sendUnique || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
         assertEquals(Statement.SUCCESS_NO_INFO, resultInsert[i]);
       } else {
         assertEquals(1, resultInsert[i]);

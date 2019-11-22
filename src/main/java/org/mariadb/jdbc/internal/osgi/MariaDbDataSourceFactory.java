@@ -116,7 +116,10 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
       try {
         dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
       } catch (NumberFormatException nfe) {
-        throw new SQLException("Port format must be integer, but value is '" + props.getProperty(JDBC_PORT_NUMBER) + "'");
+        throw new SQLException(
+            "Port format must be integer, but value is '"
+                + props.getProperty(JDBC_PORT_NUMBER)
+                + "'");
       }
     }
     if (props.containsKey(JDBC_USER)) {
@@ -143,7 +146,10 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
       try {
         dataSource.setPortNumber(Integer.parseInt(props.getProperty(JDBC_PORT_NUMBER)));
       } catch (NumberFormatException nfe) {
-        throw new SQLException("Port number format must be integer, but value is '" + props.getProperty(JDBC_PORT_NUMBER) + "'");
+        throw new SQLException(
+            "Port number format must be integer, but value is '"
+                + props.getProperty(JDBC_PORT_NUMBER)
+                + "'");
       }
     }
     if (props.containsKey(JDBC_USER)) {
@@ -159,21 +165,30 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
       try {
         dataSource.setMaxIdleTime(Integer.parseInt(props.getProperty(JDBC_MAX_IDLE_TIME)));
       } catch (NumberFormatException nfe) {
-        throw new SQLException("Max idle time format must be integer, but value is '" + props.getProperty(JDBC_MAX_IDLE_TIME) + "'");
+        throw new SQLException(
+            "Max idle time format must be integer, but value is '"
+                + props.getProperty(JDBC_MAX_IDLE_TIME)
+                + "'");
       }
     }
     if (props.containsKey(JDBC_MAX_POOL_SIZE)) {
       try {
         dataSource.setMaxPoolSize(Integer.parseInt(props.getProperty(JDBC_MAX_POOL_SIZE)));
       } catch (NumberFormatException nfe) {
-        throw new SQLException("Max pool size format must be integer, but value is '" + props.getProperty(JDBC_MAX_POOL_SIZE) + "'");
+        throw new SQLException(
+            "Max pool size format must be integer, but value is '"
+                + props.getProperty(JDBC_MAX_POOL_SIZE)
+                + "'");
       }
     }
     if (props.containsKey(JDBC_MIN_POOL_SIZE)) {
       try {
         dataSource.setMinPoolSize(Integer.parseInt(props.getProperty(JDBC_MIN_POOL_SIZE)));
       } catch (NumberFormatException nfe) {
-        throw new SQLException("Min pool size format must be integer, but value is '" + props.getProperty(JDBC_MIN_POOL_SIZE) + "'");
+        throw new SQLException(
+            "Min pool size format must be integer, but value is '"
+                + props.getProperty(JDBC_MIN_POOL_SIZE)
+                + "'");
       }
     }
     return dataSource;

@@ -52,15 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class LocalInfileDisableTest extends BaseTest {
 

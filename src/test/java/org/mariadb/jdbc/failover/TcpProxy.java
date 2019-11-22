@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc.failover;
 
-import java.io.IOException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.logging.*;
+
+import java.io.*;
+import java.util.concurrent.*;
 
 public class TcpProxy {
 

@@ -52,16 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.nio.charset.Charset;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.SQLInvalidAuthorizationSpecException;
-import java.sql.Statement;
-import org.junit.Assume;
-import org.junit.Test;
+import java.nio.charset.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class PasswordEncodingTest extends BaseTest {
 

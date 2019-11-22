@@ -52,21 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
 
-import java.sql.Connection;
 import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.TimeZone;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class TimezoneExplicitCalendarTest extends BaseTest {
 

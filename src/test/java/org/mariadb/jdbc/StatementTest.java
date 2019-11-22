@@ -52,30 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.Properties;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 
 public class StatementTest extends BaseTest {
 
@@ -727,7 +712,7 @@ public class StatementTest extends BaseTest {
     MariaDbStatement stmt = (MariaDbStatement) sharedConnection.createStatement();
 
     assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
-    assertEquals("'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+    assertEquals(
+        "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
   }
-
 }

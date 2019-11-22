@@ -52,13 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.*;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.Utils;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class UtilTest extends BaseTest {
 

@@ -21,21 +21,17 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.lang.reflect.Field;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.util.Properties;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.util.DefaultOptions;
-import org.mariadb.jdbc.util.Options;
+import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.util.*;
+
+import java.lang.reflect.*;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class DefaultOptionsTest {
 

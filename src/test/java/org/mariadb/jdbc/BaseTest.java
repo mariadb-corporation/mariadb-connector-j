@@ -52,48 +52,25 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.sun.jna.*;
+import org.junit.*;
+import org.junit.rules.*;
+import org.junit.runner.*;
+import org.mariadb.jdbc.failover.*;
+import org.mariadb.jdbc.internal.failover.*;
+import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.util.*;
 
-import com.sun.jna.Platform;
-import java.io.IOException;
-import java.lang.Thread.State;
-import java.lang.reflect.Method;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.Statement;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import org.junit.AfterClass;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mariadb.jdbc.failover.TcpProxy;
-import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.util.Options;
+import java.io.*;
+import java.lang.Thread.*;
+import java.lang.reflect.*;
+import java.net.*;
+import java.sql.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+import static org.junit.Assert.*;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root

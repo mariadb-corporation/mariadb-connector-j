@@ -52,24 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.sql.BatchUpdateException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.Properties;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class MultiTest extends BaseTest {
 
@@ -1483,9 +1471,9 @@ public class MultiTest extends BaseTest {
         stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
       }
       try (PreparedStatement pstmt =
-                   con.prepareStatement(
-                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) ON DUPLICATE  key UPDATE id = id + 10",
-                           Statement.RETURN_GENERATED_KEYS)) {
+          con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) ON DUPLICATE  key UPDATE id = id + 10",
+              Statement.RETURN_GENERATED_KEYS)) {
         // Insert a row.
         pstmt.setInt(1, 1);
         pstmt.setString(2, "changed");
@@ -1507,9 +1495,9 @@ public class MultiTest extends BaseTest {
         stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
       }
       try (PreparedStatement pstmt =
-                   con.prepareStatement(
-                           "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?), (?, ?) ON DUPLICATE KEY UPDATE id = id + 10",
-                           Statement.RETURN_GENERATED_KEYS)) {
+          con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?), (?, ?) ON DUPLICATE KEY UPDATE id = id + 10",
+              Statement.RETURN_GENERATED_KEYS)) {
         // Insert a row.
         pstmt.setInt(1, 1);
         pstmt.setString(2, "changed");

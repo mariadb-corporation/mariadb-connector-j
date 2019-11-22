@@ -52,22 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.util.*;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Properties;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.util.DefaultOptions;
+import java.sql.*;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class ParserTest extends BaseTest {
 

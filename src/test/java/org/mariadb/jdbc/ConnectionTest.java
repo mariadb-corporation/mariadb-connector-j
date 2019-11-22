@@ -52,39 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.sql.ClientInfoStatus;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.SQLPermission;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.Executor;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.AssumptionViolatedException;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import java.net.*;
+import java.nio.charset.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.junit.Assert.*;
 
 public class ConnectionTest extends BaseTest {
 

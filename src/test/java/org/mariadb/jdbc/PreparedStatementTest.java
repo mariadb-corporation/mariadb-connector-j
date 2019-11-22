@@ -52,24 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Statement;
-import java.sql.Types;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.math.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class PreparedStatementTest extends BaseTest {
 

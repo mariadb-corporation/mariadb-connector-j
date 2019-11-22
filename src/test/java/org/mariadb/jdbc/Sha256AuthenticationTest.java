@@ -1,18 +1,11 @@
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.sun.jna.*;
+import org.junit.*;
 
-import com.sun.jna.Platform;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class Sha256AuthenticationTest extends BaseTest {
 
@@ -42,10 +35,8 @@ public class Sha256AuthenticationTest extends BaseTest {
     }
 
     if (minVersion(8, 0, 0)) {
-      stmt.execute(
-          "CREATE USER 'sha256User'@'%' IDENTIFIED WITH sha256_password BY 'password'");
-      stmt.execute(
-          "GRANT ALL PRIVILEGES ON *.* TO 'sha256User'@'%'");
+      stmt.execute("CREATE USER 'sha256User'@'%' IDENTIFIED WITH sha256_password BY 'password'");
+      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'sha256User'@'%'");
     } else {
       stmt.execute("CREATE USER 'sha256User'@'%'");
       stmt.execute(
@@ -55,8 +46,7 @@ public class Sha256AuthenticationTest extends BaseTest {
     if (minVersion(8, 0, 0)) {
       stmt.execute(
           "CREATE USER 'cachingSha256User'@'%'  IDENTIFIED WITH caching_sha2_password BY 'password'");
-      stmt.execute(
-          "GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
+      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     } else {
       forceTls = "&enabledSslProtocolSuites=TLSv1.1";
     }

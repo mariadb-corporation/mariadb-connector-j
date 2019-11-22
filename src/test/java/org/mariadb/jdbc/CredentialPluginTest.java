@@ -21,15 +21,9 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
+
+import java.sql.*;
 
 public class CredentialPluginTest extends BaseTest {
 

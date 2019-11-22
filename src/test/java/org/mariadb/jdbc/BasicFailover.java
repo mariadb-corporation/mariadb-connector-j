@@ -1,13 +1,10 @@
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.Statement;
-import org.junit.Test;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class BasicFailover extends BaseTest {
 

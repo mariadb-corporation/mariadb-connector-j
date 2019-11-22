@@ -1,19 +1,12 @@
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.junit.*;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import org.junit.Test;
+import java.io.*;
+import java.nio.charset.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class MariaDbClobTest extends BaseTest {
 

@@ -68,8 +68,8 @@ public class ByteTest extends BaseTest {
   @Test
   public void byteSending() throws SQLException {
     Assume.assumeFalse(sharedUsePrepare());
-    try (PreparedStatement prep = sharedConnection.prepareStatement("INSERT INTO ByteTest value "
-        + "(?, ?)")) {
+    try (PreparedStatement prep =
+        sharedConnection.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
       prep.setByte(1, (byte) -6);
       prep.setByte(2, (byte) -6);
       prep.execute();
@@ -87,7 +87,7 @@ public class ByteTest extends BaseTest {
   public void byteSendingBinary() throws SQLException {
     try (Connection conn = setConnection("&useServerPrepStmts")) {
       try (PreparedStatement prep =
-               conn.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
+          conn.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
         prep.setByte(1, (byte) -6);
         prep.setByte(2, (byte) -6);
         prep.execute();

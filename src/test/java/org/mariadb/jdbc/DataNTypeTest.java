@@ -52,18 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
 
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
-import org.junit.Test;
+import java.io.*;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings("ALL")
 public class DataNTypeTest extends BaseTest {

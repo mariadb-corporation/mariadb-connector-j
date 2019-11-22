@@ -52,19 +52,12 @@
 
 package org.mariadb.jdbc.failover;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.constant.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLTimeoutException;
-import java.sql.Statement;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import java.sql.*;
+
+import static org.junit.Assert.*;
 
 public class CancelTest extends BaseMultiHostTest {
 

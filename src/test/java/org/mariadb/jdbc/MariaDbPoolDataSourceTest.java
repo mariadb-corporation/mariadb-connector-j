@@ -22,32 +22,17 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.internal.util.scheduler.*;
 
-import java.lang.management.ManagementFactory;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import org.junit.Assume;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.pool.Pools;
-import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import javax.management.*;
+import java.lang.management.*;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.*;
+
+import static org.junit.Assert.*;
 
 public class MariaDbPoolDataSourceTest extends BaseTest {
 
