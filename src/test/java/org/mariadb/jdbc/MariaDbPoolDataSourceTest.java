@@ -71,7 +71,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   @Test
   public void testResetSessionVariable() throws SQLException {
     testResetSessionVariable(false);
-    if ((isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7))) {
+    if (isMariadbServer() && minVersion(10, 2)) {
       testResetSessionVariable(true);
     }
   }
@@ -131,7 +131,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   @Test
   public void testResetUserVariable() throws SQLException {
     testResetUserVariable(false);
-    if ((isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7))) {
+    if (isMariadbServer() && minVersion(10, 2)) {
       testResetUserVariable(true);
     }
   }
