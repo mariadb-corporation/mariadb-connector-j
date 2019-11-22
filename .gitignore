@@ -7,3 +7,5 @@
 /target/
 .idea
 /mariadb-java-client.iml
+build
+.gradle

@@ -1,0 +1,7 @@
+pluginManagement {
+    repositories {
+        maven { url "https://artifactory.grubhub.com/artifactory/garcon-plugins/" }
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'mariadb-java-client'

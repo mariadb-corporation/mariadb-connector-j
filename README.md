@@ -1,3 +1,28 @@
+# Grubhub Fork
+This fork contains some fixes needed for AWS Aurora Mysql in terms of connecting to a read-only cluster. Hoping this is a very temporary fork.
+
+## Testing
+Nearly all unit tests have been excluded via `build.gradle` because they require a mysql instance to connect to and one isn't accessible in our build environment.
+
+You should still run these tests locally. Assuming you have brew installed, do the following:
+
+```shell script
+# Install mysql 5.7.x
+brew install mysql@5.7
+# Manually start mysql
+/usr/local/opt/mysql@5.7/bin/mysql.server start
+# Secure your server with a password (Gradle is configured for 'guest')
+/usr/local/opt/mysql@5.7/bin/mysql_secure_installation
+# Connect to mysql with your password 
+/usr/local/opt/mysql@5.7/bin/mysql -uroot -pguest
+# Create the database in the mysql CLI
+create database testj;
+exit
+ 
+```
+
+Now you can run  `./gradlew mysqlTest` to execute the tests that connect to mysql. A few tests may fail; use your best judgement.
+
 <p align="center">
   <a href="http://mariadb.com/">
     <img src="https://mariadb.com/kb/static/images/logo-2018-black.png">

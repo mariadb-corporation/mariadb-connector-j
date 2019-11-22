@@ -1,0 +1,129 @@
+plugins {
+    id 'java-library'
+    id 'com.grubhub.gradle.testing' version '3.0.11'
+    id 'com.grubhub.gradle.grublish.library' version '5.0.28'
+}
+
+ext['jnaVersion'] = "4.5.1"
+ext['osgiVersion'] = "4.3.1"
+
+group 'org.mariadb.jdbc'
+version '2.5.1.1-GRUBHUB'
+
+sourceCompatibility = 1.8
+
+test {
+    // See README.md for the rationale.
+    exclude '**/*BasicFailover*'
+    exclude '**/*BooleanTest*'
+    exclude '**/*BufferTest*'
+    exclude '**/*GeneratedTest*'
+    exclude '**/*ScrollTypeTest*'
+    exclude '**/*SslTest*'
+    exclude '**/*TimezoneExplicitCalendarTest*'
+    exclude '**/*UnicodeTest*'
+    exclude '**/*UpdateResultSetMethodsTest*'
+    exclude '**/*UtilTest*'
+    exclude '**/*AllowMultiQueriesTest*'
+    exclude '**/*AttributeTest*'
+    exclude '**/*AutoReconnectTest*'
+    exclude '**/*BasicBatchTest*'
+    exclude '**/*BigQueryTest*'
+    exclude '**/*BlobTest*'
+    exclude '**/*CallStatementTest*'
+    exclude '**/*CancelTest*'
+    exclude '**/*CatalogTest*'
+    exclude '**/*CheckDataTest*'
+    exclude '**/*ClientPreparedStatementParsingTest*'
+    exclude '**/*ClientPreparedStatementTest*'
+    exclude '**/*CollationTest*'
+    exclude '**/*ComMultiPrepareStatementTest*'
+    exclude '**/*ConnectionPoolTest*'
+    exclude '**/*ConnectionTest*'
+    exclude '**/*CredentialPluginTest*'
+    exclude '**/*DatabaseMetadataTest*'
+    exclude '**/*DataNTypeTest*'
+    exclude '**/*DataSourcePoolTest*'
+    exclude '**/*DataSourceTest*'
+    exclude '**/*DatatypeCompatibilityTest*'
+    exclude '**/*DataTypeSignedTest*'
+    exclude '**/*DatatypeTest*'
+    exclude '**/*DataTypeUnsignedTest*'
+    exclude '**/*DateTest*'
+    exclude '**/*DistributedTransactionTest*'
+    exclude '**/*DriverTest*'
+    exclude '**/*ErrorMessageTest*'
+    exclude '**/*ExecuteBatchTest*'
+    exclude '**/*AllowMasterDownTest*'
+    exclude '**/*MonoServerFailoverTest*'
+    exclude '**/*OldFailoverTest*'
+    exclude '**/*FetchSizeTest*'
+    exclude '**/*GeneratedKeysTest*'
+    exclude '**/*GeometryTest*'
+    exclude '**/*LocalInfileDisableTest*'
+    exclude '**/*LocalInfileInputStreamTest*'
+    exclude '**/*LocalTimeTest*'
+    exclude '**/*MariaDbClobTest*'
+    exclude '**/*MariaDbCompatibilityTest*'
+    exclude '**/*MariaDbDatabaseMetaDataTest*'
+    exclude '**/*MariaDbPoolDataSourceTest*'
+    exclude '**/*MultiTest*'
+    exclude '**/*ParserTest*'
+    exclude '**/*PasswordEncodingTest*'
+    exclude '**/*PooledConnectionTest*'
+    exclude '**/*PreparedStatementTest*'
+    exclude '**/*ReconnectionStateMaxAllowedStatement*'
+    exclude '**/*RePrepareTest*'
+    exclude '**/*ResultSetMetaDataTest*'
+    exclude '**/*ResultSetTest*'
+    exclude '**/*ResultSetUnsupportedMethodsTest*'
+    exclude '**/*ScalarFunctionsTest*'
+    exclude '**/*ServerPrepareStatementTest*'
+    exclude '**/*Sha256AuthenticationTest*'
+    exclude '**/*StateChangeTest*'
+    exclude '**/*StatementTest*'
+    exclude '**/*StoredProcedureTest*'
+    exclude '**/*TimeoutTest*'
+    exclude '**/*TimezoneDaylightSavingTimeTest*'
+    exclude '**/*TransactionTest*'
+    exclude '**/*TruncateExceptionTest*'
+    exclude '**/*UpdateResultSetTest*'
+}
+
+task mysqlTest(type: Test) {
+    systemProperty "dbUrl", "jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=guest"
+
+    description = 'Runs tests that connect to mysql'
+    group = 'verification'
+
+    exclude '**/*SslTest*'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    // Provided
+    compile "org.osgi:org.osgi.core:${osgiVersion}"
+    compile "org.osgi:org.osgi.compendium:${osgiVersion}"
+
+    // Optionals
+    compileOnly "com.github.waffle:waffle-jna:1.9.0"
+    compileOnly "net.java.dev.jna:jna:${jnaVersion}"
+    compileOnly "net.java.dev.jna:jna-platform:${jnaVersion}"
+    compileOnly "org.slf4j:slf4j-api:[1.4.0,1.7.25]"
+    compileOnly "com.amazonaws:aws-java-sdk-rds:1.11.636"
+
+    // Optionals used in testing
+    testCompile "com.github.waffle:waffle-jna:1.9.0"
+    testCompile "net.java.dev.jna:jna:${jnaVersion}"
+    testCompile "net.java.dev.jna:jna-platform:${jnaVersion}"
+    testCompile "org.slf4j:slf4j-api:[1.4.0,1.7.25]"
+    testCompile "com.amazonaws:aws-java-sdk-rds:1.11.636"
+
+    testCompile "junit:junit:4.12"
+    testCompile "com.zaxxer:HikariCP:2.4.7"
+    testCompile "ch.qos.logback:logback-classic:1.2.3"
+}
