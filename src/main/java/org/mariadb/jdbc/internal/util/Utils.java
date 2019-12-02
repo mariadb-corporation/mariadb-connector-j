@@ -274,7 +274,7 @@ public class Utils {
     }
 
     for (;
-        ((input[index] >= 'a' && index <= 'z') || (input[index] >= 'A' && input[index] <= 'Z'))
+        ((input[index] >= 'a' && input[index] <= 'z') || (input[index] >= 'A' && input[index] <= 'Z'))
             && index < input.length;
         index++) {
       sb.append(input[index]);
