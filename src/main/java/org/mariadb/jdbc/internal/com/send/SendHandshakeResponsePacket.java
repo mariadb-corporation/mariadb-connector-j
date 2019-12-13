@@ -173,7 +173,7 @@ public class SendHandshakeResponsePacket {
       pos.write((byte) 0);
     }
 
-    if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
+    if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
       pos.write(database);
       pos.write((byte) 0);
     }
