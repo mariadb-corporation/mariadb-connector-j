@@ -149,18 +149,18 @@ public class StandardPacketInputStream implements PacketInputStream {
   /**
    * Create Buffer with Text protocol values.
    *
-   * @param rowDatas datas
+   * @param row row data
    * @param columnTypes column types
    * @return Buffer
    */
-  public static byte[] create(byte[][] rowDatas, ColumnType[] columnTypes) {
+  public static byte[] create(byte[][] row, ColumnType[] columnTypes) {
 
     int totalLength = 0;
-    for (byte[] rowData : rowDatas) {
-      if (rowData == null) {
+    for (byte[] data : row) {
+      if (data == null) {
         totalLength++;
       } else {
-        int length = rowData.length;
+        int length = data.length;
         if (length < 251) {
           totalLength += length + 1;
         } else if (length < 65536) {
@@ -175,11 +175,11 @@ public class StandardPacketInputStream implements PacketInputStream {
     byte[] buf = new byte[totalLength];
 
     int pos = 0;
-    for (byte[] arr : rowDatas) {
-      if (arr == null) {
+    for (byte[] data : row) {
+      if (data == null) {
         buf[pos++] = (byte) 251;
       } else {
-        int length = arr.length;
+        int length = data.length;
         if (length < 251) {
           buf[pos++] = (byte) length;
         } else if (length < 65536) {
@@ -200,7 +200,7 @@ public class StandardPacketInputStream implements PacketInputStream {
           // byte[] cannot have more than 4 byte length size, so buf[pos+5] -> buf[pos+8] = 0x00;
           pos += 4;
         }
-        System.arraycopy(arr, 0, buf, pos, length);
+        System.arraycopy(data, 0, buf, pos, length);
         pos += length;
       }
     }
