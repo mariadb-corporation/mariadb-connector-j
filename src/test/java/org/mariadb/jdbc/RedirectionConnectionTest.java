@@ -67,6 +67,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.util.Options;
 
 public class RedirectionConnectionTest extends BaseTest {
 	 
@@ -80,10 +81,15 @@ public class RedirectionConnectionTest extends BaseTest {
 		return isUsingRedirect.getBoolean(protocolVal);
 	 }
 
-	 @Before
-	  public void check() throws SQLException {
-		 Assume.assumeFalse(hostname.equals("localhost"));
-		 Assume.assumeTrue(haveSsl(sharedConnection));
+	  @Before
+	  public void check() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		  Assume.assumeFalse(hostname.equals("localhost"));
+		  Assume.assumeTrue(haveSsl(sharedConnection));
+
+		  Field optionsField =  MariaDbConnection.class.getDeclaredField("options");
+		  optionsField.setAccessible(true);
+		  Options optionsVal = (Options) optionsField.get(sharedConnection);
+		  Assume.assumeTrue(optionsVal.enableRedirect);
 	  }
 
 	  @Test
@@ -191,12 +197,14 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void basicSelectTest() {
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=true")) {
+			  Assume.assumeTrue(IsUsingRedirection(connection)); //this can be false if redirection is not enabled on server side or redirection connection failed
+
 			  Statement stmt = sharedConnection.createStatement();
 			  ResultSet result = stmt.executeQuery("select 1");
 			  assertTrue(-1 == stmt.getUpdateCount());
 			  assert(result.next());
 			  assertTrue(result.getLong("1") == 1);
-		  } catch (SQLException e) {
+		  } catch (SQLException | NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
 			  e.printStackTrace();
 			  fail();
 		  }
@@ -207,11 +215,13 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void BasicErrorTest() {
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=true")) {
+			  Assume.assumeTrue(IsUsingRedirection(connection)); //this can be false if redirection is not enabled on server side or redirection connection failed
+
 			  Statement stmt;
 			  stmt = connection.createStatement();
 			  stmt.executeQuery("whraoaooa");
 			  fail("should not come here, query should fail");
-		  } catch (SQLException e) {
+		  } catch (SQLException | NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
 			  assertTrue(e.getMessage().contains("You have an error in your SQL syntax"));
 		}
 
