@@ -276,16 +276,7 @@
               <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
               <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
               <Export-Package>org.mariadb.jdbc</Export-Package>
-              <Import-Package>org.osgi.framework,
-              	javax.naming,
-              	javax.management,
-                javax.sql,
-                javax.net;resolution:=optional,
-                javax.net.ssl;resolution:=optional,
-                javax.transaction.xa;resolution:=optional,
-                waffle.windows.auth;resolution:=optional,
-                waffle.windows.auth.impl;resolution:=optional
-              </Import-Package>
+              <Import-Package>org.osgi.framework,javax.naming,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional</Import-Package>
               <Bundle-Activator>org.mariadb.jdbc.internal.osgi.MariaDbActivator</Bundle-Activator>
             </manifestEntries>
           </archive>
