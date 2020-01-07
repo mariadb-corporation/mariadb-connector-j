@@ -1,14 +1,14 @@
 # Change Log
-## [2.5.2](https://github.com/MariaDB/mariadb-connector-j/tree/2.5.2) (22 Nov. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.5.1...2.5.2)
+## [2.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.2) (22 Nov. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.1...2.5.2)
 
 * CONJ-745 - use pool reset only for corrected COM_RESET_CONNECTION
 * CONJ-743 - byte signed value wrong serialization for text protocol
 * CONJ-742 ensure plugin using Driver classloader
 
 
-## [2.5.1](https://github.com/MariaDB/mariadb-connector-j/tree/2.5.1) (15 Oct. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.5.0...2.5.1)
+## [2.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.1) (15 Oct. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.0...2.5.1)
 
 * CONJ-736 - OSGI compliance
 * CONJ-737 - Error packet caching_sha2_password not handled when not having a password
@@ -16,8 +16,8 @@
 * CONJ-735 - Multi insert regression correction returning multi generated keys
 
 
-## [2.5.0](https://github.com/MariaDB/mariadb-connector-j/tree/2.5.0) (02 Oct. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.4.4...2.5.0)
+## [2.5.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.0) (02 Oct. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.4...2.5.0)
 
 * CONJ-663 - Client authentication plugins are now defined as services. The driver has 2 new plugins `caching_sha2_password` and `sha256_password plugin` for MySQL compatibility
 * CONJ-733 - Credential service: AWS IAM authentication
@@ -28,24 +28,24 @@
 * CONJ-732 - Driver getPropertyInfo returns no options information when url is empty
 * CONJ-734 - DatabaseMetaData.getSchemaTerm now return "schema", not empty string
 
-## [2.4.4](https://github.com/MariaDB/mariadb-connector-j/tree/2.4.4) (14 Sep. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.4.3...2.4.4)
+## [2.4.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.4) (14 Sep. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.3...2.4.4)
 
 * CONJ-724 - Do not ignore the Calendar parameter in ResultSet#getTime(int, Calendar)
 * CONJ-725 - Connection Failure when using PAM authenticated user on 10.4 MariaDB server
 * CONJ-729 - master-slave regression: commit on read-only server Executed only when there is an active transaction on master connection
 * CONJ-726 - removing possible NPE after failover on aurora cluster
 
-## [2.4.3](https://github.com/MariaDB/mariadb-connector-j/tree/2.4.3) (02 Jul. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.4.2...2.4.3)
+## [2.4.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.3) (02 Jul. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.2...2.4.3)
 
 * CONJ-717 - conversion function support for other data type than default MariaDB conversion type
 * CONJ-722 - Permit suppression of result-set metadata getTableName for oracle compatibility
 * CONJ-719 - Saving values using Java 8 LocalTime does not store fractional parts of seconds
 * CONJ-716 - Correcting possible NPE on non thread safe NumberFormat (logging)
 
-## [2.4.2](https://github.com/MariaDB/mariadb-connector-j/tree/2.4.2) (17 Jun. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.4.1...2.4.2)
+## [2.4.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.2) (17 Jun. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.1...2.4.2)
 
 Security
 * CONJ-679 - parse Query when receiving LOAD LOCAL INFILE
@@ -60,8 +60,8 @@ Bugs
 * CONJ-714 - Error on connection on galera server when in detached mode.
 * CONJ-701 - typo in error message in SelectResultSet.java
 
-## [2.4.1](https://github.com/MariaDB/mariadb-connector-j/tree/2.4.1) (15 Mar. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.4.0...2.4.1)
+## [2.4.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.1) (15 Mar. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.0...2.4.1)
 
 Evolutions
 * misc - enabled running of 'SHOW ENGINE INNODB STATUS' for error code 1213 (@mtykhenko)
@@ -74,8 +74,8 @@ Bugs
 * misc - java PID using java 9 ProcessHandle if existing, relying on JNA if present
 * CONJ-682 - internal pool correction: when receiving an RST during connection validation, the pool will end up throwing connection timeout exception in place of reusing another connection.
 
-## [2.4.0](https://github.com/MariaDB/mariadb-connector-j/tree/2.4.0) (28 Jan. 2019)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.3.0...2.4.0)
+## [2.4.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.0) (28 Jan. 2019)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.3.0...2.4.0)
 
 Evolutions
 * CONJ-675 - permit multiple alternative authentication methods for the same user (future MariaDB 10.4 feature)
@@ -114,8 +114,8 @@ minor:
 * CONJ-654 - DatabaseMetaData.getDriverName() returns connector/J with a lowercase c
 
 
-## [2.3.0](https://github.com/MariaDB/mariadb-connector-j/tree/2.3.0) (06 Sep. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.6...2.3.0)
+## [2.3.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.3.0) (06 Sep. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.6...2.3.0)
 
 #### [CONJ-398] Improve deadlock debugging capabilities
 
@@ -152,8 +152,8 @@ This option still makes sense, since for big batch is way more faster, but will 
 * CONJ-636 - Error in batch might throw a NPE and not the proper Exception
 
 
-## [2.2.6](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.6) (19 Jul. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.5...2.2.6)
+## [2.2.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.6) (19 Jul. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.5...2.2.6)
 
 minor change:
 * CONJ-623 - Increase connection logging when Primary node connection fails
@@ -171,8 +171,8 @@ Bug correction:
 * CONJ-618 - Client preparestatement parsing error on escaped ' / " in query
 
 
-## [2.2.5](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.5) (28 May. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.4...2.2.5)
+## [2.2.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.5) (28 May. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.4...2.2.5)
 
 minor change:
 * CONJ-602 - Add server hostname to connection packet for proxy
@@ -185,8 +185,8 @@ Bug correction:
 * CONJ-609 - Using getDate with function DATE_ADD() with parameter using string format where return wrong result using binary protocol
 * CONJ-610 - Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
 
-## [2.2.4](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.4) (04 May. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.3...2.2.4)
+## [2.2.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.4) (04 May. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.3...2.2.4)
 
 Minor changes:
 * CONJ-580 - Some options are missing in documentation like default 'autocommit' value
@@ -194,8 +194,8 @@ Minor changes:
 * CONJ-600 - Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
 * CONJ-575 - test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
 
-## [2.2.3](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.3) (08 Mar. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.2...2.2.3)
+## [2.2.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.3) (08 Mar. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.2...2.2.3)
 
 Bug correction:
 * CONJ-583 - possible hang indefinitely using master/slave configuration and failover occur
@@ -204,8 +204,8 @@ Bug correction:
 * CONJ-588 - using option 'allowMasterDownConnection' won't permit to connect if master is down
 * CONJ-534 - Connection.isValid() must be routed to Master and Slave connections to avoid any server timeout
 
-## [2.2.2](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.2) (20 Feb. 2018)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.1...2.2.2)
+## [2.2.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.2) (20 Feb. 2018)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.1...2.2.2)
 
 Bug correction:
 * CONJ-564 - Never ever throw an instance of java.lang.Error
@@ -217,8 +217,8 @@ Bug correction:
 * CONJ-578 - windows testing using all mariadb server
 * CONJ-570 - Add tests for 10.3.3 INVISIBLE column
 
-## [2.2.1](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.1) (22 Dec. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.2.0...2.2.1)
+## [2.2.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.1) (22 Dec. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.2.0...2.2.1)
 
 * CONJ-501 - provide support for authentication plugin ed25519
 
@@ -233,8 +233,8 @@ Bug correction:
 
 
 
-## [2.2.0](https://github.com/MariaDB/mariadb-connector-j/tree/2.2.0) (08 Nov. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.1.2...2.2.0)
+## [2.2.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.0) (08 Nov. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.1.2...2.2.0)
 
 Evolutions:
 #### CONJ-522 - Pool datasource implementation
@@ -279,8 +279,8 @@ Misc:
 
 
 
-## [2.1.2](https://github.com/MariaDB/mariadb-connector-j/tree/2.1.2) (24 Sep. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.1.1...2.1.2)
+## [2.1.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.1.2) (24 Sep. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.1.1...2.1.2)
 
 Bug :
 * CONJ-525 - Batch result-set return array correction when DELETE statement when bulk option is used
@@ -289,8 +289,8 @@ Bug :
 * CONJ-528 - Error executing LOAD DATA LOCAL INFILE when file is larger than max_allowed_packet
 
 
-## [2.1.1](https://github.com/MariaDB/mariadb-connector-j/tree/2.1.1) (05 Sep. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.1.0...2.1.1)
+## [2.1.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.1.1) (05 Sep. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.1.0...2.1.1)
 
 Bug :
 * CONJ-519 - Updatable result-set possible NPE when same field is repeated.
@@ -305,8 +305,8 @@ misc :
 * handling connection error when no database is provided
 
 
-## [2.1.0](https://github.com/MariaDB/mariadb-connector-j/tree/2.1.0) (29 Jul. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.0.3...2.1.0)
+## [2.1.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.1.0) (29 Jul. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.0.3...2.1.0)
 
 ##= CONJ-422 : verification of SSL Certificate Name Mismatch
 When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
@@ -358,8 +358,8 @@ Bug
 * CONJ-496 - return rounded numeric when querying on a decimal field in place of throwing an exception for compatibility
 
 
-## [2.0.3](https://github.com/MariaDB/mariadb-connector-j/tree/2.0.3) (27 Jun. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.0.2...2.0.3)
+## [2.0.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.0.3) (27 Jun. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.0.2...2.0.3)
 
 Bug
 * CONJ-473 - when useServerPrepStmts is not set, the PREPARE statement must not be cached.
@@ -367,8 +367,8 @@ Bug
 * CONJ-497 - escape string correction for big query
 
 
-## [2.0.2](https://github.com/MariaDB/mariadb-connector-j/tree/2.0.2) (05 Jun. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.0.1...2.0.2)
+## [2.0.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.0.2) (05 Jun. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.0.1...2.0.2)
 
 Bug
 * CONJ-490 - DataSource connectTimeout is in second, but was set on socket timeout that is in milliseconds
@@ -387,8 +387,8 @@ Task
 * CONJ-482 - Connection.setNetworkTimeout don't throw exception if no executor
 * CONJ-488 - Use java.net.URL to read keyStore and trustStore again
 
-## [2.0.1](https://github.com/MariaDB/mariadb-connector-j/tree/2.0.1) (10 May. 2017)
-[Full Changelog](https://github.com/MariaDB/mariadb-connector-j/compare/2.0.0-RC...2.0.1)
+## [2.0.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.0.1) (10 May. 2017)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.0.0-RC...2.0.1)
 
 * CONJ-467 - changing database metadata to 4.2
 * CONJ-460 - Query that contain multiqueries with fetch and EOF deprecation failed
@@ -403,7 +403,7 @@ New Options :
 * CONJ-468 - autoIncrementIncrement value loaded during connection, avoiding a query for first statement for rewrite
 
 
-## [2.0.0-RC](https://github.com/MariaDB/mariadb-connector-j/tree/2.0.0-RC) (20 Apr. 2017)
+## [2.0.0-RC](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.0.0-RC) (20 Apr. 2017)
 
 Release candidate version.
 
@@ -778,7 +778,7 @@ CONJ-251 Permit now new authentication possibility : [[https://mariadb.com/kb/en
 GSSAPI/SSPI authentication authentication plugin for MariaDB permit a passwordless login.
 
 On Unix systems, GSSAPI is usually synonymous with Kerberos authentication. Windows has slightly different but very similar API called SSPI, that along with Kerberos, also supports NTLM authentication.
-See more detail in [[https://github.com/MariaDB/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI|GSSAPI/SSPI configuration]]
+See more detail in [[https://github.com/mariadb-corporation/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI|GSSAPI/SSPI configuration]]
 
 ### Connection attributes
 CONJ-217
