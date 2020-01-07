@@ -1,10 +1,18 @@
 # Change Log
+
+## [2.5.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.3) (07 Jan. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.2...2.5.3)
+
+* CONJ-752 - Manifest file wrong entry - thanks to Christoph Läubrich 
+* CONJ-750 - protocol error when not setting database with maxscale
+* CONJ-747 - JDBC Conversion Function fast-path skipped, always using longer implementation
+
 ## [2.5.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.2) (22 Nov. 2019)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.1...2.5.2)
 
 * CONJ-745 - use pool reset only for corrected COM_RESET_CONNECTION
 * CONJ-743 - byte signed value wrong serialization for text protocol
-* CONJ-742 ensure plugin using Driver classloader
+* CONJ-742 - ensure plugin using Driver classloader
 
 
 ## [2.5.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.1) (15 Oct. 2019)
