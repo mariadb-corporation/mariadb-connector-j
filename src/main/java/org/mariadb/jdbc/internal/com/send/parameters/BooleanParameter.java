@@ -39,7 +39,7 @@ public class BooleanParameter implements Cloneable, ParameterHolder {
     os.write(value ? '1' : '0');
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 1;
   }
 

@@ -102,7 +102,7 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
    *
    * @return approximated data length.
    */
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return -1;
   }
 

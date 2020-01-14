@@ -74,7 +74,7 @@ public class NullParameter implements ParameterHolder, Cloneable {
     os.write(NULL);
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 4;
   }
 

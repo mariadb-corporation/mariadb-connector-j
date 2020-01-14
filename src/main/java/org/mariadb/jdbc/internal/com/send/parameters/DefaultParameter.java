@@ -70,7 +70,7 @@ public class DefaultParameter implements Cloneable, ParameterHolder {
     pos.write(defaultBytes);
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 7;
   }
 

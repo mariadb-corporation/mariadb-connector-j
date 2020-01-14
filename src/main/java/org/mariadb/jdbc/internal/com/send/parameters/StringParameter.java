@@ -77,7 +77,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
     pos.write(stringValue, true, noBackslashEscapes);
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return stringValue.length() * 3;
   }
 

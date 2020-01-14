@@ -76,7 +76,7 @@ public class ByteParameter implements Cloneable, ParameterHolder {
     os.write(String.valueOf(value).getBytes());
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return String.valueOf(value).length();
   }
 

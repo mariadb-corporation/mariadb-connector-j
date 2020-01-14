@@ -69,7 +69,7 @@ public class FloatParameter implements Cloneable, ParameterHolder {
     os.write(String.valueOf(value).getBytes());
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return String.valueOf(value).getBytes().length;
   }
 

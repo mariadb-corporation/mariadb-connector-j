@@ -155,7 +155,7 @@ public class ComQuery {
         int parameterLength = 0;
         boolean knownParameterSize = true;
         for (ParameterHolder parameter : parameters) {
-          long paramSize = parameter.getApproximateTextProtocolLength();
+          int paramSize = parameter.getApproximateTextProtocolLength();
           if (paramSize == -1) {
             knownParameterSize = false;
             break;
@@ -214,7 +214,7 @@ public class ComQuery {
         int parameterLength = 0;
         boolean knownParameterSize = true;
         for (ParameterHolder parameter : parameters) {
-          long paramSize = parameter.getApproximateTextProtocolLength();
+          int paramSize = parameter.getApproximateTextProtocolLength();
           if (paramSize == -1) {
             knownParameterSize = false;
             break;

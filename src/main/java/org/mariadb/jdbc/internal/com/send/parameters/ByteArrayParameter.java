@@ -80,7 +80,7 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
     pos.write(QUOTE);
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return bytes.length * 2;
   }
 

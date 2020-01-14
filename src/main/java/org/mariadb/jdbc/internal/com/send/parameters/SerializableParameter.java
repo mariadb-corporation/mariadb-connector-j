@@ -99,7 +99,7 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
    * @return approximated data length.
    * @throws IOException if error reading stream
    */
-  public long getApproximateTextProtocolLength() throws IOException {
+  public int getApproximateTextProtocolLength() throws IOException {
     writeObjectToBytes();
     return loadedStream.length;
   }

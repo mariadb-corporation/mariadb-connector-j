@@ -893,7 +893,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     cmdPrologue();
 
-    ParameterHolder[] parameters;
     int currentIndex = 0;
     int totalParameterList = parameterList.size();
 

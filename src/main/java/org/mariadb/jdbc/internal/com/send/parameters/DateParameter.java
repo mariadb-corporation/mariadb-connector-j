@@ -103,7 +103,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     return sdf.format(date).getBytes();
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 16;
   }
 

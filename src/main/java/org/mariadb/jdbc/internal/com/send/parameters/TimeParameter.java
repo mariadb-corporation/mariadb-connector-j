@@ -106,7 +106,7 @@ public class TimeParameter implements Cloneable, ParameterHolder {
     pos.write(QUOTE);
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 15;
   }
 

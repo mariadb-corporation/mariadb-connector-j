@@ -70,7 +70,7 @@ public class BigDecimalParameter implements Cloneable, ParameterHolder {
     pos.write(bigDecimal.toPlainString().getBytes());
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return bigDecimal.toPlainString().getBytes().length;
   }
 
