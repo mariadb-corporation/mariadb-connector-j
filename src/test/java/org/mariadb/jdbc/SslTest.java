@@ -330,7 +330,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1,TLSv1.1,TLSv1.2");
     } else {
-      useSslForceTls("TLSv1,TLSv1");
+      useSslForceTls("TLSv1,TLSv1.1");
     }
   }
 
@@ -339,7 +339,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
     } else {
-      useSslForceTls("TLSv1, TLSv1");
+      useSslForceTls("TLSv1, TLSv1.1");
     }
   }
 
@@ -348,7 +348,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1 TLSv1.1 TLSv1.2");
     } else {
-      useSslForceTls("TLSv1 TLSv1");
+      useSslForceTls("TLSv1 TLSv1.1");
     }
   }
 

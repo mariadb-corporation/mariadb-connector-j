@@ -778,7 +778,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     lock.lock();
     try {
       //search in cache first
-      if (options.cachePrepStmts) {
+      if (options.cachePrepStmts && options.useServerPrepStmts) {
         ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
         if (pr != null && pr.incrementShareCounter()) {
           return pr;
