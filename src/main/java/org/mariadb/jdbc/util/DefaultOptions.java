@@ -680,7 +680,13 @@ public enum DefaultOptions {
       "Permit to get MySQL server key retrieval",
       false),
   TLS_SOCKET_TYPE(
-      "tlsSocketType", (String) null, "2.5.0", "Indicate TLS socket type implementation", false);
+      "tlsSocketType", (String) null, "2.5.0", "Indicate TLS socket type implementation", false),
+  TRACK_SCHEMA(
+      "trackSchema",
+      Boolean.TRUE,
+      "2.6.0",
+      "manage session_track_schema setting when server has CLIENT_SESSION_TRACK capability",
+      false);
 
   private final String optionName;
   private final String description;

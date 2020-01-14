@@ -63,6 +63,7 @@ public class Options implements Cloneable {
   public String localSocketAddress;
   public Integer socketTimeout;
   public boolean allowMultiQueries;
+  public boolean trackSchema = true;
   public boolean rewriteBatchedStatements;
   public boolean useCompression;
   public boolean interactiveClient;
