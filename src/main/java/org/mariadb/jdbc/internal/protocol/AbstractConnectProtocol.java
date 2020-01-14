@@ -852,7 +852,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     StringBuilder sessionOption =
         new StringBuilder("autocommit=").append(options.autocommit ? "1" : "0");
     if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
-      sessionOption.append(", session_track_schema=1");
+      if (options.trackSchema) {
+        sessionOption.append(", session_track_schema=1");
+      }
       if (options.rewriteBatchedStatements) {
         sessionOption.append(", session_track_system_variables='auto_increment_increment' ");
       }
