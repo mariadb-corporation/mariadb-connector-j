@@ -726,7 +726,7 @@ public class Utils {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
           outputStream.write(byteArr[0]);
-          outputStream.write(byteArr[1], offset, length);
+          outputStream.write(byteArr[1], offset, Math.min(length, byteArr[1].length));
           for (int i = 2; i < byteArr.length; i++) {
             outputStream.write(byteArr[i]);
           }
