@@ -24,8 +24,8 @@ package org.mariadb.jdbc.authentication;
 
 import org.mariadb.jdbc.Driver;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.ServiceLoader;
 
 public class AuthenticationPluginLoader {
 

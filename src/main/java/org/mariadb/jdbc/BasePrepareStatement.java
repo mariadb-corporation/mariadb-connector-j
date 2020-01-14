@@ -52,18 +52,21 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.*;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.io.*;
-import java.math.*;
-import java.net.*;
-import java.sql.Date;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URL;
 import java.sql.*;
 import java.time.*;
-import java.time.format.*;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 public abstract class BasePrepareStatement extends MariaDbStatement implements PreparedStatement {
 

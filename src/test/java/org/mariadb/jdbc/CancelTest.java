@@ -52,11 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.Arrays;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 

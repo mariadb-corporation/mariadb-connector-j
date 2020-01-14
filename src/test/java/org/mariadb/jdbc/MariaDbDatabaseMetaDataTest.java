@@ -52,11 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
 

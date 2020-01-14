@@ -52,9 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.*;
+import java.io.IOException;
 
 /** Used for starting ssl connections. */
 public class SendSslConnectionRequestPacket {

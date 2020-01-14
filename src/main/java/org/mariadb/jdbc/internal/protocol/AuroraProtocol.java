@@ -52,19 +52,21 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.impl.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-import java.net.*;
-import java.sql.*;
+import java.net.SocketException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.locks.*;
+import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 

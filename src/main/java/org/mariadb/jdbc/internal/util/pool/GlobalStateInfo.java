@@ -22,7 +22,7 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import java.sql.*;
+import java.sql.Connection;
 
 public class GlobalStateInfo {
 

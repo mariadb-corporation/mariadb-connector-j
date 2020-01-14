@@ -52,10 +52,13 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
 
 @SuppressWarnings("RedundantThrows")
 public interface PacketOutputStream {

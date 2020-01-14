@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import java.io.*;
+import java.io.Serializable;
 
 public class SerializableClass implements Serializable {
 

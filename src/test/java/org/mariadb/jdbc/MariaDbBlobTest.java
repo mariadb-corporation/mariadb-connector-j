@@ -1,9 +1,11 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Test;
 
-import java.io.*;
-import java.sql.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.sql.SQLException;
 
 import static org.junit.Assert.*;
 

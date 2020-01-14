@@ -52,8 +52,8 @@
 
 package org.mariadb.jdbc;
 
-import javax.sql.*;
-import javax.transaction.xa.*;
+import javax.sql.XAConnection;
+import javax.transaction.xa.XAResource;
 
 public class MariaXaConnection extends MariaDbPooledConnection implements XAConnection {
 

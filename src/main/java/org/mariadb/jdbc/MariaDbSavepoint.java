@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.Savepoint;
 
 public class MariaDbSavepoint implements Savepoint {
 

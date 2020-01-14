@@ -22,15 +22,22 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
-import javax.management.*;
-import java.lang.management.*;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 

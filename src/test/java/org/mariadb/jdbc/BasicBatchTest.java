@@ -52,7 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.sql.*;
 

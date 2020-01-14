@@ -52,11 +52,13 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class ColumnNameMap {
 

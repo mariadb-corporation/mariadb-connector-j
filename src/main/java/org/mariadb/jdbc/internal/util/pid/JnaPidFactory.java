@@ -52,10 +52,12 @@
 
 package org.mariadb.jdbc.internal.util.pid;
 
-import com.sun.jna.*;
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.Platform;
+import com.sun.jna.platform.win32.Kernel32;
 
-import java.util.function.*;
+import java.util.function.Supplier;
 
 public class JnaPidFactory {
   private static Supplier<String> instance;

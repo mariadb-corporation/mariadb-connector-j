@@ -52,14 +52,17 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class Results {
 

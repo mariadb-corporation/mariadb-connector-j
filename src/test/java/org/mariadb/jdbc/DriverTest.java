@@ -52,17 +52,22 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.util.*;
+import com.sun.jna.Platform;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.DeRegister;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
-import java.math.*;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 

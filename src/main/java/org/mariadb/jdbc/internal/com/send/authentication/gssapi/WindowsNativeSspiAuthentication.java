@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import com.sun.jna.platform.win32.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import waffle.windows.auth.*;
-import waffle.windows.auth.impl.*;
+import com.sun.jna.platform.win32.Sspi;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import waffle.windows.auth.IWindowsSecurityContext;
+import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
-import java.io.*;
-import java.util.concurrent.atomic.*;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WindowsNativeSspiAuthentication implements GssapiAuth {
 

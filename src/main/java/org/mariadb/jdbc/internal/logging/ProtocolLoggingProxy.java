@@ -52,16 +52,21 @@
 
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.LogQueryTool;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.util.Options;
 
-import java.lang.reflect.*;
-import java.nio.charset.*;
-import java.text.*;
-import java.util.*;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.List;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 

@@ -22,10 +22,10 @@
 
 package org.mariadb.jdbc.tls;
 
-import org.mariadb.jdbc.internal.protocol.tls.*;
+import org.mariadb.jdbc.internal.protocol.tls.DefaultTlsSocketPlugin;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.ServiceLoader;
 
 public class TlsSocketPluginLoader {
 

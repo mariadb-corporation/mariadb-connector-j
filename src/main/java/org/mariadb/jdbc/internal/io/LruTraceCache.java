@@ -52,12 +52,15 @@
 
 package org.mariadb.jdbc.internal.io;
 
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import java.time.*;
-import java.time.format.*;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 

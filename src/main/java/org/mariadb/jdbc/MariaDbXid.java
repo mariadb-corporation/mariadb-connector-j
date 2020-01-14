@@ -52,8 +52,8 @@
 
 package org.mariadb.jdbc;
 
-import javax.transaction.xa.*;
-import java.util.*;
+import javax.transaction.xa.Xid;
+import java.util.Arrays;
 
 public class MariaDbXid implements Xid {
 

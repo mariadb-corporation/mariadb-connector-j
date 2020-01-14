@@ -22,22 +22,32 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbPooledConnection;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import org.mariadb.jdbc.util.Options;
 
-import javax.management.*;
-import javax.sql.*;
-import java.lang.management.*;
-import java.sql.*;
-import java.text.*;
-import java.util.*;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import java.lang.management.ManagementFactory;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Pool implements AutoCloseable, PoolMBean {
 

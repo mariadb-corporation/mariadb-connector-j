@@ -52,18 +52,25 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-import java.sql.*;
-import java.util.*;
-import java.util.logging.*;
-import java.util.regex.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AuroraListener extends MastersSlavesListener {
 

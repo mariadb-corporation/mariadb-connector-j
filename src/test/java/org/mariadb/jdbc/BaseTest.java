@@ -52,23 +52,27 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
+import com.sun.jna.Platform;
 import org.junit.*;
-import org.junit.rules.*;
-import org.junit.runner.*;
-import org.mariadb.jdbc.failover.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.util.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mariadb.jdbc.failover.TcpProxy;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.lang.Thread.*;
-import java.lang.reflect.*;
-import java.net.*;
+import java.io.IOException;
+import java.lang.Thread.State;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
-import java.text.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
-import java.util.regex.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 

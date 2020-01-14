@@ -52,11 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import java.sql.Date;
 import java.sql.*;
-import java.util.*;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 import static org.junit.Assert.*;
 

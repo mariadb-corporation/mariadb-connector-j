@@ -52,14 +52,20 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import java.io.*;
-import java.lang.Thread.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.Thread.State;
 import java.sql.*;
-import java.util.*;
+import java.util.Iterator;
+import java.util.Properties;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 

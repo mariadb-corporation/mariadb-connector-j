@@ -52,7 +52,8 @@
 
 package org.mariadb.jdbc;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /** Output stream for the blob. */
 class BlobOutputStream extends OutputStream {

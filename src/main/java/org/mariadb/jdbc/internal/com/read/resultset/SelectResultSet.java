@@ -22,29 +22,41 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbClob;
+import org.mariadb.jdbc.MariaDbResultSetMetaData;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.util.Options;
 
 import java.io.*;
-import java.math.*;
-import java.net.*;
-import java.nio.charset.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.*;
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.locks.*;
+import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.com.Packet.*;
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
-import static org.mariadb.jdbc.internal.util.constant.ServerStatus.*;
+import static org.mariadb.jdbc.internal.com.Packet.EOF;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
 @SuppressWarnings({
   "deprecation",

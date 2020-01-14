@@ -52,11 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.protocol.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.lang.reflect.*;
-import java.sql.*;
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class AttributeTest extends BaseTest {
 

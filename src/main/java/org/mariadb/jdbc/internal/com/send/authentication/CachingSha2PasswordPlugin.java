@@ -22,17 +22,20 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import org.mariadb.jdbc.authentication.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.security.*;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 

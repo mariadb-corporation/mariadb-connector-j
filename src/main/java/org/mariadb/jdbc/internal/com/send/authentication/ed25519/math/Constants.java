@@ -9,7 +9,7 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
 
 final class Constants {
 

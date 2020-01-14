@@ -52,15 +52,16 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.io.*;
-import java.sql.*;
+import java.io.IOException;
+import java.sql.SQLException;
 
 import static org.mariadb.jdbc.internal.com.Packet.*;
 

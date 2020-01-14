@@ -33,7 +33,9 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import java.io.*;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Permit to buffer socket data, reading not only asked bytes, but available number of bytes when

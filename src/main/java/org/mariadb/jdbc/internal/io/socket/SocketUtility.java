@@ -1,9 +1,9 @@
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.*;
-import org.mariadb.jdbc.internal.util.*;
+import com.sun.jna.Platform;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import java.io.*;
+import java.io.IOException;
 
 public class SocketUtility {
 

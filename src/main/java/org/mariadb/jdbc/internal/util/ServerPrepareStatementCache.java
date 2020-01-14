@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class ServerPrepareStatementCache extends LinkedHashMap<String, ServerPrepareResult> {
 

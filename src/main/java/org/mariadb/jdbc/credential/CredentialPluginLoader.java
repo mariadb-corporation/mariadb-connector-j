@@ -23,8 +23,8 @@ package org.mariadb.jdbc.credential;
 
 import org.mariadb.jdbc.Driver;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.ServiceLoader;
 
 /**
  * Provider to handle plugin authentication. This can allow library users to override our default

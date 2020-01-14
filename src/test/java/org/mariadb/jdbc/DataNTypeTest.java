@@ -52,10 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Test;
 
-import java.io.*;
-import java.sql.*;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
 
 import static org.junit.Assert.*;
 

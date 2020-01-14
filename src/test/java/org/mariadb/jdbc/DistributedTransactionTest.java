@@ -52,12 +52,18 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import javax.sql.*;
-import javax.transaction.xa.*;
-import java.sql.*;
-import java.util.*;
+import javax.sql.XAConnection;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 

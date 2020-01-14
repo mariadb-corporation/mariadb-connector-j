@@ -52,12 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.util.constant.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
-import java.nio.charset.*;
-import java.sql.*;
+import java.nio.charset.StandardCharsets;
+import java.sql.Types;
 
 public class ColumnInformation {
 

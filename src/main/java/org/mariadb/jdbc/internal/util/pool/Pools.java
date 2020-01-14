@@ -22,12 +22,14 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Pools {
 

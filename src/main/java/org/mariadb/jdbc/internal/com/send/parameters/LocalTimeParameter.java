@@ -23,11 +23,11 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.*;
-import java.time.*;
+import java.io.IOException;
+import java.time.LocalTime;
 
 public class LocalTimeParameter implements Cloneable, ParameterHolder {
 

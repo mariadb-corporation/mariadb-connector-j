@@ -52,12 +52,16 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.*;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
+import org.mariadb.jdbc.BaseTest;
 
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class AllowMasterDownTest extends BaseTest {
 

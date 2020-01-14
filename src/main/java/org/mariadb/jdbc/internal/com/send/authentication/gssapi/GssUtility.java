@@ -1,6 +1,6 @@
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import com.sun.jna.*;
+import com.sun.jna.Platform;
 
 public class GssUtility {
 

@@ -9,7 +9,7 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
-import java.io.*;
+import java.io.Serializable;
 
 /**
  * An EdDSA finite field. Includes several pre-computed values.

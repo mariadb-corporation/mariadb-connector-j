@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Test;
 
 import java.sql.*;
 

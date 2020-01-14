@@ -1,13 +1,16 @@
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.junit.*;
+import org.junit.Test;
 
-import javax.net.ssl.*;
-import javax.security.auth.x500.*;
-import java.io.*;
-import java.security.cert.*;
+import javax.net.ssl.SSLException;
+import javax.security.auth.x500.X500Principal;
+import java.io.ByteArrayInputStream;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class HostnameVerifierImplTest {
 

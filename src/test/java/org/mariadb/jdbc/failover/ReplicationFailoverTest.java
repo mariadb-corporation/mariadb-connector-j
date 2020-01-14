@@ -52,11 +52,17 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.constant.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.*;
-import java.util.concurrent.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 

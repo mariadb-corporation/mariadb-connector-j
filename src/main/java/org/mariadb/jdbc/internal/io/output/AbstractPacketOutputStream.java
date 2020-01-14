@@ -52,12 +52,12 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 import java.io.*;
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream
     implements PacketOutputStream {

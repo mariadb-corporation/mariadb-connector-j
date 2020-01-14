@@ -52,10 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import com.zaxxer.hikari.*;
-import org.junit.*;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import javax.sql.*;
+import javax.sql.DataSource;
 import java.sql.*;
 
 public class ConnectionPoolTest extends BaseTest {

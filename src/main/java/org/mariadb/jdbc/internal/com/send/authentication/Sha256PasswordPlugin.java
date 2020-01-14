@@ -22,20 +22,25 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import org.mariadb.jdbc.authentication.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
-import javax.crypto.*;
-import java.io.*;
-import java.nio.file.*;
-import java.security.*;
-import java.security.spec.*;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import javax.crypto.Cipher;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Sha256PasswordPlugin implements AuthenticationPlugin {
 

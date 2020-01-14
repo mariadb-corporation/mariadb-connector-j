@@ -52,9 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.sql.*;
+import java.sql.ResultSet;
 
 public interface CmdInformation {
 

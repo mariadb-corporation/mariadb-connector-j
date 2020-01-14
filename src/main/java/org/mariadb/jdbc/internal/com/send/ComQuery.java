@@ -52,14 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.com.Packet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
-import java.io.*;
-import java.nio.charset.*;
-import java.util.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class ComQuery {
 

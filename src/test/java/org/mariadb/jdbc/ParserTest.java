@@ -52,12 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.util.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
 

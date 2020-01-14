@@ -52,8 +52,8 @@
 
 package org.mariadb.jdbc.internal.util.pid;
 
-import java.lang.reflect.*;
-import java.util.function.*;
+import java.lang.reflect.Method;
+import java.util.function.Supplier;
 
 public class PidFactory {
   private static Supplier<String> instance;

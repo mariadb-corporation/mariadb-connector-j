@@ -1,7 +1,8 @@
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.*;
+import org.junit.Assert;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.ColumnType;
 
 public class ColumnInformationTest {
 

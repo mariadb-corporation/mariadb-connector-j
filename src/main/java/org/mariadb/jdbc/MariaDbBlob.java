@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
-import java.sql.*;
-import java.util.*;
+import java.sql.Blob;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 public class MariaDbBlob implements Blob, Serializable {
 

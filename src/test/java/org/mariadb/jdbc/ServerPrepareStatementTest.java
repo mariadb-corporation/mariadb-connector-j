@@ -52,16 +52,23 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.protocol.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.*;
-import java.math.*;
-import java.nio.charset.*;
-import java.sql.Date;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 

@@ -52,22 +52,27 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.nio.charset.*;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
-import java.util.regex.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MariaDbStatement implements Statement, Cloneable {
 

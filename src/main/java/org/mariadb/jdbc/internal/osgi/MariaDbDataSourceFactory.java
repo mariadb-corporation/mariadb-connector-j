@@ -52,12 +52,15 @@
 package org.mariadb.jdbc.internal.osgi;
 
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.*;
-import org.osgi.service.jdbc.*;
+import org.mariadb.jdbc.MariaDbDataSource;
+import org.mariadb.jdbc.MariaDbPoolDataSource;
+import org.osgi.service.jdbc.DataSourceFactory;
 
-import javax.sql.*;
-import java.sql.*;
-import java.util.*;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
+import javax.sql.XADataSource;
+import java.sql.SQLException;
+import java.util.Properties;
 
 public class MariaDbDataSourceFactory implements DataSourceFactory {
 

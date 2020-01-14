@@ -52,14 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
-import java.io.*;
-import java.nio.charset.*;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.*;
+import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 public class StatementTest extends BaseTest {

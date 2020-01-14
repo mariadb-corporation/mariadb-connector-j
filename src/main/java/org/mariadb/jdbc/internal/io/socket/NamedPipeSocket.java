@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.Kernel32;
 
 import java.io.*;
-import java.net.*;
-import java.util.concurrent.*;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {

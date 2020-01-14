@@ -52,13 +52,16 @@
 
 package org.mariadb.jdbc.internal.util.exceptions;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.util.SqlStates;
 
 import java.sql.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class ExceptionMapper {
 

@@ -52,26 +52,37 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.impl.*;
-import org.mariadb.jdbc.internal.io.socket.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
+import org.mariadb.jdbc.internal.io.socket.SocketUtility;
+import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
+import org.mariadb.jdbc.internal.protocol.MasterProtocol;
+import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.util.Options;
 
-import javax.net.*;
-import java.io.*;
+import javax.net.SocketFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
-import java.lang.reflect.*;
-import java.net.*;
-import java.security.*;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.locks.*;
-import java.util.regex.*;
+import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("Annotator")
 public class Utils {
@@ -274,7 +285,8 @@ public class Utils {
     }
 
     for (;
-        ((input[index] >= 'a' && input[index] <= 'z') || (input[index] >= 'A' && input[index] <= 'Z'))
+        ((input[index] >= 'a' && input[index] <= 'z')
+                || (input[index] >= 'A' && input[index] <= 'Z'))
             && index < input.length;
         index++) {
       sb.append(input[index]);
@@ -711,19 +723,18 @@ public class Utils {
         return outputBuilder.toString();
 
       default:
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-          outputStream.write( byteArr[0] );
-          outputStream.write( byteArr[1], offset, length );
-          for (int i = 2; i< byteArr.length; i++) {
-            outputStream.write( byteArr[i] );
+          outputStream.write(byteArr[0]);
+          outputStream.write(byteArr[1], offset, length);
+          for (int i = 2; i < byteArr.length; i++) {
+            outputStream.write(byteArr[i]);
           }
         } catch (IOException ioe) {
           // eat
         }
 
-        byte[] concat = outputStream.toByteArray( );
+        byte[] concat = outputStream.toByteArray();
         if (concat.length <= offset) {
           return "";
         }
@@ -768,9 +779,9 @@ public class Utils {
     int posHexa = 0;
 
     outputBuilder.append(
-            "+--------------------------------------------------+\n"
-          + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-          + "+--------------------------------------------------+------------------+\n| ");
+        "+--------------------------------------------------+\n"
+            + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+            + "+--------------------------------------------------+------------------+\n| ");
 
     while (pos < dataLength + offset) {
       int byteValue = bytes[pos] & 0xFF;
@@ -808,11 +819,10 @@ public class Utils {
         hexaValue[posHexa] = ' ';
       }
 
-      outputBuilder.append("| ")
-              .append(hexaValue)
-              .append(" |\n");
+      outputBuilder.append("| ").append(hexaValue).append(" |\n");
     }
-    outputBuilder.append("+--------------------------------------------------+------------------+\n");
+    outputBuilder.append(
+        "+--------------------------------------------------+------------------+\n");
   }
 
   private static String getHex(final byte[] raw) {

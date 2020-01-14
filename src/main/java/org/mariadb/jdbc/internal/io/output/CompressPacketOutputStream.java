@@ -52,15 +52,19 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import java.io.*;
-import java.util.*;
-import java.util.zip.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.zip.DeflaterOutputStream;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 

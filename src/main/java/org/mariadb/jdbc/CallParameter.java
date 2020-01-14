@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.Types;
 
 /** Info about in/out parameters. */
 class CallParameter {

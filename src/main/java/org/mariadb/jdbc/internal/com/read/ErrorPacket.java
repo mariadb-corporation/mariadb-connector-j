@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.*;
+import java.nio.charset.StandardCharsets;
 
 public class ErrorPacket {
 

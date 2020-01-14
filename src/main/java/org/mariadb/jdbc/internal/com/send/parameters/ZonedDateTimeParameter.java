@@ -52,14 +52,16 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.time.*;
-import java.time.format.*;
-import java.util.*;
+import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String

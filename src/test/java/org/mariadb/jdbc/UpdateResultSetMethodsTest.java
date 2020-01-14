@@ -52,9 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 
 public class UpdateResultSetMethodsTest extends BaseTest {
 

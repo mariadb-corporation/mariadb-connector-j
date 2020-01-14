@@ -21,13 +21,17 @@
 
 package org.mariadb.jdbc.credential.aws;
 
-import com.amazonaws.auth.*;
-import com.amazonaws.regions.*;
-import com.amazonaws.services.rds.auth.*;
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.credential.*;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.DefaultAwsRegionProviderChain;
+import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
+import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.credential.Credential;
 
-import java.util.*;
+import java.util.Properties;
 
 public class AwsCredentialGenerator {
 

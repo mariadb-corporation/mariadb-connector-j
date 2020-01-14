@@ -53,14 +53,22 @@
 package org.mariadb.jdbc.internal.io.socket;
 
 import com.sun.jna.*;
-import com.sun.jna.platform.win32.BaseTSD.*;
-import com.sun.jna.platform.win32.WinNT.*;
-import com.sun.jna.ptr.*;
-import com.sun.jna.win32.*;
+import com.sun.jna.platform.win32.BaseTSD.SIZE_T;
+import com.sun.jna.platform.win32.WinNT.HANDLE;
+import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
+import com.sun.jna.win32.StdCallLibrary;
+import com.sun.jna.win32.W32APIFunctionMapper;
+import com.sun.jna.win32.W32APITypeMapper;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SharedMemorySocket extends Socket {
 

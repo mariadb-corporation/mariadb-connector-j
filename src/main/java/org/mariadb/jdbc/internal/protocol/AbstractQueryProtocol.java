@@ -52,29 +52,53 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.LocalInfileInterceptor;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.UpdatableResultSet;
+import org.mariadb.jdbc.internal.com.send.ComQuery;
+import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.SendChangeDbPacket;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.BulkStatus;
+import org.mariadb.jdbc.internal.util.LogQueryTool;
+import org.mariadb.jdbc.internal.util.SqlStates;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.ServerStatus;
+import org.mariadb.jdbc.internal.util.constant.StateChange;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.io.*;
-import java.net.*;
-import java.nio.charset.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
@@ -777,7 +801,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     cmdPrologue();
     lock.lock();
     try {
-      //search in cache first
+      // search in cache first
       if (options.cachePrepStmts && options.useServerPrepStmts) {
         ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
         if (pr != null && pr.incrementShareCounter()) {

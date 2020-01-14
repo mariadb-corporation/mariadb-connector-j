@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ClientPrepareResult implements PrepareResult {
 

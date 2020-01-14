@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
 
 public class ComMultiPrepareStatementTest extends BaseTest {
 

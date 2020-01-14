@@ -21,11 +21,11 @@
 
 package org.mariadb.jdbc.credential;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.util.Options;
 
-import java.sql.*;
-import java.util.function.*;
+import java.sql.SQLException;
+import java.util.function.Supplier;
 
 public interface CredentialPlugin extends Supplier<Credential> {
 

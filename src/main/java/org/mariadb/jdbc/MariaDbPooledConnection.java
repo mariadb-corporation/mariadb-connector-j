@@ -53,10 +53,13 @@
 package org.mariadb.jdbc;
 
 import javax.sql.*;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MariaDbPooledConnection implements PooledConnection {
 

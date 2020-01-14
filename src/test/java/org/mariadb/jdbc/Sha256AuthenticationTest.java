@@ -1,11 +1,15 @@
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
-import org.junit.*;
+import com.sun.jna.Platform;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class Sha256AuthenticationTest extends BaseTest {
 

@@ -52,11 +52,14 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
 
 import java.sql.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 

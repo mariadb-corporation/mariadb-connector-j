@@ -1,8 +1,9 @@
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.util.DefaultOptions;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class OptionUtils {
 

@@ -52,20 +52,28 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.CallableStatementCache;
+import org.mariadb.jdbc.internal.util.ConnectionState;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.util.Options;
 
-import java.net.*;
+import java.net.SocketException;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
-import java.util.regex.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("Annotator")
 public class MariaDbConnection implements Connection {

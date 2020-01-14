@@ -52,15 +52,17 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.util.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 

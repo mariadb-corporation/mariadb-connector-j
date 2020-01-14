@@ -52,14 +52,17 @@
 package org.mariadb.jdbc.internal.osgi;
 
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.scheduler.*;
-import org.osgi.framework.*;
-import org.osgi.service.jdbc.*;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.osgi.framework.BundleActivator;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.jdbc.DataSourceFactory;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.DriverManager;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 /** The MariaDbActivator registers the JDBC Service with the OSGi-Framework. */
 public class MariaDbActivator implements BundleActivator {

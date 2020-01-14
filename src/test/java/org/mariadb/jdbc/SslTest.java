@@ -52,18 +52,26 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
-import org.junit.*;
-import org.mariadb.jdbc.tls.*;
-import org.mariadb.jdbc.util.*;
+import com.sun.jna.Platform;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
+import org.mariadb.jdbc.util.Options;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.*;
-import java.lang.reflect.*;
-import java.net.*;
-import java.security.*;
+import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.security.cert.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.sql.*;
 import java.util.*;
 

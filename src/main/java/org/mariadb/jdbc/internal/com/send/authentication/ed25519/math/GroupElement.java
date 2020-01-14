@@ -9,10 +9,10 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
 
-import java.io.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * A point $(x,y)$ on an EdDSA curve.

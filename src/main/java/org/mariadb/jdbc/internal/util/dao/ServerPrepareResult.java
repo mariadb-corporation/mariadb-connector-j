@@ -52,11 +52,11 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.protocol.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
 

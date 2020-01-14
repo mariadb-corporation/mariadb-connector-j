@@ -52,12 +52,14 @@
 
 package org.mariadb.jdbc.internal.failover.thread;
 
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.internal.failover.Listener;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ConnectionValidator {
 

@@ -1,14 +1,21 @@
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import javax.naming.*;
-import javax.naming.ldap.*;
-import javax.net.ssl.*;
-import javax.security.auth.x500.*;
-import java.net.*;
-import java.security.cert.*;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.security.auth.x500.X500Principal;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateParsingException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 public class HostnameVerifierImpl implements HostnameVerifier {

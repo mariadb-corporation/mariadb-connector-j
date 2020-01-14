@@ -53,7 +53,7 @@
 package org.mariadb.jdbc.internal.util.scheduler;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provider for when ever an internal thread pool is needed. This can allow library users to

@@ -52,19 +52,26 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.util.SqlStates;
+import org.mariadb.jdbc.util.Options;
 
-import javax.net.ssl.*;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.*;
-import java.net.*;
-import java.security.*;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.security.cert.*;
-import java.sql.*;
-import java.util.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.UUID;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
 

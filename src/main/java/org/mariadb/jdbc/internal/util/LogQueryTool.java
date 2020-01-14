@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.util.Options;
 
-import java.net.*;
-import java.nio.*;
-import java.sql.*;
+import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
+import java.sql.SQLException;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class LogQueryTool {
 

@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
 

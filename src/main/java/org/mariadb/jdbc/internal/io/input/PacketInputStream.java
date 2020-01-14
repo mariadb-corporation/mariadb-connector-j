@@ -52,10 +52,10 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.*;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 
-import java.io.*;
+import java.io.IOException;
 
 public interface PacketInputStream {
 

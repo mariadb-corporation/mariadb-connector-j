@@ -52,20 +52,26 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.BulkStatus;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.io.*;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
 

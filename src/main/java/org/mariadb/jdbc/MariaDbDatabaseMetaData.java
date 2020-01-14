@@ -52,17 +52,21 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.dao.Identifier;
+import org.mariadb.jdbc.util.Options;
 
 import java.sql.*;
-import java.text.*;
-import java.util.*;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 

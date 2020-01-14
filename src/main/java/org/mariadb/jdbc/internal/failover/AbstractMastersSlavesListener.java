@@ -52,15 +52,17 @@
 
 package org.mariadb.jdbc.internal.failover;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.pool.*;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-import java.lang.reflect.*;
-import java.sql.*;
-import java.util.concurrent.atomic.*;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 

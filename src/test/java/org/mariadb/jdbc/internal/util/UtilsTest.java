@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
 
 import static org.junit.Assert.*;
 

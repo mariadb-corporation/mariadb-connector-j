@@ -52,11 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.constant.*;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
 

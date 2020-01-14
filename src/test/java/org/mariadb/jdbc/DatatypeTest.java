@@ -52,12 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
-import java.math.*;
-import java.net.*;
-import java.nio.charset.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
 import static org.junit.Assert.*;

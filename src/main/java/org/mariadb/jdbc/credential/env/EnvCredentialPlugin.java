@@ -21,9 +21,10 @@
 
 package org.mariadb.jdbc.credential.env;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.credential.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.credential.Credential;
+import org.mariadb.jdbc.credential.CredentialPlugin;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Authentication using environment variable.

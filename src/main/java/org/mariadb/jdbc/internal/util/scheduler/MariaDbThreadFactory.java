@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.util.scheduler;
 
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MariaDbThreadFactory implements ThreadFactory {
 

@@ -52,10 +52,11 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.util.dao.*;
+import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.CallableStatement;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class CallableStatementCache
     extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {

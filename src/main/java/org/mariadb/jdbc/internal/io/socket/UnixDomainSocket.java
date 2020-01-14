@@ -52,12 +52,18 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
-import com.sun.jna.*;
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Native;
+import com.sun.jna.Platform;
+import com.sun.jna.Structure;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UnixDomainSocket extends Socket {
 

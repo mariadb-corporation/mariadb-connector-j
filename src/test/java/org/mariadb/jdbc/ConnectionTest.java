@@ -53,13 +53,14 @@
 package org.mariadb.jdbc;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.net.*;
-import java.nio.charset.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executor;
 
 import static org.junit.Assert.*;
 

@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Buffer {
 

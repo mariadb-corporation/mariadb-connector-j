@@ -52,12 +52,13 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import javax.net.ssl.*;
-import javax.security.auth.x500.*;
-import java.net.*;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.security.auth.x500.X500Principal;
+import java.net.Socket;
 import java.security.*;
 import java.security.cert.Certificate;
-import java.security.cert.*;
+import java.security.cert.X509Certificate;
 import java.util.*;
 
 /**

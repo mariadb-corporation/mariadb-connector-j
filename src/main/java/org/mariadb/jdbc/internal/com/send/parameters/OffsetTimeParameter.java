@@ -52,15 +52,17 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
-import java.io.*;
-import java.sql.*;
-import java.time.*;
-import java.time.format.*;
-import java.util.*;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 public class OffsetTimeParameter implements Cloneable, ParameterHolder {
 
