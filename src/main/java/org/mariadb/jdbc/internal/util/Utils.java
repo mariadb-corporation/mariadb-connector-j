@@ -711,17 +711,29 @@ public class Utils {
         return outputBuilder.toString();
 
       default:
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n");
-        byte[] arr;
-        for (int i = 0; i < byteArr.length - 1; i++) {
-          arr = byteArr[i];
-          writeHex(arr, 0, arr.length, sb);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream( );
+        try {
+          outputStream.write( byteArr[0] );
+          outputStream.write( byteArr[1], offset, length );
+          for (int i = 2; i< byteArr.length; i++) {
+            outputStream.write( byteArr[i] );
+          }
+        } catch (IOException ioe) {
+          // eat
         }
-        arr = byteArr[byteArr.length - 1];
-        int dataLength2 = Math.min(maxQuerySizeToLog, Math.min(arr.length - offset, length));
-        writeHex(arr, offset, dataLength2, sb);
-        return sb.toString();
+
+        byte[] concat = outputStream.toByteArray( );
+        if (concat.length <= offset) {
+          return "";
+        }
+
+        int stlength = Math.min(maxQuerySizeToLog, outputStream.size());
+
+        StringBuilder out = new StringBuilder(stlength * 3 + 80);
+        out.append("\n");
+        writeHex(outputStream.toByteArray(), 0, outputStream.size(), out);
+        return out.toString();
     }
   }
 
@@ -755,6 +767,11 @@ public class Utils {
     int pos = offset;
     int posHexa = 0;
 
+    outputBuilder.append(
+            "+--------------------------------------------------+\n"
+          + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+          + "+--------------------------------------------------+------------------+\n| ");
+
     while (pos < dataLength + offset) {
       int byteValue = bytes[pos] & 0xFF;
       outputBuilder
@@ -768,7 +785,7 @@ public class Utils {
         outputBuilder.append(" ");
       }
       if (posHexa == 16) {
-        outputBuilder.append("    ").append(hexaValue).append("\n");
+        outputBuilder.append("| ").append(hexaValue).append(" |\n| ");
         posHexa = 0;
       }
       pos++;
@@ -787,8 +804,15 @@ public class Utils {
         outputBuilder.append("   ");
       }
 
-      outputBuilder.append("    ").append(hexaValue, 0, posHexa).append("\n");
+      for (; posHexa < 16; posHexa++) {
+        hexaValue[posHexa] = ' ';
+      }
+
+      outputBuilder.append("| ")
+              .append(hexaValue)
+              .append(" |\n");
     }
+    outputBuilder.append("+--------------------------------------------------+------------------+\n");
   }
 
   private static String getHex(final byte[] raw) {
