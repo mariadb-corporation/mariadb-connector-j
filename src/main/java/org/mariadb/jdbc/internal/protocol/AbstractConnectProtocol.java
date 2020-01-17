@@ -79,7 +79,6 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -634,7 +633,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
       // (rfc2818 indicate that if "client has external information as to the expected identity of
       // the server, the hostname check MAY be omitted")
       if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
-        HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
         SSLSession session = sslSocket.getSession();
         try {
           socketPlugin.verify(host, session, options, serverThreadId);
@@ -686,12 +684,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     while (true) {
       switch (buffer.getByteAt(0) & 0xFF) {
         case 0xFE:
-          /**
-           * ******************************************************************** Authentication
-           * Switch Request see
-           * https://mariadb.com/kb/en/library/connection/#authentication-switch-request
-           * *******************************************************************
-           */
+          // *************************************************************************************
+          // Authentication Switch Request see
+          // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+          // *************************************************************************************
           sequence.set(reader.getLastPacketSeq());
           AuthenticationPlugin authenticationPlugin;
           if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
@@ -731,11 +727,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
           break;
 
         case 0xFF:
-          /**
-           * ******************************************************************** ERR_Packet see
-           * https://mariadb.com/kb/en/library/err_packet/
-           * *******************************************************************
-           */
+          // *************************************************************************************
+          // ERR_Packet
+          // see https://mariadb.com/kb/en/library/err_packet/
+          // *************************************************************************************
           ErrorPacket errorPacket = new ErrorPacket(buffer);
           if (credential.getPassword() != null
               && !credential.getPassword().isEmpty()
@@ -756,11 +751,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
               errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
 
         case 0x00:
-          /**
-           * ******************************************************************** Authenticated !
-           * OK_Packet see https://mariadb.com/kb/en/library/ok_packet/
-           * *******************************************************************
-           */
+          // *************************************************************************************
+          // OK_Packet -> Authenticated !
+          // see https://mariadb.com/kb/en/library/ok_packet/
+          // *************************************************************************************
           OkPacket okPacket = new OkPacket(buffer);
           serverStatus = okPacket.getServerStatus();
           break authentication_loop;
@@ -1233,8 +1227,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
       close();
     }
 
-    List<HostAddress> addrs = urlParser.getHostAddresses();
-    LinkedList<HostAddress> hosts = new LinkedList<>(addrs);
+    List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+    LinkedList<HostAddress> hosts = new LinkedList<>(hostAddresses);
 
     if (urlParser.getHaMode().equals(HaMode.LOADBALANCE)) {
       Collections.shuffle(hosts);
@@ -1269,7 +1263,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           if (e.getSQLState() != null) {
             throw ExceptionMapper.get(
                 "Could not connect to "
-                    + HostAddress.toString(addrs)
+                    + HostAddress.toString(hostAddresses)
                     + " : "
                     + e.getMessage()
                     + getTraces(),
