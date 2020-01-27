@@ -1,5 +1,11 @@
 # Change Log
 
+## [2.5.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.4) (27 Jan. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.3...2.5.4)
+
+* CONJ-756 - Logging correction when using enablePacketDebug option 
+* CONJ-755 - permits to avoid setting session_track_schema with new option `trackSchema`
+
 ## [2.5.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.3) (07 Jan. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.2...2.5.3)
 
