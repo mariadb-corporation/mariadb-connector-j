@@ -88,7 +88,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -105,17 +104,15 @@ public class ErrorMessageTest extends BaseTest {
           || sharedOptions().useServerPrepStmts
           || sharedOptions().rewriteBatchedStatements) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
       } else {
         if (!sharedOptions().useBatchMultiSend) {
           assertTrue(
-              "message : " + sqle.getCause().getCause().getMessage(),
+              "message : " + sqle.getCause().getMessage(),
               sqle.getCause()
-                  .getCause()
                   .getMessage()
                   .contains(
                       "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
@@ -123,7 +120,6 @@ public class ErrorMessageTest extends BaseTest {
         } else {
           assertTrue(
               sqle.getCause()
-                  .getCause()
                   .getMessage()
                   .contains(
                       "INSERT INTO testErrorMessage(test, test2) values "
@@ -142,7 +138,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -159,15 +154,13 @@ public class ErrorMessageTest extends BaseTest {
           || sharedOptions().useServerPrepStmts
           || sharedOptions().rewriteBatchedStatements) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
       } else {
         assertTrue(
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
@@ -187,7 +180,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values " + "(?, ?)"));
     }
@@ -202,7 +194,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -219,26 +210,23 @@ public class ErrorMessageTest extends BaseTest {
           || sharedOptions().useServerPrepStmts
           || sharedOptions().rewriteBatchedStatements) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
       } else {
         if (!sharedOptions().useBatchMultiSend) {
           assertTrue(
-              "message : " + sqle.getCause().getCause().getMessage(),
+              "message : " + sqle.getCause().getMessage(),
               sqle.getCause()
-                  .getCause()
                   .getMessage()
                   .contains(
                       "INSERT INTO testErrorMessage(test, test2) "
                           + "values (?, ?), parameters ['more than 10 characters to provoc error',200]"));
         } else {
           assertTrue(
-              "message : " + sqle.getCause().getCause().getMessage(),
+              "message : " + sqle.getCause().getMessage(),
               sqle.getCause()
-                  .getCause()
                   .getMessage()
                   .contains(
                       "INSERT INTO testErrorMessage(test, test2) values "
@@ -258,16 +246,14 @@ public class ErrorMessageTest extends BaseTest {
       sqle.printStackTrace();
       if (isMariadbServer() && minVersion(10, 2)) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
       } else {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
@@ -288,15 +274,13 @@ public class ErrorMessageTest extends BaseTest {
           || sharedOptions().useServerPrepStmts
           || sharedOptions().rewriteBatchedStatements)) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
       } else {
         assertTrue(
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
@@ -316,7 +300,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -416,7 +399,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -433,9 +415,8 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       if (!sharedIsAurora()) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
@@ -453,7 +434,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains(
                   "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
@@ -472,7 +452,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains(
                   "INSERT INTO testErrorMessage(test, test2) values "
@@ -492,7 +471,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values " + "(?, ?)"));
     }
@@ -508,7 +486,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
@@ -525,18 +502,16 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       if (!sharedIsAurora()) {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
                         + "('more than 10 characters to provoc error', 200)"));
       } else {
         assertTrue(
-            "message : " + sqle.getCause().getCause().getMessage(),
+            "message : " + sqle.getCause().getMessage(),
             sqle.getCause()
-                .getCause()
                 .getMessage()
                 .contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
@@ -553,9 +528,8 @@ public class ErrorMessageTest extends BaseTest {
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
       assertTrue(
-          "message : " + sqle.getCause().getCause().getMessage(),
+          "message : " + sqle.getCause().getMessage(),
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains(
                   "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
@@ -574,7 +548,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains(
                   "INSERT INTO testErrorMessage(test, test2) values ("
@@ -594,7 +567,6 @@ public class ErrorMessageTest extends BaseTest {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getCause()
-              .getCause()
               .getMessage()
               .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }

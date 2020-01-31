@@ -23,7 +23,7 @@
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.pool.Pool;
 import org.mariadb.jdbc.internal.util.pool.Pools;
 import org.mariadb.jdbc.util.DefaultOptions;
@@ -237,7 +237,7 @@ public class MariaDbPoolDataSource
       }
       return pool.getConnection();
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     }
   }
 
@@ -279,7 +279,7 @@ public class MariaDbPoolDataSource
       return MariaDbConnection.newConnection(urlParser, pool.getGlobalInfo());
 
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     } catch (CloneNotSupportedException cloneException) {
       throw new SQLException("Error in configuration");
     }

@@ -70,27 +70,12 @@ public enum SqlStates {
   INTERRUPTED_EXCEPTION("70"),
   UNDEFINED_SQLSTATE("HY"),
   TIMEOUT_EXCEPTION("JZ"),
-  DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
+  DISTRIBUTED_TRANSACTION_ERROR("XA");
 
   private final String sqlStateGroup;
 
   SqlStates(final String stateGroup) {
     this.sqlStateGroup = stateGroup;
-  }
-
-  /**
-   * Get sqlState from group.
-   *
-   * @param group group
-   * @return sqlState
-   */
-  public static SqlStates fromString(final String group) {
-    for (final SqlStates state : SqlStates.values()) {
-      if (group.startsWith(state.sqlStateGroup)) {
-        return state;
-      }
-    }
-    return UNDEFINED_SQLSTATE;
   }
 
   public String getSqlState() {

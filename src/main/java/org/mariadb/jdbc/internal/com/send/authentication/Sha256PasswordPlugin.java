@@ -88,7 +88,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
         ErrorPacket ep = new ErrorPacket(buffer);
         String message = ep.getMessage();
         throw new SQLException(
-            "Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());
+            "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
 
       case (byte) 0xFE:
         // Erroneous AuthSwitchRequest packet when security exception

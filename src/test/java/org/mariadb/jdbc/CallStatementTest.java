@@ -215,7 +215,7 @@ public class CallStatementTest extends BaseTest {
           e.getMessage().contains("OUT or INOUT argument 1 for routine")
               && e.getMessage()
                   .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
-              && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
+              && e.getMessage().contains("Query is: call inOutParam(1)"));
     }
   }
 

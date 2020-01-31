@@ -291,7 +291,7 @@ public class UpdateResultSetTest extends BaseTest {
     stmt.executeQuery(
         "INSERT INTO testUpdateWithPrimary(t1,t2) values ('1-1','1-2'),('2-1','2-2')");
 
-    String utf8escapeQuote = "你好 '\' \" \\";
+    String utf8escapeQuote = "你好 '' \" \\";
 
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
@@ -353,7 +353,7 @@ public class UpdateResultSetTest extends BaseTest {
     }
     pstmt.executeBatch();
 
-    String utf8escapeQuote = "你好 '\' \" \\";
+    String utf8escapeQuote = "你好 '' \" \\";
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
             "SELECT id, t1, t2 FROM testUpdateWhenFetch",

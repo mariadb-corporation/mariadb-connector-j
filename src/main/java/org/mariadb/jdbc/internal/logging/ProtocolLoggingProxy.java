@@ -54,7 +54,6 @@ package org.mariadb.jdbc.internal.logging;
 
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.LogQueryTool;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -76,7 +75,6 @@ public class ProtocolLoggingProxy implements InvocationHandler {
   private final Long slowQueryThresholdNanos;
   private final int maxQuerySizeToLog;
   private final Protocol protocol;
-  private final LogQueryTool logQuery;
 
   /**
    * Constructor. Will create a proxy around protocol to log queries.
@@ -89,7 +87,6 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     this.profileSql = options.profileSql;
     this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
-    this.logQuery = new LogQueryTool(options);
     this.numberFormat = DecimalFormat.getInstance();
   }
 
@@ -116,7 +113,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 protocol.getServerThreadId(),
                 protocol.isMasterConnection() ? "M" : "S",
                 numberFormat.format(((double) System.nanoTime() - startTime) / 1000000),
-                logQuery.subQuery(sql));
+                subQuery(sql));
           }
           return returnObj;
 
@@ -202,6 +199,19 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         // no default
     }
     return "-unknown-";
+  }
+
+  /**
+   * Get query, truncated if to big.
+   *
+   * @param sql current query
+   * @return possibly truncated query if too big
+   */
+  public String subQuery(String sql) {
+    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog - 3) {
+      return sql.substring(0, maxQuerySizeToLog - 3) + "...";
+    }
+    return sql;
   }
 
   private String getQueryFromPrepareParameters(

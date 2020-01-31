@@ -484,7 +484,7 @@ public class StatementTest extends BaseTest {
         Statement stmt2 = conn2.createStatement();
         conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         try {
-          stmt2.execute("SET SESSION idle_transaction_timeout=2");
+          stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
         } catch (SQLException e) {
           // eat ( for mariadb >= 10.3)
         }
@@ -494,7 +494,7 @@ public class StatementTest extends BaseTest {
           fail("Must have thrown deadlock exception");
         } catch (SQLException sqle) {
           assertTrue(sqle.getMessage().contains("current threads:"));
-          assertTrue(sqle.getMessage().contains("END OF INNODB MONITOR OUTPUT"));
+          assertTrue(sqle.getMessage().contains("deadlock information"));
         }
       }
     }

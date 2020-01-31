@@ -54,7 +54,7 @@ package org.mariadb.jdbc.internal.com.send;
 
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -114,12 +114,12 @@ public class ComStmtPrepare {
       final int numColumns = buffer.readShort() & 0xffff;
       final int numParams = buffer.readShort() & 0xffff;
 
-      ColumnInformation[] params = new ColumnInformation[numParams];
-      ColumnInformation[] columns = new ColumnInformation[numColumns];
+      ColumnDefinition[] params = new ColumnDefinition[numParams];
+      ColumnDefinition[] columns = new ColumnDefinition[numColumns];
 
       if (numParams > 0) {
         for (int i = 0; i < numParams; i++) {
-          params[i] = new ColumnInformation(reader.getPacket(false));
+          params[i] = new ColumnDefinition(reader.getPacket(false));
         }
 
         if (numColumns > 0) {
@@ -127,7 +127,7 @@ public class ComStmtPrepare {
             protocol.skipEofPacket();
           }
           for (int i = 0; i < numColumns; i++) {
-            columns[i] = new ColumnInformation(reader.getPacket(false));
+            columns[i] = new ColumnDefinition(reader.getPacket(false));
           }
         }
         if (!eofDeprecated) {
@@ -136,7 +136,7 @@ public class ComStmtPrepare {
       } else {
         if (numColumns > 0) {
           for (int i = 0; i < numColumns; i++) {
-            columns[i] = new ColumnInformation(reader.getPacket(false));
+            columns[i] = new ColumnDefinition(reader.getPacket(false));
           }
           if (!eofDeprecated) {
             protocol.readEofPacket();
@@ -170,15 +170,15 @@ public class ComStmtPrepare {
   private SQLException buildErrorException(Buffer buffer) {
     ErrorPacket ep = new ErrorPacket(buffer);
     String message = ep.getMessage();
-    if (1054 == ep.getErrorNumber()) {
+    if (1054 == ep.getErrorCode()) {
       return new SQLException(
           message
               + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
               + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
           ep.getSqlState(),
-          ep.getErrorNumber());
+          ep.getErrorCode());
     } else {
-      return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
+      return new SQLException(message, ep.getSqlState(), ep.getErrorCode());
     }
   }
 }

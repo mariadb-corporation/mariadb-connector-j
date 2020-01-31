@@ -29,7 +29,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 import org.mariadb.jdbc.util.Options;
 
@@ -411,14 +411,13 @@ public class Pool implements AutoCloseable, PoolMBean {
         return pooledConnection.getConnection();
       }
 
-      throw ExceptionMapper.connException(
-          "No connection available within the specified time "
-              + "(option 'connectTimeout': "
-              + NumberFormat.getInstance().format(options.connectTimeout)
-              + " ms)");
+      throw ExceptionFactory.INSTANCE.create(
+          String.format(
+              "No connection available within the specified time (option 'connectTimeout': %s ms)",
+              NumberFormat.getInstance().format(options.connectTimeout)));
 
     } catch (InterruptedException interrupted) {
-      throw ExceptionMapper.connException("Thread was interrupted", interrupted);
+      throw ExceptionFactory.INSTANCE.create("Thread was interrupted", "70100", interrupted);
     } finally {
       pendingRequestNumber.decrementAndGet();
     }

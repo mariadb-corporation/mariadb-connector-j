@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
@@ -110,11 +110,11 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   public String getSubString(long pos, int length) throws SQLException {
 
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("position must be >= 1");
+      throw ExceptionFactory.INSTANCE.create("position must be >= 1");
     }
 
     if (length < 0) {
-      throw ExceptionMapper.getSqlException("length must be > 0");
+      throw ExceptionFactory.INSTANCE.create("length must be > 0");
     }
 
     try {
@@ -143,7 +143,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     String val = toString();
     if (val.length() < (int) pos - 1 + length) {
-      throw ExceptionMapper.getSqlException(
+      throw ExceptionFactory.INSTANCE.create(
           "pos + length is greater than the number of characters in the Clob");
     }
     String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);

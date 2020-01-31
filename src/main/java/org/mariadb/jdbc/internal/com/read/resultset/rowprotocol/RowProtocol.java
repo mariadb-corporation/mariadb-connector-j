@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.util.Options;
 
 import java.math.BigDecimal;
@@ -143,52 +143,50 @@ public abstract class RowProtocol {
   }
 
   public abstract String getInternalString(
-      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
+      ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
 
-  public abstract int getInternalInt(ColumnInformation columnInfo) throws SQLException;
+  public abstract int getInternalInt(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract long getInternalLong(ColumnInformation columnInfo) throws SQLException;
+  public abstract long getInternalLong(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract float getInternalFloat(ColumnInformation columnInfo) throws SQLException;
+  public abstract float getInternalFloat(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract double getInternalDouble(ColumnInformation columnInfo) throws SQLException;
+  public abstract double getInternalDouble(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract BigDecimal getInternalBigDecimal(ColumnInformation columnInfo)
+  public abstract BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) throws SQLException;
+
+  public abstract Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException;
 
-  public abstract Date getInternalDate(
-      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
-
-  public abstract Time getInternalTime(
-      ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException;
+  public abstract Time getInternalTime(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
+      throws SQLException;
 
   public abstract Timestamp getInternalTimestamp(
-      ColumnInformation columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
+      ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
-  public abstract Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone)
+  public abstract Object getInternalObject(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
 
-  public abstract boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException;
+  public abstract boolean getInternalBoolean(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract byte getInternalByte(ColumnInformation columnInfo) throws SQLException;
+  public abstract byte getInternalByte(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract short getInternalShort(ColumnInformation columnInfo) throws SQLException;
+  public abstract short getInternalShort(ColumnDefinition columnInfo) throws SQLException;
 
-  public abstract String getInternalTimeString(ColumnInformation columnInfo);
+  public abstract String getInternalTimeString(ColumnDefinition columnInfo);
 
-  public abstract BigInteger getInternalBigInteger(ColumnInformation columnInfo)
-      throws SQLException;
+  public abstract BigInteger getInternalBigInteger(ColumnDefinition columnInfo) throws SQLException;
 
   public abstract ZonedDateTime getInternalZonedDateTime(
-      ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException;
+      ColumnDefinition columnInfo, Class clazz, TimeZone timeZone) throws SQLException;
 
-  public abstract OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public abstract OffsetTime getInternalOffsetTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
 
-  public abstract LocalTime getInternalLocalTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public abstract LocalTime getInternalLocalTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
 
-  public abstract LocalDate getInternalLocalDate(ColumnInformation columnInfo, TimeZone timeZone)
+  public abstract LocalDate getInternalLocalDate(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException;
 
   public abstract boolean isBinaryEncoded();
@@ -197,10 +195,10 @@ public abstract class RowProtocol {
     return (lastValueNull & BIT_LAST_FIELD_NULL) != 0;
   }
 
-  protected String zeroFillingIfNeeded(String value, ColumnInformation columnInformation) {
-    if (columnInformation.isZeroFill()) {
+  protected String zeroFillingIfNeeded(String value, ColumnDefinition columnDefinition) {
+    if (columnDefinition.isZeroFill()) {
       StringBuilder zeroAppendStr = new StringBuilder();
-      long zeroToAdd = columnInformation.getDisplaySize() - value.length();
+      long zeroToAdd = columnDefinition.getDisplaySize() - value.length();
       while (zeroToAdd-- > 0) {
         zeroAppendStr.append("0");
       }
@@ -209,7 +207,7 @@ public abstract class RowProtocol {
     return value;
   }
 
-  protected int getInternalTinyInt(ColumnInformation columnInfo) {
+  protected int getInternalTinyInt(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -232,7 +230,7 @@ public abstract class RowProtocol {
     return val;
   }
 
-  protected int getInternalSmallInt(ColumnInformation columnInfo) {
+  protected int getInternalSmallInt(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -244,7 +242,7 @@ public abstract class RowProtocol {
     return (short) value;
   }
 
-  protected long getInternalMediumInt(ColumnInformation columnInfo) {
+  protected long getInternalMediumInt(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -260,11 +258,7 @@ public abstract class RowProtocol {
   }
 
   protected void rangeCheck(
-      Object className,
-      long minValue,
-      long maxValue,
-      BigDecimal value,
-      ColumnInformation columnInfo)
+      Object className, long minValue, long maxValue, BigDecimal value, ColumnDefinition columnInfo)
       throws SQLException {
     if (value.compareTo(BigDecimal.valueOf(minValue)) < 0
         || value.compareTo(BigDecimal.valueOf(maxValue)) > 0) {
@@ -282,7 +276,7 @@ public abstract class RowProtocol {
   }
 
   protected void rangeCheck(
-      Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo)
+      Object className, long minValue, long maxValue, long value, ColumnDefinition columnInfo)
       throws SQLException {
     if (value < minValue || value > maxValue) {
       throw new SQLException(

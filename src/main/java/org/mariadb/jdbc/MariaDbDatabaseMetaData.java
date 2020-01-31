@@ -53,7 +53,7 @@
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -507,8 +507,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt =
-        new MariaDbStatement(connection, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    Statement stmt = connection.createStatement();
     SelectResultSet rs = (SelectResultSet) stmt.executeQuery(sql);
     rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
     rs.setForceTableAlias();
@@ -610,20 +609,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Maps standard table types to MariaDB ones - helper since table type is never "table" in
-   * MariaDB, it is "base table".
-   *
-   * @param tableType the table type defined by user
-   * @return the internal table type.
-   */
-  private String mapTableTypes(String tableType) {
-    if ("TABLE".equals(tableType)) {
-      return "BASE TABLE";
-    }
-    return tableType;
-  }
-
-  /**
    * Retrieves a description of the tables available in the given catalog. Only table descriptions
    * matching the catalog, schema, table name and type criteria are returned. They are ordered by
    * <code>TABLE_TYPE</code>, <code>TABLE_CAT</code>, <code>TABLE_SCHEM</code> and <code>TABLE_NAME
@@ -683,7 +668,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         if (types[i] == null) {
           continue;
         }
-        String type = escapeQuote(mapTableTypes(types[i]));
+        String type = "TABLE".equals(types[i]) ? "'BASE TABLE'" : escapeQuote(types[i]);
         if (i == types.length - 1) {
           sql.append(type).append(")");
         } else {
@@ -3804,11 +3789,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @return A ResultSet object; each row is a supported client info property
    */
   public ResultSet getClientInfoProperties() {
-    ColumnInformation[] columns = new ColumnInformation[4];
-    columns[0] = ColumnInformation.create("NAME", ColumnType.STRING);
-    columns[1] = ColumnInformation.create("MAX_LEN", ColumnType.INTEGER);
-    columns[2] = ColumnInformation.create("DEFAULT_VALUE", ColumnType.STRING);
-    columns[3] = ColumnInformation.create("DESCRIPTION", ColumnType.STRING);
+    ColumnDefinition[] columns = new ColumnDefinition[4];
+    columns[0] = ColumnDefinition.create("NAME", ColumnType.STRING);
+    columns[1] = ColumnDefinition.create("MAX_LEN", ColumnType.INTEGER);
+    columns[2] = ColumnDefinition.create("DEFAULT_VALUE", ColumnType.STRING);
+    columns[3] = ColumnDefinition.create("DESCRIPTION", ColumnType.STRING);
 
     byte[] sixteenMb =
         new byte[] {

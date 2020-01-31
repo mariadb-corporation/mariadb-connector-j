@@ -53,8 +53,7 @@
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.pool.Pool;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.DefaultOptions;
 import org.mariadb.jdbc.util.Options;
 
@@ -69,7 +68,6 @@ import java.util.logging.Logger;
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
   private UrlParser urlParser;
-  private Pool pool;
 
   private String hostname;
   private Integer port = 3306;
@@ -277,7 +275,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
       return MariaDbConnection.newConnection(urlParser, null);
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     }
   }
 
@@ -305,9 +303,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
       return MariaDbConnection.newConnection(urlParser, null);
 
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     } catch (CloneNotSupportedException cloneException) {
-      throw new SQLException("Error in configuration");
+      throw ExceptionFactory.INSTANCE.create("Error in configuration");
     }
   }
 

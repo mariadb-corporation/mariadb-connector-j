@@ -52,15 +52,16 @@
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+
+import java.sql.SQLException;
 import java.sql.Savepoint;
 
 public class MariaDbSavepoint implements Savepoint {
 
-  private final int savepointId;
   private final String name;
 
-  public MariaDbSavepoint(final String name, final int savepointId) {
-    this.savepointId = savepointId;
+  public MariaDbSavepoint(final String name) {
     this.name = name;
   }
 
@@ -69,17 +70,15 @@ public class MariaDbSavepoint implements Savepoint {
    * represents.
    *
    * @return the numeric ID of this savepoint
-   * @since 1.4
    */
-  public int getSavepointId() {
-    return savepointId;
+  public int getSavepointId() throws SQLException {
+    throw ExceptionFactory.INSTANCE.notSupported("Doesn't support savepoint identifier");
   }
 
   /**
    * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
    *
    * @return the name of this savepoint
-   * @since 1.4
    */
   public String getSavepointName() {
     return name;
@@ -87,6 +86,6 @@ public class MariaDbSavepoint implements Savepoint {
 
   @Override
   public String toString() {
-    return name + savepointId;
+    return "MariaDbSavepoint{" + "name='" + name + '\'' + '}';
   }
 }

@@ -53,6 +53,8 @@
 package org.mariadb.jdbc;
 
 import org.junit.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 import java.io.InputStream;
 import java.sql.*;
@@ -542,13 +544,16 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
               ResultSet.CONCUR_READ_ONLY);
     } else {
       MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
+      ExceptionFactory exceptionFactory =
+          ExceptionFactory.of((int) mariaDbConnection.getServerThreadId(), new Options());
       pst =
           new ClientSidePreparedStatement(
               mariaDbConnection,
               "SELECT * from daylight where 1 = ?",
               ResultSet.TYPE_SCROLL_INSENSITIVE,
               ResultSet.CONCUR_READ_ONLY,
-              Statement.NO_GENERATED_KEYS);
+              Statement.NO_GENERATED_KEYS,
+              exceptionFactory);
     }
     pst.setInt(1, 1);
     rs = pst.executeQuery();

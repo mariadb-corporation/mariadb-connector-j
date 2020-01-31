@@ -54,7 +54,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -80,12 +80,23 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
    *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param exceptionFactory Exception factory
    * @throws SQLException if clientPrepareStatement creation throw an exception
    */
   public CallableFunctionStatement(
-      MariaDbConnection connection, String sql, int resultSetType, final int resultSetConcurrency)
+      MariaDbConnection connection,
+      String sql,
+      int resultSetType,
+      final int resultSetConcurrency,
+      ExceptionFactory exceptionFactory)
       throws SQLException {
-    super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
+    super(
+        connection,
+        sql,
+        resultSetType,
+        resultSetConcurrency,
+        Statement.NO_GENERATED_KEYS,
+        exceptionFactory);
   }
 
   /**
@@ -144,7 +155,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         return i;
       }
     }
-    throw new SQLException("there is no parameter with the name " + parameterName);
+    throw exceptionFactory.create("there is no parameter with the name " + parameterName);
   }
 
   /**
@@ -161,7 +172,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         return i;
       }
     }
-    throw new SQLException("there is no parameter with the name " + parameterName);
+    throw exceptionFactory.create("there is no parameter with the name " + parameterName);
   }
 
   /**
@@ -438,12 +449,12 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override
   public RowId getRowId(String parameterName) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override
@@ -458,12 +469,12 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
   @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
@@ -617,19 +628,19 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
 
   private CallParameter getParameter(int index) throws SQLException {
     if (index > params.length || index <= 0) {
-      throw new SQLException("No parameter with index " + (index));
+      throw exceptionFactory.create("No parameter with index " + (index));
     }
     return params[index - 1];
   }
 
   @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
   public void setRowId(String parameterName, RowId rowid) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override

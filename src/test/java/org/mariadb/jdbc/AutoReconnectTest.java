@@ -72,9 +72,9 @@ public class AutoReconnectTest extends BaseTest {
 
       try {
         stmt.executeQuery("SELECT 2");
-      } catch (SQLTransientConnectionException e) {
-        Assert.fail("Must have send a SQLNonTransientConnectionException !");
       } catch (SQLNonTransientConnectionException e) {
+        Assert.fail("Must have send a SQLTransientConnectionException !");
+      } catch (SQLTransientConnectionException e) {
         try {
           stmt.executeQuery("SELECT 3");
         } catch (SQLException ee) {

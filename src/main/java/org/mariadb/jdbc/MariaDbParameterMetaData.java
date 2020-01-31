@@ -53,8 +53,8 @@
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
@@ -62,9 +62,9 @@ import java.sql.SQLException;
 /** Very basic info about the parameterized query, only reliable method is getParameterCount(). */
 public class MariaDbParameterMetaData implements ParameterMetaData {
 
-  private final ColumnInformation[] parametersInformation;
+  private final ColumnDefinition[] parametersInformation;
 
-  public MariaDbParameterMetaData(ColumnInformation[] parametersInformation) {
+  public MariaDbParameterMetaData(ColumnDefinition[] parametersInformation) {
     this.parametersInformation = parametersInformation;
   }
 
@@ -80,7 +80,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
     return parametersInformation.length;
   }
 
-  private ColumnInformation getParameterInformation(int param) throws SQLException {
+  private ColumnDefinition getParameterInformation(int param) throws SQLException {
     checkAvailable();
     if (param >= 1 && param <= parametersInformation.length) {
       return parametersInformation[param - 1];
@@ -131,7 +131,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
    */
   @Override
   public int getParameterType(int param) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "Getting parameter type metadata are not supported");
   }
 

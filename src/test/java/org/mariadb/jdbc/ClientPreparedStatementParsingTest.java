@@ -53,6 +53,8 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 import java.sql.*;
 
@@ -68,14 +70,17 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       String[] partsRewrite,
       String[] partsMulti)
       throws Exception {
-
+    ExceptionFactory exceptionFactory =
+        ExceptionFactory.of(
+            (int) ((MariaDbConnection) sharedConnection).getServerThreadId(), new Options());
     ClientSidePreparedStatement statement =
         new ClientSidePreparedStatement(
             (MariaDbConnection) sharedConnection,
             sql,
             ResultSet.FETCH_FORWARD,
             ResultSet.CONCUR_READ_ONLY,
-            Statement.NO_GENERATED_KEYS);
+            Statement.NO_GENERATED_KEYS,
+            exceptionFactory);
     assertEquals(paramNumber, statement.getParameterCount());
 
     if (sharedIsRewrite()) {
@@ -388,7 +393,6 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       } catch (SQLException e) {
         assertTrue(
             e.getCause()
-                .getCause()
                 .getMessage()
                 .contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
       }

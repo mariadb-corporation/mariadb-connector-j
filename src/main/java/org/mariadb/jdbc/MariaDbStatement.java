@@ -58,7 +58,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.util.Options;
 
@@ -111,6 +111,7 @@ public class MariaDbStatement implements Statement, Cloneable {
   protected Results results;
   protected int fetchSize;
   protected volatile boolean executing;
+  protected ExceptionFactory exceptionFactory;
   private ScheduledExecutorService timeoutScheduler;
   // are warnings cleared?
   private boolean warningsCleared;
@@ -129,9 +130,13 @@ public class MariaDbStatement implements Statement, Cloneable {
    *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param exceptionFactory exception factory
    */
   public MariaDbStatement(
-      MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) {
+      MariaDbConnection connection,
+      int resultSetScrollType,
+      int resultSetConcurrency,
+      ExceptionFactory exceptionFactory) {
     this.protocol = connection.getProtocol();
     this.connection = connection;
     this.canUseServerTimeout = connection.canUseServerTimeout();
@@ -139,6 +144,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     this.resultSetConcurrency = resultSetConcurrency;
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
+    this.exceptionFactory = exceptionFactory;
     this.fetchSize = this.options.defaultFetchSize;
   }
 
@@ -159,7 +165,9 @@ public class MariaDbStatement implements Statement, Cloneable {
     clone.warningsCleared = true;
     clone.maxRows = 0;
     clone.fetchSize = this.options.defaultFetchSize;
-
+    clone.exceptionFactory =
+        ExceptionFactory.of(
+            this.exceptionFactory.getThreadId(), this.exceptionFactory.getOptions());
     return clone;
   }
 
@@ -200,7 +208,9 @@ public class MariaDbStatement implements Statement, Cloneable {
   protected void executeQueryPrologue(boolean isBatch) throws SQLException {
     executing = true;
     if (closed) {
-      throw new SQLException("execute() is called on closed statement");
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("execute() is called on closed statement");
     }
     protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
     if (queryTimeout != 0 && (!canUseServerTimeout || isBatch)) {
@@ -245,22 +255,23 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     if (sqle.getErrorCode() == 1148 && !options.allowLocalInfile) {
-      return new SQLFeatureNotSupportedException(
-          "(conn:"
-              + getServerThreadId()
-              + ") Usage of LOCAL INFILE is disabled. "
-              + "To use it enable it via the connection property allowLocalInfile=true",
-          "42000",
-          1148,
-          sqle);
+      return exceptionFactory
+          .raiseStatementError(connection, this)
+          .create(
+              "Usage of LOCAL INFILE is disabled. "
+                  + "To use it enable it via the connection property allowLocalInfile=true",
+              "42000",
+              1148,
+              sqle);
     }
 
     if (isTimedout) {
-      return new SQLTimeoutException(
-          "(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
+      return exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("Query timed out", "70100", 1317, sqle);
     }
-    SQLException sqlException =
-        ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+
+    SQLException sqlException = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqlException);
     return sqlException;
   }
@@ -290,9 +301,9 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     if (isTimedout) {
-      sqle =
-          new SQLTimeoutException(
-              "(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
+      return exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("Query timed out", "70100", 1317, sqle);
     }
     return sqle;
   }
@@ -306,8 +317,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     } else {
       ret = results.getCmdInformation().getUpdateCounts();
     }
-
-    sqle = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+    sqle = exceptionFactory.raiseStatementError(connection, this).create(sqle);
     logger.error("error executing query", sqle);
 
     return new BatchUpdateException(
@@ -344,7 +354,6 @@ public class MariaDbStatement implements Statement, Cloneable {
               protocol.getAutoIncrementIncrement(),
               sql,
               null);
-
       protocol.executeQuery(
           protocol.isMasterConnection(), results, getTimeoutSql(Utils.nativeSql(sql, protocol)));
       results.commandEnd();
@@ -392,7 +401,9 @@ public class MariaDbStatement implements Statement, Cloneable {
       return alwaysQuote ? "`" + identifier + "`" : identifier;
     } else {
       if (identifier.contains("\u0000")) {
-        throw new SQLException("Invalid name - containing u0000 character");
+        throw exceptionFactory
+            .raiseStatementError(connection, this)
+            .create("Invalid name - containing u0000 character", "42000");
       }
 
       if (identifier.matches("^`.+`$")) {
@@ -847,7 +858,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    */
   public void setMaxRows(final int max) throws SQLException {
     if (max < 0) {
-      throw new SQLException("max rows cannot be negative : asked for " + max);
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("max rows cannot be negative : asked for " + max, "42000");
     }
     maxRows = max;
   }
@@ -875,7 +888,9 @@ public class MariaDbStatement implements Statement, Cloneable {
   @Override
   public void setLargeMaxRows(long max) throws SQLException {
     if (max < 0) {
-      throw new SQLException("max rows cannot be negative : setLargeMaxRows value is " + max);
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("max rows cannot be negative : setLargeMaxRows value is " + max, "42000");
     }
     maxRows = max;
   }
@@ -916,7 +931,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    */
   public void setQueryTimeout(final int seconds) throws SQLException {
     if (seconds < 0) {
-      throw new SQLException("Query timeout rows cannot be negative : asked for " + seconds);
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("Query timeout rows cannot be negative : asked for " + seconds, "42000");
     }
     this.queryTimeout = seconds;
   }
@@ -964,7 +981,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     } catch (SQLException e) {
       logger.error("error cancelling query", e);
-      ExceptionMapper.throwException(e, connection, this);
+      throw exceptionFactory.raiseStatementError(connection, this).create(e);
     } finally {
       if (locked) {
         lock.unlock();
@@ -1025,7 +1042,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    *     <code>Statement</code>
    */
   public void setCursorName(final String name) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
+    throw exceptionFactory
+        .raiseStatementError(connection, this)
+        .notSupported("Cursors are not supported");
   }
 
   /**
@@ -1164,7 +1183,7 @@ public class MariaDbStatement implements Statement, Cloneable {
       connection.reenableWarnings();
     } catch (SQLException e) {
       logger.debug("error skipMoreResults", e);
-      ExceptionMapper.throwException(e, connection, this);
+      throw exceptionFactory.raiseStatementError(connection, this).create(e);
     }
   }
 
@@ -1273,7 +1292,7 @@ public class MariaDbStatement implements Statement, Cloneable {
    */
   public void setFetchSize(final int rows) throws SQLException {
     if (rows < 0 && rows != Integer.MIN_VALUE) {
-      throw new SQLException("invalid fetch size");
+      throw exceptionFactory.raiseStatementError(connection, this).create("invalid fetch size");
     } else if (rows == Integer.MIN_VALUE) {
       // for compatibility Integer.MIN_VALUE is transform to 0 => streaming
       this.fetchSize = 1;
@@ -1321,7 +1340,9 @@ public class MariaDbStatement implements Statement, Cloneable {
       batchQueries = new ArrayList<>();
     }
     if (sql == null) {
-      throw ExceptionMapper.getSqlException("null cannot be set to addBatch( String sql)");
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("null cannot be set to addBatch( String sql)");
     }
     batchQueries.add(sql);
   }
@@ -1455,11 +1476,14 @@ public class MariaDbStatement implements Statement, Cloneable {
       if (isWrapperFor(iface)) {
         return (T) this;
       } else {
-        throw new SQLException(
-            "The receiver is not a wrapper and does not implement the interface");
+        throw exceptionFactory
+            .raiseStatementError(connection, this)
+            .create("The receiver is not a wrapper and does not implement the interface", "42000");
       }
     } catch (Exception e) {
-      throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("The receiver is not a wrapper and does not implement the interface", "42000");
     }
   }
 
@@ -1514,7 +1538,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    */
   protected void checkClose() throws SQLException {
     if (closed) {
-      throw new SQLException("Cannot do an operation on a closed statement");
+      throw exceptionFactory
+          .raiseStatementError(connection, this)
+          .create("Cannot do an operation on a closed statement");
     }
   }
 

@@ -24,7 +24,7 @@ package org.mariadb.jdbc.internal.protocol.tls;
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.tls.TlsSocketPlugin;
 import org.mariadb.jdbc.util.Options;
 
@@ -66,13 +66,14 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
       return new MariaDbX509KeyManager(ks, keyStoreChars);
     } catch (GeneralSecurityException generalSecurityEx) {
-      throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
+      throw ExceptionFactory.INSTANCE.create(
+          "Failed to create keyStore instance", "08000", generalSecurityEx);
     } catch (FileNotFoundException fileNotFoundEx) {
-      throw ExceptionMapper.connException(
-          "Failed to find keyStore file. Option keyStore=" + keyStoreUrl, fileNotFoundEx);
+      throw ExceptionFactory.INSTANCE.create(
+          "Failed to find keyStore file. Option keyStore=" + keyStoreUrl, "08000", fileNotFoundEx);
     } catch (IOException ioEx) {
-      throw ExceptionMapper.connException(
-          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
+      throw ExceptionFactory.INSTANCE.create(
+          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, "08000", ioEx);
     } finally {
       try {
         if (inStream != null) {
@@ -136,10 +137,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       sslContext.init(keyManager, trustManager, null);
       return sslContext.getSocketFactory();
     } catch (KeyManagementException keyManagementEx) {
-      throw ExceptionMapper.connException("Could not initialize SSL context", keyManagementEx);
+      throw ExceptionFactory.INSTANCE.create(
+          "Could not initialize SSL context", "08000", keyManagementEx);
     } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-      throw ExceptionMapper.connException(
-          "SSLContext TLS Algorithm not unknown", noSuchAlgorithmEx);
+      throw ExceptionFactory.INSTANCE.create(
+          "SSLContext TLS Algorithm not unknown", "08000", noSuchAlgorithmEx);
     }
   }
 

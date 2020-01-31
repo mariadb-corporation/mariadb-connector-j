@@ -56,7 +56,7 @@ import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -352,7 +352,7 @@ public class Results {
         }
 
       } catch (SQLException e) {
-        ExceptionMapper.throwException(e, null, statement);
+        throw ExceptionFactory.INSTANCE.create(e);
       } finally {
         protocol.getLock().unlock();
       }

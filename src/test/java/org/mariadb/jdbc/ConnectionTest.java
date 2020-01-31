@@ -847,7 +847,7 @@ public class ConnectionTest extends BaseTest {
       sharedConnection.setTypeMap(null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("TypeMap are not supported"));
     }
 
     assertTrue(sharedConnection.getTypeMap().isEmpty());
@@ -865,21 +865,21 @@ public class ConnectionTest extends BaseTest {
       sharedConnection.createSQLXML();
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not supported"));
+      assertTrue(e.getMessage().contains("SQLXML type is not supported"));
     }
 
     try {
       sharedConnection.createArrayOf("", null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("Array type is not supported"));
     }
 
     try {
       sharedConnection.createStruct("", null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("Struct type is not supported"));
     }
     sharedConnection.setSchema("bbb");
     assertNull(sharedConnection.getSchema());

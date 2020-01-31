@@ -53,8 +53,8 @@
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.Options;
 
 import java.math.BigDecimal;
@@ -182,7 +182,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return String value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public String getInternalString(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -249,7 +249,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return int value
    * @throws SQLException if column type doesn't permit conversion or not in Integer range
    */
-  public int getInternalInt(ColumnInformation columnInfo) throws SQLException {
+  public int getInternalInt(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -265,7 +265,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return long value
    * @throws SQLException if column type doesn't permit conversion or not in Long range (unsigned)
    */
-  public long getInternalLong(ColumnInformation columnInfo) throws SQLException {
+  public long getInternalLong(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -360,7 +360,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return float value
    * @throws SQLException if column type doesn't permit conversion or not in Float range
    */
-  public float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
+  public float getInternalFloat(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -410,7 +410,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return double value
    * @throws SQLException if column type doesn't permit conversion or not in Double range (unsigned)
    */
-  public double getInternalDouble(ColumnInformation columnInfo) throws SQLException {
+  public double getInternalDouble(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -458,7 +458,7 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return BigDecimal value
    */
-  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) {
+  public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -479,7 +479,7 @@ public class TextRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion
    */
   @SuppressWarnings("deprecation")
-  public Date getInternalDate(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -544,7 +544,7 @@ public class TextRowProtocol extends RowProtocol {
           return new Date(utilDate.getTime());
 
         } catch (ParseException e) {
-          throw ExceptionMapper.getSqlException(
+          throw ExceptionFactory.INSTANCE.create(
               "Could not get object as Date : " + e.getMessage(), "S1009", e);
         }
     }
@@ -559,7 +559,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return time value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public Time getInternalTime(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public Time getInternalTime(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -616,7 +616,7 @@ public class TextRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion
    */
   public Timestamp getInternalTimestamp(
-      ColumnInformation columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
+      ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -720,7 +720,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return Object value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone)
+  public Object getInternalObject(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -804,7 +804,7 @@ public class TextRowProtocol extends RowProtocol {
       default:
         break;
     }
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
   }
 
@@ -814,7 +814,7 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return boolean value
    */
-  public boolean getInternalBoolean(ColumnInformation columnInfo) {
+  public boolean getInternalBoolean(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return false;
     }
@@ -833,7 +833,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return byte value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
+  public byte getInternalByte(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -849,7 +849,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return short value
    * @throws SQLException if column type doesn't permit conversion or value is not in Short range
    */
-  public short getInternalShort(ColumnInformation columnInfo) throws SQLException {
+  public short getInternalShort(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -864,7 +864,7 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return String representation of time
    */
-  public String getInternalTimeString(ColumnInformation columnInfo) {
+  public String getInternalTimeString(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -888,7 +888,7 @@ public class TextRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return BigInteger value
    */
-  public BigInteger getInternalBigInteger(ColumnInformation columnInfo) {
+  public BigInteger getInternalBigInteger(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -905,7 +905,7 @@ public class TextRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion
    */
   public ZonedDateTime getInternalZonedDateTime(
-      ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException {
+      ColumnDefinition columnInfo, Class clazz, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -964,7 +964,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return OffsetTime value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public OffsetTime getInternalOffsetTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -1052,7 +1052,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return LocalTime value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public LocalTime getInternalLocalTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public LocalTime getInternalLocalTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -1103,7 +1103,7 @@ public class TextRowProtocol extends RowProtocol {
    * @return LocalDate value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public LocalDate getInternalLocalDate(ColumnInformation columnInfo, TimeZone timeZone)
+  public LocalDate getInternalLocalDate(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;

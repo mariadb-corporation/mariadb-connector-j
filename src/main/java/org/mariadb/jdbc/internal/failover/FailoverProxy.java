@@ -59,7 +59,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -417,7 +417,7 @@ public class FailoverProxy implements InvocationHandler {
     try {
       listener.reconnect();
     } catch (SQLException e) {
-      ExceptionMapper.throwException(e, null, null);
+      throw ExceptionFactory.INSTANCE.create(e);
     }
   }
 

@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 import java.io.*;
 import java.sql.Blob;
@@ -147,7 +147,8 @@ public class MariaDbBlob implements Blob, Serializable {
    */
   public byte[] getBytes(final long pos, final int length) throws SQLException {
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("Pos starts at 1");
+      throw ExceptionFactory.INSTANCE.create(
+          String.format("Out of range (position should be > 0, but is %s)", pos));
     }
     final int offset = this.offset + (int) (pos - 1);
     byte[] result = new byte[length];
@@ -181,13 +182,13 @@ public class MariaDbBlob implements Blob, Serializable {
    */
   public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("Out of range (position should be > 0)");
+      throw ExceptionFactory.INSTANCE.create("Out of range (position should be > 0)");
     }
     if (pos - 1 > this.length) {
-      throw ExceptionMapper.getSqlException("Out of range (position > stream size)");
+      throw ExceptionFactory.INSTANCE.create("Out of range (position > stream size)");
     }
     if (pos + length - 1 > this.length) {
-      throw ExceptionMapper.getSqlException("Out of range (position + length - 1 > streamSize)");
+      throw ExceptionFactory.INSTANCE.create("Out of range (position + length - 1 > streamSize)");
     }
 
     return new ByteArrayInputStream(data, this.offset + (int) pos - 1, (int) length);
@@ -203,28 +204,25 @@ public class MariaDbBlob implements Blob, Serializable {
    * @return the position at which the pattern appears, else -1
    */
   public long position(final byte[] pattern, final long start) throws SQLException {
+    if (pattern.length == 0) {
+      return 0;
+    }
     if (start < 1) {
-      throw ExceptionMapper.getSqlException("Start should be > 0, first position is 1.");
+      throw ExceptionFactory.INSTANCE.create(
+          String.format("Out of range (position should be > 0, but is %s)", start));
     }
     if (start > this.length) {
-      throw ExceptionMapper.getSqlException("Start should be <= " + this.length);
+      throw ExceptionFactory.INSTANCE.create("Out of range (start > stream size)");
     }
-    final long actualStart = offset + start - 1;
-    for (int i = (int) actualStart; i < offset + this.length; i++) {
-      if (data[i] == pattern[0]) {
-        boolean isEqual = true;
-        for (int j = 1; j < pattern.length; j++) {
-          if (i + j >= offset + this.length) {
-            return -1;
-          }
-          if (data[i + j] != pattern[j]) {
-            isEqual = false;
-          }
-        }
-        if (isEqual) {
-          return i + 1 - offset;
+
+    outer:
+    for (int i = (int) (offset + start - 1); i <= offset + this.length - pattern.length; i++) {
+      for (int j = 0; j < pattern.length; j++) {
+        if (data[i + j] != pattern[j]) {
+          continue outer;
         }
       }
+      return i + 1 - offset;
     }
     return -1;
   }
@@ -240,7 +238,8 @@ public class MariaDbBlob implements Blob, Serializable {
    * @return the position at which the pattern begins, else -1
    */
   public long position(final Blob pattern, final long start) throws SQLException {
-    return position(pattern.getBytes(1, (int) pattern.length()), start);
+    byte[] blobBytes = pattern.getBytes(1, (int) pattern.length());
+    return position(blobBytes, start);
   }
 
   /**
@@ -260,7 +259,7 @@ public class MariaDbBlob implements Blob, Serializable {
    */
   public int setBytes(final long pos, final byte[] bytes) throws SQLException {
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("pos should be > 0, first position is 1.");
+      throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
     }
 
     final int arrayPos = (int) pos - 1;
@@ -312,7 +311,7 @@ public class MariaDbBlob implements Blob, Serializable {
       throws SQLException {
 
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("pos should be > 0, first position is 1.");
+      throw ExceptionFactory.INSTANCE.create("pos should be > 0, first position is 1.");
     }
 
     final int arrayPos = (int) pos - 1;
@@ -359,7 +358,7 @@ public class MariaDbBlob implements Blob, Serializable {
    */
   public OutputStream setBinaryStream(final long pos) throws SQLException {
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("Invalid position in blob");
+      throw ExceptionFactory.INSTANCE.create("Invalid position in blob");
     }
     if (offset > 0) {
       byte[] tmp = new byte[length];

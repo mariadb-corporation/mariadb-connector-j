@@ -194,6 +194,15 @@ public class Buffer {
   }
 
   /**
+   * Read current buffer byte without incrementing position.
+   *
+   * @return the byte
+   */
+  public byte getByte() {
+    return buf[position];
+  }
+
+  /**
    * Read raw data.
    *
    * @param numberOfBytes raw data length.
@@ -274,6 +283,25 @@ public class Buffer {
     }
   }
 
+  /**
+   * Skip length encoded numeric
+   */
+  public void skipLengthEncodedNumeric() {
+    int type = this.buf[this.position++] & 0xff;
+    switch (type) {
+      case 252:
+        this.position += 2;
+        return;
+      case 253:
+        this.position += 3;
+        return;
+      case 254:
+        this.position += 8;
+        return;
+      default:
+        return;
+    }
+  }
   /**
    * Get next data bytes from length encoded prefix.
    *
