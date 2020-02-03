@@ -645,7 +645,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     // if asked to be on read only connection, switching to this new connection
     if (currentReadOnlyAsked
         || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked && isMasterHostFail())) {
-      if (currentProtocol == null) {
+      if (currentProtocol != null) {
         try {
           syncConnection(currentProtocol, newSecondaryProtocol);
         } catch (Exception e) {
