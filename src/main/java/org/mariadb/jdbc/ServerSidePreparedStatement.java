@@ -364,7 +364,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     for (int i = 0; i < parameterCount; i++) {
       if (currentParameterHolder.get(i) == null) {
         logger.error("Parameter at position {} is not set", (i + 1));
-        exceptionFactory
+        throw exceptionFactory
             .raiseStatementError(connection, this)
             .create("Parameter at position " + (i + 1) + " is not set", "07004");
       }

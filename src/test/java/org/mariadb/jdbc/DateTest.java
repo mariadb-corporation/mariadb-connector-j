@@ -609,7 +609,8 @@ public class DateTest extends BaseTest {
   /** Conj-267 : null pointer exception getting zero date. */
   @Test
   public void nullDateString() throws Throwable {
-
+    // null date isn't accepted anymore for mysql.
+    Assume.assumeFalse(!isMariadbServer() && minVersion(5, 7, 0));
     createTable("date_test5", "x date");
     Statement stmt = sharedConnection.createStatement();
     try {

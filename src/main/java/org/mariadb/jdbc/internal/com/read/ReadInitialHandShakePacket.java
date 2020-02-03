@@ -134,6 +134,7 @@ public class ReadInitialHandShakePacket {
      * check for MariaDB 10.x replication hack , remove fake prefix if needed
      *  (see comments about MARIADB_RPL_HACK_PREFIX)
      */
+
     if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
       serverMariaDb = true;
       serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
