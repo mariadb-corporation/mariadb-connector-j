@@ -68,7 +68,7 @@
     <jna.version>4.5.1</jna.version>
     <version.template.file>src/main/resources/Version.java.template</version.template.file>
     <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
-    <checkstyleVersion>8.18</checkstyleVersion>
+    <checkstyleVersion>8.29</checkstyleVersion>
     <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
     <osgi.version>4.3.1</osgi.version>
     <driver.version.major>2</driver.version.major>
