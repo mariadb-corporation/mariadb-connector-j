@@ -441,7 +441,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
       // No possible future use for the cached results, so these can be cleared
       // This makes the cache eligible for garbage collection earlier if the statement is not
       // immediately garbage collected
-      if (protocol != null) {
+      if (protocol != null && serverPrepareResult != null) {
         try {
           serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
         } catch (SQLException e) {
