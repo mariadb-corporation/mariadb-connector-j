@@ -171,11 +171,12 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
    * Executes the SQL statement in this <code>PreparedStatement</code> object, which must be an SQL
    * Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or
    * <code>DELETE</code>; or an SQL statement that returns nothing, such as a DDL statement.
+   * Result-set are permitted for historical reason, even if spec indicate to throw exception.
    *
    * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0
    *     for SQL statements that return nothing
    * @throws SQLException if a database access error occurs; this method is called on a closed
-   *     <code>PreparedStatement</code> or the SQL statement returns a <code>ResultSet</code> object
+   *     <code>PreparedStatement</code>
    */
   public int executeUpdate() throws SQLException {
     if (execute()) {
