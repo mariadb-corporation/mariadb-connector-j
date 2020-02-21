@@ -394,7 +394,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
       arr[5] = (byte) (length >>> 32);
       arr[6] = (byte) (length >>> 40);
       arr[7] = (byte) (length >>> 48);
-      arr[8] = (byte) (length >>> 54);
+      arr[8] = (byte) (length >>> 56);
       write(arr, 0, 9);
       return;
     }
@@ -407,7 +407,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
     buf[pos + 5] = (byte) (length >>> 32);
     buf[pos + 6] = (byte) (length >>> 40);
     buf[pos + 7] = (byte) (length >>> 48);
-    buf[pos + 8] = (byte) (length >>> 54);
+    buf[pos + 8] = (byte) (length >>> 56);
     pos += 9;
   }
 
