@@ -363,6 +363,7 @@
       <groupId>com.zaxxer</groupId>
       <artifactId>HikariCP</artifactId>
       <version>2.4.7</version>
+      <optional>true</optional>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -389,6 +390,7 @@
       <artifactId>logback-classic</artifactId>
       <version>1.2.3</version>
       <scope>test</scope>
+      <optional>true</optional>
     </dependency>
 
     <dependency>
