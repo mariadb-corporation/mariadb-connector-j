@@ -6,6 +6,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.sql.*;
 
 import static org.junit.Assert.assertTrue;
@@ -25,7 +26,13 @@ public class Sha256AuthenticationTest extends BaseTest {
   public void checkSsl() throws SQLException {
     Assume.assumeTrue(!isMariadbServer() && minVersion(5, 7));
     serverPublicKey = System.getProperty("serverPublicKey");
-
+    // try default if not present
+    if (serverPublicKey == null) {
+      File sslDir = new File(System.getProperty("user.dir") + "/../ssl");
+      if (sslDir.exists() && sslDir.isDirectory()) {
+        serverPublicKey = System.getProperty("user.dir") + "/../ssl/public.key";
+      }
+    }
     Statement stmt = sharedConnection.createStatement();
     try {
       stmt.execute("DROP USER 'sha256User'@'%'");
@@ -59,7 +66,7 @@ public class Sha256AuthenticationTest extends BaseTest {
   @Test
   public void sha256PluginTestWithServerRsaKey() throws SQLException {
     Assume.assumeNotNull(serverPublicKey);
-    Assume.assumeTrue(!Platform.isWindows() && minVersion(8, 0, 0));
+    Assume.assumeTrue( minVersion(8, 0, 0));
 
     try (Connection conn =
         DriverManager.getConnection(
