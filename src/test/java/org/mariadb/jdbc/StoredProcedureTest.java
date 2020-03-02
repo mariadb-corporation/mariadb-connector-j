@@ -388,7 +388,7 @@ public class StoredProcedureTest extends BaseTest {
         stmt.setDouble("a", tooMuch);
         try (ResultSet rs2 = stmt.executeQuery()) {
           assertTrue(rs2.next());
-          assertThat(rs2.getDouble(1), is(not(tooMuch)));
+          assertNotEquals(rs2.getDouble(1), tooMuch);
         }
       }
     }

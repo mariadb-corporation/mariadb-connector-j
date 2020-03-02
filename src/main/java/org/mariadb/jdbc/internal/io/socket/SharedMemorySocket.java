@@ -285,7 +285,7 @@ public class SharedMemorySocket extends Socket {
 
   public interface Kernel32 extends StdCallLibrary {
 
-    Kernel32 INSTANCE = Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
+    Kernel32 INSTANCE = Native.load("Kernel32", Kernel32.class, WIN32API_OPTIONS);
     int FILE_MAP_WRITE = 0x0002;
     int FILE_MAP_READ = 0x0004;
     int EVENT_MODIFY_STATE = 0x0002;
@@ -328,7 +328,7 @@ public class SharedMemorySocket extends Socket {
 
   public interface Advapi32 extends StdCallLibrary {
 
-    Advapi32 INSTANCE = Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
+    Advapi32 INSTANCE = Native.load("advapi32", Advapi32.class, WIN32API_OPTIONS);
 
     boolean ConvertStringSecurityDescriptorToSecurityDescriptor(
         String sddl, int sddlVersion, PointerByReference psd, IntByReference length);

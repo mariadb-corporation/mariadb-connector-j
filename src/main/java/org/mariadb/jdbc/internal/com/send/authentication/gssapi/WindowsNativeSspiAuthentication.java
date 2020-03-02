@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
 import com.sun.jna.platform.win32.Sspi;
+import com.sun.jna.platform.win32.SspiUtil;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -99,8 +100,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         Buffer buffer = in.getPacket(true);
         sequence.set(in.getLastPacketSeq());
         byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
-        Sspi.SecBufferDesc continueToken =
-            new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+        Sspi.SecBufferDesc continueToken = new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
         clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 

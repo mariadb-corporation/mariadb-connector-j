@@ -102,7 +102,7 @@ public class StatementTest extends BaseTest {
     try (Statement statement = sharedConnection.createStatement()) {
       assertTrue(statement.isWrapperFor(Statement.class));
       assertFalse(statement.isWrapperFor(SQLException.class));
-      assertThat(statement.unwrap(Statement.class), equalTo(statement));
+      assertEquals(statement.unwrap(Statement.class).getClass(), statement.getClass());
       try {
         statement.unwrap(SQLException.class);
         fail("MariaDbStatement class unwrapped as SQLException class");

@@ -59,22 +59,17 @@
   <artifactId>mariadb-java-client</artifactId>
   <packaging>jar</packaging>
   <name>mariadb-java-client</name>
-  <version>2.5.5-SNAPSHOT</version>
+  <version>2.6.0-SNAPSHOT</version>
   <description>JDBC driver for MariaDB and MySQL</description>
   <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jna.version>4.5.1</jna.version>
-    <version.template.file>src/main/resources/Version.java.template</version.template.file>
-    <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
+    <jna.version>5.5.0</jna.version>
     <checkstyleVersion>8.29</checkstyleVersion>
-    <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
-    <osgi.version>4.3.1</osgi.version>
-    <driver.version.major>2</driver.version.major>
-    <driver.version.minor>5</driver.version.minor>
-    <driver.version.patch>5</driver.version.patch>
-    <driver.version.qualifier>-SNAPSHOT</driver.version.qualifier>
+    <checkstyle.plugin.version>3.1.1</checkstyle.plugin.version>
+    <osgi.version>6.0.0</osgi.version>
+    <osgi.compendium.version>5.0.0</osgi.compendium.version>
   </properties>
 
   <licenses>
@@ -116,11 +111,17 @@
   </distributionManagement>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.2</version>
+        <version>0.8.5</version>
         <executions>
           <execution>
             <goals>
@@ -151,7 +152,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.4</version>
+        <version>3.1.1</version>
         <configuration>
           <source>8</source>
         </configuration>
@@ -202,70 +203,9 @@
       </plugin>
 
       <plugin>
-        <groupId>com.google.code.maven-replacer-plugin</groupId>
-        <artifactId>replacer</artifactId>
-        <version>1.5.3</version>
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>replace</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <file>${version.template.file}</file>
-          <outputFile>${version.file}</outputFile>
-          <replacements>
-            <replacement>
-              <token>@buildtime</token>
-              <value>${maven.build.timestamp}</value>
-            </replacement>
-            <replacement>
-              <token>@version</token>
-              <value>${project.version}</value>
-            </replacement>
-            <replacement>
-              <token>@majorVersion</token>
-              <value>${driver.version.major}</value>
-            </replacement>
-            <replacement>
-              <token>@minorVersion</token>
-              <value>${driver.version.minor}</value>
-            </replacement>
-            <replacement>
-              <token>@patchVersion</token>
-              <value>${driver.version.patch}</value>
-            </replacement>
-            <replacement>
-              <token>@qualifier</token>
-              <value>${driver.version.qualifier}</value>
-            </replacement>
-          </replacements>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
-        <version>2.2.1</version>
-        <executions>
-          <execution>
-            <id>get-the-git-infos</id>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-          </execution>
-        </executions>
-
-        <configuration>
-          <prefix>git</prefix>
-        </configuration>
-      </plugin>
-
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>3.2.0</version>
         <configuration>
           <archive>
             <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
@@ -285,7 +225,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.2.1</version>
         <executions>
           <execution>
             <!--package phase-->
@@ -296,24 +236,9 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.12</version>
-        <executions>
-          <execution>
-            <!--validate phase-->
-            <id>parse-version</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>parse-version</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.6</version>
+        <version>1.6.8</version>
         <extensions>true</extensions>
         <executions>
           <execution>
@@ -341,7 +266,6 @@
           </execution>
         </executions>
       </plugin>
-
     </plugins>
   </build>
 
@@ -349,14 +273,14 @@
     <dependency>
       <groupId>com.github.waffle</groupId>
       <artifactId>waffle-jna</artifactId>
-      <version>1.9.0</version>
+      <version>2.2.1</version>
       <optional>true</optional>
     </dependency>
 
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
+      <version>4.13</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -389,7 +313,7 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-rds</artifactId>
-      <version>1.11.636</version>
+      <version>1.11.734</version>
       <optional>true</optional>
     </dependency>
 
@@ -402,7 +326,7 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.compendium</artifactId>
-      <version>${osgi.version}</version>
+      <version>${osgi.compendium.version}</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
