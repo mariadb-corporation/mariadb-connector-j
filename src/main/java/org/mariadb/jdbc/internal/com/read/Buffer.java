@@ -283,9 +283,7 @@ public class Buffer {
     }
   }
 
-  /**
-   * Skip length encoded numeric
-   */
+  /** Skip length encoded numeric */
   public void skipLengthEncodedNumeric() {
     int type = this.buf[this.position++] & 0xff;
     switch (type) {

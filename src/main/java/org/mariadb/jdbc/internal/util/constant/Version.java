@@ -83,7 +83,7 @@ public final class Version {
       try {
         inputStream.close();
       } catch (IOException ioe) {
-        //eat
+        // eat
       }
     }
     version = tmpVersion;
@@ -129,7 +129,5 @@ public final class Version {
     minorVersion = minor;
     patchVersion = patch;
     qualifier = qualif;
-
   }
-
 }

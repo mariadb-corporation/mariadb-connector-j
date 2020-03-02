@@ -65,8 +65,6 @@ import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
 public class StoredProcedureTest extends BaseTest {

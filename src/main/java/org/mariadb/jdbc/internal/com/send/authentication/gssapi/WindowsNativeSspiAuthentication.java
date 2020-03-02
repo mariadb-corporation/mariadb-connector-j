@@ -100,7 +100,8 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         Buffer buffer = in.getPacket(true);
         sequence.set(in.getLastPacketSeq());
         byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
-        Sspi.SecBufferDesc continueToken = new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+        Sspi.SecBufferDesc continueToken =
+            new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
         clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 

@@ -66,7 +66,7 @@ public class Sha256AuthenticationTest extends BaseTest {
   @Test
   public void sha256PluginTestWithServerRsaKey() throws SQLException {
     Assume.assumeNotNull(serverPublicKey);
-    Assume.assumeTrue( minVersion(8, 0, 0));
+    Assume.assumeTrue(minVersion(8, 0, 0));
 
     try (Connection conn =
         DriverManager.getConnection(

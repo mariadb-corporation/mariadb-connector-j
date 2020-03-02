@@ -63,6 +63,7 @@ public class LogQueryTool {
    *
    * @param serverPrepareResult prepare result
    * @param parameters query parameters
+   * @param options options
    * @return exception message with query
    */
   public static String queryWithParams(

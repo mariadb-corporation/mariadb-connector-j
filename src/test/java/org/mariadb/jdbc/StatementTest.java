@@ -61,7 +61,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.*;
 
 public class StatementTest extends BaseTest {
