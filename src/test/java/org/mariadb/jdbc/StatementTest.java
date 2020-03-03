@@ -608,7 +608,7 @@ public class StatementTest extends BaseTest {
       stmt.setQueryTimeout(-1);
       fail();
     } catch (SQLException e) {
-      e.getMessage().contains("Query timeout rows cannot be negative");
+      e.getMessage().contains("Query timeout cannot be negative");
     }
 
     stmt.setEscapeProcessing(false);

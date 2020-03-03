@@ -934,7 +934,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     if (seconds < 0) {
       throw exceptionFactory
           .raiseStatementError(connection, this)
-          .create("Query timeout rows cannot be negative : asked for " + seconds, "42000");
+          .create("Query timeout cannot be negative : asked for " + seconds, "42000");
     }
     this.queryTimeout = seconds;
   }
