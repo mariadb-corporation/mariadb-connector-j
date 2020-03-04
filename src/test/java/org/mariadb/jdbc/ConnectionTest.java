@@ -52,8 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import static org.junit.Assert.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -61,8 +60,8 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
-
-import static org.junit.Assert.*;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class ConnectionTest extends BaseTest {
 

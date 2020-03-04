@@ -52,16 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.util.Options;
-
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.sql.*;
@@ -73,6 +63,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbStatement implements Statement, Cloneable {
 

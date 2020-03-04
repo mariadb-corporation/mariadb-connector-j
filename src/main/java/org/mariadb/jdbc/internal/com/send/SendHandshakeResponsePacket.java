@@ -52,6 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.StringTokenizer;
+import java.util.function.Supplier;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.credential.Credential;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
@@ -63,11 +67,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.pid.PidFactory;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.StringTokenizer;
-import java.util.function.Supplier;
 
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {

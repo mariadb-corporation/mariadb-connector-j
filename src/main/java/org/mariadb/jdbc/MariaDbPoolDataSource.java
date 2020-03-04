@@ -22,14 +22,6 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.internal.util.pool.Pool;
-import org.mariadb.jdbc.internal.util.pool.Pools;
-import org.mariadb.jdbc.util.DefaultOptions;
-import org.mariadb.jdbc.util.Options;
-
-import javax.sql.*;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.sql.Connection;
@@ -38,6 +30,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
+import javax.sql.*;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.pool.Pool;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbPoolDataSource
     implements ConnectionPoolDataSource, DataSource, XADataSource, Closeable, AutoCloseable {

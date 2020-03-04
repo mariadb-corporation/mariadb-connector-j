@@ -52,6 +52,11 @@
 
 package org.mariadb.jdbc.internal.failover;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -60,12 +65,6 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class FailoverProxy implements InvocationHandler {
 

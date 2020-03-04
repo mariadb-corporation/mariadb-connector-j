@@ -22,10 +22,9 @@
 
 package org.mariadb.jdbc.authentication;
 
-import org.mariadb.jdbc.Driver;
-
 import java.sql.SQLException;
 import java.util.ServiceLoader;
+import org.mariadb.jdbc.Driver;
 
 public class AuthenticationPluginLoader {
 

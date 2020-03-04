@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.ParameterMetaData;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.sql.ParameterMetaData;
-import java.sql.SQLException;
 
 /** Very basic info about the parameterized query, only reliable method is getParameterCount(). */
 public class MariaDbParameterMetaData implements ParameterMetaData {

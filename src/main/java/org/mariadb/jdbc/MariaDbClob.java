@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.io.*;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 

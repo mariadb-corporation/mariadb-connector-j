@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TransactionTest extends BaseTest {
 

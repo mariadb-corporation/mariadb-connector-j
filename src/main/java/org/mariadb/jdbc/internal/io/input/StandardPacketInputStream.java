@@ -52,6 +52,13 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
+
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
@@ -60,14 +67,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.BufferedInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class StandardPacketInputStream implements PacketInputStream {
 

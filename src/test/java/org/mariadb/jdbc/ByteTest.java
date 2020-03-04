@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.sql.*;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class ByteTest extends BaseTest {
 

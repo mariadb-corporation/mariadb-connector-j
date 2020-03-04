@@ -52,17 +52,16 @@
 
 package org.mariadb.jdbc.internal.failover;
 
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 

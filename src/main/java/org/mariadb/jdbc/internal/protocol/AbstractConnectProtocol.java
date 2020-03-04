@@ -52,6 +52,24 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import static org.mariadb.jdbc.internal.com.Packet.*;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
@@ -88,25 +106,6 @@ import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.tls.TlsSocketPlugin;
 import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.Options;
-
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public abstract class AbstractConnectProtocol implements Protocol {
 

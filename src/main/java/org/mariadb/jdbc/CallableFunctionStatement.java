@@ -52,10 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -63,6 +59,9 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public abstract class CallableFunctionStatement extends ClientSidePreparedStatement
     implements CallableStatement {

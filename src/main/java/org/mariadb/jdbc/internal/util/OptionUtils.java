@@ -16,10 +16,9 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.util.DefaultOptions;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class OptionUtils {
 

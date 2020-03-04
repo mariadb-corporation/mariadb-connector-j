@@ -22,6 +22,13 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
@@ -31,14 +38,6 @@ import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParam
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 

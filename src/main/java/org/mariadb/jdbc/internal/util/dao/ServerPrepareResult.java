@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
 

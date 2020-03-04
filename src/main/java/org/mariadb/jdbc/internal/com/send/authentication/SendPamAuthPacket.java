@@ -52,15 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.IOException;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {
 

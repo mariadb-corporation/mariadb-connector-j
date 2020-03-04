@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class TimeParameter implements Cloneable, ParameterHolder {
 

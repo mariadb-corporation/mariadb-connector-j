@@ -52,6 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import static org.mariadb.jdbc.internal.com.Packet.*;
+
+import java.io.IOException;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
@@ -59,11 +63,6 @@ import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-
-import java.io.IOException;
-import java.sql.SQLException;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ComStmtPrepare {
 

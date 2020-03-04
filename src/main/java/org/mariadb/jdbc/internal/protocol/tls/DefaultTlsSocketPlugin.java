@@ -22,13 +22,6 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.tls.TlsSocketPlugin;
-import org.mariadb.jdbc.util.Options;
-
-import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -41,6 +34,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.sql.SQLException;
+import javax.net.ssl.*;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.tls.TlsSocketPlugin;
+import org.mariadb.jdbc.util.Options;
 
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static final Logger logger = LoggerFactory.getLogger(DefaultTlsSocketPlugin.class);

@@ -52,10 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-
-import java.io.IOException;
 
 public class DoubleParameter implements Cloneable, ParameterHolder {
 

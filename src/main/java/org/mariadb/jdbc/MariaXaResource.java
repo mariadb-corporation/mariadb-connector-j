@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.Utils;
-
-import javax.transaction.xa.XAException;
-import javax.transaction.xa.XAResource;
-import javax.transaction.xa.Xid;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import javax.transaction.xa.XAException;
+import javax.transaction.xa.XAResource;
+import javax.transaction.xa.Xid;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class MariaXaResource implements XAResource {
 

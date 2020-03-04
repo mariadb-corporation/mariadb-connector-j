@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Types;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
-
-import java.nio.charset.StandardCharsets;
-import java.sql.Types;
 
 /** Protocol details : https://mariadb.com/kb/en/resultset/#column-definition-packet */
 public class ColumnDefinition {

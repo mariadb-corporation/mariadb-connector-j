@@ -1,9 +1,8 @@
 package org.mariadb.jdbc.internal.util.exceptions;
 
+import java.sql.*;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.util.Options;
-
-import java.sql.*;
 
 public final class ExceptionFactory {
 

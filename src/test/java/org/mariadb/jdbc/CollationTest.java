@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
-
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class CollationTest extends BaseTest {
 

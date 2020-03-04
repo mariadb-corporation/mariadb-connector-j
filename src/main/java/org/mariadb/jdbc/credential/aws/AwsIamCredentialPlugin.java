@@ -21,18 +21,17 @@
 
 package org.mariadb.jdbc.credential.aws;
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.credential.Credential;
-import org.mariadb.jdbc.credential.CredentialPlugin;
-import org.mariadb.jdbc.util.Options;
+import static java.time.LocalDateTime.now;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static java.time.LocalDateTime.now;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.credential.Credential;
+import org.mariadb.jdbc.credential.CredentialPlugin;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Permit AWS database IAM authentication.

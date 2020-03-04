@@ -52,10 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.protocol.Protocol;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -69,8 +66,10 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareStatementTest extends BaseTest {
 

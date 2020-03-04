@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.OutputStream;
 import java.io.Reader;
@@ -61,8 +61,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Types;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 @SuppressWarnings("ALL")
 public class DataNTypeTest extends BaseTest {

@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Test;
 
 public class StateChangeTest extends BaseTest {
 

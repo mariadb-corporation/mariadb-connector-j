@@ -22,6 +22,8 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.*;
+import java.util.*;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -29,9 +31,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.sql.*;
-import java.util.*;
 
 public class ServerSidePreparedStatement extends BasePrepareStatement implements Cloneable {
 

@@ -53,7 +53,6 @@
 package org.mariadb.jdbc.internal.io.socket;
 
 import com.sun.jna.platform.win32.Kernel32;
-
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketAddress;

@@ -52,9 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.util.Options;
+import static org.junit.Assert.*;
 
 import java.io.InputStream;
 import java.sql.*;
@@ -64,8 +62,9 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.Scanner;
 import java.util.TimeZone;
-
-import static org.junit.Assert.*;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("deprecation")
 public class TimezoneDaylightSavingTimeTest extends BaseTest {

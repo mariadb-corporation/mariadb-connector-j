@@ -52,6 +52,17 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.Charset;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -65,18 +76,6 @@ import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.util.List;
-import java.util.TimeZone;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
 

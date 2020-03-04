@@ -52,6 +52,24 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -85,25 +103,6 @@ import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 

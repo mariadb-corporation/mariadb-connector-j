@@ -52,12 +52,8 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.io.TraceObject;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Utils;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -65,9 +61,12 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 

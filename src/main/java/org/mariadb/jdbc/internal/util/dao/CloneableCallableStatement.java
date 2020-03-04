@@ -52,9 +52,8 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.MariaDbConnection;
-
 import java.sql.CallableStatement;
+import org.mariadb.jdbc.MariaDbConnection;
 
 public interface CloneableCallableStatement extends CallableStatement {
 

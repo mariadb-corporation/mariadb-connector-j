@@ -52,10 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -67,6 +63,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public abstract class BasePrepareStatement extends MariaDbStatement implements PreparedStatement {
 

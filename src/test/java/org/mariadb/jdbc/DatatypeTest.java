@@ -52,9 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -62,8 +60,9 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DatatypeTest extends BaseTest {
 

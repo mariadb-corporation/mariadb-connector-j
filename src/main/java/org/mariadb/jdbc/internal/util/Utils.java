@@ -52,6 +52,21 @@
 
 package org.mariadb.jdbc.internal.util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Proxy;
+import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
+import javax.net.SocketFactory;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
@@ -67,22 +82,6 @@ import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.util.Options;
-
-import javax.net.SocketFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Proxy;
-import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Locale;
-import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 
 @SuppressWarnings("Annotator")
 public class Utils {
