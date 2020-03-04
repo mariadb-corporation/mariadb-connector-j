@@ -924,7 +924,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  WHEN 'SET DEFAULT' THEN 4"
             + " END DELETE_RULE,"
             + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " NULL PK_NAME,"
+            + " 'PRIMARY' PK_NAME,"
             + importedKeyNotDeferrable
             + " DEFERRABILITY"
             + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"

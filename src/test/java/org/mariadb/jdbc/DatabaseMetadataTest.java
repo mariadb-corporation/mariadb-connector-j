@@ -315,6 +315,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals("id", rs.getString("pkcolumn_name"));
       assertEquals("fore_key" + counter, rs.getString("fktable_name"));
       assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+      assertEquals("PRIMARY", rs.getString("PK_NAME"));
       counter++;
     }
     assertEquals(2, counter);
