@@ -298,15 +298,22 @@ public class DatabaseMetadataTest extends BaseTest {
     stmt.execute("drop table if exists fore_key0");
     stmt.execute("drop table if exists fore_key1");
     stmt.execute("drop table if exists prim_key");
+    stmt.execute("drop table if exists fore_key3");
+    stmt.execute("drop table if exists prim2_key");
 
     stmt.execute(
-        "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
+        "create table prim_key (id int not null primary key, val varchar(20)) engine=innodb");
+    stmt.execute(
+            "create table prim2_key (id int not null primary key, val varchar(20)) engine=innodb");
     stmt.execute(
         "create table fore_key0 (id int not null primary key, "
             + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
     stmt.execute(
         "create table fore_key1 (id int not null primary key, "
             + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+    stmt.execute(
+            "create table fore_key3 (id int not null primary key, "
+                    + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getExportedKeys("testj", null, "prim_key");
@@ -319,6 +326,36 @@ public class DatabaseMetadataTest extends BaseTest {
       counter++;
     }
     assertEquals(2, counter);
+
+    rs = dbmd.getExportedKeys("testj", null, "prim_k%");
+    counter = 0;
+    while (rs.next()) {
+      assertEquals("id", rs.getString("pkcolumn_name"));
+      assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+      assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+      assertEquals("PRIMARY", rs.getString("PK_NAME"));
+      counter++;
+    }
+    assertEquals(2, counter);
+
+
+    rs = dbmd.getExportedKeys("testj", null, null);
+    counter = 0;
+    int totalCounter = 0;
+    while (rs.next()) {
+      if ("prim_key".equals(rs.getString("pktable_name"))) {
+        assertEquals("id", rs.getString("pkcolumn_name"));
+        assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+        assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+        assertEquals("PRIMARY", rs.getString("PK_NAME"));
+        counter++;
+      }
+      totalCounter++;
+    }
+    assertEquals(2, counter);
+    assertTrue(totalCounter > 2);
+
+
     stmt.execute("drop table if exists fore_key0");
     stmt.execute("drop table if exists fore_key1");
     stmt.execute("drop table if exists prim_key");

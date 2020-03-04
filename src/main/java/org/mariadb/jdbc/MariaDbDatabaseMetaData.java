@@ -554,11 +554,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   // table name)
   private String patternCond(String columnName, String tableName) {
     if (tableName == null) {
-      return "(1 = 1)";
+      return "";
     }
     String predicate =
         (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1) ? "=" : "LIKE";
-    return "(" + columnName + " " + predicate + " '" + Utils.escapeString(tableName, true) + "')";
+    return " AND " + columnName + " " + predicate + " '" + Utils.escapeString(tableName, true) + "' ";
   }
 
   /**
@@ -598,9 +598,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + catalogCond("A.TABLE_SCHEMA", catalog)
             + " AND "
             + catalogCond("B.TABLE_SCHEMA", catalog)
-            + " AND "
             + patternCond("A.TABLE_NAME", table)
-            + " AND "
             + patternCond("B.TABLE_NAME", table)
             + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
             + " ORDER BY A.COLUMN_NAME";
@@ -659,7 +657,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " FROM INFORMATION_SCHEMA.TABLES "
                 + " WHERE "
                 + catalogCond("TABLE_SCHEMA", catalog)
-                + " AND "
                 + patternCond("TABLE_NAME", tableNamePattern));
 
     if (types != null && types.length > 0) {
@@ -818,9 +815,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
             + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
             + catalogCond("TABLE_SCHEMA", catalog)
-            + " AND "
             + patternCond("TABLE_NAME", tableNamePattern)
-            + " AND "
             + patternCond("COLUMN_NAME", columnNamePattern)
             + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
@@ -902,9 +897,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    */
   public ResultSet getExportedKeys(String catalog, String schema, String table)
       throws SQLException {
-    if (table == null) {
-      throw new SQLException("'table' parameter in getExportedKeys cannot be null");
-    }
     String sql =
         "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
             + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
@@ -933,9 +925,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
             + " WHERE "
             + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
-            + " AND "
-            + " KCU.REFERENCED_TABLE_NAME = "
-            + escapeQuote(table)
+            + patternCond("KCU.REFERENCED_TABLE_NAME", table)
             + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
     return executeQuery(sql);
@@ -1959,7 +1949,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
-            + " AND "
             + patternCond("ROUTINE_NAME", procedureNamePattern)
             + "/* AND ROUTINE_TYPE='PROCEDURE' */";
     return executeQuery(sql);
@@ -2144,9 +2133,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
               + " FROM INFORMATION_SCHEMA.PARAMETERS "
               + " WHERE "
               + catalogCond("SPECIFIC_SCHEMA", catalog)
-              + " AND "
               + patternCond("SPECIFIC_NAME", procedureNamePattern)
-              + " AND "
               + patternCond("PARAMETER_NAME", columnNamePattern)
               + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
               + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
@@ -2290,9 +2277,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
               + " FROM INFORMATION_SCHEMA.PARAMETERS "
               + " WHERE "
               + catalogCond("SPECIFIC_SCHEMA", catalog)
-              + " AND "
               + patternCond("SPECIFIC_NAME", functionNamePattern)
-              + " AND "
               + patternCond("PARAMETER_NAME", columnNamePattern)
               + " AND ROUTINE_TYPE='FUNCTION'"
               + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
@@ -2378,7 +2363,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " AND "
             + " TABLE_NAME = "
             + escapeQuote(table)
-            + " AND "
             + patternCond("COLUMN_NAME", columnNamePattern)
             + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
 
@@ -2428,7 +2412,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
             + " WHERE "
             + catalogCond("TABLE_SCHEMA", catalog)
-            + " AND "
             + patternCond("TABLE_NAME", tableNamePattern)
             + "ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ";
 
@@ -3896,7 +3879,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
-            + " AND "
             + patternCond("ROUTINE_NAME", functionNamePattern)
             + " AND ROUTINE_TYPE='FUNCTION'";
 
