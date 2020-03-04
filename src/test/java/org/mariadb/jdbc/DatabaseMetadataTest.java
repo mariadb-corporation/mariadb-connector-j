@@ -161,6 +161,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(null, rs.getString("table_schem"));
       assertEquals("t2", rs.getString("table_name"));
       assertEquals(counter, rs.getShort("key_seq"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
     }
     assertEquals(2, counter);
     stmt.execute("drop table if exists t2");
@@ -321,7 +322,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals("id", rs.getString("pkcolumn_name"));
       assertEquals("fore_key" + counter, rs.getString("fktable_name"));
       assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
-      assertEquals("PRIMARY", rs.getString("PK_NAME"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
       counter++;
     }
     assertEquals(2, counter);
@@ -332,7 +333,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals("id", rs.getString("pkcolumn_name"));
       assertEquals("fore_key" + counter, rs.getString("fktable_name"));
       assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
-      assertEquals("PRIMARY", rs.getString("PK_NAME"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
       counter++;
     }
     assertEquals(2, counter);
