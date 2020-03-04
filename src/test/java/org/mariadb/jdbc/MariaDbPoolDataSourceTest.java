@@ -22,14 +22,8 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.pool.Pools;
-import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import static org.junit.Assert.*;
 
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
@@ -38,8 +32,13 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 public class MariaDbPoolDataSourceTest extends BaseTest {
 

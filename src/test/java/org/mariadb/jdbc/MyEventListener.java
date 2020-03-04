@@ -52,11 +52,11 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.SQLException;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.StatementEvent;
 import javax.sql.StatementEventListener;
-import java.sql.SQLException;
 
 public class MyEventListener implements ConnectionEventListener, StatementEventListener {
 

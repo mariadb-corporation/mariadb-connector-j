@@ -60,7 +60,6 @@ import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIFunctionMapper;
 import com.sun.jna.win32.W32APITypeMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

@@ -52,6 +52,12 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.*;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -60,13 +66,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
 import org.mariadb.jdbc.util.Options;
-
-import java.sql.*;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
@@ -558,7 +557,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
     String predicate =
         (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1) ? "=" : "LIKE";
-    return " AND " + columnName + " " + predicate + " '" + Utils.escapeString(tableName, true) + "' ";
+    return " AND "
+        + columnName
+        + " "
+        + predicate
+        + " '"
+        + Utils.escapeString(tableName, true)
+        + "' ";
   }
 
   /**

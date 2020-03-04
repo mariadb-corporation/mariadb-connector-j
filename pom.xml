@@ -67,8 +67,6 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jna.version>5.5.0</jna.version>
-    <checkstyleVersion>8.29</checkstyleVersion>
-    <checkstyle.plugin.version>3.1.1</checkstyle.plugin.version>
     <osgi.version>6.0.0</osgi.version>
     <osgi.compendium.version>5.0.0</osgi.compendium.version>
   </properties>
@@ -167,42 +165,6 @@
           </execution>
         </executions>
       </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${checkstyle.plugin.version}</version>
-        <dependencies>
-          <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <version>${checkstyleVersion}</version>
-          </dependency>
-        </dependencies>
-        <executions>
-          <execution>
-            <id>process-test-resources</id>
-            <phase>prepare-package</phase>
-            <configuration>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <excludes>
-                **/SharedMemorySocket.java,
-                **/UnixDomainSocket.java,
-                **/MySQLDataSource.java,
-                **/org/mariadb/jdbc/internal/com/send/authentication/ed25519/**
-              </excludes>
-              <configLocation>src/test/resources/style.xml</configLocation>
-              <encoding>UTF-8</encoding>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
-            </configuration>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
@@ -265,6 +227,18 @@
             <phase>verify</phase>
             <goals>
               <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.coveo</groupId>
+        <artifactId>fmt-maven-plugin</artifactId>
+        <version>2.9</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>format</goal>
             </goals>
           </execution>
         </executions>

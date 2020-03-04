@@ -52,13 +52,12 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 public class MariaDbFunctionStatement extends CallableFunctionStatement
     implements CloneableCallableStatement {

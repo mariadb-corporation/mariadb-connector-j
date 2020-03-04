@@ -56,7 +56,6 @@ import com.sun.jna.LastErrorException;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.Structure;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

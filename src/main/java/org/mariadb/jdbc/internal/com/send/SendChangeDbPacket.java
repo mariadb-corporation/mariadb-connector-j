@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.mariadb.jdbc.internal.com.Packet;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class SendChangeDbPacket {
 

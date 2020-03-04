@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
 
 public abstract class BaseReplication extends BaseMonoServer {
 

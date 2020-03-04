@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class UpdateResultSetTest extends BaseTest {
 

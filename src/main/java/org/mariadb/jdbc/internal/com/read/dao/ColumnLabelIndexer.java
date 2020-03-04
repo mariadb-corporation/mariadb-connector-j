@@ -52,13 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class ColumnLabelIndexer {
 

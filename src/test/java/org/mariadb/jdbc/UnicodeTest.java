@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class UnicodeTest extends BaseTest {
 

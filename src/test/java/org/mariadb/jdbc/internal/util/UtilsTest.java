@@ -52,11 +52,11 @@
 
 package org.mariadb.jdbc.internal.util;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
-
-import static org.junit.Assert.*;
 
 public class UtilsTest {
 

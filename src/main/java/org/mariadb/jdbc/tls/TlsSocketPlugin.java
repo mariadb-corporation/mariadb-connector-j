@@ -22,15 +22,14 @@
 
 package org.mariadb.jdbc.tls;
 
-import org.mariadb.jdbc.util.Options;
-
+import java.io.IOException;
+import java.net.Socket;
+import java.sql.SQLException;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.net.Socket;
-import java.sql.SQLException;
+import org.mariadb.jdbc.util.Options;
 
 public interface TlsSocketPlugin {
 

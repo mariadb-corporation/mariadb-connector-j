@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.util.DefaultOptions;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
-
-import static org.junit.Assert.*;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class ParserTest extends BaseTest {
 

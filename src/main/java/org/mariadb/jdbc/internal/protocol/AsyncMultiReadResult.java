@@ -52,9 +52,8 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
 public class AsyncMultiReadResult {
 

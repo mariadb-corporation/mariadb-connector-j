@@ -52,6 +52,9 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -59,10 +62,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ClientSidePreparedStatement extends BasePrepareStatement {
 

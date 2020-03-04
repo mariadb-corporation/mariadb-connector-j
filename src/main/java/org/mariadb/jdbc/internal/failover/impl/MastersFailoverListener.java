@@ -52,6 +52,11 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
@@ -66,12 +71,6 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 

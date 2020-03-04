@@ -9,14 +9,13 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
-
 import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * Parameter specification for an EdDSA algorithm.

@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.sql.*;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
-
-import static org.junit.Assert.*;
 
 public class DatabaseMetadataTest extends BaseTest {
 
@@ -304,7 +303,7 @@ public class DatabaseMetadataTest extends BaseTest {
     stmt.execute(
         "create table prim_key (id int not null primary key, val varchar(20)) engine=innodb");
     stmt.execute(
-            "create table prim2_key (id int not null primary key, val varchar(20)) engine=innodb");
+        "create table prim2_key (id int not null primary key, val varchar(20)) engine=innodb");
     stmt.execute(
         "create table fore_key0 (id int not null primary key, "
             + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
@@ -312,8 +311,8 @@ public class DatabaseMetadataTest extends BaseTest {
         "create table fore_key1 (id int not null primary key, "
             + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
     stmt.execute(
-            "create table fore_key3 (id int not null primary key, "
-                    + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
+        "create table fore_key3 (id int not null primary key, "
+            + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getExportedKeys("testj", null, "prim_key");
@@ -338,7 +337,6 @@ public class DatabaseMetadataTest extends BaseTest {
     }
     assertEquals(2, counter);
 
-
     rs = dbmd.getExportedKeys("testj", null, null);
     counter = 0;
     int totalCounter = 0;
@@ -354,7 +352,6 @@ public class DatabaseMetadataTest extends BaseTest {
     }
     assertEquals(2, counter);
     assertTrue(totalCounter > 2);
-
 
     stmt.execute("drop table if exists fore_key0");
     stmt.execute("drop table if exists fore_key1");

@@ -9,14 +9,13 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
+import java.util.Hashtable;
+import java.util.Locale;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
-
-import java.util.Hashtable;
-import java.util.Locale;
 
 /**
  * The named EdDSA curves.

@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.util.Options;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import org.mariadb.jdbc.util.Options;
 
 public enum ColumnType {
   OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),

@@ -52,7 +52,16 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.*;
+
 import com.sun.jna.Platform;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.sql.Date;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -60,16 +69,6 @@ import org.junit.Test;
 import org.mariadb.jdbc.internal.util.DeRegister;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.util.DefaultOptions;
-
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
 
 public class DriverTest extends BaseTest {
 

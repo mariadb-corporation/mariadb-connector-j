@@ -52,6 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.time.*;
+import java.util.Arrays;
+import java.util.TimeZone;
 import org.mariadb.jdbc.BasePrepareStatement;
 import org.mariadb.jdbc.ClientSidePreparedStatement;
 import org.mariadb.jdbc.MariaDbConnection;
@@ -62,15 +70,6 @@ import org.mariadb.jdbc.internal.com.send.parameters.*;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.time.*;
-import java.util.Arrays;
-import java.util.TimeZone;
 
 public class UpdatableResultSet extends SelectResultSet {
 

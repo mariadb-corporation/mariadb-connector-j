@@ -52,13 +52,12 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.sql.*;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.Options;
-
-import java.sql.*;
-
-import static org.junit.Assert.*;
 
 public class ClientPreparedStatementParsingTest extends BaseTest {
 

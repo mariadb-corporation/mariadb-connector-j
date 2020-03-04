@@ -52,15 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class ReconnectionStateMaxAllowedStatement extends BaseTest {
 

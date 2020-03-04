@@ -52,10 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbSavepoint implements Savepoint {
 

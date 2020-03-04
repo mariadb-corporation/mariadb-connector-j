@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.failover.thread;
 
-import org.mariadb.jdbc.internal.failover.Listener;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.mariadb.jdbc.internal.failover.Listener;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 public class FailoverLoop extends TerminableRunnable {
 

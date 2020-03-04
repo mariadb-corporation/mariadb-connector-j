@@ -52,16 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.Platform;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mariadb.jdbc.failover.TcpProxy;
-import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.util.Options;
+import static org.junit.Assert.*;
 
+import com.sun.jna.Platform;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
@@ -73,8 +66,14 @@ import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.junit.Assert.*;
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mariadb.jdbc.failover.TcpProxy;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root
