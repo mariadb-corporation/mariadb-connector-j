@@ -807,7 +807,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private void postConnectionQueries() throws SQLException {
     try {
 
-      if (options.usePipelineAuth && (options.socketTimeout == null || options.socketTimeout > 500)) {
+      if (options.usePipelineAuth
+          && (options.socketTimeout == null
+              || options.socketTimeout == 0
+              || options.socketTimeout > 500)) {
         // set a timeout to avoid hang in case server doesn't support pipelining
         socket.setSoTimeout(500);
       }
