@@ -59,6 +59,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
@@ -806,6 +807,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private void postConnectionQueries() throws SQLException {
     try {
 
+      if (options.usePipelineAuth && (options.socketTimeout == null || options.socketTimeout > 500)) {
+        // set a timeout to avoid hang in case server doesn't support pipelining
+        socket.setSoTimeout(500);
+      }
+
       boolean mustLoadAdditionalInfo = true;
       if (globalInfo != null) {
         if (globalInfo.isAutocommit() == options.autocommit) {
@@ -847,6 +853,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       activeStreamingResult = null;
       hostFailed = false;
+
+      if (options.usePipelineAuth) {
+        // reset timeout to configured value
+        if (options.socketTimeout != null) {
+          socket.setSoTimeout(options.socketTimeout);
+        } else {
+          socket.setSoTimeout(0);
+        }
+      }
+
+    } catch (SocketTimeoutException timeoutException) {
+      destroySocket();
+      String msg = "Socket error during post connection queries: " + timeoutException.getMessage();
+      if (options.usePipelineAuth) {
+        msg +=
+            "\nServer might not support pipelining, try disabling with option `usePipelineAuth` and `useBatchMultiSend`";
+      }
+      throw exceptionFactory.create(msg, "08000", timeoutException);
     } catch (IOException ioException) {
       destroySocket();
       throw exceptionFactory.create(
