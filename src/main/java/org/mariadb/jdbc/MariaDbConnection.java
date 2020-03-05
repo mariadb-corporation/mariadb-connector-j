@@ -130,7 +130,7 @@ public class MariaDbConnection implements Connection {
       callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
     }
     this.lock = protocol.getLock();
-    this.exceptionFactory = ExceptionFactory.of((int) this.getServerThreadId(), this.options);
+    this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
   }
 
   /**
