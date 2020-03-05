@@ -674,8 +674,7 @@ public class ServerPrepareStatementTest extends BaseTest {
               "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
       Reader reader =
           new BufferedReader(
-              new InputStreamReader(
-                  ClassLoader.getSystemResourceAsStream("logback-test.xml")));
+              new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback-test.xml")));
 
       ps.setCharacterStream(1, reader);
       ps.addBatch();

@@ -517,7 +517,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
       long clientCapabilities = initializeClientCapabilities(options, serverCapabilities, database);
-      exceptionFactory = ExceptionFactory.of((int) serverThreadId, options);
+      exceptionFactory = ExceptionFactory.of(serverThreadId, options);
 
       sslWrapper(
           host,

@@ -6,28 +6,28 @@ import org.mariadb.jdbc.util.Options;
 
 public final class ExceptionFactory {
 
-  public static final ExceptionFactory INSTANCE = new ExceptionFactory(-1, null);
+  public static final ExceptionFactory INSTANCE = new ExceptionFactory(-1L, null);
 
-  private final int threadId;
+  private final long threadId;
   private final Options options;
 
   private MariaDbConnection connection;
   private Statement statement;
 
   public ExceptionFactory(
-      int threadId, Options options, MariaDbConnection connection, Statement statement) {
+      long threadId, Options options, MariaDbConnection connection, Statement statement) {
     this.threadId = threadId;
     this.options = options;
     this.connection = connection;
     this.statement = statement;
   }
 
-  private ExceptionFactory(int threadId, Options options) {
+  private ExceptionFactory(long threadId, Options options) {
     this.threadId = threadId;
     this.options = options;
   }
 
-  public static ExceptionFactory of(int threadId, Options options) {
+  public static ExceptionFactory of(long threadId, Options options) {
     return new ExceptionFactory(threadId, options);
   }
 
@@ -35,7 +35,7 @@ public final class ExceptionFactory {
       String initialMessage,
       String sqlState,
       int errorCode,
-      int threadId,
+      long threadId,
       Options options,
       MariaDbConnection connection,
       Statement statement,
@@ -87,13 +87,13 @@ public final class ExceptionFactory {
   }
 
   private static String buildMsgText(
-      String initialMessage, int threadId, Options options, Exception cause) {
+      String initialMessage, long threadId, Options options, Exception cause) {
 
     StringBuilder msg = new StringBuilder();
     String deadLockException = null;
     String threadName = null;
 
-    if (threadId != -1) {
+    if (threadId != -1L) {
       msg.append("(conn=").append(threadId).append(") ").append(initialMessage);
     } else {
       msg.append(initialMessage);
@@ -190,7 +190,7 @@ public final class ExceptionFactory {
         message, sqlState, errorCode, threadId, options, connection, statement, cause);
   }
 
-  public int getThreadId() {
+  public long getThreadId() {
     return threadId;
   }
 
@@ -200,6 +200,6 @@ public final class ExceptionFactory {
 
   @Override
   public String toString() {
-    return "ExceptionFactory{" + "threadId=" + threadId + '}';
+    return "ExceptionFactory{threadId=" + threadId + '}';
   }
 }
