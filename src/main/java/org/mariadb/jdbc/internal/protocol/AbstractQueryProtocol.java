@@ -107,11 +107,9 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
-  private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
   private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
       new HashSet<>(Arrays.asList(1205, 1213, 1614));
 
-  private final List<String> galeraAllowedStates;
   private ThreadPoolExecutor readScheduler = null;
   private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
@@ -129,10 +127,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   AbstractQueryProtocol(
       final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
-    galeraAllowedStates =
-        urlParser.getOptions().galeraAllowedState == null
-            ? Collections.emptyList()
-            : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
   }
 
   /**
