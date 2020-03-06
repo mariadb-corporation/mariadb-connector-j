@@ -118,6 +118,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
           .getBytes(StandardCharsets.UTF_8);
   private static final byte[] IS_MASTER_QUERY =
       "select @@innodb_read_only".getBytes(StandardCharsets.UTF_8);
+  protected static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
+
   private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
   protected final ReentrantLock lock;
   protected final UrlParser urlParser;
@@ -143,6 +145,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected long serverCapabilities;
   protected int socketTimeout;
   protected ExceptionFactory exceptionFactory;
+  protected final List<String> galeraAllowedStates;
   private HostAddress currentHost;
   private boolean hostFailed;
   private String serverVersion;
@@ -172,6 +175,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
       serverPrepareStatementCache =
           ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
     }
+    galeraAllowedStates =
+        urlParser.getOptions().galeraAllowedState == null
+            ? Collections.emptyList()
+            : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
   }
 
   private static void closeSocket(
@@ -578,6 +585,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     postConnectionQueries();
 
+    // validate galera state
+    if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
+      galeraStateValidation();
+    }
+
     activeStreamingResult = null;
     hostFailed = false;
   }
@@ -801,6 +813,30 @@ public abstract class AbstractConnectProtocol implements Protocol {
     } catch (IOException ioe) {
       destroySocket();
       throw ExceptionFactory.INSTANCE.create("Socket error: " + ioe.getMessage(), "08000", ioe);
+    }
+  }
+
+  private void galeraStateValidation() throws SQLException {
+    ResultSet rs;
+    try {
+      Results results = new Results();
+      executeQuery(true, results, CHECK_GALERA_STATE_QUERY);
+      results.commandEnd();
+      rs = results.getResultSet();
+
+    } catch (SQLException sqle) {
+      throw ExceptionFactory.of((int) serverThreadId, options)
+          .create("fail to validate Galera state");
+    }
+
+    if (rs == null || !rs.next()) {
+      throw ExceptionFactory.of((int) serverThreadId, options)
+          .create("fail to validate Galera state");
+    }
+
+    if (!galeraAllowedStates.contains(rs.getString(2))) {
+      throw ExceptionFactory.of((int) serverThreadId, options)
+          .create(String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
     }
   }
 

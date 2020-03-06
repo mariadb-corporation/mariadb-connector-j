@@ -133,7 +133,7 @@ public class Utils {
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
           if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
-            ((ConfigurableSocketFactory)socketFactory).setConfiguration(options, host);
+            ((ConfigurableSocketFactory) socketFactory).setConfiguration(options, host);
           }
           return socketFactory.createSocket();
         }
