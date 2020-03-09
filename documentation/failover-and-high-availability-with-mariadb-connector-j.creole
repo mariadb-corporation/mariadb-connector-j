@@ -241,6 +241,7 @@ Example of connection string
 }}}
 
 Another difference is the option "socketTimeout" that defaults to 10 seconds, meaning that - if not changed - queries exceeding 10 seconds will throw exceptions.  
+Note that the option "createDatabaseIfNotExist=true" causes reader instances to be blacklisted during the creation of a new connection, because this option sends a "CREATE DATABASE" statement to the reader which is not read-only and therefore is rejected.
 
 ==Aurora connection loop
 
