@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class ComQuery {
 
@@ -275,13 +276,13 @@ public class ComQuery {
     writer.startPacket(0);
     writer.write(Packet.COM_QUERY);
     // index is already set to 1 for first one
-    writer.write(firstQuery.getBytes(StandardCharsets.UTF_8));
+    writer.write(StringUtils.getBytes(firstQuery, StandardCharsets.UTF_8));
 
     int index = currentIndex;
 
     // add query with ";"
     while (index < queries.size()) {
-      byte[] sqlByte = queries.get(index).getBytes(StandardCharsets.UTF_8);
+      byte[] sqlByte = StringUtils.getBytes(queries.get(index), StandardCharsets.UTF_8);
       if (!writer.checkRemainingSize(sqlByte.length + 1)) {
         break;
       }

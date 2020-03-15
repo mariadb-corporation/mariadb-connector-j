@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.util.dao;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class ClientPrepareResult implements PrepareResult {
 
@@ -186,7 +187,8 @@ public class ClientPrepareResult implements PrepareResult {
         case '?':
           if (state == LexState.Normal) {
             partList.add(
-                queryString.substring(lastParameterPosition, i).getBytes(StandardCharsets.UTF_8));
+                StringUtils.getBytes(
+                    queryString.substring(lastParameterPosition, i), StandardCharsets.UTF_8));
             lastParameterPosition = i + 1;
           }
           break;
@@ -208,12 +210,11 @@ public class ClientPrepareResult implements PrepareResult {
       lastChar = car;
     }
     if (lastParameterPosition == 0) {
-      partList.add(queryString.getBytes(StandardCharsets.UTF_8));
+      partList.add(StringUtils.getBytes(queryString, StandardCharsets.UTF_8));
     } else {
       partList.add(
-          queryString
-              .substring(lastParameterPosition, queryLength)
-              .getBytes(StandardCharsets.UTF_8));
+          StringUtils.getBytes(
+              queryString.substring(lastParameterPosition, queryLength), StandardCharsets.UTF_8));
     }
 
     return new ClientPrepareResult(
@@ -492,7 +493,7 @@ public class ClientPrepareResult implements PrepareResult {
                 sb.insert(0, postValuePart);
                 postValuePart = null;
               }
-              partList.add(sb.toString().getBytes(StandardCharsets.UTF_8));
+              partList.add(StringUtils.getBytes(sb.toString(), StandardCharsets.UTF_8));
               sb.setLength(0);
             }
 
@@ -619,20 +620,24 @@ public class ClientPrepareResult implements PrepareResult {
     if (!hasParam) {
       // permit to have rewrite without parameter
       if (preValuePart1 == null) {
-        partList.add(0, sb.toString().getBytes(StandardCharsets.UTF_8));
+        partList.add(0, StringUtils.getBytes(sb.toString(), StandardCharsets.UTF_8));
         partList.add(1, new byte[0]);
       } else {
-        partList.add(0, preValuePart1.getBytes(StandardCharsets.UTF_8));
-        partList.add(1, sb.toString().getBytes(StandardCharsets.UTF_8));
+        partList.add(0, StringUtils.getBytes(preValuePart1, StandardCharsets.UTF_8));
+        partList.add(1, StringUtils.getBytes(sb.toString(), StandardCharsets.UTF_8));
       }
       sb.setLength(0);
     } else {
       partList.add(
           0,
-          (preValuePart1 == null) ? new byte[0] : preValuePart1.getBytes(StandardCharsets.UTF_8));
+          (preValuePart1 == null)
+              ? new byte[0]
+              : StringUtils.getBytes(preValuePart1, StandardCharsets.UTF_8));
       partList.add(
           1,
-          (preValuePart2 == null) ? new byte[0] : preValuePart2.getBytes(StandardCharsets.UTF_8));
+          (preValuePart2 == null)
+              ? new byte[0]
+              : StringUtils.getBytes(preValuePart2, StandardCharsets.UTF_8));
     }
 
     if (!isInsert) {
@@ -643,9 +648,11 @@ public class ClientPrepareResult implements PrepareResult {
     // if no param, don't add to the list.
     if (hasParam) {
       partList.add(
-          (postValuePart == null) ? new byte[0] : postValuePart.getBytes(StandardCharsets.UTF_8));
+          (postValuePart == null)
+              ? new byte[0]
+              : StringUtils.getBytes(postValuePart, StandardCharsets.UTF_8));
     }
-    partList.add(sb.toString().getBytes(StandardCharsets.UTF_8));
+    partList.add(StringUtils.getBytes(sb.toString(), StandardCharsets.UTF_8));
 
     return new ClientPrepareResult(
         queryString, partList, reWritablePrepare, multipleQueriesPrepare, true);

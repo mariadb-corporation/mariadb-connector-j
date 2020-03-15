@@ -104,6 +104,7 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 import org.mariadb.jdbc.tls.TlsSocketPlugin;
 import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.Options;
@@ -111,13 +112,14 @@ import org.mariadb.jdbc.util.Options;
 public abstract class AbstractConnectProtocol implements Protocol {
 
   private static final byte[] SESSION_QUERY =
-      ("SELECT @@max_allowed_packet,"
+      StringUtils.getBytes(
+          ("SELECT @@max_allowed_packet,"
               + "@@system_time_zone,"
               + "@@time_zone,"
-              + "@@auto_increment_increment")
-          .getBytes(StandardCharsets.UTF_8);
+              + "@@auto_increment_increment"),
+          StandardCharsets.UTF_8);
   private static final byte[] IS_MASTER_QUERY =
-      "select @@innodb_read_only".getBytes(StandardCharsets.UTF_8);
+      StringUtils.getBytes("select @@innodb_read_only", StandardCharsets.UTF_8);
   protected static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);

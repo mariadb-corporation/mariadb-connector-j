@@ -59,6 +59,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 
@@ -95,7 +96,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    * @return string value of blob content.
    */
   public String toString() {
-    return new String(data, offset, length, StandardCharsets.UTF_8);
+    return StringUtils.newString(data, offset, length, StandardCharsets.UTF_8);
   }
 
   /**
@@ -211,7 +212,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    */
   public int setString(long pos, String str) throws SQLException {
     int bytePosition = utf8Position((int) pos - 1);
-    super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
+    super.setBytes(bytePosition + 1 - offset, StringUtils.getBytes(str, StandardCharsets.UTF_8));
     return str.length();
   }
 

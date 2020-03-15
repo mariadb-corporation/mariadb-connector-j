@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.com.read;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class Buffer {
 
@@ -93,7 +94,7 @@ public class Buffer {
     while (remaining() > 0 && (buf[position++] != 0)) {
       cnt++;
     }
-    return new String(buf, initialPosition, cnt, charset);
+    return StringUtils.newString(buf, initialPosition, cnt, charset);
   }
 
   /**
@@ -120,7 +121,7 @@ public class Buffer {
    */
   public String readStringLengthEncoded(final Charset charset) {
     int length = (int) getLengthEncodedNumeric();
-    String string = new String(buf, position, length, charset);
+    String string = StringUtils.newString(buf, position, length, charset);
     position += length;
     return string;
   }
@@ -359,7 +360,7 @@ public class Buffer {
    * @param value value to write
    */
   public void writeStringLength(String value) {
-    byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+    byte[] bytes = StringUtils.getBytes(value, StandardCharsets.UTF_8);
     int length = bytes.length;
     while (remaining() < length + 9) {
       grow();

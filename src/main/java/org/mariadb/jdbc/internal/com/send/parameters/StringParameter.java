@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class StringParameter implements Cloneable, ParameterHolder {
 
@@ -87,7 +88,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
    * @throws IOException if socket error occur
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
-    byte[] bytes = stringValue.getBytes(StandardCharsets.UTF_8);
+    byte[] bytes = StringUtils.getBytes(stringValue, StandardCharsets.UTF_8);
     pos.writeFieldLength(bytes.length);
     pos.write(bytes);
   }

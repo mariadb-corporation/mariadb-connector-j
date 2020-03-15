@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings({
@@ -936,7 +937,7 @@ public class SelectResultSet implements ResultSet {
       return null;
     }
     return new ByteArrayInputStream(
-        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
+        StringUtils.newString(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
             .getBytes());
   }
 
@@ -1137,7 +1138,7 @@ public class SelectResultSet implements ResultSet {
       return null;
     }
     return new ByteArrayInputStream(
-        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
+        StringUtils.newString(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
             .getBytes());
   }
 

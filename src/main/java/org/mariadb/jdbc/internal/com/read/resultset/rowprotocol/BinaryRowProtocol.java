@@ -63,6 +63,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 import org.mariadb.jdbc.util.Options;
 
 public class BinaryRowProtocol extends RowProtocol {
@@ -294,11 +295,11 @@ public class BinaryRowProtocol extends RowProtocol {
     switch (columnInfo.getColumnType()) {
       case STRING:
         if (getMaxFieldSize() > 0) {
-          return new String(
+          return StringUtils.newString(
                   buf, pos, Math.min(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
               .substring(0, Math.min(getMaxFieldSize(), length));
         }
-        return new String(buf, pos, length, StandardCharsets.UTF_8);
+        return StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
 
       case BIT:
         return String.valueOf(parseBit());
@@ -349,11 +350,11 @@ public class BinaryRowProtocol extends RowProtocol {
         return null;
       default:
         if (getMaxFieldSize() > 0) {
-          return new String(
+          return StringUtils.newString(
                   buf, pos, Math.min(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
               .substring(0, Math.min(getMaxFieldSize(), length));
         }
-        return new String(buf, pos, length, StandardCharsets.UTF_8);
+        return StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
     }
   }
 
@@ -411,7 +412,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+        value = Long.parseLong(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         break;
       default:
         throw new SQLException(
@@ -521,7 +522,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return Long.parseLong(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
       default:
         throw new SQLException(
             "getLong not available for data field type "
@@ -600,7 +601,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case STRING:
       case OLDDECIMAL:
         try {
-          return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          return Float.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         } catch (NumberFormatException nfe) {
           SQLException sqlException =
               new SQLException(
@@ -698,7 +699,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case STRING:
       case OLDDECIMAL:
         try {
-          return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          return Double.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         } catch (NumberFormatException nfe) {
           SQLException sqlException =
               new SQLException(
@@ -779,7 +780,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARCHAR:
       case STRING:
       case OLDDECIMAL:
-        return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return new BigDecimal(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
       default:
         throw new SQLException(
             "getBigDecimal not available for data field type "
@@ -810,7 +811,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case TIME:
         throw new SQLException("Cannot read Date using a Types.TIME field");
       case STRING:
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         if ("0000-00-00".equals(rawValue)) {
           lastValueNull |= BIT_LAST_ZERO_DATE;
           return null;
@@ -989,7 +990,7 @@ public class BinaryRowProtocol extends RowProtocol {
 
       case STRING:
       case VARSTRING:
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         if (rawValue.startsWith("0000-00-00 00:00:00")) {
           lastValueNull |= BIT_LAST_ZERO_DATE;
           return null;
@@ -1178,7 +1179,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case OLDDECIMAL:
         return getInternalBigDecimal(columnInfo).longValue() != 0;
       default:
-        final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
+        final String rawVal = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         return !("false".equals(rawVal) || "0".equals(rawVal));
     }
   }
@@ -1227,7 +1228,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+        value = Long.parseLong(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         break;
       default:
         throw new SQLException(
@@ -1287,7 +1288,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+        value = Long.parseLong(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         break;
       default:
         throw new SQLException(
@@ -1321,7 +1322,7 @@ public class BinaryRowProtocol extends RowProtocol {
         return value.toString();
       }
     }
-    String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String rawValue = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
     if ("0000-00-00".equals(rawValue)) {
       return null;
     }
@@ -1441,7 +1442,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case OLDDECIMAL:
         return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
       default:
-        return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+        return new BigInteger(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
     }
   }
 
@@ -1496,7 +1497,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case Types.CHAR:
 
         // string conversion
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         if (raw.startsWith("0000-00-00 00:00:00")) {
           return null;
         }
@@ -1607,7 +1608,7 @@ public class BinaryRowProtocol extends RowProtocol {
         case Types.VARCHAR:
         case Types.LONGVARCHAR:
         case Types.CHAR:
-          String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+          String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
           try {
             return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
           } catch (DateTimeParseException dateParserEx) {
@@ -1700,7 +1701,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case Types.LONGVARCHAR:
       case Types.CHAR:
         // string conversion
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         try {
           return LocalTime.parse(
               raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
@@ -1763,7 +1764,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case Types.LONGVARCHAR:
       case Types.CHAR:
         // string conversion
-        String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         if (raw.startsWith("0000-00-00")) {
           return null;
         }

@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.com.read;
 
 import java.nio.charset.StandardCharsets;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 /** See protocol documentation https://mariadb.com/kb/en/err_packet/ */
 public class ErrorPacket {
@@ -76,7 +77,7 @@ public class ErrorPacket {
     } else {
       // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
       message =
-          new String(
+          StringUtils.newString(
               buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
       sqlState = "HY000";
     }

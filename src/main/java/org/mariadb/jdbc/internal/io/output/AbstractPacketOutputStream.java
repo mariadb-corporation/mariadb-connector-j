@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream
     implements PacketOutputStream {
@@ -498,7 +499,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
 
     // not enough space remaining
     if (charsLength * 3 + 2 >= buf.length - pos) {
-      byte[] arr = str.getBytes(StandardCharsets.UTF_8);
+      byte[] arr = StringUtils.getBytes(str, StandardCharsets.UTF_8);
       if (escape) {
         write(QUOTE);
         writeBytesEscaped(arr, arr.length, noBackslashEscapes);
@@ -666,7 +667,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
     char[] buffer = new char[4096];
     int len;
     while ((len = reader.read(buffer)) >= 0) {
-      byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+      byte[] data = StringUtils.getBytes(new String(buffer, 0, len), StandardCharsets.UTF_8);
       if (escape) {
         writeBytesEscaped(data, data.length, noBackslashEscapes);
       } else {
@@ -689,7 +690,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
     char[] buffer = new char[4096];
     int len;
     while (length > 0 && (len = reader.read(buffer, 0, Math.min((int) length, 4096))) >= 0) {
-      byte[] data = new String(buffer, 0, len).getBytes(StandardCharsets.UTF_8);
+      byte[] data = StringUtils.getBytes(new String(buffer, 0, len), StandardCharsets.UTF_8);
       if (escape) {
         writeBytesEscaped(data, data.length, noBackslashEscapes);
       } else {

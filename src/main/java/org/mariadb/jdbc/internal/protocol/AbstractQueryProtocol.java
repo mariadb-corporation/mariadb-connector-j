@@ -103,6 +103,7 @@ import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
@@ -269,7 +270,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       writer.startPacket(0);
       writer.write(COM_QUERY);
-      writer.write(sql.getBytes(charset));
+      writer.write(StringUtils.getBytes(sql, charset));
       writer.flush();
       getResult(results);
 
@@ -1655,7 +1656,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
       buffer.position -= 1;
       message =
-          new String(
+          StringUtils.newString(
               buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
       sqlState = "HY000";
     }

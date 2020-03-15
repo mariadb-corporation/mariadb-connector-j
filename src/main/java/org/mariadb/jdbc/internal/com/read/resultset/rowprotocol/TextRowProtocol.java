@@ -67,6 +67,7 @@ import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 import org.mariadb.jdbc.util.Options;
 
 public class TextRowProtocol extends RowProtocol {
@@ -193,7 +194,7 @@ public class TextRowProtocol extends RowProtocol {
       case DOUBLE:
       case FLOAT:
         return zeroFillingIfNeeded(
-            new String(buf, pos, length, StandardCharsets.UTF_8), columnInfo);
+            StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8), columnInfo);
       case TIME:
         return getInternalTimeString(columnInfo);
       case DATE:
@@ -201,7 +202,7 @@ public class TextRowProtocol extends RowProtocol {
         if (date == null) {
           if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
             lastValueNull ^= BIT_LAST_ZERO_DATE;
-            return new String(buf, pos, length, StandardCharsets.UTF_8);
+            return StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
           }
           return null;
         }
@@ -218,7 +219,7 @@ public class TextRowProtocol extends RowProtocol {
         if (timestamp == null) {
           if ((lastValueNull & BIT_LAST_ZERO_DATE) != 0) {
             lastValueNull ^= BIT_LAST_ZERO_DATE;
-            return new String(buf, pos, length, StandardCharsets.UTF_8);
+            return StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
           }
           return null;
         }
@@ -234,11 +235,12 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     if (maxFieldSize > 0) {
-      return new String(buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
+      return StringUtils.newString(
+              buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
           .substring(0, Math.min(maxFieldSize, length));
     }
 
-    return new String(buf, pos, length, StandardCharsets.UTF_8);
+    return StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
   }
 
   /**
@@ -271,26 +273,28 @@ public class TextRowProtocol extends RowProtocol {
     try {
       switch (columnInfo.getColumnType()) {
         case FLOAT:
-          Float floatValue = Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          Float floatValue =
+              Float.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
           if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
             throw new SQLException(
                 "Out of range value for column '"
                     + columnInfo.getName()
                     + "' : value "
-                    + new String(buf, pos, length, StandardCharsets.UTF_8)
+                    + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                     + " is not in Long range",
                 "22003",
                 1264);
           }
           return floatValue.longValue();
         case DOUBLE:
-          Double doubleValue = Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          Double doubleValue =
+              Double.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
           if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
             throw new SQLException(
                 "Out of range value for column '"
                     + columnInfo.getName()
                     + "' : value "
-                    + new String(buf, pos, length, StandardCharsets.UTF_8)
+                    + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                     + " is not in Long range",
                 "22003",
                 1264);
@@ -325,19 +329,19 @@ public class TextRowProtocol extends RowProtocol {
                 "Out of range value for column '"
                     + columnInfo.getName()
                     + "' for value "
-                    + new String(buf, pos, length, StandardCharsets.UTF_8),
+                    + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8),
                 "22003",
                 1264);
           }
           return (negate ? -1 * result : result);
         default:
-          return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+          return Long.parseLong(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
       }
 
     } catch (NumberFormatException nfe) {
       // parse error.
       // if its a decimal retry without the decimal part.
-      String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String value = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
       if (isIntegerRegex.matcher(value).find()) {
         try {
           return Long.parseLong(value.substring(0, value.indexOf(".")));
@@ -381,12 +385,12 @@ public class TextRowProtocol extends RowProtocol {
       case OLDDECIMAL:
       case BIGINT:
         try {
-          return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          return Float.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         } catch (NumberFormatException nfe) {
           SQLException sqlException =
               new SQLException(
                   "Incorrect format \""
-                      + new String(buf, pos, length, StandardCharsets.UTF_8)
+                      + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                       + "\" for getFloat for data field with type "
                       + columnInfo.getColumnType().getJavaTypeName(),
                   "22003",
@@ -430,12 +434,12 @@ public class TextRowProtocol extends RowProtocol {
       case OLDDECIMAL:
       case BIGINT:
         try {
-          return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+          return Double.valueOf(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
         } catch (NumberFormatException nfe) {
           SQLException sqlException =
               new SQLException(
                   "Incorrect format \""
-                      + new String(buf, pos, length, StandardCharsets.UTF_8)
+                      + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                       + "\" for getDouble for data field with type "
                       + columnInfo.getColumnType().getJavaTypeName(),
                   "22003",
@@ -465,7 +469,7 @@ public class TextRowProtocol extends RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.BIT) {
       return BigDecimal.valueOf(parseBit());
     }
-    return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+    return new BigDecimal(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
   }
 
   /**
@@ -497,7 +501,7 @@ public class TextRowProtocol extends RowProtocol {
           if (b < '0' || b > '9') {
             throw new SQLException(
                 "cannot parse data in date string '"
-                    + new String(buf, pos, length, StandardCharsets.UTF_8)
+                    + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                     + "'");
           }
           datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
@@ -539,7 +543,8 @@ public class TextRowProtocol extends RowProtocol {
         try {
           DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
           sdf.setTimeZone(timeZone);
-          java.util.Date utilDate = sdf.parse(new String(buf, pos, length, StandardCharsets.UTF_8));
+          java.util.Date utilDate =
+              sdf.parse(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
           return new Date(utilDate.getTime());
 
         } catch (ParseException e) {
@@ -574,7 +579,7 @@ public class TextRowProtocol extends RowProtocol {
       throw new SQLException("Cannot read Time using a Types.DATE field");
 
     } else {
-      String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
       if (!options.useLegacyDatetimeCode
           && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
         throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
@@ -644,7 +649,7 @@ public class TextRowProtocol extends RowProtocol {
           if (b < '0' || b > '9') {
             throw new SQLException(
                 "cannot parse data in timestamp string '"
-                    + new String(buf, pos, length, StandardCharsets.UTF_8)
+                    + StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8)
                     + "'");
           }
 
@@ -695,13 +700,13 @@ public class TextRowProtocol extends RowProtocol {
 
       case TIME:
         // time does not go after millisecond
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar, timeZone).getTime());
         tt.setNanos(extractNanos(rawValue));
         return tt;
 
       default:
-        String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String value = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
         throw new SQLException(
             "Value type \""
                 + columnInfo.getColumnType().getTypeName()
@@ -821,7 +826,7 @@ public class TextRowProtocol extends RowProtocol {
     if (columnInfo.getColumnType() == ColumnType.BIT) {
       return parseBit() != 0;
     }
-    final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
+    final String rawVal = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
     return !("false".equals(rawVal) || "0".equals(rawVal));
   }
 
@@ -868,7 +873,7 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String rawValue = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
     if ("0000-00-00".equals(rawValue)) {
       return null;
     }
@@ -891,7 +896,7 @@ public class TextRowProtocol extends RowProtocol {
     if (lastValueWasNull()) {
       return null;
     }
-    return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
+    return new BigInteger(StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8));
   }
 
   /**
@@ -913,7 +918,7 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
 
     switch (columnInfo.getColumnType().getSqlType()) {
       case Types.TIMESTAMP:
@@ -976,7 +981,7 @@ public class TextRowProtocol extends RowProtocol {
     ZoneId zoneId = timeZone.toZoneId().normalized();
     if (zoneId instanceof ZoneOffset) {
       ZoneOffset zoneOffset = (ZoneOffset) zoneId;
-      String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+      String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
       switch (columnInfo.getColumnType().getSqlType()) {
         case Types.TIMESTAMP:
           if (raw.startsWith("0000-00-00 00:00:00")) {
@@ -1061,7 +1066,7 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
 
     switch (columnInfo.getColumnType().getSqlType()) {
       case Types.TIME:
@@ -1112,7 +1117,7 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
+    String raw = StringUtils.newString(buf, pos, length, StandardCharsets.UTF_8);
 
     switch (columnInfo.getColumnType().getSqlType()) {
       case Types.DATE:

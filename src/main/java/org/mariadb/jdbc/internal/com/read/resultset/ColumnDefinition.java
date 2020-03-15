@@ -57,6 +57,7 @@ import java.sql.Types;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
+import org.mariadb.jdbc.internal.util.string.StringUtils;
 
 /** Protocol details : https://mariadb.com/kb/en/resultset/#column-definition-packet */
 public class ColumnDefinition {
@@ -163,7 +164,7 @@ public class ColumnDefinition {
    * @return ColumnInformation
    */
   public static ColumnDefinition create(String name, ColumnType type) {
-    byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+    byte[] nameBytes = StringUtils.getBytes(name, StandardCharsets.UTF_8);
 
     byte[] arr = new byte[19 + 2 * nameBytes.length];
     int pos = 0;
