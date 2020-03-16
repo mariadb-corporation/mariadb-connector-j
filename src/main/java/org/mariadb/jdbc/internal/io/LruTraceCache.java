@@ -114,11 +114,11 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
         default:
           break;
       }
-
+      sb.append("\nthread:").append(traceObj.getThreadId());
       if (traceObj.isSend()) {
-        sb.append("\nsend at -exchange:");
+        sb.append(" send at -exchange:");
       } else {
-        sb.append("\nread at -exchange:");
+        sb.append(" read at -exchange:");
       }
 
       sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));

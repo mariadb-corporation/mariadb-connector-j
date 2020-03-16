@@ -122,6 +122,33 @@ public class TcpProxySocket implements Runnable {
     }
   }
 
+  public void sendRst() {
+
+    try {
+      if (client != null) {
+        // send a RST, not FIN
+        client.setSoLinger(true, 0);
+        client.close();
+      }
+    } catch (IOException e) {
+      // eat Exception
+      e.printStackTrace();
+    }
+    try {
+      if (server != null) {
+        server.close();
+      }
+    } catch (IOException e) {
+      // eat Exception
+    }
+
+    try {
+      ss.close();
+    } catch (IOException e) {
+      // eat Exception
+    }
+  }
+
   @Override
   public void run() {
 

@@ -70,8 +70,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
 
-  public StandardPacketOutputStream(OutputStream out, Options options) {
-    super(out, options.maxQuerySizeToLog);
+  public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
+    super(out, options.maxQuerySizeToLog, threadId);
   }
 
   public int getMaxPacketLength() {
@@ -115,7 +115,10 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         // trace last packets
         traceCache.put(
             new TraceObject(
-                true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
+                true,
+                NOT_COMPRESSED,
+                threadId,
+                Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
       }
 
       if (logger.isTraceEnabled()) {
@@ -150,7 +153,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     if (traceCache != null) {
       // trace last packets
-      traceCache.put(new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
+      traceCache.put(
+          new TraceObject(true, NOT_COMPRESSED, threadId, Arrays.copyOfRange(buf, 0, 4)));
     }
 
     if (logger.isTraceEnabled()) {

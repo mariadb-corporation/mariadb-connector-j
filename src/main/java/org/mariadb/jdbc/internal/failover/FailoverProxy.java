@@ -60,6 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -98,6 +99,7 @@ public class FailoverProxy implements InvocationHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
   public final ReentrantLock lock;
+  public final LruTraceCache traceCache;
 
   private final Listener listener;
 
@@ -106,12 +108,15 @@ public class FailoverProxy implements InvocationHandler {
    *
    * @param listener failover implementation.
    * @param lock synchronisation lock
+   * @param traceCache trace cache
    * @throws SQLException if connection error occur
    */
-  public FailoverProxy(Listener listener, ReentrantLock lock) throws SQLException {
+  public FailoverProxy(Listener listener, ReentrantLock lock, LruTraceCache traceCache)
+      throws SQLException {
     this.lock = lock;
     this.listener = listener;
     this.listener.setProxy(this);
+    this.traceCache = traceCache;
     this.listener.initializeConnection();
   }
 

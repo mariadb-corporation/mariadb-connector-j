@@ -101,6 +101,10 @@ public class TcpProxy {
     Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
   }
 
+  public void forceClose() {
+    socket.sendRst();
+  }
+
   /** Restart proxy. */
   public void restart() {
     Executors.newSingleThreadExecutor().execute(socket);

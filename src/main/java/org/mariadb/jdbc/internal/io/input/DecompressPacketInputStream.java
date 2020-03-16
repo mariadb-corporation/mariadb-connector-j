@@ -85,10 +85,12 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private int compressPacketSeq;
   private String serverThreadLog = "";
   private LruTraceCache traceCache = null;
+  private long threadId;
 
-  public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog) {
+  public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog, long threadId) {
     inputStream = in;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.threadId = threadId;
   }
 
   @Override
@@ -138,6 +140,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
                 decompressedLength == 0
                     ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
                     : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                threadId,
                 Arrays.copyOfRange(header, 0, 7),
                 Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
       }

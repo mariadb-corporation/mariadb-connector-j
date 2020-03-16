@@ -60,6 +60,7 @@ public class TraceObject {
 
   private final boolean send;
   private final int indicatorFlag;
+  private final long threadId;
   private byte[][] buf;
 
   /**
@@ -70,10 +71,11 @@ public class TraceObject {
    *     COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
    * @param buf buffers
    */
-  public TraceObject(boolean send, int indicatorFlag, byte[]... buf) {
+  public TraceObject(boolean send, int indicatorFlag, long threadId, byte[]... buf) {
     this.send = send;
     this.indicatorFlag = indicatorFlag;
     this.buf = buf;
+    this.threadId = threadId;
   }
 
   /** Clear trace array for easy garbage. */
@@ -94,5 +96,9 @@ public class TraceObject {
 
   public byte[][] getBuf() {
     return buf;
+  }
+
+  public long getThreadId() {
+    return threadId;
   }
 }
