@@ -26,7 +26,13 @@ public class MariaDbSqlException extends SQLException {
 
   public static MariaDbSqlException of(SQLException cause, String sql) {
     return new MariaDbSqlException(
-        cause.getMessage(), sql, cause.getSQLState(), cause.getErrorCode(), cause);
+        cause.getMessage().contains("\n")
+            ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n"))
+            : cause.getMessage(),
+        sql,
+        cause.getSQLState(),
+        cause.getErrorCode(),
+        cause);
   }
 
   public MariaDbSqlException withThreadName(String threadName) {

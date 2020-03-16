@@ -81,7 +81,7 @@ public class StandardPacketInputStream implements PacketInputStream {
   private int packetSeq;
   private int lastPacketLength;
   private String serverThreadLog = "";
-
+  private long threadId;
   private LruTraceCache traceCache = null;
 
   /**
@@ -89,13 +89,15 @@ public class StandardPacketInputStream implements PacketInputStream {
    *
    * @param in stream
    * @param options connection options
+   * @param threadId thread id
    */
-  public StandardPacketInputStream(InputStream in, Options options) {
+  public StandardPacketInputStream(InputStream in, Options options, long threadId) {
     inputStream =
         options.useReadAheadInput
             ? new ReadAheadBufferedStream(in)
             : new BufferedInputStream(in, 16384);
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
+    this.threadId = threadId;
   }
 
   /**
@@ -288,6 +290,7 @@ public class StandardPacketInputStream implements PacketInputStream {
           new TraceObject(
               false,
               NOT_COMPRESSED,
+              threadId,
               Arrays.copyOfRange(header, 0, 4),
               Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
     }
@@ -347,6 +350,7 @@ public class StandardPacketInputStream implements PacketInputStream {
               new TraceObject(
                   false,
                   NOT_COMPRESSED,
+                  threadId,
                   Arrays.copyOfRange(header, 0, 4),
                   Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }

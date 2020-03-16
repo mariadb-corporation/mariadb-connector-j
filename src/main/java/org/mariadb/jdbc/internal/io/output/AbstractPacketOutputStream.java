@@ -80,18 +80,21 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
   protected LruTraceCache traceCache = null;
   private int mark = -1;
   private boolean bufferContainDataAfterMark = false;
+  protected long threadId;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
    * @param out socket outputStream
    * @param maxQuerySizeToLog maximum query size to log
+   * @param threadId thread id
    */
-  public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
+  public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
     super(out);
     buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
     cmdLength = 0;
+    this.threadId = threadId;
   }
 
   public abstract int getMaxPacketLength();

@@ -467,6 +467,24 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testRst() throws Throwable {
+    Assume.assumeFalse(sharedIsAurora());
+    Properties props = new Properties();
+    props.setProperty("enablePacketDebug", "true");
+    props.setProperty("autoReconnect", "true");
+    try (Connection connection = createProxyConnection(props)) {
+      assertTrue(connection.isValid(1)); // 1 second
+      forceCloseProxy();
+      connection.createStatement().execute("SELECT 1");
+      fail("must have failed");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains("send at -exchange:"));
+    } finally {
+      closeProxy();
+    }
+  }
+
   @Test(timeout = 15_000L)
   public void testValidFailedTimeout() throws Throwable {
     Properties properties = new Properties();

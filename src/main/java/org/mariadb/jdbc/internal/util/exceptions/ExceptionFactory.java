@@ -149,8 +149,11 @@ public final class ExceptionFactory {
   }
 
   public SQLException create(SQLException cause) {
+
     return createException(
-        cause.getMessage(),
+        cause.getMessage().contains("\n")
+            ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n"))
+            : cause.getMessage(),
         cause.getSQLState(),
         cause.getErrorCode(),
         threadId,

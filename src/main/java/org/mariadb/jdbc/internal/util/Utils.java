@@ -73,6 +73,7 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
 import org.mariadb.jdbc.internal.io.socket.SocketUtility;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
@@ -592,6 +593,8 @@ public class Utils {
   public static Protocol retrieveProxy(final UrlParser urlParser, final GlobalStateInfo globalInfo)
       throws SQLException {
     final ReentrantLock lock = new ReentrantLock();
+    final LruTraceCache traceCache =
+        urlParser.getOptions().enablePacketDebug ? new LruTraceCache() : null;
     Protocol protocol;
     switch (urlParser.getHaMode()) {
       case AURORA:
@@ -601,7 +604,8 @@ public class Utils {
                 Proxy.newProxyInstance(
                     AuroraProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new AuroraListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new AuroraListener(urlParser, globalInfo), lock, traceCache)));
       case REPLICATION:
         return getProxyLoggingIfNeeded(
             urlParser,
@@ -609,7 +613,8 @@ public class Utils {
                 Proxy.newProxyInstance(
                     MastersSlavesProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new MastersSlavesListener(urlParser, globalInfo), lock, traceCache)));
       case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(
@@ -618,10 +623,12 @@ public class Utils {
                 Proxy.newProxyInstance(
                     MasterProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new MastersFailoverListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new MastersFailoverListener(urlParser, globalInfo), lock, traceCache)));
       default:
         protocol =
-            getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, globalInfo, lock));
+            getProxyLoggingIfNeeded(
+                urlParser, new MasterProtocol(urlParser, globalInfo, lock, traceCache));
         protocol.connectWithoutProxy();
         return protocol;
     }

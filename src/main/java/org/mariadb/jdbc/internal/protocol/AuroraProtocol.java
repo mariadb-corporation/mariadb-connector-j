@@ -65,13 +65,17 @@ import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 
   public AuroraProtocol(
-      final UrlParser url, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
-    super(url, globalInfo, lock);
+      final UrlParser url,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
+    super(url, globalInfo, lock, traceCache);
   }
 
   /**
@@ -336,7 +340,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
    */
   public static AuroraProtocol getNewProtocol(
       FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
-    AuroraProtocol newProtocol = new AuroraProtocol(urlParser, globalInfo, proxy.lock);
+    AuroraProtocol newProtocol =
+        new AuroraProtocol(urlParser, globalInfo, proxy.lock, proxy.traceCache);
     newProtocol.setProxy(proxy);
     return newProtocol;
   }

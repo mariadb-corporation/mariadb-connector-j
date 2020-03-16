@@ -538,6 +538,10 @@ public class BaseTest {
     proxy.setDelay(millissecond);
   }
 
+  public void forceCloseProxy() {
+    proxy.forceClose();
+  }
+
   public void removeDelayProxy() {
     proxy.removeDelay();
   }

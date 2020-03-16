@@ -124,8 +124,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected final ReentrantLock lock;
   protected final UrlParser urlParser;
   protected final Options options;
+  protected final LruTraceCache traceCache;
   private final String username;
-  private final LruTraceCache traceCache = new LruTraceCache();
   private final GlobalStateInfo globalInfo;
   public boolean hasWarnings = false;
   public Results activeStreamingResult = null;
@@ -161,9 +161,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @param urlParser connection URL information
    * @param globalInfo server global variables information
    * @param lock the lock for thread synchronisation
+   * @param traceCache trace cache
    */
   public AbstractConnectProtocol(
-      final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+      final UrlParser urlParser,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
     urlParser.auroraPipelineQuirks();
     this.lock = lock;
     this.urlParser = urlParser;
@@ -179,6 +183,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         urlParser.getOptions().galeraAllowedState == null
             ? Collections.emptyList()
             : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
+    this.traceCache = traceCache;
   }
 
   private static void closeSocket(
@@ -417,7 +422,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void forceAbort() {
     try (MasterProtocol copiedProtocol =
-        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
+        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
       copiedProtocol.setHostAddress(getHostAddress());
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
@@ -479,9 +484,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @throws SQLException exception
    */
   public void connect() throws SQLException {
-    if (!isClosed()) {
-      close();
-    }
 
     try {
       createConnection(currentHost, username);
@@ -789,10 +791,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void compressionHandler(Options options) {
     if (options.useCompression) {
-      writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
+      writer =
+          new CompressPacketOutputStream(
+              writer.getOutputStream(), options.maxQuerySizeToLog, serverThreadId);
       reader =
           new DecompressPacketInputStream(
-              ((StandardPacketInputStream) reader).getInputStream(), options.maxQuerySizeToLog);
+              ((StandardPacketInputStream) reader).getInputStream(),
+              options.maxQuerySizeToLog,
+              serverThreadId);
       if (options.enablePacketDebug) {
         writer.setTraceCache(traceCache);
         reader.setTraceCache(traceCache);
@@ -802,8 +808,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void assignStream(Socket socket, Options options) throws SQLException {
     try {
-      this.writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
-      this.reader = new StandardPacketInputStream(socket.getInputStream(), options);
+      this.writer =
+          new StandardPacketOutputStream(socket.getOutputStream(), options, serverThreadId);
+      this.reader = new StandardPacketInputStream(socket.getInputStream(), options, serverThreadId);
 
       if (options.enablePacketDebug) {
         writer.setTraceCache(traceCache);

@@ -86,6 +86,7 @@ import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
@@ -123,10 +124,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    *
    * @param urlParser connection URL information's
    * @param lock the lock for thread synchronisation
+   * @param traceCache trace cache
    */
   AbstractQueryProtocol(
-      final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
-    super(urlParser, globalInfo, lock);
+      final UrlParser urlParser,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
+    super(urlParser, globalInfo, lock, traceCache);
   }
 
   /**
@@ -1350,7 +1355,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void cancelCurrentQuery() throws SQLException {
     try (MasterProtocol copiedProtocol =
-        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
+        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
       copiedProtocol.setHostAddress(getHostAddress());
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
@@ -1990,9 +1995,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     if (mustReconnect && !explicitClosed) {
+      String traces = getTraces();
       try {
         connect();
-
         try {
           resetStateAfterFailover(
               getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
@@ -2002,17 +2007,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 "Could not send query: query size is >= to max_allowed_packet ("
                     + writer.getMaxAllowedPacket()
                     + ")"
-                    + getTraces(),
+                    + traces,
                 "HY000",
                 initialException);
           }
 
           return new SQLTransientConnectionException(
-              initialException.getMessage() + getTraces(), "HY000", initialException);
+              initialException.getMessage() + traces, "HY000", initialException);
 
         } catch (SQLException queryException) {
           return new SQLTransientConnectionException(
-              "reconnection succeed, but resetting previous state failed" + getTraces(),
+              "reconnection succeed, but resetting previous state failed" + traces,
               "HY000",
               initialException);
         }
@@ -2020,9 +2025,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } catch (SQLException queryException) {
         connected = false;
         return new SQLNonTransientConnectionException(
-            initialException.getMessage() + "\nError during reconnection" + getTraces(),
+            initialException.getMessage() + "\nError during reconnection" + traces,
             "08000",
-            initialException);
+            queryException);
       }
     }
     connected = false;
