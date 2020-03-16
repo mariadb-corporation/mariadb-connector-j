@@ -57,7 +57,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.mariadb.jdbc.internal.util.Utils;
 
@@ -93,8 +92,8 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
    */
   public synchronized String printStack() {
     StringBuilder sb = new StringBuilder();
-    Set<Map.Entry<String, TraceObject>> set = entrySet();
-    for (Map.Entry<String, TraceObject> entry : set) {
+    Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
+    for (Map.Entry<String, TraceObject> entry : arr) {
       TraceObject traceObj = entry.getValue();
       String key = entry.getKey();
       String indicator = "";
