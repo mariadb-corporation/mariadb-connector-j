@@ -91,7 +91,7 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
    *
    * @return trace cache value
    */
-  public String printStack() {
+  public synchronized String printStack() {
     StringBuilder sb = new StringBuilder();
     boolean finished = false;
     while (!finished) {
@@ -99,27 +99,29 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
         Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
         for (Map.Entry<String, TraceObject> entry : arr) {
           TraceObject traceObj = entry.getValue();
-          String key = entry.getKey();
-          String indicator = "";
+          if (traceObj.getBuf() != null) {
+            String key = entry.getKey();
+            String indicator = "";
 
-          switch (traceObj.getIndicatorFlag()) {
-            case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
-              indicator = " (compressed protocol - packet not compressed)";
-              break;
-            case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
-              indicator = " (compressed protocol - packet compressed)";
-              break;
-            default:
-              break;
-          }
-          sb.append("\nthread:").append(traceObj.getThreadId());
-          if (traceObj.isSend()) {
-            sb.append(" send at -exchange:");
-          } else {
-            sb.append(" read at -exchange:");
-          }
+            switch (traceObj.getIndicatorFlag()) {
+              case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+                indicator = " (compressed protocol - packet not compressed)";
+                break;
+              case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+                indicator = " (compressed protocol - packet compressed)";
+                break;
+              default:
+                break;
+            }
+            sb.append("\nthread:").append(traceObj.getThreadId());
+            if (traceObj.isSend()) {
+              sb.append(" send at -exchange:");
+            } else {
+              sb.append(" read at -exchange:");
+            }
 
-          sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
+            sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
+          }
         }
         finished = true;
       } catch (ConcurrentModificationException cc) {
