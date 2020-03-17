@@ -490,6 +490,7 @@ public class Utils {
       char car = charArray[i];
       if (lastChar == '\\' && !protocol.noBackslashEscapes()) {
         sqlBuffer.append(car);
+        lastChar = car;
         continue;
       }
 
@@ -554,6 +555,7 @@ public class Utils {
               escapeSequenceBuf.append(car);
               sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), protocol));
               escapeSequenceBuf.setLength(0);
+              lastChar = car;
               continue;
             }
           }
@@ -678,24 +680,17 @@ public class Utils {
 
   /**
    * Hexdump.
+   * Multiple byte arrays will be combined
    *
    * <p>String output example :
    *
    * <pre>{@code
-   * 7D 00 00 01 C5 00 00                                 }......            &lt;- first byte array
-   * 01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   &lt;- second byte array
-   * 73 74 6A 0A 74 65 73 74  5F 62 61 74 63 68 0A 74     stj.test_batch.t
-   * 65 73 74 5F 62 61 74 63  68 02 69 64 02 69 64 0C     est_batch.id.id.
-   * 3F 00 0B 00 00 00 03 03  42 00 00 00 37 00 00 03     ?.......B...7...
-   * 03 64 65 66 05 74 65 73  74 6A 0A 74 65 73 74 5F     .def.testj.test_
-   * 62 61 74 63 68 0A 74 65  73 74 5F 62 61 74 63 68     batch.test_batch
-   * 04 74 65 73 74 04 74 65  73 74 0C 21 00 1E 00 00     .test.test.!....
-   * 00 FD 00 00 00 00 00 05  00 00 04 FE 00 00 22 00     ..............".
-   * 06 00 00 05 01 31 03 61  61 61 06 00 00 06 01 32     .....1.aaa.....2
-   * 03 62 62 62 06 00 00 07  01 33 03 63 63 63 06 00     .bbb.....3.ccc..
-   * 00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
-   * 62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
-   * FE 00 00 22 00                                       ...".
+   * +--------------------------------------------------+
+   * |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |
+   * +--------------------------------------------------+------------------+
+   * | 11 00 00 02 00 00 00 02  40 00 00 00 08 01 06 05 | ........@....... |
+   * | 74 65 73 74 6A                                   | testj            |
+   * +--------------------------------------------------+------------------+
    * }</pre>
    *
    * @param maxQuerySizeToLog max log size
@@ -754,10 +749,17 @@ public class Utils {
    * <p>String output example :
    *
    * <pre>{@code
-   * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....create tabl
-   * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTestclobte
-   * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (strm text)
-   * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET utf8
+   * +--------------------------------------------------+
+   * |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |
+   * +--------------------------------------------------+------------------+
+   * | 5F 00 00 00 03 73 65 74  20 61 75 74 6F 63 6F 6D | _....set autocom |
+   * | 6D 69 74 3D 31 2C 20 73  65 73 73 69 6F 6E 5F 74 | mit=1, session_t |
+   * | 72 61 63 6B 5F 73 63 68  65 6D 61 3D 31 2C 20 73 | rack_schema=1, s |
+   * | 71 6C 5F 6D 6F 64 65 20  3D 20 63 6F 6E 63 61 74 | ql_mode = concat |
+   * | 28 40 40 73 71 6C 5F 6D  6F 64 65 2C 27 2C 53 54 | (@@sql_mode,',ST |
+   * | 52 49 43 54 5F 54 52 41  4E 53 5F 54 41 42 4C 45 | RICT_TRANS_TABLE |
+   * | 53 27 29                                         | S')              |
+   * +--------------------------------------------------+------------------+
    * }</pre>
    *
    * @param bytes byte array
