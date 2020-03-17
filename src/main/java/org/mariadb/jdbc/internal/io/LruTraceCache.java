@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.io;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -90,40 +91,42 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
    *
    * @return trace cache value
    */
-  public synchronized String printStack() {
+  public String printStack() {
     StringBuilder sb = new StringBuilder();
-    Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
-    for (Map.Entry<String, TraceObject> entry : arr) {
-      TraceObject traceObj = entry.getValue();
-      String key = entry.getKey();
-      String indicator = "";
+    boolean finished = false;
+    while (!finished) {
+      try {
+        Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
+        for (Map.Entry<String, TraceObject> entry : arr) {
+          TraceObject traceObj = entry.getValue();
+          String key = entry.getKey();
+          String indicator = "";
 
-      switch (traceObj.getIndicatorFlag()) {
-        case TraceObject.NOT_COMPRESSED:
-          break;
+          switch (traceObj.getIndicatorFlag()) {
+            case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+              indicator = " (compressed protocol - packet not compressed)";
+              break;
+            case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+              indicator = " (compressed protocol - packet compressed)";
+              break;
+            default:
+              break;
+          }
+          sb.append("\nthread:").append(traceObj.getThreadId());
+          if (traceObj.isSend()) {
+            sb.append(" send at -exchange:");
+          } else {
+            sb.append(" read at -exchange:");
+          }
 
-        case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
-          indicator = " (compressed protocol - packet not compressed)";
-          break;
-
-        case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
-          indicator = " (compressed protocol - packet compressed)";
-          break;
-
-        default:
-          break;
+          sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
+        }
+        finished = true;
+      } catch (ConcurrentModificationException cc) {
+       // eat
       }
-      sb.append("\nthread:").append(traceObj.getThreadId());
-      if (traceObj.isSend()) {
-        sb.append(" send at -exchange:");
-      } else {
-        sb.append(" read at -exchange:");
-      }
-
-      sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
-
-      traceObj.remove();
     }
+
     this.clear();
     return sb.toString();
   }
