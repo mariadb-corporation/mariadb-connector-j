@@ -257,25 +257,14 @@ public class UrlParser implements Cloneable {
     if (additionalParameters != null) {
       //noinspection Annotator
       Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-
-      if (matcher.find()) {
-
-        urlParser.database = matcher.group(2);
-        urlParser.options =
-            DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
-        if (urlParser.database != null && urlParser.database.isEmpty()) {
-          urlParser.database = null;
-        }
-
-      } else {
-
+      matcher.find();
+      urlParser.database = matcher.group(2);
+      urlParser.options =
+          DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+      if (urlParser.database != null && urlParser.database.isEmpty()) {
         urlParser.database = null;
-        urlParser.options =
-            DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
       }
-
     } else {
-
       urlParser.database = null;
       urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
     }

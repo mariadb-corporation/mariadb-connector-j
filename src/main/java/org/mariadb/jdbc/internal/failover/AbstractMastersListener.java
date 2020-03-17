@@ -320,7 +320,7 @@ public abstract class AbstractMastersListener implements Listener {
                 handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                 handleErrorResult.mustThrowError = false;
               } catch (IllegalAccessException | InvocationTargetException e) {
-                throw new SQLException(e);
+                throw new SQLException(e.getCause());
               }
             }
           }
