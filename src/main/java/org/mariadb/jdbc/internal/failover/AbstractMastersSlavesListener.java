@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,16 @@
 
 package org.mariadb.jdbc.internal.failover;
 
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 

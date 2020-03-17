@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,24 +52,21 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.pool.Pool;
-import org.mariadb.jdbc.util.DefaultOptions;
-import org.mariadb.jdbc.util.Options;
-
-import javax.sql.*;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
+import javax.sql.*;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
   private UrlParser urlParser;
-  private Pool pool;
 
   private String hostname;
   private Integer port = 3306;
@@ -277,7 +274,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
       return MariaDbConnection.newConnection(urlParser, null);
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     }
   }
 
@@ -305,9 +302,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
       return MariaDbConnection.newConnection(urlParser, null);
 
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, null, null, false);
+      throw ExceptionFactory.INSTANCE.create(e);
     } catch (CloneNotSupportedException cloneException) {
-      throw new SQLException("Error in configuration");
+      throw ExceptionFactory.INSTANCE.create("Error in configuration");
     }
   }
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,12 +22,11 @@
 
 package org.mariadb.jdbc.util;
 
+import java.lang.reflect.Field;
+import java.util.Properties;
 import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.util.OptionUtils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-
-import java.lang.reflect.Field;
-import java.util.Properties;
 
 public enum DefaultOptions {
   USER("user", "1.0.0", "Database user name", false),

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,19 +52,18 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.TraceObject;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Utils;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
-import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -81,8 +80,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
   private byte[] remainingData = new byte[0];
   private boolean lastPacketExactMaxPacketLength = false;
 
-  public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
-    super(out, maxQuerySizeToLog);
+  public CompressPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
+    super(out, maxQuerySizeToLog, threadId);
   }
 
   public int getMaxPacketLength() {
@@ -190,6 +189,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     new TraceObject(
                         true,
                         COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                        threadId,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(remainingData, 0, remainingData.length),
                         Arrays.copyOfRange(subHeader, 0, 4),
@@ -203,6 +203,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     new TraceObject(
                         true,
                         COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                        threadId,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(subHeader, 0, 4),
                         Arrays.copyOfRange(
@@ -286,6 +287,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
               new TraceObject(
                   true,
                   COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                  threadId,
                   Arrays.copyOfRange(header, 0, 7),
                   Arrays.copyOfRange(remainingData, 0, remainingData.length),
                   Arrays.copyOfRange(subHeader, 0, 4),
@@ -299,6 +301,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
               new TraceObject(
                   true,
                   COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                  threadId,
                   Arrays.copyOfRange(header, 0, 7),
                   Arrays.copyOfRange(subHeader, 0, 4),
                   Arrays.copyOfRange(
@@ -375,6 +378,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 new TraceObject(
                     true,
                     COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                    threadId,
                     Arrays.copyOfRange(header, 0, 7),
                     Arrays.copyOfRange(
                         remainingData, 0, (uncompressSize > 1000 ? 1000 : uncompressSize))));
@@ -417,6 +421,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             new TraceObject(
                 true,
                 COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                threadId,
                 Arrays.copyOfRange(header, 0, 7),
                 Arrays.copyOfRange(
                     remainingData,
@@ -458,7 +463,10 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     if (traceCache != null) {
       traceCache.put(
           new TraceObject(
-              true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET, Arrays.copyOfRange(buf, 0, 11)));
+              true,
+              COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+              threadId,
+              Arrays.copyOfRange(buf, 0, 11)));
     }
 
     if (logger.isTraceEnabled()) {

@@ -2,7 +2,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -28,10 +28,9 @@ import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.DefaultAwsRegionProviderChain;
 import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
 import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
+import java.util.Properties;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.credential.Credential;
-
-import java.util.Properties;
 
 public class AwsCredentialGenerator {
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,14 +22,6 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.util.Options;
-
-import javax.crypto.Cipher;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
@@ -41,6 +33,13 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.crypto.Cipher;
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
 public class Sha256PasswordPlugin implements AuthenticationPlugin {
 
@@ -88,7 +87,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
         ErrorPacket ep = new ErrorPacket(buffer);
         String message = ep.getMessage();
         throw new SQLException(
-            "Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());
+            "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
 
       case (byte) 0xFE:
         // Erroneous AuthSwitchRequest packet when security exception

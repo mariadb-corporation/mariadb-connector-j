@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,22 +52,21 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
-public class ColumnNameMap {
+public class ColumnLabelIndexer {
 
-  private final ColumnInformation[] columnInfo;
+  private final ColumnDefinition[] columnInfo;
   private Map<String, Integer> originalMap;
   private Map<String, Integer> aliasMap;
 
-  public ColumnNameMap(ColumnInformation[] columnInformations) {
-    this.columnInfo = columnInformations;
+  public ColumnLabelIndexer(ColumnDefinition[] columnDefinitions) {
+    this.columnInfo = columnDefinitions;
   }
 
   /**
@@ -89,7 +88,7 @@ public class ColumnNameMap {
     if (aliasMap == null) {
       aliasMap = new HashMap<>();
       int counter = 0;
-      for (ColumnInformation ci : columnInfo) {
+      for (ColumnDefinition ci : columnInfo) {
         String columnAlias = ci.getName();
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
@@ -112,7 +111,7 @@ public class ColumnNameMap {
     if (originalMap == null) {
       originalMap = new HashMap<>();
       int counter = 0;
-      for (ColumnInformation ci : columnInfo) {
+      for (ColumnDefinition ci : columnInfo) {
         String columnRealName = ci.getOriginalName();
         if (columnRealName != null) {
           columnRealName = columnRealName.toLowerCase(Locale.ROOT);
@@ -131,7 +130,7 @@ public class ColumnNameMap {
     res = originalMap.get(lowerName);
 
     if (res == null) {
-      throw ExceptionMapper.get("No such column: " + name, "42S22", 1054, null, false);
+      throw ExceptionFactory.INSTANCE.create("No such column: " + name, "42S22", 1054);
     }
     return res;
   }

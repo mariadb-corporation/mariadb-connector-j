@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
-
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream
     implements PacketOutputStream {
@@ -81,18 +80,21 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
   protected LruTraceCache traceCache = null;
   private int mark = -1;
   private boolean bufferContainDataAfterMark = false;
+  protected long threadId;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
    * @param out socket outputStream
    * @param maxQuerySizeToLog maximum query size to log
+   * @param threadId thread id
    */
-  public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
+  public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog, long threadId) {
     super(out);
     buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
     cmdLength = 0;
+    this.threadId = threadId;
   }
 
   public abstract int getMaxPacketLength();
@@ -394,7 +396,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
       arr[5] = (byte) (length >>> 32);
       arr[6] = (byte) (length >>> 40);
       arr[7] = (byte) (length >>> 48);
-      arr[8] = (byte) (length >>> 54);
+      arr[8] = (byte) (length >>> 56);
       write(arr, 0, 9);
       return;
     }
@@ -407,7 +409,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
     buf[pos + 5] = (byte) (length >>> 32);
     buf[pos + 6] = (byte) (length >>> 40);
     buf[pos + 7] = (byte) (length >>> 48);
-    buf[pos + 8] = (byte) (length >>> 54);
+    buf[pos + 8] = (byte) (length >>> 56);
     pos += 9;
   }
 

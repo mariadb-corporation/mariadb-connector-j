@@ -4,7 +4,7 @@
   ~ MariaDB Client for Java
   ~
   ~ Copyright (c) 2012-2014 Monty Program Ab.
-  ~ Copyright (c) 2015-2019 MariaDB Ab.
+  ~ Copyright (c) 2015-2020 MariaDB Corporation Ab.
   ~
   ~ This library is free software; you can redistribute it and/or modify it under
   ~ the terms of the GNU Lesser General Public License as published by the Free
@@ -54,18 +54,18 @@
 <!--suppress XmlUnboundNsPrefix -->
 <configuration>
 
-    <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <logger additivity="false" level="debug" name="org.mariadb.jdbc">
-        <appender-ref ref="STDOUT"/>
-    </logger>
+  <logger additivity="false" level="debug" name="org.mariadb.jdbc">
+    <appender-ref ref="STDOUT"/>
+  </logger>
 
-    <root level="error">
-        <appender-ref ref="STDOUT"/>
-    </root>
+  <root level="error">
+    <appender-ref ref="STDOUT"/>
+  </root>
 
 </configuration>

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,19 +22,18 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.util.Options;
-
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
-  private final ColumnInformation[] fieldPackets;
+  private final ColumnDefinition[] fieldPackets;
   private final Options options;
   private final boolean forceAlias;
 
@@ -46,7 +45,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @param forceAlias force table and column name alias as original data
    */
   public MariaDbResultSetMetaData(
-      final ColumnInformation[] fieldPackets, final Options options, final boolean forceAlias) {
+      final ColumnDefinition[] fieldPackets, final Options options, final boolean forceAlias) {
     this.fieldPackets = fieldPackets;
     this.options = options;
     this.forceAlias = forceAlias;
@@ -244,7 +243,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @see Types
    */
   public int getColumnType(final int column) throws SQLException {
-    ColumnInformation ci = getColumnInformation(column);
+    ColumnDefinition ci = getColumnInformation(column);
     switch (ci.getColumnType()) {
       case BIT:
         if (ci.getLength() == 1) {
@@ -294,7 +293,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnTypeName(final int column) throws SQLException {
-    ColumnInformation ci = getColumnInformation(column);
+    ColumnDefinition ci = getColumnInformation(column);
     return ColumnType.getColumnTypeName(
         ci.getColumnType(), ci.getLength(), ci.isSigned(), ci.isBinary());
   }
@@ -341,17 +340,17 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnClassName(int column) throws SQLException {
-    ColumnInformation ci = getColumnInformation(column);
+    ColumnDefinition ci = getColumnInformation(column);
     ColumnType type = ci.getColumnType();
     return ColumnType.getClassName(
         type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), options);
   }
 
-  private ColumnInformation getColumnInformation(int column) throws SQLException {
+  private ColumnDefinition getColumnInformation(int column) throws SQLException {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }
-    throw ExceptionMapper.getSqlException("No such column");
+    throw ExceptionFactory.INSTANCE.create("No such column");
   }
 
   /**

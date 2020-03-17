@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,13 +52,12 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 
 public class TcpProxySocket implements Runnable {
 
@@ -116,6 +115,33 @@ public class TcpProxySocket implements Runnable {
     } catch (IOException e) {
       // eat Exception
     }
+    try {
+      ss.close();
+    } catch (IOException e) {
+      // eat Exception
+    }
+  }
+
+  public void sendRst() {
+
+    try {
+      if (client != null) {
+        // send a RST, not FIN
+        client.setSoLinger(true, 0);
+        client.close();
+      }
+    } catch (IOException e) {
+      // eat Exception
+      e.printStackTrace();
+    }
+    try {
+      if (server != null) {
+        server.close();
+      }
+    } catch (IOException e) {
+      // eat Exception
+    }
+
     try {
       ss.close();
     } catch (IOException e) {

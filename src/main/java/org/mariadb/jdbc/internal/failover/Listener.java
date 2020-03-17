@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,6 +52,10 @@
 
 package org.mariadb.jdbc.internal.failover;
 
+import java.lang.reflect.Method;
+import java.net.SocketException;
+import java.sql.SQLException;
+import java.util.Set;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -59,11 +63,6 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-
-import java.lang.reflect.Method;
-import java.net.SocketException;
-import java.sql.SQLException;
-import java.util.Set;
 
 public interface Listener {
 

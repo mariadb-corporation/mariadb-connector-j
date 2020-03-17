@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,8 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.mariadb.jdbc.internal.util.SqlStates;
-import org.mariadb.jdbc.util.Options;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
 import java.io.*;
 import java.net.URL;
 import java.security.GeneralSecurityException;
@@ -70,8 +66,11 @@ import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import org.mariadb.jdbc.internal.util.SqlStates;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
 

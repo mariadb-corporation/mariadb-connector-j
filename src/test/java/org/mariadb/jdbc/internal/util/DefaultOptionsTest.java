@@ -2,7 +2,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -21,6 +21,12 @@
 
 package org.mariadb.jdbc.internal.util;
 
+import static org.junit.Assert.*;
+
+import java.lang.reflect.Field;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.util.Properties;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.Driver;
@@ -28,13 +34,6 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.util.DefaultOptions;
 import org.mariadb.jdbc.util.Options;
-
-import java.lang.reflect.Field;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
-import java.util.Properties;
-
-import static org.junit.Assert.*;
 
 public class DefaultOptionsTest {
 

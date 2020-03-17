@@ -1,13 +1,12 @@
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class MariaDbBlobTest {
 

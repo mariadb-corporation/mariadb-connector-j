@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.Platform;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
-import org.mariadb.jdbc.util.Options;
+import static org.junit.Assert.*;
 
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import com.sun.jna.Platform;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
@@ -74,8 +67,14 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.sql.*;
 import java.util.*;
-
-import static org.junit.Assert.*;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
