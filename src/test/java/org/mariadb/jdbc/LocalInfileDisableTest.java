@@ -76,8 +76,6 @@ public class LocalInfileDisableTest extends BaseTest {
 
   @Test
   public void testLocalInfileWithoutInputStream() throws SQLException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=false")) {
       Exception ex = null;
       try (Statement stmt = connection.createStatement()) {
@@ -88,9 +86,8 @@ public class LocalInfileDisableTest extends BaseTest {
 
       assertNotNull("Expected an exception to be thrown", ex);
       String message = ex.getMessage();
-      String expectedMessage =
-          "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
-      assertTrue(message.contains(expectedMessage));
+      assertTrue(message.contains("Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true") ||
+              message.contains("Loading local data is disabled"));
     }
   }
 }

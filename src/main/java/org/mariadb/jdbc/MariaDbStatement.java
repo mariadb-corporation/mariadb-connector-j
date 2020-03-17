@@ -1544,12 +1544,4 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
   }
 
-  /**
-   * Permit to retrieve current connection thread id, or -1 if unknown.
-   *
-   * @return current connection thread id.
-   */
-  public long getServerThreadId() {
-    return (protocol != null) ? protocol.getServerThreadId() : -1;
-  }
 }
