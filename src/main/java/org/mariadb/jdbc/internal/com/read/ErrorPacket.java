@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -54,12 +54,10 @@ package org.mariadb.jdbc.internal.com.read;
 
 import java.nio.charset.StandardCharsets;
 
+/** See protocol documentation https://mariadb.com/kb/en/err_packet/ */
 public class ErrorPacket {
 
-  private static final String GENERAL_ERROR = "HY000";
-
-  private final short errorNumber;
-  private final byte sqlStateMarker;
+  private final short errorCode;
   private final String sqlState;
   private final String message;
 
@@ -69,19 +67,18 @@ public class ErrorPacket {
    * @param buffer current stream rawBytes
    */
   public ErrorPacket(Buffer buffer) {
-    buffer.skipByte();
-    errorNumber = buffer.readShort();
-    sqlStateMarker = buffer.readByte();
-    if (sqlStateMarker == '#') {
+    buffer.skipByte(); // 0xff Error header
+    errorCode = buffer.readShort();
+    if (buffer.getByte() == '#') {
+      buffer.skipByte(); // skip '#'
       sqlState = buffer.readString(5);
       message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
     } else {
       // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-      buffer.position -= 1;
       message =
           new String(
               buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
-      sqlState = GENERAL_ERROR;
+      sqlState = "HY000";
     }
   }
 
@@ -89,15 +86,11 @@ public class ErrorPacket {
     return message;
   }
 
-  public short getErrorNumber() {
-    return errorNumber;
+  public short getErrorCode() {
+    return errorCode;
   }
 
   public String getSqlState() {
     return sqlState;
-  }
-
-  public byte getSqlStateMarker() {
-    return sqlStateMarker;
   }
 }

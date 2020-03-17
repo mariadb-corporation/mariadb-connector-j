@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -70,27 +70,12 @@ public enum SqlStates {
   INTERRUPTED_EXCEPTION("70"),
   UNDEFINED_SQLSTATE("HY"),
   TIMEOUT_EXCEPTION("JZ"),
-  DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
+  DISTRIBUTED_TRANSACTION_ERROR("XA");
 
   private final String sqlStateGroup;
 
   SqlStates(final String stateGroup) {
     this.sqlStateGroup = stateGroup;
-  }
-
-  /**
-   * Get sqlState from group.
-   *
-   * @param group group
-   * @return sqlState
-   */
-  public static SqlStates fromString(final String group) {
-    for (final SqlStates state : SqlStates.values()) {
-      if (group.startsWith(state.sqlStateGroup)) {
-        return state;
-      }
-    }
-    return UNDEFINED_SQLSTATE;
   }
 
   public String getSqlState() {

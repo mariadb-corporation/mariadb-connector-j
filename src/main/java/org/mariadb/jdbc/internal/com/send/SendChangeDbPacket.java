@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.mariadb.jdbc.internal.com.Packet;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class SendChangeDbPacket {
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,20 +52,20 @@
 
 package org.mariadb.jdbc.internal.failover;
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class FailoverProxy implements InvocationHandler {
 
@@ -99,6 +99,7 @@ public class FailoverProxy implements InvocationHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
   public final ReentrantLock lock;
+  public final LruTraceCache traceCache;
 
   private final Listener listener;
 
@@ -107,12 +108,15 @@ public class FailoverProxy implements InvocationHandler {
    *
    * @param listener failover implementation.
    * @param lock synchronisation lock
+   * @param traceCache trace cache
    * @throws SQLException if connection error occur
    */
-  public FailoverProxy(Listener listener, ReentrantLock lock) throws SQLException {
+  public FailoverProxy(Listener listener, ReentrantLock lock, LruTraceCache traceCache)
+      throws SQLException {
     this.lock = lock;
     this.listener = listener;
     this.listener.setProxy(this);
+    this.traceCache = traceCache;
     this.listener.initializeConnection();
   }
 
@@ -417,7 +421,7 @@ public class FailoverProxy implements InvocationHandler {
     try {
       listener.reconnect();
     } catch (SQLException e) {
-      ExceptionMapper.throwException(e, null, null);
+      throw ExceptionFactory.INSTANCE.create(e);
     }
   }
 

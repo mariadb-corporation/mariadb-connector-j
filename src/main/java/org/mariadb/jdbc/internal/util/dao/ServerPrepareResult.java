@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareResult implements PrepareResult {
 
-  private final ColumnInformation[] columns;
-  private final ColumnInformation[] parameters;
+  private final ColumnDefinition[] columns;
+  private final ColumnDefinition[] parameters;
   private final String sql;
   private final AtomicBoolean inCache = new AtomicBoolean();
   private int statementId;
@@ -83,8 +82,8 @@ public class ServerPrepareResult implements PrepareResult {
   public ServerPrepareResult(
       String sql,
       int statementId,
-      ColumnInformation[] columns,
-      ColumnInformation[] parameters,
+      ColumnDefinition[] columns,
+      ColumnDefinition[] parameters,
       Protocol unProxiedProtocol) {
     this.sql = sql;
     this.statementId = statementId;
@@ -169,11 +168,11 @@ public class ServerPrepareResult implements PrepareResult {
     return statementId;
   }
 
-  public ColumnInformation[] getColumns() {
+  public ColumnDefinition[] getColumns() {
     return columns;
   }
 
-  public ColumnInformation[] getParameters() {
+  public ColumnDefinition[] getParameters() {
     return parameters;
   }
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,23 +52,6 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
-import org.mariadb.jdbc.internal.io.socket.SocketUtility;
-import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
-import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-import org.mariadb.jdbc.util.Options;
-
-import javax.net.SocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -83,6 +66,24 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import javax.net.SocketFactory;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
+import org.mariadb.jdbc.internal.io.socket.SocketUtility;
+import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
+import org.mariadb.jdbc.internal.protocol.MasterProtocol;
+import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.util.ConfigurableSocketFactory;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("Annotator")
 public class Utils {
@@ -132,6 +133,9 @@ public class Utils {
         if (socketFactoryClass != null) {
           Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
           socketFactory = constructor.newInstance();
+          if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
+            ((ConfigurableSocketFactory) socketFactory).setConfiguration(options, host);
+          }
           return socketFactory.createSocket();
         }
       } catch (Exception exp) {
@@ -591,6 +595,8 @@ public class Utils {
   public static Protocol retrieveProxy(final UrlParser urlParser, final GlobalStateInfo globalInfo)
       throws SQLException {
     final ReentrantLock lock = new ReentrantLock();
+    final LruTraceCache traceCache =
+        urlParser.getOptions().enablePacketDebug ? new LruTraceCache() : null;
     Protocol protocol;
     switch (urlParser.getHaMode()) {
       case AURORA:
@@ -600,7 +606,8 @@ public class Utils {
                 Proxy.newProxyInstance(
                     AuroraProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new AuroraListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new AuroraListener(urlParser, globalInfo), lock, traceCache)));
       case REPLICATION:
         return getProxyLoggingIfNeeded(
             urlParser,
@@ -608,7 +615,8 @@ public class Utils {
                 Proxy.newProxyInstance(
                     MastersSlavesProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new MastersSlavesListener(urlParser, globalInfo), lock, traceCache)));
       case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(
@@ -617,10 +625,12 @@ public class Utils {
                 Proxy.newProxyInstance(
                     MasterProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
-                    new FailoverProxy(new MastersFailoverListener(urlParser, globalInfo), lock)));
+                    new FailoverProxy(
+                        new MastersFailoverListener(urlParser, globalInfo), lock, traceCache)));
       default:
         protocol =
-            getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, globalInfo, lock));
+            getProxyLoggingIfNeeded(
+                urlParser, new MasterProtocol(urlParser, globalInfo, lock, traceCache));
         protocol.connectWithoutProxy();
         return protocol;
     }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,9 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
@@ -63,8 +61,9 @@ import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class BlobTest extends BaseTest {
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.*;
+
+import java.sql.*;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
-
-import static org.junit.Assert.*;
 
 public class DatabaseMetadataTest extends BaseTest {
 
@@ -162,6 +161,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(null, rs.getString("table_schem"));
       assertEquals("t2", rs.getString("table_name"));
       assertEquals(counter, rs.getShort("key_seq"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
     }
     assertEquals(2, counter);
     stmt.execute("drop table if exists t2");
@@ -298,15 +298,22 @@ public class DatabaseMetadataTest extends BaseTest {
     stmt.execute("drop table if exists fore_key0");
     stmt.execute("drop table if exists fore_key1");
     stmt.execute("drop table if exists prim_key");
+    stmt.execute("drop table if exists fore_key3");
+    stmt.execute("drop table if exists prim2_key");
 
     stmt.execute(
-        "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
+        "create table prim_key (id int not null primary key, val varchar(20)) engine=innodb");
+    stmt.execute(
+        "create table prim2_key (id int not null primary key, val varchar(20)) engine=innodb");
     stmt.execute(
         "create table fore_key0 (id int not null primary key, "
             + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
     stmt.execute(
         "create table fore_key1 (id int not null primary key, "
             + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+    stmt.execute(
+        "create table fore_key3 (id int not null primary key, "
+            + "id_ref0 int, foreign key (id_ref0) references prim2_key(id)) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getExportedKeys("testj", null, "prim_key");
@@ -315,9 +322,38 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals("id", rs.getString("pkcolumn_name"));
       assertEquals("fore_key" + counter, rs.getString("fktable_name"));
       assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
       counter++;
     }
     assertEquals(2, counter);
+
+    rs = dbmd.getExportedKeys("testj", null, "prim_k%");
+    counter = 0;
+    while (rs.next()) {
+      assertEquals("id", rs.getString("pkcolumn_name"));
+      assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+      assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+      assertEquals("PRIMARY", rs.getString("pk_name"));
+      counter++;
+    }
+    assertEquals(2, counter);
+
+    rs = dbmd.getExportedKeys("testj", null, null);
+    counter = 0;
+    int totalCounter = 0;
+    while (rs.next()) {
+      if ("prim_key".equals(rs.getString("pktable_name"))) {
+        assertEquals("id", rs.getString("pkcolumn_name"));
+        assertEquals("fore_key" + counter, rs.getString("fktable_name"));
+        assertEquals("id_ref" + counter, rs.getString("fkcolumn_name"));
+        assertEquals("PRIMARY", rs.getString("pk_name"));
+        counter++;
+      }
+      totalCounter++;
+    }
+    assertEquals(2, counter);
+    assertTrue(totalCounter > 2);
+
     stmt.execute("drop table if exists fore_key0");
     stmt.execute("drop table if exists fore_key1");
     stmt.execute("drop table if exists prim_key");

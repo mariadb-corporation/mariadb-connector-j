@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Types;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
-import java.nio.charset.StandardCharsets;
-import java.sql.Types;
-
-public class ColumnInformation {
+/** Protocol details : https://mariadb.com/kb/en/resultset/#column-definition-packet */
+public class ColumnDefinition {
 
   // This array stored character length for every collation id up to collation id 256
   // It is generated from the information schema using
@@ -112,7 +112,7 @@ public class ColumnInformation {
    *
    * @param other other columnInformation
    */
-  public ColumnInformation(ColumnInformation other) {
+  public ColumnDefinition(ColumnDefinition other) {
     this.buffer = other.buffer;
     this.charsetNumber = other.charsetNumber;
     this.length = other.length;
@@ -126,7 +126,7 @@ public class ColumnInformation {
    *
    * @param buffer buffer
    */
-  public ColumnInformation(Buffer buffer) {
+  public ColumnDefinition(Buffer buffer) {
     this.buffer = buffer;
 
     /*
@@ -162,7 +162,7 @@ public class ColumnInformation {
    * @param type column type
    * @return ColumnInformation
    */
-  public static ColumnInformation create(String name, ColumnType type) {
+  public static ColumnDefinition create(String name, ColumnType type) {
     byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 
     byte[] arr = new byte[19 + 2 * nameBytes.length];
@@ -216,7 +216,7 @@ public class ColumnInformation {
 
     arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
 
-    return new ColumnInformation(new Buffer(arr));
+    return new ColumnDefinition(new Buffer(arr));
   }
 
   private String getString(int idx) {

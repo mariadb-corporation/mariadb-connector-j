@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,6 +52,24 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -60,7 +78,7 @@ import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import org.mariadb.jdbc.internal.com.send.ComQuery;
@@ -68,6 +86,7 @@ import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
@@ -80,35 +99,18 @@ import org.mariadb.jdbc.internal.util.constant.StateChange;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.SocketException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
-
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
-  private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
-  private final LogQueryTool logQuery;
-  private final List<String> galeraAllowedStates;
+  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
+      new HashSet<>(Arrays.asList(1205, 1213, 1614));
+
   private ThreadPoolExecutor readScheduler = null;
   private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
@@ -122,15 +124,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    *
    * @param urlParser connection URL information's
    * @param lock the lock for thread synchronisation
+   * @param traceCache trace cache
    */
   AbstractQueryProtocol(
-      final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
-    super(urlParser, globalInfo, lock);
-    logQuery = new LogQueryTool(options);
-    galeraAllowedStates =
-        urlParser.getOptions().galeraAllowedState == null
-            ? Collections.emptyList()
-            : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
+      final UrlParser urlParser,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
+    super(urlParser, globalInfo, lock, traceCache);
   }
 
   /**
@@ -161,11 +162,64 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
     } catch (SQLException sqlException) {
-      throw logQuery.exceptionWithQuery(
-          "COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
+      throw exceptionWithQuery("COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(
+          "COM_RESET_CONNECTION failed.", handleIoException(e), explicitClosed);
     }
+  }
+
+  private MariaDbSqlException exceptionWithQuery(
+      ParameterHolder[] parameters,
+      PrepareResult serverPrepareResult,
+      SQLException sqlException,
+      boolean explicitClosed) {
+    return exceptionWithQuery(
+        LogQueryTool.queryWithParams(serverPrepareResult, parameters, options),
+        sqlException,
+        explicitClosed);
+  }
+
+  private MariaDbSqlException exceptionWithQuery(
+      String sql, SQLException sqlException, boolean explicitClosed) {
+    MariaDbSqlException ex;
+    if (explicitClosed) {
+      ex =
+          new MariaDbSqlException(
+              "Connection has explicitly been closed/aborted.", sql, sqlException);
+    } else {
+      if (sqlException.getCause() instanceof SocketTimeoutException) {
+        ex = new MariaDbSqlException("Connection timed out", sql, "08000", sqlException);
+      } else {
+        ex = MariaDbSqlException.of(sqlException, sql);
+      }
+    }
+
+    if (options.includeThreadDumpInDeadlockExceptions || sqlException.getErrorCode() == 1064) {
+      ex.withThreadName(Thread.currentThread().getName());
+    }
+
+    // Add innoDB status if asked
+    if (options.includeInnodbStatusInDeadlockExceptions
+        && sqlException.getSQLState() != null
+        && LOCK_DEADLOCK_ERROR_CODES.contains(sqlException.getErrorCode())) {
+      try {
+        lock.lock();
+        cmdPrologue();
+        Results results = new Results();
+        executeQuery(isMasterConnection(), results, "SHOW ENGINE INNODB STATUS");
+        results.commandEnd();
+        ResultSet rs = results.getResultSet();
+        if (rs.next()) {
+          return ex.withDeadLockInfo(rs.getString(3));
+        }
+      } catch (SQLException sqle) {
+        // eat
+      } finally {
+        lock.unlock();
+      }
+    }
+    return ex;
   }
 
   /**
@@ -205,9 +259,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if ("70100".equals(sqlException.getSQLState()) && 1927 == sqlException.getErrorCode()) {
         throw handleIoException(sqlException);
       }
-      throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
+      throw exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     }
   }
 
@@ -225,9 +279,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException sqlException) {
-      throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
+      throw exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     }
   }
 
@@ -264,9 +318,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException queryException) {
-      throw logQuery.exceptionWithQuery(parameters, queryException, clientPrepareResult);
+      throw exceptionWithQuery(parameters, clientPrepareResult, queryException, false);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(parameters, clientPrepareResult, handleIoException(e), false);
     }
   }
 
@@ -305,9 +359,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException queryException) {
-      throw logQuery.exceptionWithQuery(parameters, queryException, clientPrepareResult);
+      throw exceptionWithQuery(parameters, clientPrepareResult, queryException, false);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(parameters, clientPrepareResult, handleIoException(e), false);
     }
   }
 
@@ -430,7 +484,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     cmdPrologue();
-
+    ParameterHolder[] parameters = null;
     ServerPrepareResult tmpServerPrepareResult = serverPrepareResult;
     try {
       SQLException exception = null;
@@ -471,7 +525,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         for (; index < parametersList.size(); index++) {
-          ParameterHolder[] parameters = parametersList.get(index);
+          parameters = parametersList.get(index);
           for (int i = 0; i < parameterCount; i++) {
             ParameterHolder holder = parameters[i];
             if (holder.isNullData()) {
@@ -515,7 +569,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return false;
           }
           if (exception == null) {
-            exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
+            exception = exceptionWithQuery(sql, sqle, explicitClosed);
             if (!options.continueBatchOnError) {
               throw exception;
             }
@@ -543,7 +597,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return false;
           }
           if (exception == null) {
-            exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
+            exception = exceptionWithQuery(sql, sqle, explicitClosed);
             if (!options.continueBatchOnError) {
               throw exception;
             }
@@ -558,7 +612,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return true;
 
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(
+          parameters, tmpServerPrepareResult, handleIoException(e), explicitClosed);
     } finally {
       if (serverPrepareResult == null && tmpServerPrepareResult != null) {
         releasePrepareStatement(tmpServerPrepareResult);
@@ -629,7 +684,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
         }
 
-        return logQuery.exceptionWithQuery(sql.toString(), qex, explicitClosed);
+        return exceptionWithQuery(sql.toString(), qex, explicitClosed);
       }
 
       @Override
@@ -710,14 +765,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         } catch (SQLException sqlException) {
           if (exception == null) {
-            exception = logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
+            exception = exceptionWithQuery(sql, sqlException, explicitClosed);
             if (!options.continueBatchOnError) {
               throw exception;
             }
           }
         } catch (IOException e) {
           if (exception == null) {
-            exception = handleIoException(e);
+            exception = exceptionWithQuery(sql, handleIoException(e), explicitClosed);
             if (!options.continueBatchOnError) {
               throw exception;
             }
@@ -764,7 +819,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           PrepareResult prepareResult) {
 
         String sql = queries.get(currentCounter + sendCmdCounter);
-        return logQuery.exceptionWithQuery(sql, qex, explicitClosed);
+        return exceptionWithQuery(sql, qex, explicitClosed);
       }
 
       @Override
@@ -816,7 +871,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
       return comStmtPrepare.read(reader, eofDeprecated);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     } finally {
       lock.unlock();
     }
@@ -858,13 +913,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       } catch (SQLException sqlException) {
         if (exception == null) {
-          exception = logQuery.exceptionWithQuery(firstSql, sqlException, explicitClosed);
+          exception = exceptionWithQuery(firstSql, sqlException, explicitClosed);
           if (!options.continueBatchOnError) {
             throw exception;
           }
         }
       } catch (IOException e) {
-        throw handleIoException(e);
+        throw exceptionWithQuery(firstSql, handleIoException(e), explicitClosed);
       }
       stopIfInterrupted();
 
@@ -918,9 +973,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       } while (currentIndex < totalParameterList);
 
     } catch (SQLException sqlEx) {
-      throw logQuery.exceptionWithQuery(sqlEx, prepareResult);
+      throw MariaDbSqlException.of(sqlEx, prepareResult.getSql());
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(
+          parameterList.get(currentIndex), prepareResult, handleIoException(e), explicitClosed);
     } finally {
       results.setRewritten(rewriteValues);
     }
@@ -1015,7 +1071,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           int sendCmdCounter,
           int paramCount,
           PrepareResult prepareResult) {
-        return logQuery.exceptionWithQuery(qex, prepareResult);
+        return MariaDbSqlException.of(qex, prepareResult.getSql());
       }
 
       @Override
@@ -1079,9 +1135,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException qex) {
-      throw logQuery.exceptionWithQuery(parameters, qex, serverPrepareResult);
+      throw exceptionWithQuery(parameters, serverPrepareResult, qex, false);
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery(parameters, serverPrepareResult, handleIoException(e), false);
     }
   }
 
@@ -1128,10 +1184,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           return true;
         } catch (IOException e) {
           connected = false;
-          throw new SQLException(
-              "Could not deallocate query: " + e.getMessage(),
-              CONNECTION_EXCEPTION.getSqlState(),
-              e);
+          throw new SQLNonTransientConnectionException(
+              "Could not deallocate query: " + e.getMessage(), "08000", e);
         }
 
       } finally {
@@ -1174,8 +1228,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     } catch (IOException e) {
       connected = false;
-      throw new SQLException(
-          "Could not ping: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+      throw new SQLNonTransientConnectionException("Could not ping: " + e.getMessage(), "08000", e);
     } finally {
       lock.unlock();
     }
@@ -1274,13 +1327,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         throw new SQLException(
             "Could not select database '" + database + "' : " + ep.getMessage(),
             ep.getSqlState(),
-            ep.getErrorNumber());
+            ep.getErrorCode());
       }
 
       this.database = database;
 
     } catch (IOException e) {
-      throw handleIoException(e);
+      throw exceptionWithQuery("COM_INIT_DB", handleIoException(e), false);
     } finally {
       lock.unlock();
     }
@@ -1302,7 +1355,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public void cancelCurrentQuery() throws SQLException {
     try (MasterProtocol copiedProtocol =
-        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
+        new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
       copiedProtocol.setHostAddress(getHostAddress());
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
@@ -1743,9 +1796,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     try {
 
       // read columns information's
-      ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
+      ColumnDefinition[] ci = new ColumnDefinition[(int) fieldCount];
       for (int i = 0; i < fieldCount; i++) {
-        ci[i] = new ColumnInformation(reader.getPacket(false));
+        ci[i] = new ColumnDefinition(reader.getPacket(false));
       }
 
       boolean callableResult = false;
@@ -1813,21 +1866,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       long maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
       throws SQLException {
     if (explicitClosed) {
-      throw new SQLNonTransientConnectionException("execute() is called on closed connection");
+      throw new SQLNonTransientConnectionException(
+          "execute() is called on closed connection", "08000");
     }
     // old failover handling
     if (!hasProxy && shouldReconnectWithoutProxy()) {
       try {
         connectWithoutProxy();
       } catch (SQLException qe) {
-        ExceptionMapper.throwException(qe, connection, statement);
+        throw ExceptionFactory.of((int) serverThreadId, options).create(qe);
       }
     }
 
     try {
       setMaxRows(maxRows);
     } catch (SQLException qe) {
-      ExceptionMapper.throwException(qe, connection, statement);
+      throw ExceptionFactory.of((int) serverThreadId, options).create(qe);
     }
 
     connection.reenableWarnings();
@@ -1869,7 +1923,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     if (!this.connected) {
-      throw new SQLException("Connection is closed", "08000", 1220);
+      throw exceptionFactory.create("Connection is closed", "08000", 1220);
     }
     interrupted = false;
   }
@@ -1941,9 +1995,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     if (mustReconnect && !explicitClosed) {
+      String traces = getTraces();
       try {
         connect();
-
         try {
           resetStateAfterFailover(
               getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
@@ -1953,36 +2007,32 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 "Could not send query: query size is >= to max_allowed_packet ("
                     + writer.getMaxAllowedPacket()
                     + ")"
-                    + getTraces(),
-                UNDEFINED_SQLSTATE.getSqlState(),
+                    + traces,
+                "HY000",
                 initialException);
           }
 
-          return new SQLNonTransientConnectionException(
-              initialException.getMessage() + getTraces(),
-              UNDEFINED_SQLSTATE.getSqlState(),
-              initialException);
+          return new SQLTransientConnectionException(
+              initialException.getMessage() + traces, "HY000", initialException);
 
         } catch (SQLException queryException) {
-          return new SQLNonTransientConnectionException(
-              "reconnection succeed, but resetting previous state failed",
-              UNDEFINED_SQLSTATE.getSqlState() + getTraces(),
+          return new SQLTransientConnectionException(
+              "reconnection succeed, but resetting previous state failed" + traces,
+              "HY000",
               initialException);
         }
 
       } catch (SQLException queryException) {
         connected = false;
         return new SQLNonTransientConnectionException(
-            initialException.getMessage() + "\nError during reconnection" + getTraces(),
-            CONNECTION_EXCEPTION.getSqlState(),
-            initialException);
+            initialException.getMessage() + "\nError during reconnection" + traces,
+            "08000",
+            queryException);
       }
     }
     connected = false;
     return new SQLNonTransientConnectionException(
-        initialException.getMessage() + getTraces(),
-        CONNECTION_EXCEPTION.getSqlState(),
-        initialException);
+        initialException.getMessage() + getTraces(), "08000", initialException);
   }
 
   public void setActiveFutureTask(FutureTask activeFutureTask) {

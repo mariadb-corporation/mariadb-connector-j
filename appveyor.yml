@@ -47,11 +47,11 @@ install:
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
   - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.4
-  - cmd: SET M
   - cmd: cd c:\projects\mariadb-connector-j
   - cmd: mvn --version
   - cmd: java -version
 build_script:
-  - mvn clean package -Dmaven.test.skip=true
+  - mvn clean
+  - mvn test -Dmaven.test.skip=true
 test_script:
   - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root"

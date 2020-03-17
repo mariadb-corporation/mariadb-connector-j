@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,6 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.StringTokenizer;
+import java.util.function.Supplier;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.credential.Credential;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
@@ -63,11 +67,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.pid.PidFactory;
 import org.mariadb.jdbc.util.Options;
-
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.StringTokenizer;
-import java.util.function.Supplier;
 
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {

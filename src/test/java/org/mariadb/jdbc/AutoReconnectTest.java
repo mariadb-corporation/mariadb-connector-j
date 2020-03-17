@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,10 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.*;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
-
-import java.sql.*;
 
 public class AutoReconnectTest extends BaseTest {
 
@@ -72,9 +71,9 @@ public class AutoReconnectTest extends BaseTest {
 
       try {
         stmt.executeQuery("SELECT 2");
-      } catch (SQLTransientConnectionException e) {
-        Assert.fail("Must have send a SQLNonTransientConnectionException !");
       } catch (SQLNonTransientConnectionException e) {
+        Assert.fail("Must have send a SQLTransientConnectionException !");
+      } catch (SQLTransientConnectionException e) {
         try {
           stmt.executeQuery("SELECT 3");
         } catch (SQLException ee) {

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,23 +22,10 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.MariaDbBlob;
-import org.mariadb.jdbc.MariaDbClob;
-import org.mariadb.jdbc.MariaDbResultSetMetaData;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
-import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
-import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
-import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.util.Options;
+import static org.mariadb.jdbc.internal.com.Packet.EOF;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -46,17 +33,28 @@ import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.Date;
 import java.sql.*;
+import java.sql.Date;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
-import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
+import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbClob;
+import org.mariadb.jdbc.MariaDbResultSetMetaData;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.ColumnLabelIndexer;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings({
   "deprecation",
@@ -70,18 +68,18 @@ public class SelectResultSet implements ResultSet {
   public static final int YEAR_IS_DATE_TYPE = 2;
   private static final String NOT_UPDATABLE_ERROR =
       "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
-  private static final ColumnInformation[] INSERT_ID_COLUMNS;
+  private static final ColumnDefinition[] INSERT_ID_COLUMNS;
 
   private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
   static {
-    INSERT_ID_COLUMNS = new ColumnInformation[1];
-    INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
+    INSERT_ID_COLUMNS = new ColumnDefinition[1];
+    INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT);
   }
 
   protected TimeZone timeZone;
   protected Options options;
-  protected ColumnInformation[] columnsInformation;
+  protected ColumnDefinition[] columnsInformation;
   protected int columnInformationLength;
   protected boolean noBackslashEscapes;
   private Protocol protocol;
@@ -97,7 +95,7 @@ public class SelectResultSet implements ResultSet {
   private int fetchSize;
   private int resultSetScrollType;
   private int rowPointer;
-  private ColumnNameMap columnNameMap;
+  private ColumnLabelIndexer columnLabelIndexer;
   private int lastRowPointer = -1;
   private boolean isClosed;
   private boolean eofDeprecated;
@@ -107,7 +105,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * Create Streaming resultSet.
    *
-   * @param columnInformation column information
+   * @param columnDefinition column information
    * @param results results
    * @param protocol current protocol
    * @param reader stream fetcher
@@ -117,7 +115,7 @@ public class SelectResultSet implements ResultSet {
    * @throws SQLException if any connection error occur
    */
   public SelectResultSet(
-      ColumnInformation[] columnInformation,
+      ColumnDefinition[] columnDefinition,
       Results results,
       Protocol protocol,
       PacketInputStream reader,
@@ -129,10 +127,10 @@ public class SelectResultSet implements ResultSet {
     this.protocol = protocol;
     this.options = protocol.getOptions();
     this.noBackslashEscapes = protocol.noBackslashEscapes();
-    this.columnsInformation = columnInformation;
-    this.columnNameMap = new ColumnNameMap(columnsInformation);
+    this.columnsInformation = columnDefinition;
+    this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
 
-    this.columnInformationLength = columnInformation.length;
+    this.columnInformationLength = columnDefinition.length;
     this.reader = reader;
     this.isEof = false;
     timeZone = protocol.getTimeZone();
@@ -168,7 +166,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * Create filled result-set.
    *
-   * @param columnInformation column information
+   * @param columnDefinition column information
    * @param resultSet result-set data
    * @param protocol current protocol
    * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>
@@ -176,7 +174,7 @@ public class SelectResultSet implements ResultSet {
    *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    */
   public SelectResultSet(
-      ColumnInformation[] columnInformation,
+      ColumnDefinition[] columnDefinition,
       List<byte[]> resultSet,
       Protocol protocol,
       int resultSetScrollType) {
@@ -191,9 +189,9 @@ public class SelectResultSet implements ResultSet {
     }
     this.row = new TextRowProtocol(0, this.options);
     this.protocol = null;
-    this.columnsInformation = columnInformation;
-    this.columnNameMap = new ColumnNameMap(columnsInformation);
-    this.columnInformationLength = columnInformation.length;
+    this.columnsInformation = columnDefinition;
+    this.columnLabelIndexer = new ColumnLabelIndexer(columnsInformation);
+    this.columnInformationLength = columnDefinition.length;
     this.isEof = true;
     this.fetchSize = 0;
     this.resultSetScrollType = resultSetScrollType;
@@ -218,8 +216,8 @@ public class SelectResultSet implements ResultSet {
    */
   public static ResultSet createGeneratedData(
       long[] data, Protocol protocol, boolean findColumnReturnsOne) {
-    ColumnInformation[] columns = new ColumnInformation[1];
-    columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
+    ColumnDefinition[] columns = new ColumnDefinition[1];
+    columns[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT);
 
     List<byte[]> rows = new ArrayList<>();
     for (long rowData : data) {
@@ -253,10 +251,10 @@ public class SelectResultSet implements ResultSet {
   public static ResultSet createResultSet(
       String[] columnNames, ColumnType[] columnTypes, String[][] data, Protocol protocol) {
     int columnNameLength = columnNames.length;
-    ColumnInformation[] columns = new ColumnInformation[columnNameLength];
+    ColumnDefinition[] columns = new ColumnDefinition[columnNameLength];
 
     for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnInformation.create(columnNames[i], columnTypes[i]);
+      columns[i] = ColumnDefinition.create(columnNames[i], columnTypes[i]);
     }
 
     List<byte[]> rows = new ArrayList<>();
@@ -313,7 +311,7 @@ public class SelectResultSet implements ResultSet {
         }
 
       } catch (SQLException queryException) {
-        throw ExceptionMapper.getException(queryException, null, statement, false);
+        throw ExceptionFactory.INSTANCE.create(queryException);
       } catch (IOException ioe) {
         throw handleIoException(ioe);
       } finally {
@@ -324,19 +322,15 @@ public class SelectResultSet implements ResultSet {
   }
 
   private SQLException handleIoException(IOException ioe) {
-    return ExceptionMapper.getException(
-        new SQLException(
-            "Server has closed the connection. \n"
-                + "Please check net_read_timeout/net_write_timeout/wait_timeout server variables. "
-                + "If result set contain huge amount of data, Server expects client to"
-                + " read off the result set relatively fast. "
-                + "In this case, please consider increasing net_read_timeout session variable"
-                + " / processing your result set faster (check Streaming result sets documentation for more information)",
-            CONNECTION_EXCEPTION.getSqlState(),
-            ioe),
-        null,
-        statement,
-        false);
+    return ExceptionFactory.INSTANCE.create(
+        "Server has closed the connection. \n"
+            + "Please check net_read_timeout/net_write_timeout/wait_timeout server variables. "
+            + "If result set contain huge amount of data, Server expects client to"
+            + " read off the result set relatively fast. "
+            + "In this case, please consider increasing net_read_timeout session variable"
+            + " / processing your result set faster (check Streaming result sets documentation for more information)",
+        "08000",
+        ioe);
   }
 
   /**
@@ -388,12 +382,8 @@ public class SelectResultSet implements ResultSet {
       protocol.setHasWarnings(false);
       ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
       resetVariables();
-      throw ExceptionMapper.get(
-          errorPacket.getMessage(),
-          errorPacket.getSqlState(),
-          errorPacket.getErrorNumber(),
-          null,
-          false);
+      throw ExceptionFactory.INSTANCE.create(
+          errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
     }
 
     // is end of stream
@@ -561,7 +551,7 @@ public class SelectResultSet implements ResultSet {
         }
 
       } catch (SQLException queryException) {
-        throw ExceptionMapper.getException(queryException, null, this.statement, false);
+        throw ExceptionFactory.INSTANCE.create(queryException);
       } catch (IOException ioe) {
         throw handleIoException(ioe);
       } finally {
@@ -961,10 +951,10 @@ public class SelectResultSet implements ResultSet {
     return getString(findColumn(columnLabel));
   }
 
-  private String zeroFillingIfNeeded(String value, ColumnInformation columnInformation) {
-    if (columnInformation.isZeroFill()) {
+  private String zeroFillingIfNeeded(String value, ColumnDefinition columnDefinition) {
+    if (columnDefinition.isZeroFill()) {
       StringBuilder zeroAppendStr = new StringBuilder();
-      long zeroToAdd = columnInformation.getDisplaySize() - value.length();
+      long zeroToAdd = columnDefinition.getDisplaySize() - value.length();
       while (zeroToAdd-- > 0) {
         zeroAppendStr.append("0");
       }
@@ -1153,7 +1143,7 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public String getCursorName() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Cursors not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Cursors not supported");
   }
 
   /** {inheritDoc}. */
@@ -1174,13 +1164,13 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
   }
 
   /** {inheritDoc}. */
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
   }
 
@@ -1194,7 +1184,7 @@ public class SelectResultSet implements ResultSet {
     if (row.lastValueWasNull()) {
       return null;
     }
-    ColumnInformation col = columnsInformation[columnIndex - 1];
+    ColumnDefinition col = columnsInformation[columnIndex - 1];
 
     if (type.equals(String.class)) {
       return (T) row.getInternalString(col, null, timeZone);
@@ -1312,7 +1302,7 @@ public class SelectResultSet implements ResultSet {
       }
       return type.cast(offsetTime);
     }
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "Type class '" + type.getName() + "' is not supported");
   }
 
@@ -1323,7 +1313,7 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public int findColumn(String columnLabel) throws SQLException {
-    return columnNameMap.getIndex(columnLabel) + 1;
+    return columnLabelIndexer.getIndex(columnLabel) + 1;
   }
 
   /** {inheritDoc}. */
@@ -1353,14 +1343,12 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public Ref getRef(int columnIndex) throws SQLException {
-    // TODO: figure out what REF's are and implement this method
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public Ref getRef(String columnLabel) throws SQLException {
-    // TODO see getRef(int)
-    throw ExceptionMapper.getFeatureNotSupportedException("Getting REFs not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Getting REFs not supported");
   }
 
   /** {inheritDoc}. */
@@ -1393,7 +1381,7 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public Array getArray(int columnIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Arrays are not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Arrays are not supported");
   }
 
   /** {inheritDoc}. */
@@ -1411,7 +1399,7 @@ public class SelectResultSet implements ResultSet {
     try {
       return new URL(row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone));
     } catch (MalformedURLException e) {
-      throw ExceptionMapper.getSqlException("Could not parse as URL");
+      throw ExceptionFactory.INSTANCE.create("Could not parse as URL");
     }
   }
 
@@ -1423,12 +1411,12 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public RowId getRowId(int columnIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
   }
 
   /** {inheritDoc}. */
   public RowId getRowId(String columnLabel) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
   }
 
   /** {inheritDoc}. */
@@ -1448,13 +1436,13 @@ public class SelectResultSet implements ResultSet {
   /** {inheritDoc}. */
   @Override
   public SQLXML getSQLXML(int columnIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
   }
 
   /** {inheritDoc}. */
   @Override
   public SQLXML getSQLXML(String columnLabel) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
   }
 
   /** {inheritDoc}. */
@@ -1502,485 +1490,484 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public boolean rowUpdated() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
-        "Detecting row updates are not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Detecting row updates are not supported");
   }
 
   /** {inheritDoc}. */
   public boolean rowInserted() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Detecting inserts are not supported");
   }
 
   /** {inheritDoc}. */
   public boolean rowDeleted() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Row deletes are not supported");
   }
 
   /** {inheritDoc}. */
   public void insertRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
   }
 
   /** {inheritDoc}. */
   public void deleteRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "deleteRow are not supported when using ResultSet.CONCUR_READ_ONLY");
   }
 
   /** {inheritDoc}. */
   public void refreshRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "refreshRow are not supported when using ResultSet.CONCUR_READ_ONLY");
   }
 
   /** {inheritDoc}. */
   public void cancelRowUpdates() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void moveToInsertRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void moveToCurrentRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNull(int columnIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNull(String columnLabel) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBoolean(String columnLabel, boolean value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateByte(int columnIndex, byte value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateByte(String columnLabel, byte value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateShort(int columnIndex, short value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateShort(String columnLabel, short value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateInt(int columnIndex, int value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateInt(String columnLabel, int value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateFloat(int columnIndex, float value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateFloat(String columnLabel, float value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateDouble(int columnIndex, double value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateDouble(String columnLabel, double value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateString(int columnIndex, String value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateString(String columnLabel, String value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBytes(int columnIndex, byte[] value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBytes(String columnLabel, byte[] value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateDate(int columnIndex, Date date) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateDate(String columnLabel, Date value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateTime(int columnIndex, Time time) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateTime(String columnLabel, Time value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream, int length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream value, int length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream, int length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream value, int length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader value, int length) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader, int length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(int columnIndex, Reader value, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateObject(int columnIndex, Object value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateObject(String columnLabel, Object value, int scaleOrLength)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateObject(String columnLabel, Object value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateLong(String columnLabel, long value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateLong(int columnIndex, long value) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateRow() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(
+    throw ExceptionFactory.INSTANCE.notSupported(
         "updateRow are not supported when using ResultSet.CONCUR_READ_ONLY");
   }
 
   /** {inheritDoc}. */
   public void updateRef(int columnIndex, Ref ref) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateRef(String columnLabel, Ref ref) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(int columnIndex, Blob blob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(String columnLabel, Blob blob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(int columnIndex, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateBlob(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(int columnIndex, Clob clob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(String columnLabel, Clob clob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(int columnIndex, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateClob(String columnLabel, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateArray(int columnIndex, Array array) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateArray(String columnLabel, Array array) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNString(int columnIndex, String nstring) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNString(String columnLabel, String nstring) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(int columnIndex, NClob nclob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(String columnLabel, NClob nclob) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
   }
 
   /** {inheritDoc}. */
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
   }
 
   /** {inheritDoc}. */
   public void updateNCharacterStream(int columnIndex, Reader value, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNCharacterStream(String columnLabel, Reader reader, long length)
       throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
   public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    throw ExceptionFactory.INSTANCE.notSupported(NOT_UPDATABLE_ERROR);
   }
 
   /** {inheritDoc}. */
@@ -2012,7 +1999,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   private void rangeCheck(
-      Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo)
+      Object className, long minValue, long maxValue, long value, ColumnDefinition columnInfo)
       throws SQLException {
     if (value < minValue || value > maxValue) {
       throw new SQLException(

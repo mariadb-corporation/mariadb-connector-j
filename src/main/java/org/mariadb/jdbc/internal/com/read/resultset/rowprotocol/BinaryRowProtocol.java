@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,10 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.util.Options;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -65,27 +61,30 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 public class BinaryRowProtocol extends RowProtocol {
 
-  private final ColumnInformation[] columnInformation;
+  private final ColumnDefinition[] columnDefinition;
   private final int columnInformationLength;
 
   /**
    * Constructor.
    *
-   * @param columnInformation column information.
+   * @param columnDefinition column information.
    * @param columnInformationLength number of columns
    * @param maxFieldSize max field size
    * @param options connection options
    */
   public BinaryRowProtocol(
-      ColumnInformation[] columnInformation,
+      ColumnDefinition[] columnDefinition,
       int columnInformationLength,
       int maxFieldSize,
       Options options) {
     super(maxFieldSize, options);
-    this.columnInformation = columnInformation;
+    this.columnDefinition = columnDefinition;
     this.columnInformationLength = columnInformationLength;
   }
 
@@ -122,7 +121,7 @@ public class BinaryRowProtocol extends RowProtocol {
         if ((buf[1 + (index + 2) / 8] & (1 << ((index + 2) % 8))) == 0) {
           if (index != newIndex) {
             // skip bytes
-            switch (columnInformation[index].getColumnType()) {
+            switch (columnDefinition[index].getColumnType()) {
               case BIGINT:
               case DOUBLE:
                 internalPos += 8;
@@ -187,7 +186,7 @@ public class BinaryRowProtocol extends RowProtocol {
             }
           } else {
             // read asked field position and length
-            switch (columnInformation[index].getColumnType()) {
+            switch (columnDefinition[index].getColumnType()) {
               case BIGINT:
               case DOUBLE:
                 this.pos = internalPos;
@@ -286,7 +285,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return String value of raw bytes
    * @throws SQLException if conversion failed
    */
-  public String getInternalString(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public String getInternalString(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if ((lastValueNull & BIT_LAST_FIELD_NULL) != 0) {
       return null;
@@ -365,7 +364,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return int value
    * @throws SQLException if column is not numeric or is not in Integer bounds.
    */
-  public int getInternalInt(ColumnInformation columnInfo) throws SQLException {
+  public int getInternalInt(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -431,7 +430,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column is not numeric or is not in Long bounds (for big unsigned
    *     values)
    */
-  public long getInternalLong(ColumnInformation columnInfo) throws SQLException {
+  public long getInternalLong(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -539,7 +538,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return float value
    * @throws SQLException if column is not numeric or is not in Float bounds.
    */
-  public float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
+  public float getInternalFloat(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -638,7 +637,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return double value
    * @throws SQLException if column is not numeric or is not in Double bounds (unsigned columns).
    */
-  public double getInternalDouble(ColumnInformation columnInfo) throws SQLException {
+  public double getInternalDouble(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -725,7 +724,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return BigDecimal value
    * @throws SQLException if column is not numeric
    */
-  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
+  public BigDecimal getInternalBigDecimal(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -798,7 +797,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column is not compatible to Date
    */
   @SuppressWarnings("deprecation")
-  public Date getInternalDate(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public Date getInternalDate(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -869,7 +868,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return Time value
    * @throws SQLException if column cannot be converted to Time
    */
-  public Time getInternalTime(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone)
+  public Time getInternalTime(ColumnDefinition columnInfo, Calendar cal, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -937,7 +936,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column type is not compatible
    */
   public Timestamp getInternalTimestamp(
-      ColumnInformation columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
+      ColumnDefinition columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -1059,7 +1058,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return Object value
    * @throws SQLException if column type is not compatible
    */
-  public Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone)
+  public Object getInternalObject(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -1143,8 +1142,8 @@ public class BinaryRowProtocol extends RowProtocol {
       default:
         break;
     }
-    throw ExceptionMapper.getFeatureNotSupportedException(
-        "Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
+    throw ExceptionFactory.INSTANCE.notSupported(
+        String.format("Type '%s' is not supported", columnInfo.getColumnType().getTypeName()));
   }
 
   /**
@@ -1154,7 +1153,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return boolean value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
+  public boolean getInternalBoolean(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return false;
     }
@@ -1191,7 +1190,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return byte value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
+  public byte getInternalByte(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -1246,7 +1245,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return short value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public short getInternalShort(ColumnInformation columnInfo) throws SQLException {
+  public short getInternalShort(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return 0;
     }
@@ -1305,7 +1304,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @param columnInfo column information
    * @return time value
    */
-  public String getInternalTimeString(ColumnInformation columnInfo) {
+  public String getInternalTimeString(ColumnDefinition columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -1384,7 +1383,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion or value is not in BigInteger
    *     range
    */
-  public BigInteger getInternalBigInteger(ColumnInformation columnInfo) throws SQLException {
+  public BigInteger getInternalBigInteger(ColumnDefinition columnInfo) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -1456,7 +1455,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion
    */
   public ZonedDateTime getInternalZonedDateTime(
-      ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException {
+      ColumnDefinition columnInfo, Class clazz, TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -1528,7 +1527,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return OffsetTime value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public OffsetTime getInternalOffsetTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -1652,7 +1651,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return LocalTime value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public LocalTime getInternalLocalTime(ColumnInformation columnInfo, TimeZone timeZone)
+  public LocalTime getInternalLocalTime(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;
@@ -1736,7 +1735,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @return LocalDate value
    * @throws SQLException if column type doesn't permit conversion
    */
-  public LocalDate getInternalLocalDate(ColumnInformation columnInfo, TimeZone timeZone)
+  public LocalDate getInternalLocalDate(ColumnDefinition columnInfo, TimeZone timeZone)
       throws SQLException {
     if (lastValueWasNull()) {
       return null;

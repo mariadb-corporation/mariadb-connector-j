@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,17 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import java.io.Closeable;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
-import java.io.Closeable;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
 
@@ -72,10 +72,14 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
    * @param urlParser connection URL infos
    * @param globalInfo server global variables information
    * @param lock the lock for thread synchronisation
+   * @param traceCache trace cache
    */
   public MasterProtocol(
-      final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
-    super(urlParser, globalInfo, lock);
+      final UrlParser urlParser,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
+    super(urlParser, globalInfo, lock, traceCache);
   }
 
   /**
@@ -87,7 +91,8 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
    */
   private static MasterProtocol getNewProtocol(
       FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
-    MasterProtocol newProtocol = new MasterProtocol(urlParser, globalInfo, proxy.lock);
+    MasterProtocol newProtocol =
+        new MasterProtocol(urlParser, globalInfo, proxy.lock, proxy.traceCache);
     newProtocol.setProxy(proxy);
     return newProtocol;
   }

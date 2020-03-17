@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
 
 public abstract class BaseReplication extends BaseMonoServer {
 

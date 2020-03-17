@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,12 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbFunctionStatement extends CallableFunctionStatement
     implements CloneableCallableStatement {
@@ -76,6 +76,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
    *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param exceptionFactory Exception factory
    * @throws SQLException exception
    */
   public MariaDbFunctionStatement(
@@ -84,13 +85,15 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
       String procedureName,
       String arguments,
       int resultSetType,
-      final int resultSetConcurrency)
+      final int resultSetConcurrency,
+      ExceptionFactory exceptionFactory)
       throws SQLException {
     super(
         connection,
         "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
         resultSetType,
-        resultSetConcurrency);
+        resultSetConcurrency,
+        exceptionFactory);
     parameterMetadata =
         new CallableParameterMetaData(connection, databaseName, procedureName, true);
     super.initFunctionData(getParameterCount() + 1);
