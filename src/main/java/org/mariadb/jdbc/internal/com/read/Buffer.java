@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Buffer {
 
@@ -193,6 +194,15 @@ public class Buffer {
   }
 
   /**
+   * Read current buffer byte without incrementing position.
+   *
+   * @return the byte
+   */
+  public byte getByte() {
+    return buf[position];
+  }
+
+  /**
    * Read raw data.
    *
    * @param numberOfBytes raw data length.
@@ -273,6 +283,23 @@ public class Buffer {
     }
   }
 
+  /** Skip length encoded numeric */
+  public void skipLengthEncodedNumeric() {
+    int type = this.buf[this.position++] & 0xff;
+    switch (type) {
+      case 252:
+        this.position += 2;
+        return;
+      case 253:
+        this.position += 3;
+        return;
+      case 254:
+        this.position += 8;
+        return;
+      default:
+        return;
+    }
+  }
   /**
    * Get next data bytes from length encoded prefix.
    *

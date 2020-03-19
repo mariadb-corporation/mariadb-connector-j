@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,14 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-
-import java.util.*;
-import java.util.regex.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 public class HostAddress {
 
@@ -116,7 +119,7 @@ public class HostAddress {
     if (haMode == HaMode.AURORA) {
       Pattern clusterPattern =
           Pattern.compile(
-              "(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+              "(.+)\\.(?:cluster-|cluster-ro-)([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
               Pattern.CASE_INSENSITIVE);
       Matcher matcher = clusterPattern.matcher(spec);
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-
-import java.io.*;
-import java.nio.charset.*;
-import java.sql.*;
-import java.util.*;
-
-import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.util.Properties;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class StatementTest extends BaseTest {
 
@@ -100,7 +100,7 @@ public class StatementTest extends BaseTest {
     try (Statement statement = sharedConnection.createStatement()) {
       assertTrue(statement.isWrapperFor(Statement.class));
       assertFalse(statement.isWrapperFor(SQLException.class));
-      assertThat(statement.unwrap(Statement.class), equalTo(statement));
+      assertEquals(statement.unwrap(Statement.class).getClass(), statement.getClass());
       try {
         statement.unwrap(SQLException.class);
         fail("MariaDbStatement class unwrapped as SQLException class");
@@ -482,7 +482,7 @@ public class StatementTest extends BaseTest {
         Statement stmt2 = conn2.createStatement();
         conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         try {
-          stmt2.execute("SET SESSION idle_transaction_timeout=2");
+          stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
         } catch (SQLException e) {
           // eat ( for mariadb >= 10.3)
         }
@@ -492,7 +492,7 @@ public class StatementTest extends BaseTest {
           fail("Must have thrown deadlock exception");
         } catch (SQLException sqle) {
           assertTrue(sqle.getMessage().contains("current threads:"));
-          assertTrue(sqle.getMessage().contains("END OF INNODB MONITOR OUTPUT"));
+          assertTrue(sqle.getMessage().contains("deadlock information"));
         }
       }
     }
@@ -607,7 +607,7 @@ public class StatementTest extends BaseTest {
       stmt.setQueryTimeout(-1);
       fail();
     } catch (SQLException e) {
-      e.getMessage().contains("Query timeout rows cannot be negative");
+      e.getMessage().contains("Query timeout cannot be negative");
     }
 
     stmt.setEscapeProcessing(false);

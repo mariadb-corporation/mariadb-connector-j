@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,10 +22,9 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
-
-import java.io.*;
+import java.io.IOException;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class BooleanParameter implements Cloneable, ParameterHolder {
 
@@ -39,7 +38,7 @@ public class BooleanParameter implements Cloneable, ParameterHolder {
     os.write(value ? '1' : '0');
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 1;
   }
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,20 +52,28 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.util.*;
-
-import java.net.*;
+import java.net.SocketException;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
-import java.util.regex.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.CallableStatementCache;
+import org.mariadb.jdbc.internal.util.ConnectionState;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
+import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("Annotator")
 public class MariaDbConnection implements Connection {
@@ -103,8 +111,7 @@ public class MariaDbConnection implements Connection {
   private boolean sessionStateAware;
   private int stateFlag = 0;
   private int defaultTransactionIsolation = 0;
-  /** save point count - to generate good names for the savepoints. */
-  private int savepointCount = 0;
+  private ExceptionFactory exceptionFactory;
 
   private boolean warningsCleared;
 
@@ -123,6 +130,7 @@ public class MariaDbConnection implements Connection {
       callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
     }
     this.lock = protocol.getLock();
+    this.exceptionFactory = ExceptionFactory.of(this.getServerThreadId(), this.options);
   }
 
   /**
@@ -174,7 +182,8 @@ public class MariaDbConnection implements Connection {
    */
   public Statement createStatement() throws SQLException {
     checkConnection();
-    return new MariaDbStatement(this, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    return new MariaDbStatement(
+        this, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, exceptionFactory);
   }
 
   /**
@@ -191,7 +200,7 @@ public class MariaDbConnection implements Connection {
    *     with the given type and concurrency
    */
   public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
-    return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
+    return new MariaDbStatement(this, resultSetType, resultSetConcurrency, exceptionFactory);
   }
 
   /**
@@ -213,13 +222,12 @@ public class MariaDbConnection implements Connection {
    */
   public Statement createStatement(
       final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability) {
-    return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
+    return new MariaDbStatement(this, resultSetType, resultSetConcurrency, exceptionFactory);
   }
 
   private void checkConnection() throws SQLException {
     if (protocol.isExplicitClosed()) {
-      throw new SQLNonTransientConnectionException(
-          "createStatement() is called on closed connection");
+      throw exceptionFactory.create("createStatement() is called on closed connection", "08000");
     }
     if (protocol.isClosed() && protocol.getProxy() != null) {
       lock.lock();
@@ -244,7 +252,8 @@ public class MariaDbConnection implements Connection {
         sql,
         ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
-        Statement.RETURN_GENERATED_KEYS);
+        Statement.RETURN_GENERATED_KEYS,
+        exceptionFactory);
   }
 
   /**
@@ -260,7 +269,8 @@ public class MariaDbConnection implements Connection {
         sql,
         ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
-        Statement.RETURN_GENERATED_KEYS);
+        Statement.RETURN_GENERATED_KEYS,
+        exceptionFactory);
   }
 
   /**
@@ -475,7 +485,12 @@ public class MariaDbConnection implements Connection {
         checkConnection();
         try {
           return new ServerSidePreparedStatement(
-              this, sqlQuery, resultSetScrollType, resultSetConcurrency, autoGeneratedKeys);
+              this,
+              sqlQuery,
+              resultSetScrollType,
+              resultSetConcurrency,
+              autoGeneratedKeys,
+              exceptionFactory);
         } catch (SQLNonTransientConnectionException e) {
           throw e;
         } catch (SQLException e) {
@@ -484,7 +499,12 @@ public class MariaDbConnection implements Connection {
         }
       }
       return new ClientSidePreparedStatement(
-          this, sqlQuery, resultSetScrollType, resultSetConcurrency, autoGeneratedKeys);
+          this,
+          sqlQuery,
+          resultSetScrollType,
+          resultSetConcurrency,
+          autoGeneratedKeys,
+          exceptionFactory);
     } else {
       throw new SQLException("SQL value can not be NULL");
     }
@@ -575,7 +595,8 @@ public class MariaDbConnection implements Connection {
               database,
               arguments,
               resultSetType,
-              resultSetConcurrency);
+              resultSetConcurrency,
+              exceptionFactory);
       callableStatementCache.put(new CallableStatementCacheKey(database, query), callableStatement);
       return callableStatement;
     }
@@ -587,7 +608,8 @@ public class MariaDbConnection implements Connection {
         database,
         arguments,
         resultSetType,
-        resultSetConcurrency);
+        resultSetConcurrency,
+        exceptionFactory);
   }
 
   /**
@@ -630,7 +652,8 @@ public class MariaDbConnection implements Connection {
       String database,
       String arguments,
       int resultSetType,
-      final int resultSetConcurrency)
+      final int resultSetConcurrency,
+      ExceptionFactory exceptionFactory)
       throws SQLException {
     if (isFunction) {
       return new MariaDbFunctionStatement(
@@ -639,10 +662,17 @@ public class MariaDbConnection implements Connection {
           databaseAndProcedure,
           (arguments == null) ? "()" : arguments,
           resultSetType,
-          resultSetConcurrency);
+          resultSetConcurrency,
+          exceptionFactory);
     } else {
       return new MariaDbProcedureStatement(
-          query, this, procedureName, database, resultSetType, resultSetConcurrency);
+          query,
+          this,
+          procedureName,
+          database,
+          resultSetType,
+          resultSetConcurrency,
+          exceptionFactory);
     }
   }
 
@@ -729,7 +759,7 @@ public class MariaDbConnection implements Connection {
    */
   public void rollback(final Savepoint savepoint) throws SQLException {
     try (Statement st = createStatement()) {
-      st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
+      st.execute("ROLLBACK TO SAVEPOINT `" + savepoint.getSavepointName() + "`");
     }
   }
 
@@ -793,7 +823,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_READ_ONLY;
       protocol.setReadonly(readOnly);
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, this, null, false);
+      throw exceptionFactory.create(e);
     }
   }
 
@@ -830,7 +860,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_DATABASE;
       protocol.setCatalog(catalog);
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, this, null, false);
+      throw exceptionFactory.create(e);
     }
   }
 
@@ -882,11 +912,12 @@ public class MariaDbConnection implements Connection {
           return Connection.TRANSACTION_SERIALIZABLE;
 
         default:
-          throw ExceptionMapper.getSqlException(
-              "Could not get transaction isolation level: " + "Invalid value \"" + response + "\"");
+          throw exceptionFactory.create(
+              String.format(
+                  "Could not get transaction isolation level: Invalid value \"%s\"", response));
       }
     }
-    throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
+    throw exceptionFactory.create("Failed to retrieve transaction isolation");
   }
 
   /**
@@ -912,7 +943,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
       protocol.setTransactionIsolation(level);
     } catch (SQLException e) {
-      throw ExceptionMapper.getException(e, this, null, false);
+      throw exceptionFactory.create(e);
     }
   }
 
@@ -946,8 +977,7 @@ public class MariaDbConnection implements Connection {
         while (rs.next()) {
           int code = rs.getInt(2);
           String message = rs.getString(3);
-          SQLWarning warning =
-              new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
+          SQLWarning warning = new SQLWarning(message, null, code);
           if (first == null) {
             first = warning;
             last = warning;
@@ -971,7 +1001,7 @@ public class MariaDbConnection implements Connection {
    */
   public void clearWarnings() throws SQLException {
     if (this.isClosed()) {
-      throw ExceptionMapper.getSqlException(
+      throw exceptionFactory.create(
           "Connection.clearWarnings cannot be called on a closed connection");
     }
     warningsCleared = true;
@@ -1007,7 +1037,7 @@ public class MariaDbConnection implements Connection {
    * @see #getTypeMap
    */
   public void setTypeMap(final Map<String, Class<?>> map) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+    throw exceptionFactory.notSupported("TypeMap are not supported");
   }
 
   /**
@@ -1044,7 +1074,7 @@ public class MariaDbConnection implements Connection {
 
   /**
    * Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint
-   * </code> object that represents it.
+   *    * </code> object that represents it.
    *
    * <p>if setSavepoint is invoked outside of an active transaction, a transaction will be started
    * at this newly created savepoint.
@@ -1057,7 +1087,8 @@ public class MariaDbConnection implements Connection {
    * @since 1.4
    */
   public Savepoint setSavepoint() throws SQLException {
-    return setSavepoint("unnamed");
+    String randomName = UUID.randomUUID().toString();
+    return setSavepoint(randomName);
   }
 
   /**
@@ -1074,9 +1105,9 @@ public class MariaDbConnection implements Connection {
    * @since 1.4
    */
   public Savepoint setSavepoint(final String name) throws SQLException {
-    Savepoint savepoint = new MariaDbSavepoint(name, savepointCount++);
+    Savepoint savepoint = new MariaDbSavepoint(name);
     try (Statement st = createStatement()) {
-      st.execute("SAVEPOINT " + savepoint.toString());
+      st.execute("SAVEPOINT `" + savepoint.getSavepointName() + "`");
     }
     return savepoint;
   }
@@ -1093,7 +1124,7 @@ public class MariaDbConnection implements Connection {
    */
   public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
     try (Statement st = createStatement()) {
-      st.execute("RELEASE SAVEPOINT " + savepoint.toString());
+      st.execute("RELEASE SAVEPOINT `" + savepoint.getSavepointName() + "`");
     }
   }
 
@@ -1145,7 +1176,7 @@ public class MariaDbConnection implements Connection {
    */
   @Override
   public SQLXML createSQLXML() throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Not supported");
+    throw exceptionFactory.notSupported("SQLXML type is not supported");
   }
 
   /**
@@ -1176,7 +1207,7 @@ public class MariaDbConnection implements Connection {
     try {
       return protocol.isValid(timeout * 1000);
     } catch (SQLException e) {
-      ExceptionMapper.checkConnectionException(e, this);
+      // eat
       return false;
     }
   }
@@ -1441,7 +1472,7 @@ public class MariaDbConnection implements Connection {
    *     on a closed connection
    */
   public Array createArrayOf(final String typeName, final Object[] elements) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+    throw exceptionFactory.notSupported("Array type is not supported");
   }
 
   /**
@@ -1457,7 +1488,7 @@ public class MariaDbConnection implements Connection {
    *     on a closed connection
    */
   public Struct createStruct(final String typeName, final Object[] attributes) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Not yet supported");
+    throw exceptionFactory.notSupported("Struct type is not supported");
   }
 
   /**
@@ -1586,7 +1617,7 @@ public class MariaDbConnection implements Connection {
       securityManager.checkPermission(sqlPermission);
     }
     if (executor == null) {
-      throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
+      throw exceptionFactory.create("Cannot abort the connection: null executor passed");
     }
 
     executor.execute(protocol::abort);
@@ -1621,11 +1652,11 @@ public class MariaDbConnection implements Connection {
    */
   public void setNetworkTimeout(Executor executor, final int milliseconds) throws SQLException {
     if (this.isClosed()) {
-      throw ExceptionMapper.getSqlException(
+      throw exceptionFactory.create(
           "Connection.setNetworkTimeout cannot be called on a closed connection");
     }
     if (milliseconds < 0) {
-      throw ExceptionMapper.getSqlException(
+      throw exceptionFactory.create(
           "Connection.setNetworkTimeout cannot be called with a negative timeout");
     }
     SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
@@ -1637,7 +1668,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_NETWORK_TIMEOUT;
       protocol.setTimeout(milliseconds);
     } catch (SocketException se) {
-      throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
+      throw exceptionFactory.create("Cannot set the network timeout", se);
     }
   }
 
@@ -1707,7 +1738,7 @@ public class MariaDbConnection implements Connection {
         stateFlag = 0;
 
       } catch (SQLException sqle) {
-        throw ExceptionMapper.getSqlException("error resetting connection");
+        throw exceptionFactory.create("error resetting connection");
       }
     }
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-
-import java.io.*;
-import java.sql.*;
-
 import static org.junit.Assert.*;
+
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
+import org.junit.Test;
 
 @SuppressWarnings("ALL")
 public class DataNTypeTest extends BaseTest {

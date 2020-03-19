@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,19 +52,25 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.thread.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-
-import java.lang.reflect.*;
-import java.sql.*;
-import java.util.*;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.failover.HandleErrorResult;
+import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.MasterProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class MastersFailoverListener extends AbstractMastersListener {
 

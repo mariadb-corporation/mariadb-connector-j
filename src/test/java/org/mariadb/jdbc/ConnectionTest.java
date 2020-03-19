@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import static org.junit.Assert.*;
 
-import java.net.*;
-import java.nio.charset.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.*;
-
-import static org.junit.Assert.*;
+import java.util.concurrent.Executor;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class ConnectionTest extends BaseTest {
 
@@ -467,6 +467,24 @@ public class ConnectionTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testRst() throws Throwable {
+    Assume.assumeFalse(sharedIsAurora());
+    Properties props = new Properties();
+    props.setProperty("enablePacketDebug", "true");
+    props.setProperty("autoReconnect", "true");
+    try (Connection connection = createProxyConnection(props)) {
+      assertTrue(connection.isValid(1)); // 1 second
+      forceCloseProxy();
+      connection.createStatement().execute("SELECT 1");
+      fail("must have failed");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains("send at -exchange:"));
+    } finally {
+      closeProxy();
+    }
+  }
+
   @Test(timeout = 15_000L)
   public void testValidFailedTimeout() throws Throwable {
     Properties properties = new Properties();
@@ -846,7 +864,7 @@ public class ConnectionTest extends BaseTest {
       sharedConnection.setTypeMap(null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("TypeMap are not supported"));
     }
 
     assertTrue(sharedConnection.getTypeMap().isEmpty());
@@ -864,21 +882,21 @@ public class ConnectionTest extends BaseTest {
       sharedConnection.createSQLXML();
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not supported"));
+      assertTrue(e.getMessage().contains("SQLXML type is not supported"));
     }
 
     try {
       sharedConnection.createArrayOf("", null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("Array type is not supported"));
     }
 
     try {
       sharedConnection.createStruct("", null);
       fail();
     } catch (SQLFeatureNotSupportedException e) {
-      assertTrue(e.getMessage().contains("Not yet supported"));
+      assertTrue(e.getMessage().contains("Struct type is not supported"));
     }
     sharedConnection.setSchema("bbb");
     assertNull(sharedConnection.getSchema());

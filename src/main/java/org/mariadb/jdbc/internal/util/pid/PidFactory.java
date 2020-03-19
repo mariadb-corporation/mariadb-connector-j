@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,8 +52,8 @@
 
 package org.mariadb.jdbc.internal.util.pid;
 
-import java.lang.reflect.*;
-import java.util.function.*;
+import java.lang.reflect.Method;
+import java.util.function.Supplier;
 
 public class PidFactory {
   private static Supplier<String> instance;

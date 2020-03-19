@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
-
-import java.io.*;
+import java.io.IOException;
 import java.sql.Date;
-import java.text.*;
-import java.util.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.TimeZone;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
 public class DateParameter implements Cloneable, ParameterHolder {
 
@@ -102,7 +102,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     return sdf.format(date).getBytes();
   }
 
-  public long getApproximateTextProtocolLength() {
+  public int getApproximateTextProtocolLength() {
     return 16;
   }
 

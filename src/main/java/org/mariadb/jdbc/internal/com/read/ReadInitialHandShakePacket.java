@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,14 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.util.*;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
-import java.io.*;
-import java.nio.charset.*;
-import java.sql.*;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class ReadInitialHandShakePacket {
 
@@ -94,6 +93,7 @@ public class ReadInitialHandShakePacket {
     }
     protocolVersion = buffer.readByte();
     serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
+    // server send truncated threadId (4 byte out of 8)
     serverThreadId = buffer.readInt();
     final byte[] seed1 = buffer.readRawBytes(8);
     buffer.skipByte();
@@ -134,6 +134,7 @@ public class ReadInitialHandShakePacket {
      * check for MariaDB 10.x replication hack , remove fake prefix if needed
      *  (see comments about MARIADB_RPL_HACK_PREFIX)
      */
+
     if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
       serverMariaDb = true;
       serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());

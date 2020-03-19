@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,12 +22,14 @@
 
 package org.mariadb.jdbc.tls;
 
-import org.mariadb.jdbc.util.*;
-
-import javax.net.ssl.*;
-import java.io.*;
-import java.net.*;
-import java.sql.*;
+import java.io.IOException;
+import java.net.Socket;
+import java.sql.SQLException;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import org.mariadb.jdbc.util.Options;
 
 public interface TlsSocketPlugin {
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -22,22 +22,31 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
-import org.mariadb.jdbc.util.*;
-
-import javax.management.*;
-import javax.sql.*;
-import java.lang.management.*;
-import java.sql.*;
-import java.text.*;
-import java.util.*;
+import java.lang.management.ManagementFactory;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbPooledConnection;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import org.mariadb.jdbc.util.Options;
 
 public class Pool implements AutoCloseable, PoolMBean {
 
@@ -401,14 +410,13 @@ public class Pool implements AutoCloseable, PoolMBean {
         return pooledConnection.getConnection();
       }
 
-      throw ExceptionMapper.connException(
-          "No connection available within the specified time "
-              + "(option 'connectTimeout': "
-              + NumberFormat.getInstance().format(options.connectTimeout)
-              + " ms)");
+      throw ExceptionFactory.INSTANCE.create(
+          String.format(
+              "No connection available within the specified time (option 'connectTimeout': %s ms)",
+              NumberFormat.getInstance().format(options.connectTimeout)));
 
     } catch (InterruptedException interrupted) {
-      throw ExceptionMapper.connException("Thread was interrupted", interrupted);
+      throw ExceptionFactory.INSTANCE.create("Thread was interrupted", "70100", interrupted);
     } finally {
       pendingRequestNumber.decrementAndGet();
     }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,16 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.util.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
-import java.io.*;
-import java.util.*;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -69,8 +70,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
 
-  public StandardPacketOutputStream(OutputStream out, Options options) {
-    super(out, options.maxQuerySizeToLog);
+  public StandardPacketOutputStream(OutputStream out, Options options, long threadId) {
+    super(out, options.maxQuerySizeToLog, threadId);
   }
 
   public int getMaxPacketLength() {
@@ -114,7 +115,10 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         // trace last packets
         traceCache.put(
             new TraceObject(
-                true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
+                true,
+                NOT_COMPRESSED,
+                threadId,
+                Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
       }
 
       if (logger.isTraceEnabled()) {
@@ -149,7 +153,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
     if (traceCache != null) {
       // trace last packets
-      traceCache.put(new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
+      traceCache.put(
+          new TraceObject(true, NOT_COMPRESSED, threadId, Arrays.copyOfRange(buf, 0, 4)));
     }
 
     if (logger.isTraceEnabled()) {

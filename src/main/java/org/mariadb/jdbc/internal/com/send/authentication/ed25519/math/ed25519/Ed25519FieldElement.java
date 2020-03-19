@@ -9,10 +9,10 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.*;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
-
-import java.util.*;
+import java.util.Arrays;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
 
 /**
  * Class to represent a field element of the finite field $p = 2^{255} - 19$ elements.

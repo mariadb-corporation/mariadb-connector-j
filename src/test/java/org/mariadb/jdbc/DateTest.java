@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,13 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-
-import java.sql.Date;
-import java.sql.*;
-import java.util.*;
-
 import static org.junit.Assert.*;
+
+import java.sql.*;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class DateTest extends BaseTest {
 
@@ -606,7 +608,8 @@ public class DateTest extends BaseTest {
   /** Conj-267 : null pointer exception getting zero date. */
   @Test
   public void nullDateString() throws Throwable {
-
+    // null date isn't accepted anymore for mysql.
+    Assume.assumeFalse(!isMariadbServer() && minVersion(5, 7, 0));
     createTable("date_test5", "x date");
     Statement stmt = sharedConnection.createStatement();
     try {

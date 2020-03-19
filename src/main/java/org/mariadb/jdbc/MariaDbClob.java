@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.*;
-
 import java.io.*;
-import java.nio.charset.*;
-import java.sql.*;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.StandardCharsets;
+import java.sql.Clob;
+import java.sql.NClob;
+import java.sql.SQLException;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 
@@ -107,11 +109,11 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   public String getSubString(long pos, int length) throws SQLException {
 
     if (pos < 1) {
-      throw ExceptionMapper.getSqlException("position must be >= 1");
+      throw ExceptionFactory.INSTANCE.create("position must be >= 1");
     }
 
     if (length < 0) {
-      throw ExceptionMapper.getSqlException("length must be > 0");
+      throw ExceptionFactory.INSTANCE.create("length must be > 0");
     }
 
     try {
@@ -140,7 +142,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     String val = toString();
     if (val.length() < (int) pos - 1 + length) {
-      throw ExceptionMapper.getSqlException(
+      throw ExceptionFactory.INSTANCE.create(
           "pos + length is greater than the number of characters in the Clob");
     }
     String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);

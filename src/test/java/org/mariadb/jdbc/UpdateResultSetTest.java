@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-
-import java.io.*;
-import java.sql.*;
-
 import static org.junit.Assert.*;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.sql.*;
+import org.junit.Test;
 
 public class UpdateResultSetTest extends BaseTest {
 
@@ -289,7 +290,7 @@ public class UpdateResultSetTest extends BaseTest {
     stmt.executeQuery(
         "INSERT INTO testUpdateWithPrimary(t1,t2) values ('1-1','1-2'),('2-1','2-2')");
 
-    String utf8escapeQuote = "你好 '\' \" \\";
+    String utf8escapeQuote = "你好 '' \" \\";
 
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
@@ -351,7 +352,7 @@ public class UpdateResultSetTest extends BaseTest {
     }
     pstmt.executeBatch();
 
-    String utf8escapeQuote = "你好 '\' \" \\";
+    String utf8escapeQuote = "你好 '' \" \\";
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
             "SELECT id, t1, t2 FROM testUpdateWhenFetch",

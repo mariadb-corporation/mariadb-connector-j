@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,24 +52,33 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.thread.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-import org.mariadb.jdbc.internal.util.scheduler.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
-import java.lang.reflect.*;
-import java.net.*;
-import java.sql.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.SocketException;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.HandleErrorResult;
+import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 /** this class handle the operation when multiple hosts. */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
@@ -645,7 +654,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     // if asked to be on read only connection, switching to this new connection
     if (currentReadOnlyAsked
         || (urlParser.getOptions().failOnReadOnly && !currentReadOnlyAsked && isMasterHostFail())) {
-      if (currentProtocol == null) {
+      if (currentProtocol != null) {
         try {
           syncConnection(currentProtocol, newSecondaryProtocol);
         } catch (Exception e) {

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,17 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-
-import java.io.*;
-import java.math.*;
-import java.net.*;
-import java.sql.Date;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.net.URL;
 import java.sql.*;
-import java.util.*;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public abstract class CallableProcedureStatement extends ServerSidePreparedStatement
     implements CallableStatement, Cloneable {
@@ -83,12 +84,23 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    *     <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param exceptionFactory Exception factory
    * @throws SQLException is prepareStatement connection throw any error
    */
   public CallableProcedureStatement(
-      MariaDbConnection connection, String sql, int resultSetScrollType, int resultSetConcurrency)
+      MariaDbConnection connection,
+      String sql,
+      int resultSetScrollType,
+      int resultSetConcurrency,
+      ExceptionFactory exceptionFactory)
       throws SQLException {
-    super(connection, sql, resultSetScrollType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
+    super(
+        connection,
+        sql,
+        resultSetScrollType,
+        resultSetConcurrency,
+        Statement.NO_GENERATED_KEYS,
+        exceptionFactory);
   }
 
   /**
@@ -459,12 +471,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public RowId getRowId(int parameterIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override
   public RowId getRowId(String parameterName) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override
@@ -479,12 +491,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public SQLXML getSQLXML(int parameterIndex) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
@@ -645,12 +657,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw exceptionFactory.notSupported("SQLXML not supported");
   }
 
   @Override
   public void setRowId(String parameterName, RowId rowid) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw exceptionFactory.notSupported("RowIDs not supported");
   }
 
   @Override

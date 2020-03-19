@@ -2,7 +2,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -21,16 +21,17 @@
 
 package org.mariadb.jdbc.credential.aws;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.credential.*;
-import org.mariadb.jdbc.util.*;
+import static java.time.LocalDateTime.now;
 
-import java.sql.*;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.*;
-
-import static java.time.LocalDateTime.*;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.credential.Credential;
+import org.mariadb.jdbc.credential.CredentialPlugin;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Permit AWS database IAM authentication.

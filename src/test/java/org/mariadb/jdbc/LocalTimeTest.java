@@ -1,11 +1,12 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.sql.*;
-import java.time.*;
-
-import static org.junit.Assert.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import org.junit.Test;
 
 public class LocalTimeTest extends BaseTest {
 

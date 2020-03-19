@@ -1,8 +1,8 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.assertEquals;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class MariaXaResourceTest {
   @Test

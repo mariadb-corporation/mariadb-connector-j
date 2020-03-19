@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,14 +52,20 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.credential.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.util.*;
-
-import java.sql.*;
-import java.util.*;
-import java.util.regex.*;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mariadb.jdbc.credential.CredentialPlugin;
+import org.mariadb.jdbc.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * parse and verification of URL.
@@ -251,25 +257,14 @@ public class UrlParser implements Cloneable {
     if (additionalParameters != null) {
       //noinspection Annotator
       Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-
-      if (matcher.find()) {
-
-        urlParser.database = matcher.group(2);
-        urlParser.options =
-            DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
-        if (urlParser.database != null && urlParser.database.isEmpty()) {
-          urlParser.database = null;
-        }
-
-      } else {
-
+      matcher.find();
+      urlParser.database = matcher.group(2);
+      urlParser.options =
+          DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+      if (urlParser.database != null && urlParser.database.isEmpty()) {
         urlParser.database = null;
-        urlParser.options =
-            DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
       }
-
     } else {
-
       urlParser.database = null;
       urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
     }

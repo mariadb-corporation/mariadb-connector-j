@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -53,14 +53,21 @@
 package org.mariadb.jdbc.internal.io.socket;
 
 import com.sun.jna.*;
-import com.sun.jna.platform.win32.BaseTSD.*;
-import com.sun.jna.platform.win32.WinNT.*;
-import com.sun.jna.ptr.*;
-import com.sun.jna.win32.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import com.sun.jna.platform.win32.BaseTSD.SIZE_T;
+import com.sun.jna.platform.win32.WinNT.HANDLE;
+import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
+import com.sun.jna.win32.StdCallLibrary;
+import com.sun.jna.win32.W32APIFunctionMapper;
+import com.sun.jna.win32.W32APITypeMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SharedMemorySocket extends Socket {
 
@@ -277,7 +284,7 @@ public class SharedMemorySocket extends Socket {
 
   public interface Kernel32 extends StdCallLibrary {
 
-    Kernel32 INSTANCE = Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
+    Kernel32 INSTANCE = Native.load("Kernel32", Kernel32.class, WIN32API_OPTIONS);
     int FILE_MAP_WRITE = 0x0002;
     int FILE_MAP_READ = 0x0004;
     int EVENT_MODIFY_STATE = 0x0002;
@@ -320,7 +327,7 @@ public class SharedMemorySocket extends Socket {
 
   public interface Advapi32 extends StdCallLibrary {
 
-    Advapi32 INSTANCE = Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
+    Advapi32 INSTANCE = Native.load("advapi32", Advapi32.class, WIN32API_OPTIONS);
 
     boolean ConvertStringSecurityDescriptorToSecurityDescriptor(
         String sddl, int sddlVersion, PointerByReference psd, IntByReference length);

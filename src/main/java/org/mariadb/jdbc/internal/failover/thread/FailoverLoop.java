@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,10 +52,11 @@
 
 package org.mariadb.jdbc.internal.failover.thread;
 
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.mariadb.jdbc.internal.failover.Listener;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 public class FailoverLoop extends TerminableRunnable {
 

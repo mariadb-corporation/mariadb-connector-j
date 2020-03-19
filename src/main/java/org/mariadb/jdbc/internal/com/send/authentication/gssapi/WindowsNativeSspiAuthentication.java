@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
-import com.sun.jna.platform.win32.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import waffle.windows.auth.*;
-import waffle.windows.auth.impl.*;
-
-import java.io.*;
-import java.util.concurrent.atomic.*;
+import com.sun.jna.platform.win32.Sspi;
+import com.sun.jna.platform.win32.SspiUtil;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import waffle.windows.auth.IWindowsSecurityContext;
+import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
 public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
@@ -100,7 +100,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         sequence.set(in.getLastPacketSeq());
         byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
         Sspi.SecBufferDesc continueToken =
-            new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+            new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
         clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 

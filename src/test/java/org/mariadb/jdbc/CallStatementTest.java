@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class CallStatementTest extends BaseTest {
 
@@ -212,7 +214,7 @@ public class CallStatementTest extends BaseTest {
           e.getMessage().contains("OUT or INOUT argument 1 for routine")
               && e.getMessage()
                   .contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
-              && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
+              && e.getMessage().contains("Query is: call inOutParam(1)"));
     }
   }
 

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,15 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.*;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbSavepoint implements Savepoint {
 
-  private final int savepointId;
   private final String name;
 
-  public MariaDbSavepoint(final String name, final int savepointId) {
-    this.savepointId = savepointId;
+  public MariaDbSavepoint(final String name) {
     this.name = name;
   }
 
@@ -69,17 +69,15 @@ public class MariaDbSavepoint implements Savepoint {
    * represents.
    *
    * @return the numeric ID of this savepoint
-   * @since 1.4
    */
-  public int getSavepointId() {
-    return savepointId;
+  public int getSavepointId() throws SQLException {
+    throw ExceptionFactory.INSTANCE.notSupported("Doesn't support savepoint identifier");
   }
 
   /**
    * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
    *
    * @return the name of this savepoint
-   * @since 1.4
    */
   public String getSavepointName() {
     return name;
@@ -87,6 +85,6 @@ public class MariaDbSavepoint implements Savepoint {
 
   @Override
   public String toString() {
-    return name + savepointId;
+    return "MariaDbSavepoint{" + "name='" + name + '\'' + '}';
   }
 }

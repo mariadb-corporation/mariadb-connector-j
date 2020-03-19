@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,21 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
-import java.io.*;
-import java.util.*;
-import java.util.zip.*;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
@@ -80,10 +85,12 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private int compressPacketSeq;
   private String serverThreadLog = "";
   private LruTraceCache traceCache = null;
+  private long threadId;
 
-  public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog) {
+  public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog, long threadId) {
     inputStream = in;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.threadId = threadId;
   }
 
   @Override
@@ -133,6 +140,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
                 decompressedLength == 0
                     ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
                     : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                threadId,
                 Arrays.copyOfRange(header, 0, 7),
                 Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
       }

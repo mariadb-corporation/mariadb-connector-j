@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,28 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
-import org.junit.*;
-import org.junit.rules.*;
-import org.junit.runner.*;
-import org.mariadb.jdbc.failover.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.util.*;
-
-import java.io.*;
-import java.lang.Thread.*;
-import java.lang.reflect.*;
-import java.net.*;
-import java.sql.*;
-import java.text.*;
-import java.util.*;
-import java.util.regex.*;
-
 import static org.junit.Assert.*;
+
+import com.sun.jna.Platform;
+import java.io.IOException;
+import java.lang.Thread.State;
+import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.sql.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.*;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mariadb.jdbc.failover.TcpProxy;
+import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root
@@ -533,6 +536,10 @@ public class BaseTest {
 
   public void delayProxy(int millissecond) {
     proxy.setDelay(millissecond);
+  }
+
+  public void forceCloseProxy() {
+    proxy.forceClose();
   }
 
   public void removeDelayProxy() {

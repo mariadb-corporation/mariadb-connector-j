@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,31 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.internal.util.pool.*;
-
-import java.sql.*;
-import java.util.*;
-import java.util.logging.*;
-import java.util.regex.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraListener extends MastersSlavesListener {
 
   private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
   private final Pattern auroraDnsPattern =
       Pattern.compile(
-          "(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+          "(.+)\\.(cluster-|cluster-ro-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
           Pattern.CASE_INSENSITIVE);
   private final HostAddress clusterHostAddress;
   private String clusterDnsSuffix = null;
@@ -128,6 +134,10 @@ public class AuroraListener extends MastersSlavesListener {
       }
     }
     return null;
+  }
+
+  public String getClusterDnsSuffix() {
+    return clusterDnsSuffix;
   }
 
   public HostAddress getClusterHostAddress() {

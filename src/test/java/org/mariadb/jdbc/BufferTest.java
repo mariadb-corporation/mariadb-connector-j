@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class BufferTest extends BaseTest {
 
@@ -200,6 +201,12 @@ public class BufferTest extends BaseTest {
       sendByteBufferData(true, array20m);
       fail("must have thrown exception");
     } catch (SQLException sqlexception) {
+      if (sharedOptions().dumpQueriesOnException) {
+        assertTrue(
+            sqlexception
+                .getMessage()
+                .contains("INSERT INTO BufferTest VALUES (?), parameters ['" + array20m[0]));
+      }
       assertTrue(
           "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
           sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));

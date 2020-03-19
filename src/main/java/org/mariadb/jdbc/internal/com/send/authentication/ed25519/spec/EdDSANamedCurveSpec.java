@@ -9,8 +9,9 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * EdDSA Curve specification that can also be referred to by name.

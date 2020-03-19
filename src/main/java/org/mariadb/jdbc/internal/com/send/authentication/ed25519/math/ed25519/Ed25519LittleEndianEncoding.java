@@ -9,7 +9,8 @@
  */
 package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.*;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Encoding;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
 
 /**
  * Helper class for encoding/decoding from/to the 32 byte representation.

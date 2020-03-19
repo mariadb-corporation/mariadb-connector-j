@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,11 +52,12 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
+import static org.junit.Assert.*;
 
 import java.sql.*;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 public class ClientPreparedStatementParsingTest extends BaseTest {
 
@@ -68,14 +69,17 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       String[] partsRewrite,
       String[] partsMulti)
       throws Exception {
-
+    ExceptionFactory exceptionFactory =
+        ExceptionFactory.of(
+            (int) ((MariaDbConnection) sharedConnection).getServerThreadId(), new Options());
     ClientSidePreparedStatement statement =
         new ClientSidePreparedStatement(
             (MariaDbConnection) sharedConnection,
             sql,
             ResultSet.FETCH_FORWARD,
             ResultSet.CONCUR_READ_ONLY,
-            Statement.NO_GENERATED_KEYS);
+            Statement.NO_GENERATED_KEYS,
+            exceptionFactory);
     assertEquals(paramNumber, statement.getParameterCount());
 
     if (sharedIsRewrite()) {
@@ -388,7 +392,6 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       } catch (SQLException e) {
         assertTrue(
             e.getCause()
-                .getCause()
                 .getMessage()
                 .contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
       }

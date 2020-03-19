@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,20 +52,24 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.exceptions.*;
-
-import java.io.*;
-import java.math.*;
-import java.sql.Date;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.TimeZone;
+import org.mariadb.jdbc.BasePrepareStatement;
+import org.mariadb.jdbc.ClientSidePreparedStatement;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class UpdatableResultSet extends SelectResultSet {
 
@@ -103,7 +107,7 @@ public class UpdatableResultSet extends SelectResultSet {
    * @throws SQLException if any connection error occur
    */
   public UpdatableResultSet(
-      ColumnInformation[] columnsInformation,
+      ColumnDefinition[] columnsInformation,
       Results results,
       Protocol protocol,
       PacketInputStream reader,
@@ -129,9 +133,9 @@ public class UpdatableResultSet extends SelectResultSet {
     canBeRefresh = false;
 
     // check that resultSet concern one table and database exactly
-    for (ColumnInformation columnInformation : columnsInformation) {
+    for (ColumnDefinition columnDefinition : columnsInformation) {
 
-      if (columnInformation.getDatabase() == null || columnInformation.getDatabase().isEmpty()) {
+      if (columnDefinition.getDatabase() == null || columnDefinition.getDatabase().isEmpty()) {
 
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database information");
@@ -139,16 +143,16 @@ public class UpdatableResultSet extends SelectResultSet {
 
       } else {
 
-        if (database != null && !database.equals(columnInformation.getDatabase())) {
+        if (database != null && !database.equals(columnDefinition.getDatabase())) {
           cannotUpdateInsertRow("The result-set contains more than one database");
           return;
         }
 
-        database = columnInformation.getDatabase();
+        database = columnDefinition.getDatabase();
       }
 
-      if (columnInformation.getOriginalTable() == null
-          || columnInformation.getOriginalTable().isEmpty()) {
+      if (columnDefinition.getOriginalTable() == null
+          || columnDefinition.getOriginalTable().isEmpty()) {
 
         cannotUpdateInsertRow(
             "The result-set contains fields without without any table information");
@@ -156,12 +160,12 @@ public class UpdatableResultSet extends SelectResultSet {
 
       } else {
 
-        if (table != null && !table.equals(columnInformation.getOriginalTable())) {
+        if (table != null && !table.equals(columnDefinition.getOriginalTable())) {
           cannotUpdateInsertRow("The result-set contains fields on different tables");
           return;
         }
 
-        table = columnInformation.getOriginalTable();
+        table = columnDefinition.getOriginalTable();
       }
     }
 
@@ -185,8 +189,8 @@ public class UpdatableResultSet extends SelectResultSet {
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
-        UpdatableColumnInformation[] updatableColumns =
-            new UpdatableColumnInformation[columnInformationLength];
+        UpdatableColumnDefinition[] updatableColumns =
+            new UpdatableColumnDefinition[columnInformationLength];
 
         boolean primaryFound = false;
         while (rs.next()) {
@@ -203,11 +207,11 @@ public class UpdatableResultSet extends SelectResultSet {
 
           // update column information with SHOW COLUMNS additional informations
           for (int index = 0; index < columnInformationLength; index++) {
-            ColumnInformation columnInformation = columnsInformation[index];
-            if (fieldName.equals(columnInformation.getOriginalName())) {
+            ColumnDefinition columnDefinition = columnsInformation[index];
+            if (fieldName.equals(columnDefinition.getOriginalName())) {
               updatableColumns[index] =
-                  new UpdatableColumnInformation(
-                      columnInformation, canBeNull, hasDefault, generated, primary, autoIncrement);
+                  new UpdatableColumnDefinition(
+                      columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
               found = true;
             }
           }
@@ -272,8 +276,8 @@ public class UpdatableResultSet extends SelectResultSet {
     }
   }
 
-  private UpdatableColumnInformation[] getUpdatableColumns() {
-    return (UpdatableColumnInformation[]) columnsInformation;
+  private UpdatableColumnDefinition[] getUpdatableColumns() {
+    return (UpdatableColumnDefinition[]) columnsInformation;
   }
 
   private void cannotUpdateInsertRow(String reason) {
@@ -621,7 +625,7 @@ public class UpdatableResultSet extends SelectResultSet {
       case Types.ROWID:
       case Types.SQLXML:
       case Types.STRUCT:
-        throw ExceptionMapper.getFeatureNotSupportedException("Type not supported");
+        throw ExceptionFactory.INSTANCE.notSupported("Type not supported");
       default:
         break;
     }
@@ -630,7 +634,7 @@ public class UpdatableResultSet extends SelectResultSet {
       updateNull(parameterIndex);
     } else if (obj instanceof String) {
       if (targetSqlType == Types.BLOB) {
-        throw ExceptionMapper.getSqlException("Cannot convert a String to a Blob");
+        throw ExceptionFactory.INSTANCE.create("Cannot convert a String to a Blob");
       }
       String str = (String) obj;
       try {
@@ -699,11 +703,11 @@ public class UpdatableResultSet extends SelectResultSet {
                     options);
             break;
           default:
-            throw ExceptionMapper.getSqlException(
+            throw ExceptionFactory.INSTANCE.create(
                 "Could not convert [" + str + "] to " + targetSqlType);
         }
       } catch (IllegalArgumentException e) {
-        throw ExceptionMapper.getSqlException(
+        throw ExceptionFactory.INSTANCE.create(
             "Could not convert [" + str + "] to " + targetSqlType, e);
       }
     } else if (obj instanceof Number) {
@@ -746,7 +750,7 @@ public class UpdatableResultSet extends SelectResultSet {
           updateString(parameterIndex, bd.toString());
           break;
         default:
-          throw ExceptionMapper.getSqlException(
+          throw ExceptionFactory.INSTANCE.create(
               "Could not convert [" + bd + "] to " + targetSqlType);
       }
     } else if (obj instanceof byte[]) {
@@ -755,7 +759,7 @@ public class UpdatableResultSet extends SelectResultSet {
           || targetSqlType == Types.LONGVARBINARY) {
         updateBytes(parameterIndex, (byte[]) obj);
       } else {
-        throw ExceptionMapper.getSqlException(
+        throw ExceptionFactory.INSTANCE.create(
             "Can only convert a byte[] to BINARY, VARBINARY or LONGVARBINARY");
       }
 
@@ -808,7 +812,7 @@ public class UpdatableResultSet extends SelectResultSet {
     } else if (obj instanceof LocalTime) {
       updateTime(parameterIndex, Time.valueOf((LocalTime) obj));
     } else {
-      throw ExceptionMapper.getSqlException(
+      throw ExceptionFactory.INSTANCE.create(
           "Could not set parameter in setObject, could not convert: "
               + obj.getClass()
               + " to "
@@ -860,12 +864,12 @@ public class UpdatableResultSet extends SelectResultSet {
 
   /** {inheritDoc}. */
   public void updateRef(int columnIndex, Ref ref) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("REF not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("REF not supported");
   }
 
   /** {inheritDoc}. */
   public void updateRef(String columnLabel, Ref ref) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("REF not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("REF not supported");
   }
 
   /** {inheritDoc}. */
@@ -950,22 +954,22 @@ public class UpdatableResultSet extends SelectResultSet {
 
   /** {inheritDoc}. */
   public void updateArray(int columnIndex, Array array) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
   }
 
   /** {inheritDoc}. */
   public void updateArray(String columnLabel, Array array) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("Arrays not supported");
   }
 
   /** {inheritDoc}. */
   public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
   }
 
   /** {inheritDoc}. */
   public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("RowIDs not supported");
   }
 
   /** {inheritDoc}. */
@@ -1011,13 +1015,13 @@ public class UpdatableResultSet extends SelectResultSet {
   /** {inheritDoc}. */
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQlXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQlXML not supported");
   }
 
   /** {inheritDoc}. */
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    throw ExceptionFactory.INSTANCE.notSupported("SQLXML not supported");
   }
 
   /** {inheritDoc}. */
@@ -1054,7 +1058,7 @@ public class UpdatableResultSet extends SelectResultSet {
         StringBuilder valueClause = new StringBuilder();
 
         for (int pos = 0; pos < columnInformationLength; pos++) {
-          UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+          UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
 
           if (pos != 0) {
             insertSql.append(",");
@@ -1076,7 +1080,7 @@ public class UpdatableResultSet extends SelectResultSet {
         if (value != null) {
           insertPreparedStatement.setParameter((fieldsIndex++) + 1, value);
         } else {
-          UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+          UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
           if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
             hasGeneratedPrimaryFields = true;
             generatedSqlType = colInfo.getColumnType().getSqlType();
@@ -1129,7 +1133,7 @@ public class UpdatableResultSet extends SelectResultSet {
       boolean firstPrimary = true;
       int fieldsToUpdate = 0;
       for (int pos = 0; pos < columnInformationLength; pos++) {
-        UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+        UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
 
         ParameterHolder value = parameterHolders[pos];
         if (colInfo.isPrimary()) {
@@ -1156,7 +1160,7 @@ public class UpdatableResultSet extends SelectResultSet {
       int fieldsIndex = 0;
       int fieldsPrimaryIndex = 0;
       for (int pos = 0; pos < columnInformationLength; pos++) {
-        UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+        UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
         ParameterHolder value = parameterHolders[pos];
 
         if (value != null) {
@@ -1206,7 +1210,7 @@ public class UpdatableResultSet extends SelectResultSet {
           new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
       boolean firstPrimary = true;
       for (int pos = 0; pos < columnInformationLength; pos++) {
-        UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+        UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
 
         if (colInfo.isPrimary()) {
           if (!firstPrimary) {
@@ -1222,7 +1226,7 @@ public class UpdatableResultSet extends SelectResultSet {
     int fieldsPrimaryIndex = 1;
 
     for (int pos = 0; pos < columnInformationLength; pos++) {
-      UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+      UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
       if (colInfo.isPrimary()) {
         deletePreparedStatement.setObject(
             fieldsPrimaryIndex++, getObject(pos + 1), colInfo.getColumnType().getSqlType());
@@ -1243,7 +1247,7 @@ public class UpdatableResultSet extends SelectResultSet {
 
       boolean firstPrimary = true;
       for (int pos = 0; pos < columnInformationLength; pos++) {
-        UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+        UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
         if (pos != 0) {
           selectSql.append(",");
         }
@@ -1279,7 +1283,7 @@ public class UpdatableResultSet extends SelectResultSet {
     prepareRefreshStmt();
     int fieldsPrimaryIndex = 1;
     for (int pos = 0; pos < columnInformationLength; pos++) {
-      UpdatableColumnInformation colInfo = getUpdatableColumns()[pos];
+      UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
       if (colInfo.isPrimary()) {
         ParameterHolder value = parameterHolders[pos];
 

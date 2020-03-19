@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,13 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.com.read.resultset.*;
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-
-import java.sql.*;
-import java.util.*;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 
 public class MariaDbProcedureStatement extends CallableProcedureStatement
     implements CloneableCallableStatement {
@@ -76,6 +77,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
    *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @param exceptionFactory Exception Factory
    * @throws SQLException exception
    */
   public MariaDbProcedureStatement(
@@ -84,9 +86,10 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
       String procedureName,
       String database,
       int resultSetType,
-      int resultSetConcurrency)
+      int resultSetConcurrency,
+      ExceptionFactory exceptionFactory)
       throws SQLException {
-    super(connection, query, resultSetType, resultSetConcurrency);
+    super(connection, query, resultSetType, resultSetConcurrency, exceptionFactory);
     this.parameterMetadata =
         new CallableParameterMetaData(connection, database, procedureName, false);
     setParamsAccordingToSetArguments();

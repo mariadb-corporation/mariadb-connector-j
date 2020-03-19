@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,19 @@
 
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.protocol.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.dao.*;
-import org.mariadb.jdbc.util.*;
-
-import java.lang.reflect.*;
-import java.nio.charset.*;
-import java.text.*;
-import java.util.*;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.List;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.util.Options;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 
@@ -71,7 +74,6 @@ public class ProtocolLoggingProxy implements InvocationHandler {
   private final Long slowQueryThresholdNanos;
   private final int maxQuerySizeToLog;
   private final Protocol protocol;
-  private final LogQueryTool logQuery;
 
   /**
    * Constructor. Will create a proxy around protocol to log queries.
@@ -84,7 +86,6 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     this.profileSql = options.profileSql;
     this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
-    this.logQuery = new LogQueryTool(options);
     this.numberFormat = DecimalFormat.getInstance();
   }
 
@@ -111,7 +112,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 protocol.getServerThreadId(),
                 protocol.isMasterConnection() ? "M" : "S",
                 numberFormat.format(((double) System.nanoTime() - startTime) / 1000000),
-                logQuery.subQuery(sql));
+                subQuery(sql));
           }
           return returnObj;
 
@@ -197,6 +198,19 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         // no default
     }
     return "-unknown-";
+  }
+
+  /**
+   * Get query, truncated if to big.
+   *
+   * @param sql current query
+   * @return possibly truncated query if too big
+   */
+  public String subQuery(String sql) {
+    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog - 3) {
+      return sql.substring(0, maxQuerySizeToLog - 3) + "...";
+    }
+    return sql;
   }
 
   private String getQueryFromPrepareParameters(

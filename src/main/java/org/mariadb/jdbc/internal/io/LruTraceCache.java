@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,12 +52,14 @@
 
 package org.mariadb.jdbc.internal.io;
 
-import org.mariadb.jdbc.internal.util.*;
-
-import java.time.*;
-import java.time.format.*;
-import java.util.*;
-import java.util.concurrent.atomic.*;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.ConcurrentModificationException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
@@ -91,38 +93,42 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
    */
   public synchronized String printStack() {
     StringBuilder sb = new StringBuilder();
-    Set<Map.Entry<String, TraceObject>> set = entrySet();
-    for (Map.Entry<String, TraceObject> entry : set) {
-      TraceObject traceObj = entry.getValue();
-      String key = entry.getKey();
-      String indicator = "";
+    boolean finished = false;
+    while (!finished) {
+      try {
+        Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
+        for (Map.Entry<String, TraceObject> entry : arr) {
+          TraceObject traceObj = entry.getValue();
+          if (traceObj.getBuf() != null) {
+            String key = entry.getKey();
+            String indicator = "";
 
-      switch (traceObj.getIndicatorFlag()) {
-        case TraceObject.NOT_COMPRESSED:
-          break;
+            switch (traceObj.getIndicatorFlag()) {
+              case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+                indicator = " (compressed protocol - packet not compressed)";
+                break;
+              case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+                indicator = " (compressed protocol - packet compressed)";
+                break;
+              default:
+                break;
+            }
+            sb.append("\nthread:").append(traceObj.getThreadId());
+            if (traceObj.isSend()) {
+              sb.append(" send at -exchange:");
+            } else {
+              sb.append(" read at -exchange:");
+            }
 
-        case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
-          indicator = " (compressed protocol - packet not compressed)";
-          break;
-
-        case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
-          indicator = " (compressed protocol - packet compressed)";
-          break;
-
-        default:
-          break;
+            sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
+          }
+        }
+        finished = true;
+      } catch (ConcurrentModificationException cc) {
+        // eat
       }
-
-      if (traceObj.isSend()) {
-        sb.append("\nsend at -exchange:");
-      } else {
-        sb.append("\nread at -exchange:");
-      }
-
-      sb.append(key).append(indicator).append(Utils.hexdump(traceObj.getBuf()));
-
-      traceObj.remove();
     }
+
     this.clear();
     return sb.toString();
   }

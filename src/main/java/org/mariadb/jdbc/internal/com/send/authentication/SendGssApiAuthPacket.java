@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,18 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import org.mariadb.jdbc.authentication.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.com.send.authentication.gssapi.*;
-import org.mariadb.jdbc.internal.io.input.*;
-import org.mariadb.jdbc.internal.io.output.*;
-import org.mariadb.jdbc.util.*;
-
-import java.io.*;
-import java.nio.charset.*;
-import java.sql.*;
-import java.util.concurrent.atomic.*;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssUtility;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssapiAuth;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.StandardGssapiAuthentication;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.util.Options;
 
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 

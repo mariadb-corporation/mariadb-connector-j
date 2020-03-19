@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,22 +52,34 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.protocol.*;
-
-import java.lang.reflect.*;
-import java.sql.*;
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class AttributeTest extends BaseTest {
 
   @Test
   public void testServerHost() throws Exception {
     // test for _server_host attribute
-    Assume.assumeTrue(
-        (isMariadbServer() && minVersion(10, 0))
-            || minVersion(
-                5,
-                6)); // session_connect_attrs does not exist in MySQL 5.5, or before MariaDB 10.0.5
+    // session_connect_attrs does not exist in MySQL 5.5, or before MariaDB 10.0.5, and need
+    // performance_schema is ON
+
+    // check whether session_connect_attrs table exists
+    Statement checkStatement = sharedConnection.createStatement();
+    ResultSet checkResult =
+        checkStatement.executeQuery(
+            "select count(*) as count from information_schema.tables where table_schema='performance_schema' and table_name='session_connect_attrs';");
+    checkResult.next();
+    Assume.assumeFalse(checkResult.getInt("count") == 0);
+
+    // check if performance_schema is ON
+    checkResult = checkStatement.executeQuery("show variables like 'performance_schema';");
+    checkResult.next();
+    Assume.assumeFalse(checkResult.getString("Value").equals("OFF"));
 
     try (Connection connection = setConnection("")) {
       Field protocolField = MariaDbConnection.class.getDeclaredField("protocol");

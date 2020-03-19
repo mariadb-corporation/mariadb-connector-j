@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,16 +52,19 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-
-import java.io.*;
-import java.sql.Date;
-import java.sql.*;
-import java.text.*;
-import java.time.*;
-import java.util.*;
-
 import static org.junit.Assert.*;
+
+import java.io.InputStream;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.time.*;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.Scanner;
+import java.util.TimeZone;
+import org.junit.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("deprecation")
 public class TimezoneDaylightSavingTimeTest extends BaseTest {
@@ -540,13 +543,16 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
               ResultSet.CONCUR_READ_ONLY);
     } else {
       MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
+      ExceptionFactory exceptionFactory =
+          ExceptionFactory.of((int) mariaDbConnection.getServerThreadId(), new Options());
       pst =
           new ClientSidePreparedStatement(
               mariaDbConnection,
               "SELECT * from daylight where 1 = ?",
               ResultSet.TYPE_SCROLL_INSENSITIVE,
               ResultSet.CONCUR_READ_ONLY,
-              Statement.NO_GENERATED_KEYS);
+              Statement.NO_GENERATED_KEYS,
+              exceptionFactory);
     }
     pst.setInt(1, 1);
     rs = pst.executeQuery();

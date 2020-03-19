@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,18 +52,24 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.*;
-import org.mariadb.jdbc.internal.protocol.*;
+import static org.junit.Assert.*;
 
 import java.io.*;
-import java.math.*;
-import java.nio.charset.*;
-import java.sql.Date;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-
-import static org.junit.Assert.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareStatementTest extends BaseTest {
 
@@ -668,7 +674,7 @@ public class ServerPrepareStatementTest extends BaseTest {
               "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
       Reader reader =
           new BufferedReader(
-              new InputStreamReader(ClassLoader.getSystemResourceAsStream("style.xml")));
+              new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback-test.xml")));
 
       ps.setCharacterStream(1, reader);
       ps.addBatch();

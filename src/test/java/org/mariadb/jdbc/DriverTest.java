@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,19 +52,23 @@
 
 package org.mariadb.jdbc;
 
-import com.sun.jna.*;
-import org.junit.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.constant.*;
-import org.mariadb.jdbc.util.*;
-
-import java.math.*;
-import java.sql.Date;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
-
 import static org.junit.Assert.*;
+
+import com.sun.jna.Platform;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.sql.Date;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.DeRegister;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class DriverTest extends BaseTest {
 
@@ -1211,7 +1215,7 @@ public class DriverTest extends BaseTest {
       Statement st = connection.createStatement();
       st.execute(syntacticallyWrongQuery);
     } catch (SQLException sqle) {
-      assertTrue(sqle.getCause().getMessage().contains("Query is: " + syntacticallyWrongQuery));
+      assertTrue(sqle.getMessage().contains("Query is: " + syntacticallyWrongQuery));
     }
   }
 
@@ -1224,8 +1228,7 @@ public class DriverTest extends BaseTest {
         Statement st = connection.createStatement();
         st.execute(selectFromNonExistingTable);
       } catch (SQLException sqle) {
-        assertTrue(
-            sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
+        assertTrue(sqle.getMessage().contains("Query is: " + selectFromNonExistingTable));
       }
     }
   }

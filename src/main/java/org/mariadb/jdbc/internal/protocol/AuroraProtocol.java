@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,25 +52,30 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.failover.*;
-import org.mariadb.jdbc.internal.failover.impl.*;
-import org.mariadb.jdbc.internal.failover.tools.*;
-import org.mariadb.jdbc.internal.util.pool.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
-import java.net.*;
-import java.sql.*;
+import java.net.SocketException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.locks.*;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 
   public AuroraProtocol(
-      final UrlParser url, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
-    super(url, globalInfo, lock);
+      final UrlParser url,
+      final GlobalStateInfo globalInfo,
+      final ReentrantLock lock,
+      LruTraceCache traceCache) {
+    super(url, globalInfo, lock, traceCache);
   }
 
   /**
@@ -335,7 +340,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
    */
   public static AuroraProtocol getNewProtocol(
       FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
-    AuroraProtocol newProtocol = new AuroraProtocol(urlParser, globalInfo, proxy.lock);
+    AuroraProtocol newProtocol =
+        new AuroraProtocol(urlParser, globalInfo, proxy.lock, proxy.traceCache);
     newProtocol.setProxy(proxy);
     return newProtocol;
   }

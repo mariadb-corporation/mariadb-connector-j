@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -52,17 +52,21 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
-import org.mariadb.jdbc.internal.*;
-import org.mariadb.jdbc.internal.com.read.*;
-import org.mariadb.jdbc.internal.io.*;
-import org.mariadb.jdbc.internal.logging.*;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.util.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
-import java.io.*;
-import java.util.*;
-
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
 public class StandardPacketInputStream implements PacketInputStream {
 
@@ -77,7 +81,7 @@ public class StandardPacketInputStream implements PacketInputStream {
   private int packetSeq;
   private int lastPacketLength;
   private String serverThreadLog = "";
-
+  private long threadId;
   private LruTraceCache traceCache = null;
 
   /**
@@ -85,13 +89,15 @@ public class StandardPacketInputStream implements PacketInputStream {
    *
    * @param in stream
    * @param options connection options
+   * @param threadId thread id
    */
-  public StandardPacketInputStream(InputStream in, Options options) {
+  public StandardPacketInputStream(InputStream in, Options options, long threadId) {
     inputStream =
         options.useReadAheadInput
             ? new ReadAheadBufferedStream(in)
             : new BufferedInputStream(in, 16384);
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
+    this.threadId = threadId;
   }
 
   /**
@@ -284,6 +290,7 @@ public class StandardPacketInputStream implements PacketInputStream {
           new TraceObject(
               false,
               NOT_COMPRESSED,
+              threadId,
               Arrays.copyOfRange(header, 0, 4),
               Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
     }
@@ -343,6 +350,7 @@ public class StandardPacketInputStream implements PacketInputStream {
               new TraceObject(
                   false,
                   NOT_COMPRESSED,
+                  threadId,
                   Arrays.copyOfRange(header, 0, 4),
                   Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
