@@ -52,16 +52,15 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
-import org.mariadb.jdbc.util.Options;
+import static org.junit.Assert.*;
 
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Properties;
-
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("ConstantConditions")
 public class JdbcParserTest {
@@ -161,19 +160,36 @@ public class JdbcParserTest {
 
   @Test
   public void testUrl() throws SQLException {
-    UrlParser parser = new UrlParser("DB", Arrays.asList(new HostAddress("local", 3306)), new Options(), HaMode.REPLICATION);
-    assertEquals("jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB", parser.getInitialUrl());
-    assertEquals("jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB", parser.toString());
+    UrlParser parser =
+        new UrlParser(
+            "DB", Arrays.asList(new HostAddress("local", 3306)), new Options(), HaMode.REPLICATION);
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB",
+        parser.getInitialUrl());
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB",
+        parser.toString());
     assertEquals(parser, parser);
     assertNotEquals(this, parser);
-    assertEquals(UrlParser.parse("jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB"), parser);
+    assertEquals(
+        UrlParser.parse(
+            "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=master)/DB"),
+        parser);
 
-    parser = new UrlParser("DB", Arrays.asList(new HostAddress("host1", 3306), new HostAddress("host2", 3307, ParameterConstant.TYPE_SLAVE)), new Options(), HaMode.REPLICATION);
-    assertEquals("jdbc:mariadb:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=slave)/DB", parser.getInitialUrl());
+    parser =
+        new UrlParser(
+            "DB",
+            Arrays.asList(
+                new HostAddress("host1", 3306),
+                new HostAddress("host2", 3307, ParameterConstant.TYPE_SLAVE)),
+            new Options(),
+            HaMode.REPLICATION);
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=slave)/DB",
+        parser.getInitialUrl());
     parser.setDatabase("DB2");
     assertEquals("DB2", parser.getDatabase());
   }
-
 
   @Test
   public void testAuroraUsePipelineAuth() throws Throwable {

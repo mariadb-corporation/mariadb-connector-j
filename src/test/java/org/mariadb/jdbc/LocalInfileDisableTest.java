@@ -58,7 +58,6 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -86,8 +85,10 @@ public class LocalInfileDisableTest extends BaseTest {
 
       assertNotNull("Expected an exception to be thrown", ex);
       String message = ex.getMessage();
-      assertTrue(message.contains("Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true") ||
-              message.contains("Loading local data is disabled"));
+      assertTrue(
+          message.contains(
+                  "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true")
+              || message.contains("Loading local data is disabled"));
     }
   }
 }

@@ -1543,5 +1543,4 @@ public class MariaDbStatement implements Statement, Cloneable {
           .create("Cannot do an operation on a closed statement");
     }
   }
-
 }

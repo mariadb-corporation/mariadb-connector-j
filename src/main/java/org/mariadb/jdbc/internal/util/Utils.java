@@ -689,8 +689,7 @@ public class Utils {
   }
 
   /**
-   * Hexdump.
-   * Multiple byte arrays will be combined
+   * Hexdump. Multiple byte arrays will be combined
    *
    * <p>String output example :
    *

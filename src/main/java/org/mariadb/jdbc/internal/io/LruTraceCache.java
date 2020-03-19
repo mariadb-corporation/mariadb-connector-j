@@ -125,7 +125,7 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
         }
         finished = true;
       } catch (ConcurrentModificationException cc) {
-       // eat
+        // eat
       }
     }
 
