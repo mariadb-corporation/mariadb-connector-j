@@ -1,5 +1,19 @@
 # Change Log
 
+## [2.6.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.0) (19 Mar. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.4...2.6.0)
+
+* CONJ-768 - Check Galera allowed state when connecting when option `galeraAllowedState` is set, and not only on validation
+* CONJ-759 - on failover, catalog changed might not be set when automatically recreating a connection. 
+* CONJ-761 - remove unnecessary dependencies for fedora tar creation
+* CONJ-763 - Custom SocketFactory now can change options
+* CONJ-764 - DatabaseMetaData.getExportedKeys should return "PRIMARY" for PK_NAME column
+* CONJ-765 - Allow MariaDbDatabaseMetaData#getExportedKeys to return the exported keys for all tables
+* CONJ-766 - Adding a socket timeout until complete authentication, to avoid hangs is server doesn't support pipelining
+* CONJ-767 - permit using Aurora RO endpoint
+* CONJ-771 - enablePacketDebug must not reset stack on failover
+* CONJ-772 - JDBC Conversion Function support parsing correction 
+
 ## [2.5.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.4) (27 Jan. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.3...2.5.4)
 
