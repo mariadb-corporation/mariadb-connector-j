@@ -76,6 +76,16 @@ public class ParserTest extends BaseTest {
   }
 
   @Test
+  public void malformedUrlException() throws SQLException {
+    try {
+      DriverManager.getConnection("jdbc:mariadb:///" + hostname);
+      fail("must have thrown exception");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("No host is defined and pipe option is not set"));
+    }
+  }
+
+  @Test
   public void poolVerification() throws Exception {
     ArrayList<HostAddress> hostAddresses = new ArrayList<>();
     hostAddresses.add(new HostAddress(hostname, port));
