@@ -135,9 +135,13 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
   /** Permit to clear array's of array, to help garbage. */
   public synchronized void clearMemory() {
-    Collection<TraceObject> traceObjects = values();
-    for (TraceObject traceObject : traceObjects) {
-      traceObject.remove();
+    try {
+      Collection<TraceObject> traceObjects = values();
+      for (TraceObject traceObject : traceObjects) {
+        traceObject.remove();
+      }
+    } catch (ConcurrentModificationException c) {
+      // eat
     }
     this.clear();
   }
