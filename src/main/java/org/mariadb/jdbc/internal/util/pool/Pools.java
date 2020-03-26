@@ -70,7 +70,10 @@ public class Pools {
       synchronized (poolMap) {
         if (poolMap.containsKey(pool.getUrlParser())) {
           poolMap.remove(pool.getUrlParser());
-          shutdownExecutor();
+
+          if (poolMap.isEmpty()) {
+            shutdownExecutor();
+          }
         }
       }
     }
@@ -104,17 +107,12 @@ public class Pools {
       for (Pool pool : poolMap.values()) {
         if (poolName.equals(pool.getUrlParser().getOptions().poolName)) {
           try {
-            pool.close();
+            pool.close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
           } catch (InterruptedException exception) {
             // eat
           }
-          poolMap.remove(pool.getUrlParser());
           return;
         }
-      }
-
-      if (poolMap.isEmpty()) {
-        shutdownExecutor();
       }
     }
   }
