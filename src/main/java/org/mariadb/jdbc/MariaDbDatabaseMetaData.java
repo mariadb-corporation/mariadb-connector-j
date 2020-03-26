@@ -656,7 +656,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     StringBuilder sql =
         new StringBuilder(
             "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                + " IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
                 + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                 + " NULL REF_GENERATION"
                 + " FROM INFORMATION_SCHEMA.TABLES "
@@ -670,7 +670,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         if (types[i] == null) {
           continue;
         }
-        String type = "TABLE".equals(types[i]) ? "'BASE TABLE'" : escapeQuote(types[i]);
+        String type =
+            "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(types[i]);
         if (i == types.length - 1) {
           sql.append(type).append(")");
         } else {
