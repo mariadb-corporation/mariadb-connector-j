@@ -1582,7 +1582,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public boolean supportsMultipleResultSets() {
-    return false;
+    return true;
   }
 
   public boolean supportsMultipleTransactions() {
