@@ -45,10 +45,12 @@ public class CredentialPluginTest extends BaseTest {
     if (useOldNotation) {
       stmt.execute("CREATE USER 'identityUser'@'%'");
       stmt.execute(
-          "GRANT ALL PRIVILEGES ON *.* TO 'identityUser'@'%' IDENTIFIED BY 'identityUserPwd'");
+          "GRANT SELECT ON "
+              + database
+              + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY 'identityUserPwd'");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'identityUser'@'%'");
+      stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%'");
     }
   }
 
@@ -66,7 +68,7 @@ public class CredentialPluginTest extends BaseTest {
   @Test
   public void propertiesIdentityTest() throws SQLException {
     System.setProperty("mariadb.user", "identityUser");
-    System.setProperty("mariadb.pwd", "identityUserPwd");
+    System.setProperty("mariadb.pwd", "!Passw0rd3Works");
 
     try (Connection conn =
         DriverManager.getConnection(
@@ -76,7 +78,11 @@ public class CredentialPluginTest extends BaseTest {
                 + port
                 + "/"
                 + ((database == null) ? "" : database)
-                + "?credentialType=PROPERTY")) {
+                + "?credentialType=PROPERTY"
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null)
+                    ? "&serverSslCert=" + options.serverSslCert
+                    : ""))) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -88,7 +94,7 @@ public class CredentialPluginTest extends BaseTest {
   @Test
   public void specificPropertiesIdentityTest() throws SQLException {
     System.setProperty("myUserKey", "identityUser");
-    System.setProperty("myPwdKey", "identityUserPwd");
+    System.setProperty("myPwdKey", "!Passw0rd3Works");
 
     try (Connection conn =
         DriverManager.getConnection(

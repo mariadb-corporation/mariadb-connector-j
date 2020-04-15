@@ -39,11 +39,14 @@ public class DataSourcePoolTest extends BaseTest {
   /** Initialisation. */
   @BeforeClass
   public static void beforeClassDataSourceTest() {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     connectToIP = System.getProperty("testConnectToIP", defConnectToIP);
   }
 
   @Test
   public void testDataSource() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
@@ -54,6 +57,7 @@ public class DataSourcePoolTest extends BaseTest {
 
   @Test
   public void testDataSource2() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
@@ -64,6 +68,7 @@ public class DataSourcePoolTest extends BaseTest {
 
   @Test
   public void testDataSourceEmpty() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource()) {
       ds.setDatabaseName(database);
       ds.setPort(port);
@@ -108,7 +113,7 @@ public class DataSourcePoolTest extends BaseTest {
    */
   @Test
   public void setDatabaseNameTest() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {
@@ -156,6 +161,8 @@ public class DataSourcePoolTest extends BaseTest {
   @Test(timeout = 20000) // unless port 3307 can be used
   public void setPortTest() throws SQLException {
     Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection2 = ds.getConnection(username, password)) {

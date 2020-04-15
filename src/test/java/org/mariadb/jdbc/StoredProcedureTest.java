@@ -417,7 +417,9 @@ public class StoredProcedureTest extends BaseTest {
     }
     statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
     statement.execute(
-        "GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+        "GRANT SELECT, EXECUTE  ON "
+            + database
+            + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
     properties.put("password", "testJ@dc1");

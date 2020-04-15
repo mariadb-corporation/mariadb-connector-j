@@ -53,19 +53,19 @@
 package org.mariadb.jdbc.failover;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
-import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -124,7 +124,27 @@ public class BaseMultiHostTest {
       };
 
   protected String defaultUrl;
+  protected static String mDefUrl;
 
+  static {
+    try (InputStream inputStream =
+        BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
+      Properties prop = new Properties();
+      prop.load(inputStream);
+      mDefUrl =
+          String.format(
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&disableSslHostnameVerification&%s",
+              prop.getProperty("DB_HOST"),
+              prop.getProperty("DB_PORT"),
+              prop.getProperty("DB_DATABASE"),
+              prop.getProperty("DB_USER"),
+              prop.getProperty("DB_PASSWORD"),
+              prop.getProperty("DB_OTHER"));
+
+    } catch (IOException io) {
+      io.printStackTrace();
+    }
+  }
   /**
    * Initialize parameters.
    *
@@ -142,7 +162,7 @@ public class BaseMultiHostTest {
     jobId = System.getProperty("jobId", "_0");
 
     if (initialUrl == null && !"true".equals(System.getenv("AURORA"))) {
-      String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
+      String url = System.getProperty("dbUrl", mDefUrl);
       initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
     }
     if (initialUrl != null) {
@@ -210,15 +230,22 @@ public class BaseMultiHostTest {
       }
     }
     proxySet.put(proxyType, tcpProxies);
+
+    String[] splitValue = tmpUrl.split("/");
+    String[] subarray = Arrays.asList(splitValue)
+            .subList(3, splitValue.length)
+            .toArray(new String[0]);
+    String dbAndParameters =  String.join("/", subarray);
+
     if (tmpUrlParser.getHaMode().equals(HaMode.NONE)) {
-      return "jdbc:mariadb://" + sockethosts.substring(1) + "/" + tmpUrl.split("/")[3];
+      return "jdbc:mariadb://" + sockethosts.substring(1) + "/" + dbAndParameters;
     } else {
       return "jdbc:mariadb:"
           + tmpUrlParser.getHaMode().toString().toLowerCase()
           + "://"
           + sockethosts.substring(1)
           + "/"
-          + tmpUrl.split("/")[3];
+          + dbAndParameters;
     }
   }
 

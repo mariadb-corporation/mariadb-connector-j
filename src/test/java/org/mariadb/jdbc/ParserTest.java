@@ -57,6 +57,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -126,6 +127,7 @@ public class ParserTest extends BaseTest {
 
   @Test
   public void mysqlDatasourceVerification() throws Exception {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource datasource = new MariaDbDataSource();
     datasource.setUser(username);
     datasource.setPassword(password);

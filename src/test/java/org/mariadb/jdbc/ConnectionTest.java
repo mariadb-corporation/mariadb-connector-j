@@ -582,7 +582,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -604,7 +604,7 @@ public class ConnectionTest extends BaseTest {
     } catch (SQLException sqle) {
       // already existing
     }
-    stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin");
+    stmt.execute("GRANT SELECT on " + database + ".* to verificationEd25519AuthPlugin");
 
     String url =
         "jdbc:mariadb://"
@@ -677,6 +677,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void slaveDownConnection() throws SQLException {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     String url =
         "jdbc:mariadb:replication://"
             + hostname
@@ -689,6 +690,8 @@ public class ConnectionTest extends BaseTest {
             + "?user="
             + username
             + ((password != null) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
             + "&retriesAllDown=10&allowMasterDownConnection&connectTimeout=100&socketTimeout=100";
     try (Connection connection = DriverManager.getConnection(url)) {
       Assert.assertFalse(connection.isReadOnly());
@@ -705,7 +708,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void multiAuthPlugin() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
@@ -725,7 +728,7 @@ public class ConnectionTest extends BaseTest {
       // already existing
       sqle.printStackTrace();
     }
-    stmt.execute("GRANT ALL on " + database + ".* to mysqltest1@'%'");
+    stmt.execute("GRANT SELECT on " + database + ".* to mysqltest1@'%'");
 
     try (Connection connection =
         openNewConnection(
@@ -763,7 +766,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void connectionUnexpectedClose() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:failover//"
@@ -775,6 +778,8 @@ public class ConnectionTest extends BaseTest {
                 + "?user="
                 + username
                 + ((password != null) ? "&password=" + password : "")
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
                 + "&socketTimeout=1000&useServerPrepStmts=true")) {
       Statement stmt = connection.createStatement();
       try {
@@ -816,7 +821,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setReadonlyError() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:replication://"
@@ -831,6 +836,8 @@ public class ConnectionTest extends BaseTest {
                 + database
                 + "?user="
                 + username
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
                 + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
@@ -910,7 +917,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setClientNotConnectError() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     // only mariadb return a specific error when connection has explicitly been killed
     Assume.assumeTrue(isMariadbServer());
 
@@ -928,7 +935,11 @@ public class ConnectionTest extends BaseTest {
                 + database
                 + "?log&user="
                 + username
-                + ((password != null) ? "&password=" + password : ""))) {
+                + ((password != null) ? "&password=" + password : "")
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null)
+                    ? "&serverSslCert=" + options.serverSslCert
+                    : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
       connection.setReadOnly(false);

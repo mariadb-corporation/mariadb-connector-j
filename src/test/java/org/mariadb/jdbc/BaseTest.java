@@ -55,7 +55,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import com.sun.jna.Platform;
-import java.io.IOException;
+import java.io.*;
 import java.lang.Thread.State;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -64,8 +64,6 @@ import java.sql.*;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -82,8 +80,28 @@ import org.mariadb.jdbc.util.Options;
 @Ignore
 @SuppressWarnings("Annotator")
 public class BaseTest {
+  protected static String mDefUrl;
 
-  protected static final String mDefUrl = "jdbc:mariadb://localhost:3306/testj?user=root";
+  static {
+    try (InputStream inputStream =
+        BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
+      Properties prop = new Properties();
+      prop.load(inputStream);
+      mDefUrl =
+          String.format(
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+              prop.getProperty("DB_HOST"),
+              prop.getProperty("DB_PORT"),
+              prop.getProperty("DB_DATABASE"),
+              prop.getProperty("DB_USER"),
+              prop.getProperty("DB_PASSWORD"),
+              prop.getProperty("DB_OTHER"));
+
+    } catch (IOException io) {
+      io.printStackTrace();
+    }
+  }
+
   private static final Set<String> tempTableList = new HashSet<>();
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
@@ -97,6 +115,7 @@ public class BaseTest {
   protected static String database;
   protected static String username;
   protected static String password;
+  protected static Options options;
   protected static String parameters;
   protected static boolean testSingleHost;
   protected static Connection sharedConnection;
@@ -192,7 +211,7 @@ public class BaseTest {
     testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
     if (testSingleHost) {
-      urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
+      urlParser = UrlParser.parse(url); // + "&pool=true&maxPoolSize=2&minPoolSize=1");
       if (urlParser.getHostAddresses().size() > 0) {
         hostname = urlParser.getHostAddresses().get(0).host;
         port = urlParser.getHostAddresses().get(0).port;
@@ -203,6 +222,7 @@ public class BaseTest {
       database = urlParser.getDatabase();
       username = urlParser.getUsername();
       password = urlParser.getPassword();
+      options = urlParser.getOptions();
       int separator = url.indexOf("//");
       String urlSecondPart = url.substring(separator + 2);
       int dbIndex = urlSecondPart.indexOf("/");
@@ -218,13 +238,9 @@ public class BaseTest {
         additionalParameters = null;
       }
       if (additionalParameters != null) {
-        String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(additionalParameters);
-        if (matcher.find()) {
-          String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
-          String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
-          parameters = (options1.isEmpty()) ? options2 : options1;
+        parameters = "";
+        if (additionalParameters.indexOf("?") >= 0) {
+          parameters = additionalParameters.substring(additionalParameters.indexOf("?") + 1);
         }
       } else {
         parameters = null;
@@ -254,11 +270,7 @@ public class BaseTest {
             + port
             + "/"
             + ((database == null) ? "" : database);
-    connUri =
-        connU
-            + "?"
-            + parameters
-            + (password != null && !"".equals(password) ? "&password=" + password : "");
+    connUri = connU + "?" + parameters;
     connDnsUri =
         "jdbc:mariadb://mariadb.example.com:"
             + port
@@ -516,8 +528,22 @@ public class BaseTest {
     } catch (IOException e) {
       e.printStackTrace();
     }
+    String[] splitValue = connUri.split("/");
+    String[] subarray = Arrays.asList(splitValue)
+            .subList(3, splitValue.length)
+            .toArray(new String[0]);
+    String dbAndParameters =  String.join("/", subarray);
 
-    return openConnection("jdbc:mariadb://" + sockethosts + "/" + connUri.split("/")[3], info);
+    return openConnection(
+        "jdbc:mariadb://"
+            + sockethosts
+            + "/"
+            + dbAndParameters
+            + ((options.useSsl != null)
+                ? "&useSsl" + options.useSsl + "&disableSslHostnameVerification"
+                : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : ""),
+        info);
   }
 
   /**
@@ -619,6 +645,8 @@ public class BaseTest {
             + "?user="
             + username
             + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
             + parameters,
         null);
   }

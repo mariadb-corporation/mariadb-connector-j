@@ -69,7 +69,7 @@ public class CancelTest extends BaseTest {
   @Before
   public void cancelSupported() throws SQLException {
     requireMinimumVersion(5, 0);
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
   }
 
   @Test

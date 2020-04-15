@@ -598,8 +598,7 @@ public class DriverTest extends BaseTest {
   @SuppressWarnings("deprecation")
   @Test
   public void metadataUrl() throws SQLException {
-    String testUrl =
-        System.getProperty("dbUrl", mDefUrl) + "&pool=true&maxPoolSize=2&minPoolSize=1";
+    String testUrl = System.getProperty("dbUrl", mDefUrl); //+ "&pool=true&maxPoolSize=2&minPoolSize=1";
     // ensure that metadata URL correspond to initial URL
     assertEquals(sharedConnection.getMetaData().getURL(), testUrl);
 
@@ -616,6 +615,8 @@ public class DriverTest extends BaseTest {
         "user="
             + username
             + ((password != null) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
             + "&useServerPrepStmts=true");
     try (Connection conn = datasource2.getConnection()) {
       assertEquals(
@@ -628,6 +629,8 @@ public class DriverTest extends BaseTest {
               + "?user="
               + username
               + ((password != null) ? "&password=" + password : "")
+              + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+              + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
               + "&useServerPrepStmts=true",
           conn.getMetaData().getURL());
     }
@@ -708,8 +711,16 @@ public class DriverTest extends BaseTest {
   public void connectFailover() throws SQLException {
     Assume.assumeTrue(hostname != null);
     String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
-    String url = "jdbc:mariadb://" + hosts + "/" + database + "?user=" + username;
-    url += (password != null && !"".equals(password) ? "&password=" + password : "");
+    String url =
+        "jdbc:mariadb://"
+            + hosts
+            + "/"
+            + database
+            + "?user="
+            + username
+            + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "");
     try (Connection connection = openNewConnection(url)) {
       MariaDbConnection my = (MariaDbConnection) connection;
       assertTrue(my.getPort() == port);
@@ -1007,7 +1018,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
     try {
@@ -1175,7 +1186,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
 
@@ -1432,10 +1443,10 @@ public class DriverTest extends BaseTest {
 
     String path = rs.getString(2);
     st.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
-    st.execute("GRANT ALL on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    st.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("FLUSH PRIVILEGES");
     String connString = connU + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=" + path;
-    System.out.println(connString);
+
     try (Connection connection = openConnection(connString, null)) {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
@@ -1653,7 +1664,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
     assertEquals(
