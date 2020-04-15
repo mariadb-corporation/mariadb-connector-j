@@ -90,8 +90,9 @@ public class PasswordEncodingTest extends BaseTest {
                     + "&password="
                     + exoticPwd
                     + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                    + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-            )) {
+                    + ((options.serverSslCert != null)
+                        ? "&serverSslCert=" + options.serverSslCert
+                        : ""))) {
           // windows-1252 and windows-1250 will work have the same conversion for this password
           if (!currentCharsetName.equals(Charset.defaultCharset().name())
               && (!"windows-1252".equals(currentCharsetName)

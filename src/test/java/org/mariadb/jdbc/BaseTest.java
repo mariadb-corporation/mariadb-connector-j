@@ -529,10 +529,9 @@ public class BaseTest {
       e.printStackTrace();
     }
     String[] splitValue = connUri.split("/");
-    String[] subarray = Arrays.asList(splitValue)
-            .subList(3, splitValue.length)
-            .toArray(new String[0]);
-    String dbAndParameters =  String.join("/", subarray);
+    String[] subarray =
+        Arrays.asList(splitValue).subList(3, splitValue.length).toArray(new String[0]);
+    String dbAndParameters = String.join("/", subarray);
 
     return openConnection(
         "jdbc:mariadb://"
