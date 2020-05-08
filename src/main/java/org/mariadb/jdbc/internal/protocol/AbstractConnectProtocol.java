@@ -665,7 +665,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
       destroySocket();
       throw sqlException;
     }
-<<<<<<< HEAD
 
     connected = true;
 
@@ -688,8 +687,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     activeStreamingResult = null;
     hostFailed = false;
-=======
->>>>>>> client redirection logic for Azure MySql/MariaDB
   }
 
   /** Closing socket in case of Connection error after socket creation. */
@@ -866,7 +863,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
               errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
         case 0x00:
-<<<<<<< HEAD
           // *************************************************************************************
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
@@ -875,23 +871,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
           buffer.skipLengthEncodedNumeric(); // affectedRows
           buffer.skipLengthEncodedNumeric(); // insertId
           serverStatus = buffer.readShort();
-=======
-          /**
-           * ******************************************************************** Authenticated !
-           * OK_Packet see https://mariadb.com/kb/en/library/ok_packet/
-           * *******************************************************************
-           */
-          OkPacket okPacket = new OkPacket(buffer);
-          serverStatus = okPacket.getServerStatus();
-
-          if (options.enableRedirect && !isRedirectionAvailable()) {
-            String msg = okPacket.getMessage();
-            RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(msg);
+          if (options.enableRedirect && !isRedirectionAvailable() && buffer.remaining() > 0) {
+            message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
+            RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
             redirectHost = redirectInfo.getHost();
             redirectUser = redirectInfo.getUser();
-          }
+           } 
 
->>>>>>> client redirection logic for Azure MySql/MariaDB
           break authentication_loop;
 
         default:
