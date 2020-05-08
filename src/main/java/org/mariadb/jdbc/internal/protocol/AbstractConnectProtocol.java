@@ -97,6 +97,8 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.RedirectionInfo;
+import org.mariadb.jdbc.internal.util.RedirectionInfoCache;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -871,12 +873,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
           buffer.skipLengthEncodedNumeric(); // affectedRows
           buffer.skipLengthEncodedNumeric(); // insertId
           serverStatus = buffer.readShort();
+          buffer.readShort(); //warnings field in OKPacket
           if (options.enableRedirect && !isRedirectionAvailable() && buffer.remaining() > 0) {
-            message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
+            String message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
             RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
             redirectHost = redirectInfo.getHost();
             redirectUser = redirectInfo.getUser();
-           } 
+           }
 
           break authentication_loop;
 
