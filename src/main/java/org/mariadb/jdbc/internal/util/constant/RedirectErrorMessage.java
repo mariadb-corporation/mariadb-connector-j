@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,65 +50,8 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.internal.util.constant;
 
-import org.mariadb.jdbc.HostAddress;
-
-public class RedirectionInfo {
-    private final HostAddress host;
-    private final String user;
-
-    public RedirectionInfo(HostAddress host, String user) {
-        this.host = host;
-        this.user = user;
-    }
-
-    public HostAddress getHost() {
-        return host;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    /**
-    * Parse redirection info from a message return by server.
-    *
-    * @param msg  the string which may contain redirection information.
-    * @return RedirectionInfo host and user for redirection.
-    */
-    public static RedirectionInfo parseRedirectionInfo(String msg) {
-        /**
-         * Get redirected server information contained in OK packet.
-         * Redirection string somehow look like:
-         * Location: mysql://redirectedHostName:redirectedPort/user=redirectedUser
-         * the minimal len is 27 bytes
-         * @param str   message about server information
-         */
-        String host = "";
-        String user = "";
-        int port = -1;
-        try {
-            if (msg.indexOf("Location") != -1 && msg.indexOf("mysql://") != -1) {
-                // redirect host
-                msg = msg.substring("Location: mysql://".length());
-                int beginIdx = 0;
-                int endIdx = msg.indexOf(':');
-                host = msg.substring(beginIdx, endIdx);
-                //redirect port
-                beginIdx = endIdx + 1;
-                endIdx = msg.indexOf('/');
-                port = Integer.parseInt(msg.substring(beginIdx, endIdx));
-                beginIdx = msg.indexOf('=') + 1;
-                user = msg.substring(beginIdx); //, end_idx
-            }
-        } catch (Exception e) {
-        	//eat exception
-        }
-        
-        if(host=="") {
-        	return null;
-        }
-        else return new RedirectionInfo(new HostAddress(host, port), user);
-    }
+public class RedirectErrorMessage {
+    public static final String RedirectNotAvailable = "EnableRedirect=on will enforce redirection. Connection aborted because redirection is not enabled on the MySQL server or the network package doesn't meet meet redirection protocol.";
 }

@@ -495,7 +495,7 @@ public enum DefaultOptions {
       false),
   ENABLE_REDIRECTION(
       "enableRedirect",
-      Boolean.FALSE,
+      "off",
       "2.1.0",
       "This option let user to decide if use redirection feature",
       false),

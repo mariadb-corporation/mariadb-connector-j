@@ -60,6 +60,7 @@ import java.util.Properties;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
+import org.mariadb.jdbc.internal.util.constant.RedirectOption;
 import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("ConstantConditions")
@@ -659,11 +660,17 @@ public class JdbcParserTest {
    */
   @Test
   public void checkEnableRedirectValue() throws SQLException {
-      UrlParser jdbc = UrlParser.parse("jdbc:mysql://hostName:3306?enableRedirect=true");
-      assertTrue(jdbc.getOptions().enableRedirect);
+      UrlParser jdbc = UrlParser.parse("jdbc:mysql://hostName:3306?enableRedirect=on");
+      assertEquals(jdbc.getOptions().enableRedirect, RedirectOption.ON.toString().toLowerCase());
 
-      UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://hostName:3306");
-      assertFalse(jdbc2.getOptions().enableRedirect);
+      UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://hostName:3306?enableRedirect=off");
+      assertEquals(jdbc2.getOptions().enableRedirect, RedirectOption.OFF.toString().toLowerCase());
+
+      UrlParser jdbc3 = UrlParser.parse("jdbc:mysql://hostName:3306?enableRedirect=preferred");
+      assertEquals(jdbc3.getOptions().enableRedirect, RedirectOption.PREFERRED.toString().toLowerCase());
+
+      UrlParser jdbc4 = UrlParser.parse("jdbc:mysql://hostName:3306");
+      assertEquals(jdbc4.getOptions().enableRedirect, RedirectOption.OFF.toString().toLowerCase());
 
   }
 }
