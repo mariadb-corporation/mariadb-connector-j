@@ -438,38 +438,17 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
    */
   @Override
   public void close() throws SQLException {
-    lock.lock();
-    try {
-      closed = true;
-      if (results != null) {
-        if (results.getFetchSize() != 0) {
-          skipMoreResults();
-        }
-        results.close();
+    // No possible future use for the cached results, so these can be cleared
+    // This makes the cache eligible for garbage collection earlier if the statement is not
+    // immediately garbage collected
+    if (protocol != null && serverPrepareResult != null) {
+      try {
+        serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
+      } catch (SQLException e) {
+        // eat
       }
-
-      // No possible future use for the cached results, so these can be cleared
-      // This makes the cache eligible for garbage collection earlier if the statement is not
-      // immediately garbage collected
-      if (protocol != null && serverPrepareResult != null) {
-        try {
-          serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
-        } catch (SQLException e) {
-          // if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
-        }
-      }
-
-      protocol = null;
-      if (connection == null
-          || connection.pooledConnection == null
-          || connection.pooledConnection.noStmtEventListeners()) {
-        return;
-      }
-      connection.pooledConnection.fireStatementClosed(this);
-      connection = null;
-    } finally {
-      lock.unlock();
     }
+    super.close();
   }
 
   protected int getParameterCount() {

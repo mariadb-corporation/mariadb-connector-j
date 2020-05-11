@@ -789,7 +789,6 @@ public class MariaDbStatement implements Statement, Cloneable {
 
         results.close();
       }
-      protocol = null;
 
       if (connection == null
           || connection.pooledConnection == null
@@ -798,6 +797,8 @@ public class MariaDbStatement implements Statement, Cloneable {
       }
       connection.pooledConnection.fireStatementClosed(this);
     } finally {
+      protocol = null;
+      connection = null;
       lock.unlock();
     }
   }
