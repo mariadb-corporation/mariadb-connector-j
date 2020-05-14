@@ -853,7 +853,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
 
-    cmdPrologue();
     lock.lock();
     try {
       // search in cache first
@@ -863,6 +862,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           return pr;
         }
       }
+
+      cmdPrologue();
       writer.startPacket(0);
       writer.write(COM_STMT_PREPARE);
       writer.write(sql);

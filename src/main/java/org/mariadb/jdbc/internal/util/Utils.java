@@ -807,7 +807,10 @@ public class Utils {
         outputBuilder.append(" ");
       }
       if (posHexa == 16) {
-        outputBuilder.append("| ").append(hexaValue).append(" |\n| ");
+        outputBuilder.append("| ")
+                .append(hexaValue)
+                .append(" |\n");
+        if (pos + 1 != dataLength + offset) outputBuilder.append("| ");
         posHexa = 0;
       }
       pos++;
