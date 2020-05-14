@@ -114,7 +114,7 @@ public class RedirectionConnectionTest extends BaseTest {
 
 	  @Before
 	  public void check() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		  Assume.assumeFalse(hostname.equals("localhost"));
+		  //Assume.assumeFalse(hostname.equals("localhost"));
 
 		  Field optionsField =  MariaDbConnection.class.getDeclaredField("options");
 		  optionsField.setAccessible(true);

@@ -27,6 +27,8 @@ import java.sql.DriverManager;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.mariadb.jdbc.internal.util.constant.RedirectOption;
+
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {
 
@@ -100,7 +102,7 @@ public class Options implements Cloneable {
   public boolean enablePacketDebug;
   public boolean useBulkStmts;
   public boolean disableSslHostnameVerification;
-  public String enableRedirect = "off";
+  public String enableRedirect = RedirectOption.OFF.toString().toLowerCase();
   public boolean autocommit = true;
   public boolean includeInnodbStatusInDeadlockExceptions;
   public boolean includeThreadDumpInDeadlockExceptions;

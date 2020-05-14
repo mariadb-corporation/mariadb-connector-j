@@ -92,10 +92,10 @@ public final class RedirectionInfoCache extends ConcurrentHashMap<String, Redire
      * @param redirectUser   redirection connection user.
      * @param redirectHost   redirection connection host.
     */
-    public void putRedirectionInfo(String user, HostAddress host, String redirectUser, HostAddress redirectHost) {
+    public void putRedirectionInfo(String user, HostAddress host, HostAddress redirectHost, String redirectUser, int ttl) {
         String key = makeKey(user, host);
         if (maxSize.get() == -1 ||  super.size() < maxSize.get()) {
-            super.putIfAbsent(key, new RedirectionInfo(redirectHost, redirectUser));
+            super.putIfAbsent(key, new RedirectionInfo(redirectHost, redirectUser, ttl));
         } else {
           //eat exception, use redirection info without caching it
         }

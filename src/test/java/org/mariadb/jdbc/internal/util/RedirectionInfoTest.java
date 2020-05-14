@@ -61,11 +61,12 @@ public class RedirectionInfoTest extends BaseTest {
 
  @Test
  public void testParseRedirectionInfo() {
-	 String redirectionStr = "Location: mysql://redirectedHostName:1006/user=redirectedUser";
+	 String redirectionStr = "Location: mysql://[d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com]:16001/?user=cloudsa@d4db48671444&ttl=0\n";
 	 RedirectionInfo redirectionInfo = RedirectionInfo.parseRedirectionInfo(redirectionStr);
-	 assertEquals(redirectionInfo.getHost().host, "redirectedHostName");
-	 assertEquals(redirectionInfo.getHost().port, 1006);
-	 assertEquals(redirectionInfo.getUser(), "redirectedUser");
+	 assertEquals(redirectionInfo.getHost().host, "d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com");
+	 assertEquals(redirectionInfo.getHost().port, 16001);
+	 assertEquals(redirectionInfo.getUser(), "cloudsa@d4db48671444");
+	 assertEquals(redirectionInfo.getTTL(), 0);
  }
 
 }

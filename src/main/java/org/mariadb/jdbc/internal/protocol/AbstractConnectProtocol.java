@@ -160,6 +160,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private TimeZone timeZone;
   protected HostAddress redirectHost;
   protected String redirectUser;
+  protected int redirectTTL;
   protected RedirectionInfoCache redirectionInfoCache;
   protected boolean isUsingRedirectInfo;
 
@@ -200,6 +201,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         isUsingRedirectInfo = false;
         redirectHost = null;
         redirectUser = null;
+        redirectTTL = 0;
     }
 
   }
@@ -552,7 +554,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
           isUsingRedirectInfo = true;
           handleConnectionPhases(redirectHost, redirectUser);
-          redirectionInfoCache.putRedirectionInfo(username, currentHost, redirectUser, redirectHost);
+          redirectionInfoCache.putRedirectionInfo(username, currentHost, redirectHost, redirectUser, redirectTTL);
 
           //close the original connection
           closeSocket(originalReader, originalWriter, originalSocket);
@@ -675,28 +677,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       destroySocket();
       throw sqlException;
     }
-
-    connected = true;
-
-    this.reader.setServerThreadId(this.serverThreadId, isMasterConnection());
-    this.writer.setServerThreadId(this.serverThreadId, isMasterConnection());
-
-    if (this.options.socketTimeout != null) {
-      this.socketTimeout = this.options.socketTimeout;
-    }
-    if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
-      eofDeprecated = true;
-    }
-
-    postConnectionQueries();
-
-    // validate galera state
-    if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
-      galeraStateValidation();
-    }
-
-    activeStreamingResult = null;
-    hostFailed = false;
+    
   }
 
   /** Closing socket in case of Connection error after socket creation. */
@@ -888,6 +869,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             if(redirectInfo != null) {
                 redirectHost = redirectInfo.getHost();
                 redirectUser = redirectInfo.getUser();
+                redirectTTL = redirectInfo.getTTL();
             }
            }
 

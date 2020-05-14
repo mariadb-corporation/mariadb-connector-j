@@ -52,15 +52,22 @@
 
 package org.mariadb.jdbc.internal.util;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.mariadb.jdbc.HostAddress;
 
 public class RedirectionInfo {
-    private final HostAddress host;
-    private final String user;
+	//Redirection Info format: Location: mysql://[%s]:%u/?user=%s&ttl=%u\n
 
-    public RedirectionInfo(HostAddress host, String user) {
-        this.host = host;
-        this.user = user;
+    private final HostAddress	host;
+    private final String 		user;
+    private final int 			ttl;
+
+    public RedirectionInfo(HostAddress host, String user, int ttl) {
+        this.host 	= host;
+        this.user 	= user;
+        this.ttl 	= ttl;
     }
 
     public HostAddress getHost() {
@@ -69,6 +76,10 @@ public class RedirectionInfo {
 
     public String getUser() {
         return user;
+    }
+    
+    public int getTTL() {
+    	return ttl;
     }
 
     /**
@@ -80,35 +91,39 @@ public class RedirectionInfo {
     public static RedirectionInfo parseRedirectionInfo(String msg) {
         /**
          * Get redirected server information contained in OK packet.
-         * Redirection string somehow look like:
-         * Location: mysql://redirectedHostName:redirectedPort/user=redirectedUser
-         * the minimal len is 27 bytes
-         * @param str   message about server information
+         * Redirection string format:
+         * Location: mysql://[%s]:%u/?user=%s&ttl=%u\n
          */
+    	msg = "Location: mysql://[d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com]:16001/?user=cloudsa@d4db48671444&ttl=0\n";
         String host = "";
         String user = "";
-        int port = -1;
+        int port 	= -1;
+        int ttl 	= -1;
         try {
-            if (msg.indexOf("Location") != -1 && msg.indexOf("mysql://") != -1) {
-                // redirect host
-                msg = msg.substring("Location: mysql://".length());
-                int beginIdx = 0;
-                int endIdx = msg.indexOf(':');
-                host = msg.substring(beginIdx, endIdx);
-                //redirect port
-                beginIdx = endIdx + 1;
-                endIdx = msg.indexOf('/');
-                port = Integer.parseInt(msg.substring(beginIdx, endIdx));
-                beginIdx = msg.indexOf('=') + 1;
-                user = msg.substring(beginIdx); //, end_idx
+
+            Pattern INFO_PATTERN =
+            		Pattern.compile("^Location: mysql://\\[([^\\]:]+)\\]:([0-9]+)/\\?user=([^&]+)&ttl=([0-9]+)\\n");
+
+            Matcher m = INFO_PATTERN.matcher(msg);
+            if(m.find()) {
+            	host = m.group(1);
+            	port = Integer.parseInt(m.group(2));
+            	user = m.group(3);
+            	ttl = Integer.parseInt(m.group(4));
+                System.out.println(host);
+                System.out.println(port);
+                System.out.println(user);
+                System.out.println(ttl);
             }
+
         } catch (Exception e) {
         	//eat exception
+        	e.printStackTrace();
         }
         
         if(host=="") {
         	return null;
         }
-        else return new RedirectionInfo(new HostAddress(host, port), user);
+        else return new RedirectionInfo(new HostAddress(host, port), user, ttl);
     }
 }
