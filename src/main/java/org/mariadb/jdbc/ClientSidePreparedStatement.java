@@ -518,7 +518,7 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
       // if error is due to wrong SQL syntax, better to throw exception immediately
       throw sqlSyntaxErrorException;
     } catch (SQLException sqle) {
-      parameterMetaData = new MariaDbParameterMetaData(null);
+      // eat
     }
   }
 

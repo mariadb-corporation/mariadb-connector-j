@@ -52,13 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import org.junit.Test;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
@@ -93,5 +89,14 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     assertEquals(yearAsDate ? "YEAR" : "SMALLINT", rs.getString(6));
     assertEquals(yearAsDate ? null : "5", rs.getString(7)); // column size
     assertEquals(yearAsDate ? null : "0", rs.getString(9)); // decimal digit
+  }
+
+  @Test
+  public void metadataNullWhenNotPossible() throws SQLException {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)")) {
+      assertNull(preparedStatement.getParameterMetaData());
+    }
   }
 }
