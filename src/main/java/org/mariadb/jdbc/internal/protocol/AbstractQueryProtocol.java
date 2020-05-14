@@ -1457,9 +1457,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException If socket error.
    */
   public void setReadonly(final boolean readOnly) throws SQLException {
-    if (options.assureReadOnly
-            && this.readOnly != readOnly
-            && versionGreaterOrEqual(5, 6, 5)) {
+    if (options.assureReadOnly && this.readOnly != readOnly && versionGreaterOrEqual(5, 6, 5)) {
       executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
     }
     this.readOnly = readOnly;
