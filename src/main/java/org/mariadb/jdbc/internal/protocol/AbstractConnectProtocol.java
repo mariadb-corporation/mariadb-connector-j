@@ -1388,10 +1388,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return readOnly;
   }
 
-  public void setReadonly(final boolean readOnly) {
-    this.readOnly = readOnly;
-  }
-
   public HostAddress getHostAddress() {
     return currentHost;
   }

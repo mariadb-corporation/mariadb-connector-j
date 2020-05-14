@@ -981,4 +981,30 @@ public class ConnectionTest extends BaseTest {
       assertEquals(10_000, connection2.getNetworkTimeout());
     }
   }
+
+  @Test
+  public void readOnly() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("CREATE TABLE testReadOnly(id int)");
+    sharedConnection.setAutoCommit(false);
+
+    sharedConnection.setReadOnly(true);
+    stmt.execute("INSERT INTO testReadOnly values (1)");
+    sharedConnection.commit();
+
+    Connection connection = setConnection("&assureReadOnly=true");
+    stmt = connection.createStatement();
+
+    connection.setAutoCommit(false);
+    connection.setReadOnly(true);
+    try {
+      stmt.execute("INSERT INTO testReadOnly values (2)");
+      fail();
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("Cannot execute statement in a READ ONLY transaction"));
+    }
+    connection.setReadOnly(false);
+    stmt.execute("DROP TABLE testReadOnly");
+  }
+
 }

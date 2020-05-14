@@ -306,8 +306,8 @@ public enum DefaultOptions {
       "assureReadOnly",
       Boolean.FALSE,
       "1.3.0",
-      "If true, in high availability, and switching to a "
-          + "read-only host, assure that this host is in read-only mode by setting the session to read-only.",
+      "Ensure that when Connection.setReadOnly(true) is called, host is in read-only mode by "
+              + "setting the session transaction to read-only.",
       false),
   USE_LEGACY_DATETIME_CODE(
       "useLegacyDatetimeCode",

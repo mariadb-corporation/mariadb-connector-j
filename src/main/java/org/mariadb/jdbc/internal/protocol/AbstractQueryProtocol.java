@@ -1450,6 +1450,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   /**
+   * Puts this connection in read-only / read-write mode
+   *
+   * @param readOnly true enables read-only mode; false disables it
+   * @throws SQLException If socket error.
+   */
+  public void setReadonly(final boolean readOnly) throws SQLException {
+    if (options.assureReadOnly
+            && this.readOnly != readOnly
+            && versionGreaterOrEqual(5, 6, 5)) {
+      executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
+    }
+    this.readOnly = readOnly;
+  }
+
+  /**
    * Set transaction isolation.
    *
    * @param level transaction level.
