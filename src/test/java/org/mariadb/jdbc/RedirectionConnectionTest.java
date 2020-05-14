@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -73,7 +72,19 @@ import org.mariadb.jdbc.internal.util.constant.RedirectOption;
 import org.mariadb.jdbc.util.Options;
 
 public class RedirectionConnectionTest extends BaseTest {
-	 
+
+	  public boolean redirectAvailbleOnServer() throws SQLException {
+
+		 Connection connection = setBlankConnection("&enableRedirect=off");
+
+		 Statement stmt = connection.createStatement();
+		 ResultSet result = stmt.executeQuery("show variables like \"%redirect_enabled%\";");
+		 if(result.next()) {
+				return result.getString("Value").equalsIgnoreCase("ON");
+		 }
+		 return false;
+	  }
+
 	 public boolean IsUsingRedirection(Connection connection) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		Field protocolField =  MariaDbConnection.class.getDeclaredField("protocol");
 		Field isUsingRedirect = AbstractConnectProtocol.class.getDeclaredField("isUsingRedirectInfo");
@@ -114,7 +125,6 @@ public class RedirectionConnectionTest extends BaseTest {
 
 	  @Before
 	  public void check() throws SQLException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
-		  //Assume.assumeFalse(hostname.equals("localhost"));
 
 		  Field optionsField =  MariaDbConnection.class.getDeclaredField("options");
 		  optionsField.setAccessible(true);
@@ -126,58 +136,40 @@ public class RedirectionConnectionTest extends BaseTest {
 	  }
 
 	  @Test
-	  public void testRedirectOnWithSSL() {
+	  public void testRedirectOnEnforceRedirect() throws SQLException {
+		  Assume.assumeTrue(redirectAvailbleOnServer());
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
 			
 			  assertTrue(IsUsingRedirection(connection));
 
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException | SQLException e) {
 			  e.printStackTrace();
 			  fail();
-		  } catch (SQLException e) {
-			  e.printStackTrace();
-			  assertTrue(e.getMessage().contains(RedirectErrorMessage.RedirectNotAvailable));
 	      }
 
 	  }
 	  
 	  @Test
-	  public void testRedirectOnWithNoSSL() {
+	  public void testRedirectOnFailIfNotAvailable() throws SQLException {
 
-		  try (Connection connection = setBlankConnection("&useSSL=false&enableRedirect=on")) {
+		  Assume.assumeFalse(redirectAvailbleOnServer());
 
-			  fail("When enableRedirect=on, useSSL=false, connection should not succeed");
+		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+			
+			  fail("Connection should not succeed");
 
-		  } catch (SecurityException | IllegalArgumentException e) {
+		  } catch ( SecurityException | IllegalArgumentException | SQLException e) {
 			  e.printStackTrace();
-			  fail();
-		  } catch (SQLException e) {
-			  e.printStackTrace();
-			  assertTrue(e.getMessage().contains("SSL connection is required. Please specify SSL options and retry."));
-	      }
+			  assertTrue(e.getMessage().contains(RedirectErrorMessage.RedirectNotAvailable));
+		  }
 	  }	  
 
 	  @Test
-	  public void testRedirectPreferredWithSSL() {
+	  public void testRedirectPreferredWShouldAlwaysSucceed() {
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=preferred")) {
 
-			  if(!IsUsingRedirection(connection)) {
-				  System.out.println("preferred with ssl not use redirection");
-				  Field protocolField =  MariaDbConnection.class.getDeclaredField("protocol");
-				  Field redirectHostField =  AbstractConnectProtocol.class.getDeclaredField("redirectHost");
-				  protocolField.setAccessible(true);
-				  redirectHostField.setAccessible(true);
-							
-				  Protocol protocolVal = (Protocol) protocolField.get(connection);
-				  HostAddress redirectHostVal = (HostAddress) redirectHostField.get(protocolVal);
-				  assertTrue(redirectHostVal==null && IsUsingDirectConnnection(connection));
-			  }
-
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			  e.printStackTrace();
-			  fail();
 		  } catch (SQLException e) {
 			  e.printStackTrace();
 			  fail();
@@ -185,60 +177,24 @@ public class RedirectionConnectionTest extends BaseTest {
 	  }
 	  
 	  @Test
-	  public void testRedirectPreferredWithNoSSL() {
-
-		  try (Connection connection = setBlankConnection("&useSSL=false&enableRedirect=preferred")) {
-
-			  assertTrue(!IsUsingRedirection(connection) && IsUsingDirectConnnection(connection));
-
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			  e.printStackTrace();
-			  fail();
-		  } catch (SQLException e) {
-			  e.printStackTrace();
-			  fail();
-	      }
-	  }
-	  
-	  @Test
-	  public void testRedirectOffWithSSL() {
+	  public void testRedirectOff() {
 
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=off")) {
 
 			  assertTrue(!IsUsingRedirection(connection) && IsUsingDirectConnnection(connection));
 
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			  e.printStackTrace();
-			  fail();
-		  } catch (SQLException e) {
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException| SQLException e) {
 			  e.printStackTrace();
 			  fail();
 	      }
 	  }
-  
-	  @Test
-	  public void testRedirectOffWithNoSSL() {
-
-		  try (Connection connection = setBlankConnection("&useSSL=false&enableRedirect=off")) {
-
-			  assertTrue(!IsUsingRedirection(connection) && IsUsingDirectConnnection(connection));
-
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			  e.printStackTrace();
-			  fail();
-		  } catch (SQLException e) {
-			  e.printStackTrace();
-			  fail();
-	      }
-	  }
-
-
 	  
 	  @Test
-	  public void checkRedirectionInfo() {
-
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=preferred")) {
-			Assume.assumeTrue(IsUsingRedirection(connection)); //this can be false if redirection is not enabled on server side
+	  public void checkRedirectionInfo() throws SQLException {
+		  Assume.assumeTrue(redirectAvailbleOnServer());
+		  
+		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+			assertTrue(IsUsingRedirection(connection)); 
 
 			Field protocolField =  MariaDbConnection.class.getDeclaredField("protocol");
 			Field redirectHostField =  AbstractConnectProtocol.class.getDeclaredField("redirectHost");
@@ -272,10 +228,8 @@ public class RedirectionConnectionTest extends BaseTest {
 					break;
 				}
 			}
-		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
-			  e.printStackTrace();
-			  fail();
-		  } catch (SQLException e) {
+
+		  } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException | SQLException e) {
 			  e.printStackTrace();
 			  fail();
 	      }
@@ -283,10 +237,11 @@ public class RedirectionConnectionTest extends BaseTest {
 	  }
 	  
 	  @Test 
-	  public void basicSelectTest() {
+	  public void basicSelectTest() throws SQLException {
+		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=preferred")) {
-			  Assume.assumeTrue(IsUsingRedirection(connection)); //this can be false if redirection is not enabled on server side
+		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+			  assertTrue(IsUsingRedirection(connection));
 
 			  Statement stmt = sharedConnection.createStatement();
 			  ResultSet result = stmt.executeQuery("select 1");
@@ -301,10 +256,11 @@ public class RedirectionConnectionTest extends BaseTest {
 	  }
 	  
 	  @Test
-	  public void BasicErrorTest() {
+	  public void BasicErrorTest() throws SQLException {
+		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=preferred")) {
-			  Assume.assumeTrue(IsUsingRedirection(connection)); //this can be false if redirection is not enabled on server side or redirection connection failed
+		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+			  assertTrue(IsUsingRedirection(connection));
 
 			  Statement stmt;
 			  stmt = connection.createStatement();

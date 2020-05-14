@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.mariadb.jdbc.BaseTest;
@@ -61,12 +62,17 @@ public class RedirectionInfoTest extends BaseTest {
 
  @Test
  public void testParseRedirectionInfo() {
-	 String redirectionStr = "Location: mysql://[d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com]:16001/?user=cloudsa@d4db48671444&ttl=0\n";
+	 String redirectionStr = "Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10\n";
 	 RedirectionInfo redirectionInfo = RedirectionInfo.parseRedirectionInfo(redirectionStr);
-	 assertEquals(redirectionInfo.getHost().host, "d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com");
-	 assertEquals(redirectionInfo.getHost().port, 16001);
-	 assertEquals(redirectionInfo.getUser(), "cloudsa@d4db48671444");
-	 assertEquals(redirectionInfo.getTTL(), 0);
+	 assertEquals(redirectionInfo.getHost().host, "redirectHostName");
+	 assertEquals(redirectionInfo.getHost().port, 1600);
+	 assertEquals(redirectionInfo.getUser(), "redirectUserName");
+	 assertEquals(redirectionInfo.getTTL(), 10);
+	 
+	 String redirectionStr2 = "Location: mysql://[redirectHostName]:1600/?user=redirectUserName&ttl=10";
+	 RedirectionInfo redirectionInfo2 = RedirectionInfo.parseRedirectionInfo(redirectionStr2);
+	 assertTrue(redirectionInfo2 == null);
+	 
  }
 
 }

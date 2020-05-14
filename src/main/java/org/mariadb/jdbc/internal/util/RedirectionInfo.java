@@ -94,8 +94,7 @@ public class RedirectionInfo {
          * Redirection string format:
          * Location: mysql://[%s]:%u/?user=%s&ttl=%u\n
          */
-    	msg = "Location: mysql://[d4db48671444.tr1.southcentralus1-c.worker.orcasql-scus1-c.mscds.com]:16001/?user=cloudsa@d4db48671444&ttl=0\n";
-        String host = "";
+    	String host = "";
         String user = "";
         int port 	= -1;
         int ttl 	= -1;
@@ -110,10 +109,6 @@ public class RedirectionInfo {
             	port = Integer.parseInt(m.group(2));
             	user = m.group(3);
             	ttl = Integer.parseInt(m.group(4));
-                System.out.println(host);
-                System.out.println(port);
-                System.out.println(user);
-                System.out.println(ttl);
             }
 
         } catch (Exception e) {
