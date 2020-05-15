@@ -1006,5 +1006,4 @@ public class ConnectionTest extends BaseTest {
     connection.setReadOnly(false);
     stmt.execute("DROP TABLE testReadOnly");
   }
-
 }

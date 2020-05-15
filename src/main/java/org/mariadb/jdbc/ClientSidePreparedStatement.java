@@ -514,11 +514,8 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
             exceptionFactory)) {
       resultSetMetaData = ssps.getMetaData();
       parameterMetaData = ssps.getParameterMetaData();
-    } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
-      // if error is due to wrong SQL syntax, better to throw exception immediately
-      throw sqlSyntaxErrorException;
-    } catch (SQLException sqle) {
-      // eat
+    } catch (Exception exception) {
+      parameterMetaData = new SimpleParameterMetaData(prepareResult.getParamCount());
     }
   }
 

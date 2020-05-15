@@ -47,7 +47,10 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @param updatable is column updatable
    */
   public MariaDbResultSetMetaData(
-      final ColumnDefinition[] fieldPackets, final Options options, final boolean forceAlias, final boolean updatable) {
+      final ColumnDefinition[] fieldPackets,
+      final Options options,
+      final boolean forceAlias,
+      final boolean updatable) {
     this.fieldPackets = fieldPackets;
     this.options = options;
     this.forceAlias = forceAlias;

@@ -95,8 +95,71 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
   public void metadataNullWhenNotPossible() throws SQLException {
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
-            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)")) {
-      assertNull(preparedStatement.getParameterMetaData());
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, ?)")) {
+      assertNull(preparedStatement.getMetaData());
+      ParameterMetaData parameterMetaData = preparedStatement.getParameterMetaData();
+      assertEquals(1, parameterMetaData.getParameterCount());
+      try {
+        parameterMetaData.getParameterType(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("not supported"));
+      }
+      try {
+        parameterMetaData.getParameterClassName(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata class name"));
+      }
+      try {
+        parameterMetaData.getParameterTypeName(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata type name"));
+      }
+      try {
+        parameterMetaData.getPrecision(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata precision"));
+      }
+      try {
+        parameterMetaData.getScale(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata scale"));
+      }
+
+      try {
+        parameterMetaData.getParameterType(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getParameterClassName(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getParameterTypeName(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getPrecision(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getScale(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
     }
   }
 }

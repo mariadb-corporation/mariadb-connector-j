@@ -241,13 +241,8 @@ public class DriverTest extends BaseTest {
     // statement that cannot be prepared
     try (PreparedStatement pstmt =
         sharedConnection.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
-      try {
-        pstmt.getParameterMetaData();
-        fail();
-      } catch (SQLException sqle) {
-        assertEquals("42S22", sqle.getSQLState());
-        assertTrue(sqle.getMessage().contains("Unknown column"));
-      }
+      ParameterMetaData meta = pstmt.getParameterMetaData();
+      assertEquals(1, meta.getParameterCount());
     }
     Map<String, Integer> endingValues = loadVariables(stmt);
     assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
@@ -261,13 +256,8 @@ public class DriverTest extends BaseTest {
     // statement that cannot be prepared
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("selec1t 2 from dual")) {
-      try {
-        preparedStatement.getParameterMetaData();
-        fail();
-      } catch (SQLException sqle) {
-        assertEquals("42000", sqle.getSQLState());
-        assertTrue(sqle.getMessage().contains(" You have an error in your SQL syntax"));
-      }
+      ParameterMetaData meta = preparedStatement.getParameterMetaData();
+      assertEquals(0, meta.getParameterCount());
     }
   }
 
