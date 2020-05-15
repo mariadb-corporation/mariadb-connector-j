@@ -36,6 +36,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
   private final ColumnDefinition[] fieldPackets;
   private final Options options;
   private final boolean forceAlias;
+  private final boolean updatable;
 
   /**
    * Constructor.
@@ -43,12 +44,14 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @param fieldPackets column informations
    * @param options connection options
    * @param forceAlias force table and column name alias as original data
+   * @param updatable is column updatable
    */
   public MariaDbResultSetMetaData(
-      final ColumnDefinition[] fieldPackets, final Options options, final boolean forceAlias) {
+      final ColumnDefinition[] fieldPackets, final Options options, final boolean forceAlias, final boolean updatable) {
     this.fieldPackets = fieldPackets;
     this.options = options;
     this.forceAlias = forceAlias;
+    this.updatable = updatable;
   }
 
   /**
@@ -303,9 +306,13 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
+   * @throws SQLException if a database access error occurs or in case of wrong index
    */
-  public boolean isReadOnly(final int column) {
-    return false;
+  public boolean isReadOnly(final int column) throws SQLException {
+    if (column >= 1 && column <= fieldPackets.length) {
+      return !updatable;
+    }
+    throw ExceptionFactory.INSTANCE.create(String.format("no column with index %s", column));
   }
 
   /**
@@ -313,8 +320,9 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
+   * @throws SQLException if a database access error occurs or in case of wrong index
    */
-  public boolean isWritable(final int column) {
+  public boolean isWritable(final int column) throws SQLException {
     return !isReadOnly(column);
   }
 
@@ -323,8 +331,9 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
+   * @throws SQLException if a database access error occurs or in case of wrong index
    */
-  public boolean isDefinitelyWritable(final int column) {
+  public boolean isDefinitelyWritable(final int column) throws SQLException {
     return !isReadOnly(column);
   }
 

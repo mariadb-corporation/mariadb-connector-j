@@ -60,10 +60,8 @@ import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
 import java.util.TimeZone;
-import org.mariadb.jdbc.BasePrepareStatement;
-import org.mariadb.jdbc.ClientSidePreparedStatement;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.ServerSidePreparedStatement;
+
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.parameters.*;
@@ -274,6 +272,11 @@ public class UpdatableResultSet extends SelectResultSet {
         throw new SQLException("abnormal error : connection is null");
       }
     }
+  }
+
+  @Override
+  public ResultSetMetaData getMetaData() {
+    return new MariaDbResultSetMetaData(columnsInformation, options, false, canBeUpdate);
   }
 
   private UpdatableColumnDefinition[] getUpdatableColumns() {

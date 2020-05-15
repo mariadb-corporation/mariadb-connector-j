@@ -1148,7 +1148,7 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public ResultSetMetaData getMetaData() {
-    return new MariaDbResultSetMetaData(columnsInformation, options, forceAlias);
+    return new MariaDbResultSetMetaData(columnsInformation, options, forceAlias, false);
   }
 
   /** {inheritDoc}. */

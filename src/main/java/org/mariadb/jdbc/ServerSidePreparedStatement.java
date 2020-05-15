@@ -118,7 +118,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     parameterCount = serverPrepareResult.getParameters().length;
     metadata =
         new MariaDbResultSetMetaData(
-            serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false);
+            serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), false, false);
     parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
   }
 
