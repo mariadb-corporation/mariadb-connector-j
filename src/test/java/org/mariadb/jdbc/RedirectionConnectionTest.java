@@ -139,7 +139,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void testRedirectOnEnforceRedirect() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			
 			  assertTrue(IsUsingRedirection(connection));
 
@@ -155,7 +155,7 @@ public class RedirectionConnectionTest extends BaseTest {
 
 		  Assume.assumeFalse(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			
 			  fail("Connection should not succeed");
 
@@ -168,7 +168,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  @Test
 	  public void testRedirectPreferredWShouldAlwaysSucceed() {
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=preferred")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=preferred")) {
 
 		  } catch (SQLException e) {
 			  e.printStackTrace();
@@ -179,7 +179,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  @Test
 	  public void testRedirectOff() {
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=off")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=off")) {
 
 			  assertTrue(!IsUsingRedirection(connection) && IsUsingDirectConnnection(connection));
 
@@ -193,7 +193,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void checkRedirectionInfo() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 		  
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			assertTrue(IsUsingRedirection(connection)); 
 
 			Field protocolField =  MariaDbConnection.class.getDeclaredField("protocol");
@@ -240,7 +240,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void basicSelectTest() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			  assertTrue(IsUsingRedirection(connection));
 
 			  Statement stmt = sharedConnection.createStatement();
@@ -259,7 +259,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void BasicErrorTest() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			  assertTrue(IsUsingRedirection(connection));
 
 			  Statement stmt;
