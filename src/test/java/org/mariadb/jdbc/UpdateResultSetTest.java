@@ -339,28 +339,31 @@ public class UpdateResultSetTest extends BaseTest {
       ResultSetMetaData rsmd = rs.getMetaData();
       assertFalse(rsmd.isReadOnly(1));
       assertFalse(rsmd.isReadOnly(2));
+      assertFalse(rsmd.isReadOnly(3));
       assertTrue(rsmd.isWritable(1));
       assertTrue(rsmd.isWritable(2));
+      assertTrue(rsmd.isWritable(3));
       assertTrue(rsmd.isDefinitelyWritable(1));
       assertTrue(rsmd.isDefinitelyWritable(2));
+      assertTrue(rsmd.isDefinitelyWritable(3));
 
       try {
-        rsmd.isReadOnly(3);
+        rsmd.isReadOnly(4);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
       }
       try {
-        rsmd.isWritable(3);
+        rsmd.isWritable(4);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
       }
       try {
-        rsmd.isDefinitelyWritable(3);
+        rsmd.isDefinitelyWritable(4);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
       }
     }
 

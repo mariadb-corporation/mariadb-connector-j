@@ -60,7 +60,6 @@ import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
 import java.util.TimeZone;
-
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
