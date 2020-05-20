@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal.util.constant;
 
-public enum RedirectOption {
+public enum RedirectionOption {
   OFF,
   ON,
   PREFERRED

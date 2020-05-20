@@ -67,8 +67,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.constant.RedirectErrorMessage;
-import org.mariadb.jdbc.internal.util.constant.RedirectOption;
+import org.mariadb.jdbc.internal.util.constant.RedirectionErrorMessage;
+import org.mariadb.jdbc.internal.util.constant.RedirectionOption;
 import org.mariadb.jdbc.util.Options;
 
 public class RedirectionConnectionTest extends BaseTest {
@@ -129,9 +129,9 @@ public class RedirectionConnectionTest extends BaseTest {
 		  Field optionsField =  MariaDbConnection.class.getDeclaredField("options");
 		  optionsField.setAccessible(true);
 		  Options optionsVal = (Options) optionsField.get(sharedConnection);
-		  Assume.assumeTrue(optionsVal.enableRedirect.equalsIgnoreCase(RedirectOption.OFF.toString())
-				  || optionsVal.enableRedirect.equalsIgnoreCase(RedirectOption.ON.toString())
-				  || optionsVal.enableRedirect.equalsIgnoreCase(RedirectOption.PREFERRED.toString()));
+		  Assume.assumeTrue(optionsVal.enableRedirect.equalsIgnoreCase(RedirectionOption.OFF.toString())
+				  || optionsVal.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+				  || optionsVal.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString()));
 		  
 	  }
 
@@ -139,7 +139,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void testRedirectOnEnforceRedirect() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&useSSL=true&&enableRedirect=on")) {
 			
 			  assertTrue(IsUsingRedirection(connection));
 
@@ -161,7 +161,7 @@ public class RedirectionConnectionTest extends BaseTest {
 
 		  } catch ( SecurityException | IllegalArgumentException | SQLException e) {
 			  e.printStackTrace();
-			  assertTrue(e.getMessage().contains(RedirectErrorMessage.RedirectNotAvailable));
+			  assertTrue(e.getMessage().contains(RedirectionErrorMessage.RedirectNotAvailable));
 		  }
 	  }	  
 

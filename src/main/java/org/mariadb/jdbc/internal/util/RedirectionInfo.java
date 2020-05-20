@@ -60,9 +60,9 @@ import org.mariadb.jdbc.HostAddress;
 public class RedirectionInfo {
 	//Redirection Info format: Location: mysql://[%s]:%u/?user=%s&ttl=%u\n
 
-    private final HostAddress	host;
-    private final String 		user;
-    private final int 			ttl;
+    private final HostAddress host;
+    private final String user;
+    private final int ttl;
 
     public RedirectionInfo(HostAddress host, String user, int ttl) {
         this.host 	= host;
@@ -95,9 +95,9 @@ public class RedirectionInfo {
          * Location: mysql://[%s]:%u/?user=%s&ttl=%u\n
          */
     	String host = "";
-        String user = "";
-        int port 	= -1;
-        int ttl 	= -1;
+    	String user = "";
+    	int port = -1;
+    	int ttl = -1;
         try {
 
             Pattern INFO_PATTERN =
@@ -119,6 +119,8 @@ public class RedirectionInfo {
         if(host=="") {
         	return null;
         }
-        else return new RedirectionInfo(new HostAddress(host, port), user, ttl);
+        else {
+        	return new RedirectionInfo(new HostAddress(host, port), user, ttl);
+        }
     }
 }

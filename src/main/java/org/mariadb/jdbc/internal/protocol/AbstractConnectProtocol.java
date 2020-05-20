@@ -103,8 +103,8 @@ import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
-import org.mariadb.jdbc.internal.util.constant.RedirectErrorMessage;
-import org.mariadb.jdbc.internal.util.constant.RedirectOption;
+import org.mariadb.jdbc.internal.util.constant.RedirectionErrorMessage;
+import org.mariadb.jdbc.internal.util.constant.RedirectionOption;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
@@ -188,14 +188,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
       serverPrepareStatementCache =
           ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
     }
-
     galeraAllowedStates =
         urlParser.getOptions().galeraAllowedState == null
             ? Collections.emptyList()
             : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
     this.traceCache = traceCache;
 
-    if (!options.enableRedirect.equalsIgnoreCase(RedirectOption.OFF.toString())) {
+    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) 
+    		|| options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
         //use -1 for unlimited for now, may need add a new option like options.redirectionInfoCacheSize
         redirectionInfoCache = RedirectionInfoCache.newInstance(-1);
         isUsingRedirectInfo = false;
@@ -506,7 +506,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
   public void connect() throws SQLException {
 
     //check cache first to see if the redirect host info has already been cached
-    if (!options.enableRedirect.equalsIgnoreCase(RedirectOption.OFF.toString())) {
+    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+    		|| options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
+
         RedirectionInfo redirectInfo = redirectionInfoCache.getRedirectionInfo(username, currentHost);
         if (redirectInfo != null) {
             redirectHost = redirectInfo.getHost();
@@ -522,6 +524,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 redirectUser = null;
             }
         }
+
     }
 
     //use user provided host info to connect
@@ -540,10 +543,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     try {
       handleConnectionPhases(hostAddress, username);
 
-      if(options.enableRedirect.equalsIgnoreCase(RedirectOption.ON.toString()) && !isServerSupportRedirection()) {
+      //When enableRedirect=on, the logic enforce the connection must go with redirection, so close conn if redirect not available
+      if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) && !isServerSupportRedirection()) {
 
           closeSocket(this.reader, this.writer, this.socket);
-          throw new SQLException(RedirectErrorMessage.RedirectNotAvailable);
+          throw new SQLException(RedirectionErrorMessage.RedirectNotAvailable);
 
       } else if (!isUsingRedirectInfo && isRedirectionAvailable()) {
 
@@ -562,15 +566,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException redirectException) {
             isUsingRedirectInfo = false;
 
-            if(options.enableRedirect.equalsIgnoreCase(RedirectOption.PREFERRED.toString())) {
+            if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
                 //Destroy redirect socket and use original connection
                 destroySocket();
                 this.reader = originalReader;
                 this.writer = originalWriter;
                 this.socket = originalSocket;
 
-            } else if(options.enableRedirect.equalsIgnoreCase(RedirectOption.ON.toString())) {
-                //Close the original connection and throw redirect conn's exception
+            } else if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())) {
+                //When enableRedirect=on, the logic enforce the connection must go with redirection, so close the original connection and throw redirect conn's exception
                 closeSocket(originalReader, originalWriter, originalSocket);
                 destroySocket(); //Destroy redirect socket
                 throw redirectException;
@@ -862,9 +866,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
           buffer.skipLengthEncodedNumeric(); // affectedRows
           buffer.skipLengthEncodedNumeric(); // insertId
           serverStatus = buffer.readShort();
-          buffer.readShort(); //warnings field in OKPacket
-          if (!options.enableRedirect.equalsIgnoreCase(RedirectOption.OFF.toString()) && !isRedirectionAvailable() && buffer.remaining() > 0) {
-            String message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
+          buffer.readShort(); //warnings
+          if (buffer.remaining() > 0) {
+            String message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8); //info
             RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
             if(redirectInfo != null) {
                 redirectHost = redirectInfo.getHost();
@@ -1028,15 +1032,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * Condition that redirection is available
    */
   private boolean isRedirectionAvailable() {
-      return !options.enableRedirect.equalsIgnoreCase(RedirectOption.OFF.toString())
-              && redirectHost != null
-              && redirectHost.host != ""
-              && redirectHost.port != -1
+      return (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) || options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString()))
+              && redirectHost != null && redirectHost.host != "" && redirectHost.port != -1
+              && redirectUser != null && redirectUser != ""
               && (redirectHost.host != currentHost.host || redirectHost.port != currentHost.port || redirectUser != username);
   }
 
   private boolean isServerSupportRedirection() {
-      return redirectHost != null && redirectHost.host != "" && redirectHost.port != -1;
+      return redirectHost != null && redirectHost.host != "" && redirectHost.port != -1 && redirectUser != null && redirectUser != "";
   }
 
   /**

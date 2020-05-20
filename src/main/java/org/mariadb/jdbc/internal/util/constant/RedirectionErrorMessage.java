@@ -52,6 +52,6 @@
 
 package org.mariadb.jdbc.internal.util.constant;
 
-public class RedirectErrorMessage {
-    public static final String RedirectNotAvailable = "EnableRedirect=on will enforce redirection. Connection aborted because redirection is not enabled on the MySQL server or the network package doesn't meet meet redirection protocol.";
+public class RedirectionErrorMessage {
+    public static final String RedirectNotAvailable = "enableRedirect=on will enforce redirection. Connection aborted because redirection is not enabled on the MySQL server or the network package doesn't meet meet redirection protocol.";
 }

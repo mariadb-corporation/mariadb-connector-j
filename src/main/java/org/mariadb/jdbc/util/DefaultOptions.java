@@ -27,7 +27,7 @@ import java.util.Properties;
 import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.util.OptionUtils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.RedirectOption;
+import org.mariadb.jdbc.internal.util.constant.RedirectionOption;
 
 public enum DefaultOptions {
   USER("user", "1.0.0", "Database user name", false),
@@ -496,9 +496,12 @@ public enum DefaultOptions {
       false),
   ENABLE_REDIRECTION(
       "enableRedirect",
-      RedirectOption.OFF.toString().toLowerCase(),
+      RedirectionOption.OFF.toString().toLowerCase(),
       "2.1.0",
-      "This option let user to decide if use redirection feature",
+      "This option let user to decide if use redirection feature and chose different options: "
+          + "\n off: Do not use redirection."
+          + "\n on: Must use redirection, fail the connection if server doesnot support redirection or redirection fail."
+          + "\n preferred: Use redirection if redirection and redirection is success, otherwise do not use redirection.",
       false),
   USE_BULK_PROTOCOL(
       "useBulkStmts",
