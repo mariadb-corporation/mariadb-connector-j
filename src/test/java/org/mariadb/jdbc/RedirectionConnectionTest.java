@@ -139,7 +139,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  public void testRedirectOnEnforceRedirect() throws SQLException {
 		  Assume.assumeTrue(redirectAvailbleOnServer());
 
-		  try (Connection connection = setBlankConnection("&useSSL=true&&enableRedirect=on")) {
+		  try (Connection connection = setBlankConnection("&enableRedirect=on")) {
 			
 			  assertTrue(IsUsingRedirection(connection));
 
