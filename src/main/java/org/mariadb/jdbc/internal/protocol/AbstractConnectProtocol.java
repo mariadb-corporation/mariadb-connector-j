@@ -81,6 +81,7 @@ import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.SendClosePacket;
@@ -862,20 +863,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-          buffer.skipByte(); // 0x00 OkPacket Header
-          buffer.skipLengthEncodedNumeric(); // affectedRows
-          buffer.skipLengthEncodedNumeric(); // insertId
-          serverStatus = buffer.readShort();
-          buffer.readShort(); //warnings
-          if (buffer.remaining() > 0) {
-            String message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8); //info
-            RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
-            if(redirectInfo != null) {
-                redirectHost = redirectInfo.getHost();
-                redirectUser = redirectInfo.getUser();
-                redirectTTL = redirectInfo.getTTL();
-            }
-           }
+         OkPacket ok = new OkPacket(buffer, clientCapabilities);
+         String message = ok.getInfo();
+         RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
+         if(redirectInfo != null) {
+            redirectHost = redirectInfo.getHost();
+            redirectUser = redirectInfo.getUser();
+            redirectTTL = redirectInfo.getTTL();
+         }
 
           break authentication_loop;
 
