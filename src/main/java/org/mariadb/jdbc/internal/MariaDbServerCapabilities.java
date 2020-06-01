@@ -69,7 +69,7 @@ public class MariaDbServerCapabilities {
   public static final int SSL = 2048; /* Switch to SSL after handshake */
   public static final int IGNORE_SIGPIPE = 4096; /* IGNORE sigpipes */
   public static final int TRANSACTIONS = 8192;
-  public static final int SERVER_SESSION_STATE_CHANGED = 16384; /* Old flag for 4.1 protocol  */
+  public static final int RESERVED = 16384; /* Old flag for 4.1 protocol  */
   public static final int SECURE_CONNECTION = 32768; /* New 4.1 authentication */
   public static final int MULTI_STATEMENTS = 1 << 16; /* Enable/disable multi-stmt support */
   public static final int MULTI_RESULTS = 1 << 17; /* Enable/disable multi-results */

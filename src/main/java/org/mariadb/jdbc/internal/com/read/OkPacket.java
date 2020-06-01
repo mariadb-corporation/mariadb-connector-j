@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.com.read;
 import java.nio.charset.StandardCharsets;
 
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 
 public class OkPacket {
 
@@ -76,18 +77,8 @@ public class OkPacket {
     affectedRows = buffer.getLengthEncodedNumeric();
     insertId = buffer.getLengthEncodedNumeric();
  
-    if ((clientCapabilities & MariaDbServerCapabilities.CLIENT_PROTOCOL_41) !=0) {
-    	statusFlags = buffer.readShort();
-    	warnings = buffer.readShort();
-    }
-    else if ((clientCapabilities & MariaDbServerCapabilities.TRANSACTIONS) !=0) {
-    	statusFlags = buffer.readShort();
-    	warnings = 0;
-    } 
-    else {
-    	statusFlags = 0;
-    	warnings = 0;
-    }
+    statusFlags = buffer.readShort();
+    warnings = buffer.readShort();
     
     String message = "";
     String sessionStateMessage = "";
@@ -95,7 +86,7 @@ public class OkPacket {
     	if ((clientCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) !=0) {
     		message = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
     		
-        	if ((statusFlags & MariaDbServerCapabilities.SERVER_SESSION_STATE_CHANGED) !=0)  {
+        	if ((statusFlags & ServerStatus.SERVER_SESSION_STATE_CHANGED) !=0 && buffer.remaining() > 0)  {
         		sessionStateMessage = buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
             }
         } 

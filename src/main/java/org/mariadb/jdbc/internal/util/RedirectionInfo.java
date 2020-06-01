@@ -83,7 +83,7 @@ public class RedirectionInfo {
     }
 
     /**
-    * Parse redirection info from a message return by server.
+    * Parse redirection info from a message returned by server.
     *
     * @param msg  the string which may contain redirection information.
     * @return RedirectionInfo host and user for redirection.

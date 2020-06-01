@@ -498,10 +498,10 @@ public enum DefaultOptions {
       "enableRedirect",
       RedirectionOption.OFF.toString().toLowerCase(),
       "2.1.0",
-      "This option let user to decide if use redirection feature and chose different options: "
+      "This option determines how redirection will be used: "
           + "\n off: Do not use redirection."
-          + "\n on: Must use redirection, fail the connection if server doesnot support redirection or redirection fail."
-          + "\n preferred: Use redirection if redirection and redirection is success, otherwise do not use redirection.",
+          + "\n on: Must use redirection, fail the connection if server does not support redirection or redirection fails."
+          + "\n preferred: Use redirection if supported by the server and redirection is successful; otherwise, do not use redirection.",
       false),
   USE_BULK_PROTOCOL(
       "useBulkStmts",
