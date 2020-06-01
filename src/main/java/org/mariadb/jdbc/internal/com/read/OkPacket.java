@@ -73,7 +73,7 @@ public class OkPacket {
    */
   public OkPacket(Buffer buffer, long clientCapabilities) {
 
-    buffer.skipByte(); // fieldCount
+    buffer.skipByte(); // 0x00 OkPacket header
     affectedRows = buffer.getLengthEncodedNumeric();
     insertId = buffer.getLengthEncodedNumeric();
  
