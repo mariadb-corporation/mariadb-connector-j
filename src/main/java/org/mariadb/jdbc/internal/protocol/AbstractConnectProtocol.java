@@ -126,6 +126,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
+
+  // use -1 for unlimited for now, may need add a new option like
+  // options.redirectionInfoCacheSize
+  protected static RedirectionInfoCache redirectionInfoCache = new RedirectionInfoCache(-1);
+
   protected final ReentrantLock lock;
   protected final UrlParser urlParser;
   protected final Options options;
@@ -162,7 +167,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
   protected HostAddress redirectHost;
   protected String redirectUser;
   protected int redirectTTL;
-  protected RedirectionInfoCache redirectionInfoCache;
   protected boolean isUsingRedirectInfo;
 
   /**
@@ -195,16 +199,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
             : Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
     this.traceCache = traceCache;
 
-    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) 
-    		|| options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
-        //use -1 for unlimited for now, may need add a new option like options.redirectionInfoCacheSize
-        redirectionInfoCache = RedirectionInfoCache.newInstance(-1);
-        isUsingRedirectInfo = false;
-        redirectHost = null;
-        redirectUser = null;
-        redirectTTL = 0;
+    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+        || options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
+      isUsingRedirectInfo = false;
+      redirectHost = null;
+      redirectUser = null;
+      redirectTTL = 0;
     }
-
   }
 
   private static void closeSocket(
@@ -506,29 +507,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
    */
   public void connect() throws SQLException {
 
-    //check cache first to see if the redirect host info has already been cached
-    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
-    		|| options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
-
-        RedirectionInfo redirectInfo = redirectionInfoCache.getRedirectionInfo(username, currentHost);
-        if (redirectInfo != null) {
-            redirectHost = redirectInfo.getHost();
-            redirectUser = redirectInfo.getUser();
-            isUsingRedirectInfo = true;
-            try {
-                createConnection(redirectHost, redirectUser);
-                return; //if connect successfully with cached redirect info, return from this function, otherwise go normal connect routine
-            } catch (SQLException exception) {
-                isUsingRedirectInfo = false;
-                redirectionInfoCache.removeRedirectionInfo(username, currentHost);
-                redirectHost = null;
-                redirectUser = null;
-            }
-        }
-
-    }
-
-    //use user provided host info to connect
     try {
       createConnection(currentHost, username);
     } catch (SQLException exception) {
@@ -541,14 +519,44 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   private void createConnection(HostAddress hostAddress, String username) throws SQLException {
+
+    // check cache first to see if the redirect host info has already been cached
+    if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+        || options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
+
+      RedirectionInfo redirectInfo = redirectionInfoCache.getRedirectionInfo(username, currentHost);
+      if (redirectInfo != null) {
+        redirectHost = redirectInfo.getHost();
+        redirectUser = redirectInfo.getUser();
+        isUsingRedirectInfo = true;
+        try {
+          createConnectionImp(redirectHost, redirectUser);
+          return; // if connect successfully with cached redirect info, return from this function,
+          // otherwise go normal connect routine
+        } catch (SQLException exception) {
+          isUsingRedirectInfo = false;
+          redirectionInfoCache.removeRedirectionInfo(username, currentHost);
+          redirectHost = null;
+          redirectUser = null;
+        }
+      }
+    }
+
+    // Use user provided connection info to connect
+    createConnectionImp(hostAddress, username);
+  }
+
+  private void createConnectionImp(HostAddress hostAddress, String username) throws SQLException {
     try {
       handleConnectionPhases(hostAddress, username);
 
-      //When enableRedirect=on, the logic enforce the connection must go with redirection, so close conn if redirect not available
-      if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) && !isServerSupportRedirection()) {
+      // When enableRedirect=on, the logic enforce the connection must go with redirection, so close
+      // conn if redirect not available
+      if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+          && !isServerSupportRedirection()) {
 
-          closeSocket(this.reader, this.writer, this.socket);
-          throw new SQLException(RedirectionErrorMessage.RedirectNotAvailable);
+        closeSocket(this.reader, this.writer, this.socket);
+        throw new SQLException(RedirectionErrorMessage.RedirectNotAvailable);
 
       } else if (!isUsingRedirectInfo && isRedirectionAvailable()) {
 
@@ -559,28 +567,29 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
           isUsingRedirectInfo = true;
           handleConnectionPhases(redirectHost, redirectUser);
-          redirectionInfoCache.putRedirectionInfo(username, currentHost, redirectHost, redirectUser, redirectTTL);
+          redirectionInfoCache.putRedirectionInfo(
+              username, currentHost, redirectHost, redirectUser, redirectTTL);
 
-          //close the original connection
+          // close the original connection
           closeSocket(originalReader, originalWriter, originalSocket);
 
         } catch (SQLException redirectException) {
-            isUsingRedirectInfo = false;
+          isUsingRedirectInfo = false;
 
-            if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
-                //Destroy redirect socket and use original connection
-                destroySocket();
-                this.reader = originalReader;
-                this.writer = originalWriter;
-                this.socket = originalSocket;
+          if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString())) {
+            // Destroy redirect socket and use original connection
+            destroySocket();
+            this.reader = originalReader;
+            this.writer = originalWriter;
+            this.socket = originalSocket;
 
-            } else if(options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())) {
-                //When enableRedirect=on, the logic enforce the connection must go with redirection, so close the original connection and throw redirect conn's exception
-                closeSocket(originalReader, originalWriter, originalSocket);
-                destroySocket(); //Destroy redirect socket
-                throw redirectException;
-            }
-
+          } else if (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())) {
+            // When enableRedirect=on, the logic enforce the connection must go with redirection, so
+            // close the original connection and throw redirect conn's exception
+            closeSocket(originalReader, originalWriter, originalSocket);
+            destroySocket(); // Destroy redirect socket
+            throw redirectException;
+          }
         }
       }
 
@@ -682,7 +691,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
       destroySocket();
       throw sqlException;
     }
-    
   }
 
   /** Closing socket in case of Connection error after socket creation. */
@@ -863,14 +871,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-         OkPacket ok = new OkPacket(buffer, clientCapabilities);
-         String message = ok.getInfo();
-         RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
-         if(redirectInfo != null) {
+          OkPacket ok = new OkPacket(buffer, clientCapabilities);
+          String message = ok.getInfo();
+          RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
+          if (redirectInfo != null) {
             redirectHost = redirectInfo.getHost();
             redirectUser = redirectInfo.getUser();
             redirectTTL = redirectInfo.getTTL();
-         }
+          }
 
           break authentication_loop;
 
@@ -1023,18 +1031,26 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
-  /**
-   * Condition that redirection is available
-   */
+  /** Condition that redirection is available */
   private boolean isRedirectionAvailable() {
-      return (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString()) || options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString()))
-              && redirectHost != null && redirectHost.host != "" && redirectHost.port != -1
-              && redirectUser != null && redirectUser != ""
-              && (redirectHost.host != currentHost.host || redirectHost.port != currentHost.port || redirectUser != username);
+    return (options.enableRedirect.equalsIgnoreCase(RedirectionOption.ON.toString())
+            || options.enableRedirect.equalsIgnoreCase(RedirectionOption.PREFERRED.toString()))
+        && redirectHost != null
+        && redirectHost.host != ""
+        && redirectHost.port != -1
+        && redirectUser != null
+        && redirectUser != ""
+        && (redirectHost.host != currentHost.host
+            || redirectHost.port != currentHost.port
+            || redirectUser != username);
   }
 
   private boolean isServerSupportRedirection() {
-      return redirectHost != null && redirectHost.host != "" && redirectHost.port != -1 && redirectUser != null && redirectUser != "";
+    return redirectHost != null
+        && redirectHost.host != ""
+        && redirectHost.port != -1
+        && redirectUser != null
+        && redirectUser != "";
   }
 
   /**
