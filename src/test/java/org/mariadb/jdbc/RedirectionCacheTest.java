@@ -50,7 +50,7 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc;
 
 import static org.junit.Assert.fail;
 
@@ -64,7 +64,7 @@ import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.BaseTest;
 
-public class RedirectionInfoCacheTest extends BaseTest {
+public class RedirectionCacheTest extends BaseTest {
 
 	public boolean redirectAvailbleOnServer() throws SQLException {
 
