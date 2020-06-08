@@ -69,6 +69,7 @@ public class TraceObject {
    * @param send was packet send or received
    * @param indicatorFlag indicator. can be NOT_COMPRESSED, COMPRESSED_PROTOCOL_COMPRESSED_PACKET or
    *     COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET
+   * @param threadId current connection thread Id
    * @param buf buffers
    */
   public TraceObject(boolean send, int indicatorFlag, long threadId, byte[]... buf) {
