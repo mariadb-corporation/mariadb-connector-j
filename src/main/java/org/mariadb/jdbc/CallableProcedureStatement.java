@@ -336,7 +336,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
-    return getOutputResult().getDate(parameterIndex, cal);
+    return getOutputResult().getDate(indexToOutputIndex(parameterIndex), cal);
   }
 
   @Override
@@ -361,7 +361,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public Timestamp getTimestamp(int parameterIndex) throws SQLException {
-    return getOutputResult().getTimestamp(parameterIndex);
+    return getOutputResult().getTimestamp(indexToOutputIndex(parameterIndex));
   }
 
   @Override
@@ -431,7 +431,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public Blob getBlob(int parameterIndex) throws SQLException {
-    return getOutputResult().getBlob(parameterIndex);
+    return getOutputResult().getBlob(indexToOutputIndex(parameterIndex));
   }
 
   @Override

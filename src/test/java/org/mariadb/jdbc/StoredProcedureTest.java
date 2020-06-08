@@ -1662,4 +1662,18 @@ public class StoredProcedureTest extends BaseTest {
       assertFalse(st3.execute());
     }
   }
+
+  @Test
+  public void testTimestampParameterOutput() throws Exception {
+    createProcedure(
+        "CONJ791", "(IN a TEXT, OUT b DATETIME) \nBEGIN\nSET b := '2006-01-01 01:01:16';\nEND");
+
+    // registering with VARCHAR Type
+    CallableStatement cstmt = sharedConnection.prepareCall("{call CONJ791(?, ?)}");
+    cstmt.setString(1, "o");
+    cstmt.registerOutParameter(2, Types.TIMESTAMP);
+    cstmt.execute();
+
+    assertEquals(Timestamp.valueOf("2006-01-01 01:01:16"), cstmt.getTimestamp(2));
+  }
 }
