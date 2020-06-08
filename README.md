@@ -46,7 +46,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.6.1-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
