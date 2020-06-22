@@ -86,21 +86,22 @@ public class ColumnLabelIndexer {
     // found, we use
     // original table name.
     if (aliasMap == null) {
-      aliasMap = new HashMap<>();
+      Map<String, Integer> map = new HashMap<>();
       int counter = 0;
       for (ColumnDefinition ci : columnInfo) {
         String columnAlias = ci.getName();
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
-          aliasMap.putIfAbsent(columnAlias, counter);
+          map.putIfAbsent(columnAlias, counter);
 
           String tableName = ci.getTable();
           if (tableName != null) {
-            aliasMap.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnAlias, counter);
+            map.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnAlias, counter);
           }
         }
         counter++;
       }
+      aliasMap = map;
     }
 
     Integer res = aliasMap.get(lowerName);
@@ -109,22 +110,23 @@ public class ColumnLabelIndexer {
     }
 
     if (originalMap == null) {
-      originalMap = new HashMap<>();
+      Map<String, Integer> map = new HashMap<>();
       int counter = 0;
       for (ColumnDefinition ci : columnInfo) {
         String columnRealName = ci.getOriginalName();
         if (columnRealName != null) {
           columnRealName = columnRealName.toLowerCase(Locale.ROOT);
-          originalMap.putIfAbsent(columnRealName, counter);
+          map.putIfAbsent(columnRealName, counter);
 
           String tableName = ci.getOriginalTable();
           if (tableName != null) {
-            originalMap.putIfAbsent(
+            map.putIfAbsent(
                 tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
           }
         }
         counter++;
       }
+      originalMap = map;
     }
 
     res = originalMap.get(lowerName);
