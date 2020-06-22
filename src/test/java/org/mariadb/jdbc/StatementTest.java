@@ -718,7 +718,7 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void escaping() throws Exception {
-    try (Connection con = DriverManager.getConnection(mDefUrl + "&dumpQueriesOnException=true")) {
+    try (Connection con = setConnection("&dumpQueriesOnException=true")) {
       Statement stmt = con.createStatement();
       try {
         stmt.executeQuery(
