@@ -119,6 +119,7 @@ public class MariaDbStatement implements Statement, Cloneable {
   private Future<?> timerTaskFuture;
   private boolean isTimedout;
   private int maxFieldSize;
+  private boolean escape = true;
 
   /**
    * Creates a new Statement.
@@ -354,7 +355,7 @@ public class MariaDbStatement implements Statement, Cloneable {
               sql,
               null);
       protocol.executeQuery(
-          protocol.isMasterConnection(), results, getTimeoutSql(Utils.nativeSql(sql, protocol)));
+          protocol.isMasterConnection(), results, getTimeoutSql(nativeSql(sql, protocol)));
       results.commandEnd();
       return results.getResultSet() != null;
 
@@ -446,6 +447,10 @@ public class MariaDbStatement implements Statement, Cloneable {
     return sql;
   }
 
+  private String nativeSql(String sql, Protocol protocol) throws SQLException {
+    return escape ? Utils.nativeSql(sql, protocol) : sql;
+  }
+
   /**
    * ! This method is for test only ! This permit sending query using specific charset.
    *
@@ -473,10 +478,7 @@ public class MariaDbStatement implements Statement, Cloneable {
               sql,
               null);
       protocol.executeQuery(
-          protocol.isMasterConnection(),
-          results,
-          getTimeoutSql(Utils.nativeSql(sql, protocol)),
-          charset);
+          protocol.isMasterConnection(), results, getTimeoutSql(nativeSql(sql, protocol)), charset);
       results.commandEnd();
       return results.getResultSet() != null;
 
@@ -905,7 +907,7 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @param enable <code>true</code> to enable escape processing; <code>false</code> to disable it
    */
   public void setEscapeProcessing(final boolean enable) {
-    // not handled
+    escape = enable;
   }
 
   /**

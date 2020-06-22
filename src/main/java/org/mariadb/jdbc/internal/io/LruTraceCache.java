@@ -96,7 +96,8 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     boolean finished = false;
     while (!finished) {
       try {
-        Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
+        Map.Entry<String, TraceObject>[] arr =
+            entrySet().toArray((Map.Entry<String, TraceObject>[]) new Map.Entry[0]);
         for (Map.Entry<String, TraceObject> entry : arr) {
           TraceObject traceObj = entry.getValue();
           if (traceObj.getBuf() != null) {
