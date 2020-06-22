@@ -494,7 +494,8 @@ public class Utils {
       char car = charArray[i];
       if (lastChar == '\\' && !protocol.noBackslashEscapes()) {
         sqlBuffer.append(car);
-        lastChar = car;
+        // avoid considering escaped backslash as a futur escape character
+        lastChar = ' ';
         continue;
       }
 

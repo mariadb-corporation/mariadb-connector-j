@@ -30,10 +30,9 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.math.BigInteger;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.sql.*;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ScalarFunctionsTest extends BaseTest {
@@ -184,5 +183,19 @@ public class ScalarFunctionsTest extends BaseTest {
         assertEquals(res, rs.getObject(1));
       }
     }
+  }
+
+  @Test
+  public void doubleBackslash() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS TEST_SYNTAX_ERROR");
+    stmt.execute(
+        "CREATE TABLE TEST_SYNTAX_ERROR("
+            + "     id INTEGER unsigned NOT NULL AUTO_INCREMENT, "
+            + "     str_value MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL,"
+            + "     json_value  MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL, "
+            + "    PRIMARY KEY ( id ))");
+    stmt.execute(
+        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')");
   }
 }
