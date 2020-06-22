@@ -222,13 +222,14 @@ public class SslTest extends BaseTest {
 
   @Test
   public void useSslForceTlsV1() throws Exception {
-    Assume.assumeFalse(isMariadbServer() && minVersion(10, 4));
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     useSslForceTls("TLSv1");
   }
 
   @Test
   public void useSslForceTlsV11() throws Exception {
     // must either be mariadb or mysql version 5.7.10
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     if (isMariadbServer() || minVersion(5, 7)) {
       useSslForceTls("TLSv1.1");
     }
