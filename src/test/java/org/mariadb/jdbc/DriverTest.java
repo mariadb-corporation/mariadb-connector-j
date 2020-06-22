@@ -882,12 +882,12 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void streamingResultSetPositions() throws SQLException {
-    sharedConnection
-        .createStatement()
-        .execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4)");
     Statement stmt =
         sharedConnection.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    stmt.execute("TRUNCATE streamingressetpos");
+    stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4)");
+
     stmt.setFetchSize(Integer.MIN_VALUE);
     ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
     assertTrue(rs.absolute(2));
@@ -902,6 +902,23 @@ public class DriverTest extends BaseTest {
     assertEquals(1, rs.getRow());
     assertTrue(rs.next());
     assertEquals(2, rs.getRow());
+  }
+
+  @Test
+  public void streamingResultSetPositionsForward() throws SQLException {
+    Statement stmt =
+        sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    stmt.execute("TRUNCATE streamingressetpos");
+    stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4), (5), (6)");
+
+    stmt.setFetchSize(2);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
+    for (int i = 1; i <= 6; i++) {
+      assertTrue(rs.next());
+      assertEquals(i, rs.getRow());
+    }
+    assertFalse(rs.next());
+    assertEquals(7, rs.getRow());
   }
 
   @Test(expected = SQLException.class)
