@@ -120,8 +120,7 @@ public class ColumnLabelIndexer {
 
           String tableName = ci.getOriginalTable();
           if (tableName != null) {
-            map.putIfAbsent(
-                tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
+            map.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
           }
         }
         counter++;
