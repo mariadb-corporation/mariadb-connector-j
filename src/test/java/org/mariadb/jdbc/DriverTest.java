@@ -241,13 +241,8 @@ public class DriverTest extends BaseTest {
     // statement that cannot be prepared
     try (PreparedStatement pstmt =
         sharedConnection.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
-      try {
-        pstmt.getParameterMetaData();
-        fail();
-      } catch (SQLException sqle) {
-        assertEquals("42S22", sqle.getSQLState());
-        assertTrue(sqle.getMessage().contains("Unknown column"));
-      }
+      ParameterMetaData meta = pstmt.getParameterMetaData();
+      assertEquals(1, meta.getParameterCount());
     }
     Map<String, Integer> endingValues = loadVariables(stmt);
     assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
@@ -261,13 +256,8 @@ public class DriverTest extends BaseTest {
     // statement that cannot be prepared
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("selec1t 2 from dual")) {
-      try {
-        preparedStatement.getParameterMetaData();
-        fail();
-      } catch (SQLException sqle) {
-        assertEquals("42000", sqle.getSQLState());
-        assertTrue(sqle.getMessage().contains(" You have an error in your SQL syntax"));
-      }
+      ParameterMetaData meta = preparedStatement.getParameterMetaData();
+      assertEquals(0, meta.getParameterCount());
     }
   }
 
@@ -599,7 +589,7 @@ public class DriverTest extends BaseTest {
   @Test
   public void metadataUrl() throws SQLException {
     String testUrl =
-        System.getProperty("dbUrl", mDefUrl) + "&pool=true&maxPoolSize=2&minPoolSize=1";
+        System.getProperty("dbUrl", mDefUrl); // + "&pool=true&maxPoolSize=2&minPoolSize=1";
     // ensure that metadata URL correspond to initial URL
     assertEquals(sharedConnection.getMetaData().getURL(), testUrl);
 
@@ -616,6 +606,8 @@ public class DriverTest extends BaseTest {
         "user="
             + username
             + ((password != null) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
             + "&useServerPrepStmts=true");
     try (Connection conn = datasource2.getConnection()) {
       assertEquals(
@@ -628,6 +620,8 @@ public class DriverTest extends BaseTest {
               + "?user="
               + username
               + ((password != null) ? "&password=" + password : "")
+              + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+              + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
               + "&useServerPrepStmts=true",
           conn.getMetaData().getURL());
     }
@@ -708,8 +702,16 @@ public class DriverTest extends BaseTest {
   public void connectFailover() throws SQLException {
     Assume.assumeTrue(hostname != null);
     String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
-    String url = "jdbc:mariadb://" + hosts + "/" + database + "?user=" + username;
-    url += (password != null && !"".equals(password) ? "&password=" + password : "");
+    String url =
+        "jdbc:mariadb://"
+            + hosts
+            + "/"
+            + database
+            + "?user="
+            + username
+            + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+            + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "");
     try (Connection connection = openNewConnection(url)) {
       MariaDbConnection my = (MariaDbConnection) connection;
       assertTrue(my.getPort() == port);
@@ -880,12 +882,12 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void streamingResultSetPositions() throws SQLException {
-    sharedConnection
-        .createStatement()
-        .execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4)");
     Statement stmt =
         sharedConnection.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    stmt.execute("TRUNCATE streamingressetpos");
+    stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4)");
+
     stmt.setFetchSize(Integer.MIN_VALUE);
     ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
     assertTrue(rs.absolute(2));
@@ -900,6 +902,23 @@ public class DriverTest extends BaseTest {
     assertEquals(1, rs.getRow());
     assertTrue(rs.next());
     assertEquals(2, rs.getRow());
+  }
+
+  @Test
+  public void streamingResultSetPositionsForward() throws SQLException {
+    Statement stmt =
+        sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    stmt.execute("TRUNCATE streamingressetpos");
+    stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4), (5), (6)");
+
+    stmt.setFetchSize(2);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
+    for (int i = 1; i <= 6; i++) {
+      assertTrue(rs.next());
+      assertEquals(i, rs.getRow());
+    }
+    assertFalse(rs.next());
+    assertEquals(7, rs.getRow());
   }
 
   @Test(expected = SQLException.class)
@@ -1007,7 +1026,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
     try {
@@ -1175,7 +1194,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
 
@@ -1432,10 +1451,10 @@ public class DriverTest extends BaseTest {
 
     String path = rs.getString(2);
     st.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
-    st.execute("GRANT ALL on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    st.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("FLUSH PRIVILEGES");
     String connString = connU + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=" + path;
-    System.out.println(connString);
+
     try (Connection connection = openConnection(connString, null)) {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
@@ -1653,7 +1672,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
     assertEquals(

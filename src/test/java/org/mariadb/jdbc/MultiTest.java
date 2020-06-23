@@ -65,6 +65,7 @@ public class MultiTest extends BaseTest {
   /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    System.out.println("DIEGO MultiTest initClass BEGIN");
     createTable("MultiTestt1", "id int, test varchar(100)");
     createTable("MultiTestt2", "id int, test varchar(100)");
     createTable("MultiTestt3", "message text");

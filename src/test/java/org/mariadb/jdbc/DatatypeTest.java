@@ -1007,6 +1007,8 @@ public class DatatypeTest extends BaseTest {
                 + "?user="
                 + username
                 + ((password != null && !password.isEmpty()) ? "&password=" + password : "")
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
                 + "&useServerPrepStmts=true")) {
       checkCharactersInsert(connection);
     }
@@ -1020,6 +1022,8 @@ public class DatatypeTest extends BaseTest {
                 + "?user="
                 + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
                 + "&useServerPrepStmts=false")) {
       checkCharactersInsert(connection);
     }

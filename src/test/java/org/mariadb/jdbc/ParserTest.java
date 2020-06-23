@@ -57,6 +57,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -73,6 +74,16 @@ public class ParserTest extends BaseTest {
   public static void initClass() throws SQLException {
     createTable("table1", "id1 int auto_increment primary key");
     createTable("table2", "id2 int auto_increment primary key");
+  }
+
+  @Test
+  public void malformedUrlException() throws SQLException {
+    try {
+      DriverManager.getConnection("jdbc:mariadb:///" + hostname);
+      fail("must have thrown exception");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("No host is defined and pipe option is not set"));
+    }
   }
 
   @Test
@@ -116,6 +127,7 @@ public class ParserTest extends BaseTest {
 
   @Test
   public void mysqlDatasourceVerification() throws Exception {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource datasource = new MariaDbDataSource();
     datasource.setUser(username);
     datasource.setPassword(password);

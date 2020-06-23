@@ -1200,10 +1200,28 @@ public abstract class AbstractConnectProtocol implements Protocol {
         || (serverLanguage >= 224 && serverLanguage <= 247)) {
       return (byte) serverLanguage;
     }
+
     if (getMajorServerVersion() == 5 && getMinorServerVersion() <= 1) {
       // 5.1 version doesn't know 4 bytes utf8
       return (byte) 33; // utf8_general_ci
     }
+
+    // if server language is utf8mb3, use utf8mb4 equivalent collation
+    if (serverLanguage == 33) {
+      // utf8mb4_general_ci
+      return 45;
+    }
+
+    if (serverLanguage == 83) {
+      // utf8mb4_bin
+      return 46;
+    }
+
+    if (serverLanguage >= 192 && serverLanguage <= 215) {
+      // equivalent utf8mb4 collation
+      return (byte) (serverLanguage - 32);
+    }
+
     return (byte) 224; // UTF8MB4_UNICODE_CI;
   }
 
@@ -1318,17 +1336,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     // CONJ-293 : handle name-pipe without host
-    if (hosts.isEmpty() && options.pipe != null) {
-      try {
-        createConnection(null, username);
-        return;
-      } catch (SQLException exception) {
+    if (hosts.isEmpty()) {
+      if (options.pipe != null) {
+        try {
+          createConnection(null, username);
+          return;
+        } catch (SQLException exception) {
+          throw ExceptionFactory.INSTANCE.create(
+              String.format(
+                  "Could not connect to named pipe '%s' : %s%s",
+                  options.pipe, exception.getMessage(), getTraces()),
+              "08000",
+              exception);
+        }
+      } else {
         throw ExceptionFactory.INSTANCE.create(
-            String.format(
-                "Could not connect to named pipe '%s' : %s%s",
-                options.pipe, exception.getMessage(), getTraces()),
-            "08000",
-            exception);
+            "No host is defined and pipe option is not set. "
+                + "Check if connection string respect format "
+                + "(jdbc:(mysql|mariadb):[replication:|loadbalance:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]])",
+            "08000");
       }
     }
 
@@ -1378,10 +1404,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public boolean getReadonly() {
     return readOnly;
-  }
-
-  public void setReadonly(final boolean readOnly) {
-    this.readOnly = readOnly;
   }
 
   public HostAddress getHostAddress() {
@@ -1604,10 +1626,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public PacketInputStream getReader() {
     return reader;
-  }
-
-  public PacketOutputStream getWriter() {
-    return writer;
   }
 
   public boolean isEofDeprecated() {

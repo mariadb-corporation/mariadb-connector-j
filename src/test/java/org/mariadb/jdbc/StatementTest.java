@@ -715,4 +715,32 @@ public class StatementTest extends BaseTest {
     assertEquals(
         "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
   }
+
+  @Test
+  public void escaping() throws Exception {
+    try (Connection con = setConnection("&dumpQueriesOnException=true")) {
+      Statement stmt = con.createStatement();
+      try {
+        stmt.executeQuery(
+            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+        fail();
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage()
+                .contains("select timestampdiff(HOUR, '2003-02-01','2003-05-01') df df "));
+      }
+
+      stmt.setEscapeProcessing(false);
+      try {
+        stmt.executeQuery(
+            "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
+        fail();
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage()
+                .contains(
+                    "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df"));
+      }
+    }
+  }
 }

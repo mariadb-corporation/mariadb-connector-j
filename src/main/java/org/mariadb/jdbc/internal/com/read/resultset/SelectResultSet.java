@@ -95,6 +95,7 @@ public class SelectResultSet implements ResultSet {
   private int fetchSize;
   private int resultSetScrollType;
   private int rowPointer;
+  private int discardedRows = 0;
   private ColumnLabelIndexer columnLabelIndexer;
   private int lastRowPointer = -1;
   private boolean isClosed;
@@ -344,6 +345,7 @@ public class SelectResultSet implements ResultSet {
 
     // if resultSet can be back to some previous value
     if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+      discardedRows += dataSize;
       dataSize = 0;
     }
 
@@ -773,7 +775,7 @@ public class SelectResultSet implements ResultSet {
   public int getRow() throws SQLException {
     checkClose();
     if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-      return 0;
+      return discardedRows + rowPointer + 1;
     }
     return rowPointer + 1;
   }
@@ -1148,7 +1150,7 @@ public class SelectResultSet implements ResultSet {
 
   /** {inheritDoc}. */
   public ResultSetMetaData getMetaData() {
-    return new MariaDbResultSetMetaData(columnsInformation, options, forceAlias);
+    return new MariaDbResultSetMetaData(columnsInformation, options, forceAlias, false);
   }
 
   /** {inheritDoc}. */

@@ -96,7 +96,8 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     boolean finished = false;
     while (!finished) {
       try {
-        Map.Entry<String, TraceObject>[] arr = entrySet().toArray(new Map.Entry[0]);
+        Map.Entry<String, TraceObject>[] arr =
+            entrySet().toArray((Map.Entry<String, TraceObject>[]) new Map.Entry[0]);
         for (Map.Entry<String, TraceObject> entry : arr) {
           TraceObject traceObj = entry.getValue();
           if (traceObj.getBuf() != null) {
@@ -135,9 +136,13 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
   /** Permit to clear array's of array, to help garbage. */
   public synchronized void clearMemory() {
-    Collection<TraceObject> traceObjects = values();
-    for (TraceObject traceObject : traceObjects) {
-      traceObject.remove();
+    try {
+      Collection<TraceObject> traceObjects = values();
+      for (TraceObject traceObject : traceObjects) {
+        traceObject.remove();
+      }
+    } catch (ConcurrentModificationException c) {
+      // eat
     }
     this.clear();
   }

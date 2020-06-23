@@ -347,7 +347,7 @@ public class ErrorMessageTest extends BaseTest {
 
   @Test
   public void testFailOverKillCmd() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer());
     DataSource ds =
         new MariaDbDataSource(
@@ -363,7 +363,11 @@ public class ErrorMessageTest extends BaseTest {
                 + database
                 + "?user="
                 + username
-                + (password != null ? "&password=" + password : ""));
+                + (password != null ? "&password=" + password : "")
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null)
+                    ? "&serverSslCert=" + options.serverSslCert
+                    : ""));
 
     try (Connection connection = ds.getConnection()) {
       Protocol protocol = getProtocolFromConnection(connection);

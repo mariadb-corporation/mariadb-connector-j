@@ -75,6 +75,8 @@ public class DataSourceTest extends BaseTest {
 
   @Test
   public void testDataSource() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
 
@@ -85,6 +87,7 @@ public class DataSourceTest extends BaseTest {
 
   @Test
   public void testDataSource2() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
@@ -94,6 +97,7 @@ public class DataSourceTest extends BaseTest {
 
   @Test
   public void testDataSourceEmpty() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource ds = new MariaDbDataSource();
     ds.setDatabaseName(database);
     ds.setPort(port);
@@ -147,7 +151,8 @@ public class DataSourceTest extends BaseTest {
    */
   @Test
   public void setDatabaseNameTest() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
@@ -189,6 +194,7 @@ public class DataSourceTest extends BaseTest {
    */
   @Test(timeout = 50000) // unless port 3307 can be used
   public void setPortTest() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     Assume.assumeFalse("true".equals(System.getenv("AURORA")));
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
@@ -217,6 +223,7 @@ public class DataSourceTest extends BaseTest {
   @Test
   @SuppressWarnings("deprecation")
   public void setPropertiesTest() throws SQLException {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");

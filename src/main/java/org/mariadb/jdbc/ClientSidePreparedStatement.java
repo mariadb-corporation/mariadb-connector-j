@@ -514,11 +514,8 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
             exceptionFactory)) {
       resultSetMetaData = ssps.getMetaData();
       parameterMetaData = ssps.getParameterMetaData();
-    } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
-      // if error is due to wrong SQL syntax, better to throw exception immediately
-      throw sqlSyntaxErrorException;
-    } catch (SQLException sqle) {
-      parameterMetaData = new MariaDbParameterMetaData(null);
+    } catch (Exception exception) {
+      parameterMetaData = new SimpleParameterMetaData(prepareResult.getParamCount());
     }
   }
 
@@ -538,13 +535,6 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
   @Override
   public void close() throws SQLException {
     super.close();
-    if (connection == null
-        || connection.pooledConnection == null
-        || connection.pooledConnection.noStmtEventListeners()) {
-      return;
-    }
-    connection.pooledConnection.fireStatementClosed(this);
-    connection = null;
   }
 
   protected int getParameterCount() {

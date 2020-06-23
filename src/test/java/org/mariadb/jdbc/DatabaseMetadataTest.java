@@ -111,6 +111,9 @@ public class DatabaseMetadataTest extends BaseTest {
     createTable("ytab", "y year");
     createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
     createTable("conj72", "t tinyint(1)");
+    if (isMariadbServer() && minVersion(10, 3, 4)) {
+      createTable("versionTable", "x INT", "WITH SYSTEM VERSIONING");
+    }
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -442,6 +445,20 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals(true, rs.next());
     assertEquals(false, rs.next());
     rs = dbmd.getTables(null, null, "TABLE_PRIVILEGES", new String[] {"TABLE"});
+    assertEquals(false, rs.next());
+  }
+
+  @Test
+  public void testGetTablesSystemVersionTables() throws SQLException {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 3, 4));
+    DatabaseMetaData dbmd = sharedConnection.getMetaData();
+    ResultSet rs = dbmd.getTables(null, null, "versionTable", null);
+    assertEquals(true, rs.next());
+    assertEquals(false, rs.next());
+    rs = dbmd.getTables(null, null, "versionTable", new String[] {"TABLE"});
+    assertEquals(true, rs.next());
+    assertEquals(false, rs.next());
+    rs = dbmd.getTables(null, null, "versionTable", new String[] {"SYSTEM VIEW"});
     assertEquals(false, rs.next());
   }
 

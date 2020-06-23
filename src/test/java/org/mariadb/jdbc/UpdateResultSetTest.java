@@ -265,6 +265,32 @@ public class UpdateResultSetTest extends BaseTest {
                     "ResultSet cannot be updated. "
                         + "Primary key field `id` is not in result-set"));
       }
+      ResultSetMetaData rsmd = rs.getMetaData();
+      assertTrue(rsmd.isReadOnly(1));
+      assertTrue(rsmd.isReadOnly(2));
+      assertFalse(rsmd.isWritable(1));
+      assertFalse(rsmd.isWritable(2));
+      assertFalse(rsmd.isDefinitelyWritable(1));
+      assertFalse(rsmd.isDefinitelyWritable(2));
+
+      try {
+        rsmd.isReadOnly(3);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 3"));
+      }
+      try {
+        rsmd.isWritable(3);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 3"));
+      }
+      try {
+        rsmd.isDefinitelyWritable(3);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 3"));
+      }
     }
     int[] autoInc = setAutoInc();
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM UpdateWithoutPrimary");
@@ -309,6 +335,36 @@ public class UpdateResultSetTest extends BaseTest {
       assertTrue(rs.next());
       rs.updateString(2, utf8escapeQuote);
       rs.updateRow();
+
+      ResultSetMetaData rsmd = rs.getMetaData();
+      assertFalse(rsmd.isReadOnly(1));
+      assertFalse(rsmd.isReadOnly(2));
+      assertFalse(rsmd.isReadOnly(3));
+      assertTrue(rsmd.isWritable(1));
+      assertTrue(rsmd.isWritable(2));
+      assertTrue(rsmd.isWritable(3));
+      assertTrue(rsmd.isDefinitelyWritable(1));
+      assertTrue(rsmd.isDefinitelyWritable(2));
+      assertTrue(rsmd.isDefinitelyWritable(3));
+
+      try {
+        rsmd.isReadOnly(4);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
+      }
+      try {
+        rsmd.isWritable(4);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
+      }
+      try {
+        rsmd.isDefinitelyWritable(4);
+        fail("must have throw exception");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("no column with index 4"));
+      }
     }
 
     final int[] autoInc = setAutoInc();

@@ -87,7 +87,9 @@ public class SslTest extends BaseTest {
   @BeforeClass
   public static void enableCrypto() {
     Assume.assumeFalse(
-        System.getenv("MAXSCALE_VERSION") != null || "true".equals(System.getenv("AURORA")));
+        System.getenv("MAXSCALE_VERSION") != null
+            || System.getenv("SKYSQL") != null
+            || "true".equals(System.getenv("AURORA")));
     try {
       Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
       field.setAccessible(true);
@@ -119,7 +121,7 @@ public class SslTest extends BaseTest {
       throw new SQLException("unexpected exception :" + ioe.getMessage());
     }
 
-    if (System.getProperty("serverCertificatePath") == null) {
+    if (System.getProperty("serverCertificatePath") == null && System.getenv("SKYSQL") == null) {
       try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());
         serverCertificatePath = rs.getString(1);
@@ -142,10 +144,11 @@ public class SslTest extends BaseTest {
     }
     if (useOldNotation) {
       stmt.execute("CREATE USER 'ssltestUser'@'%'");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+      stmt.execute(
+          "GRANT SELECT ON *.* TO 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
     } else {
-      stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
+      stmt.execute("CREATE USER 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'%'");
     }
   }
 
@@ -219,13 +222,14 @@ public class SslTest extends BaseTest {
 
   @Test
   public void useSslForceTlsV1() throws Exception {
-    Assume.assumeFalse(isMariadbServer() && minVersion(10, 4));
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     useSslForceTls("TLSv1");
   }
 
   @Test
   public void useSslForceTlsV11() throws Exception {
     // must either be mariadb or mysql version 5.7.10
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     if (isMariadbServer() || minVersion(5, 7)) {
       useSslForceTls("TLSv1.1");
     }
@@ -406,7 +410,7 @@ public class SslTest extends BaseTest {
    */
   public void testConnect(Properties info, boolean sslExpected) throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
-    testConnect(info, sslExpected, "ssltestUser", "");
+    testConnect(info, sslExpected, "ssltestUser", "!Passw0rd3Works");
   }
 
   /**
@@ -420,6 +424,7 @@ public class SslTest extends BaseTest {
    */
   public void testConnect(Properties info, boolean sslExpected, String user, String pwd)
       throws SQLException {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     try (Connection conn = createConnection(info, user, pwd)) {
       // First do a basic select test:
@@ -465,6 +470,7 @@ public class SslTest extends BaseTest {
   public void testServerCertString() throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Properties info = new Properties();
     info.setProperty("useSSL", "true");
     info.setProperty("serverSslCert", getServerCertificate());
@@ -484,6 +490,7 @@ public class SslTest extends BaseTest {
   public void testServerCertFile() throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Properties info = new Properties();
     info.setProperty("useSSL", "true");
     info.setProperty("log", "true");
@@ -495,6 +502,7 @@ public class SslTest extends BaseTest {
   public void testServerCertClasspathFile() throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Assume.assumeTrue(new File("target/classes").isDirectory());
     Properties info = new Properties();
     info.setProperty("useSSL", "true");
@@ -517,6 +525,7 @@ public class SslTest extends BaseTest {
   public void conc71() throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     try {
       Properties info = new Properties();
       info.setProperty("serverSslCert", getServerCertificate());
@@ -534,6 +543,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
@@ -555,6 +565,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore2", ".tmp");
@@ -570,7 +581,7 @@ public class SslTest extends BaseTest {
       Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
 
       long sessionsReused = 0;
-      try (Connection conn = createConnection(info, "ssltestUser", "")) {
+      try (Connection conn = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
         // First do a basic select test:
         Statement stmt = conn.createStatement();
 
@@ -586,7 +597,7 @@ public class SslTest extends BaseTest {
           sessionsReused = rs.getLong(2);
         }
 
-        try (Connection conn2 = createConnection(info, "ssltestUser", "")) {
+        try (Connection conn2 = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
           Statement stmt2 = conn2.createStatement();
 
           try (ResultSet rs = stmt2.executeQuery("SHOW STATUS LIKE 'Ssl_sessions_reused'")) {
@@ -605,6 +616,7 @@ public class SslTest extends BaseTest {
       throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException,
           SQLException {
     Assume.assumeTrue(hasSameHost());
+    Assume.assumeNotNull(serverCertificatePath);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
@@ -627,6 +639,7 @@ public class SslTest extends BaseTest {
   public void testTrustStoreWithPasswordProperties() throws Exception {
     Assume.assumeTrue(hasSameHost());
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
     String keystorePath = tempKeystore.getAbsolutePath();
@@ -665,6 +678,7 @@ public class SslTest extends BaseTest {
           SQLException {
     Assume.assumeTrue(hasSameHost());
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
     String keystorePath = tempKeystore.getAbsolutePath();
@@ -687,6 +701,7 @@ public class SslTest extends BaseTest {
       throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException,
           SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // generate a truststore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
     String keystorePath = tempKeystore.getAbsolutePath();
@@ -709,6 +724,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // This test only runs if a client keystore and password have been passed in as properties
     // (-DkeystorePath and -DkeystorePassword)
     // You can create a keystore as follows:
@@ -746,6 +762,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // This test only runs if a client keystore and password have been passed in as properties
     // (-DkeystorePath and -DkeystorePassword)
     // You can create a keystore as follows:
@@ -885,6 +902,7 @@ public class SslTest extends BaseTest {
   public void testKeyStoreWithProperties() throws Exception {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     Assume.assumeNotNull(clientKeystorePath);
+    Assume.assumeNotNull(serverCertificatePath);
     // generate a trustStore from the canned serverCertificate
     File tempKeystore = File.createTempFile("keystore", ".tmp");
     String keystorePath = tempKeystore.getAbsolutePath();
@@ -994,6 +1012,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // This test only runs if a client keystore and password have been passed in as properties
     // (-DkeystorePath and -DkeystorePassword)
     // You can create a keystore as follows:
@@ -1045,6 +1064,7 @@ public class SslTest extends BaseTest {
       throws SQLException, IOException, KeyStoreException, CertificateException,
           NoSuchAlgorithmException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    Assume.assumeNotNull(serverCertificatePath);
     // This test only runs if a client keystore and password have been passed in as properties
     // (-DkeystorePath and -DkeystorePassword)
     // You can create a keystore as follows:
@@ -1100,12 +1120,10 @@ public class SslTest extends BaseTest {
     if (useOldNotation) {
       st.execute("CREATE USER '" + user + "'@'%'");
       st.execute(
-          "grant all privileges on *.* to '"
-              + user
-              + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+          "GRANT SELECT on *.* to '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
     } else {
       st.execute("CREATE USER '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
-      st.execute("grant all privileges on *.* to '" + user + "'@'%'");
+      st.execute("GRANT SELECT on *.* to '" + user + "'@'%'");
     }
   }
 

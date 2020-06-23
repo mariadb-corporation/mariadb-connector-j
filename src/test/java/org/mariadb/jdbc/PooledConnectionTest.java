@@ -88,7 +88,7 @@ public class PooledConnectionTest extends BaseTest {
 
   @Test(expected = SQLException.class)
   public void testPooledConnectionException() throws Exception {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
 
     ConnectionPoolDataSource ds =
         new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
@@ -119,6 +119,7 @@ public class PooledConnectionTest extends BaseTest {
 
   @Test
   public void testPooledConnectionStatementError() throws Exception {
+    Assume.assumeFalse(options.useSsl != null && options.useSsl);
     ConnectionPoolDataSource ds =
         new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
     PooledConnection pc = ds.getPooledConnection(username, password);

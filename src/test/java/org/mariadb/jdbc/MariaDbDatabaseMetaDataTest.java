@@ -52,13 +52,9 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import org.junit.Test;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
@@ -93,5 +89,77 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     assertEquals(yearAsDate ? "YEAR" : "SMALLINT", rs.getString(6));
     assertEquals(yearAsDate ? null : "5", rs.getString(7)); // column size
     assertEquals(yearAsDate ? null : "0", rs.getString(9)); // decimal digit
+  }
+
+  @Test
+  public void metadataNullWhenNotPossible() throws SQLException {
+    try (PreparedStatement preparedStatement =
+        sharedConnection.prepareStatement(
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, ?)")) {
+      assertNull(preparedStatement.getMetaData());
+      ParameterMetaData parameterMetaData = preparedStatement.getParameterMetaData();
+      assertEquals(1, parameterMetaData.getParameterCount());
+      try {
+        parameterMetaData.getParameterType(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("not supported"));
+      }
+      try {
+        parameterMetaData.getParameterClassName(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata class name"));
+      }
+      try {
+        parameterMetaData.getParameterTypeName(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata type name"));
+      }
+      try {
+        parameterMetaData.getPrecision(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata precision"));
+      }
+      try {
+        parameterMetaData.getScale(1);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("Unknown parameter metadata scale"));
+      }
+
+      try {
+        parameterMetaData.getParameterType(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getParameterClassName(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getParameterTypeName(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getPrecision(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+      try {
+        parameterMetaData.getScale(1000);
+        fail("must have throw error");
+      } catch (SQLException sqle) {
+        assertTrue(sqle.getMessage().contains("param was 1000 and must be in range 1 - 1"));
+      }
+    }
   }
 }

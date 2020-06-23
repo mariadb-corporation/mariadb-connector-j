@@ -71,7 +71,6 @@ import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -299,8 +298,6 @@ public interface Protocol {
   SQLException handleIoException(Exception initialException);
 
   PacketInputStream getReader();
-
-  PacketOutputStream getWriter();
 
   boolean isEofDeprecated();
 

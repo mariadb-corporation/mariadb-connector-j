@@ -88,7 +88,11 @@ public class PasswordEncodingTest extends BaseTest {
                     + "?user=test"
                     + currentCharsetName
                     + "&password="
-                    + exoticPwd)) {
+                    + exoticPwd
+                    + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                    + ((options.serverSslCert != null)
+                        ? "&serverSslCert=" + options.serverSslCert
+                        : ""))) {
           // windows-1252 and windows-1250 will work have the same conversion for this password
           if (!currentCharsetName.equals(Charset.defaultCharset().name())
               && (!"windows-1252".equals(currentCharsetName)
@@ -119,6 +123,7 @@ public class PasswordEncodingTest extends BaseTest {
           stmt.execute("DROP USER 'test" + charsetName + "'@'%'");
         } catch (SQLException e) {
           // nothing
+          e.printStackTrace();
         }
       }
     }
@@ -138,14 +143,18 @@ public class PasswordEncodingTest extends BaseTest {
       if (useOldNotation) {
         stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
         stmt.testExecute(
-            "GRANT ALL on *.* to 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'",
+            "GRANT SELECT on *.* to 'test"
+                + charsetName
+                + "'@'%' identified by '"
+                + exoticPwd
+                + "'",
             Charset.forName(charsetName));
 
       } else {
         stmt.testExecute(
             "CREATE USER 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'",
             Charset.forName(charsetName));
-        stmt.execute("GRANT ALL on *.* to 'test" + charsetName + "'@'%'");
+        stmt.execute("GRANT SELECT on *.* to 'test" + charsetName + "'@'%'");
       }
       stmt.execute("FLUSH PRIVILEGES");
     }

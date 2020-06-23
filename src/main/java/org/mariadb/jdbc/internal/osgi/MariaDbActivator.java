@@ -52,6 +52,7 @@
 package org.mariadb.jdbc.internal.osgi;
 
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import org.mariadb.jdbc.Driver;
@@ -86,9 +87,11 @@ public class MariaDbActivator implements BundleActivator {
       service.unregister();
       service = null;
     }
-
-    if (DriverManager.getDriver("jdbc:mariadb:") != null) {
+    try {
+      DriverManager.getDriver("jdbc:mariadb:");
       SchedulerServiceProviderHolder.close();
+    } catch (SQLException sqle) {
+      // eat "No suitable driver"
     }
   }
 }

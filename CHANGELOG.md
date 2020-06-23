@@ -1,5 +1,26 @@
 # Change Log
 
+## [2.6.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.1) (23 Jun. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.0...2.6.1)
+
+* CONJ-781 - DatabaseMetaData.supportsMultipleResultSets() now return correctly true. 
+* CONJ-791 - Using CallableStatement.getTimestamp() can't get data correctly
+* CONJ-705 - ParameterMetadata now return parameterCount() even if no information
+* CONJ-775 - avoid a NPE for malformed "jdbc:mariadb:///" connection string. 
+* CONJ-776 - Temporal Data Tables are not listed in metadata
+* CONJ-785 - corrected escape sequence for multiple backslash escape
+* CONJ-786 - Connection.setReadOnly(true ) with option `assureReadOnly` now force read only connection even for mono server* 
+* CONJ-795 - permit resultset.getRow() for TYPE_FORWARD_ONLY when streaming
+* CONJ-797 - Connector set UTF8mb4 equivalent in case of server configured with UTF8mb3 collation
+* CONJ-800 - implement Statement setEscapeProcessing to avoid escape
+* CONJ-801 - possible race condition using resultset getter using label
+* CONJ-778 - Missing import org.osgi.service.jdbc in Import-Package clause of the OSGi manifest
+* CONJ-779 - Logic error in stop() method of OSGi bundle activator
+* CONJ-780 - Logic error in implementation of OSGi DataSourceFactory (MariaDbDataSourceFactory)
+* CONJ-788 - resultset metadata always indicate that column is writable even if not
+* CONJ-789 - ensure connection reference removal on (prepared)Statement close
+* CONJ-782 - SkySQL testing
+
 ## [2.6.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.0) (19 Mar. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.4...2.6.0)
 

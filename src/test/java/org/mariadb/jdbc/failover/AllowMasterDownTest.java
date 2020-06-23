@@ -70,6 +70,7 @@ public class AllowMasterDownTest extends BaseTest {
   @Before
   public void init() {
     Assume.assumeTrue(testSingleHost);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     if (testSingleHost) {
       masterDownUrl =
           "jdbc:mariadb:replication//"
@@ -83,6 +84,8 @@ public class AllowMasterDownTest extends BaseTest {
               + "?user="
               + username
               + ((password != null) ? "&password=" + password : "")
+              + ((options.useSsl != null) ? "&useSsl" + options.useSsl : "")
+              + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
               + "&retriesAllDown=10&allowMasterDownConnection";
     }
   }

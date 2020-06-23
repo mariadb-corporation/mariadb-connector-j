@@ -221,7 +221,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void testResetTransactionIsolation() throws SQLException {
-    Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(!sharedIsAurora() && System.getenv("SKYSQL") == null);
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
@@ -297,6 +297,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
     // appveyor is so slow wait time are not relevant.
     Assume.assumeTrue(
         System.getenv("MAXSCALE_VERSION") == null
+            && System.getenv("SKYSQL") == null
             && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
 
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
@@ -408,6 +409,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureUsingPool() throws Exception {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     ThreadPoolExecutor connectionAppender =
         new ThreadPoolExecutor(
             50,

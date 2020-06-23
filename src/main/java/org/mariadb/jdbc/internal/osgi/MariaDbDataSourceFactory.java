@@ -66,9 +66,9 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
   @Override
   public DataSource createDataSource(Properties props) throws SQLException {
     if (props != null
-        || props.containsKey(JDBC_MIN_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+        && (props.containsKey(JDBC_MIN_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_IDLE_TIME))) {
       return createPoolDataSource(props);
     } else {
       return createBasicDataSource(props);
@@ -79,9 +79,9 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
   public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
       throws SQLException {
     if (props != null
-        || props.containsKey(JDBC_MIN_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+        && (props.containsKey(JDBC_MIN_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_IDLE_TIME))) {
       return createPoolDataSource(props);
     } else {
       return createBasicDataSource(props);
@@ -91,9 +91,9 @@ public class MariaDbDataSourceFactory implements DataSourceFactory {
   @Override
   public XADataSource createXADataSource(Properties props) throws SQLException {
     if (props != null
-        || props.containsKey(JDBC_MIN_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_POOL_SIZE)
-        || props.containsKey(JDBC_MAX_IDLE_TIME)) {
+        && (props.containsKey(JDBC_MIN_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_POOL_SIZE)
+            || props.containsKey(JDBC_MAX_IDLE_TIME))) {
       return createPoolDataSource(props);
     } else {
       return createBasicDataSource(props);

@@ -70,6 +70,40 @@ public class ResultSetMetaDataTest extends BaseTest {
     assertEquals("unikey_col", rsmd.getColumnName(3));
     assertEquals(Types.CHAR, rsmd.getColumnType(4));
     assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
+    assertTrue(rsmd.isReadOnly(1));
+    assertTrue(rsmd.isReadOnly(2));
+    assertTrue(rsmd.isReadOnly(3));
+    assertTrue(rsmd.isReadOnly(4));
+    assertTrue(rsmd.isReadOnly(5));
+    assertFalse(rsmd.isWritable(1));
+    assertFalse(rsmd.isWritable(2));
+    assertFalse(rsmd.isWritable(3));
+    assertFalse(rsmd.isWritable(4));
+    assertFalse(rsmd.isWritable(5));
+    assertFalse(rsmd.isDefinitelyWritable(1));
+    assertFalse(rsmd.isDefinitelyWritable(2));
+    assertFalse(rsmd.isDefinitelyWritable(3));
+    assertFalse(rsmd.isDefinitelyWritable(4));
+    assertFalse(rsmd.isDefinitelyWritable(5));
+
+    try {
+      rsmd.isReadOnly(6);
+      fail("must have throw exception");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("no column with index 6"));
+    }
+    try {
+      rsmd.isWritable(6);
+      fail("must have throw exception");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("no column with index 6"));
+    }
+    try {
+      rsmd.isDefinitelyWritable(6);
+      fail("must have throw exception");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("no column with index 6"));
+    }
 
     DatabaseMetaData md = sharedConnection.getMetaData();
     ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);

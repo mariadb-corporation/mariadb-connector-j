@@ -853,7 +853,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   @Override
   public ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException {
 
-    cmdPrologue();
     lock.lock();
     try {
       // search in cache first
@@ -863,6 +862,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           return pr;
         }
       }
+
+      cmdPrologue();
       writer.startPacket(0);
       writer.write(COM_STMT_PREPARE);
       writer.write(sql);
@@ -1447,6 +1448,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     } finally {
       lock.unlock();
     }
+  }
+
+  /**
+   * Puts this connection in read-only / read-write mode
+   *
+   * @param readOnly true enables read-only mode; false disables it
+   * @throws SQLException If socket error.
+   */
+  public void setReadonly(final boolean readOnly) throws SQLException {
+    if (options.assureReadOnly && this.readOnly != readOnly && versionGreaterOrEqual(5, 6, 5)) {
+      executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
+    }
+    this.readOnly = readOnly;
   }
 
   /**

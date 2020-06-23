@@ -261,12 +261,7 @@ public class ClientPreparedStatementTest extends BaseTest {
   @Test
   public void metaDataForWrongQuery() throws SQLException {
     PreparedStatement preparedStatement = sharedConnection.prepareStatement("WRONG QUERY");
-    try {
-      preparedStatement.getMetaData();
-      fail();
-    } catch (SQLSyntaxErrorException e) {
-      assertTrue(e.getMessage().contains("You have an error in your SQL syntax"));
-    }
+    assertNull(preparedStatement.getMetaData());
   }
 
   @Test
