@@ -65,23 +65,24 @@ public final class Version {
 
   static {
     InputStream inputStream = null;
-    String tmpVersion = "5.5.0";
+    String tmpVersion = "2.6.2";
     try {
       Properties prop = new Properties();
-      inputStream = Version.class.getClassLoader().getResourceAsStream("mariadb.properties");
+      inputStream = Version.class.getResourceAsStream("/mariadb.properties");
       if (inputStream != null) {
         prop.load(inputStream);
+        // get the property value and print it out
+        tmpVersion = prop.getProperty("version");
       } else {
         System.out.println("property file 'mariadb.properties' not found in the classpath");
       }
-
-      // get the property value and print it out
-      tmpVersion = prop.getProperty("version");
     } catch (Exception e) {
       // eat
     } finally {
       try {
-        inputStream.close();
+        if (inputStream != null) {
+          inputStream.close();
+        }
       } catch (IOException ioe) {
         // eat
       }
