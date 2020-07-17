@@ -1219,7 +1219,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     if (serverLanguage >= 192 && serverLanguage <= 215) {
       // equivalent utf8mb4 collation
-      return (byte) (serverLanguage - 32);
+      return (byte) (serverLanguage + 32);
     }
 
     return (byte) 224; // UTF8MB4_UNICODE_CI;
