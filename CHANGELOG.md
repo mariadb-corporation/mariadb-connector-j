@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.6.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.2) (23 Jul. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.1...2.6.2)
+
+* CONJ-804 - Automatic charset correction
+* CONJ-809 - SelectResultSet's (ResultSet)MetaData always indicates all columns to be readonly
+* CONJ-802 - Version parsing depending on Classloader might result in connection Exception
+
+
 ## [2.6.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.1) (23 Jun. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.0...2.6.1)
 

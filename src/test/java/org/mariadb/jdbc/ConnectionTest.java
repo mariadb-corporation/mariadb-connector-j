@@ -1006,4 +1006,25 @@ public class ConnectionTest extends BaseTest {
     connection.setReadOnly(false);
     stmt.execute("DROP TABLE testReadOnly");
   }
+
+  @Test
+  public void connectionAttributes() throws SQLException {
+
+    try (MariaDbConnection conn =
+        (MariaDbConnection) setConnection("&connectionAttributes=test:test1")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs1 = stmt.executeQuery("SELECT @@performance_schema");
+      rs1.next();
+      if ("1".equals(rs1.getString(1))) {
+        ResultSet rs =
+            stmt.executeQuery(
+                "SELECT * from performance_schema.session_connect_attrs where processlist_id="
+                    + conn.getServerThreadId()
+                    + " AND ATTR_NAME='test'");
+        while (rs.next()) {
+          assertEquals("test1", rs.getString("ATTR_VALUE"));
+        }
+      }
+    }
+  }
 }

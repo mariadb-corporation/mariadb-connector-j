@@ -224,7 +224,7 @@ public class UpdateResultSetTest extends BaseTest {
   }
 
   @Test
-  public void testUpdateWithoutPrimary() throws Exception {
+  public void testMeta() throws Exception {
     createTable(
         "UpdateWithoutPrimary",
         "`id` INT NOT NULL AUTO_INCREMENT,"
@@ -266,30 +266,31 @@ public class UpdateResultSetTest extends BaseTest {
                         + "Primary key field `id` is not in result-set"));
       }
       ResultSetMetaData rsmd = rs.getMetaData();
-      assertTrue(rsmd.isReadOnly(1));
-      assertTrue(rsmd.isReadOnly(2));
-      assertFalse(rsmd.isWritable(1));
-      assertFalse(rsmd.isWritable(2));
-      assertFalse(rsmd.isDefinitelyWritable(1));
-      assertFalse(rsmd.isDefinitelyWritable(2));
+      assertFalse(rsmd.isReadOnly(1));
+      assertFalse(rsmd.isReadOnly(2));
+      assertTrue(rsmd.isWritable(1));
+      assertTrue(rsmd.isWritable(2));
+      assertTrue(rsmd.isDefinitelyWritable(1));
+      assertTrue(rsmd.isDefinitelyWritable(2));
 
       try {
         rsmd.isReadOnly(3);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        System.out.println(sqle.getMessage());
+        assertTrue(sqle.getMessage().contains("wrong column index 3. must be in [1, 2] range"));
       }
       try {
         rsmd.isWritable(3);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        assertTrue(sqle.getMessage().contains("wrong column index 3. must be in [1, 2] range"));
       }
       try {
         rsmd.isDefinitelyWritable(3);
         fail("must have throw exception");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 3"));
+        assertTrue(sqle.getMessage().contains("wrong column index 3. must be in [1, 2] range"));
       }
     }
     int[] autoInc = setAutoInc();
@@ -298,92 +299,6 @@ public class UpdateResultSetTest extends BaseTest {
     assertEquals(autoInc[1] + autoInc[0], rs.getInt(1));
     assertEquals("1-1", rs.getString(2));
     assertEquals("1-2", rs.getString(3));
-
-    assertFalse(rs.next());
-  }
-
-  @Test
-  public void testUpdateWithPrimary() throws Exception {
-    createTable(
-        "testUpdateWithPrimary",
-        "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL,"
-            + "`t2` VARCHAR(50) NULL default 'default-value',"
-            + "PRIMARY KEY (`id`)",
-        "DEFAULT CHARSET=utf8");
-
-    Statement stmt = sharedConnection.createStatement();
-    stmt.executeQuery(
-        "INSERT INTO testUpdateWithPrimary(t1,t2) values ('1-1','1-2'),('2-1','2-2')");
-
-    String utf8escapeQuote = "你好 '' \" \\";
-
-    try (PreparedStatement preparedStatement =
-        sharedConnection.prepareStatement(
-            "SELECT id, t1, t2 FROM testUpdateWithPrimary",
-            ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-
-      rs.moveToInsertRow();
-      rs.updateInt(1, -1);
-      rs.updateString(2, "0-1");
-      rs.updateString(3, "0-2");
-      rs.insertRow();
-
-      assertTrue(rs.next());
-      assertTrue(rs.next());
-      rs.updateString(2, utf8escapeQuote);
-      rs.updateRow();
-
-      ResultSetMetaData rsmd = rs.getMetaData();
-      assertFalse(rsmd.isReadOnly(1));
-      assertFalse(rsmd.isReadOnly(2));
-      assertFalse(rsmd.isReadOnly(3));
-      assertTrue(rsmd.isWritable(1));
-      assertTrue(rsmd.isWritable(2));
-      assertTrue(rsmd.isWritable(3));
-      assertTrue(rsmd.isDefinitelyWritable(1));
-      assertTrue(rsmd.isDefinitelyWritable(2));
-      assertTrue(rsmd.isDefinitelyWritable(3));
-
-      try {
-        rsmd.isReadOnly(4);
-        fail("must have throw exception");
-      } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 4"));
-      }
-      try {
-        rsmd.isWritable(4);
-        fail("must have throw exception");
-      } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 4"));
-      }
-      try {
-        rsmd.isDefinitelyWritable(4);
-        fail("must have throw exception");
-      } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("no column with index 4"));
-      }
-    }
-
-    final int[] autoInc = setAutoInc();
-
-    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWithPrimary");
-    assertTrue(rs.next());
-    assertEquals(-1, rs.getInt(1));
-    assertEquals("0-1", rs.getString(2));
-    assertEquals("0-2", rs.getString(3));
-
-    assertTrue(rs.next());
-    assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
-    assertEquals("1-1", rs.getString(2));
-    assertEquals("1-2", rs.getString(3));
-
-    assertTrue(rs.next());
-    assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
-    assertEquals(utf8escapeQuote, rs.getString(2));
-    assertEquals("2-2", rs.getString(3));
 
     assertFalse(rs.next());
   }
