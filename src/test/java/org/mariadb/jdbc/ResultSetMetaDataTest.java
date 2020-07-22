@@ -70,40 +70,45 @@ public class ResultSetMetaDataTest extends BaseTest {
     assertEquals("unikey_col", rsmd.getColumnName(3));
     assertEquals(Types.CHAR, rsmd.getColumnType(4));
     assertEquals(Types.SMALLINT, rsmd.getColumnType(5));
-    assertTrue(rsmd.isReadOnly(1));
-    assertTrue(rsmd.isReadOnly(2));
-    assertTrue(rsmd.isReadOnly(3));
-    assertTrue(rsmd.isReadOnly(4));
-    assertTrue(rsmd.isReadOnly(5));
-    assertFalse(rsmd.isWritable(1));
-    assertFalse(rsmd.isWritable(2));
-    assertFalse(rsmd.isWritable(3));
-    assertFalse(rsmd.isWritable(4));
-    assertFalse(rsmd.isWritable(5));
-    assertFalse(rsmd.isDefinitelyWritable(1));
-    assertFalse(rsmd.isDefinitelyWritable(2));
-    assertFalse(rsmd.isDefinitelyWritable(3));
-    assertFalse(rsmd.isDefinitelyWritable(4));
-    assertFalse(rsmd.isDefinitelyWritable(5));
+    assertFalse(rsmd.isReadOnly(1));
+    assertFalse(rsmd.isReadOnly(2));
+    assertFalse(rsmd.isReadOnly(3));
+    assertFalse(rsmd.isReadOnly(4));
+    assertFalse(rsmd.isReadOnly(5));
+    assertTrue(rsmd.isWritable(1));
+    assertTrue(rsmd.isWritable(2));
+    assertTrue(rsmd.isWritable(3));
+    assertTrue(rsmd.isWritable(4));
+    assertTrue(rsmd.isWritable(5));
+    assertTrue(rsmd.isDefinitelyWritable(1));
+    assertTrue(rsmd.isDefinitelyWritable(2));
+    assertTrue(rsmd.isDefinitelyWritable(3));
+    assertTrue(rsmd.isDefinitelyWritable(4));
+    assertTrue(rsmd.isDefinitelyWritable(5));
 
     try {
       rsmd.isReadOnly(6);
       fail("must have throw exception");
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage().contains("no column with index 6"));
+      assertTrue(sqle.getMessage().contains("wrong column index 6. must be in [1, 5] range"));
     }
     try {
       rsmd.isWritable(6);
       fail("must have throw exception");
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage().contains("no column with index 6"));
+      assertTrue(sqle.getMessage().contains("wrong column index 6. must be in [1, 5] range"));
     }
     try {
       rsmd.isDefinitelyWritable(6);
       fail("must have throw exception");
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage().contains("no column with index 6"));
+      assertTrue(sqle.getMessage().contains("wrong column index 6. must be in [1, 5] range"));
     }
+
+    rs = stmt.executeQuery("select count(char_col) from test_rsmd");
+    assertTrue(rs.next());
+    rsmd = rs.getMetaData();
+    assertTrue(rsmd.isReadOnly(1));
 
     DatabaseMetaData md = sharedConnection.getMetaData();
     ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);

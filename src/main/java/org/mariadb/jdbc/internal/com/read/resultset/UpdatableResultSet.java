@@ -273,11 +273,6 @@ public class UpdatableResultSet extends SelectResultSet {
     }
   }
 
-  @Override
-  public ResultSetMetaData getMetaData() {
-    return new MariaDbResultSetMetaData(columnsInformation, options, false, canBeUpdate);
-  }
-
   private UpdatableColumnDefinition[] getUpdatableColumns() {
     return (UpdatableColumnDefinition[]) columnsInformation;
   }

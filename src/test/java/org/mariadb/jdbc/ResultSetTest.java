@@ -1202,7 +1202,7 @@ public class ResultSetTest extends BaseTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
     try (PreparedStatement preparedStatement =
-             sharedConnection.prepareStatement(
+        sharedConnection.prepareStatement(
             "SELECT * FROM " + "columnNamesMappingError",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {

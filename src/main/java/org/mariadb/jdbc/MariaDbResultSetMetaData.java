@@ -36,7 +36,6 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
   private final ColumnDefinition[] fieldPackets;
   private final Options options;
   private final boolean forceAlias;
-  private final boolean updatable;
 
   /**
    * Constructor.
@@ -44,17 +43,12 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @param fieldPackets column informations
    * @param options connection options
    * @param forceAlias force table and column name alias as original data
-   * @param updatable is column updatable
    */
   public MariaDbResultSetMetaData(
-      final ColumnDefinition[] fieldPackets,
-      final Options options,
-      final boolean forceAlias,
-      final boolean updatable) {
+      final ColumnDefinition[] fieldPackets, final Options options, final boolean forceAlias) {
     this.fieldPackets = fieldPackets;
     this.options = options;
     this.forceAlias = forceAlias;
-    this.updatable = updatable;
   }
 
   /**
@@ -312,10 +306,9 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @throws SQLException if a database access error occurs or in case of wrong index
    */
   public boolean isReadOnly(final int column) throws SQLException {
-    if (column >= 1 && column <= fieldPackets.length) {
-      return !updatable;
-    }
-    throw ExceptionFactory.INSTANCE.create(String.format("no column with index %s", column));
+    ColumnDefinition ci = getColumnInformation(column);
+    return (ci.getOriginalTable() == null || ci.getOriginalTable().isEmpty())
+        && (ci.getOriginalName() == null || ci.getOriginalName().isEmpty());
   }
 
   /**
@@ -362,7 +355,9 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }
-    throw ExceptionFactory.INSTANCE.create("No such column");
+    throw ExceptionFactory.INSTANCE.create(
+        String.format(
+            "wrong column index %s. must be in [1, %s] range", column, fieldPackets.length));
   }
 
   /**
