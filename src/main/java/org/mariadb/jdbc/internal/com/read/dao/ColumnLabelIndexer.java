@@ -131,7 +131,15 @@ public class ColumnLabelIndexer {
     res = originalMap.get(lowerName);
 
     if (res == null) {
-      throw ExceptionFactory.INSTANCE.create("No such column: " + name, "42S22", 1054);
+      Map<String, Integer> possible = new HashMap<>();
+      possible.putAll(aliasMap);
+      possible.putAll(originalMap);
+      throw ExceptionFactory.INSTANCE.create(
+          String.format(
+              "No such column: '%s'. '%s' must be in %s",
+              name, lowerName, possible.keySet().toString()),
+          "42S22",
+          1054);
     }
     return res;
   }

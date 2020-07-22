@@ -1196,19 +1196,31 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void columnNamesMappingError() throws SQLException {
-    createTable("columnNamesMappingError", "xx tinyint(1)");
+    createTable(
+        "columnNamesMappingError", "xX INT NOT NULL AUTO_INCREMENT, " + "  PRIMARY KEY(xX)");
+
     Statement stmt = sharedConnection.createStatement();
     stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
-    ResultSet rs = stmt.executeQuery("SELECT * FROM columnNamesMappingError");
-    assertTrue(rs.next());
-    assertEquals(4, rs.getInt("xx"));
-    try {
-      rs.getInt("wrong_column_name");
-      fail("must have fail, column 'wrong_column_name' does not exists");
-    } catch (SQLException e) {
-      assertEquals("42S22", e.getSQLState());
-      assertEquals(1054, e.getErrorCode());
-      assertEquals("No such column: wrong_column_name", e.getMessage());
+    try (PreparedStatement preparedStatement =
+             sharedConnection.prepareStatement(
+            "SELECT * FROM " + "columnNamesMappingError",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(4, rs.getInt("xx"));
+      try {
+        rs.getInt("wrong_column_name");
+        fail("must have fail, column 'wrong_column_name' does not exists");
+      } catch (SQLException e) {
+        assertEquals("42S22", e.getSQLState());
+        assertEquals(1054, e.getErrorCode());
+        assertTrue(
+            e.getMessage()
+                .contains(
+                    "No such column: 'wrong_column_name'. 'wrong_column_name' must be in "
+                        + "[xx, columnnamesmappingerror.xx]"));
+      }
     }
   }
 
