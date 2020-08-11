@@ -528,7 +528,7 @@ public class BaseTest {
     } catch (IOException e) {
       e.printStackTrace();
     }
-    String[] splitValue = connUri.split("/");
+    String[] splitValue = connUri.split("/", 4);
     String[] subarray =
         Arrays.asList(splitValue).subList(3, splitValue.length).toArray(new String[0]);
     String dbAndParameters = String.join("/", subarray);

@@ -231,7 +231,7 @@ public class BaseMultiHostTest {
     }
     proxySet.put(proxyType, tcpProxies);
 
-    String[] splitValue = tmpUrl.split("/");
+    String[] splitValue = tmpUrl.split("/", 4);
     String[] subarray =
         Arrays.asList(splitValue).subList(3, splitValue.length).toArray(new String[0]);
     String dbAndParameters = String.join("/", subarray);
