@@ -28,9 +28,6 @@ import org.mariadb.jdbc.Driver;
 
 public class AuthenticationPluginLoader {
 
-  private static ServiceLoader<AuthenticationPlugin> loader =
-      ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
-
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added
    * implementing AuthenticationPlugin and registering new type in resources services.
@@ -43,6 +40,9 @@ public class AuthenticationPluginLoader {
     if (type == null || type.isEmpty()) {
       return null;
     }
+
+    ServiceLoader<AuthenticationPlugin> loader =
+    	      ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
 
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
