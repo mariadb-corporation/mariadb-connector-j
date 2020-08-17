@@ -11,7 +11,7 @@ MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applicat
 Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
 
 ## Status
-[![Linux Build](https://travis-ci.org/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://travis-ci.org/mariadb-corporation/mariadb-connector-j)
+[![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://travis-ci.com/mariadb-corporation/mariadb-connector-j)
 [![Windows Build](https://ci.appveyor.com/api/projects/status/icmwu47dyj05htid/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j-8yinp/branch/master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
