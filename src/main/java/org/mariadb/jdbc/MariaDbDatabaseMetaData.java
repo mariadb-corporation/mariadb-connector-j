@@ -1941,8 +1941,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
-            + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
+        "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,"
+            + "NULL PROCEDURE_SCHEM, "
+            + "ROUTINE_NAME PROCEDURE_NAME,"
+            + " NULL RESERVED1,"
+            + " NULL RESERVED2,"
+            + " NULL RESERVED3,"
+            + " ROUTINE_COMMENT REMARKS,"
             + " CASE ROUTINE_TYPE "
             + "  WHEN 'FUNCTION' THEN "
             + procedureReturnsResult
@@ -1951,7 +1956,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  ELSE "
             + procedureResultUnknown
             + " END PROCEDURE_TYPE,"
-            + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
+            + " SPECIFIC_NAME "
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
