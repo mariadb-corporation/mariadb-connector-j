@@ -667,6 +667,85 @@ public class ServerPrepareStatementTest extends BaseTest {
   }
 
   @Test
+  public void characterObjectSupport() throws Throwable {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("CREATE TEMPORARY TABLE temp_character (v varchar(10) ) ");
+
+    try (PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO temp_character(v) VALUES (?)")) {
+      ps.setObject(1, 'c', Types.CHAR);
+      ps.addBatch();
+      ps.setObject(1, 'd', Types.VARCHAR);
+      ps.addBatch();
+      ps.setObject(1, new Character('e'), Types.CHAR);
+      ps.addBatch();
+      ps.setObject(1, new Character('f'), Types.VARCHAR);
+      ps.addBatch();
+      ps.setObject(1, '1', Types.INTEGER);
+      ps.addBatch();
+      ps.setObject(1, '2', Types.TINYINT);
+      ps.addBatch();
+      ps.setObject(1, '3', Types.SMALLINT);
+      ps.addBatch();
+      ps.setObject(1, '4', Types.DOUBLE);
+      ps.addBatch();
+      ps.setObject(1, '5', Types.BIGINT);
+      ps.addBatch();
+      ps.setObject(1, '6', Types.DECIMAL);
+      ps.addBatch();
+      ps.setObject(1, '7', Types.NUMERIC);
+      ps.addBatch();
+      ps.setObject(1, '0', Types.BOOLEAN);
+      ps.addBatch();
+      ps.setObject(1, '1', Types.BOOLEAN);
+      ps.addBatch();
+      ps.setObject(1, '2', Types.BOOLEAN);
+      ps.addBatch();
+      ps.setObject(1, null, Types.CHAR);
+      ps.addBatch();
+      try {
+        ps.setObject(1, '2', Types.BLOB);
+        fail();
+      } catch (SQLException e) {
+        e.getMessage().contains("Cannot convert a character to a Blob");
+      }
+
+      ps.executeBatch();
+    }
+    ResultSet rs = stmt.executeQuery("SELECT * FROM temp_character");
+    assertTrue(rs.next());
+    assertEquals("c", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("d", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("f", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("1", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("2", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("3", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("4.0", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("5", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("6", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("7", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("0", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("1", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("1", rs.getString(1));
+    assertTrue(rs.next());
+    assertNull(rs.getString(1));
+    assertFalse(rs.next());
+  }
+
+  @Test
   public void readerTest() throws Throwable {
     try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
       PreparedStatement ps =
