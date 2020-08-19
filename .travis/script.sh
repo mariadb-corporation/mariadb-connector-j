@@ -8,14 +8,15 @@ set -e
 ###################################################################################################################
 if [ -n "$SKYSQL" ] ; then
 
-  if [ -z "$SKYSQL_TEST_HOST" ] ; then
+  if [ -z "$SKYSQL_HOST" ] ; then
     echo "No SkySQL configuration found !"
     exit 0
-  fi
-  testSingleHost=true
-  urlString="jdbc:mariadb://$SKYSQL_TEST_HOST:$SKYSQL_TEST_PORT/testj?user=$SKYSQL_TEST_USER&password=$SKYSQL_TEST_PASSWORD&enablePacketDebug=true&useSsl&serverSslCert=$SKYSQL_TEST_SSL_CA"
+  else
+    testSingleHost=true
+    urlString="jdbc:mariadb://$SKYSQL_HOST:$SKYSQL_PORT/testj?user=$SKYSQL_USER&password=$SKYSQL_PASSWORD&enablePacketDebug=true&useSsl&serverSslCert=$SKYSQL_SSL_CA"
 
-  cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID} )
+    cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID} )
+  fi
 
 else
   case "$TYPE" in
