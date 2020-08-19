@@ -96,6 +96,7 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     boolean finished = false;
     while (!finished) {
       try {
+        @SuppressWarnings("unchecked")
         Map.Entry<String, TraceObject>[] arr =
             entrySet().toArray((Map.Entry<String, TraceObject>[]) new Map.Entry[0]);
         for (Map.Entry<String, TraceObject> entry : arr) {
