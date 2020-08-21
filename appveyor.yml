@@ -1,27 +1,27 @@
 version: '{build}'
 environment:
   matrix:
-    - DB: '10.2.31'
+    - DB: '10.2.33'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.3.22'
+    - DB: '10.3.24'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.4.12'
+    - DB: '10.4.14'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.5.1'
+    - DB: '10.5.5'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.1.44'
+    - DB: '10.1.46'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
