@@ -967,8 +967,9 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
       setNull(parameterIndex, Types.INTEGER);
     } else if (obj instanceof String || obj instanceof Character) {
       if (targetSqlType == Types.BLOB) {
-        throw exceptionFactory.create(String.format("Cannot convert a %s to a Blob", obj instanceof String ?
-            "string" : "character"));
+        throw exceptionFactory.create(
+            String.format(
+                "Cannot convert a %s to a Blob", obj instanceof String ? "string" : "character"));
       }
       String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
       try {

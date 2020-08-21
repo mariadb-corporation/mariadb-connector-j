@@ -59,6 +59,8 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TimeZone;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
@@ -88,7 +90,6 @@ public class UpdatableResultSet extends SelectResultSet {
   private ParameterHolder[] parameterHolders;
   private MariaDbConnection connection;
   private PreparedStatement refreshPreparedStatement = null;
-  private ClientSidePreparedStatement insertPreparedStatement = null;
   private ClientSidePreparedStatement deletePreparedStatement = null;
 
   /**
@@ -194,7 +195,7 @@ public class UpdatableResultSet extends SelectResultSet {
           // read SHOW COLUMNS informations
           String fieldName = rs.getString("Field");
           boolean canBeNull = "YES".equals(rs.getString("Null"));
-          boolean hasDefault = rs.getString("Default") == null;
+          boolean hasDefault = rs.getString("Default") != null;
           String extra = rs.getString("Extra");
           boolean generated = extra != null && !extra.isEmpty();
           boolean autoIncrement = extra != null && "auto_increment".equals(extra);
@@ -1046,48 +1047,74 @@ public class UpdatableResultSet extends SelectResultSet {
   /** {inheritDoc}. */
   public void insertRow() throws SQLException {
     if (state == STATE_INSERT) {
-      if (insertPreparedStatement == null) {
-        // Create query will all field with WHERE clause contain primary field.
-        // if field are not updated, value DEFAULT will be set
-        // (if field has no default, then insert will throw an exception that will be return to
-        // user)
-        StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
-        StringBuilder valueClause = new StringBuilder();
 
-        for (int pos = 0; pos < columnInformationLength; pos++) {
-          UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
-
-          if (pos != 0) {
-            insertSql.append(",");
-            valueClause.append(", ");
-          }
-
-          insertSql.append("`").append(colInfo.getOriginalName()).append("`");
-          valueClause.append("?");
-        }
-        insertSql.append(") VALUES (").append(valueClause).append(")");
-        insertPreparedStatement = connection.clientPrepareStatement(insertSql.toString());
-      }
-
-      int fieldsIndex = 0;
       boolean hasGeneratedPrimaryFields = false;
       int generatedSqlType = 0;
+      HashMap<Integer, ParameterHolder> paramMap = new HashMap<>();
+
+      // Create query will all field with WHERE clause contain primary field.
+      // if field are not updated, value DEFAULT will be set
+      // (if field has no default, then insert will throw an exception that will be return to
+      // user)
+      StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
+      StringBuilder valueClause = new StringBuilder();
+      int fieldsIndex = 0;
+
       for (int pos = 0; pos < columnInformationLength; pos++) {
+        UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
+
+        if (pos != 0) {
+          insertSql.append(",");
+          valueClause.append(", ");
+        }
+
+        insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+        valueClause.append("?");
         ParameterHolder value = parameterHolders[pos];
         if (value != null) {
-          insertPreparedStatement.setParameter((fieldsIndex++) + 1, value);
+          paramMap.put((fieldsIndex++) + 1, value);
         } else {
-          UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
-          if (colInfo.isPrimary() && colInfo.isAutoIncrement()) {
-            hasGeneratedPrimaryFields = true;
-            generatedSqlType = colInfo.getColumnType().getSqlType();
+          if (colInfo.isPrimary()) {
+            if (colInfo.isAutoIncrement() || colInfo.hasDefault()) {
+              if (colInfo.isAutoIncrement()) {
+                hasGeneratedPrimaryFields = true;
+                generatedSqlType = colInfo.getColumnType().getSqlType();
+              } else if (!connection.isServerMariaDb()
+                  || !connection.versionGreaterOrEqual(10, 5, 1)) {
+                // driver cannot know generated default value like uuid().
+                // but for server 10.5+, will use RETURNING to know primary key
+                throw new SQLException(
+                    String.format(
+                        "Cannot call insertRow() not setting value for primary key %s "
+                            + "with default value before server 10.5",
+                        colInfo.getOriginalName()));
+              }
+            } else {
+              throw new SQLException(
+                  String.format(
+                      "Cannot call insertRow() not setting value for primary key %s",
+                      colInfo.getOriginalName()));
+            }
+            paramMap.put((fieldsIndex++) + 1, new DefaultParameter());
+          } else {
+            paramMap.put(
+                (fieldsIndex++) + 1,
+                colInfo.hasDefault() ? new DefaultParameter() : new NullParameter());
           }
-          insertPreparedStatement.setParameter((fieldsIndex++) + 1, new DefaultParameter());
         }
       }
+      insertSql.append(") VALUES (").append(valueClause).append(")");
+      if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
+        insertSql.append(" RETURNING *");
+      }
+      ClientSidePreparedStatement insertPreparedStatement =
+          connection.clientPrepareStatement(insertSql.toString());
 
-      insertPreparedStatement.execute();
+      for (Map.Entry<Integer, ParameterHolder> entry : paramMap.entrySet()) {
+        insertPreparedStatement.setParameter(entry.getKey(), entry.getValue());
+      }
 
+      ResultSet insertRs = insertPreparedStatement.executeQuery();
       if (hasGeneratedPrimaryFields) {
         // primary is auto_increment (only one field)
         ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
@@ -1102,9 +1129,15 @@ public class UpdatableResultSet extends SelectResultSet {
             addRowData(rs.getCurrentRowData());
           }
         }
-
       } else {
-        addRowData(refreshRawData());
+        if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
+          if (insertRs.next()) {
+            byte[] rowByte = ((SelectResultSet) insertRs).getCurrentRowData();
+            addRowData(rowByte);
+          }
+        } else {
+          addRowData(refreshRawData());
+        }
       }
 
       Arrays.fill(parameterHolders, null);

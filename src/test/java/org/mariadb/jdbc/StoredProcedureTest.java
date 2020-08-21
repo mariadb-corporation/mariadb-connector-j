@@ -424,7 +424,8 @@ public class StoredProcedureTest extends BaseTest {
     properties.put("user", "test_jdbc");
     properties.put("password", "testJ@dc1");
 
-    createProcedure("testMetaCatalog", "(x int, out y int)  COMMENT 'my comment' \nBEGIN\nSET y = 2;\n end\n");
+    createProcedure(
+        "testMetaCatalog", "(x int, out y int)  COMMENT 'my comment' \nBEGIN\nSET y = 2;\n end\n");
 
     try (Connection connection = openConnection(connU, properties)) {
       CallableStatement callableStatement = connection.prepareCall("{call testMetaCatalog(?, ?)}");

@@ -671,7 +671,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("CREATE TEMPORARY TABLE temp_character (v varchar(10) ) ");
 
-    try (PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO temp_character(v) VALUES (?)")) {
+    try (PreparedStatement ps =
+        sharedConnection.prepareStatement("INSERT INTO temp_character(v) VALUES (?)")) {
       ps.setObject(1, 'c', Types.CHAR);
       ps.addBatch();
       ps.setObject(1, 'd', Types.VARCHAR);

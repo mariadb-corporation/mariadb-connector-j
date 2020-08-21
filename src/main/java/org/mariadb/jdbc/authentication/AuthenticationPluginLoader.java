@@ -42,7 +42,7 @@ public class AuthenticationPluginLoader {
     }
 
     ServiceLoader<AuthenticationPlugin> loader =
-    	      ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
+        ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
 
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {

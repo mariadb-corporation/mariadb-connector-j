@@ -407,7 +407,8 @@ public class UpdateResultSetTest extends BaseTest {
       } catch (SQLException sqle) {
         assertTrue(
             sqle.getMessage(),
-            sqle.getMessage().contains("Field 't1' doesn't have a default value"));
+            sqle.getMessage().contains("Field 't1' doesn't have a default value")
+                || sqle.getMessage().contains("Column 't1' cannot be null"));
       }
 
       rs.absolute(1);
@@ -993,6 +994,50 @@ public class UpdateResultSetTest extends BaseTest {
     ResultSet rs = preparedStatement.executeQuery();
     while (rs.next()) {
       rs.getObject(3);
+    }
+  }
+
+  @Test
+  public void updatableDefaultPrimaryField() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
+    stmt.execute(
+        "CREATE TABLE `testDefaultUUID` ("
+            + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
+            + "`column2` varchar(100) DEFAULT NULL,"
+            + " PRIMARY KEY (`column1`))");
+    String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
+    try (PreparedStatement pstmt =
+        sharedConnection.prepareStatement(
+            sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+      pstmt.execute();
+      ResultSet rs = pstmt.getResultSet();
+      rs.moveToInsertRow();
+      rs.updateString("column2", "x");
+      try {
+        rs.insertRow();
+        if (!isMariadbServer() || !minVersion(10, 5, 3)) {
+          fail("Must have thrown exception");
+        }
+
+        assertEquals(36, rs.getString(1).length());
+        assertEquals("x", rs.getString(2));
+      } catch (SQLException e) {
+        if (isMariadbServer() && minVersion(10, 5, 3)) {
+          fail("Must have succeed");
+        }
+        assertTrue(
+            e.getMessage()
+                .contains(
+                    "Cannot call insertRow() not setting value for primary key column1 with "
+                        + "default value before server 10.5"));
+      }
+      rs.moveToInsertRow();
+      rs.updateString("column1", "de6f7774-e399-11ea-aa68-c8348e0fed44");
+      rs.updateString("column2", "x");
+      rs.insertRow();
+      assertEquals("de6f7774-e399-11ea-aa68-c8348e0fed44", rs.getString(1));
+      assertEquals("x", rs.getString(2));
     }
   }
 }
