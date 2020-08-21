@@ -728,7 +728,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     assertTrue(rs.next());
     assertEquals("3", rs.getString(1));
     assertTrue(rs.next());
-    assertEquals(sharedOptions().useServerPrepStmts ? "4.0" : "4", rs.getString(1));
+    assertEquals(sharedOptions().useServerPrepStmts ? "4" : "4.0", rs.getString(1));
     assertTrue(rs.next());
     assertEquals("5", rs.getString(1));
     assertTrue(rs.next());

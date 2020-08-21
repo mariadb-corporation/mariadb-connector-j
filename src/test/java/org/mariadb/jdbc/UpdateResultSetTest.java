@@ -58,6 +58,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
+
+import org.junit.Assume;
 import org.junit.Test;
 
 public class UpdateResultSetTest extends BaseTest {
@@ -999,6 +1001,7 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void updatableDefaultPrimaryField() throws SQLException {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
     stmt.execute(
