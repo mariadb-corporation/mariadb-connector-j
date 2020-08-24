@@ -58,7 +58,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
-
 import org.junit.Assume;
 import org.junit.Test;
 
