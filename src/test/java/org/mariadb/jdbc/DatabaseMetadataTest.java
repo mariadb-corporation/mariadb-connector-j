@@ -123,6 +123,13 @@ public class DatabaseMetadataTest extends BaseTest {
         "create table cross3 (id int not null primary key, "
             + "id_ref1 int, id_ref2 int, foreign key fk_my_name (id_ref1, id_ref2) references cross2(id, id2) on "
             + "update cascade)");
+    stmt.execute(
+        "create table getBestRowIdentifier1(i int not null primary key auto_increment, id int, "
+            + "id_ref1 int, id_ref2 int, foreign key fk_my_name_1 (id_ref1, id_ref2) references cross2(id, id2) on "
+            + "update cascade, UNIQUE getBestRowIdentifier_unik (id))");
+    stmt.execute(
+        "create table getBestRowIdentifier2(id_ref0 int not null, "
+            + "id_ref1 int, id_ref2 int not null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
   }
 
   /**
@@ -133,6 +140,8 @@ public class DatabaseMetadataTest extends BaseTest {
   @AfterClass
   public static void afterClass() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
+    stmt.execute("drop table if exists getBestRowIdentifier1");
+    stmt.execute("drop table if exists getBestRowIdentifier2");
     stmt.execute("drop table if exists cross3");
     stmt.execute("drop table if exists cross2");
     stmt.execute("drop table if exists cross1");
@@ -370,7 +379,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("cross2", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref0", rs.getString("FKCOLUMN_NAME"));
     assertEquals(1, rs.getInt("KEY_SEQ"));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
@@ -392,7 +401,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("id_ref1", rs.getString("FKCOLUMN_NAME"));
     assertEquals(1, rs.getInt("KEY_SEQ"));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
@@ -416,7 +425,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("id_ref2", rs.getString("FKCOLUMN_NAME"));
     assertEquals(2, rs.getInt("KEY_SEQ"));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
@@ -428,8 +437,6 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals("fk_my_name", rs.getString("FK_NAME"));
     }
     assertEquals("unik_name", rs.getString("PK_NAME"));
-
-    assertFalse(rs.next());
   }
 
   @Test
@@ -848,12 +855,103 @@ public class DatabaseMetadataTest extends BaseTest {
   }
 
   @Test
-  public void getBestRowIdentifierBasic() throws SQLException {
+  public void getBestRowIdentifier() throws SQLException {
     testResultSetColumns(
         sharedConnection.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
         "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
             + "COLUMN_SIZE int,BUFFER_LENGTH int,"
             + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
+
+    ResultSet rs =
+        sharedConnection.getMetaData().getBestRowIdentifier(null, null, "cross1", 0, true);
+    assertTrue(rs.next());
+
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertFalse(rs.next());
+
+    rs = sharedConnection.getMetaData().getBestRowIdentifier(null, null, "cross2", 0, true);
+    assertTrue(rs.next());
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertTrue(rs.next());
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id2", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertFalse(rs.next());
+
+    rs = sharedConnection.getMetaData().getBestRowIdentifier(null, null, "cross3", 0, true);
+    assertTrue(rs.next());
+
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertFalse(rs.next());
+
+    // CHECK using PRI even if exist UNI
+
+    rs =
+        sharedConnection
+            .getMetaData()
+            .getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
+    assertTrue(rs.next());
+
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("i", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertFalse(rs.next());
+
+    rs =
+        sharedConnection
+            .getMetaData()
+            .getBestRowIdentifier(null, null, "getBestRowIdentifier2", 0, true);
+    assertTrue(rs.next());
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id_ref0", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertTrue(rs.next());
+
+    assertEquals(DatabaseMetaData.bestRowSession, rs.getInt(1));
+    assertEquals("id_ref2", rs.getString(2));
+    assertEquals(Types.INTEGER, rs.getInt(3));
+    assertEquals("int", rs.getString(4));
+    assertEquals(10, rs.getInt(5));
+    assertEquals(0, rs.getInt(6));
+    assertEquals(0, rs.getInt(7));
+    assertEquals(DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
+    assertFalse(rs.next());
   }
 
   @Test
@@ -1016,7 +1114,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("cross2", rs.getString(7));
     assertEquals("id_ref0", rs.getString(8));
     assertEquals(1, rs.getInt(9));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
@@ -1036,7 +1134,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("id_ref1", rs.getString(8));
     assertEquals(1, rs.getInt(9));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt(10));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
@@ -1059,7 +1157,7 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals("id_ref2", rs.getString(8));
     assertEquals(2, rs.getInt(9));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt(10));
-    if (!isMariadbServer() && minVersion(8,0)) {
+    if (!isMariadbServer() && minVersion(8, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
@@ -1493,5 +1591,11 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals(6, rs.getInt(scaleField));
 
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void various() throws SQLException {
+    DatabaseMetaData meta = sharedConnection.getMetaData();
+    assertEquals(64, meta.getMaxProcedureNameLength());
   }
 }

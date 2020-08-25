@@ -1070,19 +1070,29 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     String sql =
         "SELECT "
-            + DatabaseMetaData.bestRowUnknown
+            + bestRowSession
             + " SCOPE, COLUMN_NAME,"
             + dataTypeClause("COLUMN_TYPE")
             + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
             + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
             + " NUMERIC_SCALE DECIMAL_DIGITS,"
-            + " 1 PSEUDO_COLUMN"
+            + " if(IS_GENERATED='NEVER',"
+            + bestRowNotPseudo
+            + ","
+            + bestRowPseudo
+            + ") PSEUDO_COLUMN"
             + " FROM INFORMATION_SCHEMA.COLUMNS"
-            + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')"
-            + " AND "
+            + " WHERE (COLUMN_KEY  = 'PRI'"
+            + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = "
+            + "'PRI' AND "
             + catalogCond("TABLE_SCHEMA", catalog)
             + " AND TABLE_NAME = "
-            + escapeQuote(table);
+            + escapeQuote(table)
+            + " ))) AND "
+            + catalogCond("TABLE_SCHEMA", catalog)
+            + " AND TABLE_NAME = "
+            + escapeQuote(table)
+            + (nullable ? "" : " AND IS_NULLABLE = 'NO'");
 
     return executeQuery(sql);
   }
@@ -1800,7 +1810,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getMaxProcedureNameLength() {
-    return 256;
+    return 64;
   }
 
   public int getMaxCatalogNameLength() {
@@ -2533,15 +2543,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @param parentSchema a schema name; must match the schema name as it is stored in the database;
    *     "" retrieves those without a schema; <code>null</code> means drop schema name from the
    *     selection criteria
-   * @param parentTable the name of the table that exports the key; pattern, or null (means any table) value
+   * @param parentTable the name of the table that exports the key; pattern, or null (means any
+   *     table) value
    * @param foreignCatalog a catalog name; must match the catalog name as it is stored in the
    *     database; "" retrieves those without a catalog; <code>null</code> means drop catalog name
    *     from the selection criteria
    * @param foreignSchema a schema name; must match the schema name as it is stored in the database;
    *     "" retrieves those without a schema; <code>null</code> means drop schema name from the
    *     selection criteria
-   * @param foreignTable the name of the table that imports the key; pattern, or null (means any table) value
-   *     is stored in the database
+   * @param foreignTable the name of the table that imports the key; pattern, or null (means any
+   *     table) value is stored in the database
    * @return <code>ResultSet</code> - each row is a foreign key column description
    * @throws SQLException if a database access error occurs
    * @see #getImportedKeys
@@ -3366,7 +3377,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
-            + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
+            + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, "
+            + tableIndexOther
+            + " TYPE,"
             + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
             + " FROM INFORMATION_SCHEMA.STATISTICS"
