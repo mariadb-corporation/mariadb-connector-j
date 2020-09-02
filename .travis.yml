@@ -49,34 +49,36 @@ matrix:
     - env: DB=mariadb:10.3 PACKET=8M
       jdk: openjdk11
     - env: DB=mariadb:10.4 PACKET=8M
+      jdk: openjdk11
+    - env: DB=mariadb:10.5 PACKET=8M
+      jdk: openjdk11
+    - env: DB=mariadb:10.5 PACKET=8M
       jdk: oraclejdk11
-    - env: DB=mariadb:10.4 PACKET=8M
+    - env: DB=mariadb:10.5 PACKET=8M GALERA=true
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M GALERA=true
+    - env: DB=mariadb:10.5 PACKET=8M PROFILE=true
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M PROFILE=true
+    - env: DB=mariadb:10.5 PACKET=8M TYPE=PREPARE
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M TYPE=PREPARE
+    - env: DB=mariadb:10.5 PACKET=8M TYPE=REWRITE
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M TYPE=REWRITE
+    - env: DB=mariadb:10.5 PACKET=8M TYPE=MULTI
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M TYPE=MULTI
+    - env: DB=mariadb:10.5 PACKET=20M
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=20M
+    - env: DB=mariadb:10.5 PACKET=40M
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=40M
+    - env: DB=mariadb:10.5 PACKET=40M TYPE=BULK_SERVER
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=40M TYPE=BULK_SERVER
+    - env: DB=mariadb:10.5 PACKET=40M TYPE=NO_BULK_CLIENT
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=40M TYPE=NO_BULK_CLIENT
+    - env: DB=mariadb:10.5 PACKET=40M TYPE=NO_BULK_SERVER
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=40M TYPE=NO_BULK_SERVER
+    - env: DB=mariadb:10.5 PACKET=40M COMPRESSION=true
       jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=40M COMPRESSION=true
-      jdk: openjdk11
-    - env: DB=mariadb:10.4 PACKET=8M
+    - env: DB=mariadb:10.5 PACKET=8M
       jdk: openjdk12
-    - env: DB=mariadb:10.4 PACKET=8M MAXSCALE_VERSION=2.2.9
+    - env: DB=mariadb:10.5 PACKET=8M MAXSCALE_VERSION=2.2.9
       jdk: openjdk11
 
 script:
