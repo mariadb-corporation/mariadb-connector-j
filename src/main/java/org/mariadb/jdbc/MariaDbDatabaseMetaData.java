@@ -1068,6 +1068,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
 
+    boolean hasIsGeneratedCol =
+        (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10,2, 0))
+            || (!connection.isServerMariaDb()  && connection.versionGreaterOrEqual(8,0, 0));
+
     String sql =
         "SELECT "
             + bestRowSession
@@ -1076,11 +1080,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
             + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
             + " NUMERIC_SCALE DECIMAL_DIGITS,"
-            + " if(IS_GENERATED='NEVER',"
-            + bestRowNotPseudo
-            + ","
-            + bestRowPseudo
-            + ") PSEUDO_COLUMN"
+            + ( hasIsGeneratedCol ? ("IF(IS_GENERATED='NEVER'," + bestRowNotPseudo + "," + bestRowPseudo + ")") :
+            bestRowNotPseudo )
+            + " PSEUDO_COLUMN"
             + " FROM INFORMATION_SCHEMA.COLUMNS"
             + " WHERE (COLUMN_KEY  = 'PRI'"
             + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = "
