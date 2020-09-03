@@ -88,7 +88,9 @@ public class LocalInfileDisableTest extends BaseTest {
       assertTrue(
           message.contains(
                   "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true")
-              || message.contains("Loading local data is disabled"));
+              || message.contains("Loading local data is disabled")
+              || message.contains(
+                  "The used command is not allowed because the MariaDB server or client has disabled the local infile capability"));
     }
   }
 }
