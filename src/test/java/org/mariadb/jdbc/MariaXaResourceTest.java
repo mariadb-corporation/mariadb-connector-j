@@ -23,8 +23,9 @@ public class MariaXaResourceTest extends BaseTest {
 
   @Test
   public void xaRmTest() throws Exception {
-    MariaDbDataSource dataSource1 = new MariaDbDataSource(mDefUrl);
-    MariaDbDataSource dataSource2 = new MariaDbDataSource(mDefUrl + "&test=t");
+    String url = System.getProperty("dbUrl", mDefUrl);
+    MariaDbDataSource dataSource1 = new MariaDbDataSource(url);
+    MariaDbDataSource dataSource2 = new MariaDbDataSource(url + "&test=t");
     XAConnection con1 = dataSource1.getXAConnection();
     XAConnection con2 = dataSource1.getXAConnection();
     XAConnection con3 = dataSource2.getXAConnection();
