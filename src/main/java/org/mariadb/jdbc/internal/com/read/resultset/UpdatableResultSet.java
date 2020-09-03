@@ -1058,6 +1058,7 @@ public class UpdatableResultSet extends SelectResultSet {
       // user)
       StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
       StringBuilder valueClause = new StringBuilder();
+      StringBuilder returningClause = new StringBuilder();
       int fieldsIndex = 0;
 
       for (int pos = 0; pos < columnInformationLength; pos++) {
@@ -1066,9 +1067,11 @@ public class UpdatableResultSet extends SelectResultSet {
         if (pos != 0) {
           insertSql.append(",");
           valueClause.append(", ");
+          returningClause.append(", ");
         }
 
         insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+        returningClause.append("`").append(colInfo.getOriginalName()).append("`");
         valueClause.append("?");
         ParameterHolder value = parameterHolders[pos];
         if (value != null) {
@@ -1105,7 +1108,7 @@ public class UpdatableResultSet extends SelectResultSet {
       }
       insertSql.append(") VALUES (").append(valueClause).append(")");
       if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
-        insertSql.append(" RETURNING *");
+        insertSql.append(" RETURNING ").append(returningClause);
       }
       ClientSidePreparedStatement insertPreparedStatement =
           connection.clientPrepareStatement(insertSql.toString());
@@ -1115,7 +1118,12 @@ public class UpdatableResultSet extends SelectResultSet {
       }
 
       ResultSet insertRs = insertPreparedStatement.executeQuery();
-      if (hasGeneratedPrimaryFields) {
+      if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
+        if (insertRs.next()) {
+          byte[] rowByte = ((SelectResultSet) insertRs).getCurrentRowData();
+          addRowData(rowByte);
+        }
+      } else if (hasGeneratedPrimaryFields) {
         // primary is auto_increment (only one field)
         ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
         if (rsKey.next()) {
@@ -1130,14 +1138,7 @@ public class UpdatableResultSet extends SelectResultSet {
           }
         }
       } else {
-        if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
-          if (insertRs.next()) {
-            byte[] rowByte = ((SelectResultSet) insertRs).getCurrentRowData();
-            addRowData(rowByte);
-          }
-        } else {
-          addRowData(refreshRawData());
-        }
+        addRowData(refreshRawData());
       }
 
       Arrays.fill(parameterHolders, null);
