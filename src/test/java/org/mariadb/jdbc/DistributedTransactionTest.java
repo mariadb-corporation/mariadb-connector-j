@@ -110,7 +110,7 @@ public class DistributedTransactionTest extends BaseTest {
    */
   private int test2PhaseCommit(boolean doCommit) throws Exception {
 
-    int connectionNumber = 1;
+    int connectionNumber = 2;
 
     Xid parentXid = newXid();
     Connection[] connections = new Connection[connectionNumber];
