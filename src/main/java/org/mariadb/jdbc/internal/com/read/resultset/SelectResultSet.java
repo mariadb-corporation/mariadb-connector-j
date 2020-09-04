@@ -87,7 +87,7 @@ public class SelectResultSet implements ResultSet {
   private boolean isEof;
   private boolean callableResult;
   private MariaDbStatement statement;
-  private RowProtocol row;
+  protected RowProtocol row;
   private int dataFetchTime;
   private boolean streaming;
   private byte[][] data;

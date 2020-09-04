@@ -65,6 +65,7 @@ import java.util.TimeZone;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import org.mariadb.jdbc.internal.com.send.parameters.*;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -1060,22 +1061,26 @@ public class UpdatableResultSet extends SelectResultSet {
       StringBuilder valueClause = new StringBuilder();
       StringBuilder returningClause = new StringBuilder();
       int fieldsIndex = 0;
+      boolean firstParam = true;
 
       for (int pos = 0; pos < columnInformationLength; pos++) {
         UpdatableColumnDefinition colInfo = getUpdatableColumns()[pos];
 
         if (pos != 0) {
-          insertSql.append(",");
-          valueClause.append(", ");
           returningClause.append(", ");
         }
-
-        insertSql.append("`").append(colInfo.getOriginalName()).append("`");
         returningClause.append("`").append(colInfo.getOriginalName()).append("`");
-        valueClause.append("?");
+
         ParameterHolder value = parameterHolders[pos];
         if (value != null) {
+          if (!firstParam) {
+            insertSql.append(",");
+            valueClause.append(", ");
+          }
+          insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+          valueClause.append("?");
           paramMap.put((fieldsIndex++) + 1, value);
+          firstParam = false;
         } else {
           if (colInfo.isPrimary()) {
             if (colInfo.isAutoIncrement() || colInfo.hasDefault()) {
@@ -1098,11 +1103,17 @@ public class UpdatableResultSet extends SelectResultSet {
                       "Cannot call insertRow() not setting value for primary key %s",
                       colInfo.getOriginalName()));
             }
-            paramMap.put((fieldsIndex++) + 1, new DefaultParameter());
-          } else {
-            paramMap.put(
-                (fieldsIndex++) + 1,
-                colInfo.hasDefault() ? new DefaultParameter() : new NullParameter());
+            // paramMap.put((fieldsIndex++) + 1, new DefaultParameter());
+          } else if (!colInfo.hasDefault()) {
+            if (!firstParam) {
+              insertSql.append(",");
+              valueClause.append(", ");
+            }
+            firstParam = false;
+            insertSql.append("`").append(colInfo.getOriginalName()).append("`");
+            valueClause.append("?");
+
+            paramMap.put((fieldsIndex++) + 1, new NullParameter());
           }
         }
       }
@@ -1110,8 +1121,11 @@ public class UpdatableResultSet extends SelectResultSet {
       if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
         insertSql.append(" RETURNING ").append(returningClause);
       }
-      ClientSidePreparedStatement insertPreparedStatement =
-          connection.clientPrepareStatement(insertSql.toString());
+
+      BasePrepareStatement insertPreparedStatement =
+          (row instanceof BinaryRowProtocol)
+              ? connection.serverPrepareStatement(insertSql.toString())
+              : connection.clientPrepareStatement(insertSql.toString());
 
       for (Map.Entry<Integer, ParameterHolder> entry : paramMap.entrySet()) {
         insertPreparedStatement.setParameter(entry.getKey(), entry.getValue());
