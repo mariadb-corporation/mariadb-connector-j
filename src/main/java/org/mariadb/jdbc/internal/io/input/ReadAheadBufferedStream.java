@@ -137,7 +137,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   }
 
   public synchronized int available() throws IOException {
-    throw new IOException("available from socket not implemented");
+    return end - pos + super.available();
   }
 
   public synchronized void reset() throws IOException {

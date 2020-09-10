@@ -140,6 +140,7 @@ public class Options implements Cloneable {
   // MySQL sha authentication
   public String serverRsaPublicKeyFile;
   public boolean allowPublicKeyRetrieval;
+  public boolean ensureSocketState;
 
   @Override
   public String toString() {

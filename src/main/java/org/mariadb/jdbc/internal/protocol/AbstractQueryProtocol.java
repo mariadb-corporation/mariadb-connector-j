@@ -55,10 +55,7 @@ package org.mariadb.jdbc.internal.protocol;
 import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -1940,6 +1937,37 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       throw exceptionFactory.create("Connection is closed", "08000", 1220);
     }
     interrupted = false;
+    if (this.options.ensureSocketState) {
+      // ensure that the socket buffer is empty before issuing new command.
+      // (this doesn't concern pipelining commands).
+      // If data is present in socket, an error will be raised, throwing the content of socket data to permit
+      // identification of error.
+      try {
+        int avail = this.reader.getInputStream().available();
+        if (avail > 0) {
+          // unexpected data in socket buffer
+
+          // reading socket buffer to add content to error.
+          byte[] data = new byte[Math.min(avail, 16000)];
+          int remaining = avail;
+          int off = 0;
+          do {
+            int count = this.reader.getInputStream().read(data, off, remaining);
+            if (count < 0) {
+              break;
+            }
+            remaining -= count;
+            off += count;
+          } while (remaining > 0);
+
+          throw exceptionFactory.create(
+              "Unexpected data in socket buffer:" + Utils.hexdump(data), "HY000");
+        }
+
+      } catch (IOException ioe) {
+        throw exceptionFactory.create("Unexpected socket error", "08000", ioe);
+      }
+    }
   }
 
   /**

@@ -685,8 +685,13 @@ public enum DefaultOptions {
       Boolean.TRUE,
       "2.6.0",
       "manage session_track_schema setting when server has CLIENT_SESSION_TRACK capability",
+      false),
+  ENSURE_SOCKET_STATE(
+      "ensureSocketState",
+      Boolean.FALSE,
+      "2.7.0",
+      "ensure socket state before issuing a new command",
       false);
-
   private final String optionName;
   private final String description;
   private final boolean required;

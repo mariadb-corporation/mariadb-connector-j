@@ -324,4 +324,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
   public void setTraceCache(LruTraceCache traceCache) {
     this.traceCache = traceCache;
   }
+
+  public InputStream getInputStream() {
+    return inputStream;
+  }
 }

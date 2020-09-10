@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.io.input;
 
 import java.io.IOException;
+import java.io.InputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 
@@ -71,4 +72,6 @@ public interface PacketInputStream {
   void setServerThreadId(long serverThreadId, Boolean isMaster);
 
   void setTraceCache(LruTraceCache traceCache);
+
+  InputStream getInputStream();
 }
