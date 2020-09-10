@@ -91,7 +91,7 @@ public class Options implements Cloneable {
   public boolean useServerPrepStmts;
   public boolean continueBatchOnError = true;
   public boolean jdbcCompliantTruncation = true;
-  public boolean cacheCallableStmts = true;
+  public boolean cacheCallableStmts;
   public int callableStmtCacheSize = 150;
   public String connectionAttributes;
   public Boolean useBatchMultiSend;

@@ -399,9 +399,9 @@ public enum DefaultOptions {
       false),
   CACHE_CALLABLE_STMTS(
       "cacheCallableStmts",
-      Boolean.TRUE,
+      Boolean.FALSE,
       "1.4.0",
-      "enable/disable callable Statement cache, default" + " true.",
+      "enable/disable callable Statement cache, default false.",
       false),
   CALLABLE_STMT_CACHE_SIZE(
       "callableStmtCacheSize",
