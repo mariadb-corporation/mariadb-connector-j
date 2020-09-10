@@ -67,25 +67,27 @@ public class StringUTFTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "stringutftest",
-        "id int not null primary key auto_increment, stringutf varchar(40)",
-        "COLLATE='utf8_general_ci'");
+    createTable("stringutftest", "stringutf varchar(40)", "COLLATE='utf8mb4_general_ci'");
   }
 
   @Test
-  public void testString() throws SQLException {
+  public void maxFieldSizeTruncation() throws SQLException {
     PreparedStatement ps =
-        sharedConnection.prepareStatement("insert into stringutftest values(null, ?)");
-    ps.setString(1, "śćżźęąółń");
+        sharedConnection.prepareStatement("insert into stringutftest(stringutf) values(?)");
+    ps.setString(1, "śćżź");
     ps.execute();
+
+    ps.setString(1, "1234567\uD83E\uDD42");
+    ps.execute();
+
     Statement stmt = sharedConnection.createStatement();
-    stmt.setMaxFieldSize(40);
+    stmt.setMaxFieldSize(10);
     ResultSet rs = stmt.executeQuery("select * from stringutftest");
-    if (rs.next()) {
-      assertEquals("śćżźęąółń", rs.getString(2));
-    } else {
-      fail("must have a result !");
-    }
+    assertTrue(rs.next());
+    // no truncation
+    assertEquals("śćżź", rs.getString(1));
+    assertTrue(rs.next());
+    // truncation
+    assertEquals("1234567�", rs.getString(1));
   }
 }
