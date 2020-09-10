@@ -780,5 +780,6 @@ public class StatementTest extends BaseTest {
     assertFalse(rs.next());
 
     assertFalse(prep.getMoreResults());
+    prep.close();
   }
 }

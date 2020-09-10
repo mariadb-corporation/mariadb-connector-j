@@ -347,7 +347,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeOffsetNowUseServer() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null || System.getenv("SKYSQL") == null);
     try (Connection connection =
         setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
       setSessionTimeZone(connection, "+5:00");
