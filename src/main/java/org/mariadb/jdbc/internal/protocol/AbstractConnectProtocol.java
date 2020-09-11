@@ -633,7 +633,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     if (Boolean.TRUE.equals(options.useSsl)) {
 
       if ((serverCapabilities & MariaDbServerCapabilities.SSL) == 0) {
-        exceptionFactory.create(
+        throw exceptionFactory.create(
             "Trying to connect with ssl, but ssl not enabled in the server", "08000");
       }
       clientCapabilities |= MariaDbServerCapabilities.SSL;
