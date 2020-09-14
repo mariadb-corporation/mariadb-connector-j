@@ -63,7 +63,8 @@ else
       -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
       -Dkeystore2PathP12="$SSLCERT/fullclient-keystore.p12" \
       -DrunLongTest=true \
-      -DserverPublicKey="$SSLCERT/public.key" )
+      -DserverPublicKey="$SSLCERT/public.key"\
+      -DsslPort="$SSLPORT")
 
   if [ -n "$AURORA" ] ; then
       if [ -n "$AURORA_STRING_URL" ] ; then
@@ -82,9 +83,9 @@ else
           ###################################################################################################################
           # launch Maxscale with one server
           ###################################################################################################################
-          mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
+          mysql=( mysql --protocol=TCP -ubob -h127.0.0.1 --port=4006 test2)
           export COMPOSE_FILE=.travis/maxscale-compose.yml
-          urlString='jdbc:mariadb://mariadb.example.com:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+          urlString='jdbc:mariadb://mariadb.example.com:4006/testj?user=bob&enablePacketDebug=true'
           docker-compose -f ${COMPOSE_FILE} build
           docker-compose -f ${COMPOSE_FILE} up -d
       else
@@ -93,7 +94,7 @@ else
                   ###################################################################################################################
                   # launch 3 galera servers
                   ###################################################################################################################
-                  mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
+                  mysql=( mysql --protocol=TCP -ubob -hmariadb.example.com --port=3106 test2)
                   export COMPOSE_FILE=.travis/galera-compose.yml
 
                   urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
@@ -101,7 +102,7 @@ else
                   docker-compose -f ${COMPOSE_FILE} up -d
                   SLEEP 10
               else
-                  mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
+                  mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 test2)
 
                   urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
                   docker run \
@@ -135,7 +136,7 @@ else
               ###################################################################################################################
               # launch docker server
               ###################################################################################################################
-              mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
+              mysql=( mysql --protocol=TCP -ubob -hmariadb.example.com --port=3305 test2)
               export COMPOSE_FILE=.travis/docker-compose.yml
               docker-compose -f ${COMPOSE_FILE} up -d
 
@@ -147,27 +148,29 @@ else
       # wait for docker initialisation
       ###################################################################################################################
 
-      for i in {60..0}; do
-          if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
+      for i in {15..0}; do
+          if echo 'SELECT 1' | "${mysql[@]}" ; then
               break
           fi
           echo 'data server still not active'
-          sleep 1
+          sleep 2
       done
 
 
       if [ "$i" = 0 ]; then
-          if [ -n "COMPOSE_FILE" ] ; then
-              docker-compose -f ${COMPOSE_FILE} logs
+
+          if echo 'SELECT 1' | "${mysql[@]}" ; then
+              break
           fi
 
-          echo 'SELECT 1' | "${mysql[@]}"
+          docker-compose -f ${COMPOSE_FILE} logs
+          if [ -n "$MAXSCALE_VERSION" ] ; then
+              docker-compose -f $COMPOSE_FILE exec maxscale tail -n 500 /var/log/maxscale/maxscale.log
+          fi
           echo >&2 'data server init process failed.'
           exit 1
       fi
   fi
-
-
 fi
 
 
@@ -179,8 +182,5 @@ cmd+=( -DdbUrl="$urlString" )
 cmd+=( -DtestSingleHost="$testSingleHost" )
 echo ${cmd}
 
-if [ -n "$MAXSCALE_VERSION" ] ; then
-    docker-compose -f $COMPOSE_FILE exec maxscale tail -n 500 /var/log/maxscale/maxscale.log
-fi
 
 "${cmd[@]}"

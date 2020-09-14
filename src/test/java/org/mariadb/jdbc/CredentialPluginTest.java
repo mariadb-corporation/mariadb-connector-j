@@ -43,15 +43,23 @@ public class CredentialPluginTest extends BaseTest {
     }
     Statement stmt = sharedConnection.createStatement();
     if (useOldNotation) {
+      stmt.execute("CREATE USER 'identityUser'@'localhost'");
+      stmt.execute(
+          "GRANT SELECT ON "
+              + database
+              + ".* TO 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute("CREATE USER 'identityUser'@'%'");
       stmt.execute(
           "GRANT SELECT ON "
               + database
               + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
+      stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'localhost'");
       stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%'");
     }
+    stmt.execute("FLUSH PRIVILEGES");
   }
 
   /**
@@ -62,7 +70,8 @@ public class CredentialPluginTest extends BaseTest {
   @After
   public void after() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP USER 'identityUser'@'%'");
+    stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
+    stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");
   }
 
   @Test

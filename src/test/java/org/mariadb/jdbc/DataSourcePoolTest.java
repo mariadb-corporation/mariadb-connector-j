@@ -113,7 +113,7 @@ public class DataSourcePoolTest extends BaseTest {
    */
   @Test
   public void setDatabaseNameTest() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {

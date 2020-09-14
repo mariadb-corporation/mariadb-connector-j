@@ -25,6 +25,9 @@ cache:
   directories:
     - $HOME/.m2
 
+env:
+  - SSLPORT=3305
+
 matrix:
   allow_failures:
     - env: DB=build PACKET=8M
@@ -35,8 +38,6 @@ matrix:
     - env: DB=build PACKET=8M
       jdk: openjdk11
     - env: SKYSQL=true PACKET=8M
-      jdk: openjdk11
-    - env: DB=mysql:5.6 PACKET=8M
       jdk: openjdk11
     - env: DB=mysql:5.7 PACKET=8M
       jdk: openjdk11
@@ -78,7 +79,7 @@ matrix:
       jdk: openjdk11
     - env: DB=mariadb:10.5 PACKET=8M
       jdk: openjdk12
-    - env: DB=mariadb:10.5 PACKET=8M MAXSCALE_VERSION=2.2.9
+    - env: DB=mariadb:10.5 PACKET=8M MAXSCALE_VERSION=2.5.3 MAXSCALE_TEST_DISABLE=true SSLPORT=4009
       jdk: openjdk11
 
 script:

@@ -582,7 +582,8 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -708,7 +709,8 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void multiAuthPlugin() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
@@ -766,7 +768,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void connectionUnexpectedClose() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:failover//"
@@ -821,7 +823,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setReadonlyError() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:replication://"
@@ -917,7 +919,8 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setClientNotConnectError() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
     // only mariadb return a specific error when connection has explicitly been killed
     Assume.assumeTrue(isMariadbServer());
 

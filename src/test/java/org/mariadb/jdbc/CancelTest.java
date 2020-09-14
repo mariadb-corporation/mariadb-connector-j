@@ -69,7 +69,7 @@ public class CancelTest extends BaseTest {
   @Before
   public void cancelSupported() throws SQLException {
     requireMinimumVersion(5, 0);
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("MAXSCALE_TEST_DISABLE") == null);
   }
 
   @Test
@@ -88,6 +88,7 @@ public class CancelTest extends BaseTest {
       exec.shutdown();
       Assert.fail();
     } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("Query execution was interrupted"));
       // normal exception
     }
   }
