@@ -347,7 +347,8 @@ public class ErrorMessageTest extends BaseTest {
 
   @Test
   public void testFailOverKillCmd() throws Throwable {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
     Assume.assumeTrue(isMariadbServer());
     DataSource ds =
         new MariaDbDataSource(

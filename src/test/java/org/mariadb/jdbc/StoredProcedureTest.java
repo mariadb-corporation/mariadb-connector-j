@@ -404,22 +404,27 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+
     // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
 
     Statement statement = sharedConnection.createStatement();
-    try {
-      statement.execute("DROP USER 'test_jdbc'@'%'");
-    } catch (SQLException e) {
-      // eat exception
-    }
+    statement.execute("DROP USER IF EXISTS 'test_jdbc'@'%'");
+    statement.execute("DROP USER IF EXISTS 'test_jdbc'@'localhost'");
+    statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1'");
+    statement.execute(
+        "GRANT ALL ON "
+            + database
+            + ".* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
     statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
     statement.execute(
-        "GRANT SELECT, EXECUTE  ON "
+        "GRANT ALL ON "
             + database
             + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+    statement.execute("FLUSH PRIVILEGES");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
     properties.put("password", "testJ@dc1");
@@ -470,6 +475,7 @@ public class StoredProcedureTest extends BaseTest {
       // MySQL 5.5 doesn't permit 'test_jdbc'@'localhost'
     }
     statement.execute("DROP USER 'test_jdbc'@'%'");
+    statement.execute("DROP USER 'test_jdbc'@'localhost'");
   }
 
   @Test

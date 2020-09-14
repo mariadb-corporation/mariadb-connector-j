@@ -77,7 +77,8 @@ public class TimeoutTest extends BaseTest {
   public void resultSetAfterSocketTimeoutTest() {
     // appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(
-        System.getenv("APPVEYOR") == null
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("APPVEYOR") == null
             && System.getenv("DOCKER_SOCKET") == null
             && System.getenv("SKYSQL") == null);
 

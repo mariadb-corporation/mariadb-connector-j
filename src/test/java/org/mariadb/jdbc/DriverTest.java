@@ -1026,7 +1026,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
     try {
@@ -1194,7 +1194,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
 
     requireMinimumVersion(5, 0);
 
@@ -1672,7 +1672,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
     assertEquals(

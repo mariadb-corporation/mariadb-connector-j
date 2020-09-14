@@ -201,12 +201,12 @@ public class FetchSizeTest extends BaseTest {
    */
   @Test
   public void fetchSizeCancel() throws SQLException {
-    ifMaxscaleRequireMinimumVersion(2, 2);
+    Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
     Assume.assumeTrue(!sharedOptions().profileSql);
     long start = System.currentTimeMillis();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.executeQuery(
-          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
+          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 400000");
     }
     final long normalExecutionTime = System.currentTimeMillis() - start;
 
@@ -214,18 +214,15 @@ public class FetchSizeTest extends BaseTest {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.setFetchSize(1);
       stmt.executeQuery(
-          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
+          "select * from information_schema.columns as c1,  information_schema.tables LIMIT 400000");
       stmt.cancel();
     }
     long interruptedExecutionTime = System.currentTimeMillis() - start;
 
-    Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
-
     // ensure that query is a long query. if not cancelling the query (that might lead to creating a
     // new connection)
     // may not render the test reliable
-    String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
-    if (maxscaleVersion == null && normalExecutionTime > 500) {
+    if (normalExecutionTime > 500) {
       assertTrue(
           "interruptedExecutionTime:"
               + interruptedExecutionTime
@@ -237,7 +234,7 @@ public class FetchSizeTest extends BaseTest {
 
   @Test
   public void fetchSizePrepareCancel() throws SQLException {
-    ifMaxscaleRequireMinimumVersion(2, 2);
+    Assume.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
     Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
 
     long start;
