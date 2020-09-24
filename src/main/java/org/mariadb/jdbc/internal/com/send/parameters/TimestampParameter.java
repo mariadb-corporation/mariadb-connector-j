@@ -86,7 +86,7 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
    */
   public void writeTo(final PacketOutputStream pos) throws IOException {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    sdf.setTimeZone(timeZone);
+    if (timeZone != null) sdf.setTimeZone(timeZone);
 
     pos.write(QUOTE);
     pos.write(sdf.format(ts).getBytes());
@@ -116,7 +116,9 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
    * @throws IOException if socket error occur
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
-    Calendar calendar = Calendar.getInstance(timeZone);
+
+    Calendar calendar =
+        (timeZone == null) ? Calendar.getInstance() : Calendar.getInstance(timeZone);
     calendar.setTimeInMillis(ts.getTime());
 
     pos.write((byte) (fractionalSeconds ? 11 : 7)); // length

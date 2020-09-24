@@ -911,22 +911,19 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
           parameterIndex,
           new ZonedDateTimeParameter(
               ((OffsetDateTime) obj).toZonedDateTime(),
-              protocol.getTimeZone().toZoneId(),
+              protocol.getTimeZone(),
               useFractionalSeconds,
               options));
     } else if (obj instanceof OffsetTime) {
       setParameter(
           parameterIndex,
           new OffsetTimeParameter(
-              (OffsetTime) obj, protocol.getTimeZone().toZoneId(), useFractionalSeconds, options));
+              (OffsetTime) obj, protocol.getTimeZone(), useFractionalSeconds, options));
     } else if (obj instanceof ZonedDateTime) {
       setParameter(
           parameterIndex,
           new ZonedDateTimeParameter(
-              (ZonedDateTime) obj,
-              protocol.getTimeZone().toZoneId(),
-              useFractionalSeconds,
-              options));
+              (ZonedDateTime) obj, protocol.getTimeZone(), useFractionalSeconds, options));
     } else if (obj instanceof LocalTime) {
       setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj, useFractionalSeconds));
     } else {
@@ -1025,17 +1022,14 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setParameter(
                 parameterIndex,
                 new OffsetTimeParameter(
-                    OffsetTime.parse(str),
-                    protocol.getTimeZone().toZoneId(),
-                    useFractionalSeconds,
-                    options));
+                    OffsetTime.parse(str), protocol.getTimeZone(), useFractionalSeconds, options));
             break;
           case Types.TIMESTAMP_WITH_TIMEZONE:
             setParameter(
                 parameterIndex,
                 new ZonedDateTimeParameter(
                     ZonedDateTime.parse(str, SPEC_ISO_ZONED_DATE_TIME),
-                    protocol.getTimeZone().toZoneId(),
+                    protocol.getTimeZone(),
                     useFractionalSeconds,
                     options));
             break;
@@ -1136,22 +1130,19 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
           parameterIndex,
           new ZonedDateTimeParameter(
               ((OffsetDateTime) obj).toZonedDateTime(),
-              protocol.getTimeZone().toZoneId(),
+              protocol.getTimeZone(),
               useFractionalSeconds,
               options));
     } else if (obj instanceof OffsetTime) {
       setParameter(
           parameterIndex,
           new OffsetTimeParameter(
-              (OffsetTime) obj, protocol.getTimeZone().toZoneId(), useFractionalSeconds, options));
+              (OffsetTime) obj, protocol.getTimeZone(), useFractionalSeconds, options));
     } else if (obj instanceof ZonedDateTime) {
       setParameter(
           parameterIndex,
           new ZonedDateTimeParameter(
-              (ZonedDateTime) obj,
-              protocol.getTimeZone().toZoneId(),
-              useFractionalSeconds,
-              options));
+              (ZonedDateTime) obj, protocol.getTimeZone(), useFractionalSeconds, options));
     } else if (obj instanceof LocalTime) {
       setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj, useFractionalSeconds));
     } else {

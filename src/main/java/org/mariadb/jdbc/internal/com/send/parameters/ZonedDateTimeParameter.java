@@ -58,6 +58,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.util.Options;
@@ -75,13 +76,13 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
    * Constructor.
    *
    * @param tz zone date time
-   * @param serverZoneId server session zoneId
+   * @param timezone server session timezone
    * @param fractionalSeconds must fractional Seconds be send to database.
    * @param options session options
    */
   public ZonedDateTimeParameter(
-      ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
-    ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
+      ZonedDateTime tz, TimeZone timezone, boolean fractionalSeconds, Options options) {
+    ZoneId zoneId = timezone == null ? ZoneOffset.systemDefault() : timezone.toZoneId();
     this.tz = tz.withZoneSameInstant(zoneId);
     this.fractionalSeconds = fractionalSeconds;
   }

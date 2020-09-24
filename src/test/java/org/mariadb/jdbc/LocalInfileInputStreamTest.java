@@ -89,7 +89,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
-
         st.executeUpdate(
             "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 

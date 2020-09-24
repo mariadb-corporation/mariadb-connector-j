@@ -61,6 +61,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.Options;
@@ -802,11 +803,79 @@ public class BinaryRowProtocol extends RowProtocol {
     if (lastValueWasNull()) {
       return null;
     }
+    if (length == 0) {
+      lastValueNull |= BIT_LAST_FIELD_NULL;
+      return null;
+    }
+    int year;
+    int month = 1;
+    int day = 1;
+    Calendar calendar;
     switch (columnInfo.getColumnType()) {
       case TIMESTAMP:
       case DATETIME:
-        Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-        return (timestamp == null) ? null : new Date(timestamp.getTime());
+        year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+        month = buf[pos + 2];
+        day = buf[pos + 3];
+        int hour = 0;
+        int minutes = 0;
+        int seconds = 0;
+        int microseconds = 0;
+
+        if (length > 4) {
+          hour = buf[pos + 4];
+          minutes = buf[pos + 5];
+          seconds = buf[pos + 6];
+
+          if (length > 7) {
+            microseconds =
+                ((buf[pos + 7] & 0xff)
+                    + ((buf[pos + 8] & 0xff) << 8)
+                    + ((buf[pos + 9] & 0xff) << 16)
+                    + ((buf[pos + 10] & 0xff) << 24));
+          }
+        }
+
+        if (year == 0 && month == 0 && day == 0) {
+          lastValueNull |= BIT_LAST_FIELD_NULL;
+          return null;
+        }
+
+        if (timeZone == null) {
+          // legacy is to send timestamps with current driver timezone. So display, is immediate
+          calendar = (cal != null) ? cal : Calendar.getInstance();
+          synchronized (calendar) {
+            calendar.clear();
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, day);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            return new Date(calendar.getTimeInMillis());
+          }
+        }
+
+        // timestamp is saved in server timezone,
+        LocalDateTime ldt =
+            LocalDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000);
+        ZonedDateTime zdt =
+            ldt.atZone(timeZone.toZoneId()).withZoneSameInstant(TimeZone.getDefault().toZoneId());
+
+        calendar = cal != null ? cal : Calendar.getInstance();
+        synchronized (calendar) {
+          calendar.clear();
+          calendar.set(Calendar.YEAR, zdt.getYear());
+          calendar.set(Calendar.MONTH, zdt.getMonthValue() - 1);
+          calendar.set(Calendar.DAY_OF_MONTH, zdt.getDayOfMonth());
+          calendar.set(Calendar.HOUR_OF_DAY, 0);
+          calendar.set(Calendar.MINUTE, 0);
+          calendar.set(Calendar.SECOND, 0);
+          calendar.set(Calendar.MILLISECOND, 0);
+          return new Date(calendar.getTimeInMillis());
+        }
+
       case TIME:
         throw new SQLException("Cannot read Date using a Types.TIME field");
       case STRING:
@@ -821,12 +890,7 @@ public class BinaryRowProtocol extends RowProtocol {
             Integer.parseInt(rawValue.substring(5, 7)) - 1,
             Integer.parseInt(rawValue.substring(8, 10)));
       default:
-        if (length == 0) {
-          lastValueNull |= BIT_LAST_FIELD_NULL;
-          return null;
-        }
-
-        int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+        year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
 
         if (length == 2 && columnInfo.getLength() == 2) {
           // YEAR(2) - deprecated
@@ -837,25 +901,12 @@ public class BinaryRowProtocol extends RowProtocol {
           }
         }
 
-        int month = 1;
-        int day = 1;
-
         if (length >= 4) {
           month = buf[pos + 2];
           day = buf[pos + 3];
         }
 
-        Calendar calendar = Calendar.getInstance();
-        calendar.clear();
-        calendar.set(Calendar.YEAR, year);
-        calendar.set(Calendar.MONTH, month - 1);
-        calendar.set(Calendar.DAY_OF_MONTH, day);
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        Date dt = new Date(calendar.getTimeInMillis());
-        return dt;
+        return new Date(year - 1900, month - 1, day);
     }
   }
 
@@ -873,20 +924,78 @@ public class BinaryRowProtocol extends RowProtocol {
     if (lastValueWasNull()) {
       return null;
     }
+
+    Calendar calendar;
+    int day = 0;
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    int microseconds = 0;
+
     switch (columnInfo.getColumnType()) {
       case TIMESTAMP:
       case DATETIME:
-        Timestamp ts = getInternalTimestamp(columnInfo, cal, timeZone);
-        return (ts == null) ? null : new Time(ts.getTime());
+        if (length == 0) {
+          lastValueNull |= BIT_LAST_FIELD_NULL;
+          return null;
+        }
+        int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+        int month = buf[pos + 2];
+        day = buf[pos + 3];
+        if (length > 4) {
+          hour = buf[pos + 4];
+          minutes = buf[pos + 5];
+          seconds = buf[pos + 6];
+
+          if (length > 7) {
+            microseconds =
+                ((buf[pos + 7] & 0xff)
+                    + ((buf[pos + 8] & 0xff) << 8)
+                    + ((buf[pos + 9] & 0xff) << 16)
+                    + ((buf[pos + 10] & 0xff) << 24));
+          }
+        }
+
+        if (timeZone == null) {
+          calendar = cal != null ? cal : Calendar.getInstance();
+          synchronized (calendar) {
+            calendar.clear();
+            calendar.set(Calendar.YEAR, 1970);
+            calendar.set(Calendar.MONTH, 0);
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, minutes);
+            calendar.set(Calendar.SECOND, seconds);
+            calendar.set(Calendar.MILLISECOND, microseconds / 1_000);
+            return new Time(calendar.getTimeInMillis());
+          }
+        }
+
+        LocalDateTime ldt =
+            LocalDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000);
+        ZonedDateTime zdt =
+            ldt.atZone(timeZone.toZoneId()).withZoneSameInstant(TimeZone.getDefault().toZoneId());
+
+        calendar = cal != null ? cal : Calendar.getInstance();
+        synchronized (calendar) {
+          calendar.clear();
+          calendar.set(Calendar.YEAR, 1970);
+          calendar.set(Calendar.MONTH, 0);
+          calendar.set(Calendar.DAY_OF_MONTH, 1);
+          calendar.set(Calendar.HOUR_OF_DAY, zdt.getHour());
+          calendar.set(Calendar.MINUTE, zdt.getMinute());
+          calendar.set(Calendar.SECOND, zdt.getSecond());
+          calendar.set(Calendar.MILLISECOND, zdt.getNano() / 1_000_000);
+          return new Time(calendar.getTimeInMillis());
+        }
+
       case DATE:
         throw new SQLException("Cannot read Time using a Types.DATE field");
+
       default:
-        Calendar calendar = cal != null ? cal : Calendar.getInstance();
+        calendar = cal != null ? cal : Calendar.getInstance();
         calendar.clear();
-        int day = 0;
-        int hour = 0;
-        int minutes = 0;
-        int seconds = 0;
+
         boolean negate = false;
         if (length > 0) {
           negate = (buf[pos] & 0xff) == 0x01;
@@ -953,9 +1062,10 @@ public class BinaryRowProtocol extends RowProtocol {
     int seconds = 0;
     int microseconds = 0;
 
+    Calendar calendar;
     switch (columnInfo.getColumnType()) {
       case TIME:
-        Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
+        calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
 
         boolean negate = false;
         if (length > 0) {
@@ -1010,6 +1120,15 @@ public class BinaryRowProtocol extends RowProtocol {
             }
           }
         }
+
+        if (userCalendar != null) {
+          calendar = userCalendar;
+        } else if (timeZone != null) {
+          calendar = Calendar.getInstance(timeZone);
+        } else {
+          calendar = Calendar.getInstance();
+        }
+
         break;
 
       default:
@@ -1029,15 +1148,14 @@ public class BinaryRowProtocol extends RowProtocol {
                     + ((buf[pos + 10] & 0xff) << 24));
           }
         }
-    }
 
-    Calendar calendar;
-    if (userCalendar != null) {
-      calendar = userCalendar;
-    } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-      calendar = Calendar.getInstance(timeZone);
-    } else {
-      calendar = Calendar.getInstance();
+        if (userCalendar != null) {
+          calendar = userCalendar;
+        } else if (timeZone != null && columnInfo.getColumnType() != ColumnType.DATE) {
+          calendar = Calendar.getInstance(timeZone);
+        } else {
+          calendar = Calendar.getInstance();
+        }
     }
 
     Timestamp tt;
@@ -1489,7 +1607,14 @@ public class BinaryRowProtocol extends RowProtocol {
         }
 
         return ZonedDateTime.of(
-            year, month, day, hour, minutes, seconds, microseconds * 1000, timeZone.toZoneId());
+            year,
+            month,
+            day,
+            hour,
+            minutes,
+            seconds,
+            microseconds * 1000,
+            timeZone == null ? ZoneId.systemDefault() : timeZone.toZoneId());
 
       case Types.VARCHAR:
       case Types.LONGVARCHAR:
@@ -1537,7 +1662,8 @@ public class BinaryRowProtocol extends RowProtocol {
       return null;
     }
 
-    ZoneId zoneId = timeZone.toZoneId().normalized();
+    ZoneId zoneId =
+        timeZone == null ? ZoneId.systemDefault().normalized() : timeZone.toZoneId().normalized();
     if (zoneId instanceof ZoneOffset) {
       ZoneOffset zoneOffset = (ZoneOffset) zoneId;
 
@@ -1702,6 +1828,9 @@ public class BinaryRowProtocol extends RowProtocol {
         // string conversion
         String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
         try {
+          if (timeZone == null) {
+            return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME);
+          }
           return LocalTime.parse(
               raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
         } catch (DateTimeParseException dateParserEx) {
@@ -1768,6 +1897,9 @@ public class BinaryRowProtocol extends RowProtocol {
           return null;
         }
         try {
+          if (timeZone == null) {
+            return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE);
+          }
           return LocalDate.parse(
               raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
         } catch (DateTimeParseException dateParserEx) {

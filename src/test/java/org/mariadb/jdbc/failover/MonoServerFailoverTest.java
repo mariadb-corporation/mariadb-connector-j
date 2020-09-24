@@ -163,7 +163,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
    */
   @Test
   public void isValidConnectionThatIsKilledExternally() throws Throwable {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("MAXSCALE_TEST_DISABLE") == null);
+    Assume.assumeTrue(
+        System.getenv("SKYSQL") == null && System.getenv("MAXSCALE_TEST_DISABLE") == null);
     try (Connection connection = getNewConnection()) {
       connection.setCatalog("mysql");
       Protocol protocol = getProtocolFromConnection(connection);

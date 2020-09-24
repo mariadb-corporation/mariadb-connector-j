@@ -93,12 +93,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
 
   private byte[] dateByteFormat() {
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-    if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
-      sdf.setTimeZone(Calendar.getInstance().getTimeZone());
-    } else {
-      sdf.setTimeZone(timeZone);
-    }
-
+    sdf.setTimeZone(timeZone);
     return sdf.format(date).getBytes();
   }
 
@@ -115,7 +110,6 @@ public class DateParameter implements Cloneable, ParameterHolder {
   public void writeBinary(final PacketOutputStream pos) throws IOException {
     Calendar calendar = Calendar.getInstance(timeZone);
     calendar.setTimeInMillis(date.getTime());
-
     pos.write((byte) 7); // length
     pos.writeShort((short) calendar.get(Calendar.YEAR));
     pos.write((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));

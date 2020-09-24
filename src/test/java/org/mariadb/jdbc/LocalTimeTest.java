@@ -135,7 +135,7 @@ public class LocalTimeTest extends BaseTest {
         Timestamp.valueOf("2000-12-31 01:02:03").getTime() + 123, rs.getTimestamp(1).getTime());
     assertEquals(LocalTime.of(1, 2, 3, 123456000), rs.getObject(1, LocalTime.class));
     assertEquals("01:02:03", rs.getTime(1).toString());
-    assertEquals(Timestamp.valueOf("2000-12-31 01:02:03").getTime() + 123, rs.getTime(1).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 01:02:03").getTime() + 123, rs.getTime(1).getTime());
     assertEquals(LocalDate.of(2000, 12, 31), rs.getObject(1, LocalDate.class));
 
     assertEquals("2000-12-31 02:03:04.0", rs.getString(2));
@@ -144,7 +144,7 @@ public class LocalTimeTest extends BaseTest {
     assertEquals(Timestamp.valueOf("2000-12-31 02:03:04").getTime(), rs.getTimestamp(2).getTime());
     assertEquals(LocalTime.of(2, 3, 4, 0), rs.getObject(2, LocalTime.class));
     assertEquals(Time.valueOf("02:03:04").toString(), rs.getTime(2).toString());
-    assertEquals(Timestamp.valueOf("2000-12-31 02:03:04").getTime(), rs.getTime(2).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 02:03:04").getTime(), rs.getTime(2).getTime());
     assertEquals(LocalDate.of(2000, 12, 31), rs.getObject(2, LocalDate.class));
 
     assertTrue(rs.next());
@@ -158,7 +158,7 @@ public class LocalTimeTest extends BaseTest {
         Timestamp.valueOf("1000-01-01 15:14:13").getTime() + 12, rs.getTimestamp(1).getTime());
     assertEquals(LocalTime.of(15, 14, 13, 12340000), rs.getObject(1, LocalTime.class));
     assertEquals(Time.valueOf("15:14:13").toString(), rs.getTime(1).toString());
-    assertEquals(Timestamp.valueOf("1000-01-01 15:14:13.01234").getTime(), rs.getTime(1).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 15:14:13.01234").getTime(), rs.getTime(1).getTime());
     assertEquals(LocalDate.of(1000, 1, 1), rs.getObject(1, LocalDate.class));
 
     assertEquals("1000-01-01 16:15:14.0", rs.getString(2));
@@ -168,7 +168,7 @@ public class LocalTimeTest extends BaseTest {
     assertEquals(Timestamp.valueOf("1000-01-01 16:15:14").getTime(), rs.getTimestamp(2).getTime());
     assertEquals(LocalTime.of(16, 15, 14, 0), rs.getObject(2, LocalTime.class));
     assertEquals(Time.valueOf("16:15:14").toString(), rs.getTime(2).toString());
-    assertEquals(Timestamp.valueOf("1000-01-01 16:15:14").getTime(), rs.getTime(2).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 16:15:14").getTime(), rs.getTime(2).getTime());
     assertEquals(LocalDate.of(1000, 1, 1), rs.getObject(2, LocalDate.class));
 
     assertTrue(rs.next());
@@ -180,7 +180,7 @@ public class LocalTimeTest extends BaseTest {
     assertEquals(Timestamp.valueOf("9999-12-31 05:04:03").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(LocalTime.of(5, 4, 3, 0), rs.getObject(1, LocalTime.class));
     assertEquals(Time.valueOf("05:04:03").toString(), rs.getTime(1).toString());
-    assertEquals(Timestamp.valueOf("9999-12-31 05:04:03").getTime(), rs.getTime(1).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 05:04:03").getTime(), rs.getTime(1).getTime());
     assertEquals(LocalDate.of(9999, 12, 31), rs.getObject(1, LocalDate.class));
 
     assertEquals("9999-12-31 06:05:04.0", rs.getString(2));
@@ -190,7 +190,7 @@ public class LocalTimeTest extends BaseTest {
     assertEquals(Timestamp.valueOf("9999-12-31 06:05:04").getTime(), rs.getTimestamp(2).getTime());
     assertEquals(LocalTime.of(6, 5, 4, 0), rs.getObject(2, LocalTime.class));
     assertEquals(Time.valueOf("06:05:04").toString(), rs.getTime(2).toString());
-    assertEquals(Timestamp.valueOf("9999-12-31 06:05:04").getTime(), rs.getTime(2).getTime());
+    assertEquals(Timestamp.valueOf("1970-01-01 06:05:04").getTime(), rs.getTime(2).getTime());
     assertEquals(LocalDate.of(9999, 12, 31), rs.getObject(1, LocalDate.class));
 
     assertFalse(rs.next());

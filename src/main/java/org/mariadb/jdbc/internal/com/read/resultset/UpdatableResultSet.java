@@ -688,16 +688,13 @@ public class UpdatableResultSet extends SelectResultSet {
           case Types.TIME_WITH_TIMEZONE:
             parameterHolders[parameterIndex - 1] =
                 new OffsetTimeParameter(
-                    OffsetTime.parse(str),
-                    timeZone.toZoneId(),
-                    options.useFractionalSeconds,
-                    options);
+                    OffsetTime.parse(str), timeZone, options.useFractionalSeconds, options);
             break;
           case Types.TIMESTAMP_WITH_TIMEZONE:
             parameterHolders[parameterIndex - 1] =
                 new ZonedDateTimeParameter(
                     ZonedDateTime.parse(str, BasePrepareStatement.SPEC_ISO_ZONED_DATE_TIME),
-                    timeZone.toZoneId(),
+                    timeZone,
                     options.useFractionalSeconds,
                     options);
             break;
@@ -797,17 +794,17 @@ public class UpdatableResultSet extends SelectResultSet {
       parameterHolders[parameterIndex - 1] =
           new ZonedDateTimeParameter(
               ((OffsetDateTime) obj).toZonedDateTime(),
-              timeZone.toZoneId(),
+              timeZone,
               options.useFractionalSeconds,
               options);
     } else if (obj instanceof OffsetTime) {
       parameterHolders[parameterIndex - 1] =
           new OffsetTimeParameter(
-              (OffsetTime) obj, timeZone.toZoneId(), options.useFractionalSeconds, options);
+              (OffsetTime) obj, timeZone, options.useFractionalSeconds, options);
     } else if (obj instanceof ZonedDateTime) {
       parameterHolders[parameterIndex - 1] =
           new ZonedDateTimeParameter(
-              (ZonedDateTime) obj, timeZone.toZoneId(), options.useFractionalSeconds, options);
+              (ZonedDateTime) obj, timeZone, options.useFractionalSeconds, options);
     } else if (obj instanceof LocalTime) {
       updateTime(parameterIndex, Time.valueOf((LocalTime) obj));
     } else {

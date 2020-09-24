@@ -1146,7 +1146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       throws SQLException {
     if (options.useLegacyDatetimeCode) {
       // legacy use client timezone
-      timeZone = Calendar.getInstance().getTimeZone();
+      timeZone = null;
     } else {
       // use server time zone
       String tz = options.serverTimezone;
@@ -1166,6 +1166,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       try {
         timeZone = Utils.getTimeZone(tz);
+        if (timeZone.equals(TimeZone.getDefault())) timeZone = null;
       } catch (SQLException e) {
         if (options.serverTimezone != null) {
           throw exceptionFactory.create(

@@ -1943,7 +1943,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     if (this.options.ensureSocketState) {
       // ensure that the socket buffer is empty before issuing new command.
       // (this doesn't concern pipelining commands).
-      // If data is present in socket, an error will be raised, throwing the content of socket data to permit
+      // If data is present in socket, an error will be raised, throwing the content of socket data
+      // to permit
       // identification of error.
       try {
         int avail = this.reader.getInputStream().available();
