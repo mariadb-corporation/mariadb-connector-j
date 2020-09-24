@@ -236,7 +236,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.NULL,
       ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.SMALLINT,
       ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR,
-      ColumnType.NULL, ColumnType.SMALLINT
+      ColumnType.VARCHAR, ColumnType.SMALLINT
     };
 
     String[] parts = tableDef.split("\n");
@@ -280,23 +280,23 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       for (int i = 0; i < primaryKeyCols.size(); i++) {
 
         String[] row = new String[columnNames.length];
-        row[0] = pkTable.schema;
+        row[0] = pkTable.schema; // PKTABLE_CAT
         if (row[0] == null) {
           row[0] = catalog;
         }
-        row[1] = null;
-        row[2] = pkTable.name;
-        row[3] = primaryKeyCols.get(i).name;
-        row[4] = catalog;
-        row[5] = null;
-        row[6] = tableName;
-        row[7] = foreignKeyCols.get(i).name;
-        row[8] = Integer.toString(i + 1);
-        row[9] = Integer.toString(onUpdateReferenceAction);
-        row[10] = Integer.toString(onDeleteReferenceAction);
-        row[11] = constraintName.name;
-        row[12] = null;
-        row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable);
+        row[1] = null; // PKTABLE_SCHEM
+        row[2] = pkTable.name; // PKTABLE_NAME
+        row[3] = primaryKeyCols.get(i).name; // PKCOLUMN_NAME
+        row[4] = catalog; // FKTABLE_CAT
+        row[5] = null; // FKTABLE_SCHEM
+        row[6] = tableName; // FKTABLE_NAME
+        row[7] = foreignKeyCols.get(i).name; // FKCOLUMN_NAME
+        row[8] = Integer.toString(i + 1); // KEY_SEQ
+        row[9] = Integer.toString(onUpdateReferenceAction); // UPDATE_RULE
+        row[10] = Integer.toString(onDeleteReferenceAction); // DELETE_RULE
+        row[11] = constraintName.name; // FK_NAME
+        row[12] = null; // PK_NAME - unlike using information_schema, cannot know constraint name
+        row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable); // DEFERRABILITY
         data.add(row);
       }
     }
@@ -390,34 +390,26 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getImportedKeys(String catalog, String schema, String table)
       throws SQLException {
 
-    String database = catalog;
     // We avoid using information schema queries by default, because this appears to be an expensive
     // query (CONJ-41).
     if (table == null) {
       throw new SQLException("'table' parameter in getImportedKeys cannot be null");
     }
 
-    if (database == null && connection.nullCatalogMeansCurrent) {
-      /* Treat null catalog as current */
-      return getImportedKeysUsingInformationSchema("", table);
-    }
-
-    if (database == null) {
-      return getImportedKeysUsingInformationSchema(null, table);
-    }
-
-    if (database.isEmpty()) {
-      database = connection.getCatalog();
-      if (database == null || database.isEmpty()) {
-        return getImportedKeysUsingInformationSchema(database, table);
+    if (catalog == null || catalog.isEmpty()) {
+      if (connection.nullCatalogMeansCurrent) {
+        /* Treat null catalog as current */
+        return getImportedKeysUsingInformationSchema("", table);
+      } else {
+        return getImportedKeysUsingInformationSchema(catalog, table);
       }
     }
 
     try {
-      return getImportedKeysUsingShowCreateTable(database, table);
+      return getImportedKeysUsingShowCreateTable(catalog, table);
     } catch (Exception e) {
       // Likely, parsing failed, try out I_S query.
-      return getImportedKeysUsingInformationSchema(database, table);
+      return getImportedKeysUsingInformationSchema(catalog, table);
     }
   }
 
@@ -922,7 +914,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  WHEN 'SET DEFAULT' THEN 4"
             + " END DELETE_RULE,"
             + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " 'PRIMARY' PK_NAME,"
+            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
             + importedKeyNotDeferrable
             + " DEFERRABILITY"
             + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
@@ -945,7 +937,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @return resultset
    * @throws SQLException exception
    */
-  public ResultSet getImportedKeysUsingInformationSchema(String catalog, String table)
+  public ResultSet getImportedKeysUsingInformationSchema(final String catalog, String table)
       throws SQLException {
     if (table == null) {
       throw new SQLException("'table' parameter in getImportedKeys cannot be null");
@@ -969,7 +961,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  WHEN 'SET DEFAULT' THEN 4"
             + " END DELETE_RULE,"
             + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " NULL PK_NAME,"
+            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
             + importedKeyNotDeferrable
             + " DEFERRABILITY"
             + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
@@ -994,7 +986,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @return resultset
    * @throws Exception exception
    */
-  public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String table)
+  public ResultSet getImportedKeysUsingShowCreateTable(final String catalog, String table)
       throws Exception {
 
     if (catalog == null || catalog.isEmpty()) {
@@ -1076,21 +1068,34 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
 
+    boolean hasIsGeneratedCol =
+        (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 2, 0))
+            || (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8, 0, 0));
+
     String sql =
         "SELECT "
-            + DatabaseMetaData.bestRowUnknown
+            + bestRowSession
             + " SCOPE, COLUMN_NAME,"
             + dataTypeClause("COLUMN_TYPE")
             + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
             + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
             + " NUMERIC_SCALE DECIMAL_DIGITS,"
-            + " 1 PSEUDO_COLUMN"
+            + (hasIsGeneratedCol
+                ? ("IF(IS_GENERATED='NEVER'," + bestRowNotPseudo + "," + bestRowPseudo + ")")
+                : bestRowNotPseudo)
+            + " PSEUDO_COLUMN"
             + " FROM INFORMATION_SCHEMA.COLUMNS"
-            + " WHERE COLUMN_KEY IN('PRI', 'MUL', 'UNI')"
-            + " AND "
+            + " WHERE (COLUMN_KEY  = 'PRI'"
+            + " OR (COLUMN_KEY = 'UNI' AND NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = "
+            + "'PRI' AND "
             + catalogCond("TABLE_SCHEMA", catalog)
             + " AND TABLE_NAME = "
-            + escapeQuote(table);
+            + escapeQuote(table)
+            + " ))) AND "
+            + catalogCond("TABLE_SCHEMA", catalog)
+            + " AND TABLE_NAME = "
+            + escapeQuote(table)
+            + (nullable ? "" : " AND IS_NULLABLE = 'NO'");
 
     return executeQuery(sql);
   }
@@ -1808,7 +1813,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getMaxProcedureNameLength() {
-    return 256;
+    return 64;
   }
 
   public int getMaxCatalogNameLength() {
@@ -1941,8 +1946,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
-            + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
+        "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,"
+            + "NULL PROCEDURE_SCHEM, "
+            + "ROUTINE_NAME PROCEDURE_NAME,"
+            + " NULL RESERVED1,"
+            + " NULL RESERVED2,"
+            + " NULL RESERVED3,"
+            + " ROUTINE_COMMENT REMARKS,"
             + " CASE ROUTINE_TYPE "
             + "  WHEN 'FUNCTION' THEN "
             + procedureReturnsResult
@@ -1951,7 +1961,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  ELSE "
             + procedureResultUnknown
             + " END PROCEDURE_TYPE,"
-            + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
+            + " SPECIFIC_NAME "
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
@@ -2536,16 +2546,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @param parentSchema a schema name; must match the schema name as it is stored in the database;
    *     "" retrieves those without a schema; <code>null</code> means drop schema name from the
    *     selection criteria
-   * @param parentTable the name of the table that exports the key; must match the table name as it
-   *     is stored in the database
+   * @param parentTable the name of the table that exports the key; pattern, or null (means any
+   *     table) value
    * @param foreignCatalog a catalog name; must match the catalog name as it is stored in the
    *     database; "" retrieves those without a catalog; <code>null</code> means drop catalog name
    *     from the selection criteria
    * @param foreignSchema a schema name; must match the schema name as it is stored in the database;
    *     "" retrieves those without a schema; <code>null</code> means drop schema name from the
    *     selection criteria
-   * @param foreignTable the name of the table that imports the key; must match the table name as it
-   *     is stored in the database
+   * @param foreignTable the name of the table that imports the key; pattern, or null (means any
+   *     table) value is stored in the database
    * @return <code>ResultSet</code> - each row is a foreign key column description
    * @throws SQLException if a database access error occurs
    * @see #getImportedKeys
@@ -2578,23 +2588,19 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "  WHEN 'SET DEFAULT' THEN 4"
             + " END DELETE_RULE,"
             + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " NULL PK_NAME,"
+            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
             + importedKeyNotDeferrable
-            + " DEFERRABILITY"
-            + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
+            + " DEFERRABILITY "
+            + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
             + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
             + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-            + " WHERE "
+            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME "
+            + "WHERE "
             + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
             + " AND "
             + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
-            + " AND "
-            + " KCU.REFERENCED_TABLE_NAME = "
-            + escapeQuote(parentTable)
-            + " AND "
-            + " KCU.TABLE_NAME = "
-            + escapeQuote(foreignTable)
+            + patternCond("KCU.REFERENCED_TABLE_NAME", parentTable)
+            + patternCond("KCU.TABLE_NAME", foreignTable)
             + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
 
     return executeQuery(sql);
@@ -3374,7 +3380,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
-            + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, 3 TYPE,"
+            + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, "
+            + tableIndexOther
+            + " TYPE,"
             + " SEQ_IN_INDEX ORDINAL_POSITION, COLUMN_NAME, COLLATION ASC_OR_DESC,"
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
             + " FROM INFORMATION_SCHEMA.STATISTICS"

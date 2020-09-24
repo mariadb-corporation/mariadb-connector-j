@@ -404,27 +404,33 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+
     // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
 
     Statement statement = sharedConnection.createStatement();
-    try {
-      statement.execute("DROP USER 'test_jdbc'@'%'");
-    } catch (SQLException e) {
-      // eat exception
-    }
+    statement.execute("DROP USER IF EXISTS 'test_jdbc'@'%'");
+    statement.execute("DROP USER IF EXISTS 'test_jdbc'@'localhost'");
+    statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1'");
+    statement.execute(
+        "GRANT ALL ON "
+            + database
+            + ".* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
     statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
     statement.execute(
-        "GRANT SELECT, EXECUTE  ON "
+        "GRANT ALL ON "
             + database
             + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+    statement.execute("FLUSH PRIVILEGES");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
     properties.put("password", "testJ@dc1");
 
-    createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSET y = 2;\n end\n");
+    createProcedure(
+        "testMetaCatalog", "(x int, out y int)  COMMENT 'my comment' \nBEGIN\nSET y = 2;\n end\n");
 
     try (Connection connection = openConnection(connU, properties)) {
       CallableStatement callableStatement = connection.prepareCall("{call testMetaCatalog(?, ?)}");
@@ -458,7 +464,9 @@ public class StoredProcedureTest extends BaseTest {
       // test without catalog
       resultSet = connection.getMetaData().getProcedures(null, null, "testMetaCatalog");
       if (resultSet.next()) {
-        assertTrue("testMetaCatalog".equals(resultSet.getString(3)));
+        assertEquals("testMetaCatalog", resultSet.getString(3));
+        assertEquals("my comment", resultSet.getString(7));
+        assertEquals(DatabaseMetaData.procedureNoResult, resultSet.getInt(8));
         assertFalse(resultSet.next());
       } else {
         fail();
@@ -467,6 +475,7 @@ public class StoredProcedureTest extends BaseTest {
       // MySQL 5.5 doesn't permit 'test_jdbc'@'localhost'
     }
     statement.execute("DROP USER 'test_jdbc'@'%'");
+    statement.execute("DROP USER 'test_jdbc'@'localhost'");
   }
 
   @Test

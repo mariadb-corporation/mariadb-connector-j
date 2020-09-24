@@ -92,6 +92,7 @@ public class TimezoneExplicitCalendarTest extends BaseTest {
       ResultSet rs = st.executeQuery();
       assertTrue(rs.next());
       Calendar readCalendar = Calendar.getInstance(EUROPE_PARIS);
+      Date dd = rs.getDate(1, readCalendar);
       assertEquals(rs.getDate(1, readCalendar), epochInGmt);
     }
   }

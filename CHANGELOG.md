@@ -1,5 +1,22 @@
 # Change Log
 
+## [2.7.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.0) (24 Sep. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.2...2.7.0)
+
+* CONJ-805	maxFieldSize string truncation occurs on bytes length, not character length
+* CONJ-807	Correcting possible Get Access Denied error if using multiple classloader
+* CONJ-810	normalization of resultset getDate/getTime of timestamp field.	
+* CONJ-812	DatabaseMetadata.getBestRowIdentifier and getMaxProcedureNameLength correction	
+* CONJ-813	setConfiguration not being called on classes that extend ConfigurableSocketFactory
+* CONJ-816	Table with primary key with DEFAULT function can be inserted for 10.5 servers
+* CONJ-817	Switched position of REMARKS and PROCEDURE_TYPE in the getProcedures result
+* CONJ-820	MySQLPreparedStatement.setObject can now handle java.lang.Character type
+* CONJ-828	new option `ensureSocketState` to ensure protocol state
+* CONJ-829	Option to cache callablestatement is now disabled by default
+* CONJ-830	connector now throw a better error if SSL is mandatory and server doesn't support SSL
+* CONJ-814	Small possible improvement of getCrossReference, getExportedKeys and getImportedKey
+* CONJ-825	XAResource.isSameRM implementation
+
 ## [2.6.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.6.2) (23 Jul. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.1...2.6.2)
 

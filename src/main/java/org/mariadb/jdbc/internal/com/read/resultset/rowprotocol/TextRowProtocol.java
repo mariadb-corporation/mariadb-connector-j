@@ -234,8 +234,7 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     if (maxFieldSize > 0) {
-      return new String(buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
-          .substring(0, Math.min(maxFieldSize, length));
+      return new String(buf, pos, Math.min(maxFieldSize, length), StandardCharsets.UTF_8);
     }
 
     return new String(buf, pos, length, StandardCharsets.UTF_8);
@@ -484,10 +483,10 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
+    int partIdx = 0;
     switch (columnInfo.getColumnType()) {
       case DATE:
         int[] datePart = new int[] {0, 0, 0};
-        int partIdx = 0;
         for (int begin = pos; begin < pos + length; begin++) {
           byte b = buf[begin];
           if (b == '-') {
@@ -512,11 +511,87 @@ public class TextRowProtocol extends RowProtocol {
 
       case TIMESTAMP:
       case DATETIME:
-        Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-        if (timestamp == null) {
+        int nanoBegin = -1;
+        int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
+        for (int begin = pos; begin < pos + length; begin++) {
+          byte b = buf[begin];
+          if (b == '-' || b == ' ' || b == ':') {
+            partIdx++;
+            continue;
+          }
+          if (b == '.') {
+            partIdx++;
+            nanoBegin = begin;
+            continue;
+          }
+          if (b < '0' || b > '9') {
+            throw new SQLException(
+                "cannot parse data in timestamp string '"
+                    + new String(buf, pos, length, StandardCharsets.UTF_8)
+                    + "'");
+          }
+
+          timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+        }
+        if (timestampsPart[0] == 0
+            && timestampsPart[1] == 0
+            && timestampsPart[2] == 0
+            && timestampsPart[3] == 0
+            && timestampsPart[4] == 0
+            && timestampsPart[5] == 0
+            && timestampsPart[6] == 0) {
+          lastValueNull |= BIT_LAST_ZERO_DATE;
           return null;
         }
-        return new Date(timestamp.getTime());
+
+        // fix non leading tray for nanoseconds
+        if (nanoBegin > 0) {
+          for (int begin = 0; begin < 6 - (pos + length - nanoBegin - 1); begin++) {
+            timestampsPart[6] = timestampsPart[6] * 10;
+          }
+        }
+
+        if (timeZone == null) {
+          // legacy is to send timestamps with current driver timezone. So display, is immediate
+          Calendar calendar = (cal != null) ? cal : Calendar.getInstance();
+          synchronized (calendar) {
+            calendar.clear();
+            calendar.set(Calendar.YEAR, timestampsPart[0]);
+            calendar.set(Calendar.MONTH, timestampsPart[1] - 1);
+            calendar.set(Calendar.DAY_OF_MONTH, timestampsPart[2]);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            return new Date(calendar.getTimeInMillis());
+          }
+        }
+
+        // timestamp is saved in server timezone,
+        LocalDateTime ldt =
+            LocalDateTime.of(
+                timestampsPart[0],
+                timestampsPart[1],
+                timestampsPart[2],
+                timestampsPart[3],
+                timestampsPart[4],
+                timestampsPart[5],
+                timestampsPart[6] * 1000);
+        ZonedDateTime zdt =
+            ldt.atZone(timeZone.toZoneId()).withZoneSameInstant(TimeZone.getDefault().toZoneId());
+
+        Calendar calendar = cal != null ? cal : Calendar.getInstance();
+        synchronized (calendar) {
+          calendar.clear();
+          calendar.set(Calendar.YEAR, zdt.getYear());
+          calendar.set(Calendar.MONTH, zdt.getMonthValue() - 1);
+          calendar.set(Calendar.DAY_OF_MONTH, zdt.getDayOfMonth());
+          calendar.set(Calendar.HOUR_OF_DAY, 0);
+          calendar.set(Calendar.MINUTE, 0);
+          calendar.set(Calendar.SECOND, 0);
+          calendar.set(Calendar.MILLISECOND, 0);
+          return new Date(calendar.getTimeInMillis());
+        }
 
       case TIME:
         throw new SQLException("Cannot read DATE using a Types.TIME field");
@@ -538,7 +613,9 @@ public class TextRowProtocol extends RowProtocol {
       default:
         try {
           DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-          sdf.setTimeZone(timeZone);
+          if (timeZone != null) {
+            sdf.setTimeZone(timeZone);
+          }
           java.util.Date utilDate = sdf.parse(new String(buf, pos, length, StandardCharsets.UTF_8));
           return new Date(utilDate.getTime());
 
@@ -566,8 +643,86 @@ public class TextRowProtocol extends RowProtocol {
 
     if (columnInfo.getColumnType() == ColumnType.TIMESTAMP
         || columnInfo.getColumnType() == ColumnType.DATETIME) {
-      Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
-      return (timestamp == null) ? null : new Time(timestamp.getTime());
+      int nanoBegin = -1;
+      int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
+      int partIdx = 0;
+      for (int begin = pos; begin < pos + length; begin++) {
+        byte b = buf[begin];
+        if (b == '-' || b == ' ' || b == ':') {
+          partIdx++;
+          continue;
+        }
+        if (b == '.') {
+          partIdx++;
+          nanoBegin = begin;
+          continue;
+        }
+        if (b < '0' || b > '9') {
+          throw new SQLException(
+              "cannot parse data in timestamp string '"
+                  + new String(buf, pos, length, StandardCharsets.UTF_8)
+                  + "'");
+        }
+
+        timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+      }
+      if (timestampsPart[0] == 0
+          && timestampsPart[1] == 0
+          && timestampsPart[2] == 0
+          && timestampsPart[3] == 0
+          && timestampsPart[4] == 0
+          && timestampsPart[5] == 0
+          && timestampsPart[6] == 0) {
+        lastValueNull |= BIT_LAST_ZERO_DATE;
+        return null;
+      }
+
+      // fix non leading tray for nanoseconds
+      if (nanoBegin > 0) {
+        for (int begin = 0; begin < 6 - (pos + length - nanoBegin - 1); begin++) {
+          timestampsPart[6] = timestampsPart[6] * 10;
+        }
+      }
+
+      if (timeZone == null) {
+        Calendar calendar = cal != null ? cal : Calendar.getInstance();
+        synchronized (calendar) {
+          calendar.clear();
+          calendar.set(Calendar.YEAR, 1970);
+          calendar.set(Calendar.MONTH, 0);
+          calendar.set(Calendar.DAY_OF_MONTH, 1);
+          calendar.set(Calendar.HOUR_OF_DAY, timestampsPart[3]);
+          calendar.set(Calendar.MINUTE, timestampsPart[4]);
+          calendar.set(Calendar.SECOND, timestampsPart[5]);
+          calendar.set(Calendar.MILLISECOND, timestampsPart[6] / 1_000);
+          return new Time(calendar.getTimeInMillis());
+        }
+      }
+
+      LocalDateTime ldt =
+          LocalDateTime.of(
+              timestampsPart[0],
+              timestampsPart[1],
+              timestampsPart[2],
+              timestampsPart[3],
+              timestampsPart[4],
+              timestampsPart[5],
+              timestampsPart[6] * 1000);
+      ZonedDateTime zdt =
+          ldt.atZone(timeZone.toZoneId()).withZoneSameInstant(TimeZone.getDefault().toZoneId());
+
+      Calendar calendar = cal != null ? cal : Calendar.getInstance();
+      synchronized (calendar) {
+        calendar.clear();
+        calendar.set(Calendar.YEAR, 1970);
+        calendar.set(Calendar.MONTH, 0);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        calendar.set(Calendar.HOUR_OF_DAY, zdt.getHour());
+        calendar.set(Calendar.MINUTE, zdt.getMinute());
+        calendar.set(Calendar.SECOND, zdt.getSecond());
+        calendar.set(Calendar.MILLISECOND, zdt.getNano() / 1_000_000);
+        return new Time(calendar.getTimeInMillis());
+      }
 
     } else if (columnInfo.getColumnType() == ColumnType.DATE) {
 
@@ -673,7 +828,7 @@ public class TextRowProtocol extends RowProtocol {
         Calendar calendar;
         if (userCalendar != null) {
           calendar = userCalendar;
-        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+        } else if (timeZone != null && columnInfo.getColumnType() != ColumnType.DATE) {
           calendar = Calendar.getInstance(timeZone);
         } else {
           calendar = Calendar.getInstance();
@@ -921,6 +1076,11 @@ public class TextRowProtocol extends RowProtocol {
           return null;
         }
         try {
+          if (timeZone == null) {
+            LocalDateTime localDateTime = LocalDateTime.parse(raw, TEXT_LOCAL_DATE_TIME);
+            return ZonedDateTime.of(localDateTime, TimeZone.getDefault().toZoneId());
+          }
+
           LocalDateTime localDateTime =
               LocalDateTime.parse(raw, TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
           return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
@@ -973,7 +1133,10 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    ZoneId zoneId = timeZone.toZoneId().normalized();
+    ZoneId zoneId =
+        timeZone != null
+            ? timeZone.toZoneId().normalized()
+            : TimeZone.getDefault().toZoneId().normalized();
     if (zoneId instanceof ZoneOffset) {
       ZoneOffset zoneOffset = (ZoneOffset) zoneId;
       String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
@@ -1069,6 +1232,9 @@ public class TextRowProtocol extends RowProtocol {
       case Types.LONGVARCHAR:
       case Types.CHAR:
         try {
+          if (timeZone == null) {
+            return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME);
+          }
           return LocalTime.parse(
               raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
         } catch (DateTimeParseException dateParserEx) {
@@ -1123,6 +1289,9 @@ public class TextRowProtocol extends RowProtocol {
           return null;
         }
         try {
+          if (timeZone == null) {
+            return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE);
+          }
           return LocalDate.parse(
               raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
         } catch (DateTimeParseException dateParserEx) {

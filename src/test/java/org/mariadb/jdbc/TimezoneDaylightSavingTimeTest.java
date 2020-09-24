@@ -517,8 +517,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
       assertTrue(rs1.getBoolean(3));
       assertTrue(rs1.getBoolean(4));
 
-      checkResult(legacy, true, connection);
-      checkResult(legacy, false, connection);
+      checkResult(legacy, false);
+      checkResult(legacy, true);
     }
   }
 
@@ -527,236 +527,247 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
    *
    * @param legacy is in legacy mode
    * @param binaryProtocol binary protocol
-   * @param connection connection
    * @return current resultset
    * @throws SQLException if connection error occur.
    */
-  public ResultSet checkResult(boolean legacy, boolean binaryProtocol, Connection connection)
-      throws SQLException {
-    ResultSet rs;
-    PreparedStatement pst;
-    if (binaryProtocol) {
-      pst =
-          connection.prepareStatement(
-              "SELECT * from daylight where 1 = ?",
-              ResultSet.TYPE_SCROLL_INSENSITIVE,
-              ResultSet.CONCUR_READ_ONLY);
-    } else {
-      MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
-      ExceptionFactory exceptionFactory =
-          ExceptionFactory.of((int) mariaDbConnection.getServerThreadId(), new Options());
-      pst =
-          new ClientSidePreparedStatement(
-              mariaDbConnection,
-              "SELECT * from daylight where 1 = ?",
-              ResultSet.TYPE_SCROLL_INSENSITIVE,
-              ResultSet.CONCUR_READ_ONLY,
-              Statement.NO_GENERATED_KEYS,
-              exceptionFactory);
-    }
-    pst.setInt(1, 1);
-    rs = pst.executeQuery();
+  public ResultSet checkResult(boolean legacy, boolean binaryProtocol) throws SQLException {
+    try (Connection connection =
+        setConnection(
+            "&useServerPrepStmts="
+                + binaryProtocol
+                + "&useLegacyDatetimeCode="
+                + legacy
+                + "&serverTimezone=Canada/Atlantic&sessionVariables=time_zone='Canada/Atlantic'")) {
+      ResultSet rs;
+      PreparedStatement pst;
+      if (binaryProtocol) {
+        pst =
+            connection.prepareStatement(
+                "SELECT * from daylight where 1 = ?",
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+      } else {
+        MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
+        ExceptionFactory exceptionFactory =
+            ExceptionFactory.of((int) mariaDbConnection.getServerThreadId(), new Options());
+        pst =
+            new ClientSidePreparedStatement(
+                mariaDbConnection,
+                "SELECT * from daylight where 1 = ?",
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY,
+                Statement.NO_GENERATED_KEYS,
+                exceptionFactory);
+      }
+      pst.setInt(1, 1);
+      rs = pst.executeQuery();
 
-    assertTrue(rs.next());
+      assertTrue(rs.next());
 
-    // test timestamp(6)
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTimestamp(2)));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(2, Timestamp.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(2, Time.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(2, Date.class)));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100",
-        formatter.format(rs.getObject(2, Calendar.class).getTime()));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(2, java.util.Date.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTime(2)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getDate(2)));
-
-    // test time(6)
-    assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getTimestamp(3)));
-    assertEquals(
-        "1970-01-01T01:45:00.000+0100", formatter.format(rs.getObject(3, Timestamp.class)));
-    assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getObject(3, Time.class)));
-    assertEquals(
-        "1970-01-01T01:45:00.000+0100",
-        formatter.format(rs.getObject(3, Calendar.class).getTime()));
-    assertEquals(
-        "1970-01-01T01:45:00.000+0100", formatter.format(rs.getObject(3, java.util.Date.class)));
-    try {
-      formatter.format(rs.getObject(3, Date.class));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getTime(3)));
-    assertEquals(2700000, rs.getTime(3).getTime());
-    try {
-      formatter.format(rs.getDate(3));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-
-    // test datetime(6)
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTimestamp(4)));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(4, Timestamp.class)));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100",
-        formatter.format(rs.getObject(4, Calendar.class).getTime()));
-    assertEquals(
-        "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(4, java.util.Date.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(4, Time.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(4, Date.class)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTime(4)));
-    assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getDate(4)));
-
-    // test date(6)
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getTimestamp(5)));
-    assertEquals(
-        "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Timestamp.class)));
-    try {
-      formatter.format(rs.getObject(5, Time.class));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Date.class)));
-    try {
-      formatter.format(rs.getTime(5));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(5)));
-    assertEquals(new Date(2015 - 1900, 2, 29), rs.getDate(5));
-    assertEquals(rs.getString(5), "2015-03-29");
-
-    assertTrue(rs.next());
-    // test timestamp(6)
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(2)));
-    assertEquals(
-        "2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(2, Timestamp.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(2, Time.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(2, Date.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTime(2)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getDate(2)));
-
-    // test time(6)
-    assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getTimestamp(3)));
-    assertEquals(
-        "1970-01-01T03:15:00.000+0100", formatter.format(rs.getObject(3, Timestamp.class)));
-    assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getObject(3, Time.class)));
-    try {
-      formatter.format(rs.getObject(3, Date.class));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getTime(3)));
-    assertEquals(8100000, rs.getTime(3).getTime());
-    try {
-      formatter.format(rs.getDate(3));
-      fail();
-    } catch (SQLException e) {
-      // expected exception
-    }
-
-    // test datetime(6)
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(4)));
-    assertEquals(
-        "2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(4, Timestamp.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(4, Time.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(4, Date.class)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTime(4)));
-    assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getDate(4)));
-
-    // test date(6)
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getTimestamp(5)));
-    assertEquals(
-        "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Timestamp.class)));
-    try {
-      formatter.format(rs.getObject(5, Time.class));
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Date.class)));
-    try {
-      formatter.format(rs.getTime(5));
-    } catch (SQLException e) {
-      // expected exception
-    }
-    assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(5)));
-    assertEquals(new Date(2015 - 1900, 2, 29), rs.getDate(5));
-    assertEquals(rs.getString(5), "2015-03-29");
-
-    assertTrue(rs.next());
-    // test timestamp(6)
-    for (int i = 2; i < 6; i++) {
-      assertNull(rs.getTimestamp(i));
-      assertNull(rs.getTime(i));
-      assertNull(rs.getDate(i));
-      assertNull(rs.getObject(i, Timestamp.class));
-      assertNull(rs.getObject(i, Time.class));
-      assertNull(rs.getObject(i, Date.class));
-      assertNull(rs.getObject(i, Calendar.class));
-      assertNull(rs.getObject(i, java.util.Date.class));
-    }
-
-    rs.first();
-
-    // additional tests for java 8 objects
-    assertEquals("2015-03-29T01:45:00.012340", rs.getTimestamp(2).toLocalDateTime().toString());
-    assertEquals("2015-03-29T01:45:00.012340", rs.getObject(2, LocalDateTime.class).toString());
-    if (legacy) {
+      // test timestamp(6)
+      assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTimestamp(2)));
       assertEquals(
-          "2015-03-29T01:45:00.012340+01:00[Europe/Paris]",
-          rs.getObject(2, ZonedDateTime.class).toString());
+          "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(2, Timestamp.class)));
+      assertEquals("1970-01-01T01:45:00.012+0100", formatter.format(rs.getObject(2, Time.class)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(2, Date.class)));
       assertEquals(
-          "2015-03-29T01:45:00.012340+01:00", rs.getObject(2, OffsetDateTime.class).toString());
-    } else {
+          "2015-03-29T01:45:00.012+0100",
+          formatter.format(rs.getObject(2, Calendar.class).getTime()));
       assertEquals(
-          "2015-03-28T21:45:00.012340-03:00[Canada/Atlantic]",
-          rs.getObject(2, ZonedDateTime.class).toString());
-      assertEquals(
-          "2015-03-28T21:45:00.012340-03:00", rs.getObject(2, OffsetDateTime.class).toString());
-    }
-    assertEquals("01:45:00.012340", rs.getObject(2, LocalTime.class).toString());
-    assertEquals("2015-03-29", rs.getObject(2, LocalDate.class).toString());
+          "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(2, java.util.Date.class)));
+      assertEquals("1970-01-01T01:45:00.012+0100", formatter.format(rs.getTime(2)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(2)));
 
-    assertTrue(rs.next());
-    // additional tests for java 8 objects
-    assertEquals("2015-03-29T03:15:00.012340", rs.getTimestamp(2).toLocalDateTime().toString());
-    assertEquals("2015-03-29T03:15:00.012340", rs.getObject(2, LocalDateTime.class).toString());
-    if (legacy) {
+      // test time(6)
+      assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getTimestamp(3)));
       assertEquals(
-          "2015-03-29T03:15:00.012340+02:00[Europe/Paris]",
-          rs.getObject(2, ZonedDateTime.class).toString());
+          "1970-01-01T01:45:00.000+0100", formatter.format(rs.getObject(3, Timestamp.class)));
+      assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getObject(3, Time.class)));
       assertEquals(
-          "2015-03-29T03:15:00.012340+02:00", rs.getObject(2, OffsetDateTime.class).toString());
-    } else {
-      assertEquals(
-          "2015-03-28T22:15:00.012340-03:00[Canada/Atlantic]",
-          rs.getObject(2, ZonedDateTime.class).toString());
-      assertEquals(
-          "2015-03-28T22:15:00.012340-03:00", rs.getObject(2, OffsetDateTime.class).toString());
-    }
-    assertEquals("03:15:00.012340", rs.getObject(2, LocalTime.class).toString());
-    assertEquals("2015-03-29", rs.getObject(2, LocalDate.class).toString());
+          "1970-01-01T01:45:00.000+0100",
+          formatter.format(rs.getObject(3, Calendar.class).getTime()));
+      try {
+        formatter.format(rs.getObject(3, java.util.Date.class));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
 
-    assertTrue(rs.next());
-    // test timestamp(6)
-    for (int i = 2; i < 6; i++) {
-      assertNull(rs.getObject(i, LocalDateTime.class));
-      assertNull(rs.getObject(i, OffsetDateTime.class));
-      assertNull(rs.getObject(i, ZonedDateTime.class));
-      assertNull(rs.getObject(i, LocalDate.class));
-      assertNull(rs.getObject(i, LocalTime.class));
-      assertNull(rs.getObject(i, OffsetTime.class));
-    }
+      try {
+        formatter.format(rs.getObject(3, Date.class));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("1970-01-01T01:45:00.000+0100", formatter.format(rs.getTime(3)));
+      assertEquals(2700000, rs.getTime(3).getTime());
+      try {
+        formatter.format(rs.getDate(3));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
 
-    return rs;
+      // test datetime(6)
+      assertEquals("2015-03-29T01:45:00.012+0100", formatter.format(rs.getTimestamp(4)));
+      assertEquals(
+          "2015-03-29T01:45:00.012+0100", formatter.format(rs.getObject(4, Timestamp.class)));
+      assertEquals(
+          "2015-03-29T01:45:00.012+0100",
+          formatter.format(rs.getObject(4, Calendar.class).getTime()));
+      assertEquals(
+          "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(4, java.util.Date.class)));
+      assertEquals("1970-01-01T01:45:00.012+0100", formatter.format(rs.getObject(4, Time.class)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(4, Date.class)));
+      assertEquals("1970-01-01T01:45:00.012+0100", formatter.format(rs.getTime(4)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(4)));
+
+      // test date(6)
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getTimestamp(5)));
+      assertEquals(
+          "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Timestamp.class)));
+      try {
+        formatter.format(rs.getObject(5, Time.class));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Date.class)));
+      try {
+        formatter.format(rs.getTime(5));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(5)));
+      assertEquals(new Date(2015 - 1900, 2, 29), rs.getDate(5));
+      assertEquals(rs.getString(5), "2015-03-29");
+
+      assertTrue(rs.next());
+      // test timestamp(6)
+      assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(2)));
+      assertEquals(
+          "2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(2, Timestamp.class)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(2)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(2, Date.class)));
+      assertEquals("1970-01-01T03:15:00.012+0100", formatter.format(rs.getTime(2)));
+      assertEquals("1970-01-01T03:15:00.012+0100", formatter.format(rs.getObject(2, Time.class)));
+
+      // test time(6)
+      assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getTimestamp(3)));
+      assertEquals(
+          "1970-01-01T03:15:00.000+0100", formatter.format(rs.getObject(3, Timestamp.class)));
+      assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getObject(3, Time.class)));
+      try {
+        formatter.format(rs.getObject(3, Date.class));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("1970-01-01T03:15:00.000+0100", formatter.format(rs.getTime(3)));
+      assertEquals(8100000, rs.getTime(3).getTime());
+      try {
+        formatter.format(rs.getDate(3));
+        fail();
+      } catch (SQLException e) {
+        // expected exception
+      }
+
+      // test datetime(6)
+      assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(4)));
+      assertEquals(
+          "2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(4, Timestamp.class)));
+      assertEquals("1970-01-01T03:15:00.012+0100", formatter.format(rs.getObject(4, Time.class)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(4, Date.class)));
+      assertEquals("1970-01-01T03:15:00.012+0100", formatter.format(rs.getTime(4)));
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(4)));
+
+      // test date(6)
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getTimestamp(5)));
+      assertEquals(
+          "2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Timestamp.class)));
+      try {
+        formatter.format(rs.getObject(5, Time.class));
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getObject(5, Date.class)));
+      try {
+        formatter.format(rs.getTime(5));
+      } catch (SQLException e) {
+        // expected exception
+      }
+      assertEquals("2015-03-29T00:00:00.000+0100", formatter.format(rs.getDate(5)));
+      assertEquals(new Date(2015 - 1900, 2, 29), rs.getDate(5));
+      assertEquals(rs.getString(5), "2015-03-29");
+
+      assertTrue(rs.next());
+      // test timestamp(6)
+      for (int i = 2; i < 6; i++) {
+        assertNull(rs.getTimestamp(i));
+        assertNull(rs.getTime(i));
+        assertNull(rs.getDate(i));
+        assertNull(rs.getObject(i, Timestamp.class));
+        assertNull(rs.getObject(i, Time.class));
+        assertNull(rs.getObject(i, Date.class));
+        assertNull(rs.getObject(i, Calendar.class));
+        assertNull(rs.getObject(i, java.util.Date.class));
+      }
+
+      rs.first();
+
+      // additional tests for java 8 objects
+      assertEquals("2015-03-29T01:45:00.012340", rs.getTimestamp(2).toLocalDateTime().toString());
+      assertEquals("2015-03-29T01:45:00.012340", rs.getObject(2, LocalDateTime.class).toString());
+      if (legacy) {
+        assertEquals(
+            "2015-03-29T01:45:00.012340+01:00[Europe/Paris]",
+            rs.getObject(2, ZonedDateTime.class).toString());
+        assertEquals(
+            "2015-03-29T01:45:00.012340+01:00", rs.getObject(2, OffsetDateTime.class).toString());
+      } else {
+        assertEquals(
+            "2015-03-28T21:45:00.012340-03:00[Canada/Atlantic]",
+            rs.getObject(2, ZonedDateTime.class).toString());
+        assertEquals(
+            "2015-03-28T21:45:00.012340-03:00", rs.getObject(2, OffsetDateTime.class).toString());
+      }
+      assertEquals("01:45:00.012340", rs.getObject(2, LocalTime.class).toString());
+      assertEquals("2015-03-29", rs.getObject(2, LocalDate.class).toString());
+
+      assertTrue(rs.next());
+      // additional tests for java 8 objects
+      assertEquals("2015-03-29T03:15:00.012340", rs.getTimestamp(2).toLocalDateTime().toString());
+      assertEquals("2015-03-29T03:15:00.012340", rs.getObject(2, LocalDateTime.class).toString());
+      if (legacy) {
+        assertEquals(
+            "2015-03-29T03:15:00.012340+02:00[Europe/Paris]",
+            rs.getObject(2, ZonedDateTime.class).toString());
+        assertEquals(
+            "2015-03-29T03:15:00.012340+02:00", rs.getObject(2, OffsetDateTime.class).toString());
+      } else {
+        assertEquals(
+            "2015-03-28T22:15:00.012340-03:00[Canada/Atlantic]",
+            rs.getObject(2, ZonedDateTime.class).toString());
+        assertEquals(
+            "2015-03-28T22:15:00.012340-03:00", rs.getObject(2, OffsetDateTime.class).toString());
+      }
+      assertEquals("03:15:00.012340", rs.getObject(2, LocalTime.class).toString());
+      assertEquals("2015-03-29", rs.getObject(2, LocalDate.class).toString());
+
+      assertTrue(rs.next());
+      // test timestamp(6)
+      for (int i = 2; i < 6; i++) {
+        assertNull(rs.getObject(i, LocalDateTime.class));
+        assertNull(rs.getObject(i, OffsetDateTime.class));
+        assertNull(rs.getObject(i, ZonedDateTime.class));
+        assertNull(rs.getObject(i, LocalDate.class));
+        assertNull(rs.getObject(i, LocalTime.class));
+        assertNull(rs.getObject(i, OffsetTime.class));
+      }
+
+      return rs;
+    }
   }
 
   @Test

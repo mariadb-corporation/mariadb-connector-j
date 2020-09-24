@@ -87,7 +87,7 @@ public class SelectResultSet implements ResultSet {
   private boolean isEof;
   private boolean callableResult;
   private MariaDbStatement statement;
-  private RowProtocol row;
+  protected RowProtocol row;
   private int dataFetchTime;
   private boolean streaming;
   private byte[][] data;
@@ -1214,7 +1214,7 @@ public class SelectResultSet implements ResultSet {
       System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
       return (T) data;
 
-    } else if (type.equals(Date.class)) {
+    } else if (type.equals(Date.class) || type.equals(java.util.Date.class)) {
       return (T) row.getInternalDate(col, null, timeZone);
 
     } else if (type.equals(Time.class)) {
@@ -1227,7 +1227,8 @@ public class SelectResultSet implements ResultSet {
       return (T) (Boolean) row.getInternalBoolean(col);
 
     } else if (type.equals(Calendar.class)) {
-      Calendar calendar = Calendar.getInstance(timeZone);
+      Calendar calendar =
+          timeZone == null ? Calendar.getInstance() : Calendar.getInstance(timeZone);
       Timestamp timestamp = row.getInternalTimestamp(col, null, timeZone);
       if (timestamp == null) {
         return null;

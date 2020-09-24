@@ -743,4 +743,43 @@ public class StatementTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void ensureStreamingState() throws Exception {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 1));
+    createProcedure(
+        "ensureStreamingState",
+        "(INOUT p1 INT) BEGIN  SELECT * from seq_1_to_3; SELECT * from " + "seq_5_to_7; END");
+    Statement stmt = sharedConnection.createStatement();
+    PreparedStatement prep = sharedConnection.prepareCall("CALL ensureStreamingState(?)");
+    prep.setObject(1, 5);
+    prep.setFetchSize(1);
+    prep.execute();
+
+    ResultSet rs = stmt.executeQuery("SELECT 50");
+    assertTrue(rs.next());
+    assertEquals(50, rs.getInt(1));
+    rs = prep.getResultSet();
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(3, rs.getInt(1));
+    assertFalse(rs.next());
+
+    assertTrue(prep.getMoreResults());
+
+    rs = prep.getResultSet();
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(6, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(7, rs.getInt(1));
+    assertFalse(rs.next());
+
+    assertFalse(prep.getMoreResults());
+    prep.close();
+  }
 }

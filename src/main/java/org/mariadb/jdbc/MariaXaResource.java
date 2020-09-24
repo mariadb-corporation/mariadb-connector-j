@@ -217,8 +217,13 @@ public class MariaXaResource implements XAResource {
    */
   @Override
   public boolean isSameRM(XAResource xaResource) {
-    // Typically used by transaction manager to "join" transactions. We do not support joins,
-    // so always return false;
+    if (xaResource instanceof MariaXaResource) {
+      MariaXaResource other = (MariaXaResource) xaResource;
+      return connection
+          .getProtocol()
+          .getUrlParser()
+          .equals(other.connection.getProtocol().getUrlParser());
+    }
     return false;
   }
 

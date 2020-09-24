@@ -59,6 +59,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.util.Options;
@@ -72,19 +73,19 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
    * Constructor.
    *
    * @param offsetTime time with offset
-   * @param serverZoneId server session zoneId
+   * @param timezone server session zoneId
    * @param fractionalSeconds must fractional Seconds be send to database.
    * @param options session options
    * @throws SQLException if offset cannot be converted to server offset
    */
   public OffsetTimeParameter(
-      OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds, Options options)
+      OffsetTime offsetTime, TimeZone timezone, boolean fractionalSeconds, Options options)
       throws SQLException {
-    ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
+    ZoneId zoneId = timezone == null ? ZoneOffset.systemDefault() : timezone.toZoneId();
     if (zoneId instanceof ZoneOffset) {
       throw new SQLException(
           "cannot set OffsetTime, since server time zone is set to '"
-              + serverZoneId.toString()
+              + timezone.toZoneId().toString()
               + "' (check server variables time_zone and system_time_zone)");
     }
     this.time = offsetTime.withOffsetSameInstant((ZoneOffset) zoneId);

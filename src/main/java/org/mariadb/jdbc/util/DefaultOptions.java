@@ -399,9 +399,9 @@ public enum DefaultOptions {
       false),
   CACHE_CALLABLE_STMTS(
       "cacheCallableStmts",
-      Boolean.TRUE,
+      Boolean.FALSE,
       "1.4.0",
-      "enable/disable callable Statement cache, default" + " true.",
+      "enable/disable callable Statement cache, default false.",
       false),
   CALLABLE_STMT_CACHE_SIZE(
       "callableStmtCacheSize",
@@ -685,8 +685,13 @@ public enum DefaultOptions {
       Boolean.TRUE,
       "2.6.0",
       "manage session_track_schema setting when server has CLIENT_SESSION_TRACK capability",
+      false),
+  ENSURE_SOCKET_STATE(
+      "ensureSocketState",
+      Boolean.FALSE,
+      "2.7.0",
+      "ensure socket state before issuing a new command",
       false);
-
   private final String optionName;
   private final String description;
   private final boolean required;

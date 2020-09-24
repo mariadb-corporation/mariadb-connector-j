@@ -202,7 +202,7 @@ public class DateTest extends BaseTest {
     createTable("yeartest", "y1 year, y2 year(2)");
     sharedConnection
         .createStatement()
-        .execute("insert into yeartest values (null, null), (1901, 70), (0, 0), " + "(2155, 69)");
+        .execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("select * from yeartest");
 
@@ -412,12 +412,9 @@ public class DateTest extends BaseTest {
       assertEquals(rs.getTimestamp(1), currentTimeStamp);
       assertEquals(rs.getTimestamp(2), currentTimeStamp);
       assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
-
-      assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
-      assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
+      assertEquals(rs.getDate(1).toString(), new Date(currentTimeStamp.getTime()).toString());
+      assertEquals(rs.getDate(2).toString(), new Date(currentTimeStamp.getTime()).toString());
       assertEquals(rs.getDate(3), dateWithoutTime);
-      assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
-      assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
       try {
         rs.getTime(3);
         fail();

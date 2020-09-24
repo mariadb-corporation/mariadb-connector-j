@@ -82,14 +82,12 @@ public class SslTest extends BaseTest {
   private String serverCertificatePath;
   private String clientKeystorePath;
   private String clientKeystorePassword;
+  private int sslPort;
 
   /** Enable Crypto. */
   @BeforeClass
   public static void enableCrypto() {
-    Assume.assumeFalse(
-        System.getenv("MAXSCALE_VERSION") != null
-            || System.getenv("SKYSQL") != null
-            || "true".equals(System.getenv("AURORA")));
+    Assume.assumeFalse(System.getenv("SKYSQL") != null || "true".equals(System.getenv("AURORA")));
     try {
       Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
       field.setAccessible(true);
@@ -129,27 +127,35 @@ public class SslTest extends BaseTest {
     } else {
       serverCertificatePath = System.getProperty("serverCertificatePath");
     }
+    sslPort =
+        System.getProperty("sslPort") == null || System.getProperty("sslPort").isEmpty()
+            ? port
+            : Integer.valueOf(System.getProperty("sslPort"));
     clientKeystorePath = System.getProperty("keystorePath");
     clientKeystorePassword = System.getProperty("keystorePassword");
     Statement stmt = sharedConnection.createStatement();
-    try {
-      stmt.execute("DROP USER 'ssltestUser'@'%'");
-    } catch (SQLException e) {
-      // eat
-    }
+
     boolean useOldNotation = true;
     if ((isMariadbServer() && minVersion(10, 2, 0))
         || (!isMariadbServer() && minVersion(8, 0, 0))) {
       useOldNotation = false;
     }
     if (useOldNotation) {
-      stmt.execute("CREATE USER 'ssltestUser'@'%'");
+      stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'%'");
       stmt.execute(
           "GRANT SELECT ON *.* TO 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost'");
+      stmt.execute(
+          "GRANT SELECT ON *.* TO 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
     } else {
-      stmt.execute("CREATE USER 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
       stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'%'");
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'localhost'");
     }
+    stmt.execute("FLUSH PRIVILEGES");
   }
 
   @Test
@@ -157,7 +163,7 @@ public class SslTest extends BaseTest {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     // Skip SSL test on java 7 since SSL stream size JDK-6521495).
     Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
-    try (Connection connection = setConnection("&useSSL=true&trustServerCertificate=true")) {
+    try (Connection connection = createConnection("&useSSL=true&trustServerCertificate=true")) {
       connection.createStatement().execute("select 1");
     }
   }
@@ -179,7 +185,7 @@ public class SslTest extends BaseTest {
       info.setProperty("enabledSslCipherSuites", ciphers);
     }
 
-    try (Connection connection = setConnection(info)) {
+    try (Connection connection = createConnection(info)) {
       connection.createStatement().execute("select 1");
     }
   }
@@ -272,8 +278,13 @@ public class SslTest extends BaseTest {
             || (isMariadbServer() && Platform.isWindows() && !minVersion(10, 4)));
     // Only test with MariaDB since MySQL community is compiled with yaSSL
     if (isMariadbServer()) {
-      useSslForceTls(
-          "TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+      try {
+        useSslForceTls(
+            "TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+      } catch (SQLException sqle) {
+        // in case ciphers not supported by server
+        assertTrue(sqle.getMessage().contains("handshake_failure"));
+      }
     }
   }
 
@@ -323,7 +334,7 @@ public class SslTest extends BaseTest {
         // enabledSSLCipherSuites, not enabledSslCipherSuites (different case)
         info.setProperty("enabledSSLCipherSuites", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
 
-        try (Connection connection = setConnection(info)) {
+        try (Connection connection = createConnection(info)) {
           connection.createStatement().execute("select 1");
           fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
         }
@@ -387,12 +398,30 @@ public class SslTest extends BaseTest {
   }
 
   private Connection createConnection(Properties info) throws SQLException {
-    return createConnection(info, username, password);
+    return createConnection(info, username, password, sslPort);
   }
 
-  private Connection createConnection(Properties info, String user, String pwd)
+  private Connection createConnection(String param) throws SQLException {
+    return createConnection(param, new Properties(), username, password, sslPort);
+  }
+
+  private Connection createConnection(Properties info, String user, String pwd, int port)
       throws SQLException {
-    String jdbcUrl = connDnsUri;
+    return createConnection(null, info, user, pwd, port);
+  }
+
+  private Connection createConnection(
+      String param, Properties info, String user, String pwd, int port) throws SQLException {
+    String jdbcUrl =
+        "jdbc:mariadb://mariadb.example.com:"
+            + port
+            + "/"
+            + database
+            + "?"
+            + parameters
+            + (password != null && !"".equals(password) ? "&password=" + password : "")
+            + (param != null ? param : "");
+    ;
     Properties connProps = new Properties(info);
     connProps.setProperty("user", user);
     if (pwd != null) {
@@ -426,7 +455,8 @@ public class SslTest extends BaseTest {
       throws SQLException {
     Assume.assumeTrue(System.getenv("SKYSQL") == null);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
-    try (Connection conn = createConnection(info, user, pwd)) {
+
+    try (Connection conn = createConnection(info, user, pwd, sslPort)) {
       // First do a basic select test:
       try (Statement stmt = conn.createStatement()) {
         try (ResultSet rs = stmt.executeQuery("SHOW STATUS like 'Ssl_version'")) {
@@ -453,7 +483,9 @@ public class SslTest extends BaseTest {
       testConnect(info, false);
       fail("Must fail since user require SSL");
     } catch (SQLException e) {
-      assertTrue(e.getMessage().contains("Access denied for user 'ssltestUser'"));
+      assertTrue(
+          e.getMessage().contains("Access denied for user 'ssltestUser'")
+              || e.getMessage().contains("Bad SSL handshake"));
     }
   }
 
@@ -581,7 +613,7 @@ public class SslTest extends BaseTest {
       Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
 
       long sessionsReused = 0;
-      try (Connection conn = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
+      try (Connection conn = createConnection(info, "ssltestUser", "!Passw0rd3Works", sslPort)) {
         // First do a basic select test:
         Statement stmt = conn.createStatement();
 
@@ -597,7 +629,7 @@ public class SslTest extends BaseTest {
           sessionsReused = rs.getLong(2);
         }
 
-        try (Connection conn2 = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
+        try (Connection conn2 = createConnection(info, "ssltestUser", "!Passw0rd3Works", sslPort)) {
           Statement stmt2 = conn2.createStatement();
 
           try (ResultSet rs = stmt2.executeQuery("SHOW STATUS LIKE 'Ssl_sessions_reused'")) {
@@ -830,6 +862,7 @@ public class SslTest extends BaseTest {
    */
   @Test
   public void testClientKeyStoreWithPrivateKeyPwd() throws Exception {
+    Assume.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     String clientKeyStore2Path = System.getProperty("keystore2Path");
     String clientKeyStore2Password = System.getProperty("keystore2Password");
@@ -1111,20 +1144,28 @@ public class SslTest extends BaseTest {
     }
 
     Statement st = sharedConnection.createStatement();
-    try {
-      st.execute("DROP USER '" + user + "'@'%'");
-    } catch (SQLException e) {
-      // eat
-    }
-    st.execute("FLUSH PRIVILEGES");
     if (useOldNotation) {
-      st.execute("CREATE USER '" + user + "'@'%'");
+      st.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%'");
       st.execute(
           "GRANT SELECT on *.* to '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+      st.execute("CREATE USER IF NOT EXISTS '" + user + "'@'localhost'");
+      st.execute(
+          "GRANT SELECT on *.* to '"
+              + user
+              + "'@'localhost' identified by 'ssltestpassword' REQUIRE X509");
     } else {
-      st.execute("CREATE USER '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+      st.execute(
+          "CREATE USER IF NOT EXISTS '"
+              + user
+              + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
       st.execute("GRANT SELECT on *.* to '" + user + "'@'%'");
+      st.execute(
+          "CREATE USER IF NOT EXISTS '"
+              + user
+              + "'@'localhost' identified by 'ssltestpassword' REQUIRE X509");
+      st.execute("GRANT SELECT on *.* to '" + user + "'@'localhost'");
     }
+    st.execute("FLUSH PRIVILEGES");
   }
 
   private void deleteSslTestUser(String user) throws SQLException {

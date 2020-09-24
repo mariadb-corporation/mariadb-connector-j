@@ -89,7 +89,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
-
         st.executeUpdate(
             "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 
@@ -300,7 +299,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
     Assume.assumeFalse(
         (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null);
     Assume.assumeFalse(sharedIsAurora());
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");

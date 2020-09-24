@@ -52,45 +52,42 @@
 
 package org.mariadb.jdbc;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class LocalInfileDisableTest extends BaseTest {
+public class StringUTFTest extends BaseTest {
 
   /**
-   * Initialisation.
+   * Initialization.
    *
    * @throws SQLException exception
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("t", "id int, test varchar(100)");
+    createTable("stringutftest", "stringutf varchar(40)", "COLLATE='utf8mb4_general_ci'");
   }
 
   @Test
-  public void testLocalInfileWithoutInputStream() throws SQLException {
-    try (Connection connection = setConnection("&allowLocalInfile=false")) {
-      Exception ex = null;
-      try (Statement stmt = connection.createStatement()) {
-        stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-      } catch (Exception e) {
-        ex = e;
-      }
+  public void maxFieldSizeTruncation() throws SQLException {
+    PreparedStatement ps =
+        sharedConnection.prepareStatement("insert into stringutftest(stringutf) values(?)");
+    ps.setString(1, "śćżź");
+    ps.execute();
 
-      assertNotNull("Expected an exception to be thrown", ex);
-      String message = ex.getMessage();
-      assertTrue(
-          message.contains(
-                  "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true")
-              || message.contains("Loading local data is disabled")
-              || message.contains(
-                  "The used command is not allowed because the MariaDB server or client has disabled the local infile capability"));
-    }
+    ps.setString(1, "1234567\uD83E\uDD42");
+    ps.execute();
+
+    Statement stmt = sharedConnection.createStatement();
+    stmt.setMaxFieldSize(10);
+    ResultSet rs = stmt.executeQuery("select * from stringutftest");
+    assertTrue(rs.next());
+    // no truncation
+    assertEquals("śćżź", rs.getString(1));
+    assertTrue(rs.next());
+    // truncation
+    assertEquals("1234567�", rs.getString(1));
   }
 }

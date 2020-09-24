@@ -633,7 +633,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     if (Boolean.TRUE.equals(options.useSsl)) {
 
       if ((serverCapabilities & MariaDbServerCapabilities.SSL) == 0) {
-        exceptionFactory.create(
+        throw exceptionFactory.create(
             "Trying to connect with ssl, but ssl not enabled in the server", "08000");
       }
       clientCapabilities |= MariaDbServerCapabilities.SSL;
@@ -872,7 +872,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sendPipelineAdditionalData();
             readPipelineAdditionalData(serverData);
           } catch (SQLException sqle) {
-            if ("08".equals(sqle.getSQLState())) {
+            if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
               throw sqle;
             }
             // in case pipeline is not supported
@@ -1031,6 +1031,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
     try {
       readRequestSessionVariables(serverData);
     } catch (SQLException sqlException) {
+      if (resultingException != null) {
+        if (resultingException.getSQLState() != null
+            && !resultingException.getSQLState().startsWith("08")
+            && sqlException.getSQLState() != null
+            && sqlException.getSQLState().startsWith("08")) {
+          throw new SQLException(
+              resultingException.getMessage(),
+              "08000",
+              resultingException.getErrorCode(),
+              resultingException);
+        }
+      }
       if (resultingException == null) {
         resultingException =
             exceptionFactory.create("could not load system variables", "08000", sqlException);
@@ -1134,7 +1146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       throws SQLException {
     if (options.useLegacyDatetimeCode) {
       // legacy use client timezone
-      timeZone = Calendar.getInstance().getTimeZone();
+      timeZone = null;
     } else {
       // use server time zone
       String tz = options.serverTimezone;
@@ -1154,6 +1166,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       try {
         timeZone = Utils.getTimeZone(tz);
+        if (timeZone.equals(TimeZone.getDefault())) timeZone = null;
       } catch (SQLException e) {
         if (options.serverTimezone != null) {
           throw exceptionFactory.create(
