@@ -89,4 +89,10 @@ public class MariaDbServerCapabilities {
       1L << 32; /* Client support progress indicator (since 10.2) */
   public static final long MARIADB_CLIENT_COM_MULTI =
       1L << 33; /* bundle command during connection */
+
+  /* support of array binding */
+  public static final long MARIADB_CLIENT_STMT_BULK_OPERATIONS = 1L << 34;
+
+  /* support of extended metadata (e.g. type/format information) */
+  public static final long MARIADB_CLIENT_EXTENDED_METADATA = 1L << 35;
 }
