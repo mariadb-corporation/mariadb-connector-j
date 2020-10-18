@@ -74,7 +74,7 @@ public class MariaXaResource implements XAResource {
         + ",0x"
         + Utils.byteArrayToHexString(xid.getBranchQualifier())
         + ",0x"
-        + Utils.intToHexString(xid.getFormatId());
+        + Integer.toHexString(xid.getFormatId());
   }
 
   private static String flagsToString(int flags) {

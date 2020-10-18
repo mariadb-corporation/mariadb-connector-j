@@ -63,7 +63,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -85,11 +84,6 @@ public class DistributedTransactionTest extends BaseTest {
   public static void initClass() throws SQLException {
     Assume.assumeFalse(options.useSsl != null && options.useSsl);
     createTable("xatable", "i int", "ENGINE=InnoDB");
-  }
-
-  @Before
-  public void checkSupported() throws SQLException {
-    requireMinimumVersion(5, 0);
   }
 
   private Xid newXid() {
