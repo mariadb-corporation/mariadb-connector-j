@@ -872,6 +872,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
           OkPacket ok = new OkPacket(buffer, clientCapabilities);
+          serverStatus = ok.getServerStatus();
           String message = ok.getInfo();
           RedirectionInfo redirectInfo = RedirectionInfo.parseRedirectionInfo(message);
           if (redirectInfo != null) {
