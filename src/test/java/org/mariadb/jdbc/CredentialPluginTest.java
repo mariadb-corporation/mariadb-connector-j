@@ -70,8 +70,8 @@ public class CredentialPluginTest extends BaseTest {
   @After
   public void after() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
-    stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");
+    stmt.execute("DROP USER 'identityUser'@'%'");
+    stmt.execute("DROP USER 'identityUser'@'localhost'");
   }
 
   @Test
