@@ -406,7 +406,7 @@ public class DatabaseMetadataTest extends BaseTest {
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariadbServer()) {
+    if (!isMariadbServer() && !minVersion(8, 0)) {
       // index name not taken into account
       assertEquals("cross3_ibfk_1", rs.getString("FK_NAME"));
     } else {
@@ -430,7 +430,7 @@ public class DatabaseMetadataTest extends BaseTest {
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariadbServer()) {
+    if (!isMariadbServer() && !minVersion(8, 0)) {
       // wrong index name
       assertEquals("cross3_ibfk_1", rs.getString("FK_NAME"));
     } else {
@@ -1139,7 +1139,7 @@ public class DatabaseMetadataTest extends BaseTest {
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariadbServer()) {
+    if (!isMariadbServer() && !minVersion(8, 0)) {
       // wrong index naming
       assertEquals("cross3_ibfk_1", rs.getString(12));
     } else {
@@ -1162,7 +1162,7 @@ public class DatabaseMetadataTest extends BaseTest {
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariadbServer()) {
+    if (!isMariadbServer() && !minVersion(8, 0)) {
       // wrong index naming
       assertEquals("cross3_ibfk_1", rs.getString(12));
     } else {
