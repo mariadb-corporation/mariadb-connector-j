@@ -90,12 +90,12 @@ public class BaseTest {
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-              prop.getProperty("DB_HOST"),
-              prop.getProperty("DB_PORT"),
-              prop.getProperty("DB_DATABASE"),
-              prop.getProperty("DB_USER"),
-              prop.getProperty("DB_PASSWORD"),
-              prop.getProperty("DB_OTHER"));
+              System.getProperty("TEST_DB_HOST", prop.getProperty("DB_HOST")),
+              System.getProperty("TEST_DB_PORT", prop.getProperty("DB_PORT")),
+              System.getProperty("TEST_DB_DATABASE", prop.getProperty("DB_DATABASE")),
+              System.getProperty("TEST_DB_USER", prop.getProperty("DB_USER")),
+              System.getProperty("TEST_DB_PASSWORD", prop.getProperty("DB_PASSWORD")),
+              System.getProperty("TEST_DB_OTHER", prop.getProperty("DB_OTHER")));
 
     } catch (IOException io) {
       io.printStackTrace();
