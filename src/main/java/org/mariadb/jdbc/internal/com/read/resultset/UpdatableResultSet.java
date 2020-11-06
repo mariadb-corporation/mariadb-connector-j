@@ -1119,39 +1119,39 @@ public class UpdatableResultSet extends SelectResultSet {
         insertSql.append(" RETURNING ").append(returningClause);
       }
 
-      BasePrepareStatement insertPreparedStatement =
+      try (BasePrepareStatement insertPreparedStatement =
           (row instanceof BinaryRowProtocol)
               ? connection.serverPrepareStatement(insertSql.toString())
-              : connection.clientPrepareStatement(insertSql.toString());
+              : connection.clientPrepareStatement(insertSql.toString())) {
 
-      for (Map.Entry<Integer, ParameterHolder> entry : paramMap.entrySet()) {
-        insertPreparedStatement.setParameter(entry.getKey(), entry.getValue());
-      }
-
-      ResultSet insertRs = insertPreparedStatement.executeQuery();
-      if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
-        if (insertRs.next()) {
-          byte[] rowByte = ((SelectResultSet) insertRs).getCurrentRowData();
-          addRowData(rowByte);
+        for (Map.Entry<Integer, ParameterHolder> entry : paramMap.entrySet()) {
+          insertPreparedStatement.setParameter(entry.getKey(), entry.getValue());
         }
-      } else if (hasGeneratedPrimaryFields) {
-        // primary is auto_increment (only one field)
-        ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
-        if (rsKey.next()) {
 
-          prepareRefreshStmt();
-          refreshPreparedStatement.setObject(1, rsKey.getObject(1), generatedSqlType);
-          SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
-
-          // update row data only if not deleted externally
-          if (rs.next()) {
-            addRowData(rs.getCurrentRowData());
+        ResultSet insertRs = insertPreparedStatement.executeQuery();
+        if (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 5, 1)) {
+          if (insertRs.next()) {
+            byte[] rowByte = ((SelectResultSet) insertRs).getCurrentRowData();
+            addRowData(rowByte);
           }
-        }
-      } else {
-        addRowData(refreshRawData());
-      }
+        } else if (hasGeneratedPrimaryFields) {
+          // primary is auto_increment (only one field)
+          ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
+          if (rsKey.next()) {
 
+            prepareRefreshStmt();
+            refreshPreparedStatement.setObject(1, rsKey.getObject(1), generatedSqlType);
+            SelectResultSet rs = (SelectResultSet) refreshPreparedStatement.executeQuery();
+
+            // update row data only if not deleted externally
+            if (rs.next()) {
+              addRowData(rs.getCurrentRowData());
+            }
+          }
+        } else {
+          addRowData(refreshRawData());
+        }
+      }
       Arrays.fill(parameterHolders, null);
     }
   }
@@ -1467,5 +1467,10 @@ public class UpdatableResultSet extends SelectResultSet {
       setRowPointer(notInsertRowPointer);
     }
     return super.previous();
+  }
+
+  public void close() throws SQLException {
+    refreshPreparedStatement.close();
+    super.close();
   }
 }
