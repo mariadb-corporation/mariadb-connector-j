@@ -80,12 +80,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testLocalInfileInputStream() throws SQLException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
-        String builder = "1\thello\n" + "2\tworld\n";
+        String builder = "1\thello\n2\tworld\n";
 
         InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
@@ -108,8 +107,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     File temp = File.createTempFile("validateInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -124,8 +122,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testLocalInfileUnValidInterceptor() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     File temp = File.createTempFile("localInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -175,8 +172,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
@@ -195,13 +191,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try {
         PreparedStatement st =
             connection.prepareStatement(
-                "LOAD DATA LOCAL INFILE 'validateInfile.tsv' " + "INTO TABLE ldinfile");
+                "LOAD DATA LOCAL INFILE 'validateInfile.tsv' INTO TABLE ldinfile");
         st.execute();
         fail();
       } catch (SQLException e) {
@@ -282,23 +277,20 @@ public class LocalInfileInputStreamTest extends BaseTest {
    */
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     checkBigLocalInfile(256);
   }
 
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("test2xBigLocalInfileInputStream"));
     checkBigLocalInfile(16777216 * 2);
   }
 
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(System.getenv("SKYSQL") == null);
     Assume.assumeFalse(sharedIsAurora());
     Statement stmt = sharedConnection.createStatement();
