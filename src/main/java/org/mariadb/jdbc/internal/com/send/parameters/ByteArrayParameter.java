@@ -112,6 +112,6 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
   }
 
   public boolean isLongData() {
-    return false;
+    return true;
   }
 }
