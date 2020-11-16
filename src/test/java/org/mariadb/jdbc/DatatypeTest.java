@@ -201,6 +201,7 @@ public class DatatypeTest extends BaseTest {
             + "tinyblob0 TINYBLOB,"
             + "tinytext0 TINYTEXT,"
             + "blob0 BLOB,"
+            + "bigvarchar VARCHAR(12383),"
             + "text0 TEXT,"
             + "mediumblob0 MEDIUMBLOB,"
             + "mediumtext0 MEDIUMTEXT,"
@@ -285,11 +286,12 @@ public class DatatypeTest extends BaseTest {
     checkClass("tinyblob0", byteArrayClass, "TINYBLOB", Types.VARBINARY);
     checkClass("tinytext0", String.class, "VARCHAR", Types.VARCHAR);
     checkClass("blob0", byteArrayClass, "BLOB", Types.VARBINARY);
-    checkClass("text0", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("bigvarchar", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("text0", String.class, "TEXT", Types.VARCHAR);
     checkClass("mediumblob0", byteArrayClass, "MEDIUMBLOB", Types.VARBINARY);
-    checkClass("mediumtext0", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("mediumtext0", String.class, "MEDIUMTEXT", Types.VARCHAR);
     checkClass("longblob0", byteArrayClass, "LONGBLOB", Types.LONGVARBINARY);
-    checkClass("longtext0", String.class, "VARCHAR", Types.LONGVARCHAR);
+    checkClass("longtext0", String.class, "LONGTEXT", Types.LONGVARCHAR);
     checkClass("enum0", String.class, "CHAR", Types.CHAR);
     checkClass("set0", String.class, "CHAR", Types.CHAR);
 

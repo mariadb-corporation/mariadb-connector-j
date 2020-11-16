@@ -225,7 +225,7 @@ public enum ColumnType {
    * @return type
    */
   public static String getColumnTypeName(
-      ColumnType type, long len, boolean signed, boolean binary) {
+      ColumnType type, long len, long charLen, boolean signed, boolean binary) {
     switch (type) {
       case SMALLINT:
       case MEDIUMINT:
@@ -257,7 +257,17 @@ public enum ColumnType {
         if (binary) {
           return "VARBINARY";
         }
-        return "VARCHAR";
+        if (len < 0) {
+          return "LONGTEXT";
+        } else if (charLen <= 65532) {
+          return "VARCHAR";
+        } else if (charLen <= 65535) {
+          return "TEXT";
+        } else if (charLen <= 16777215) {
+          return "MEDIUMTEXT";
+        } else {
+          return "LONGTEXT";
+        }
       case STRING:
         if (binary) {
           return "BINARY";
