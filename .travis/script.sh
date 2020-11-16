@@ -177,10 +177,17 @@ fi
 ###################################################################################################################
 # run test suite
 ###################################################################################################################
-echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
-cmd+=( -DdbUrl="$urlString" )
-cmd+=( -DtestSingleHost="$testSingleHost" )
-echo ${cmd}
+
+if [ -z "$BENCH" ] ; then
+  echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
+  cmd+=( -DdbUrl="$urlString" )
+  cmd+=( -DtestSingleHost="$testSingleHost" )
+  echo ${cmd}
+else
+  echo "Running benchmarks"
+  mvn clean package -P bench -Dmaven.test.skip
+  java -Duser.country=US -Duser.language=en -DTEST_PORT=3305 -DTEST_HOST=mariadb.example.com -DTEST_USERNAME=bob -jar target/benchmarks.jar
+fi
 
 
 "${cmd[@]}"
