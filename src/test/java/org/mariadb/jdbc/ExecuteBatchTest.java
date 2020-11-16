@@ -356,14 +356,13 @@ public class ExecuteBatchTest extends BaseTest {
   @Test
   public void ensureBulkSchedulerMaxPoolSizeRejection() throws Throwable {
     Assume.assumeFalse(sharedIsAurora() || sharedOptions().profileSql);
-    System.out.println(getProtocolFromConnection(sharedConnection).getHostAddress());
 
     Statement statement = sharedConnection.createStatement();
     ResultSet resultSet = statement.executeQuery("SELECT @@max_connections");
     assertTrue(resultSet.next());
     int maxConnection = resultSet.getInt(1);
     int limit = Math.min(1, Math.min(200, maxConnection - 10));
-    System.out.println("limit:" + limit);
+
     for (int i = 0; i < limit; i++) {
       createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
     }

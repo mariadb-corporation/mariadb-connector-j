@@ -132,7 +132,7 @@ public class DateParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return false;
   }
 }

@@ -99,7 +99,7 @@ public class NullParameter implements ParameterHolder, Cloneable {
     return true;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return false;
   }
 }

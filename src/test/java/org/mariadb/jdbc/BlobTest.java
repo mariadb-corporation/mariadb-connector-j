@@ -444,7 +444,9 @@ public class BlobTest extends BaseTest {
                   bout.write(buffer, 0, read);
                 }
               }
-              assertArrayEquals(bout.toByteArray(), values[pos++]);
+              byte[] expected = values[pos++];
+              assertEquals(expected.length, bout.toByteArray().length);
+              assertArrayEquals(expected, bout.toByteArray());
             }
           } else {
             assertNull(values[pos++]);

@@ -95,7 +95,7 @@ public class FloatParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return false;
   }
 }

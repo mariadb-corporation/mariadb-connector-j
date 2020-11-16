@@ -97,7 +97,7 @@ public class DefaultParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return false;
   }
 }

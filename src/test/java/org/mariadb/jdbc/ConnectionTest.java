@@ -670,7 +670,6 @@ public class ConnectionTest extends BaseTest {
       // excepted exception
       // since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
       // first loop has not sleep, last too, so 8 * 250 = 2s
-      System.out.println(System.currentTimeMillis() - start);
       assertTrue(System.currentTimeMillis() - start > min);
       assertTrue(System.currentTimeMillis() - start < max);
     }

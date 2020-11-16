@@ -279,7 +279,6 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
   @Override
   public void clearBatch() {
     parameterList.clear();
-    hasLongData = false;
     this.parameters = new ParameterHolder[prepareResult.getParamCount()];
   }
 
@@ -368,7 +367,7 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
             null,
             null);
     if (protocol.executeBatchClient(
-        protocol.isMasterConnection(), results, prepareResult, parameterList, hasLongData)) {
+        protocol.isMasterConnection(), results, prepareResult, parameterList)) {
       return;
     }
 

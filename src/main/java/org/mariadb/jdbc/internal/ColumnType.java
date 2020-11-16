@@ -220,6 +220,7 @@ public enum ColumnType {
    *
    * @param type type
    * @param len len
+   * @param charLen character length
    * @param signed signed
    * @param binary binary
    * @return type

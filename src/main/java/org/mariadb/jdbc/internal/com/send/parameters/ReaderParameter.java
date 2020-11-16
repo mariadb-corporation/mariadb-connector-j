@@ -52,8 +52,10 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
@@ -112,6 +114,29 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
    * @throws IOException if socket error occur
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
+    ByteArrayOutputStream bb = new ByteArrayOutputStream();
+    char[] buf = new char[4096];
+    int len;
+    if (length == Long.MAX_VALUE) {
+      while ((len = reader.read(buf)) >= 0) {
+        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+        bb.write(data, 0, data.length);
+      }
+    } else {
+      long maxLen = length;
+      while ((len = reader.read(buf)) >= 0 && maxLen > 0) {
+        byte[] data =
+            new String(buf, 0, Math.min(len, (int) maxLen)).getBytes(StandardCharsets.UTF_8);
+        maxLen -= len;
+        bb.write(data, 0, data.length);
+      }
+    }
+    byte[] val = bb.toByteArray();
+    pos.writeFieldLength(val.length);
+    pos.write(val);
+  }
+
+  public void writeLongData(final PacketOutputStream pos) throws IOException {
     if (length == Long.MAX_VALUE) {
       pos.write(reader, false, noBackslashEscapes);
     } else {
@@ -132,7 +157,7 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return true;
   }
 }
