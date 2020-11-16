@@ -252,10 +252,11 @@ public class BufferTest extends BaseTest {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
       stmt.execute("TRUNCATE BufferTest");
-      PreparedStatement preparedStatement =
-          connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
-      preparedStatement.setString(1, new String(arr));
-      preparedStatement.execute();
+      try (PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO BufferTest VALUES (?)")) {
+        preparedStatement.setString(1, new String(arr));
+        preparedStatement.execute();
+      }
       checkResult(arr);
     }
   }
