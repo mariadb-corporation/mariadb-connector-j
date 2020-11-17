@@ -671,10 +671,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int counter = results.getCurrentStatNumber() - 1;
         ParameterHolder[] parameters = parametersList.get(counter);
         List<byte[]> queryParts = clientPrepareResult.getQueryParts();
-        StringBuilder sql = new StringBuilder(new String(queryParts.get(0)));
 
-        for (int i = 0; i < paramCount; i++) {
-          sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
+        StringBuilder sql;
+        if (clientPrepareResult.isRewriteType()) {
+          // build sql from rewrite parsing
+          sql = new StringBuilder(new String(queryParts.get(0)));
+          sql.append(new String(queryParts.get(1)));
+          for (int i = 0; i < paramCount; i++) {
+            sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 2)));
+          }
+          sql.append(new String(queryParts.get(paramCount + 2)));
+        } else {
+          // build sql from basic parsing
+          sql = new StringBuilder(new String(queryParts.get(0)));
+          for (int i = 0; i < paramCount; i++) {
+            sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
+          }
         }
 
         return exceptionWithQuery(sql.toString(), qex, explicitClosed);
@@ -682,7 +694,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public int getParamCount() {
-        return clientPrepareResult.getQueryParts().size() - 1;
+        return clientPrepareResult.getParamCount();
       }
 
       @Override

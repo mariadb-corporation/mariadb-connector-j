@@ -55,6 +55,8 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+
+import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.Options;
@@ -395,6 +397,39 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                 .getMessage()
                 .contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
       }
+    }
+  }
+
+  @Test
+  public void rewriteErrorException() throws Exception {
+    Assume.assumeFalse(sharedOptions().useServerPrepStmts);
+    try (Connection connection =
+        setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
+      ensureErrorException(connection);
+    }
+    try (Connection connection =
+        setConnection("&rewriteBatchedStatements=false&dumpQueriesOnException")) {
+      ensureErrorException(connection);
+    }
+  }
+
+  private void ensureErrorException(Connection connection) throws SQLException {
+    PreparedStatement pstmt =
+        connection.prepareStatement("UPDATE unknownTable SET col1 = ?, col2 = 0 WHERE col3 = ?;");
+    pstmt.setInt(1, 10);
+    pstmt.setInt(2, 20);
+    pstmt.addBatch();
+    pstmt.setInt(1, 100);
+    pstmt.setInt(2, 200);
+    try {
+      pstmt.executeBatch();
+      fail("Must have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage(), sqle.getMessage().contains("doesn't exist"));
+      assertTrue(
+          sqle.getMessage(),
+          sqle.getMessage()
+              .contains("Query is: UPDATE unknownTable SET col1 = 10, col2 = 0 WHERE col3 = 20;"));
     }
   }
 
