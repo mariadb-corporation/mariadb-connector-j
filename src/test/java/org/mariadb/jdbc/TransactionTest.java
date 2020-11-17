@@ -70,7 +70,7 @@ public class TransactionTest extends BaseTest {
    * @throws SQLException exception
    */
   @Before
-  public void before() throws SQLException {
+  public void beforeTest() throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop table if exists tx_fore_key");
@@ -90,7 +90,7 @@ public class TransactionTest extends BaseTest {
    * @throws SQLException exception
    */
   @After
-  public void after() throws SQLException {
+  public void afterTest() throws SQLException {
     if (testSingleHost) {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop table if exists tx_fore_key");

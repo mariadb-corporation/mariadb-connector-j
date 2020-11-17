@@ -150,7 +150,7 @@ public class BaseTest {
             } catch (SQLNonTransientConnectionException connFail) {
               connFail.printStackTrace();
               try {
-                beforeClassBaseTest();
+                before();
               } catch (SQLException e) {
                 System.out.println("ERROR reconnecting");
                 e.printStackTrace();
@@ -205,7 +205,7 @@ public class BaseTest {
    * @throws SQLException exception
    */
   @BeforeClass()
-  public static void beforeClassBaseTest() throws SQLException {
+  public static void before() throws SQLException {
     String url = System.getProperty("dbUrl", mDefUrl);
     runLongTest = Boolean.parseBoolean(System.getProperty("runLongTest", "false"));
     testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
@@ -287,7 +287,7 @@ public class BaseTest {
    * @throws SQLException exception
    */
   @AfterClass
-  public static void afterClassBaseTest() throws SQLException {
+  public static void after() throws SQLException {
     if (testSingleHost && sharedConnection != null && !sharedConnection.isClosed()) {
       if (!tempViewList.isEmpty()) {
         Statement stmt = sharedConnection.createStatement();

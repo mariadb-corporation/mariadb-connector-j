@@ -35,7 +35,7 @@ public class CredentialPluginTest extends BaseTest {
    * @throws SQLException if any
    */
   @Before
-  public void before() throws SQLException {
+  public void beforeTest() throws SQLException {
     boolean useOldNotation = true;
     if ((isMariadbServer() && minVersion(10, 2, 0))
         || (!isMariadbServer() && minVersion(8, 0, 0))) {
@@ -68,7 +68,7 @@ public class CredentialPluginTest extends BaseTest {
    * @throws SQLException if any
    */
   @After
-  public void after() throws SQLException {
+  public void afterTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
     stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");

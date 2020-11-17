@@ -63,7 +63,7 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
   private ResultSet rs;
 
   @Before
-  public void before() throws SQLException {
+  public void beforeTest() throws SQLException {
     rs = sharedConnection.createStatement().executeQuery("select 1");
   }
 

@@ -69,7 +69,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
    * @throws SQLException exception
    */
   @Before
-  public void before() throws SQLException {
+  public void beforeTest() throws SQLException {
     rs =
         sharedConnection
             .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
