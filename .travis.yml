@@ -79,8 +79,6 @@ matrix:
       jdk: openjdk11
     - env: DB=mariadb:10.5 PACKET=40M COMPRESSION=true
       jdk: openjdk11
-    - env: DB=mariadb:10.5 PACKET=8M
-      jdk: openjdk12
     - env: DB=mariadb:10.5 PACKET=8M MAXSCALE_VERSION=2.5.3 MAXSCALE_TEST_DISABLE=true SSLPORT=4009
       jdk: openjdk11
 
