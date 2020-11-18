@@ -60,18 +60,15 @@ import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
 public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
-  private final ComStmtPrepare comStmtPrepare;
   private final BulkStatus status;
   private final int sendCmdInitialCounter;
   private final Protocol protocol;
-  private final boolean readPrepareStmtResult;
   private final AbstractMultiSend bulkSend;
   private final List<ParameterHolder[]> parametersList;
   private final List<String> queries;
@@ -82,10 +79,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
   /**
    * Read results async to avoid local and remote networking stack buffer overflow "lock".
    *
-   * @param comStmtPrepare current prepare
    * @param status bulk status
    * @param protocol protocol
-   * @param readPrepareStmtResult must read prepare statement result
    * @param bulkSend bulk sender object
    * @param paramCount number of parameters
    * @param results execution result
@@ -94,21 +89,17 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
    * @param prepareResult prepare result
    */
   public AsyncMultiRead(
-      ComStmtPrepare comStmtPrepare,
       BulkStatus status,
       Protocol protocol,
-      boolean readPrepareStmtResult,
       AbstractMultiSend bulkSend,
       int paramCount,
       Results results,
       List<ParameterHolder[]> parametersList,
       List<String> queries,
       PrepareResult prepareResult) {
-    this.comStmtPrepare = comStmtPrepare;
     this.status = status;
     this.sendCmdInitialCounter = status.sendCmdCounter - 1;
     this.protocol = protocol;
-    this.readPrepareStmtResult = readPrepareStmtResult;
     this.bulkSend = bulkSend;
     this.paramCount = paramCount;
     this.results = results;
@@ -127,15 +118,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     int initialTimeout = protocol.getTimeout();
     if (initialTimeout != 0) {
       protocol.changeSocketSoTimeout(0);
-    }
-
-    if (readPrepareStmtResult) {
-      try {
-        asyncMultiReadResult.setPrepareResult(
-            comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated()));
-      } catch (SQLException queryException) {
-        asyncMultiReadResult.setException(queryException);
-      }
     }
 
     // read all corresponding results

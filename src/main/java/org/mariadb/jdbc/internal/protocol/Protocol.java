@@ -273,7 +273,7 @@ public interface Protocol {
 
   void setHasWarnings(boolean hasWarnings);
 
-  ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
+  ServerPrepareResult putInCache(String key, ServerPrepareResult serverPrepareResult);
 
   void readEofPacket() throws SQLException, IOException;
 

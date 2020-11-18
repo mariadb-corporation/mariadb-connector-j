@@ -869,13 +869,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       cmdPrologue();
-      writer.startPacket(0);
-      writer.write(COM_STMT_PREPARE);
-      writer.write(sql);
-      writer.flush();
 
-      ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-      return comStmtPrepare.read(reader, eofDeprecated);
+      return new ComStmtPrepare(this, sql)
+              .send(writer)
+              .read(reader, eofDeprecated);
+
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
     } finally {
@@ -1020,7 +1018,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
     initializeBatchReader();
     new AbstractMultiSend(
-        this, writer, results, serverPrepareResult, parametersList, true, sql, readScheduler) {
+        this, writer, results, serverPrepareResult, parametersList, sql, readScheduler) {
       @Override
       public void sendCmd(
           PacketOutputStream writer,
@@ -1078,9 +1076,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public int getParamCount() {
-        return getPrepareResult() == null
-            ? parametersList.get(0).length
-            : ((ServerPrepareResult) getPrepareResult()).getParameters().length;
+        return serverPrepareResult.getParameters().length;
       }
 
       @Override
@@ -1902,7 +1898,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     connection.reenableWarnings();
   }
 
-  public ServerPrepareResult addPrepareInCache(
+  public ServerPrepareResult putInCache(
       String key, ServerPrepareResult serverPrepareResult) {
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }

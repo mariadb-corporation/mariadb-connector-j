@@ -80,11 +80,12 @@ public class ComStmtPrepare {
    * @param pos the writer
    * @throws IOException if connection error occur
    */
-  public void send(PacketOutputStream pos) throws IOException {
+  public ComStmtPrepare send(PacketOutputStream pos) throws IOException {
     pos.startPacket(0);
     pos.write(COM_STMT_PREPARE);
     pos.write(this.sql);
     pos.flush();
+    return this;
   }
 
   /**
@@ -156,7 +157,8 @@ public class ComStmtPrepare {
           && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
         String key = protocol.getDatabase() + "-" + sql;
         ServerPrepareResult cachedServerPrepareResult =
-            protocol.addPrepareInCache(key, serverPrepareResult);
+            protocol.putInCache(key, serverPrepareResult);
+        // if same prepare result is already cached, dismissed prepared result, and reuse cached entry
         return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
       }
       return serverPrepareResult;

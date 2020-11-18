@@ -91,6 +91,7 @@ public class AutoReconnectTest extends BaseTest {
   @Test
   public void autoReconnectPing() throws SQLException, InterruptedException {
     Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(runLongTest);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");
