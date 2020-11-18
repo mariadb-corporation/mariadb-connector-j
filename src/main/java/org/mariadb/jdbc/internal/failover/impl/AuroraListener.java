@@ -71,7 +71,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-public class AuroraListener extends MastersSlavesListener {
+public class AuroraListener extends MastersReplicasListener {
 
   private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
   private final Pattern auroraDnsPattern =
@@ -158,7 +158,7 @@ public class AuroraListener extends MastersSlavesListener {
     if (!searchFilter.isInitialConnection()
         && (isExplicitClosed()
             || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+            || searchFilter.isFineIfFoundOnlyReplica() && !isSecondaryHostFail())) {
       return;
     }
 
@@ -166,7 +166,7 @@ public class AuroraListener extends MastersSlavesListener {
       try {
         checkWaitingConnection();
         if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+            || searchFilter.isFineIfFoundOnlyReplica() && !isSecondaryHostFail()) {
           return;
         }
       } catch (ReconnectDuringTransactionException e) {

@@ -581,8 +581,8 @@ public enum DefaultOptions {
       "allowMasterDownConnection",
       Boolean.FALSE,
       "2.2.0",
-      "When using master/slave configuration, "
-          + "permit to create connection when master is down. If no master is up, default connection is then a slave "
+      "When using master/replica configuration, "
+          + "permit to create connection when master is down. If no master is up, default connection is then a replica "
           + "and Connection.isReadOnly() will then return true.",
       false),
   GALERA_ALLOWED_STATE(

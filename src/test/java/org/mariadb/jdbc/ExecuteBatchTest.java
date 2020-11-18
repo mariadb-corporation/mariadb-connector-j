@@ -171,7 +171,7 @@ public class ExecuteBatchTest extends BaseTest {
   @Test
   public void serverBulk1mTest() throws SQLException {
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverBulk1mTest"));
-    Assume.assumeTrue(runLongTest);
+    //    Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(isMariadbServer());
 

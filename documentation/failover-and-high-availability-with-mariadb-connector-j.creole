@@ -16,39 +16,39 @@ Load balancing allows load (read and write) to be distributed over multiple serv
 = Replication cluster type
 In MariaDB (and MySQL) replication, there are 2 different replication roles:
 * Master role: Database server that permits read and write operations
-* Slave role: Database server that permits only read operations
+* Replica role: Database server that permits only read operations
 
 This document describes configuration and implementation for 3 types of clusters:
 * Multi-Master replication cluster. All hosts have a master replication role. (example : Galera)
-* Master/slaves cluster: one host has the master replication role with multiple hosts in slave replication role.
-* Hybrid cluster: multiple hosts in master replication role with multiple hosts in slave replication role. 
+* Master/replica cluster: one host has the master replication role with multiple hosts in replica replication role.
+* Hybrid cluster: multiple hosts in master replication role with multiple hosts in replica role.
 
 = Load balancing implementation
 == Random picking
-When initializing a connection or after a failed connection, the connector will attempt to connect to a host with a certain role (slave/master). 
+When initializing a connection or after a failed connection, the connector will attempt to connect to a host with a certain role (replica/master).
 The connection is selected randomly among the valid hosts. Thereafter, all statements will run on that database server until the connection will be closed (or fails).
 
 The load-balancing will includes a pooling mechanism. 
 Example: when creating a pool of 60 connections, each one will use a random host. With 3 master hosts, the pool will have about 20 connections to each host.
 
-== Master/slave distributed load
+== Master/replica distributed load
 
-For a cluster composed of masters and slaves on connection initialization, there will be 2 underlying connections: one with a master host, another with a slave host. Only one connection is used at a time. \\
+For a cluster composed of masters and replicas on connection initialization, there will be 2 underlying connections: one with a master host, another with a replica host. Only one connection is used at a time. \\
 For a cluster composed of master hosts only, each connection has only one underlying connection. \\
 The load will be distributed due to the random distribution of connections..\\
 
-== Master/slave connection selection
+== Master/replica connection selection
 
-It’s the application that has to decide to use master or slave connection (the master connection is set by default).\\
-Switching the type of connection is done by using JDBC [[http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)|connection.setReadOnly(boolean readOnly)]] method. Setting read-only to true will use the slave connection, false, the master connection.\\
+It’s the application that has to decide to use master or replica connection (the master connection is set by default).\\
+Switching the type of connection is done by using JDBC [[http://docs.oracle.com/javase/7/docs/api/java/sql/Connection.html#setReadOnly(boolean)|connection.setReadOnly(boolean readOnly)]] method. Setting read-only to true will use the replica connection, false, the master connection.\\
 
 Example in standard java:
 {{{
-connection = DriverManager.getConnection("jdbc:mariadb:replication://master1,slave1/test");
+connection = DriverManager.getConnection("jdbc:mariadb:replication://master1,replica1/test");
 stmt = connection.createStatement();
 stmt.execute("SELECT 1"); // will execute query on the underlying master1 connection
 connection.setReadOnly(true);
-stmt.execute("SELECT 1"); // will execute query on the underlying slave1 connection
+stmt.execute("SELECT 1"); // will execute query on the underlying replica1 connection
 }}}
 
 Some frameworks render this kind of operation easier, as for example Spring [[http://docs.spring.io/spring/docs/current/javadoc-api/org/springframework/transaction/annotation/Transactional.html#readOnly--|@transactionnal]] readOnly parameter (since spring 3.0.1).
@@ -66,7 +66,7 @@ public void createContacts() {
 }
 }}}
 
-Generated Spring Data repository objects use the same logic: the find* method will use the slave connection, other use master connection without having to explicitly set that for each method.
+Generated Spring Data repository objects use the same logic: the find* method will use the replica connection, other use master connection without having to explicitly set that for each method.
 
 On a cluster with master hosts only, the use of connection.setReadOnly(true) does not change the connection, but if the database version is 10.0.0 or higher, the session is set to readOnly if option assureReadOnly is set to true, which means that any write query will throw an exception.
 
@@ -78,19 +78,19 @@ When no failover/high availability parameter is set, the failover support is bas
 When a failover /high availability parameter is set.Check the [[configuration]] section for an overview on how to set the parameters.
 
 There can be multiple fail causes. When a failure occurs many things will be done: 
-* The fail host address will be put on a blacklist (shared by JVM). This host will not be used for the amount of time defined by the “loadBalanceBlacklistTimeout” parameter (default to 50 seconds). The only time a blacklisted address can be used is if all host of the same type (master/slave) are blacklisted.
+* The fail host address will be put on a blacklist (shared by JVM). This host will not be used for the amount of time defined by the “loadBalanceBlacklistTimeout” parameter (default to 50 seconds). The only time a blacklisted address can be used is if all host of the same type (master/replica) are blacklisted.
 * The connector will check the connection (with the mysql [[https://dev.mysql.com/doc/internals/en/com-ping.html|ping protocol]]). If the connection is back, is not read-only, and is in a transaction, the transaction will be rollbacked (there is no way to know if the last query has been received by the server and executed).
-* If the failure relates to a slave connection
+* If the failure relates to a replica connection
   *     If the master connection is still active, the master connection will be used immediately. 
         The query that was read-only will be relaunched and the connector will not throw any exception. 
-        A "failover" thread will be launched to attempt to reconnect a slave host. 
+        A "failover" thread will be launched to attempt to reconnect a replica host.
         (if the query was a prepared query, this query will be re-prepared before execution)
-  *     If the master connection is not active, the driver will attempt to create a new master or slave connection with a [[#connection-loop|connection loop]].
+  *     If the master connection is not active, the driver will attempt to create a new master or replica connection with a [[#connection-loop|connection loop]].
         if any connection is found, the query will be relaunched, if not, an SQLException with sqlState like “08XXX” will be thrown.  
 * If the failure relates to a master connection, the driver will attempt to create a new master connection with a [[#connection-loop|connection loop]], so the connection object will be immediately reusable.\\
   *       on failure, an SQLException with be thrown with SQLState "08XXX". If using a pool, this connection will be discarded.
   *       on success,    
-    *       if possible query will be relaunched without throwing error (if was using a slave connection, or was a SELECT query not in a transaction for example).
+    *       if possible query will be relaunched without throwing error (if was using a replica connection, or was a SELECT query not in a transaction for example).
     *       if not possible, an SQLException with be thrown with SQLState "25S03".  
 * When throwing an SQLException with SQLState "08XXX", the connection will be marked as closed. 
 * A “failover” thread will be launched to attempt to reconnect failing connection if connection is not closed.  
@@ -98,7 +98,7 @@ There can be multiple fail causes. When a failure occurs many things will be don
 It’s up to the application to take measures to handle SQLException. See details in [[#application-concerns|application concerns]].
 
 #Connection loop
-When initializing a connection or after a failure, the driver will launch a connection loop the only case when this connection loop will not be executed is when the failure occurred on a slave with an active master.
+When initializing a connection or after a failure, the driver will launch a connection loop the only case when this connection loop will not be executed is when the failure occurred on a replica with an active master.
 This connection loop will try to connect to a valid host until finding a new connection or until the number of connections exceed the parameter “retriesAllDown” value (default to 120).
 
 This loop will attempt to connect sequentially to hosts in the following order:
@@ -107,10 +107,10 @@ For a master connection :
 * random connect to master host not blacklisted
 * random connect to master blacklisted
 
-For a slave connection : 
-* random connect to slave host not blacklisted
+For a replica connection :
+* random connect to replica host not blacklisted
 * random connect to master host not blacklisted (if no active master connection)
-* random connect to slave blacklisted
+* random connect to replica blacklisted
 * random connect to master host blacklisted (if no active master connection)
 The sequence stops as soon as all the underlying needed connections are found. Every time an attempt fails, the host will be blacklisted. 
 If after an entire loop a master connection is missing, the connection will be marked as closed. 
@@ -118,9 +118,9 @@ If after an entire loop a master connection is missing, the connection will be m
 =Additional threads
 
 ==Failover reconnection threads
-A thread pool is created in case of a master/slave cluster, the size is defined according to the number of connection.  
-After a failure on a slave connection, readonly operations are temporary executed on the master connection. Some “failover threads” will try to reconnect the failed underlying connections.
-When a new slave connection is retrieved, this one will be immediately used if connection was still in read-only mode.\\ 
+A thread pool is created in case of a master/replica cluster, the size is defined according to the number of connection.
+After a failure on a replica connection, readonly operations are temporary executed on the master connection. Some “failover threads” will try to reconnect the failed underlying connections.
+When a new replica connection is retrieved, this one will be immediately used if connection was still in read-only mode.\\
 More details in [[failover_loop.creole|Failover loop threads]].
 
 
@@ -173,7 +173,7 @@ Each parameter corresponds to a specific use case:
 |=Failover option|=Description|
 | **failover** | High availability (random picking connection initialisation) with failover support for master replication cluster (exemple Galera). \\* Since 1.2.0*|
 | **sequential** |Failover support for master replication cluster (for example Galera) **without** High availability. \\the host will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mariadb:replication:host1,host2,host3/test" : \\When connecting, the driver will always try first host1, and if not available host2 and following. After a host fail, the driver will reconnect according to this order.\\*Since 1.3.0*|
-| **replication** | High availability (random picking connection initialisation) with failover support for master/slaves replication cluster (one or multiple master).\\* Since 1.2.0*|
+| **replication** | High availability (random picking connection initialisation) with failover support for master/replica replication cluster (one or multiple master).\\* Since 1.2.0*|
 | **aurora** | High availability (random picking connection initialisation) with failover support for Amazon Aurora replication cluster.\\* Since 1.2.0*|
 
 
@@ -182,7 +182,7 @@ Each parameter corresponds to a specific use case:
 |=Option|=Description|
 |autoReconnect|With basic failover only, if true, will attempt to recreate connection after a failover.\\*Default is false. Since 1.1.7*|
 |retriesAllDown|When searching a valid host, maximum number of connection attempts before throwing an exception.\\*Default: 120. Since 1.2.0|
-|failoverLoopRetries|When searching silently for a valid host, maximum number of connection attempts.\\This differ from "retriesAllDown" parameter, because this silent search is for example used after a disconnection of a slave connection when using the master connection.\\*Default: 120. Since 1.2.0*|
+|failoverLoopRetries|When searching silently for a valid host, maximum number of connection attempts.\\This differ from "retriesAllDown" parameter, because this silent search is for example used after a disconnection of a replica connection when using the master connection.\\*Default: 120. Since 1.2.0*|
 |validConnectionTimeout|With multiple hosts, after this time in seconds has elapsed it’s verified that the connections haven’t been lost.\\When 0, no verification will be done.\\*Default:120 seconds. Since 1.2.0*|
 |loadBalanceBlacklistTimeout|When a connection fails, this host will be blacklisted during the "loadBalanceBlacklistTimeout" amount of time.\\When connecting to a host, the driver will try to connect to a host in the list of not blacklisted hosts and after that only on blacklisted ones if none has been found before that.\\This blacklist is shared inside the classloader.\\*Default: 50 seconds. Since 1.2.0*|
 |assureReadOnly|If true, in high availability, and switching to a read-only host, assure that this host is in read-only mode by setting session read-only.\\alias "readOnlyPropagatesToServer" worked to for compatibility\\*Default to false.\\ Since 1.3.0*|
@@ -190,7 +190,7 @@ Each parameter corresponds to a specific use case:
 
 =Specifics for Amazon Aurora
 
-Amazon Aurora is a Master/Slaves cluster composed of one master instance with a maximum of 15 slave instances. Amazon Aurora includes automatic promotion of a slave instance in case of the master instance failing. The MariaDB connector/J implementation for Aurora is specific to handle this automatic failover.\\
+Amazon Aurora is a Master/Replicas cluster composed of one master instance with a maximum of 15 replica instances. Amazon Aurora includes automatic promotion of a replica instance in case of the master instance failing. The MariaDB connector/J implementation for Aurora is specific to handle this automatic failover.\\
 
 To permit development/integration on a single-node cluster, only one host can be defined.  
 In this case, the driver behaves as for the configuration **failover**. 
@@ -215,7 +215,7 @@ There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.
 In version before 1.5.1, cluster endpoint use was discouraged, since when a failover occur, this cluster endpoint can point for a limited time to a host that isn't the current master anymore. Old recommandation was to list all specific end-points.
 This kind of url string will still work, but now, recommended url string has to use only cluster endpoint.
 
-Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
+Driver will automatically discover master and replicas of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
 
 This discovery append at connection time, so if you are using pool framework, check if this framework as a property that controls the maximum lifetime of a connection in the pool, and set a value to avoid infinite lifetime. When this lifetime is reached, pool will discarded the current connection, and create a new one (if needed). New connections will use the new replicas.
 (If connections are never discarded, new replicas will begin be used only when a failover occur)
@@ -245,12 +245,12 @@ Note that the option "createDatabaseIfNotExist=true" causes reader instances to 
 
 ==Aurora connection loop
 
-When searching for the master instance and connect to a slave instance, the connection order will be: 
+When searching for the master instance and connect to a replica instance, the connection order will be:
 * Every Aurora instance knows the hostname of the current master. If the host has been described using their instance endpoint, that will permit to know the master instance and connect directly to it.  
-* If this isn’t the current master (because using IP, or possible after a failover between step 2 and 3), the loop will connect randomly the other not blacklisted instance (minus the current slave instance) 
+* If this isn’t the current master (because using IP, or possible after a failover between step 2 and 3), the loop will connect randomly the other not blacklisted instance (minus the current replica instance)
 * Connect randomly to a blacklisted instance.
 
-When searching for a slave instance, the loop will connection order will be:
+When searching for a replica instance, the loop will connection order will be:
 * random not blacklisted instances (excluding the current host if connected)
 * random blacklisted instances 
 The loop will retry until the connections are found or parameter “retriesAllDown” is exceeded.

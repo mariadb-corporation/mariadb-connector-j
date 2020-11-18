@@ -101,7 +101,7 @@ public class AuroraFailoverTest extends BaseReplication {
       try {
         stmt.execute("drop table if exists auroraDelete" + jobId);
         System.out.println(
-            "ERROR - > must not be able to write on slave. check if you database is start with --read-only");
+            "ERROR - > must not be able to write on replica. check if you database is start with --read-only");
         fail();
       } catch (SQLException e) {
         // normal exception
@@ -115,20 +115,20 @@ public class AuroraFailoverTest extends BaseReplication {
   public void testReplication() throws SQLException, InterruptedException {
     try (Connection connection = getNewConnection(false)) {
       Statement stmt = connection.createStatement();
-      stmt.execute("drop table  if exists auroraReadSlave" + jobId);
+      stmt.execute("drop table  if exists auroraReadReplica" + jobId);
       stmt.execute(
-          "create table auroraReadSlave"
+          "create table auroraReadReplica"
               + jobId
               + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
-      // wait to be sure slave have replicate data
+      // wait to be sure replica have replicate data
       Thread.sleep(1500);
 
       connection.setReadOnly(true);
-      ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave" + jobId);
+      ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadReplica" + jobId);
       assertTrue(rs.next());
       connection.setReadOnly(false);
-      stmt.execute("drop table  if exists auroraReadSlave" + jobId);
+      stmt.execute("drop table  if exists auroraReadReplica" + jobId);
     }
   }
 
@@ -240,7 +240,7 @@ public class AuroraFailoverTest extends BaseReplication {
       Statement st = connection.createStatement();
       try {
         st.execute("SELECT 1 ");
-        // switch connection to master -> slave blacklisted
+        // switch connection to master -> replica blacklisted
       } catch (SQLException e) {
         fail("must not have been here");
       }

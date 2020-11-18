@@ -676,7 +676,7 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
-  public void slaveDownConnection() throws SQLException {
+  public void replicaDownConnection() throws SQLException {
     Assume.assumeTrue(System.getenv("SKYSQL") == null);
     String url =
         "jdbc:mariadb:replication://"

@@ -153,8 +153,8 @@ public class ReplicationFailoverTest extends BaseReplication {
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);
       connection.setReadOnly(true);
-      int slaveServerId = getServerId(connection);
-      assertFalse(slaveServerId == masterServerId);
+      int replicaServerId = getServerId(connection);
+      assertFalse(replicaServerId == masterServerId);
       assertTrue(connection.isReadOnly());
     }
   }
@@ -165,11 +165,11 @@ public class ReplicationFailoverTest extends BaseReplication {
         getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      int firstSlaveId = getServerId(connection);
+      int firstReplicaId = getServerId(connection);
       connection.setReadOnly(false);
 
       stopProxy(masterServerId);
-      stopProxy(firstSlaveId);
+      stopProxy(firstReplicaId);
 
       connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
       fail();
@@ -177,7 +177,7 @@ public class ReplicationFailoverTest extends BaseReplication {
   }
 
   @Test
-  public void checkBackOnMasterOnSlaveFail() throws Throwable {
+  public void checkBackOnMasterOnReplicaFail() throws Throwable {
     try (Connection connection =
         getNewConnection(
             "&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true)) {
@@ -212,7 +212,7 @@ public class ReplicationFailoverTest extends BaseReplication {
   }
 
   @Test
-  public void testFailNotOnSlave() throws Throwable {
+  public void testFailNotOnReplica() throws Throwable {
     try (Connection connection =
         getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       Statement stmt = connection.createStatement();
@@ -229,7 +229,7 @@ public class ReplicationFailoverTest extends BaseReplication {
   }
 
   @Test
-  public void commitExecutionOnSlave() throws SQLException {
+  public void commitExecutionOnReplica() throws SQLException {
     try (Connection conn = getNewConnection()) {
       Statement stmt = conn.createStatement();
       stmt.execute("CREATE TABLE IF NOT EXISTS commitExecution(id int, val varchar(256))");

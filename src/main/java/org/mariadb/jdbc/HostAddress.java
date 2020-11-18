@@ -144,7 +144,7 @@ public class HostAddress {
         if (i == 0 && arr.get(i).type == null) {
           arr.get(i).type = ParameterConstant.TYPE_MASTER;
         } else if (i != 0 && arr.get(i).type == null) {
-          arr.get(i).type = ParameterConstant.TYPE_SLAVE;
+          arr.get(i).type = ParameterConstant.TYPE_REPLICA;
         }
       }
     }
@@ -196,10 +196,11 @@ public class HostAddress {
         result.host = value.replace("[", "").replace("]", "");
       } else if ("port".equals(key)) {
         result.port = getPort(value);
-      } else if ("type".equals(key)
-          && (value.equals(ParameterConstant.TYPE_MASTER)
-              || value.equals(ParameterConstant.TYPE_SLAVE))) {
-        result.type = value;
+      } else if ("type".equals(key)) {
+        if (value.equals(ParameterConstant.TYPE_MASTER)
+            || value.equals(ParameterConstant.TYPE_REPLICA)) {
+          result.type = value;
+        } else if ("slave".equals(value)) result.type = ParameterConstant.TYPE_REPLICA;
       }
     }
     return result;

@@ -72,14 +72,14 @@ import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersReplicasListener;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
 import org.mariadb.jdbc.internal.io.socket.SocketUtility;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.MastersReplicasProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
@@ -614,10 +614,10 @@ public class Utils {
             urlParser,
             (Protocol)
                 Proxy.newProxyInstance(
-                    MastersSlavesProtocol.class.getClassLoader(),
+                    MastersReplicasProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
                     new FailoverProxy(
-                        new MastersSlavesListener(urlParser, globalInfo), lock, traceCache)));
+                        new MastersReplicasListener(urlParser, globalInfo), lock, traceCache)));
       case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(

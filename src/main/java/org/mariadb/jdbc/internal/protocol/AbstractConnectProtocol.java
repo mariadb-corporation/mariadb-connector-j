@@ -1432,7 +1432,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public void setHostAddress(HostAddress host) {
     this.currentHost = host;
-    this.readOnly = ParameterConstant.TYPE_SLAVE.equals(this.currentHost.type);
+    this.readOnly = ParameterConstant.TYPE_REPLICA.equals(this.currentHost.type);
   }
 
   public String getHost() {

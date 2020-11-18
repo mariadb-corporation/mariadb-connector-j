@@ -5,26 +5,26 @@
 
 = Failover reconnection
 
-//** This concern only master/slave cluster **//
+//** This concern only master/replica cluster **//
 
-On a master/slave cluster, driver will use underlying 2 connections: one to a master instance, one to a slave instance. 
+On a master/replica cluster, driver will use underlying 2 connections: one to a master instance, one to a replica instance.
 When one of the connection fail, if driver does need it at once, it will create a new connection immediately before re-executing query if possible.\\
 If the failed connection is not needed immediately, this driver will subscribe to the "failover reconnection" that will be handle in other threads.
 Failover threads will attempt to create new connection to replace failing ones, so the interruption is minimal for the queries in progress.
 When client asked to use a failed connection, the new connection created by failover thread will replace the failed one. 
 
-Example: after a failure on a slave connection, readonly operations are temporary executed on the master connection to avoid interruption client side. 
-Failover thread will then create a new slave connection that will replace the failed one. Next query will use the new slave connection.
+Example: after a failure on a replica connection, readonly operations are temporary executed on the master connection to avoid interruption client side.
+Failover thread will then create a new replica connection that will replace the failed one. Next query will use the new replica connection.
 
-A pool of threads is initialized when using a master/slave configuration. The pool size evolves according to the number of connection. 
+A pool of threads is initialized when using a master/replica configuration. The pool size evolves according to the number of connection.
 
 == Illustration
 
-Here is an example of a failover on a aurora cluster of 3 instances (one master and 2 slaves).\\
+Here is an example of a failover on a aurora cluster of 3 instances (one master and 2 replicas).\\
 (Source code https://github.com/rusher/connector-aurora-fail-test/tree/master)
 
 We can see 2 kinds of threads : 
-* Threads named "test-thread-XXX" do 130 queries "SELECT 1". 1/3 use master connection, 2/3 slave connection.
+* Threads named "test-thread-XXX" do 130 queries "SELECT 1". 1/3 use master connection, 2/3 replica connection.
 * Threads "mariaDb-reconnection-XXX" are created by the driver to handle failover.
 
 ==== Colour signification:

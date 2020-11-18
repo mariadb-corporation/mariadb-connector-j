@@ -63,9 +63,10 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
+public abstract class AbstractMastersReplicasListener extends AbstractMastersListener {
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(AbstractMastersReplicasListener.class);
   // These reference are when failloop reconnect failing connection, but lock is already held by
   // another thread (query in progress), so switching the connection wait for the query to be
   // finish.
@@ -77,13 +78,13 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   /* =========================== Failover variables ========================================= */
   private volatile long secondaryHostFailNanos = 0;
 
-  protected AbstractMastersSlavesListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
+  protected AbstractMastersReplicasListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
     super(urlParser, globalInfo);
     this.secondaryHostFail.set(true);
   }
 
   /**
-   * Handle failover on master or slave connection.
+   * Handle failover on master or replica connection.
    *
    * @param method called method
    * @param args methods parameters
@@ -168,7 +169,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   }
 
   /**
-   * Set slave connection lost variables.
+   * Set replica connection lost variables.
    *
    * @return true if fail wasn't seen before
    */

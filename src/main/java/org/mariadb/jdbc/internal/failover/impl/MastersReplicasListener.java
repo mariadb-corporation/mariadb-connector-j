@@ -66,13 +66,13 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.AbstractMastersReplicasListener;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.MastersReplicasProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -81,10 +81,10 @@ import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 /** this class handle the operation when multiple hosts. */
-public class MastersSlavesListener extends AbstractMastersSlavesListener {
+public class MastersReplicasListener extends AbstractMastersReplicasListener {
 
   private static final AtomicInteger listenerCount = new AtomicInteger();
-  private static final Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
+  private static final Logger logger = LoggerFactory.getLogger(MastersReplicasListener.class);
   private static DynamicSizedSchedulerInterface dynamicSizedScheduler;
 
   static {
@@ -101,7 +101,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @param urlParser connection string object.
    * @param globalInfo server global variables information
    */
-  public MastersSlavesListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
+  public MastersReplicasListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
     super(urlParser, globalInfo);
     if (dynamicSizedScheduler.isTerminated()) {
       loadScheduler();
@@ -402,7 +402,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
   public void preExecute() throws SQLException {
     lastQueryNanos = System.nanoTime();
     checkWaitingConnection();
-    // if connection is closed or failed on slave
+    // if connection is closed or failed on replica
     if (this.currentProtocol != null
         && (this.currentProtocol.isClosed()
             || (!currentReadOnlyAsked && !currentProtocol.isMasterConnection()))) {
@@ -485,7 +485,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     if (!searchFilter.isInitialConnection()
         && (isExplicitClosed()
             || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+            || searchFilter.isFineIfFoundOnlyReplica() && !isSecondaryHostFail())) {
       return;
     }
     // check if a connection has been retrieved by failoverLoop during lock
@@ -493,7 +493,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
       try {
         checkWaitingConnection();
         if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+            || searchFilter.isFineIfFoundOnlyReplica() && !isSecondaryHostFail()) {
           return;
         }
       } catch (ReconnectDuringTransactionException e) {
@@ -533,7 +533,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
       // and ping master connection fail a few millissecond after,
       // resulting a masterConnection not initialized.
       do {
-        MastersSlavesProtocol.loop(this, globalInfo, loopAddress, searchFilter);
+        MastersReplicasProtocol.loop(this, globalInfo, loopAddress, searchFilter);
         // close loop if all connection are retrieved
         if (!searchFilter.isFailoverLoop()) {
           try {
@@ -664,7 +664,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
       currentProtocol = newSecondaryProtocol;
     }
 
-    // set new found connection as slave connection.
+    // set new found connection as replica connection.
     this.secondaryProtocol = newSecondaryProtocol;
     if (urlParser.getOptions().assureReadOnly) {
       setSessionReadOnly(true, this.secondaryProtocol);
@@ -710,7 +710,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
               }
             }
-            // stay on master connection, since slave connection is fail
+            // stay on master connection, since replica connection is fail
             FailoverLoop.addListener(this);
           }
         } else {
@@ -798,7 +798,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
       masterProtocol.close();
     }
 
-    // fail on slave if parameter permit so
+    // fail on replica if parameter permit so
     if (urlParser.getOptions().failOnReadOnly && !isSecondaryHostFail()) {
       try {
         if (this.secondaryProtocol != null && this.secondaryProtocol.ping()) {
@@ -959,7 +959,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
           }
           FailoverLoop.addListener(this);
           logger.info(
-              "Connection to slave lost, using master connection"
+              "Connection to replica lost, using master connection"
                   + ", query is re-execute on master server without throwing exception");
           return relaunchOperation(
               method, args); // relaunched result if the result was not crashing the master
@@ -990,7 +990,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
       }
 
       logger.info(
-          "Connection to slave lost, new slave {}, conn={} found"
+          "Connection to replica lost, new replica {}, conn={} found"
               + ", query is re-execute on new server without throwing exception",
           currentProtocol.getHostAddress(),
           currentProtocol.getServerThreadId());
@@ -1048,7 +1048,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
   }
 
   @Override
-  public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster)
+  public void rePrepareOnReplica(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster)
       throws SQLException {
     if (isSecondaryHostFail()) {
       Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
@@ -1065,7 +1065,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     if (secondaryProtocol != null && !isSecondaryHostFail()) {
-      // prepare on slave
+      // prepare on replica
       ServerPrepareResult serverPrepareResult =
           secondaryProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
 
@@ -1111,7 +1111,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
   }
 
   /**
-   * Reset state of master and slave connection.
+   * Reset state of master and replica connection.
    *
    * @throws SQLException if command fail.
    */

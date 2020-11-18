@@ -55,7 +55,6 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
-
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
