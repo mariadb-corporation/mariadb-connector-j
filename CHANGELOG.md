@@ -1,5 +1,21 @@
 # Change Log
 
+## [2.7.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.1) (23 Nov. 2020)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.0...2.7.1)
+
+* CONJ-834 use of BULK batch is conditioned by capability, not checking server version 
+* CONJ-835 GSS Imports set in OSGI Bundle
+* CONJ-839 Wrong exception message when rewriteBatchedStatements is enabled
+* CONJ-841 ResultSetMetaData::getColumnTypeName() returns incorrect type name for LONGTEXT
+* CONJ-842 Byte array parameters are now send as long data
+* CONJ-837 prepared statement cache leak on ResultSet CONCUR_UPDATABLE concurrency
+* CONJ-843 ParameterMetaData::getParameterType for CallableStatement parameter return expected "BINARY" value for BINARY type
+
+minor:
+* CONJ-845 test suite now test SkySQL with replication setting
+* CONJ-838 have a 'replica' alias for 'slave' connection option
+
+
 ## [2.7.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.0) (24 Sep. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.2...2.7.0)
 
