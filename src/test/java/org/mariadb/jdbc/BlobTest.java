@@ -61,6 +61,7 @@ import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -74,25 +75,47 @@ public class BlobTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "bug716378",
-        "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
-    createTable(
-        "BlobTeststreamtest2",
-        "id int primary key not null, st varchar(20), strm text" + ", strm2 text, strm3 text",
-        "CHARSET utf8");
-    createTable("BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
-    createTable("BlobTestclobtest", "id int not null primary key, strm text", "CHARSET utf8");
-    createTable("BlobTestclobtest2", "strm text", "CHARSET utf8");
-    createTable("BlobTestclobtest3", "id int not null primary key, strm text", "CHARSET utf8");
-    createTable("BlobTestclobtest4", "id int not null primary key, strm text", "CHARSET utf8");
-    createTable("BlobTestclobtest5", "id int not null primary key, strm text", "CHARSET utf8");
-    createTable("BlobTestblobtest", "id int not null primary key, strm blob");
-    createTable("BlobTestblobtest2", "id int not null primary key, strm blob");
-    createTable(
-        "conj77_test",
-        "Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)",
-        "Engine=InnoDB DEFAULT CHARSET utf8");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE bug716378(id int not null primary key auto_increment, test longblob, test2 blob, test3 text)");
+      stmt.execute(
+          "CREATE TABLE BlobTeststreamtest2(id int primary key not null, st varchar(20), strm text, strm2 text, strm3 text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE BlobTeststreamtest3(id int primary key not null, strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE BlobTestclobtest(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute("CREATE TABLE BlobTestclobtest2(strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE BlobTestclobtest3(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE BlobTestclobtest4(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE BlobTestclobtest5(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute("CREATE TABLE BlobTestblobtest(id int not null primary key, strm blob)");
+      stmt.execute("CREATE TABLE BlobTestblobtest2(id int not null primary key, strm blob)");
+      stmt.execute(
+          "CREATE TABLE conj77_test(Name VARCHAR(100) NOT NULL,Archive LONGBLOB, PRIMARY KEY (Name)) Engine=InnoDB DEFAULT CHARSET utf8");
+      stmt.execute("CREATE TABLE emptyBlob(test longblob, test2 text, test3 text)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE bug716378");
+      stmt.execute("DROP TABLE BlobTeststreamtest2");
+      stmt.execute("DROP TABLE BlobTeststreamtest3");
+      stmt.execute("DROP TABLE BlobTestclobtest");
+      stmt.execute("DROP TABLE BlobTestclobtest2");
+      stmt.execute("DROP TABLE BlobTestclobtest3");
+      stmt.execute("DROP TABLE BlobTestclobtest4");
+      stmt.execute("DROP TABLE BlobTestclobtest5");
+      stmt.execute("DROP TABLE BlobTestblobtest");
+      stmt.execute("DROP TABLE BlobTestblobtest2");
+      stmt.execute("DROP TABLE conj77_test");
+      stmt.execute("DROP TABLE emptyBlob");
+    }
   }
 
   @Test
@@ -444,7 +467,9 @@ public class BlobTest extends BaseTest {
                   bout.write(buffer, 0, read);
                 }
               }
-              assertArrayEquals(bout.toByteArray(), values[pos++]);
+              byte[] expected = values[pos++];
+              assertEquals(expected.length, bout.toByteArray().length);
+              assertArrayEquals(expected, bout.toByteArray());
             }
           } else {
             assertNull(values[pos++]);
@@ -457,7 +482,6 @@ public class BlobTest extends BaseTest {
 
   @Test
   public void sendEmptyBlobPreparedQuery() throws SQLException {
-    createTable("emptyBlob", "test longblob, test2 text, test3 text");
     try (Connection conn = setConnection()) {
       PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
       ps.setBlob(1, new MariaDbBlob(new byte[0]));

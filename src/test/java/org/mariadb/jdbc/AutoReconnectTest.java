@@ -62,7 +62,9 @@ public class AutoReconnectTest extends BaseTest {
   @Test
   public void autoReconnect() throws SQLException, InterruptedException {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");
@@ -90,7 +92,8 @@ public class AutoReconnectTest extends BaseTest {
 
   @Test
   public void autoReconnectPing() throws SQLException, InterruptedException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(runLongTest);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");

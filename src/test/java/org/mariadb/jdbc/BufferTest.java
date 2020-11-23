@@ -55,6 +55,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -82,7 +83,18 @@ public class BufferTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("BufferTest", "test longText");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE buffer_test(test longText)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS buffer_test");
+    }
   }
 
   @Test
@@ -205,7 +217,7 @@ public class BufferTest extends BaseTest {
         assertTrue(
             sqlexception
                 .getMessage()
-                .contains("INSERT INTO BufferTest VALUES (?), parameters ['" + array20m[0]));
+                .contains("INSERT INTO buffer_test VALUES (?), parameters ['" + array20m[0]));
       }
       assertTrue(
           "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
@@ -251,11 +263,12 @@ public class BufferTest extends BaseTest {
   private void sendByteBufferData(boolean compression, char[] arr) throws SQLException {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
-      stmt.execute("TRUNCATE BufferTest");
-      PreparedStatement preparedStatement =
-          connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
-      preparedStatement.setString(1, new String(arr));
-      preparedStatement.execute();
+      stmt.execute("TRUNCATE buffer_test");
+      try (PreparedStatement preparedStatement =
+          connection.prepareStatement("INSERT INTO buffer_test VALUES (?)")) {
+        preparedStatement.setString(1, new String(arr));
+        preparedStatement.execute();
+      }
       checkResult(arr);
     }
   }
@@ -270,15 +283,15 @@ public class BufferTest extends BaseTest {
   private void sendSqlData(boolean compression, char[] arr) throws SQLException {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
-      stmt.execute("TRUNCATE BufferTest");
-      stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
+      stmt.execute("TRUNCATE buffer_test");
+      stmt.execute("INSERT INTO buffer_test VALUES ('" + new String(arr) + "')");
       checkResult(arr);
     }
   }
 
   private void checkResult(char[] arr) throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM BufferTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM buffer_test");
     if (rs.next()) {
       String resString = rs.getString(1);
       char[] cc = resString.toCharArray();

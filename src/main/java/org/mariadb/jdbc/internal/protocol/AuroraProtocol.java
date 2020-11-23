@@ -68,7 +68,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
-public class AuroraProtocol extends MastersSlavesProtocol {
+public class AuroraProtocol extends MastersReplicasProtocol {
 
   public AuroraProtocol(
       final UrlParser url,
@@ -197,7 +197,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         } else if (!protocol.isMasterConnection()) {
           if (listener.isSecondaryHostFailReconnect()) {
-            // in case cluster DNS is currently pointing to a slave host
+            // in case cluster DNS is currently pointing to a replica host
             if (listener.getUrlParser().getHostAddresses().size() <= 1
                 && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
               listener.retrieveAllEndpointsAndSet(protocol);
@@ -225,7 +225,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                   loopAddresses.remove(probableMasterHost);
                   AuroraProtocol.searchProbableMaster(listener, globalInfo, probableMasterHost);
                   if (listener.isMasterHostFailReconnect()
-                      && searchFilter.isFineIfFoundOnlySlave()) {
+                      && searchFilter.isFineIfFoundOnlyReplica()) {
                     return;
                   }
                 }
@@ -247,7 +247,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return;
       }
 
-      // in case master not found but slave is , and allowing master down
+      // in case master not found but replica is , and allowing master down
       if (loopAddresses.isEmpty()
           && (listener.isMasterHostFailReconnect()
               && listener.urlParser.getOptions().allowMasterDownConnection
@@ -255,14 +255,15 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return;
       }
 
-      // on connection and all slaves have been tested, use master if on
+      // on connection and all replicas have been tested, use master if on
       if (loopAddresses.isEmpty()
           && searchFilter.isInitialConnection()
           && !listener.isMasterHostFailReconnect()) {
         return;
       }
 
-      // if server has try to connect to all host, and there is remaining master or slave that fail
+      // if server has try to connect to all host, and there is remaining master or replica that
+      // fail
       // add all servers back to continue looping until maxConnectionTry is reached
       if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
         resetHostList(listener, loopAddresses);

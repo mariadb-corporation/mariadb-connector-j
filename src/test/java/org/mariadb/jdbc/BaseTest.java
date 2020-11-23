@@ -90,22 +90,18 @@ public class BaseTest {
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-              prop.getProperty("DB_HOST"),
-              prop.getProperty("DB_PORT"),
-              prop.getProperty("DB_DATABASE"),
-              prop.getProperty("DB_USER"),
-              prop.getProperty("DB_PASSWORD"),
-              prop.getProperty("DB_OTHER"));
+              System.getProperty("TEST_DB_HOST", prop.getProperty("DB_HOST")),
+              System.getProperty("TEST_DB_PORT", prop.getProperty("DB_PORT")),
+              System.getProperty("TEST_DB_DATABASE", prop.getProperty("DB_DATABASE")),
+              System.getProperty("TEST_DB_USER", prop.getProperty("DB_USER")),
+              System.getProperty("TEST_DB_PASSWORD", prop.getProperty("DB_PASSWORD")),
+              System.getProperty("TEST_DB_OTHER", prop.getProperty("DB_OTHER")));
 
     } catch (IOException io) {
       io.printStackTrace();
     }
   }
 
-  private static final Set<String> tempTableList = new HashSet<>();
-  private static final Set<String> tempViewList = new HashSet<>();
-  private static final Set<String> tempProcedureList = new HashSet<>();
-  private static final Set<String> tempFunctionList = new HashSet<>();
   private static final NumberFormat numberFormat = DecimalFormat.getInstance(Locale.ROOT);
   protected static String connU;
   protected static String connUri;
@@ -130,6 +126,7 @@ public class BaseTest {
         private long ttime;
 
         protected void starting(Description description) {
+
           if (testSingleHost) {
             System.out.println(
                 "start test : " + description.getClassName() + "." + description.getMethodName());
@@ -150,7 +147,7 @@ public class BaseTest {
             } catch (SQLNonTransientConnectionException connFail) {
               connFail.printStackTrace();
               try {
-                beforeClassBaseTest();
+                aBefore();
               } catch (SQLException e) {
                 System.out.println("ERROR reconnecting");
                 e.printStackTrace();
@@ -205,7 +202,7 @@ public class BaseTest {
    * @throws SQLException exception
    */
   @BeforeClass()
-  public static void beforeClassBaseTest() throws SQLException {
+  public static void aBefore() throws SQLException {
     String url = System.getProperty("dbUrl", mDefUrl);
     runLongTest = Boolean.parseBoolean(System.getProperty("runLongTest", "false"));
     testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
@@ -287,49 +284,8 @@ public class BaseTest {
    * @throws SQLException exception
    */
   @AfterClass
-  public static void afterClassBaseTest() throws SQLException {
+  public static void after() throws SQLException {
     if (testSingleHost && sharedConnection != null && !sharedConnection.isClosed()) {
-      if (!tempViewList.isEmpty()) {
-        Statement stmt = sharedConnection.createStatement();
-        for (String viewName : tempViewList) {
-          try {
-            stmt.execute("DROP VIEW IF EXISTS " + viewName);
-          } catch (SQLException e) {
-            // eat exception
-          }
-        }
-      }
-      if (!tempTableList.isEmpty()) {
-        Statement stmt = sharedConnection.createStatement();
-        for (String tableName : tempTableList) {
-          try {
-            stmt.execute("DROP TABLE IF EXISTS " + tableName);
-          } catch (SQLException e) {
-            // eat exception
-          }
-        }
-      }
-      if (!tempProcedureList.isEmpty()) {
-        Statement stmt = sharedConnection.createStatement();
-        for (String procedureName : tempProcedureList) {
-          try {
-            stmt.execute("DROP procedure IF EXISTS " + procedureName);
-          } catch (SQLException e) {
-            // eat exception
-          }
-        }
-      }
-      if (!tempFunctionList.isEmpty()) {
-        Statement stmt = sharedConnection.createStatement();
-        for (String functionName : tempFunctionList) {
-          try {
-            stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
-          } catch (SQLException e) {
-            // eat exception
-          }
-        }
-      }
-
       try {
         sharedConnection.close();
       } catch (SQLException e) {
@@ -357,91 +313,6 @@ public class BaseTest {
   // common function for logging information
   static void logInfo(String message) {
     System.out.println(message);
-  }
-
-  /**
-   * Create a table that will be detroyed a the end of tests.
-   *
-   * @param tableName table name
-   * @param tableColumns table columns
-   * @throws SQLException exception
-   */
-  public static void createTable(String tableName, String tableColumns) throws SQLException {
-    createTable(tableName, tableColumns, null);
-  }
-
-  /**
-   * Create a table that will be detroyed a the end of tests.
-   *
-   * @param tableName table name
-   * @param tableColumns table columns
-   * @param engine engine type
-   * @throws SQLException exception
-   */
-  public static void createTable(String tableName, String tableColumns, String engine)
-      throws SQLException {
-    if (testSingleHost) {
-      Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop table if exists " + tableName);
-      stmt.execute(
-          "create table "
-              + tableName
-              + " ("
-              + tableColumns
-              + ") "
-              + ((engine != null) ? engine : ""));
-      if (!tempFunctionList.contains(tableName)) {
-        tempTableList.add(tableName);
-      }
-    }
-  }
-
-  /**
-   * Create a view that will be detroyed a the end of tests.
-   *
-   * @param viewName table name
-   * @param tableColumns table columns
-   * @throws SQLException exception
-   */
-  public static void createView(String viewName, String tableColumns) throws SQLException {
-    if (testSingleHost) {
-      Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop view if exists " + viewName);
-      stmt.execute("create view " + viewName + " AS (" + tableColumns + ") ");
-      tempViewList.add(viewName);
-    }
-  }
-
-  /**
-   * Create procedure that will be delete on end of test.
-   *
-   * @param name procedure name
-   * @param body procecure body
-   * @throws SQLException exception
-   */
-  public static void createProcedure(String name, String body) throws SQLException {
-    if (testSingleHost) {
-      Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop procedure IF EXISTS " + name);
-      stmt.execute("create  procedure " + name + body);
-      tempProcedureList.add(name);
-    }
-  }
-
-  /**
-   * Create function that will be delete on end of test.
-   *
-   * @param name function name
-   * @param body function body
-   * @throws SQLException exception
-   */
-  public static void createFunction(String name, String body) throws SQLException {
-    if (testSingleHost) {
-      Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop function IF EXISTS " + name);
-      stmt.execute("create function " + name + body);
-      tempFunctionList.add(name);
-    }
   }
 
   /**
@@ -937,7 +808,7 @@ public class BaseTest {
    * @param minor database minor version
    * @throws SQLException exception
    */
-  public boolean minVersion(int major, int minor) throws SQLException {
+  public static boolean minVersion(int major, int minor) throws SQLException {
     DatabaseMetaData md = sharedConnection.getMetaData();
     int dbMajor = md.getDatabaseMajorVersion();
     int dbMinor = md.getDatabaseMinorVersion();
@@ -951,7 +822,7 @@ public class BaseTest {
    * @param minor database minor version
    * @throws SQLException exception
    */
-  public boolean strictBeforeVersion(int major, int minor) throws SQLException {
+  public static boolean strictBeforeVersion(int major, int minor) throws SQLException {
     DatabaseMetaData md = sharedConnection.getMetaData();
     int dbMajor = md.getDatabaseMajorVersion();
     int dbMinor = md.getDatabaseMinorVersion();

@@ -131,7 +131,7 @@ public class ComStmtExecute {
 
     for (int i = 0; i < parameterCount; i++) {
       ParameterHolder holder = parameters[i];
-      if (!holder.isNullData() && !holder.isLongData()) {
+      if (!holder.isNullData() && !holder.canBeLongData()) {
         holder.writeBinary(pos);
       }
     }

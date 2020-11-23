@@ -56,6 +56,7 @@ import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,33 +66,57 @@ public class PreparedStatementTest extends BaseTest {
   private static final int ER_NO_SUCH_TABLE = 1146;
   private static final String ER_NO_SUCH_TABLE_STATE = "42S02";
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("table1", "id1 int auto_increment primary key");
-    createTable("table2", "id2 int auto_increment primary key");
-    createTable(
-        "`testBigintTable`",
-        "`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)",
-        "ENGINE=InnoDB DEFAULT CHARSET=utf8");
-    createTable(
-        "`backTicksPreparedStatements`",
-        "`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
-            + "`SLIndex#orBV#` text,"
-            + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
-            + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
-            + "`Webinar10-TM/ProjComp` text",
-        "ENGINE=InnoDB DEFAULT CHARSET=utf8");
-    createTable("test_insert_select", "`field1` varchar(20)");
-    createTable("test_decimal_insert", "`field1` decimal(10, 7)");
-    createTable(
-        "PreparedStatementTest1", "id int not null primary key auto_increment, test longblob");
-    createTable("PreparedStatementTest2", "my_col varchar(20)");
-    createTable("PreparedStatementTest3", "my_col varchar(20)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE table1(id1 int auto_increment primary key)");
+      stmt.execute("CREATE TABLE table2(id2 int auto_increment primary key)");
+      stmt.execute(
+          "CREATE TABLE `testBigintTable`(`id` bigint(20) unsigned NOT NULL, PRIMARY KEY (`id`)) DEFAULT CHARSET=utf8");
+      stmt.execute(
+          "CREATE TABLE `backTicksPreparedStatements`(`id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+              + "`SLIndex#orBV#` text,"
+              + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
+              + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
+              + "`Webinar10-TM/ProjComp` text) "
+              + "ENGINE=InnoDB DEFAULT CHARSET=utf8");
+      stmt.execute("CREATE TABLE test_insert_select(`field1` varchar(20))");
+      stmt.execute("CREATE TABLE test_decimal_insert(`field1` decimal(10, 7))");
+      stmt.execute(
+          "CREATE TABLE PreparedStatementTest1(id int not null primary key auto_increment, test longblob)");
+      stmt.execute("CREATE TABLE PreparedStatementTest2(my_col varchar(20))");
+      stmt.execute("CREATE TABLE PreparedStatementTest3(my_col varchar(20))");
+      stmt.execute(
+          "CREATE TABLE clientPrepareStatementValuesWithoutParameter(created_at datetime primary key)");
+      stmt.execute(
+          "CREATE TABLE testFallbackPrepare(`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL)"
+              + " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+      stmt.execute(
+          "CREATE TABLE largePrepareUpdate(a int not null primary key auto_increment, t varchar(256))");
+      stmt.execute(
+          "CREATE TABLE testInsertSelectBulk(v1 varchar(10), v2 varchar(10), v3 varchar(10), v4 varchar(10))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
+      stmt.execute("DROP TABLE IF EXISTS table1");
+      stmt.execute("DROP TABLE IF EXISTS table2");
+      stmt.execute("DROP TABLE IF EXISTS `testBigintTable`");
+      stmt.execute("DROP TABLE IF EXISTS `backTicksPreparedStatements`");
+      stmt.execute("DROP TABLE IF EXISTS test_insert_select");
+      stmt.execute("DROP TABLE IF EXISTS test_decimal_insert");
+      stmt.execute("DROP TABLE IF EXISTS PreparedStatementTest1");
+      stmt.execute("DROP TABLE IF EXISTS PreparedStatementTest2");
+      stmt.execute("DROP TABLE IF EXISTS PreparedStatementTest3");
+      stmt.execute("DROP TABLE IF EXISTS clientPrepareStatementValuesWithoutParameter");
+      stmt.execute("DROP TABLE IF EXISTS testFallbackPrepare");
+      stmt.execute("DROP TABLE IF EXISTS largePrepareUpdate");
+    }
   }
 
   @Test
@@ -292,10 +317,7 @@ public class PreparedStatementTest extends BaseTest {
    */
   @Test
   public void testFallbackPrepare() throws SQLException {
-    createTable(
-        "testFallbackPrepare",
-        "`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL",
-        "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
       stmt.execute("SET @@character_set_connection = 'utf8mb4'");
@@ -501,8 +523,6 @@ public class PreparedStatementTest extends BaseTest {
    */
   @Test
   public void clientPrepareStatementValuesWithoutParameter() throws Throwable {
-    createTable("clientPrepareStatementValuesWithoutParameter", "created_at datetime primary key");
-
     String query =
         "ALTER table clientPrepareStatementValuesWithoutParameter PARTITION BY RANGE COLUMNS( created_at ) "
             + "(PARTITION test_p201605 VALUES LESS THAN ('2016-06-01'))";
@@ -548,11 +568,7 @@ public class PreparedStatementTest extends BaseTest {
     cancelForVersion(10, 3, 3);
     cancelForVersion(10, 3, 4);
 
-    try (Statement statement = sharedConnection.createStatement()) {
-      statement.execute("DROP TABLE IF EXISTS myTable");
-      statement.execute(
-          "CREATE TABLE myTable(v1 varchar(10), v2 varchar(10), v3 varchar(10), v4 varchar(10))");
-
+    try (Statement stmt = sharedConnection.createStatement()) {
       String[][] val = {
         {null, "b1", "c1", "d1"},
         {"a2", null, "c2", "d2"},
@@ -561,7 +577,8 @@ public class PreparedStatementTest extends BaseTest {
         {"a5", "b5", "c5", "d5"}
       };
       try (PreparedStatement preparedStatement =
-          sharedConnection.prepareStatement("INSERT INTO myTable VALUES (?, ?, ?, ?)")) {
+          sharedConnection.prepareStatement(
+              "INSERT INTO testInsertSelectBulk VALUES (?, ?, ?, ?)")) {
         for (int i = 0; i < val.length; i++) {
           for (int j = 0; j < 4; j++) {
             preparedStatement.setString(j + 1, val[i][j]);
@@ -571,7 +588,7 @@ public class PreparedStatementTest extends BaseTest {
         preparedStatement.executeBatch();
       }
 
-      ResultSet rs = statement.executeQuery("SELECT * from myTable");
+      ResultSet rs = stmt.executeQuery("SELECT * from testInsertSelectBulk");
       for (int i = 0; i < val.length; i++) {
         assertTrue(rs.next());
         for (int j = 0; j < 4; j++) {
@@ -587,10 +604,6 @@ public class PreparedStatementTest extends BaseTest {
 
   @Test
   public void largePrepareUpdate() throws SQLException {
-    createTable(
-        "largePrepareUpdate",
-        "a int not null primary key auto_increment, t varchar(256)",
-        "engine=innodb");
     try (PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "insert into largePrepareUpdate(t) values(?)", Statement.RETURN_GENERATED_KEYS)) {

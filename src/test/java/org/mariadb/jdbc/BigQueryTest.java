@@ -58,6 +58,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Arrays;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -71,16 +72,32 @@ public class BigQueryTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("bigblob", "id int not null primary key auto_increment, test longblob");
-    createTable(
-        "bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
-    createTable(
-        "bigblob3",
-        "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
-    createTable("bigblob4", "test longblob");
-    createTable(
-        "bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
-    createTable("bigblob6", "id int not null primary key auto_increment, test longblob");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE bigblob(id int not null primary key auto_increment, test longblob)");
+      stmt.execute(
+          "CREATE TABLE bigblob2(id int not null primary key auto_increment, test longblob, test2 longblob)");
+      stmt.execute(
+          "CREATE TABLE bigblob3(id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20))");
+      stmt.execute("CREATE TABLE bigblob4(test longblob)");
+      stmt.execute(
+          "CREATE TABLE bigblob5(id int not null primary key auto_increment, test longblob, test2 text)");
+      stmt.execute(
+          "CREATE TABLE bigblob6(id int not null primary key auto_increment, test longblob)");
+      stmt.execute("FLUSH TABLE");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE bigblob");
+      stmt.execute("DROP TABLE bigblob2");
+      stmt.execute("DROP TABLE bigblob3");
+      stmt.execute("DROP TABLE bigblob4");
+      stmt.execute("DROP TABLE bigblob5");
+      stmt.execute("DROP TABLE bigblob6");
+    }
   }
 
   @Test

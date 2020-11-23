@@ -22,10 +22,7 @@
 package org.mariadb.jdbc;
 
 import java.sql.*;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 public class CredentialPluginTest extends BaseTest {
 
@@ -35,7 +32,7 @@ public class CredentialPluginTest extends BaseTest {
    * @throws SQLException if any
    */
   @Before
-  public void before() throws SQLException {
+  public void beforeTest() throws SQLException {
     boolean useOldNotation = true;
     if ((isMariadbServer() && minVersion(10, 2, 0))
         || (!isMariadbServer() && minVersion(8, 0, 0))) {
@@ -68,7 +65,7 @@ public class CredentialPluginTest extends BaseTest {
    * @throws SQLException if any
    */
   @After
-  public void after() throws SQLException {
+  public void afterTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
     stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");
@@ -102,6 +99,7 @@ public class CredentialPluginTest extends BaseTest {
 
   @Test
   public void specificPropertiesIdentityTest() throws SQLException {
+
     System.setProperty("myUserKey", "identityUser");
     System.setProperty("myPwdKey", "!Passw0rd3Works");
 
@@ -114,7 +112,11 @@ public class CredentialPluginTest extends BaseTest {
                 + "/"
                 + ((database == null) ? "" : database)
                 + "?credentialType=PROPERTY"
-                + "&userKey=myUserKey&pwdKey=myPwdKey")) {
+                + "&userKey=myUserKey&pwdKey=myPwdKey"
+                + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                + ((options.serverSslCert != null)
+                    ? "&serverSslCert=" + options.serverSslCert
+                    : ""))) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");

@@ -81,7 +81,7 @@ import org.mariadb.jdbc.util.Options;
  * (for example localhost:3306)<br>
  * <br>
  * - complex :<br>
- * {@code address=[(type=(master|slave))][(port=<portnumber>)](host=<host>)}<br>
+ * {@code address=[(type=(master|replica))][(port=<portnumber>)](host=<host>)}<br>
  * <br>
  * <br>
  * type is by default master<br>
@@ -94,7 +94,7 @@ import org.mariadb.jdbc.util.Options;
  * <p>Some examples :<br>
  * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
  * {@code
- * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
+ * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=replica)(host=replica1)/database?user=greg&password=pass}
  * <br>
  */
 public class UrlParser implements Cloneable {

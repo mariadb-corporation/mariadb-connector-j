@@ -59,28 +59,36 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class CollationTest extends BaseTest {
-
-  /**
-   * Tables Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "emojiTest",
-        "id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    createTable(
-        "unicodeTestChar",
-        "id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext "
-            + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
-        "DEFAULT CHARSET=utf8mb4");
-    createTable("textUtf8", "column1 text", "DEFAULT CHARSET=utf8");
-    createTable("blobUtf8", "column1 blob", "DEFAULT CHARSET=utf8");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE emojiTest(id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)");
+      stmt.execute(
+          "CREATE TABLE unicodeTestChar(id int unsigned, field1 varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci, field2 longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci) DEFAULT CHARSET=utf8mb4");
+      stmt.execute("CREATE TABLE textUtf8(column1 text) DEFAULT CHARSET=utf8");
+      stmt.execute("CREATE TABLE blobUtf8(column1 blob) DEFAULT CHARSET=utf8");
+      stmt.execute("CREATE TABLE fooLatin1(x longtext) DEFAULT CHARSET=latin1");
+      stmt.execute("CREATE TABLE languageCasing(ID int, id2 int)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE emojiTest");
+      stmt.execute("DROP TABLE unicodeTestChar");
+      stmt.execute("DROP TABLE textUtf8");
+      stmt.execute("DROP TABLE blobUtf8");
+      stmt.execute("DROP TABLE fooLatin1");
+      stmt.execute("DROP TABLE languageCasing");
+    }
   }
 
   /**
@@ -216,8 +224,6 @@ public class CollationTest extends BaseTest {
    */
   @Test
   public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
-    createTable("fooLatin1", "x longtext", "DEFAULT CHARSET=latin1");
-
     // German Umlaute (ÄÖÜ) U+00C4, U+00D6, U+00DC
     final String latin1String = "ÄÖÜ";
 
@@ -251,7 +257,6 @@ public class CollationTest extends BaseTest {
   @Test
   public void languageCasing() throws SQLException {
     Locale currentLocal = Locale.getDefault();
-    createTable("languageCasing", "ID int, id2 int");
     try (Statement statement = sharedConnection.createStatement()) {
       statement.execute("INSERT INTO languageCasing values (1,2)");
 

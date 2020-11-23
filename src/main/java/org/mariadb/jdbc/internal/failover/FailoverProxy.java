@@ -229,14 +229,14 @@ public class FailoverProxy implements InvocationHandler {
           if (!mustBeOnMaster
               && serverPrepareResult.getUnProxiedProtocol().isMasterConnection()
               && !this.listener.hasHostFail()) {
-            // PrepareStatement was to be executed on slave, but since a failover was running on
-            // master connection. Slave connection is up
-            // again, so has to be re-prepared on slave
+            // PrepareStatement was to be executed on replica, but since a failover was running on
+            // master connection. Replica connection is up
+            // again, so has to be re-prepared on replica
             try {
               logger.trace(
-                  "re-prepare query \"{}\" on slave (was " + "temporary on master since failover)",
+                  "re-prepare query \"{}\" on replica (was temporary on master since failover)",
                   serverPrepareResult.getSql());
-              this.listener.rePrepareOnSlave(serverPrepareResult, false);
+              this.listener.rePrepareOnReplica(serverPrepareResult, false);
             } catch (SQLException q) {
               // error during re-prepare, will do executed on master.
             }
@@ -285,7 +285,7 @@ public class FailoverProxy implements InvocationHandler {
           throw e;
         }
       case METHOD_RESET:
-        // listener will report reset on any active connections (Master/slave)
+        // listener will report reset on any active connections (Master/replica)
         listener.reset();
         return null;
       default:
@@ -326,7 +326,7 @@ public class FailoverProxy implements InvocationHandler {
 
           // error is "The MariaDB server is running with the %s option so it cannot execute this
           // statement"
-          // checking that server was master has not been demote to slave without resetting
+          // checking that server was master has not been demote to replica without resetting
           // connections
           if (queryException.getErrorCode() == 1290
               && !isSecondExecution

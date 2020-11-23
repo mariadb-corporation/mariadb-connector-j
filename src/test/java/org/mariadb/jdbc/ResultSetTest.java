@@ -55,21 +55,98 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class ResultSetTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("result_set_test", "id int not null primary key auto_increment, name char(20)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE result_set_test(id int not null primary key auto_increment, name char(20))");
+      stmt.execute(
+          "CREATE TABLE gen_key_test_resultset(name VARCHAR(40) NOT NULL, xml MEDIUMTEXT)");
+      stmt.execute(
+          "CREATE TABLE columnNamesMappingError(xX INT NOT NULL AUTO_INCREMENT,   PRIMARY KEY(xX))");
+      if (isMariadbServer() && minVersion(10, 3)) {
+        stmt.execute(
+            "CREATE TABLE checkInvisibleMetaData(xx tinyint(1), x2 tinyint(1) unsigned INVISIBLE primary key auto_increment, yy year(4), zz bit, uu smallint)");
+        stmt.execute(
+            "CREATE TABLE invisible(x INT, y INT INVISIBLE, z INT INVISIBLE NOT NULL DEFAULT 4)");
+      }
+      stmt.execute("CREATE TABLE doubleStringResults(i double, j float)");
+      stmt.execute("CREATE TABLE testStreamInsensitive(s1 varchar(20))");
+      stmt.execute(
+          "CREATE TABLE generatedKeyNpe(id int not null primary key auto_increment, val int)");
+      stmt.execute("CREATE TABLE testStreamForward(s1 varchar(20))");
+      stmt.execute(
+          "CREATE TABLE leadingZero("
+              + "t1 TINYINT(3) unsigned zerofill"
+              + ", t2 TINYINT(8) unsigned zerofill"
+              + ", t3 TINYINT unsigned zerofill"
+              + ", t4 smallint(3) unsigned zerofill"
+              + ", t5 smallint(8) unsigned zerofill"
+              + ", t6 smallint unsigned zerofill"
+              + ", t7 MEDIUMINT(3) unsigned zerofill"
+              + ", t8 MEDIUMINT(8) unsigned zerofill"
+              + ", t9 MEDIUMINT unsigned zerofill"
+              + ", t10 INT(3) unsigned zerofill"
+              + ", t11 INT(8) unsigned zerofill"
+              + ", t12 INT unsigned zerofill"
+              + ", t13 BIGINT(3) unsigned zerofill"
+              + ", t14 BIGINT(8) unsigned zerofill"
+              + ", t15 BIGINT unsigned zerofill"
+              + ", t16 DECIMAL(6,3) unsigned zerofill"
+              + ", t17 DECIMAL(11,3) unsigned zerofill"
+              + ", t18 DECIMAL unsigned zerofill"
+              + ", t19 FLOAT(6,3) unsigned zerofill"
+              + ", t20 FLOAT(11,3) unsigned zerofill"
+              + ", t21 FLOAT unsigned zerofill"
+              + ", t22 DOUBLE(6,3) unsigned zerofill"
+              + ", t23 DOUBLE(11,3) unsigned zerofill"
+              + ", t24 DOUBLE unsigned zerofill)");
+      stmt.execute(
+          "CREATE TABLE numericTypeTable("
+              + "t1 tinyint, "
+              + "t2 boolean, "
+              + "t3 smallint,  "
+              + "t4 mediumint, "
+              + "t5 int, "
+              + "t6 bigint, "
+              + "t7 decimal, "
+              + "t8 float, "
+              + "t9 double, "
+              + "t10 bit,"
+              + "t11 char(10),"
+              + "t12 varchar(10),"
+              + "t13 binary(10),"
+              + "t14 varbinary(10),"
+              + "t15 text,"
+              + "t16 blob,"
+              + "t17 date)");
+      stmt.execute(
+          "CREATE TABLE nullField(t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS result_set_test");
+      stmt.execute("DROP TABLE IF EXISTS gen_key_test_resultset");
+      stmt.execute("DROP TABLE IF EXISTS columnNamesMappingError");
+      stmt.execute("DROP TABLE IF EXISTS checkInvisibleMetaData");
+      stmt.execute("DROP TABLE IF EXISTS invisible");
+      stmt.execute("DROP TABLE IF EXISTS doubleStringResults");
+      stmt.execute("DROP TABLE IF EXISTS testStreamInsensitive");
+      stmt.execute("DROP TABLE IF EXISTS generatedKeyNpe");
+      stmt.execute("DROP TABLE IF EXISTS testStreamForward");
+      stmt.execute("DROP TABLE IF EXISTS leadingZero");
+      stmt.execute("DROP TABLE IF EXISTS numericTypeTable");
+      stmt.execute("DROP TABLE IF EXISTS nullField");
+    }
   }
 
   @Test
@@ -99,7 +176,6 @@ public class ResultSetTest extends BaseTest {
    */
   @Test
   public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
-    createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml MEDIUMTEXT");
     String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
 
     for (int i = 0; i < 2; i++) {
@@ -515,7 +591,6 @@ public class ResultSetTest extends BaseTest {
    */
   @Test
   public void generatedKeyNpe() throws SQLException {
-    createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
     Statement statement = sharedConnection.createStatement();
     statement.execute(
         "INSERT INTO generatedKeyNpe(val) values (0)", Statement.RETURN_GENERATED_KEYS);
@@ -526,7 +601,6 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void generatedKeyError() throws SQLException {
-    createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
     Statement statement = sharedConnection.createStatement();
     statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
     try {
@@ -639,7 +713,6 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void testStreamInsensitive() throws Exception {
-    createTable("testStreamInsensitive", "s1 varchar(20)");
 
     for (int r = 0; r < 20; r++) {
       sharedConnection
@@ -696,7 +769,6 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void testStreamForward() throws Exception {
-    createTable("testStreamForward", "s1 varchar(20)");
 
     for (int r = 0; r < 20; r++) {
       sharedConnection
@@ -759,32 +831,6 @@ public class ResultSetTest extends BaseTest {
    */
   @Test
   public void leadingZeroTest() throws SQLException {
-    createTable(
-        "leadingZero",
-        "t1 TINYINT(3) unsigned zerofill"
-            + ", t2 TINYINT(8) unsigned zerofill"
-            + ", t3 TINYINT unsigned zerofill"
-            + ", t4 smallint(3) unsigned zerofill"
-            + ", t5 smallint(8) unsigned zerofill"
-            + ", t6 smallint unsigned zerofill"
-            + ", t7 MEDIUMINT(3) unsigned zerofill"
-            + ", t8 MEDIUMINT(8) unsigned zerofill"
-            + ", t9 MEDIUMINT unsigned zerofill"
-            + ", t10 INT(3) unsigned zerofill"
-            + ", t11 INT(8) unsigned zerofill"
-            + ", t12 INT unsigned zerofill"
-            + ", t13 BIGINT(3) unsigned zerofill"
-            + ", t14 BIGINT(8) unsigned zerofill"
-            + ", t15 BIGINT unsigned zerofill"
-            + ", t16 DECIMAL(6,3) unsigned zerofill"
-            + ", t17 DECIMAL(11,3) unsigned zerofill"
-            + ", t18 DECIMAL unsigned zerofill"
-            + ", t19 FLOAT(6,3) unsigned zerofill"
-            + ", t20 FLOAT(11,3) unsigned zerofill"
-            + ", t21 FLOAT unsigned zerofill"
-            + ", t22 DOUBLE(6,3) unsigned zerofill"
-            + ", t23 DOUBLE(11,3) unsigned zerofill"
-            + ", t24 DOUBLE unsigned zerofill");
     Statement stmt = sharedConnection.createStatement();
     stmt.executeUpdate(
         "insert into leadingZero values (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1), "
@@ -906,26 +952,6 @@ public class ResultSetTest extends BaseTest {
    */
   @Test
   public void testNumericType() throws SQLException {
-    createTable(
-        "numericTypeTable",
-        "t1 tinyint, "
-            + "t2 boolean, "
-            + "t3 smallint,  "
-            + "t4 mediumint, "
-            + "t5 int, "
-            + "t6 bigint, "
-            + "t7 decimal, "
-            + "t8 float, "
-            + "t9 double, "
-            + "t10 bit,"
-            + "t11 char(10),"
-            + "t12 varchar(10),"
-            + "t13 binary(10),"
-            + "t14 varbinary(10),"
-            + "t15 text,"
-            + "t16 blob,"
-            + "t17 date");
-
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', 'a', 'a', now())");
@@ -1040,7 +1066,6 @@ public class ResultSetTest extends BaseTest {
   @Test
   public void nullField() throws SQLException {
     Assume.assumeTrue(isMariadbServer()); // '0000-00-00' doesn't work anymore on mysql 5.7.
-    createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO nullField(t1,t2,t3,t4) values "
@@ -1119,7 +1144,6 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void doubleStringResults() throws SQLException {
-    createTable("doubleStringResults", "i double, j float");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO doubleStringResults VALUES (1.1, 1.2), (23, 24)");
     ResultSet rs = stmt.executeQuery("SELECT * FROM doubleStringResults");
@@ -1149,8 +1173,6 @@ public class ResultSetTest extends BaseTest {
     cancelForVersion(10, 3, 0);
     cancelForVersion(10, 3, 1);
     cancelForVersion(10, 3, 2);
-
-    createTable("invisible", "x INT, y INT INVISIBLE, z INT INVISIBLE NOT NULL DEFAULT 4");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO invisible(x,y) VALUES (1,2)");
 
@@ -1178,10 +1200,6 @@ public class ResultSetTest extends BaseTest {
     cancelForVersion(10, 3, 0);
     cancelForVersion(10, 3, 1);
     cancelForVersion(10, 3, 2);
-
-    createTable(
-        "checkInvisibleMetaData",
-        "xx tinyint(1), x2 tinyint(1) unsigned INVISIBLE primary key auto_increment, yy year(4), zz bit, uu smallint");
     DatabaseMetaData meta = sharedConnection.getMetaData();
     ResultSet rs = meta.getColumns(null, null, "checkInvisibleMetaData", null);
     assertTrue(rs.next());
@@ -1196,14 +1214,12 @@ public class ResultSetTest extends BaseTest {
 
   @Test
   public void columnNamesMappingError() throws SQLException {
-    createTable(
-        "columnNamesMappingError", "xX INT NOT NULL AUTO_INCREMENT, " + "  PRIMARY KEY(xX)");
 
     Statement stmt = sharedConnection.createStatement();
     stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
-            "SELECT * FROM " + "columnNamesMappingError",
+            "SELECT * FROM columnNamesMappingError",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();

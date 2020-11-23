@@ -62,74 +62,115 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.mariadb.jdbc.internal.util.DeRegister;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.util.DefaultOptions;
 
 public class DriverTest extends BaseTest {
 
-  private static int namedPipeBusyTestError = 0;
-
-  /**
-   * Tables initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("tt1", "id int , name varchar(20)");
-    createTable("tt2", "id int , name varchar(20)");
-    createTable("Drivert2", "id int not null primary key auto_increment, test varchar(10)");
-    createTable("utente", "id int not null primary key auto_increment, test varchar(10)");
-
-    createTable("Drivert3", "id int not null primary key auto_increment, test varchar(10)");
-    createTable(
-        "Drivert30",
-        "id int not null primary key auto_increment, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert4",
-        "id int not null primary key auto_increment, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert5",
-        "id int not null primary key auto_increment, test varchar(20)",
-        "engine=innodb");
-    createTable(
-        "Drivert6",
-        "id int not null primary key auto_increment, test varchar(20)",
-        "engine=innodb");
-    createTable("test_float", "id int not null primary key auto_increment, a float");
-    createTable(
-        "test_big_autoinc2", "id int not null primary key auto_increment, test varchar(10)");
-    createTable("test_big_update", "id int primary key not null, updateme int");
-    createTable("sharedConnection", "id int");
-    createTable("extest", "id int not null primary key");
-    createTable(
-        "commentPreparedStatements", "id int not null primary key auto_increment, a varchar(10)");
-    createTable(
-        "quotesPreparedStatements",
-        "id int not null primary key auto_increment, a varchar(10) , " + "b varchar(10)");
-    createTable("ressetpos", "i int not null primary key", "engine=innodb");
-    createTable("streamingressetpos", "i int not null primary key", "engine=innodb");
-    createTable("streamingtest", "val varchar(20)");
-    createTable("testBlob2", "a blob");
-    createTable("testString2", "a varchar(10)");
-    createTable("testBlob2", "a blob");
-    createTable("unsignedtest", "a int unsigned");
-    createTable("conj25", "a VARCHAR(1024)");
-    createTable("DriverTestt1", "id int not null primary key auto_increment, test varchar(20)");
-    createTable("DriverTestt2", "id int not null primary key auto_increment, test varchar(20)");
-    createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
-    createTable("DriverTestt4", "id int not null primary key auto_increment, test varchar(20)");
-    createTable("DriverTestt5", "id int not null primary key auto_increment, test varchar(20)");
-    createProcedure("foo", "() BEGIN SELECT 1; END");
-    createTable("conj275", "a VARCHAR(10)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE tt1(id int , name varchar(20))");
+      stmt.execute("CREATE TABLE tt2(id int , name varchar(20))");
+      stmt.execute(
+          "CREATE TABLE Drivert2(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE utente(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE Drivert3(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE Drivert30(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE Drivert4(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE Drivert5(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE Drivert6(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute("CREATE TABLE test_float(id int not null primary key auto_increment, a float)");
+      stmt.execute(
+          "CREATE TABLE test_big_autoinc2(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute("CREATE TABLE test_big_update(id int primary key not null, updateme int)");
+      stmt.execute("CREATE TABLE sharedConnection(id int)");
+      stmt.execute("CREATE TABLE extest(id int not null primary key)");
+      stmt.execute(
+          "CREATE TABLE commentPreparedStatements(id int not null primary key auto_increment, a varchar(10))");
+      stmt.execute(
+          "CREATE TABLE quotesPreparedStatements(id int not null primary key auto_increment, a varchar(10) , b varchar(10))");
+      stmt.execute("CREATE TABLE ressetpos(i int not null primary key)");
+      stmt.execute("CREATE TABLE streamingressetpos(i int not null primary key)");
+      stmt.execute("CREATE TABLE streamingtest(val varchar(20))");
+      stmt.execute("CREATE TABLE testString2(a varchar(10))");
+      stmt.execute("CREATE TABLE testBlob2(a blob)");
+      stmt.execute("CREATE TABLE unsignedtest(a int unsigned)");
+      stmt.execute("CREATE TABLE conj25(a VARCHAR(1024))");
+      stmt.execute(
+          "CREATE TABLE DriverTestt1(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE DriverTestt2(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE DriverTestt3(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE DriverTestt4(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE DriverTestt5(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute("CREATE TABLE conj275(a VARCHAR(10))");
+      stmt.execute("CREATE TABLE testLongEscapes(t1 longtext)");
+      stmt.execute(
+          "CREATE TABLE testRollbackOnClose(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute(
+          "CREATE TABLE testAutoCommit(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute("CREATE TABLE escapeTest(t varchar(10))");
+      stmt.execute("CREATE PROCEDURE foo() BEGIN SELECT 1; END");
+      stmt.execute("CREATE PROCEDURE multiUpdateCount() BEGIN  SELECT 1; SELECT 2; END");
+      stmt.execute("FLUSH TABLES");
+    }
   }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS tt1");
+      stmt.execute("DROP TABLE IF EXISTS tt2");
+      stmt.execute("DROP TABLE IF EXISTS Drivert2");
+      stmt.execute("DROP TABLE IF EXISTS utente");
+      stmt.execute("DROP TABLE IF EXISTS Drivert3");
+      stmt.execute("DROP TABLE IF EXISTS Drivert30");
+      stmt.execute("DROP TABLE IF EXISTS Drivert4");
+      stmt.execute("DROP TABLE IF EXISTS Drivert5");
+      stmt.execute("DROP TABLE IF EXISTS Drivert6");
+      stmt.execute("DROP TABLE IF EXISTS test_float");
+      stmt.execute("DROP TABLE IF EXISTS test_big_autoinc2");
+      stmt.execute("DROP TABLE IF EXISTS test_big_update");
+      stmt.execute("DROP TABLE IF EXISTS sharedConnection");
+      stmt.execute("DROP TABLE IF EXISTS extest");
+      stmt.execute("DROP TABLE IF EXISTS commentPreparedStatements");
+      stmt.execute("DROP TABLE IF EXISTS quotesPreparedStatements");
+      stmt.execute("DROP TABLE IF EXISTS ressetpos");
+      stmt.execute("DROP TABLE IF EXISTS streamingressetpos");
+      stmt.execute("DROP TABLE IF EXISTS streamingtest");
+      stmt.execute("DROP TABLE IF EXISTS testString2");
+      stmt.execute("DROP TABLE IF EXISTS testBlob2");
+      stmt.execute("DROP TABLE IF EXISTS unsignedtest");
+      stmt.execute("DROP TABLE IF EXISTS conj25");
+      stmt.execute("DROP TABLE IF EXISTS DriverTestt1");
+      stmt.execute("DROP TABLE IF EXISTS DriverTestt2");
+      stmt.execute("DROP TABLE IF EXISTS DriverTestt3");
+      stmt.execute("DROP TABLE IF EXISTS DriverTestt4");
+      stmt.execute("DROP TABLE IF EXISTS DriverTestt5");
+      stmt.execute("DROP TABLE IF EXISTS conj275");
+      stmt.execute("DROP TABLE IF EXISTS testLongEscapes");
+      stmt.execute("DROP TABLE IF EXISTS testRollbackOnClose");
+      stmt.execute("DROP TABLE IF EXISTS testAutoCommit");
+      stmt.execute("DROP TABLE IF EXISTS escapeTest");
+      stmt.execute("DROP PROCEDURE IF EXISTS foo");
+      stmt.execute("DROP PROCEDURE IF EXISTS multiUpdateCount");
+    }
+  }
+
+  private static int namedPipeBusyTestError = 0;
 
   @Test
   public void doQuery() throws SQLException {
@@ -234,7 +275,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataNotPreparable() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -278,7 +319,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataPreparable() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -672,7 +713,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void escapeTest() throws SQLException {
-    createTable("escapeTest", "t varchar(10)");
     String param = "a'\"";
     param += String.valueOf(10);
     param += String.valueOf(13);
@@ -743,26 +783,31 @@ public class DriverTest extends BaseTest {
   @Test
   public void manyColumnsTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists test_many_columns");
-    StringBuilder query =
-        new StringBuilder("create table test_many_columns (a0 int primary key not null");
-    for (int i = 1; i < 1000; i++) {
-      query.append(",a").append(i).append(" int");
-    }
-    query.append(")");
-    stmt.execute(query.toString());
-    query = new StringBuilder("insert into test_many_columns values (0");
-    for (int i = 1; i < 1000; i++) {
-      query.append(",").append(i);
-    }
-    query.append(")");
-    stmt.execute(query.toString());
-    ResultSet rs = stmt.executeQuery("select * from test_many_columns");
+    try {
+      stmt.execute("drop table if exists test_many_columns");
+      StringBuilder query =
+          new StringBuilder("create table test_many_columns (a0 int primary key not null");
+      for (int i = 1; i < 1000; i++) {
+        query.append(",a").append(i).append(" int");
+      }
+      query.append(")");
+      stmt.execute(query.toString());
+      stmt.execute("FLUSH TABLES");
+      query = new StringBuilder("insert into test_many_columns values (0");
+      for (int i = 1; i < 1000; i++) {
+        query.append(",").append(i);
+      }
+      query.append(")");
+      stmt.execute(query.toString());
+      ResultSet rs = stmt.executeQuery("select * from test_many_columns");
 
-    assertEquals(true, rs.next());
+      assertEquals(true, rs.next());
 
-    for (int i = 0; i < 1000; i++) {
-      assertEquals(rs.getInt("a" + i), i);
+      for (int i = 0; i < 1000; i++) {
+        assertEquals(rs.getInt("a" + i), i);
+      }
+    } finally {
+      stmt.execute("drop table if exists test_many_columns");
     }
   }
 
@@ -1018,7 +1063,6 @@ public class DriverTest extends BaseTest {
    */
   @Test
   public void testUpdateCountProcedure() throws SQLException {
-    createProcedure("multiUpdateCount", "() BEGIN  SELECT 1; SELECT 2; END");
     CallableStatement callableStatement = sharedConnection.prepareCall("{call multiUpdateCount()}");
     callableStatement.execute();
     assertTrue(-1 == callableStatement.getUpdateCount());
@@ -1028,7 +1072,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
 
     requireMinimumVersion(5, 0);
     try {
@@ -1082,7 +1126,7 @@ public class DriverTest extends BaseTest {
     assertTrue(rs.next());
     String originalSqlMode = rs.getString(1);
     st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
-
+    st.execute("TRUNCATE testBlob2");
     try {
       try (Connection connection = setConnection("&profileSql=true")) {
         PreparedStatement preparedStatement =
@@ -1153,7 +1197,7 @@ public class DriverTest extends BaseTest {
     assertTrue(rs.next());
     String originalSqlMode = rs.getString(1);
     st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
-
+    st.execute("TRUNCATE testBlob2");
     try {
       try (Connection connection = setConnection("&profileSql=true")) {
         PreparedStatement preparedStatement =
@@ -1196,7 +1240,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
 
     requireMinimumVersion(5, 0);
 
@@ -1599,8 +1643,6 @@ public class DriverTest extends BaseTest {
   public void testLongEscapes() throws SQLException {
     // 40m, because escaping will double the send byte numbers
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("testLongEscapes"));
-    createTable("testLongEscapes", "t1 longtext");
-
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("INSERT into testLongEscapes values (?)")) {
       byte[] arr = new byte[20_000_000];
@@ -1625,8 +1667,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testRollbackOnClose() throws SQLException {
-    createTable(
-        "testRollbackOnClose", "id int not null primary key auto_increment, test varchar(20)");
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
       stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('heja')");
@@ -1644,8 +1684,6 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testAutoCommit() throws SQLException {
-    createTable("testAutoCommit", "id int not null primary key auto_increment, test varchar(20)");
-
     try (Connection connection = setConnection()) {
       assertTrue(connection.getAutoCommit());
       Statement stmt = connection.createStatement();
@@ -1674,7 +1712,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
     assertEquals(

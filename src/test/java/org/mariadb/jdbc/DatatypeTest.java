@@ -60,6 +60,7 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -68,39 +69,114 @@ public class DatatypeTest extends BaseTest {
 
   private ResultSet resultSet;
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("Driverstreamtest", "id int not null primary key, strm text");
-    createTable("Driverstreamtest2", "id int primary key not null, strm text");
-    createTable(
-        "objecttest",
-        "int_test int primary key not null, string_test varchar(30), "
-            + "timestamp_test timestamp, serial_test blob");
-    createTable(
-        "bintest",
-        "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
-    createTable(
-        "bigdectest", "id int not null primary key auto_increment, bd decimal", "engine=innodb");
-    createTable("bytetest", "id int not null primary key auto_increment, a int", "engine=innodb");
-    createTable("shorttest", "id int not null primary key auto_increment,a int", "engine=innodb");
-    createTable(
-        "doubletest", "id int not null primary key auto_increment,a double", "engine=innodb");
-    createTable("bittest", "id int not null primary key auto_increment, b int");
-    createTable("emptytest", "id int");
-    createTable(
-        "test_setobjectconv",
-        "id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40)");
-    createTable("blabla", "valsue varchar(20)");
-    createTable("TestBigIntType", "t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20)");
-    createTable(
-        "time_period",
-        "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
-    createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
+    afterClass();
+    try (PreparedStatement prep = sharedConnection.prepareStatement("SELECT ?")) {
+      prep.setInt(1, 1000);
+      prep.execute(); // will send a query "SELECT 1000"
+    }
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE Driverstreamtest(id int not null primary key, strm text)");
+      stmt.execute("CREATE TABLE Driverstreamtest2(id int primary key not null, strm text)");
+      stmt.execute(
+          "CREATE TABLE objecttest(int_test int primary key not null, string_test varchar(30), timestamp_test timestamp, serial_test blob)");
+      stmt.execute(
+          "CREATE TABLE bintest(id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300))");
+      stmt.execute(
+          "CREATE TABLE bigdectest(id int not null primary key auto_increment, bd decimal)");
+      stmt.execute("CREATE TABLE bytetest(id int not null primary key auto_increment, a int)");
+      stmt.execute("CREATE TABLE shorttest(id int not null primary key auto_increment,a int)");
+      stmt.execute("CREATE TABLE doubletest(id int not null primary key auto_increment,a double)");
+      stmt.execute("CREATE TABLE bittest(id int not null primary key auto_increment, b int)");
+      stmt.execute("CREATE TABLE emptytest(id int)");
+      stmt.execute(
+          "CREATE TABLE test_setobjectconv(id int not null primary key auto_increment, v1 varchar(40), v2 varchar(40))");
+      stmt.execute("CREATE TABLE blabla(valsue varchar(20))");
+      stmt.execute(
+          "CREATE TABLE TestBigIntType(t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20))");
+      stmt.execute(
+          "CREATE TABLE time_period(ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID))");
+      stmt.execute("CREATE TABLE bitBoolTest(d1 BOOLEAN, d2 BIT)");
+      stmt.execute("CREATE TABLE bintest2(bin1 longblob)");
+      stmt.execute("CREATE TABLE bintest3(bin1 longblob)");
+      stmt.execute("CREATE TABLE longMinValueSpecificity(ii BIGINT)");
+      stmt.execute(
+          "CREATE TABLE datatypetest("
+              + "bit1 BIT(1) default 0,"
+              + "bit2 BIT(2) default 1,"
+              + "tinyint1 TINYINT(1) default 0,"
+              + "tinyint2 TINYINT(2) default 1,"
+              + "bool0 BOOL default 0,"
+              + "smallint0 SMALLINT default 1,"
+              + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+              + "mediumint0 MEDIUMINT default 1,"
+              + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+              + "int0 INT default 1,"
+              + "int_unsigned INT UNSIGNED default 0,"
+              + "bigint0 BIGINT default 1,"
+              + "bigint_unsigned BIGINT UNSIGNED default 0,"
+              + "float0 FLOAT default 0,"
+              + "double0 DOUBLE default 1,"
+              + "decimal0 DECIMAL default 0,"
+              + "date0 DATE default '2001-01-01',"
+              + "datetime0 DATETIME default '2001-01-01 00:00:00',"
+              + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
+              + "time0 TIME default '22:11:00',"
+              + ((minVersion(5, 6) && strictBeforeVersion(10, 0))
+                  ? "year2 YEAR(4) default 99,"
+                  : "year2 YEAR(2) default 99,")
+              + "year4 YEAR(4) default 2011,"
+              + "char0 CHAR(1) default '0',"
+              + "char_binary CHAR (1) binary default '0',"
+              + "varchar0 VARCHAR(1) default '1',"
+              + "varchar_binary VARCHAR(10) BINARY default 0x1,"
+              + "binary0 BINARY(10) default 0x1,"
+              + "varbinary0 VARBINARY(10) default 0x1,"
+              + "tinyblob0 TINYBLOB,"
+              + "tinytext0 TINYTEXT,"
+              + "blob0 BLOB,"
+              + "bigvarchar VARCHAR(12383),"
+              + "text0 TEXT,"
+              + "mediumblob0 MEDIUMBLOB,"
+              + "mediumtext0 MEDIUMTEXT,"
+              + "longblob0 LONGBLOB,"
+              + "longtext0 LONGTEXT,"
+              + "enum0 ENUM('a','b') default 'a',"
+              + "set0 SET('a','b') default 'a')");
+      stmt.execute("CREATE TABLE LatinTable(t1 varchar(30)) DEFAULT CHARSET=latin1");
+      stmt.execute("CREATE TABLE testShortBit(bitVal BIT(1), bitVal2 BIT(40))");
+      stmt.execute("CREATE TABLE testTextNullValue(id int, val text)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS Driverstreamtest");
+      stmt.execute("DROP TABLE IF EXISTS Driverstreamtest2");
+      stmt.execute("DROP TABLE IF EXISTS objecttest");
+      stmt.execute("DROP TABLE IF EXISTS bintest");
+      stmt.execute("DROP TABLE IF EXISTS bigdectest");
+      stmt.execute("DROP TABLE IF EXISTS bytetest");
+      stmt.execute("DROP TABLE IF EXISTS shorttest");
+      stmt.execute("DROP TABLE IF EXISTS doubletest");
+      stmt.execute("DROP TABLE IF EXISTS bittest");
+      stmt.execute("DROP TABLE IF EXISTS emptytest");
+      stmt.execute("DROP TABLE IF EXISTS test_setobjectconv");
+      stmt.execute("DROP TABLE IF EXISTS blabla");
+      stmt.execute("DROP TABLE IF EXISTS TestBigIntType");
+      stmt.execute("DROP TABLE IF EXISTS time_period");
+      stmt.execute("DROP TABLE IF EXISTS bitBoolTest");
+      stmt.execute("DROP TABLE IF EXISTS bintest2");
+      stmt.execute("DROP TABLE IF EXISTS bintest3");
+      stmt.execute("DROP TABLE IF EXISTS datatypetest");
+      stmt.execute("DROP TABLE IF EXISTS longMinValueSpecificity");
+      stmt.execute("DROP TABLE IF EXISTS LatinTable");
+      stmt.execute("DROP TABLE IF EXISTS testShortBit");
+      stmt.execute("DROP TABLE IF EXISTS testTextNullValue");
+    }
   }
 
   /**
@@ -165,51 +241,6 @@ public class DatatypeTest extends BaseTest {
         resultSet.getMetaData().getColumnType(index));
   }
 
-  private void createDataTypeTables() throws SQLException {
-    createTable(
-        "datatypetest",
-        "bit1 BIT(1) default 0,"
-            + "bit2 BIT(2) default 1,"
-            + "tinyint1 TINYINT(1) default 0,"
-            + "tinyint2 TINYINT(2) default 1,"
-            + "bool0 BOOL default 0,"
-            + "smallint0 SMALLINT default 1,"
-            + "smallint_unsigned SMALLINT UNSIGNED default 0,"
-            + "mediumint0 MEDIUMINT default 1,"
-            + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
-            + "int0 INT default 1,"
-            + "int_unsigned INT UNSIGNED default 0,"
-            + "bigint0 BIGINT default 1,"
-            + "bigint_unsigned BIGINT UNSIGNED default 0,"
-            + "float0 FLOAT default 0,"
-            + "double0 DOUBLE default 1,"
-            + "decimal0 DECIMAL default 0,"
-            + "date0 DATE default '2001-01-01',"
-            + "datetime0 DATETIME default '2001-01-01 00:00:00',"
-            + "timestamp0 TIMESTAMP default  '2001-01-01 00:00:00',"
-            + "time0 TIME default '22:11:00',"
-            + ((minVersion(5, 6) && strictBeforeVersion(10, 0))
-                ? "year2 YEAR(4) default 99,"
-                : "year2 YEAR(2) default 99,")
-            + "year4 YEAR(4) default 2011,"
-            + "char0 CHAR(1) default '0',"
-            + "char_binary CHAR (1) binary default '0',"
-            + "varchar0 VARCHAR(1) default '1',"
-            + "varchar_binary VARCHAR(10) BINARY default 0x1,"
-            + "binary0 BINARY(10) default 0x1,"
-            + "varbinary0 VARBINARY(10) default 0x1,"
-            + "tinyblob0 TINYBLOB,"
-            + "tinytext0 TINYTEXT,"
-            + "blob0 BLOB,"
-            + "text0 TEXT,"
-            + "mediumblob0 MEDIUMBLOB,"
-            + "mediumtext0 MEDIUMTEXT,"
-            + "longblob0 LONGBLOB,"
-            + "longtext0 LONGTEXT,"
-            + "enum0 ENUM('a','b') default 'a',"
-            + "set0 SET('a','b') default 'a' ");
-  }
-
   /**
    * Testing different date parameters.
    *
@@ -221,7 +252,7 @@ public class DatatypeTest extends BaseTest {
   public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType)
       throws Exception {
 
-    createDataTypeTables();
+    connection.createStatement().execute("TRUNCATE TABLE datatypetest");
 
     connection
         .createStatement()
@@ -285,11 +316,12 @@ public class DatatypeTest extends BaseTest {
     checkClass("tinyblob0", byteArrayClass, "TINYBLOB", Types.VARBINARY);
     checkClass("tinytext0", String.class, "VARCHAR", Types.VARCHAR);
     checkClass("blob0", byteArrayClass, "BLOB", Types.VARBINARY);
-    checkClass("text0", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("bigvarchar", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("text0", String.class, "TEXT", Types.VARCHAR);
     checkClass("mediumblob0", byteArrayClass, "MEDIUMBLOB", Types.VARBINARY);
-    checkClass("mediumtext0", String.class, "VARCHAR", Types.VARCHAR);
+    checkClass("mediumtext0", String.class, "MEDIUMTEXT", Types.VARCHAR);
     checkClass("longblob0", byteArrayClass, "LONGBLOB", Types.LONGVARBINARY);
-    checkClass("longtext0", String.class, "VARCHAR", Types.LONGVARCHAR);
+    checkClass("longtext0", String.class, "LONGTEXT", Types.LONGVARCHAR);
     checkClass("enum0", String.class, "CHAR", Types.CHAR);
     checkClass("set0", String.class, "CHAR", Types.CHAR);
 
@@ -408,21 +440,24 @@ public class DatatypeTest extends BaseTest {
     for (int i = 0; i < dbmd.getMaxColumnNameLength(); i++) {
       str.append("x");
     }
-    createTable("longcol", str + " int not null primary key");
-    sharedConnection.createStatement().execute("insert into longcol values (1)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE longcol(" + str + " int not null primary key)");
+      stmt.execute("FLUSH TABLES");
+      stmt.execute("insert into longcol values (1)");
+      try (ResultSet rs = getResultSet("select * from longcol", false)) {
+        assertEquals(true, rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1, rs.getInt(str.toString()));
+        assertEquals("1", rs.getString(1));
+      }
 
-    try (ResultSet rs = getResultSet("select * from longcol", false)) {
-      assertEquals(true, rs.next());
-      assertEquals(1, rs.getInt(1));
-      assertEquals(1, rs.getInt(str.toString()));
-      assertEquals("1", rs.getString(1));
-    }
-
-    try (ResultSet rs = getResultSet("select * from longcol", true)) {
-      assertEquals(true, rs.next());
-      assertEquals(1, rs.getInt(1));
-      assertEquals(1, rs.getInt(str.toString()));
-      assertEquals("1", rs.getString(1));
+      try (ResultSet rs = getResultSet("select * from longcol", true)) {
+        assertEquals(true, rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1, rs.getInt(str.toString()));
+        assertEquals("1", rs.getString(1));
+      }
+      stmt.execute("DROP TABLE longcol");
     }
   }
 
@@ -555,7 +590,7 @@ public class DatatypeTest extends BaseTest {
 
     PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
-            "INSERT INTO TestBigIntType " + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
+            "INSERT INTO TestBigIntType (t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
 
     final long valueLong = System.currentTimeMillis();
     final String maxValue = String.valueOf(Long.MAX_VALUE);
@@ -638,7 +673,6 @@ public class DatatypeTest extends BaseTest {
 
   @Test
   public void binTest2() throws SQLException {
-    createTable("bintest2", "bin1 longblob", "engine=innodb");
 
     byte[] buf = new byte[1000000];
     for (int i = 0; i < 1000000; i++) {
@@ -673,7 +707,6 @@ public class DatatypeTest extends BaseTest {
     InputStream is = new ByteArrayInputStream(buf);
 
     try (Connection connection = setConnection()) {
-      createTable("bintest3", "bin1 longblob", "engine=innodb");
       Statement stmt = connection.createStatement();
 
       try (PreparedStatement ps =
@@ -969,7 +1002,6 @@ public class DatatypeTest extends BaseTest {
 
   @Test
   public void longMinValueSpecificity() throws SQLException {
-    createTable("longMinValueSpecificity", "ii BIGINT");
     try (Statement statement = sharedConnection.createStatement()) {
 
       try (PreparedStatement preparedStatement =
@@ -999,8 +1031,6 @@ public class DatatypeTest extends BaseTest {
 
   @Test
   public void testBinarySetter() throws Throwable {
-    createTable("LatinTable", "t1 varchar(30)", "DEFAULT CHARSET=latin1");
-
     try (Connection connection =
         DriverManager.getConnection(
             connU
@@ -1061,7 +1091,6 @@ public class DatatypeTest extends BaseTest {
    */
   @Test
   public void testBitValues() throws SQLException {
-    createTable("testShortBit", "bitVal BIT(1), bitVal2 BIT(40)");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO testShortBit VALUES (0,0), (1,1), (1, b'01010101'), (1, 21845), (1, b'1101010101010101')"
@@ -1083,7 +1112,6 @@ public class DatatypeTest extends BaseTest {
    */
   @Test
   public void testNullGetObject() throws SQLException {
-    createTable("testTextNullValue", "id int, val text");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO testTextNullValue VALUES (1, 'abc'), (2, null)");
     ResultSet rs = stmt.executeQuery("SELECT * FROM testTextNullValue");

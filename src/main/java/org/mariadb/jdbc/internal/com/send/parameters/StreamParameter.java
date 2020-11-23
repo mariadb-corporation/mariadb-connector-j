@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import org.mariadb.jdbc.internal.ColumnType;
@@ -112,6 +113,26 @@ public class StreamParameter implements Cloneable, ParameterHolder {
    * @throws IOException if socket error occur
    */
   public void writeBinary(final PacketOutputStream pos) throws IOException {
+    ByteArrayOutputStream bb = new ByteArrayOutputStream();
+    byte[] array = new byte[4096];
+    int len;
+    if (length == Long.MAX_VALUE) {
+      while ((len = is.read(array)) > 0) {
+        bb.write(array, 0, len);
+      }
+    } else {
+      long maxLen = length;
+      while ((len = is.read(array)) > 0 && maxLen > 0) {
+        bb.write(array, 0, Math.min(len, (int) maxLen));
+        maxLen -= len;
+      }
+    }
+    byte[] val = bb.toByteArray();
+    pos.writeFieldLength(val.length);
+    pos.write(val);
+  }
+
+  public void writeLongData(final PacketOutputStream pos) throws IOException {
     if (length == Long.MAX_VALUE) {
       pos.write(is, false, noBackslashEscapes);
     } else {
@@ -132,7 +153,7 @@ public class StreamParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
+  public boolean canBeLongData() {
     return true;
   }
 }

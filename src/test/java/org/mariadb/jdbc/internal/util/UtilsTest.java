@@ -148,12 +148,4 @@ public class UtilsTest {
     assertFalse(
         Utils.validateFileName("LOAD DATA INFILE ? /**/", goodParameterHolders, "file_name"));
   }
-
-  @Test
-  public void intToHexString() {
-    assertEquals("05", Utils.intToHexString(5));
-    assertEquals("0400", Utils.intToHexString(1024));
-    assertEquals("C3C20186", Utils.intToHexString(-1010695802));
-    assertEquals("FFFFFFFF", Utils.intToHexString(-1));
-  }
 }

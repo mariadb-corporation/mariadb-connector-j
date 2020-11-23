@@ -59,28 +59,44 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DataTypeUnsignedTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("unsignedBitTest", "id BIT(8)");
-    createTable("unsignedTinyIntTest", "id TINYINT UNSIGNED");
-    createTable("unsignedSmallIntTest", "id SMALLINT UNSIGNED");
-    createTable("yearTest", "id YEAR(4) ");
-    createTable("unsignedMediumIntTest", "id MEDIUMINT UNSIGNED");
-    createTable("unsignedIntTest", "id INT UNSIGNED");
-    createTable("unsignedBigIntTest", "id BIGINT UNSIGNED");
-    createTable("unsignedDecimalTest", "id DECIMAL(65,20) UNSIGNED");
-    createTable("unsignedFloatTest", "id FLOAT UNSIGNED");
-    createTable("unsignedDoubleTest", "id DOUBLE UNSIGNED");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE unsignedBitTest(id BIT(8))");
+      stmt.execute("CREATE TABLE unsignedTinyIntTest(id TINYINT UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedSmallIntTest(id SMALLINT UNSIGNED)");
+      stmt.execute("CREATE TABLE yearTest(id YEAR(4))");
+      stmt.execute("CREATE TABLE unsignedMediumIntTest(id MEDIUMINT UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedIntTest(id INT UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedBigIntTest(id BIGINT UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedDecimalTest(id DECIMAL(65,20) UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedFloatTest(id FLOAT UNSIGNED)");
+      stmt.execute("CREATE TABLE unsignedDoubleTest(id DOUBLE UNSIGNED)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS unsignedBitTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedTinyIntTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedSmallIntTest");
+      stmt.execute("DROP TABLE IF EXISTS yearTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedMediumIntTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedIntTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedBigIntTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedDecimalTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedFloatTest");
+      stmt.execute("DROP TABLE IF EXISTS unsignedDoubleTest");
+    }
   }
 
   @Test

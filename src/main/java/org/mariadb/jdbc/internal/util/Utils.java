@@ -72,14 +72,14 @@ import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
-import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.impl.MastersReplicasListener;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
 import org.mariadb.jdbc.internal.io.socket.SocketUtility;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
-import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
+import org.mariadb.jdbc.internal.protocol.MastersReplicasProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
@@ -614,10 +614,10 @@ public class Utils {
             urlParser,
             (Protocol)
                 Proxy.newProxyInstance(
-                    MastersSlavesProtocol.class.getClassLoader(),
+                    MastersReplicasProtocol.class.getClassLoader(),
                     new Class[] {Protocol.class},
                     new FailoverProxy(
-                        new MastersSlavesListener(urlParser, globalInfo), lock, traceCache)));
+                        new MastersReplicasListener(urlParser, globalInfo), lock, traceCache)));
       case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(
@@ -848,28 +848,6 @@ public class Utils {
 
   public static String byteArrayToHexString(final byte[] bytes) {
     return (bytes != null) ? getHex(bytes) : "";
-  }
-
-  /**
-   * Convert int value to hexadecimal String.
-   *
-   * @param value value to transform
-   * @return Hexadecimal String value of integer.
-   */
-  public static String intToHexString(final int value) {
-    final StringBuilder hex = new StringBuilder(8);
-    int offset = 24;
-    byte b;
-    boolean nullEnd = false;
-    while (offset >= 0) {
-      b = (byte) (value >> offset);
-      offset -= 8;
-      if (b != 0 || nullEnd) {
-        nullEnd = true;
-        hex.append(hexArray[(b & 0xF0) >> 4]).append(hexArray[(b & 0x0F)]);
-      }
-    }
-    return hex.toString();
   }
 
   /**

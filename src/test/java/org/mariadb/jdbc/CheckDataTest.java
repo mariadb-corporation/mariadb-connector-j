@@ -58,14 +58,40 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class CheckDataTest extends BaseTest {
 
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE CheckDataTest1(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE CheckDataTest2(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE CheckDataTest3(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE CheckDataTest4(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE CheckDataTest1");
+      stmt.execute("DROP TABLE CheckDataTest2");
+      stmt.execute("DROP TABLE CheckDataTest3");
+      stmt.execute("DROP TABLE CheckDataTest4");
+    }
+  }
+
   @Test
   public void testStatementExecuteAutoincrement() throws SQLException {
-    createTable("CheckDataTest1", "id int not null primary key auto_increment, test varchar(10)");
     Statement stmt = sharedConnection.createStatement();
     int insert =
         stmt.executeUpdate(
@@ -89,7 +115,6 @@ public class CheckDataTest extends BaseTest {
   @Test
   public void testStatementBatch() throws SQLException {
     Assume.assumeFalse(isGalera());
-    createTable("CheckDataTest2", "id int not null primary key auto_increment, test varchar(10)");
     Statement stmt = sharedConnection.createStatement();
     stmt.addBatch("INSERT INTO CheckDataTest2 (id, test) VALUES (2, 'test1')");
     stmt.addBatch("INSERT INTO CheckDataTest2 (test) VALUES ('test2')");
@@ -129,7 +154,6 @@ public class CheckDataTest extends BaseTest {
 
   @Test
   public void testPrepareStatementExecuteAutoincrement() throws SQLException {
-    createTable("CheckDataTest3", "id int not null primary key auto_increment, test varchar(10)");
     PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "INSERT INTO CheckDataTest3 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
@@ -172,7 +196,6 @@ public class CheckDataTest extends BaseTest {
 
   @Test
   public void testPrepareStatementBatch() throws SQLException {
-    createTable("CheckDataTest4", "id int not null primary key auto_increment, test varchar(10)");
     PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "INSERT INTO CheckDataTest4 (test) VALUES (?)", Statement.RETURN_GENERATED_KEYS);

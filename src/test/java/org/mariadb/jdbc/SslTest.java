@@ -87,7 +87,9 @@ public class SslTest extends BaseTest {
   /** Enable Crypto. */
   @BeforeClass
   public static void enableCrypto() {
-    Assume.assumeFalse(System.getenv("SKYSQL") != null || "true".equals(System.getenv("AURORA")));
+    Assume.assumeFalse(
+        System.getenv("SKYSQL") != null && System.getenv("SKYSQL_HA") == null
+            || "true".equals(System.getenv("AURORA")));
     try {
       Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
       field.setAccessible(true);
@@ -119,7 +121,9 @@ public class SslTest extends BaseTest {
       throw new SQLException("unexpected exception :" + ioe.getMessage());
     }
 
-    if (System.getProperty("serverCertificatePath") == null && System.getenv("SKYSQL") == null) {
+    if (System.getProperty("serverCertificatePath") == null
+        && System.getenv("SKYSQL") == null
+        && System.getenv("SKYSQL_HA") == null) {
       try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());
         serverCertificatePath = rs.getString(1);
@@ -453,7 +457,7 @@ public class SslTest extends BaseTest {
    */
   public void testConnect(Properties info, boolean sslExpected, String user, String pwd)
       throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
 
     try (Connection conn = createConnection(info, user, pwd, sslPort)) {

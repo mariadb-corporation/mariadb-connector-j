@@ -141,7 +141,7 @@ public class PasswordEncodingTest extends BaseTest {
         useOldNotation = false;
       }
       if (useOldNotation) {
-        stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
+        stmt.execute("CREATE USER IF NOT EXISTS 'test" + charsetName + "'@'%'");
         stmt.testExecute(
             "GRANT SELECT on *.* to 'test"
                 + charsetName
@@ -176,7 +176,11 @@ public class PasswordEncodingTest extends BaseTest {
                   + "&password="
                   + exoticPwd
                   + "&passwordCharacterEncoding="
-                  + currentCharsetName)) {
+                  + currentCharsetName
+                  + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
+                  + ((options.serverSslCert != null)
+                      ? "&serverSslCert=" + options.serverSslCert
+                      : ""))) {
         if (!currentCharsetName.equals(charsetName)) {
           fail(
               "must have failed for charsetName="

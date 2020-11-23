@@ -56,53 +56,107 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 import java.util.Properties;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MultiTest extends BaseTest {
 
-  /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE MultiTestt1(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt2(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt3(message text)");
+      stmt.execute("CREATE TABLE MultiTestt4(id int, test varchar(100), PRIMARY KEY (`id`))");
+      stmt.execute("CREATE TABLE MultiTestt5(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt6(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt7(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt8(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE MultiTestt10(id int)");
+      stmt.execute(
+          "CREATE TABLE MultiTestreWriteDuplicateTestTable(id int, name varchar(100), PRIMARY KEY (`id`))");
+      stmt.execute("CREATE TABLE MultiTesttselect1(LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
+      stmt.execute("CREATE TABLE MultiTesttselect2(nn int)");
+      stmt.execute("CREATE TABLE MultiTesttselect3(LAST_UPDATE_DATETIME TIMESTAMP , nn int)");
+      stmt.execute("CREATE TABLE MultiTesttselect4(nn int)");
+      stmt.execute(
+          "CREATE TABLE MultiTestt3_dupp(col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY (`pkey`))");
+      stmt.execute(
+          "CREATE TABLE MultiTesttest_table(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
+              + "col5 VARCHAR(32))");
+      stmt.execute(
+          "CREATE TABLE MultiTesttest_table2(col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
+              + "col5 VARCHAR(32))");
+      stmt.execute("CREATE TABLE MultiTestValues(col1 VARCHAR(32), col2 VARCHAR(32))");
+      stmt.execute(
+          "CREATE TABLE MultiTestprepsemi(id int not null primary key auto_increment, text text)");
+      stmt.execute("CREATE TABLE MultiTestA(data varchar(10))");
+      stmt.execute(
+          "CREATE TABLE testMultiGeneratedKey(id int not null primary key auto_increment, text text)");
+      stmt.execute("CREATE TABLE MultiTestt11(id int, test varchar(10000))");
+      stmt.execute("CREATE TABLE insertSelectTable1(tt int)");
+      stmt.execute("CREATE TABLE insertSelectTable2(tt int)");
+      stmt.execute(
+          "CREATE TABLE SOME_TABLE(ID INT(11) not null, FOO INT(11), PRIMARY KEY (ID), UNIQUE INDEX `FOO` (`FOO`))");
+      stmt.execute("CREATE TABLE MultiTestt9(id int not null primary key, test varchar(10))");
+      stmt.execute("CREATE TABLE testStatementClose(id int)");
+      stmt.execute("CREATE TABLE testPrepareStatementClose(id int)");
+      stmt.execute("CREATE TABLE batchUpdateException(i int,PRIMARY KEY (i))");
+      stmt.execute("CREATE TABLE testAffectedRow(id int)");
+      stmt.execute("CREATE TABLE testAffectedRowBatch(id int PRIMARY KEY, data varchar(10))");
+      stmt.execute("CREATE TABLE testInsertSelectBulk(col int, val int)");
+      stmt.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
+      stmt.execute("FLUSH TABLES");
 
-    createTable("MultiTestt1", "id int, test varchar(100)");
-    createTable("MultiTestt2", "id int, test varchar(100)");
-    createTable("MultiTestt3", "message text");
-    createTable("MultiTestt4", "id int, test varchar(100), PRIMARY KEY (`id`)");
-    createTable("MultiTestt5", "id int, test varchar(100)");
-    createTable("MultiTestt6", "id int, test varchar(100)");
-    createTable("MultiTestt7", "id int, test varchar(100)");
-    createTable("MultiTestt8", "id int, test varchar(100)");
-    createTable("MultiTestt10", "id int");
-    createTable(
-        "MultiTestreWriteDuplicateTestTable", "id int, name varchar(100), PRIMARY KEY (`id`)");
-    createTable("MultiTesttselect1", "LAST_UPDATE_DATETIME TIMESTAMP , nn int");
-    createTable("MultiTesttselect2", "nn int");
-    createTable("MultiTesttselect3", "LAST_UPDATE_DATETIME TIMESTAMP , nn int");
-    createTable("MultiTesttselect4", "nn int");
-    createTable(
-        "MultiTestt3_dupp",
-        "col1 int, pkey int NOT NULL, col2 int, col3 int, col4 int, PRIMARY KEY " + "(`pkey`)");
-    createTable(
-        "MultiTesttest_table",
-        "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
-            + "col5 VARCHAR(32)");
-    createTable(
-        "MultiTesttest_table2",
-        "col1 VARCHAR(32), col2 VARCHAR(32), col3 VARCHAR(32), col4 VARCHAR(32), "
-            + "col5 VARCHAR(32)");
-    createTable("MultiTestValues", "col1 VARCHAR(32), col2 VARCHAR(32)");
+      if (testSingleHost) {
+        Statement st = sharedConnection.createStatement();
+        st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
+        st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
+        st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+      }
+      stmt.execute("FLUSH TABLES");
+    }
+  }
 
-    createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
-    createTable("MultiTestA", "data varchar(10)");
-    createTable("testMultiGeneratedKey", "id int not null primary key auto_increment, text text");
-
-    if (testSingleHost) {
-      Statement st = sharedConnection.createStatement();
-      st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
-      st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
-      st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
+      stmt.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt1");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt2");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt3");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt4");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt5");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt6");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt7");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt8");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt10");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestreWriteDuplicateTestTable");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttselect1");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttselect2");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttselect3");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttselect4");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt3_dupp");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttest_table");
+      stmt.execute("DROP TABLE IF EXISTS MultiTesttest_table2");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestValues");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestprepsemi");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestA");
+      stmt.execute("DROP TABLE IF EXISTS testMultiGeneratedKey");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt11");
+      stmt.execute("DROP TABLE IF EXISTS insertSelectTable1");
+      stmt.execute("DROP TABLE IF EXISTS insertSelectTable2");
+      stmt.execute("DROP TABLE IF EXISTS SOME_TABLE");
+      stmt.execute("DROP TABLE IF EXISTS MultiTestt9");
+      stmt.execute("DROP TABLE IF EXISTS testStatementClose");
+      stmt.execute("DROP TABLE IF EXISTS testPrepareStatementClose");
+      stmt.execute("DROP TABLE IF EXISTS batchUpdateException");
+      stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
+      stmt.execute("DROP TABLE IF EXISTS testAffectedRowBatch");
     }
   }
 
@@ -297,7 +351,7 @@ public class MultiTest extends BaseTest {
    */
   @Test
   public void rewriteBatchedStatementsDisabledInsertionTest() throws SQLException {
-    verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000);
+    verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.FALSE, 3000, "MultiTestt6");
   }
 
   /**
@@ -307,8 +361,6 @@ public class MultiTest extends BaseTest {
    */
   @Test
   public void rewriteBatchedMaxAllowedSizeTest() throws SQLException {
-
-    createTable("MultiTestt6", "id int, test varchar(10000)");
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("rewriteBatchedMaxAllowedSizeTest"));
     Statement st = sharedConnection.createStatement();
     ResultSet rs = st.executeQuery("select @@max_allowed_packet");
@@ -316,7 +368,8 @@ public class MultiTest extends BaseTest {
       long maxAllowedPacket = rs.getInt(1);
       Assume.assumeTrue(maxAllowedPacket < 512 * 1024 * 1024L);
       int totalInsertCommands = (int) Math.ceil(maxAllowedPacket / 10050);
-      verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, totalInsertCommands);
+      verifyInsertBehaviorBasedOnRewriteBatchedStatements(
+          Boolean.TRUE, totalInsertCommands, "MultiTestt11");
     } else {
       fail();
     }
@@ -388,8 +441,6 @@ public class MultiTest extends BaseTest {
   @Test
   public void testServerPrepareMeta() throws Throwable {
     try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-      createTable("insertSelectTable1", "tt int");
-      createTable("insertSelectTable2", "tt int");
       Statement stmt = connection.createStatement();
       stmt.execute("INSERT INTO insertSelectTable2(tt) VALUES (1),(2),(1)");
 
@@ -411,7 +462,8 @@ public class MultiTest extends BaseTest {
   }
 
   private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(
-      Boolean rewriteBatchedStatements, int totalInsertCommands) throws SQLException {
+      Boolean rewriteBatchedStatements, int totalInsertCommands, String tableName)
+      throws SQLException {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
     props.setProperty("allowMultiQueries", "true");
@@ -419,7 +471,8 @@ public class MultiTest extends BaseTest {
       verifyInsertCount(tmpConnection, 0);
       Statement statement = tmpConnection.createStatement();
       for (int i = 0; i < totalInsertCommands; i++) {
-        statement.addBatch("INSERT INTO MultiTestt6 VALUES (" + i + ", 'testValue" + i + "')");
+        statement.addBatch(
+            "INSERT INTO " + tableName + " VALUES (" + i + ", 'testValue" + i + "')");
       }
       int[] updateCounts = statement.executeBatch();
       assertEquals(totalInsertCommands, updateCounts.length);
@@ -792,9 +845,6 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testduplicate() throws Exception {
-    createTable(
-        "SOME_TABLE",
-        "ID INT(11) not null, FOO INT(11), PRIMARY KEY (ID), UNIQUE INDEX `FOO` (`FOO`)");
     String sql =
         "insert into `SOME_TABLE` (`ID`, `FOO`) values (?, ?) "
             + "on duplicate key update `SOME_TABLE`.`FOO` = ?";
@@ -874,18 +924,8 @@ public class MultiTest extends BaseTest {
   private void continueOnBatchError(
       boolean continueBatch, boolean serverPrepare, boolean rewrite, boolean batchMulti)
       throws SQLException {
-    System.out.println(
-        "continueBatch:"
-            + continueBatch
-            + " serverPrepare:"
-            + serverPrepare
-            + " rewrite:"
-            + rewrite
-            + " batchMulti:"
-            + batchMulti);
-    createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
     Assume.assumeTrue(!batchMulti || !sharedIsAurora());
-
+    sharedConnection.createStatement().execute("TRUNCATE MultiTestt9");
     try (Connection connection =
         setBlankConnection(
             "&useServerPrepStmts="
@@ -999,7 +1039,6 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testCloseStatement() throws SQLException {
-    createTable("testStatementClose", "id int");
     final Statement statement = sharedConnection.createStatement();
     // Make sure it is a streaming statement:
     statement.setFetchSize(1);
@@ -1012,7 +1051,6 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testClosePrepareStatement() throws SQLException {
-    createTable("testPrepareStatementClose", "id int");
     sharedConnection
         .createStatement()
         .execute("INSERT INTO testPrepareStatementClose(id) VALUES (1),(2),(3)");
@@ -1044,13 +1082,11 @@ public class MultiTest extends BaseTest {
 
   private void prepareBatchUpdateException(
       Boolean rewriteBatchedStatements, Boolean allowMultiQueries) throws SQLException {
-
-    createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
     props.setProperty("allowMultiQueries", allowMultiQueries.toString());
     props.setProperty("useServerPrepStmts", "false");
-
+    sharedConnection.createStatement().execute("TRUNCATE batchUpdateException");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
       verifyInsertCount(tmpConnection, 0);
 
@@ -1070,6 +1106,7 @@ public class MultiTest extends BaseTest {
         fail("exception should be throw above");
       } catch (BatchUpdateException bue) {
         int[] updateCounts = bue.getUpdateCounts();
+
         if (rewriteBatchedStatements
             || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
           assertEquals(4, updateCounts.length);
@@ -1327,12 +1364,8 @@ public class MultiTest extends BaseTest {
   @Test
   public void testInsertSelectBulk() throws SQLException {
 
-    try (Statement statement = sharedConnection.createStatement()) {
-      statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
-      statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");
-      statement.execute("CREATE TABLE testInsertSelectBulk(col int, val int)");
-      statement.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
-      statement.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
 
       try (PreparedStatement preparedStatement =
           sharedConnection.prepareStatement(
@@ -1350,7 +1383,7 @@ public class MultiTest extends BaseTest {
         preparedStatement.executeBatch();
       }
 
-      ResultSet rs = statement.executeQuery("SELECT * from testInsertSelectBulk2");
+      ResultSet rs = stmt.executeQuery("SELECT * from testInsertSelectBulk2");
       assertTrue(rs.next());
       assertEquals(4, rs.getInt(1));
       assertEquals(1, rs.getInt(2));
@@ -1363,7 +1396,6 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testAffectedRow() throws SQLException {
-    createTable("testAffectedRow", "id int");
     testAffectedRow(false);
     testAffectedRow(true);
   }
@@ -1517,7 +1549,6 @@ public class MultiTest extends BaseTest {
 
   @Test
   public void testAffectedRowBatch() throws SQLException {
-    createTable("testAffectedRowBatch", "id int PRIMARY KEY, data varchar(10)");
     testAffectedRowBatch(false);
     testAffectedRowBatch(true);
 

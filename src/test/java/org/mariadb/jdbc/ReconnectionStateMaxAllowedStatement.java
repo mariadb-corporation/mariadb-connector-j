@@ -54,14 +54,29 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Arrays;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ReconnectionStateMaxAllowedStatement extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE foo (x longblob)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS foo");
+    }
+  }
 
   @Test
   public void isolationLevelResets() throws SQLException {
@@ -70,7 +85,6 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
       if (max > Integer.MAX_VALUE - 10) {
         fail("max_allowed_packet too high for this test");
       }
-      connection.prepareStatement("create table if not exists foo (x longblob)").execute();
       connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
       assertEquals("READ-UNCOMMITTED", level((MariaDbConnection) connection));

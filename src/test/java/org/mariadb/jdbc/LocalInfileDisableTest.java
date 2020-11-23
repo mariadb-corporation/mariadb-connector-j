@@ -58,19 +58,25 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class LocalInfileDisableTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("t", "id int, test varchar(100)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE LocalInfileDisableTest(id int, test varchar(100))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE LocalInfileDisableTest");
+    }
   }
 
   @Test
@@ -78,7 +84,8 @@ public class LocalInfileDisableTest extends BaseTest {
     try (Connection connection = setConnection("&allowLocalInfile=false")) {
       Exception ex = null;
       try (Statement stmt = connection.createStatement()) {
-        stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+        stmt.executeUpdate(
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileDisableTest (id, test)");
       } catch (Exception e) {
         ex = e;
       }

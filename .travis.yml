@@ -39,6 +39,8 @@ matrix:
       jdk: openjdk11
     - env: SKYSQL=true PACKET=8M
       jdk: openjdk11
+    - env: SKYSQL_HA=true PACKET=8M
+      jdk: openjdk11
     - env: DB=mysql:5.7 PACKET=8M
       jdk: openjdk11
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
@@ -54,6 +56,8 @@ matrix:
     - env: DB=mariadb:10.5 PACKET=8M
       jdk: openjdk11
     - env: DB=mariadb:10.5 PACKET=8M
+      jdk: oraclejdk11
+    - env: DB=mariadb:10.5 PACKET=8M BENCH=true
       jdk: oraclejdk11
     - env: DB=mariadb:10.5 PACKET=8M GALERA=true
       jdk: openjdk11
@@ -77,8 +81,6 @@ matrix:
       jdk: openjdk11
     - env: DB=mariadb:10.5 PACKET=40M COMPRESSION=true
       jdk: openjdk11
-    - env: DB=mariadb:10.5 PACKET=8M
-      jdk: openjdk12
     - env: DB=mariadb:10.5 PACKET=8M MAXSCALE_VERSION=2.5.3 MAXSCALE_TEST_DISABLE=true SSLPORT=4009
       jdk: openjdk11
 

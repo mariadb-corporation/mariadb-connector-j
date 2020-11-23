@@ -69,11 +69,11 @@ public class HostnameVerifierImplTest {
     verifyExceptionEqual(
         "a.test.com",
         cert,
-        "DNS host \"a.test.com\" doesn't correspond to " + "certificate CN \"test.com\"");
+        "DNS host \"a.test.com\" doesn't correspond to certificate CN \"test.com\"");
     verifyExceptionEqual(
         "other.com",
         cert,
-        "DNS host \"other.com\" doesn't correspond to " + "certificate CN \"test.com\"");
+        "DNS host \"other.com\" doesn't correspond to certificate CN \"test.com\"");
   }
 
   @Test
@@ -104,9 +104,7 @@ public class HostnameVerifierImplTest {
                 + "-----END CERTIFICATE-----\n");
     verifier.verify("😎.com", cert, -1);
     verifyExceptionEqual(
-        "a.😎.com",
-        cert,
-        "DNS host \"a.😎.com\" doesn't " + "correspond to certificate CN \"😎.com\"");
+        "a.😎.com", cert, "DNS host \"a.😎.com\" doesn't correspond to certificate CN \"😎.com\"");
   }
 
   @Test
@@ -237,7 +235,7 @@ public class HostnameVerifierImplTest {
     verifyExceptionEqual(
         "test2.org",
         cert,
-        "DNS host \"test2.org\" doesn't correspond to " + "certificate CN \"test1.org\"");
+        "DNS host \"test2.org\" doesn't correspond to certificate CN \"test1.org\"");
   }
 
   @Test
@@ -272,15 +270,13 @@ public class HostnameVerifierImplTest {
                 + "l3Q/RK95bnA6cuRClGusLad0e6bjkBzx/VQ3VarDEpAkTLUGVAa0CLXtnyc=\n"
                 + "-----END CERTIFICATE-----\n");
     verifyExceptionEqual(
-        "foo.com",
-        cert,
-        "DNS host \"foo.com\" doesn't correspond to certificate " + "CN \"*.foo.com\"");
+        "foo.com", cert, "DNS host \"foo.com\" doesn't correspond to certificate CN \"*.foo.com\"");
     verifier.verify("www.foo.com", cert, -1);
     verifier.verify("花子.foo.com", cert, -1);
     verifyExceptionEqual(
         "a.b.foo.com",
         cert,
-        "DNS host \"a.b.foo.com\" doesn't correspond to " + "certificate CN \"*.foo.com\"");
+        "DNS host \"a.b.foo.com\" doesn't correspond to certificate CN \"*.foo.com\"");
   }
 
   @Test

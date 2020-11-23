@@ -71,6 +71,10 @@ public interface ParameterHolder {
 
   void writeBinary(PacketOutputStream pos) throws IOException;
 
+  default void writeLongData(PacketOutputStream pos) throws IOException {
+    return;
+  }
+
   int getApproximateTextProtocolLength() throws IOException;
 
   String toString();
@@ -79,5 +83,5 @@ public interface ParameterHolder {
 
   ColumnType getColumnType();
 
-  boolean isLongData();
+  boolean canBeLongData();
 }

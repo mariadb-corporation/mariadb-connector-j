@@ -110,7 +110,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
    */
   public void preExecute() throws SQLException {
     lastQueryNanos = System.nanoTime();
-    // if connection is closed or failed on slave
+    // if connection is closed or failed on replica
     if (this.currentProtocol != null && this.currentProtocol.isClosed()) {
       preAutoReconnect();
     }
@@ -338,9 +338,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
     return false;
   }
 
-  public void rePrepareOnSlave(
-      ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnSlave) {
-    // no slave
+  public void rePrepareOnReplica(
+      ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnReplica) {
+    // no replica
   }
 
   /**

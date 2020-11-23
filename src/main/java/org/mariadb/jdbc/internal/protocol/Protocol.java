@@ -172,8 +172,7 @@ public interface Protocol {
       boolean mustExecuteOnMaster,
       Results results,
       final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList,
-      boolean hasLongData)
+      final List<ParameterHolder[]> parametersList)
       throws SQLException;
 
   void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
@@ -191,8 +190,7 @@ public interface Protocol {
       ServerPrepareResult serverPrepareResult,
       Results results,
       String sql,
-      List<ParameterHolder[]> parameterList,
-      boolean hasLongData)
+      List<ParameterHolder[]> parameterList)
       throws SQLException;
 
   void getResult(Results results) throws SQLException;
@@ -275,7 +273,7 @@ public interface Protocol {
 
   void setHasWarnings(boolean hasWarnings);
 
-  ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
+  ServerPrepareResult putInCache(String key, ServerPrepareResult serverPrepareResult);
 
   void readEofPacket() throws SQLException, IOException;
 

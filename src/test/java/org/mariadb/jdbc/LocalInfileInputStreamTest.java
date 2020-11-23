@@ -56,36 +56,43 @@ import static org.junit.Assert.*;
 
 import java.io.*;
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class LocalInfileInputStreamTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
-    createTable("ttlocal", "id int, test varchar(100)");
-    createTable("ldinfile", "a varchar(10)");
-    createTable(
-        "`infile`",
-        "`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL",
-        "ENGINE=InnoDB DEFAULT CHARSET=latin1");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE LocalInfileInputStreamTest(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE ttlocal(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE ldinfile(a varchar(10))");
+      stmt.execute(
+          "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS LocalInfileInputStreamTest");
+      stmt.execute("DROP TABLE IF EXISTS ttlocal");
+      stmt.execute("DROP TABLE IF EXISTS ldinfile");
+      stmt.execute("DROP TABLE IF EXISTS `infile`");
+    }
   }
 
   @Test
   public void testLocalInfileInputStream() throws SQLException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
-        String builder = "1\thello\n" + "2\tworld\n";
+        String builder = "1\thello\n2\tworld\n";
 
         InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
@@ -108,8 +115,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     File temp = File.createTempFile("validateInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -124,8 +131,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testLocalInfileUnValidInterceptor() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     File temp = File.createTempFile("localInfile", ".txt");
     StringBuilder builder = new StringBuilder();
     builder.append("1,hello\n");
@@ -175,8 +182,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
@@ -195,13 +202,13 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @Test
   public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try {
         PreparedStatement st =
             connection.prepareStatement(
-                "LOAD DATA LOCAL INFILE 'validateInfile.tsv' " + "INTO TABLE ldinfile");
+                "LOAD DATA LOCAL INFILE 'validateInfile.tsv' INTO TABLE ldinfile");
         st.execute();
         fail();
       } catch (SQLException e) {
@@ -282,24 +289,23 @@ public class LocalInfileInputStreamTest extends BaseTest {
    */
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     checkBigLocalInfile(256);
   }
 
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("test2xBigLocalInfileInputStream"));
     checkBigLocalInfile(16777216 * 2);
   }
 
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
-    Assume.assumeFalse(
-        (isMariadbServer() && minVersion(10, 4, 0)) || (!isMariadbServer() && minVersion(8, 0, 3)));
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeFalse(sharedIsAurora());
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");

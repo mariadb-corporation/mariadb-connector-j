@@ -178,6 +178,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
         return Types.LONGVARBINARY;
       case "VARBINARY":
         return Types.VARBINARY;
+      case "BINARY":
+        return Types.BINARY;
       default:
         return Types.OTHER;
     }

@@ -94,6 +94,10 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
     pos.write(bytes);
   }
 
+  public void writeLongData(final PacketOutputStream pos) throws IOException {
+    pos.write(bytes);
+  }
+
   public ColumnType getColumnType() {
     return ColumnType.VARSTRING;
   }
@@ -111,7 +115,7 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
     return false;
   }
 
-  public boolean isLongData() {
-    return false;
+  public boolean canBeLongData() {
+    return true;
   }
 }

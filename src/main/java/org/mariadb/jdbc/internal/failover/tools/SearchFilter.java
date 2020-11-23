@@ -55,7 +55,7 @@ package org.mariadb.jdbc.internal.failover.tools;
 public class SearchFilter {
 
   private boolean fineIfFoundOnlyMaster;
-  private boolean fineIfFoundOnlySlave;
+  private boolean fineIfFoundOnlyReplica;
   private boolean initialConnection;
   private boolean failoverLoop;
 
@@ -67,11 +67,11 @@ public class SearchFilter {
    * Constructor.
    *
    * @param fineIfFoundOnlyMaster stop searching if master found
-   * @param fineIfFoundOnlySlave stop searching if slave found
+   * @param fineIfFoundOnlyReplica stop searching if replica found
    */
-  public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
+  public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlyReplica) {
     this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
-    this.fineIfFoundOnlySlave = fineIfFoundOnlySlave;
+    this.fineIfFoundOnlyReplica = fineIfFoundOnlyReplica;
   }
 
   /**
@@ -91,8 +91,8 @@ public class SearchFilter {
     return fineIfFoundOnlyMaster;
   }
 
-  public boolean isFineIfFoundOnlySlave() {
-    return fineIfFoundOnlySlave;
+  public boolean isFineIfFoundOnlyReplica() {
+    return fineIfFoundOnlyReplica;
   }
 
   public boolean isFailoverLoop() {
@@ -108,8 +108,8 @@ public class SearchFilter {
     return "SearchFilter{"
         + ", fineIfFoundOnlyMaster="
         + fineIfFoundOnlyMaster
-        + ", fineIfFoundOnlySlave="
-        + fineIfFoundOnlySlave
+        + ", fineIfFoundOnlyReplica="
+        + fineIfFoundOnlyReplica
         + ", initialConnection="
         + initialConnection
         + ", failoverLoop="

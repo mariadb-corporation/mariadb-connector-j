@@ -181,11 +181,11 @@ public class JdbcParserTest {
             "DB",
             Arrays.asList(
                 new HostAddress("host1", 3306),
-                new HostAddress("host2", 3307, ParameterConstant.TYPE_SLAVE)),
+                new HostAddress("host2", 3307, ParameterConstant.TYPE_REPLICA)),
             new Options(),
             HaMode.REPLICATION);
     assertEquals(
-        "jdbc:mariadb:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=slave)/DB",
+        "jdbc:mariadb:replication://address=(host=host1)(port=3306)(type=master),address=(host=host2)(port=3307)(type=replica)/DB",
         parser.getInitialUrl());
     parser.setDatabase("DB2");
     assertEquals("DB2", parser.getDatabase());
@@ -352,7 +352,7 @@ public class JdbcParserTest {
 
   @Test()
   public void testJdbcParserSimpleIpv4basic() throws SQLException {
-    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database";
+    String url = "jdbc:mariadb://master:3306,replica1:3307,replica2:3308/database";
     UrlParser.parse(url);
   }
 
@@ -364,20 +364,20 @@ public class JdbcParserTest {
 
   @Test
   public void testJdbcParserSimpleIpv4basicwithoutDatabase() throws SQLException {
-    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/";
+    String url = "jdbc:mariadb://master:3306,replica1:3307,replica2:3308/";
     UrlParser urlParser = UrlParser.parse(url);
     assertNull(urlParser.getDatabase());
     assertNull(urlParser.getUsername());
     assertNull(urlParser.getPassword());
     assertTrue(urlParser.getHostAddresses().size() == 3);
     assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-    assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-    assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    assertTrue(new HostAddress("replica1", 3307).equals(urlParser.getHostAddresses().get(1)));
+    assertTrue(new HostAddress("replica2", 3308).equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test
   public void testJdbcParserWithoutDatabaseWithProperties() throws SQLException {
-    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true";
+    String url = "jdbc:mariadb://master:3306,replica1:3307,replica2:3308?autoReconnect=true";
     UrlParser urlParser = UrlParser.parse(url);
     assertNull(urlParser.getDatabase());
     assertNull(urlParser.getUsername());
@@ -385,13 +385,14 @@ public class JdbcParserTest {
     assertTrue(urlParser.getOptions().autoReconnect);
     assertTrue(urlParser.getHostAddresses().size() == 3);
     assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-    assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-    assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    assertTrue(new HostAddress("replica1", 3307).equals(urlParser.getHostAddresses().get(1)));
+    assertTrue(new HostAddress("replica2", 3308).equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test
   public void testJdbcParserSimpleIpv4Properties() throws SQLException {
-    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
+    String url =
+        "jdbc:mariadb://master:3306,replica1:3307,replica2:3308/database?autoReconnect=true";
     Properties prop = new Properties();
     prop.setProperty("user", "greg");
     prop.setProperty("password", "pass");
@@ -403,13 +404,13 @@ public class JdbcParserTest {
     assertTrue(urlParser.getOptions().autoReconnect);
     assertTrue(urlParser.getHostAddresses().size() == 3);
     assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-    assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-    assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    assertTrue(new HostAddress("replica1", 3307).equals(urlParser.getHostAddresses().get(1)));
+    assertTrue(new HostAddress("replica2", 3308).equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test
   public void testJdbcParserBooleanOption() {
-    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=truee";
+    String url = "jdbc:mariadb://master:3306,replica1:3307,replica2:3308?autoReconnect=truee";
     Properties prop = new Properties();
     prop.setProperty("user", "greg");
     prop.setProperty("password", "pass");
@@ -426,15 +427,15 @@ public class JdbcParserTest {
   @Test
   public void testJdbcParserSimpleIpv4() throws SQLException {
     String url =
-        "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
+        "jdbc:mariadb://master:3306,replica1:3307,replica2:3308/database?user=greg&password=pass";
     UrlParser urlParser = UrlParser.parse(url);
     assertTrue("database".equals(urlParser.getDatabase()));
     assertTrue("greg".equals(urlParser.getUsername()));
     assertTrue("pass".equals(urlParser.getPassword()));
     assertTrue(urlParser.getHostAddresses().size() == 3);
     assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-    assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-    assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    assertTrue(new HostAddress("replica1", 3307).equals(urlParser.getHostAddresses().get(1)));
+    assertTrue(new HostAddress("replica2", 3308).equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test
@@ -459,7 +460,7 @@ public class JdbcParserTest {
   public void testJdbcParserParameter() throws SQLException {
     String url =
         "jdbc:mariadb://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)"
-            + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
+            + "(host=master2),address=(type=replica)(host=replica1)(port=3308)/database?user=greg&password=pass";
     UrlParser urlParser = UrlParser.parse(url);
     assertTrue("database".equals(urlParser.getDatabase()));
     assertTrue("greg".equals(urlParser.getUsername()));
@@ -470,14 +471,19 @@ public class JdbcParserTest {
     assertTrue(
         new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses().get(1)));
     assertTrue(
-        new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses().get(2)));
+        new HostAddress("replica1", 3308, "replica").equals(urlParser.getHostAddresses().get(2)));
+    url =
+        "jdbc:mariadb://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)"
+            + "(host=master2),address=(type=slave)(host=replica1)(port=3308)/database?user=greg&password=pass";
+    assertTrue(
+        new HostAddress("replica1", 3308, "replica").equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test(expected = SQLException.class)
   public void testJdbcParserParameterErrorEqual() throws SQLException {
     String url =
         "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)"
-            + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
+            + "(host=master2),address=(type=replica)(host=replica1)(port=3308)/database?user=greg&password=pass";
     UrlParser.parse(url);
     fail("Must have throw an SQLException");
   }
@@ -500,7 +506,7 @@ public class JdbcParserTest {
   public void testJdbcParserReplicationParameter() throws SQLException {
     String url =
         "jdbc:mariadb:replication://address=(type=master)(port=3306)(host=master1),address=(port=3307)"
-            + "(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database"
+            + "(type=master)(host=master2),address=(type=replica)(host=replica1)(port=3308)/database"
             + "?user=greg&password=pass";
     UrlParser urlParser = UrlParser.parse(url);
     assertTrue("database".equals(urlParser.getDatabase()));
@@ -512,21 +518,21 @@ public class JdbcParserTest {
     assertTrue(
         new HostAddress("master2", 3307, "master").equals(urlParser.getHostAddresses().get(1)));
     assertTrue(
-        new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses().get(2)));
+        new HostAddress("replica1", 3308, "replica").equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test
   public void testJdbcParserReplicationParameterWithoutType() throws SQLException {
-    String url = "jdbc:mariadb:replication://master1,slave1,slave2/database";
+    String url = "jdbc:mariadb:replication://master1,replica1,replica2/database";
     UrlParser urlParser = UrlParser.parse(url);
     assertTrue("database".equals(urlParser.getDatabase()));
     assertTrue(urlParser.getHostAddresses().size() == 3);
     assertTrue(
         new HostAddress("master1", 3306, "master").equals(urlParser.getHostAddresses().get(0)));
     assertTrue(
-        new HostAddress("slave1", 3306, "slave").equals(urlParser.getHostAddresses().get(1)));
+        new HostAddress("replica1", 3306, "replica").equals(urlParser.getHostAddresses().get(1)));
     assertTrue(
-        new HostAddress("slave2", 3306, "slave").equals(urlParser.getHostAddresses().get(2)));
+        new HostAddress("replica2", 3306, "replica").equals(urlParser.getHostAddresses().get(2)));
   }
 
   @Test

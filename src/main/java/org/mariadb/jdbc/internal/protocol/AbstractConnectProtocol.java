@@ -293,6 +293,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
       capabilities |= MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF;
     }
 
+    if (options.useBulkStmts) {
+      if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS)
+          != 0) {
+        capabilities |= MariaDbServerCapabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
+      }
+    }
+
     if (options.useCompression) {
       if ((serverCapabilities & MariaDbServerCapabilities.COMPRESS) == 0) {
         // ensure that server has compress capacity - MaxScale doesn't
@@ -1425,7 +1432,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   public void setHostAddress(HostAddress host) {
     this.currentHost = host;
-    this.readOnly = ParameterConstant.TYPE_SLAVE.equals(this.currentHost.type);
+    this.readOnly = ParameterConstant.TYPE_REPLICA.equals(this.currentHost.type);
   }
 
   public String getHost() {

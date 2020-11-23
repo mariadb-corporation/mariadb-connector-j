@@ -58,14 +58,34 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class RePrepareTest extends BaseTest {
 
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE rePrepareTestSelectError(test int)");
+      stmt.execute("CREATE TABLE rePrepareTestInsertError(test int)");
+      stmt.execute("CREATE TABLE cannotRePrepare(test int)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS rePrepareTestSelectError");
+      stmt.execute("DROP TABLE IF EXISTS rePrepareTestInsertError");
+      stmt.execute("DROP TABLE IF EXISTS cannotRePrepare");
+    }
+  }
+
   @Test
   public void rePrepareTestSelectError() throws SQLException {
-    createTable("rePrepareTestSelectError", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("INSERT INTO rePrepareTestSelectError(test) VALUES (1)");
       try (PreparedStatement preparedStatement =
@@ -93,7 +113,6 @@ public class RePrepareTest extends BaseTest {
   public void rePrepareTestInsertError() throws SQLException {
     Assume.assumeFalse(sharedIsAurora()); // Aurora has not "flush tables with read lock" right;
     Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0)); // froze when flush
-    createTable("rePrepareTestInsertError", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
       try (PreparedStatement preparedStatement =
           sharedConnection.prepareStatement(
@@ -124,7 +143,6 @@ public class RePrepareTest extends BaseTest {
 
   @Test
   public void cannotRePrepare() throws SQLException {
-    createTable("cannotRePrepare", "test int");
     try (Statement stmt = sharedConnection.createStatement()) {
       try (PreparedStatement preparedStatement =
           sharedConnection.prepareStatement("INSERT INTO cannotRePrepare(test) values (?)")) {

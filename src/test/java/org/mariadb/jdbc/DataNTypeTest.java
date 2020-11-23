@@ -57,19 +57,47 @@ import static org.junit.Assert.*;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
+import java.sql.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 @SuppressWarnings("ALL")
 public class DataNTypeTest extends BaseTest {
 
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE testSetNClob(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE testSetObjectNClob(id int not null primary key, strm text, strm2 text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE testSetNString(id int not null primary key, strm varchar(10)) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE testSetObjectNString(id int not null primary key, strm varchar(10), strm2 varchar(10)) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE testSetNCharacter(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute(
+          "CREATE TABLE testSetObjectNCharacter(id int not null primary key, strm text) CHARSET utf8");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE testSetNClob");
+      stmt.execute("DROP TABLE testSetObjectNClob");
+      stmt.execute("DROP TABLE testSetNString");
+      stmt.execute("DROP TABLE testSetObjectNString");
+      stmt.execute("DROP TABLE testSetNCharacter");
+      stmt.execute("DROP TABLE testSetObjectNCharacter");
+    }
+  }
+
   @Test
   public void testSetNClob() throws Exception {
-
-    createTable("testSetNClob", "id int not null primary key, strm text", "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement("insert into testSetNClob (id, strm) values (?,?)");
     NClob nclob = sharedConnection.createNClob();
@@ -92,9 +120,6 @@ public class DataNTypeTest extends BaseTest {
 
   @Test
   public void testSetObjectNClob() throws Exception {
-
-    createTable(
-        "testSetObjectNClob", "id int not null primary key, strm text, strm2 text", "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "insert into testSetObjectNClob (id, strm, strm2) values (?,?,?)");
@@ -122,7 +147,6 @@ public class DataNTypeTest extends BaseTest {
   @Test
   public void testSetNString() throws Exception {
 
-    createTable("testSetNString", "id int not null primary key, strm varchar(10)", "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement("insert into testSetNString (id, strm) values (?,?)");
     stmt.setInt(1, 1);
@@ -137,11 +161,6 @@ public class DataNTypeTest extends BaseTest {
 
   @Test
   public void testSetObjectNString() throws Exception {
-
-    createTable(
-        "testSetObjectNString",
-        "id int not null primary key, strm varchar(10), strm2 varchar(10)",
-        "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "insert into testSetObjectNString (id, strm, strm2) values (?, ?, ?)");
@@ -163,8 +182,6 @@ public class DataNTypeTest extends BaseTest {
 
   @Test
   public void testSetNCharacter() throws Exception {
-
-    createTable("testSetNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement("insert into testSetNCharacter (id, strm) values (?,?)");
     String toInsert = "Øabcdefgh\njklmn\"";
@@ -190,9 +207,6 @@ public class DataNTypeTest extends BaseTest {
 
   @Test
   public void testSetObjectNCharacter() throws Exception {
-
-    createTable(
-        "testSetObjectNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
     PreparedStatement stmt =
         sharedConnection.prepareStatement(
             "insert into testSetObjectNCharacter (id, strm) values (?,?)");

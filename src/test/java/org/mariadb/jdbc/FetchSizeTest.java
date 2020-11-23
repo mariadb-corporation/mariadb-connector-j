@@ -58,20 +58,34 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class FetchSizeTest extends BaseTest {
 
-  /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("fetchSizeTest1", "id int, test varchar(100)");
-    createTable("fetchSizeTest2", "id int, test varchar(100)");
-    createTable("fetchSizeTest3", "id int, test varchar(100)");
-    createTable("fetchSizeTest4", "id int, test varchar(100)");
-    createTable("fetchSizeTest5", "id int, test varchar(100)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE fetchSizeTest1(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE fetchSizeTest2(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE fetchSizeTest3(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE fetchSizeTest4(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE fetchSizeTest5(id int, test varchar(100))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS fetchSizeTest1");
+      stmt.execute("DROP TABLE IF EXISTS fetchSizeTest2");
+      stmt.execute("DROP TABLE IF EXISTS fetchSizeTest3");
+      stmt.execute("DROP TABLE IF EXISTS fetchSizeTest4");
+      stmt.execute("DROP TABLE IF EXISTS fetchSizeTest5");
+    }
   }
 
   @Test
@@ -201,6 +215,7 @@ public class FetchSizeTest extends BaseTest {
    */
   @Test
   public void fetchSizeCancel() throws SQLException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
     Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
     Assume.assumeTrue(!sharedOptions().profileSql);
     long start = System.currentTimeMillis();

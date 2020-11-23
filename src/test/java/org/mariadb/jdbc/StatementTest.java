@@ -58,6 +58,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Properties;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -82,17 +83,51 @@ public class StatementTest extends BaseTest {
   private static final String ER_LOAD_DATA_INVALID_COLUMN_STATE = "HY000";
   private static final String ER_ADD_PARTITION_NO_NEW_PARTITION_STATE = "HY000";
 
-  /**
-   * Initializing tables.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("vendor_code_test", "id int not null primary key auto_increment, test boolean");
-    createTable("vendor_code_test2", "a INT", "PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
-    createTable("vendor_code_test3", "a INT", "PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
-    createTable("StatementTestt1", "c1 INT, c2 VARCHAR(255)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE vendor_code_test(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE vendor_code_test2(a INT) PARTITION BY KEY (a) (PARTITION x0, PARTITION x1)");
+      stmt.execute(
+          "CREATE TABLE vendor_code_test3(a INT) PARTITION BY LIST(a) (PARTITION p0 VALUES IN (1))");
+      stmt.execute("CREATE TABLE StatementTestt1(c1 INT, c2 VARCHAR(255))");
+      stmt.execute("CREATE TABLE testFractionalTimeBatch(tt TIMESTAMP(6))");
+      stmt.execute("CREATE TABLE testFallbackBatchUpdate(col int)");
+      stmt.execute("CREATE TABLE testProperBatchUpdate(col int, col2 int)");
+      stmt.execute("CREATE TABLE deadlock(a int primary key)");
+      stmt.execute(
+          "CREATE TABLE largeUpdate(a int not null primary key auto_increment, t varchar(256))");
+      stmt.execute(
+          "CREATE TABLE largePrepareUpdate(a int not null primary key auto_increment, t varchar(256))");
+      stmt.execute(
+          "CREATE PROCEDURE ensureStreamingState(INOUT p1 INT) BEGIN  SELECT * from seq_1_to_3; SELECT * from seq_5_to_7; END");
+      stmt.execute(
+          "create view vendor_code_test_view as select id as id1, id as id2, test "
+              + "from vendor_code_test");
+
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP view IF EXISTS vendor_code_test_view");
+      stmt.execute("DROP TABLE IF EXISTS vendor_code_test");
+      stmt.execute("DROP TABLE IF EXISTS vendor_code_test2");
+      stmt.execute("DROP TABLE IF EXISTS vendor_code_test3");
+      stmt.execute("DROP TABLE IF EXISTS StatementTestt1");
+      stmt.execute("DROP TABLE IF EXISTS testFractionalTimeBatch");
+      stmt.execute("DROP TABLE IF EXISTS testFallbackBatchUpdate");
+      stmt.execute("DROP TABLE IF EXISTS testProperBatchUpdate");
+      stmt.execute("DROP TABLE IF EXISTS deadlock");
+      stmt.execute("DROP TABLE IF EXISTS largeUpdate");
+      stmt.execute("DROP TABLE IF EXISTS largePrepareUpdate");
+      stmt.execute("DROP PROCEDURE IF EXISTS ensureStreamingState");
+    }
   }
 
   @Test
@@ -158,10 +193,6 @@ public class StatementTest extends BaseTest {
   @Test
   public void testNonInsertableTable() throws SQLException {
     Statement statement = sharedConnection.createStatement();
-    statement.execute(
-        "create or replace view vendor_code_test_view as select id as id1, id as id2, test "
-            + "from vendor_code_test");
-
     try {
       statement.executeQuery("insert into vendor_code_test_view VALUES (null, null, true)");
       fail("The above statement should result in an exception");
@@ -278,7 +309,7 @@ public class StatementTest extends BaseTest {
           throw new SQLException("Mariadb JDBC adaptor must be used");
         }
         try {
-          String data = "\"1\", \"string1\"\n" + "\"2\", \"string2\"\n" + "\"3\", \"string3\"\n";
+          String data = "\"1\", \"string1\"\n\"2\", \"string2\"\n\"3\", \"string3\"\n";
           ByteArrayInputStream loadDataInfileFile =
               new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
           mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
@@ -355,8 +386,6 @@ public class StatementTest extends BaseTest {
   @Test
   public void testFractionalTimeBatch() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-
-    createTable("testFractionalTimeBatch", "tt TIMESTAMP(6)");
     Timestamp currTime = new Timestamp(System.currentTimeMillis());
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("INSERT INTO testFractionalTimeBatch (tt) values (?)")) {
@@ -378,8 +407,6 @@ public class StatementTest extends BaseTest {
   @Test
   public void testFallbackBatchUpdate() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-
-    createTable("testFallbackBatchUpdate", "col int");
     Statement statement = sharedConnection.createStatement();
 
     // add 100 data
@@ -417,8 +444,6 @@ public class StatementTest extends BaseTest {
   @Test
   public void testProperBatchUpdate() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-
-    createTable("testProperBatchUpdate", "col int, col2 int");
     Statement statement = sharedConnection.createStatement();
 
     // add 100 data
@@ -457,7 +482,6 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void deadLockInformation() throws SQLException {
-    createTable("deadlock", "a int primary key", "engine=innodb");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("insert into deadlock(a) values(0), (1)");
 
@@ -500,10 +524,6 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void largeUpdate() throws SQLException {
-    createTable(
-        "largeUpdate",
-        "a int not null primary key auto_increment, t varchar(256)",
-        "engine=innodb");
     Statement stmt = sharedConnection.createStatement();
 
     long updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('a'), ('b')");
@@ -574,10 +594,6 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void largePrepareUpdate() throws SQLException {
-    createTable(
-        "largePrepareUpdate",
-        "a int not null primary key auto_increment, t varchar(256)",
-        "engine=innodb");
     Statement stmt = sharedConnection.createStatement();
     stmt.addBatch("insert into largePrepareUpdate(t) values('a')");
     stmt.addBatch("insert into largePrepareUpdate(t) values('b')");
@@ -747,9 +763,6 @@ public class StatementTest extends BaseTest {
   @Test
   public void ensureStreamingState() throws Exception {
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1));
-    createProcedure(
-        "ensureStreamingState",
-        "(INOUT p1 INT) BEGIN  SELECT * from seq_1_to_3; SELECT * from " + "seq_5_to_7; END");
     Statement stmt = sharedConnection.createStatement();
     PreparedStatement prep = sharedConnection.prepareCall("CALL ensureStreamingState(?)");
     prep.setObject(1, 5);

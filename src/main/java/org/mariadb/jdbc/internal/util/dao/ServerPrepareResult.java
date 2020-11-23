@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -62,13 +61,13 @@ public class ServerPrepareResult implements PrepareResult {
   private final ColumnDefinition[] columns;
   private final ColumnDefinition[] parameters;
   private final String sql;
-  private final AtomicBoolean inCache = new AtomicBoolean();
   private int statementId;
   private ColumnType[] parameterTypeHeader;
   private Protocol unProxiedProtocol;
   // share indicator
   private volatile int shareCounter = 1;
   private volatile boolean isBeingDeallocate;
+  private volatile boolean inCache;
 
   /**
    * PrepareStatement Result object.
@@ -112,11 +111,11 @@ public class ServerPrepareResult implements PrepareResult {
   }
 
   public void setAddToCache() {
-    inCache.set(true);
+    inCache = true;
   }
 
   public void setRemoveFromCache() {
-    inCache.set(false);
+    inCache = false;
   }
 
   /**
@@ -148,7 +147,7 @@ public class ServerPrepareResult implements PrepareResult {
     if (shareCounter > 0 || isBeingDeallocate) {
       return false;
     }
-    if (!inCache.get()) {
+    if (!inCache) {
       isBeingDeallocate = true;
       return true;
     }

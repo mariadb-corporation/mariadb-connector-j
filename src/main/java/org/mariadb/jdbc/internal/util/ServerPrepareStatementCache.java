@@ -111,6 +111,11 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
     ServerPrepareResult cachedServerPrepareResult = super.get(key);
     // if there is already some cached data (and not been deallocate), return existing cached data
     if (cachedServerPrepareResult != null && cachedServerPrepareResult.incrementShareCounter()) {
+      try {
+        protocol.forceReleasePrepareStatement(result.getStatementId());
+      } catch (SQLException e) {
+        // eat exception
+      }
       return cachedServerPrepareResult;
     }
     // if no cache data, or been deallocate, put new result in cache

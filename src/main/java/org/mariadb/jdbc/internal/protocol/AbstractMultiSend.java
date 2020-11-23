@@ -64,7 +64,6 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -78,7 +77,6 @@ public abstract class AbstractMultiSend {
   private final PacketOutputStream writer;
   private final Results results;
   private final boolean binaryProtocol;
-  private final boolean readPrepareStmtResult;
   protected int statementId = -1;
   protected ColumnType[] parameterTypeHeader;
   private List<ParameterHolder[]> parametersList;
@@ -95,7 +93,6 @@ public abstract class AbstractMultiSend {
    * @param results query results
    * @param serverPrepareResult Prepare result
    * @param parametersList parameters
-   * @param readPrepareStmtResult must execute prepare result
    * @param sql sql query.
    * @param readScheduler reading thread-pool
    */
@@ -105,7 +102,6 @@ public abstract class AbstractMultiSend {
       Results results,
       ServerPrepareResult serverPrepareResult,
       List<ParameterHolder[]> parametersList,
-      boolean readPrepareStmtResult,
       String sql,
       ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
@@ -114,7 +110,6 @@ public abstract class AbstractMultiSend {
     this.prepareResult = serverPrepareResult;
     this.parametersList = parametersList;
     this.binaryProtocol = true;
-    this.readPrepareStmtResult = readPrepareStmtResult;
     this.sql = sql;
     this.readScheduler = readScheduler;
   }
@@ -142,7 +137,6 @@ public abstract class AbstractMultiSend {
     this.prepareResult = clientPrepareResult;
     this.parametersList = parametersList;
     this.binaryProtocol = false;
-    this.readPrepareStmtResult = false;
     this.readScheduler = readScheduler;
   }
 
@@ -166,7 +160,6 @@ public abstract class AbstractMultiSend {
     this.results = results;
     this.queries = queries;
     this.binaryProtocol = false;
-    this.readPrepareStmtResult = false;
     this.readScheduler = readScheduler;
   }
 
@@ -202,32 +195,15 @@ public abstract class AbstractMultiSend {
    * Execute Bulk execution (send packets by batch of useBatchMultiSendNumber or when max packet is
    * reached) before reading results.
    *
-   * @return prepare result
    * @throws SQLException if any error occur
    */
-  public PrepareResult executeBatch() throws SQLException {
+  public void executeBatch() throws SQLException {
     int paramCount = getParamCount();
     if (binaryProtocol) {
-      if (readPrepareStmtResult) {
-        parameterTypeHeader = new ColumnType[paramCount];
-        if (prepareResult == null
-            && protocol.getOptions().cachePrepStmts
-            && protocol.getOptions().useServerPrepStmts) {
-          String key = protocol.getDatabase() + "-" + sql;
-          prepareResult = protocol.prepareStatementCache().get(key);
-          if (prepareResult != null
-              && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
-            // in cache but been de-allocated
-            prepareResult = null;
-          }
-        }
-        statementId =
-            (prepareResult == null) ? -1 : ((ServerPrepareResult) prepareResult).getStatementId();
-      } else if (prepareResult != null) {
-        statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-      }
+      parameterTypeHeader = new ColumnType[paramCount];
+      statementId = ((ServerPrepareResult) prepareResult).getStatementId();
     }
-    return executeBatchStandard(paramCount);
+    executeBatchStandard(paramCount);
   }
 
   /**
@@ -235,15 +211,13 @@ public abstract class AbstractMultiSend {
    * reached) before reading results.
    *
    * @param estimatedParameterCount parameter counter
-   * @return prepare result
    * @throws SQLException if any error occur
    */
-  private PrepareResult executeBatchStandard(int estimatedParameterCount) throws SQLException {
+  private void executeBatchStandard(int estimatedParameterCount) throws SQLException {
     int totalExecutionNumber = getTotalExecutionNumber();
     SQLException exception = null;
     BulkStatus status = new BulkStatus();
 
-    ComStmtPrepare comStmtPrepare = null;
     FutureTask<AsyncMultiReadResult> futureReadTask = null;
 
     int requestNumberByBulk;
@@ -258,18 +232,6 @@ public abstract class AbstractMultiSend {
                 protocol.getOptions().useBatchMultiSendNumber);
         protocol.changeSocketTcpNoDelay(false); // enable NAGLE algorithm temporary.
 
-        // add prepare sub-command
-        if (readPrepareStmtResult && prepareResult == null) {
-
-          comStmtPrepare = new ComStmtPrepare(protocol, sql);
-          comStmtPrepare.send(writer);
-
-          // read prepare result
-          prepareResult = comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated());
-          statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-          paramCount = getParamCount();
-        }
-
         boolean useCurrentThread = false;
 
         for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
@@ -280,11 +242,10 @@ public abstract class AbstractMultiSend {
             try {
               protocol.getResult(results);
             } catch (SQLException qex) {
-              if (((readPrepareStmtResult && prepareResult == null)
-                  || !protocol.getOptions().continueBatchOnError)) {
+              if (!protocol.getOptions().continueBatchOnError) {
                 throw qex;
               } else {
-                exception = qex;
+                if (exception == null) exception = qex;
               }
             }
           } else if (futureReadTask == null) {
@@ -292,10 +253,8 @@ public abstract class AbstractMultiSend {
               futureReadTask =
                   new FutureTask<>(
                       new AsyncMultiRead(
-                          comStmtPrepare,
                           status,
                           protocol,
-                          false,
                           this,
                           paramCount,
                           results,
@@ -308,11 +267,10 @@ public abstract class AbstractMultiSend {
               try {
                 protocol.getResult(results);
               } catch (SQLException qex) {
-                if (((readPrepareStmtResult && prepareResult == null)
-                    || !protocol.getOptions().continueBatchOnError)) {
+                if (!protocol.getOptions().continueBatchOnError) {
                   throw qex;
                 } else {
-                  exception = qex;
+                  if (exception == null) exception = qex;
                 }
               }
             }
@@ -324,22 +282,8 @@ public abstract class AbstractMultiSend {
           protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
           try {
             AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
-
-            if (binaryProtocol
-                && prepareResult == null
-                && asyncMultiReadResult.getPrepareResult() != null) {
-              prepareResult = asyncMultiReadResult.getPrepareResult();
-              statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-              paramCount = prepareResult.getParamCount();
-            }
-
             if (asyncMultiReadResult.getException() != null) {
-              if (((readPrepareStmtResult && prepareResult == null)
-                  || !protocol.getOptions().continueBatchOnError)) {
-                throw asyncMultiReadResult.getException();
-              } else {
-                exception = asyncMultiReadResult.getException();
-              }
+              if (exception == null) exception = asyncMultiReadResult.getException();
             }
           } catch (ExecutionException executionException) {
             if (executionException.getCause() == null) {
@@ -374,8 +318,6 @@ public abstract class AbstractMultiSend {
       if (exception != null) {
         throw exception;
       }
-
-      return prepareResult;
 
     } catch (IOException e) {
       status.sendEnded = true;

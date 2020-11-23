@@ -371,7 +371,7 @@ public abstract class AbstractMastersListener implements Listener {
       switch (method.getName()) {
         case "executeQuery":
           if (!((Boolean) args[0])) {
-            return true; // launched on slave connection
+            return true; // launched on replica connection
           }
           if (args[2] instanceof String) {
             return ((String) args[2]).toUpperCase(Locale.ROOT).startsWith("SELECT");
@@ -385,7 +385,7 @@ public abstract class AbstractMastersListener implements Listener {
           break;
         case "executePreparedQuery":
           if (!((Boolean) args[0])) {
-            return true; // launched on slave connection
+            return true; // launched on replica connection
           }
           ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
           return (serverPrepareResult.getSql()).toUpperCase(Locale.ROOT).startsWith("SELECT");

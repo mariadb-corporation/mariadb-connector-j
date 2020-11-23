@@ -58,10 +58,104 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class UpdateResultSetTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
+      stmt.execute(
+          "CREATE TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1))");
+      stmt.execute("CREATE TABLE updatePosTest(c text, id int primary key)");
+      stmt.execute("CREATE TABLE deleteRows(c text, id int primary key)");
+      stmt.execute("CREATE TABLE cancelRowUpdatesTest(c text, id int primary key)");
+      stmt.execute("CREATE TABLE testMoveToInsertRow(t2 text, t1 text, id int primary key)");
+      stmt.execute("CREATE TABLE refreshRow(id int not null primary key, strm blob)");
+      stmt.execute("CREATE TABLE insertNoRow(id int not null primary key, strm blob)");
+      stmt.execute("CREATE TABLE updateBlob(id int not null primary key, strm blob)");
+      stmt.execute(
+          "CREATE TABLE testUpdateChangingMultiplePrimaryKey("
+              + "`id` INT NOT NULL,"
+              + "`id2` INT NOT NULL,"
+              + "`t1` VARCHAR(50),"
+              + "PRIMARY KEY (`id`,`id2`))");
+      stmt.execute(
+          "CREATE TABLE PrimaryGenerated("
+              + "`id` INT NOT NULL AUTO_INCREMENT,"
+              + "`t1` VARCHAR(50) NOT NULL,"
+              + "`t2` VARCHAR(50) NULL default 'default-value',"
+              + "PRIMARY KEY (`id`))");
+      stmt.execute(
+          "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+      stmt.execute(
+          "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+      stmt.execute(
+          "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+      stmt.execute(
+          "CREATE TABLE UpdateWithoutPrimary(`id` INT NOT NULL AUTO_INCREMENT,"
+              + "`t1` VARCHAR(50) NOT NULL,"
+              + "`t2` VARCHAR(50) NULL default 'default-value',"
+              + "PRIMARY KEY (`id`))");
+      stmt.execute(
+          "CREATE TABLE testUpdateWhenFetch("
+              + "`id` INT NOT NULL AUTO_INCREMENT,"
+              + "`t1` VARCHAR(50) NOT NULL,"
+              + "`t2` VARCHAR(50) NULL default 'default-value',"
+              + "PRIMARY KEY (`id`)) DEFAULT CHARSET=utf8");
+      stmt.execute(
+          "CREATE TABLE testPrimaryGeneratedDefault("
+              + "`id` INT NOT NULL AUTO_INCREMENT,"
+              + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
+              + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+              + "PRIMARY KEY (`id`))");
+      stmt.execute(
+          "CREATE TABLE testDelete(`id` INT NOT NULL,"
+              + "`id2` INT NOT NULL,"
+              + "`t1` VARCHAR(50),"
+              + "PRIMARY KEY (`id`,`id2`))");
+      stmt.execute(
+          "CREATE TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+      if (isMariadbServer() && minVersion(10, 2)) {
+        stmt.execute(
+            "CREATE TABLE `testDefaultUUID` ("
+                + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
+                + "`column2` varchar(100) DEFAULT NULL,"
+                + " PRIMARY KEY (`column1`))");
+      }
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
+      stmt.execute("DROP TABLE IF EXISTS testnoprimarykey");
+      stmt.execute("DROP TABLE IF EXISTS repeatedFieldUpdatable");
+      stmt.execute("DROP TABLE IF EXISTS updatePosTest");
+      stmt.execute("DROP TABLE IF EXISTS deleteRows");
+      stmt.execute("DROP TABLE IF EXISTS cancelRowUpdatesTest");
+      stmt.execute("DROP TABLE IF EXISTS testMoveToInsertRow");
+      stmt.execute("DROP TABLE IF EXISTS refreshRow");
+      stmt.execute("DROP TABLE IF EXISTS insertNoRow");
+      stmt.execute("DROP TABLE IF EXISTS updateBlob");
+      stmt.execute("DROP TABLE IF EXISTS testUpdateChangingMultiplePrimaryKey");
+      stmt.execute("DROP TABLE IF EXISTS PrimaryGenerated");
+      stmt.execute("DROP TABLE IF EXISTS testMultipleTable1");
+      stmt.execute("DROP TABLE IF EXISTS testMultipleTable2");
+      stmt.execute("DROP TABLE IF EXISTS testOneNoTable");
+      stmt.execute("DROP TABLE IF EXISTS UpdateWithoutPrimary");
+      stmt.execute("DROP TABLE IF EXISTS testUpdateWhenFetch");
+      stmt.execute("DROP TABLE IF EXISTS testPrimaryGeneratedDefault");
+      stmt.execute("DROP TABLE IF EXISTS testDelete");
+      stmt.execute("DROP TABLE IF EXISTS testMultipleDatabase");
+    }
+  }
 
   /**
    * Test error message when no primary key.
@@ -70,7 +164,6 @@ public class UpdateResultSetTest extends BaseTest {
    */
   @Test
   public void testNoPrimaryKey() throws Exception {
-    createTable("testnoprimarykey", "`id` INT NOT NULL," + "`t1` VARCHAR(50) NOT NULL");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO testnoprimarykey VALUES (1, 't1'), (2, 't2')");
 
@@ -117,15 +210,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testMultipleTable() throws Exception {
-
-    createTable(
-        "testMultipleTable1",
-        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
-
-    createTable(
-        "testMultipleTable2",
-        "`id2` INT NOT NULL AUTO_INCREMENT," + "`t2` VARCHAR(50) NULL," + "PRIMARY KEY (`id2`)");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO testMultipleTable1(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testMultipleTable2(t2) values ('2')");
@@ -153,10 +237,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testOneNoTable() throws Exception {
-    createTable(
-        "testOneNoTable",
-        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO testOneNoTable(t1) values ('1')");
 
@@ -186,53 +266,42 @@ public class UpdateResultSetTest extends BaseTest {
 
     Statement stmt = sharedConnection.createStatement();
     try {
-      stmt.execute("DROP DATABASE testConnectorJ");
-    } catch (SQLException sqle) {
-      // eat
-    }
+      stmt.execute("CREATE DATABASE testConnectorJ");
+      stmt.execute(
+          "CREATE TABLE testConnectorJ.testMultipleDatabase("
+              + "`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
 
-    stmt.execute("CREATE DATABASE testConnectorJ");
-    createTable(
-        sharedConnection.getCatalog() + ".testMultipleDatabase",
-        "`id1` INT NOT NULL AUTO_INCREMENT," + "`t1` VARCHAR(50) NULL," + "PRIMARY KEY (`id1`)");
+      stmt.executeQuery(
+          "INSERT INTO "
+              + sharedConnection.getCatalog()
+              + ".testMultipleDatabase(t1) values ('1')");
+      stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
 
-    createTable(
-        "testConnectorJ.testMultipleDatabase",
-        "`id2` INT NOT NULL AUTO_INCREMENT," + "`t2` VARCHAR(50) NULL," + "PRIMARY KEY (`id2`)");
-
-    stmt.executeQuery(
-        "INSERT INTO " + sharedConnection.getCatalog() + ".testMultipleDatabase(t1) values ('1')");
-    stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
-
-    try (PreparedStatement preparedStatement =
-        sharedConnection.prepareStatement(
-            "SELECT * FROM "
-                + sharedConnection.getCatalog()
-                + ".testMultipleDatabase, testConnectorJ.testMultipleDatabase",
-            ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
-      try {
-        rs.updateString("t1", "new value");
-        fail("must have failed since there is different database");
-      } catch (SQLException sqle) {
-        assertTrue(
-            sqle.getMessage(),
-            sqle.getMessage().contains("The result-set contains more than one database"));
+      try (PreparedStatement preparedStatement =
+          sharedConnection.prepareStatement(
+              "SELECT * FROM "
+                  + sharedConnection.getCatalog()
+                  + ".testMultipleDatabase, testConnectorJ.testMultipleDatabase",
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_UPDATABLE)) {
+        ResultSet rs = preparedStatement.executeQuery();
+        assertTrue(rs.next());
+        try {
+          rs.updateString("t1", "new value");
+          fail("must have failed since there is different database");
+        } catch (SQLException sqle) {
+          assertTrue(
+              sqle.getMessage(),
+              sqle.getMessage().contains("The result-set contains more than one database"));
+        }
       }
+    } catch (SQLException sqle) {
+      stmt.execute("DROP DATABASE testConnectorJ");
     }
   }
 
   @Test
   public void testMeta() throws Exception {
-    createTable(
-        "UpdateWithoutPrimary",
-        "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL,"
-            + "`t2` VARCHAR(50) NULL default 'default-value',"
-            + "PRIMARY KEY (`id`)");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("INSERT INTO UpdateWithoutPrimary(t1,t2) values ('1-1','1-2')");
 
@@ -306,14 +375,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testUpdateWhenFetch() throws Exception {
-    createTable(
-        "testUpdateWhenFetch",
-        "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL,"
-            + "`t2` VARCHAR(50) NULL default 'default-value',"
-            + "PRIMARY KEY (`id`)",
-        "DEFAULT CHARSET=utf8");
-
     final Statement stmt = sharedConnection.createStatement();
     PreparedStatement pstmt =
         sharedConnection.prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
@@ -373,13 +434,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testPrimaryGenerated() throws Exception {
-    createTable(
-        "PrimaryGenerated",
-        "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL,"
-            + "`t2` VARCHAR(50) NULL default 'default-value',"
-            + "PRIMARY KEY (`id`)");
-
     Statement stmt = sharedConnection.createStatement();
     int[] autoInc = setAutoInc();
 
@@ -441,12 +495,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testPrimaryGeneratedDefault() throws Exception {
-    createTable(
-        "testPrimaryGeneratedDefault",
-        "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
-            + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-            + "PRIMARY KEY (`id`)");
     int[] autoInc = setAutoInc();
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
@@ -491,13 +539,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testDelete() throws Exception {
-    createTable(
-        "testDelete",
-        "`id` INT NOT NULL,"
-            + "`id2` INT NOT NULL,"
-            + "`t1` VARCHAR(50),"
-            + "PRIMARY KEY (`id`,`id2`)");
-
     Statement stmt =
         sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     stmt.execute("INSERT INTO testDelete values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
@@ -549,13 +590,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testUpdateChangingMultiplePrimaryKey() throws Exception {
-    createTable(
-        "testUpdateChangingMultiplePrimaryKey",
-        "`id` INT NOT NULL,"
-            + "`id2` INT NOT NULL,"
-            + "`t1` VARCHAR(50),"
-            + "PRIMARY KEY (`id`,`id2`)");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
@@ -600,8 +634,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void updateBlob() throws SQLException, IOException {
-    createTable("updateBlob", "id int not null primary key, strm blob");
-
     PreparedStatement stmt =
         sharedConnection.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
     byte[] theBlob = {1, 2, 3, 4, 5, 6};
@@ -700,7 +732,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void insertNoRow() throws SQLException {
-    createTable("insertNoRow", "id int not null primary key, strm blob");
     Statement st =
         sharedConnection.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -718,7 +749,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void refreshRow() throws SQLException {
-    createTable("refreshRow", "id int not null primary key, strm blob");
 
     Statement st =
         sharedConnection.createStatement(
@@ -760,8 +790,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void testMoveToInsertRow() throws SQLException {
-    createTable("testMoveToInsertRow", "t2 text, t1 text, id int primary key");
-
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
             "select id, t1, t2 from testMoveToInsertRow",
@@ -848,8 +876,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void cancelRowUpdatesTest() throws SQLException {
-    createTable("cancelRowUpdatesTest", "c text, id int primary key");
-
     Statement st = sharedConnection.createStatement();
     st.executeUpdate(
         "INSERT INTO cancelRowUpdatesTest(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
@@ -882,8 +908,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void deleteRowsTest() throws SQLException {
-    createTable("deleteRows", "c text, id int primary key");
-
     Statement st = sharedConnection.createStatement();
     st.executeUpdate("INSERT INTO deleteRows(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
@@ -912,8 +936,6 @@ public class UpdateResultSetTest extends BaseTest {
 
   @Test
   public void updatePosTest() throws SQLException {
-    createTable("updatePosTest", "c text, id int primary key");
-
     Statement st = sharedConnection.createStatement();
     st.executeUpdate("INSERT INTO updatePosTest(id,c) values (1,'1')");
 
@@ -981,9 +1003,6 @@ public class UpdateResultSetTest extends BaseTest {
    */
   @Test
   public void repeatedFieldUpdatable() throws SQLException {
-    createTable(
-        "repeatedFieldUpdatable", "t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1)");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
@@ -1002,12 +1021,6 @@ public class UpdateResultSetTest extends BaseTest {
   public void updatableDefaultPrimaryField() throws SQLException {
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
-    stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
-    stmt.execute(
-        "CREATE TABLE `testDefaultUUID` ("
-            + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
-            + "`column2` varchar(100) DEFAULT NULL,"
-            + " PRIMARY KEY (`column1`))");
     String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConnection.prepareStatement(

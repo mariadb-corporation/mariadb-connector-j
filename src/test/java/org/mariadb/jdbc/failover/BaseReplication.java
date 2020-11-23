@@ -65,7 +65,7 @@ import org.mariadb.jdbc.ServerSidePreparedStatement;
 public abstract class BaseReplication extends BaseMonoServer {
 
   @Test
-  public void failoverSlaveToMasterPrepareStatement() throws Throwable {
+  public void failoverReplicaToMasterPrepareStatement() throws Throwable {
     try (Connection connection =
         getNewConnection(
             "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000"
@@ -77,25 +77,26 @@ public abstract class BaseReplication extends BaseMonoServer {
           "create table replicationFailoverBinary"
               + jobId
               + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute("FLUSH TABLES");
       stmt.execute("insert into replicationFailoverBinary" + jobId + "(test) values ('Harriba !')");
       final int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      // wait for table replication on slave
+      // wait for table replication on replica
       Thread.sleep(200);
 
       // create another prepareStatement, to permit to verify that prepare id has changed
       connection.prepareStatement("SELECT ?");
 
-      // prepareStatement on slave connection
+      // prepareStatement on replica connection
       PreparedStatement preparedStatement =
           connection.prepareStatement(
               "SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
       final long currentPrepareId =
           getPrepareResult((ServerSidePreparedStatement) preparedStatement).getStatementId();
-      int slaveServerId = getServerId(connection);
-      assertFalse(masterServerId == slaveServerId);
-      // stop slave for a few seconds
-      stopProxy(slaveServerId, 2000);
+      int replicaServerId = getServerId(connection);
+      assertFalse(masterServerId == replicaServerId);
+      // stop replica for a few seconds
+      stopProxy(replicaServerId, 2000);
 
       // test failover
       preparedStatement.setInt(1, 1);
@@ -111,7 +112,7 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertTrue(masterServerId == currentServerId);
       assertFalse(connection.isReadOnly());
       Thread.sleep(2000);
-      boolean hasReturnOnSlave = false;
+      boolean hasReturnOnReplica = false;
 
       for (int i = 0; i < 10; i++) {
         Thread.sleep(1000);
@@ -122,38 +123,38 @@ public abstract class BaseReplication extends BaseMonoServer {
 
         currentServerId = getServerId(connection);
         if (currentServerId != masterServerId) {
-          hasReturnOnSlave = true;
+          hasReturnOnReplica = true;
           assertTrue(connection.isReadOnly());
           break;
         }
       }
-      assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
+      assertTrue("Prepare statement has not return on Replica", hasReturnOnReplica);
     }
   }
 
   @Test()
-  public void failoverSlaveAndMasterRewrite() throws Throwable {
+  public void failoverReplicaAndMasterRewrite() throws Throwable {
     try (Connection connection =
         getNewConnection(
             "&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000",
             true)) {
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      int firstSlaveId = getServerId(connection);
+      int firstReplicaId = getServerId(connection);
 
       stopProxy(masterServerId);
       // stop proxy for 2s
-      stopProxy(firstSlaveId, 4000);
+      stopProxy(firstReplicaId, 4000);
 
       try {
         Statement stmt = connection.createStatement();
         stmt.addBatch("DO 1");
         stmt.addBatch("DO 2");
         int[] resultData = stmt.executeBatch();
-        int secondSlaveId = getServerId(connection);
+        int secondReplicaId = getServerId(connection);
         assertEquals(
             "the 2 batch queries must have been executed when failover", 2, resultData.length);
-        assertTrue(secondSlaveId != firstSlaveId && secondSlaveId != masterServerId);
+        assertTrue(secondReplicaId != firstReplicaId && secondReplicaId != masterServerId);
       } catch (SQLException e) {
         e.printStackTrace();
         fail();
@@ -162,14 +163,14 @@ public abstract class BaseReplication extends BaseMonoServer {
   }
 
   @Test
-  public void failoverSlaveToMaster() throws Throwable {
+  public void failoverReplicaToMaster() throws Throwable {
     try (Connection connection =
         getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      int slaveServerId = getServerId(connection);
-      assertFalse(masterServerId == slaveServerId);
-      stopProxy(slaveServerId);
+      int replicaServerId = getServerId(connection);
+      assertFalse(masterServerId == replicaServerId);
+      stopProxy(replicaServerId);
       connection.createStatement().execute("SELECT 1");
       int currentServerId = getServerId(connection);
 
@@ -179,34 +180,34 @@ public abstract class BaseReplication extends BaseMonoServer {
   }
 
   @Test
-  public void failoverDuringSlaveSetReadOnly() throws Throwable {
+  public void failoverDuringReplicaSetReadOnly() throws Throwable {
     try (Connection connection = getNewConnection("&socketTimeout=3000", true)) {
       connection.setReadOnly(true);
-      int slaveServerId = getServerId(connection);
+      int replicaServerId = getServerId(connection);
 
-      stopProxy(slaveServerId, 2000);
+      stopProxy(replicaServerId, 2000);
       connection.setReadOnly(false);
       int masterServerId = getServerId(connection);
 
-      assertFalse(slaveServerId == masterServerId);
+      assertFalse(replicaServerId == masterServerId);
       assertFalse(connection.isReadOnly());
     }
     Thread.sleep(2500); // for not interfering with other tests
   }
 
   @Test()
-  public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
+  public void failoverReplicaAndMasterWithoutAutoConnect() throws Throwable {
     try (Connection connection =
         getNewConnection("&retriesAllDown=20&connectTimeout=2000&socketTimeout=2000", true)) {
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      int firstSlaveId = getServerId(connection);
+      int firstReplicaId = getServerId(connection);
 
       stopProxy(masterServerId);
-      stopProxy(firstSlaveId);
+      stopProxy(firstReplicaId);
 
       try {
-        // will connect to second slave that isn't stopped
+        // will connect to second replica that isn't stopped
         connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
       } catch (SQLException e) {
         e.printStackTrace();
@@ -216,25 +217,25 @@ public abstract class BaseReplication extends BaseMonoServer {
   }
 
   @Test
-  public void reconnectSlaveAndMasterWithAutoConnect() throws Throwable {
+  public void reconnectReplicaAndMasterWithAutoConnect() throws Throwable {
     try (Connection connection =
         getNewConnection("&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000", true)) {
 
-      // search actual server_id for master and slave
+      // search actual server_id for master and replica
       int masterServerId = getServerId(connection);
 
       connection.setReadOnly(true);
 
-      int firstSlaveId = getServerId(connection);
+      int firstReplicaId = getServerId(connection);
 
       stopProxy(masterServerId);
-      stopProxy(firstSlaveId);
+      stopProxy(firstReplicaId);
 
-      // must reconnect to the second slave without error
+      // must reconnect to the second replica without error
       connection.createStatement().execute("SELECT 1");
-      int currentSlaveId = getServerId(connection);
-      assertTrue(currentSlaveId != firstSlaveId);
-      assertTrue(currentSlaveId != masterServerId);
+      int currentReplicaId = getServerId(connection);
+      assertTrue(currentReplicaId != firstReplicaId);
+      assertTrue(currentReplicaId != masterServerId);
     }
   }
 
@@ -255,30 +256,31 @@ public abstract class BaseReplication extends BaseMonoServer {
   }
 
   @Test
-  public void writeToSlaveAfterFailover() throws Throwable {
+  public void writeToReplicaAfterFailover() throws Throwable {
     try (Connection connection =
         getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
-      // if super user can write on slave
-      Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
+      // if super user can write on replica
+      Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToReplicaAfterFailover"));
       Statement st = connection.createStatement();
-      st.execute("drop table  if exists writeToSlave" + jobId);
+      st.execute("drop table  if exists writeToReplica" + jobId);
       st.execute(
-          "create table writeToSlave"
+          "create table writeToReplica"
               + jobId
               + " (id int not null primary key , amount int not null) ENGINE = InnoDB");
-      st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (1 , 100)");
+      st.execute("FLUSH TABLES");
+      st.execute("insert into writeToReplica" + jobId + " (id, amount) VALUE (1 , 100)");
 
       int masterServerId = getServerId(connection);
 
       stopProxy(masterServerId);
       try {
-        st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (2 , 100)");
+        st.execute("insert into writeToReplica" + jobId + " (id, amount) VALUE (2 , 100)");
         fail();
       } catch (SQLException e) {
         // normal exception
         restartProxy(masterServerId);
         st = connection.createStatement();
-        st.execute("drop table if exists writeToSlave" + jobId);
+        st.execute("drop table if exists writeToReplica" + jobId);
       }
     }
   }
@@ -318,7 +320,7 @@ public abstract class BaseReplication extends BaseMonoServer {
         getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
       int masterId = getServerId(connection);
       connection.setReadOnly(true);
-      // close all slave proxy
+      // close all replica proxy
       stopProxyButParameter(masterId);
 
       // trigger the failover, so a failover thread is launched
@@ -331,14 +333,14 @@ public abstract class BaseReplication extends BaseMonoServer {
   }
 
   @Test
-  public void failoverSlaveToMasterFail() throws Throwable {
+  public void failoverReplicaToMasterFail() throws Throwable {
     try (Connection connection =
         getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
 
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
-      int slaveServerId = getServerId(connection);
-      assertTrue(slaveServerId != masterServerId);
+      int replicaServerId = getServerId(connection);
+      assertTrue(replicaServerId != masterServerId);
 
       connection.setCatalog(
           "mysql"); // to be sure there will be a query, and so an error when switching connection
@@ -364,9 +366,9 @@ public abstract class BaseReplication extends BaseMonoServer {
 
       connection.setReadOnly(true);
 
-      int slaveServerId = getServerId(connection);
+      int replicaServerId = getServerId(connection);
 
-      assertFalse(slaveServerId == masterServerId);
+      assertFalse(replicaServerId == masterServerId);
       assertTrue(connection.isReadOnly());
       restartProxy(masterServerId);
     }

@@ -148,7 +148,6 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
 
   public void clearBatch() {
     queryParameters.clear();
-    hasLongData = false;
   }
 
   @Override
@@ -255,12 +254,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
       // if  multi send capacity
       if ((options.useBatchMultiSend || options.useBulkStmts)
           && (protocol.executeBatchServer(
-              mustExecuteOnMaster,
-              serverPrepareResult,
-              results,
-              sql,
-              queryParameters,
-              hasLongData))) {
+              mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters))) {
         if (metadata == null) {
           setMetaFromResult(); // first prepare
         }

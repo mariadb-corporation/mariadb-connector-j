@@ -55,31 +55,35 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.assertEquals;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class UnicodeTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "unicode_test",
-        "id int not null primary key auto_increment, test_text varchar(100)",
-        "charset utf8");
-    createTable("umlaut_test", "id varchar(100), test_text varchar(100), t int", "charset utf8");
-    createTable(
-        "unicode_test2",
-        "id int not null primary key auto_increment, test_text varchar(100)",
-        "charset=utf8");
-    createTable(
-        "unicode_test3",
-        "id int not null primary key auto_increment, test_text varchar(100)",
-        "charset utf8mb4");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE unicode_test(id int not null primary key auto_increment, test_text varchar(100)) charset utf8");
+      stmt.execute(
+          "CREATE TABLE umlaut_test(id varchar(100), test_text varchar(100), t int) charset utf8");
+      stmt.execute(
+          "CREATE TABLE unicode_test2(id int not null primary key auto_increment, test_text varchar(100)) charset utf8");
+      stmt.execute(
+          "CREATE TABLE unicode_test3(id int not null primary key auto_increment, test_text varchar(100)) charset utf8mb4");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS unicode_test");
+      stmt.execute("DROP TABLE IF EXISTS umlaut_test");
+      stmt.execute("DROP TABLE IF EXISTS unicode_test2");
+      stmt.execute("DROP TABLE IF EXISTS unicode_test3");
+    }
   }
 
   @Test

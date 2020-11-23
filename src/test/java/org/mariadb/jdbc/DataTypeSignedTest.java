@@ -58,24 +58,35 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DataTypeSignedTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("signedTinyIntTest", "id TINYINT");
-    createTable("signedSmallIntTest", "id SMALLINT");
-    createTable("signedMediumIntTest", "id MEDIUMINT");
-    createTable("signedIntTest", "id INT");
-    createTable("signedBigIntTest", "id BIGINT");
-    createTable("signedDecimalTest", "id DECIMAL(65,20)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE signedTinyIntTest(id TINYINT)");
+      stmt.execute("CREATE TABLE signedSmallIntTest(id SMALLINT)");
+      stmt.execute("CREATE TABLE signedMediumIntTest(id MEDIUMINT)");
+      stmt.execute("CREATE TABLE signedIntTest(id INT)");
+      stmt.execute("CREATE TABLE signedBigIntTest(id BIGINT)");
+      stmt.execute("CREATE TABLE signedDecimalTest(id DECIMAL(65,20))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS signedTinyIntTest");
+      stmt.execute("DROP TABLE IF EXISTS signedSmallIntTest");
+      stmt.execute("DROP TABLE IF EXISTS signedMediumIntTest");
+      stmt.execute("DROP TABLE IF EXISTS signedIntTest");
+      stmt.execute("DROP TABLE IF EXISTS signedBigIntTest");
+      stmt.execute("DROP TABLE IF EXISTS signedDecimalTest");
+    }
   }
 
   @Test

@@ -55,19 +55,27 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class StringUTFTest extends BaseTest {
 
-  /**
-   * Initialization.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("stringutftest", "stringutf varchar(40)", "COLLATE='utf8mb4_general_ci'");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE stringutftest(stringutf varchar(40)) COLLATE='utf8mb4_general_ci'");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS stringutftest");
+    }
   }
 
   @Test
