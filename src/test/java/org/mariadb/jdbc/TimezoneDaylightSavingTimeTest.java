@@ -84,7 +84,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
+    if (testSingleHost
+        || ((System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null))) {
       try (Statement st = sharedConnection.createStatement()) {
         ResultSet rs =
             st.executeQuery(
@@ -123,19 +124,53 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
       utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
       utcDateFormatSimple.setTimeZone(utcTimeZone);
-      createTable("daylightMysql", " tt DATE");
-      if (doPrecisionTest) {
-        createTable("timeZoneTime", "id int, tt TIME(6)");
-        createTable(
-            "ttimeTest", "id int not null primary key auto_increment, dd TIME(3), dd2 TIME(3)");
+      try (Statement stmt = sharedConnection.createStatement()) {
+        stmt.execute("CREATE TABLE daylightMysql(tt DATE)");
+        stmt.execute(
+            "CREATE TABLE daylight(id int, t1 TIMESTAMP(6) NULL, t2 TIME(6), t3 DATETIME(6) , t4 DATE)");
+        stmt.execute("CREATE TABLE daylight2(id int, tt TIMESTAMP(6))");
+        stmt.execute(
+            "CREATE TABLE checkLocalDateTimefalsefalse(id int, tt DATETIME(6), tt2 TIME(6), tt3 varchar(100), tt4 varchar(100))");
+        stmt.execute(
+            "CREATE TABLE checkLocalDateTimefalsetrue(id int, tt DATETIME(6), tt2 TIME(6), tt3 varchar(100), tt4 varchar(100))");
+        stmt.execute(
+            "CREATE TABLE checkLocalDateTimetruetrue(id int, tt DATETIME(6), tt2 TIME(6), tt3 varchar(100), tt4 varchar(100))");
+        stmt.execute(
+            "CREATE TABLE checkLocalDateTimetruefalse(id int, tt DATETIME(6), tt2 TIME(6), tt3 varchar(100), tt4 varchar(100))");
+        stmt.execute("CREATE TABLE timeVerificationWithTimezone(time_field TIME)");
+        stmt.execute("CREATE TABLE daylightCanada(id int, tt TIMESTAMP(6))");
+
+        if (doPrecisionTest) {
+          stmt.execute("CREATE TABLE timeZoneTime(id int, tt TIME(6))");
+          stmt.execute(
+              "CREATE TABLE ttimeTest(id int not null primary key auto_increment, dd TIME(3), dd2 TIME(3))");
+        }
+        stmt.execute("FLUSH TABLES");
       }
     }
   }
 
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS daylightMysql");
+      stmt.execute("DROP TABLE IF EXISTS daylight");
+      stmt.execute("DROP TABLE IF EXISTS daylight2");
+      stmt.execute("DROP TABLE IF EXISTS checkLocalDateTimefalsefalse");
+      stmt.execute("DROP TABLE IF EXISTS checkLocalDateTimefalsetrue");
+      stmt.execute("DROP TABLE IF EXISTS checkLocalDateTimetruetrue");
+      stmt.execute("DROP TABLE IF EXISTS checkLocalDateTimetruefalse");
+      stmt.execute("DROP TABLE IF EXISTS timeVerificationWithTimezone");
+      stmt.execute("DROP TABLE IF EXISTS daylightCanada");
+      stmt.execute("DROP TABLE IF EXISTS timeZoneTime");
+      stmt.execute("DROP TABLE IF EXISTS ttimeTest");
+    }
+  }
   /** Put the TimeZone to previous state. */
   @AfterClass()
   public static void endClass() {
-    if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
+    if (testSingleHost
+        || ((System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null))) {
       TimeZone.setDefault(previousTimeZone);
       if (previousFormatLocale != null) {
         Locale.setDefault(previousFormatLocale);
@@ -182,7 +217,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeStamp() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection =
         setConnection("&serverTimezone=Europe/Paris&useServerPrepStmts=true")) {
@@ -216,7 +251,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeStampUtcNow() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true")) {
       TimeZone.setDefault(parisTimeZone);
@@ -296,7 +331,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeUtc() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(doPrecisionTest);
 
     TimeZone.setDefault(parisTimeZone);
@@ -329,7 +364,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeUtcNow() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection = setConnection("&serverTimezone=UTC")) {
       setSessionTimeZone(connection, "+00:00");
@@ -347,7 +382,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeOffsetNowUseServer() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection =
         setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
       setSessionTimeZone(connection, "+5:00");
@@ -364,7 +399,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testDifferentTimeZoneServer() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection = setConnection("&serverTimezone=UTC")) {
       setSessionTimeZone(sharedConnection, "+00:00");
       // timestamp timezone to parisTimeZone like server
@@ -380,7 +415,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeStampOffsetNowUseServer() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
       // timestamp timezone to parisTimeZone like server
       Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
@@ -404,7 +439,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
   }
 
   private void testDayLight(boolean legacy) throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(doPrecisionTest);
     Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
     TimeZone.setDefault(parisTimeZone);
@@ -413,9 +448,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             "&useLegacyDatetimeCode="
                 + legacy
                 + "&serverTimezone=Canada/Atlantic&sessionVariables=time_zone='Canada/Atlantic'")) {
-
-      createTable("daylight", "id int, t1 TIMESTAMP(6) NULL, t2 TIME(6), t3 DATETIME(6) , t4 DATE");
-
+      sharedConnection.createStatement().execute("TRUNCATE daylight");
       Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
       quarterBeforeChangingHour.clear();
       quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
@@ -772,7 +805,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testDayLightNotUtC() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(doPrecisionTest && hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
     TimeZone.setDefault(canadaTimeZone);
     try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
@@ -786,7 +819,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         st.executeQuery("SET GLOBAL time_zone = 'Europe/Paris'");
         rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
         assertTrue(rs.next());
-        createTable("daylightCanada", "id int, tt TIMESTAMP(6)");
 
         Calendar quarterBeforeChangingHour =
             Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
@@ -843,7 +875,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(doPrecisionTest && !sharedIsRewrite());
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection = setConnection("&serverTimezone=UTC")) {
@@ -858,8 +890,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
       quarterAfterChangingHour.set(2015, Calendar.MARCH, 29, 1, 15, 0);
       int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
       assertEquals(offsetAfter, 7200000);
-
-      createTable("daylight2", "id int, tt TIMESTAMP(6)");
 
       Timestamp tt = new Timestamp(quarterBeforeChangingHour.getTimeInMillis());
       tt.setNanos(123400000);
@@ -898,7 +928,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testNoMysqlDayLightCompatibility() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(hasSuperPrivilege("testMysqlDayLightCompatibility"));
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection =
@@ -933,7 +963,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void checkSetLocalDateTimeNoOffset() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5, 6));
     checkSetLocalDateTime(true, true, "Europe/Paris");
     checkSetLocalDateTime(true, false, "Europe/Paris");
@@ -943,7 +973,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void checkSetLocalDateTimeOffset() throws SQLException {
-    Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
     Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5, 6));
     checkSetLocalDateTime(true, true, "+2:00");
     checkSetLocalDateTime(true, false, "+2:00");
@@ -962,9 +992,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
    */
   public void checkSetLocalDateTime(boolean legacy, boolean useBinaryFormat, String timeZone)
       throws SQLException {
-    createTable(
-        "checkLocalDateTime" + legacy + useBinaryFormat,
-        " id int, tt DATETIME(6), tt2 TIME(6), tt3 varchar(100), tt4 varchar(100) ");
     TimeZone initialTimeZone = TimeZone.getDefault();
     boolean isOffset = timeZone.startsWith("+");
     if (isOffset) {
@@ -1153,7 +1180,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     TimeZone timeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
     TimeZone.setDefault(timeZone);
     SimpleDateFormat df = new SimpleDateFormat("HH:mm:ss");
-    createTable("timeVerificationWithTimezone", "time_field TIME");
 
     try (Connection conn = setConnection()) {
 

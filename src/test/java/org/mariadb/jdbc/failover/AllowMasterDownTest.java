@@ -56,13 +56,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.*;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.mariadb.jdbc.BaseTest;
 
 public class AllowMasterDownTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE checkMetaData(xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS checkMetaData");
+    }
+  }
 
   private String masterDownUrl;
 
@@ -70,7 +84,7 @@ public class AllowMasterDownTest extends BaseTest {
   @Before
   public void init() {
     Assume.assumeTrue(testSingleHost);
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     if (testSingleHost) {
       masterDownUrl =
           "jdbc:mariadb:replication//"
@@ -128,9 +142,6 @@ public class AllowMasterDownTest extends BaseTest {
   @Test
   public void masterDownGetMeta() {
     try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
-      createTable(
-          "checkMetaData",
-          "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
       DatabaseMetaData meta = connection.getMetaData();
       meta.getColumns(null, null, "checkMetaData", null);
       Assert.fail("Must have thrown a connectionException");
@@ -142,9 +153,6 @@ public class AllowMasterDownTest extends BaseTest {
   @Test
   public void masterDownGetMetaRead() throws SQLException {
     try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
-      createTable(
-          "checkMetaData",
-          "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
       connection.setReadOnly(true);
       DatabaseMetaData meta = connection.getMetaData();
       ResultSet rs = meta.getColumns(null, null, "checkMetaData", null);

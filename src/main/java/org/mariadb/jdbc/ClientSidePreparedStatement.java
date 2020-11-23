@@ -192,7 +192,7 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
         logger.error("Parameter at position {} is not set", (i + 1));
         throw exceptionFactory
             .raiseStatementError(connection, this)
-            .create("Parameter at position " + (i + 1) + " is " + "not set", "07004");
+            .create("Parameter at position " + (i + 1) + " is not set", "07004");
       }
     }
 

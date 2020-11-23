@@ -107,7 +107,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
           "create table baseReplicationTransaction"
               + jobId
               + " (id int not null primary key auto_increment, test VARCHAR(10))");
-
+      st.execute("FLUSH TABLES");
       connection.setAutoCommit(false);
       st.execute("INSERT INTO baseReplicationTransaction" + jobId + "(test) VALUES ('test')");
       int masterServerId = getServerId(connection);
@@ -141,6 +141,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
               + jobId
               + " (id int not null primary key , amount int not null) "
               + "ENGINE = InnoDB");
+      st.execute("FLUSH TABLES");
       stopProxy(masterServerId, 2);
       try {
         st.execute("SELECT * from selectFailover" + jobId);
@@ -173,6 +174,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
               + jobId
               + " (id int not null primary key , amount int not null) "
               + "ENGINE = InnoDB");
+      st.execute("FLUSH TABLES");
       connection.setAutoCommit(false);
       st.execute("INSERT INTO selectFailoverTrans" + jobId + " VALUES (0,0)");
       stopProxy(masterServerId, 2);

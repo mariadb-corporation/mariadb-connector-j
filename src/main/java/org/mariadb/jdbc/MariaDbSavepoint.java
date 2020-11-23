@@ -85,6 +85,6 @@ public class MariaDbSavepoint implements Savepoint {
 
   @Override
   public String toString() {
-    return "MariaDbSavepoint{" + "name='" + name + '\'' + '}';
+    return "MariaDbSavepoint{name='" + name + '\'' + '}';
   }
 }

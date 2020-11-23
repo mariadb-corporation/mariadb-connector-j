@@ -107,6 +107,7 @@ public class ReplicationFailoverTest extends BaseReplication {
           "create table replicationDelete"
               + jobId
               + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute("FLUSH TABLES");
       connection.setReadOnly(true);
       assertTrue(connection.isReadOnly());
       try {
@@ -233,6 +234,7 @@ public class ReplicationFailoverTest extends BaseReplication {
     try (Connection conn = getNewConnection()) {
       Statement stmt = conn.createStatement();
       stmt.execute("CREATE TABLE IF NOT EXISTS commitExecution(id int, val varchar(256))");
+      stmt.execute("FLUSH TABLES");
       stmt.execute("TRUNCATE TABLE commitExecution");
       stmt.execute("INSERT INTO commitExecution value (1, 'test')");
       conn.setAutoCommit(false);

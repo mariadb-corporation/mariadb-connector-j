@@ -58,6 +58,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.util.Arrays;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -66,65 +67,70 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
   private static final String sql = "SELECT id, time_test FROM time_test;";
 
-  /**
-   * Initialization.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "pk_test",
-        "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
-        "engine=innodb");
-    createTable("datetime_test", "dt datetime");
-    createTable(
-        "`manycols`",
-        "  `tiny` tinyint(4) DEFAULT NULL,\n"
-            + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n"
-            + "  `small` smallint(6) DEFAULT NULL,\n"
-            + "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n"
-            + "  `medium` mediumint(9) DEFAULT NULL,\n"
-            + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n"
-            + "  `int_col` int(11) DEFAULT NULL,\n"
-            + "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n"
-            + "  `big` bigint(20) DEFAULT NULL,\n"
-            + "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n"
-            + "  `decimal_col` decimal(10,5) DEFAULT NULL,\n"
-            + "  `fcol` float DEFAULT NULL,\n"
-            + "  `fcol_uns` float unsigned DEFAULT NULL,\n"
-            + "  `dcol` double DEFAULT NULL,\n"
-            + "  `dcol_uns` double unsigned DEFAULT NULL,\n"
-            + "  `date_col` date DEFAULT NULL,\n"
-            + "  `time_col` time DEFAULT NULL,\n"
-            + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n"
-            + "CURRENT_TIMESTAMP,\n"
-            + "  `year_col` year(4) DEFAULT NULL,\n"
-            + "  `bit_col` bit(5) DEFAULT NULL,\n"
-            + "  `char_col` char(5) DEFAULT NULL,\n"
-            + "  `varchar_col` varchar(10) DEFAULT NULL,\n"
-            + "  `binary_col` binary(10) DEFAULT NULL,\n"
-            + "  `varbinary_col` varbinary(10) DEFAULT NULL,\n"
-            + "  `tinyblob_col` tinyblob,\n"
-            + "  `blob_col` blob,\n"
-            + "  `mediumblob_col` mediumblob,\n"
-            + "  `longblob_col` longblob,\n"
-            + "  `text_col` text,\n"
-            + "  `mediumtext_col` mediumtext,\n"
-            + "  `longtext_col` longtext");
-    createTable("ytab", "y year");
-    createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
-    if (doPrecisionTest) {
-      createTable(
-          "time_test",
-          "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)",
-          "engine=InnoDB");
-      if (testSingleHost) {
-        sharedConnection
-            .createStatement()
-            .execute(
-                "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE pk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2))");
+      stmt.execute("CREATE TABLE datetime_test(dt datetime)");
+      stmt.execute(
+          "CREATE TABLE `manycols`("
+              + "  `tiny` tinyint(4) DEFAULT NULL,\n"
+              + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,\n"
+              + "  `small` smallint(6) DEFAULT NULL,\n"
+              + "  `small_uns` smallint(5) unsigned DEFAULT NULL,\n"
+              + "  `medium` mediumint(9) DEFAULT NULL,\n"
+              + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,\n"
+              + "  `int_col` int(11) DEFAULT NULL,\n"
+              + "  `int_col_uns` int(10) unsigned DEFAULT NULL,\n"
+              + "  `big` bigint(20) DEFAULT NULL,\n"
+              + "  `big_uns` bigint(20) unsigned DEFAULT NULL,\n"
+              + "  `decimal_col` decimal(10,5) DEFAULT NULL,\n"
+              + "  `fcol` float DEFAULT NULL,\n"
+              + "  `fcol_uns` float unsigned DEFAULT NULL,\n"
+              + "  `dcol` double DEFAULT NULL,\n"
+              + "  `dcol_uns` double unsigned DEFAULT NULL,\n"
+              + "  `date_col` date DEFAULT NULL,\n"
+              + "  `time_col` time DEFAULT NULL,\n"
+              + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE\n"
+              + "CURRENT_TIMESTAMP,\n"
+              + "  `year_col` year(4) DEFAULT NULL,\n"
+              + "  `bit_col` bit(5) DEFAULT NULL,\n"
+              + "  `char_col` char(5) DEFAULT NULL,\n"
+              + "  `varchar_col` varchar(10) DEFAULT NULL,\n"
+              + "  `binary_col` binary(10) DEFAULT NULL,\n"
+              + "  `varbinary_col` varbinary(10) DEFAULT NULL,\n"
+              + "  `tinyblob_col` tinyblob,\n"
+              + "  `blob_col` blob,\n"
+              + "  `mediumblob_col` mediumblob,\n"
+              + "  `longblob_col` longblob,\n"
+              + "  `text_col` text,\n"
+              + "  `mediumtext_col` mediumtext,\n"
+              + "  `longtext_col` longtext)");
+      stmt.execute("CREATE TABLE ytab(y year)");
+      stmt.execute("CREATE TABLE maxcharlength(maxcharlength char(1)) character set utf8");
+      if (doPrecisionTest) {
+        stmt.execute(
+            "CREATE TABLE time_test(ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID))");
+        if (testSingleHost) {
+          stmt.execute(
+              "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+        }
       }
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS pk_test");
+      stmt.execute("DROP TABLE IF EXISTS datetime_test");
+      stmt.execute("DROP TABLE IF EXISTS `manycols`");
+      stmt.execute("DROP TABLE IF EXISTS ytab");
+      stmt.execute("DROP TABLE IF EXISTS maxcharlength");
+      stmt.execute("DROP TABLE IF EXISTS time_test");
     }
   }
 
@@ -212,7 +218,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
         "BIT(64)",
         byte[].class,
         Types.VARBINARY,
-        "b'1111111111111111111111111111111111111111111111111111" + "111111111111'",
+        "b'1111111111111111111111111111111111111111111111111111111111111111'",
         new byte[] {-1, -1, -1, -1, -1, -1, -1, -1});
   }
 
@@ -225,13 +231,15 @@ public class DatatypeCompatibilityTest extends BaseTest {
       throws SQLException {
     assertNotNull(expectedObjectValue);
     assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
+    String columnName =
+        columnType.replace(" ", "_").replace("(", "_").replace(")", "").replace(",", "_");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE my_table_" + columnName + "(my_col " + columnType + ")");
+      stmt.execute("FLUSH TABLES");
+      stmt.execute("INSERT INTO my_table_" + columnName + "(my_col) VALUES (" + strValue + ")");
+      stmt.execute("SELECT * FROM my_table_" + columnName);
 
-    try (Statement statement = sharedConnection.createStatement()) {
-      createTable("my_table", "my_col " + columnType);
-      statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
-      statement.execute("SELECT * FROM my_table");
-
-      try (ResultSet resultSet = statement.getResultSet()) {
+      try (ResultSet resultSet = stmt.getResultSet()) {
         ResultSetMetaData metaData = resultSet.getMetaData();
         assertEquals(
             "class name  for " + columnType,
@@ -248,6 +256,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
           assertEquals(expectedObjectValue, objectValue);
         }
       }
+      stmt.execute("DROP TABLE my_table_" + columnName);
     }
   }
 

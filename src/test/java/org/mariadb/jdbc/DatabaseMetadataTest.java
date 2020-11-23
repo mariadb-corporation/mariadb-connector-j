@@ -59,92 +59,151 @@ import org.junit.*;
 
 public class DatabaseMetadataTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "dbpk_test",
-        "val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)",
-        "engine=innodb");
-    createTable("datetime_test", "dt datetime");
-    createTable(
-        "`manycols`",
-        "  `tiny` tinyint(4) DEFAULT NULL,"
-            + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
-            + "  `small` smallint(6) DEFAULT NULL,"
-            + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
-            + "  `medium` mediumint(9) DEFAULT NULL,"
-            + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
-            + "  `int_col` int(11) DEFAULT NULL,"
-            + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
-            + "  `big` bigint(20) DEFAULT NULL,"
-            + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
-            + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
-            + "  `fcol` float DEFAULT NULL,"
-            + "  `fcol_uns` float unsigned DEFAULT NULL,"
-            + "  `dcol` double DEFAULT NULL,"
-            + "  `dcol_uns` double unsigned DEFAULT NULL,"
-            + "  `date_col` date DEFAULT NULL,"
-            + "  `time_col` time DEFAULT NULL,"
-            + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-            + "  `year_col` year(4) DEFAULT NULL,"
-            + "  `bit_col` bit(5) DEFAULT NULL,"
-            + "  `char_col` char(5) DEFAULT NULL,"
-            + "  `varchar_col` varchar(10) DEFAULT NULL,"
-            + "  `binary_col` binary(10) DEFAULT NULL,"
-            + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
-            + "  `tinyblob_col` tinyblob,"
-            + "  `blob_col` blob,"
-            + "  `mediumblob_col` mediumblob,"
-            + "  `longblob_col` longblob,"
-            + "  `tinytext_col` tinytext,"
-            + "  `text_col` text,"
-            + "  `mediumtext_col` mediumtext,"
-            + "  `longtext_col` longtext");
-    createTable("ytab", "y year");
-    createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
-    createTable("conj72", "t tinyint(1)");
-    if (isMariadbServer() && minVersion(10, 3, 4)) {
-      createTable("versionTable", "x INT", "WITH SYSTEM VERSIONING");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE dbpk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2)) engine=innodb");
+      stmt.execute("CREATE TABLE datetime_test(dt datetime)");
+      stmt.execute(
+          "CREATE TABLE `manycols`("
+              + "  `tiny` tinyint(4) DEFAULT NULL,"
+              + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
+              + "  `small` smallint(6) DEFAULT NULL,"
+              + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
+              + "  `medium` mediumint(9) DEFAULT NULL,"
+              + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
+              + "  `int_col` int(11) DEFAULT NULL,"
+              + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
+              + "  `big` bigint(20) DEFAULT NULL,"
+              + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
+              + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
+              + "  `fcol` float DEFAULT NULL,"
+              + "  `fcol_uns` float unsigned DEFAULT NULL,"
+              + "  `dcol` double DEFAULT NULL,"
+              + "  `dcol_uns` double unsigned DEFAULT NULL,"
+              + "  `date_col` date DEFAULT NULL,"
+              + "  `time_col` time DEFAULT NULL,"
+              + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+              + "  `year_col` year(4) DEFAULT NULL,"
+              + "  `bit_col` bit(5) DEFAULT NULL,"
+              + "  `char_col` char(5) DEFAULT NULL,"
+              + "  `varchar_col` varchar(10) DEFAULT NULL,"
+              + "  `binary_col` binary(10) DEFAULT NULL,"
+              + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
+              + "  `tinyblob_col` tinyblob,"
+              + "  `blob_col` blob,"
+              + "  `mediumblob_col` mediumblob,"
+              + "  `longblob_col` longblob,"
+              + "  `tinytext_col` tinytext,"
+              + "  `text_col` text,"
+              + "  `mediumtext_col` mediumtext,"
+              + "  `longtext_col` longtext)");
+      stmt.execute("CREATE TABLE ytab(y year)");
+      stmt.execute("CREATE TABLE maxcharlength(maxcharlength char(1)) character set utf8");
+      stmt.execute("CREATE TABLE conj72(t tinyint(1))");
+      if (isMariadbServer() && minVersion(10, 3, 4)) {
+        stmt.execute("CREATE TABLE versionTable(x INT) WITH SYSTEM VERSIONING");
+      }
+      stmt.execute("create table cross1 (id int not null primary key, val varchar(20))");
+      stmt.execute(
+          "create table cross2 (id int not null, id2 int not null,  "
+              + "id_ref0 int, foreign key (id_ref0) references cross1(id), UNIQUE unik_name (id, id2))");
+      stmt.execute(
+          "create table cross3 (id int not null primary key, "
+              + "id_ref1 int, id_ref2 int, foreign key fk_my_name (id_ref1, id_ref2) references cross2(id, id2) on "
+              + "update cascade)");
+      stmt.execute(
+          "create table getBestRowIdentifier1(i int not null primary key auto_increment, id int, "
+              + "id_ref1 int, id_ref2 int, foreign key fk_my_name_1 (id_ref1, id_ref2) references cross2(id, id2) on "
+              + "update cascade, UNIQUE getBestRowIdentifier_unik (id))");
+      stmt.execute(
+          "create table getBestRowIdentifier2(id_ref0 int not null, "
+              + "id_ref1 int, id_ref2 int not null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
+      stmt.execute(
+          "CREATE TABLE getPrecision("
+              + "num1 NUMERIC(9,4), "
+              + "num2 NUMERIC (9,0),"
+              + "num3 NUMERIC (9,4) UNSIGNED,"
+              + "num4 NUMERIC (9,0) UNSIGNED,"
+              + "num5 FLOAT(9,4),"
+              + "num6 FLOAT(9,4) UNSIGNED,"
+              + "num7 DOUBLE(9,4),"
+              + "num8 DOUBLE(9,4) UNSIGNED)");
+      stmt.execute(
+          "CREATE TABLE getTimePrecision("
+              + "d date, "
+              + "t1 datetime(0),"
+              + "t2 datetime(6),"
+              + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+              + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+              + "t5 time(0),"
+              + "t6 time(6))");
+      stmt.execute(
+          "CREATE TABLE getTimePrecision2("
+              + "d date, "
+              + "t1 datetime(0),"
+              + "t2 datetime(6),"
+              + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+              + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+              + "t5 time(0),"
+              + "t6 time(6))");
+
+      stmt.execute(
+          "CREATE PROCEDURE getProcTimePrecision2(IN  I date, "
+              + "IN t1 DATETIME,"
+              + "IN t3 timestamp,"
+              + "IN t5 time) BEGIN SELECT I; END");
+      stmt.execute(
+          "CREATE PROCEDURE getProcTimePrecision(IN  I date, "
+              + "IN t1 DATETIME(0),"
+              + "IN t2 DATETIME(6),"
+              + "IN t3 timestamp(0),"
+              + "IN t4 timestamp(6),"
+              + "IN t5 time ,"
+              + "IN t6 time(6)) BEGIN SELECT I; END");
+      stmt.execute(
+          "create table prim_key (id int not null primary key, val varchar(20)) engine=innodb");
+      stmt.execute(
+          "create table fore_key0 (id int not null primary key, "
+              + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
+      stmt.execute(
+          "create table fore_key1 (id int not null primary key, "
+              + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+      stmt.execute(
+          "create table table_type_test (id int not null primary key, "
+              + "val varchar(20)) engine=innodb");
+      stmt.execute("FLUSH TABLES");
     }
-    Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists cross3");
-    stmt.execute("drop table if exists cross2");
-    stmt.execute("drop table if exists cross1");
-    stmt.execute("create table cross1 (id int not null primary key, val varchar(20))");
-    stmt.execute(
-        "create table cross2 (id int not null, id2 int not null,  "
-            + "id_ref0 int, foreign key (id_ref0) references cross1(id), UNIQUE unik_name (id, id2))");
-    stmt.execute(
-        "create table cross3 (id int not null primary key, "
-            + "id_ref1 int, id_ref2 int, foreign key fk_my_name (id_ref1, id_ref2) references cross2(id, id2) on "
-            + "update cascade)");
-    stmt.execute(
-        "create table getBestRowIdentifier1(i int not null primary key auto_increment, id int, "
-            + "id_ref1 int, id_ref2 int, foreign key fk_my_name_1 (id_ref1, id_ref2) references cross2(id, id2) on "
-            + "update cascade, UNIQUE getBestRowIdentifier_unik (id))");
-    stmt.execute(
-        "create table getBestRowIdentifier2(id_ref0 int not null, "
-            + "id_ref1 int, id_ref2 int not null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
   }
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @AfterClass
   public static void afterClass() throws SQLException {
-    Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists getBestRowIdentifier1");
-    stmt.execute("drop table if exists getBestRowIdentifier2");
-    stmt.execute("drop table if exists cross3");
-    stmt.execute("drop table if exists cross2");
-    stmt.execute("drop table if exists cross1");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS dbpk_test");
+      stmt.execute("DROP TABLE IF EXISTS datetime_test");
+      stmt.execute("DROP TABLE IF EXISTS `manycols`");
+      stmt.execute("DROP TABLE IF EXISTS ytab");
+      stmt.execute("DROP TABLE IF EXISTS maxcharlength");
+      stmt.execute("DROP TABLE IF EXISTS conj72");
+      stmt.execute("DROP TABLE IF EXISTS versionTable");
+      stmt.execute("drop table if exists getBestRowIdentifier1");
+      stmt.execute("drop table if exists getBestRowIdentifier2");
+      stmt.execute("drop table if exists cross3");
+      stmt.execute("drop table if exists cross2");
+      stmt.execute("drop table if exists cross1");
+      stmt.execute("drop table if exists getPrecision");
+      stmt.execute("drop table if exists tablegetcolumns");
+      stmt.execute("drop table if exists getTimePrecision");
+      stmt.execute("drop table if exists getTimePrecision2");
+      stmt.execute("drop procedure if exists getProcTimePrecision");
+      stmt.execute("drop procedure if exists getProcTimePrecision2");
+      stmt.execute("drop table if exists fore_key0");
+      stmt.execute("drop table if exists fore_key1");
+      stmt.execute("drop table if exists prim_key");
+      stmt.execute("drop table if exists table_type_test");
+    }
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -185,7 +244,7 @@ public class DatabaseMetadataTest extends BaseTest {
         "CREATE TABLE t2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
             + "constraint fk1 foreign key(id2a) references t1(id1),  constraint fk2 foreign key(id2b) "
             + "references t1(id1))");
-
+    stmt.execute("FLUSH TABLES");
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getPrimaryKeys("testj", null, "t2");
     int counter = 0;
@@ -285,7 +344,7 @@ public class DatabaseMetadataTest extends BaseTest {
             + "    FOREIGN KEY (customer_id)\n"
             + "      REFERENCES `cus``tomer`(id)\n"
             + ")   ENGINE=INNODB;");
-
+    st.execute("FLUSH TABLES");
     /*
     Test that I_S implementation is equivalent to parsing "show create table" .
      Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
@@ -442,18 +501,6 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void importedKeysTest() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists fore_key0");
-    stmt.execute("drop table if exists fore_key1");
-    stmt.execute("drop table if exists prim_key");
-
-    stmt.execute(
-        "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
-    stmt.execute(
-        "create table fore_key0 (id int not null primary key, "
-            + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-    stmt.execute(
-        "create table fore_key1 (id int not null primary key, "
-            + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getImportedKeys(sharedConnection.getCatalog(), null, "fore_key0");
@@ -464,9 +511,6 @@ public class DatabaseMetadataTest extends BaseTest {
       counter++;
     }
     assertEquals(1, counter);
-    stmt.execute("drop table if exists fore_key0");
-    stmt.execute("drop table if exists fore_key1");
-    stmt.execute("drop table if exists prim_key");
   }
 
   @Test
@@ -492,19 +536,6 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void testGetTables() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists fore_key0");
-    stmt.execute("drop table if exists fore_key1");
-    stmt.execute("drop table if exists prim_key");
-
-    stmt.execute(
-        "create table prim_key (id int not null primary key, " + "val varchar(20)) engine=innodb");
-    stmt.execute(
-        "create table fore_key0 (id int not null primary key, "
-            + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
-    stmt.execute(
-        "create table fore_key1 (id int not null primary key, "
-            + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
-
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
 
@@ -542,12 +573,6 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void testGetTables3() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("drop table if exists table_type_test");
-
-    stmt.execute(
-        "create table table_type_test (id int not null primary key, "
-            + "val varchar(20)) engine=innodb");
-
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet tableSet = dbmd.getTables(null, null, "table_type_test", null);
 
@@ -566,19 +591,19 @@ public class DatabaseMetadataTest extends BaseTest {
   public void testGetColumns() throws SQLException {
     // mysql 5.6 doesn't permit VIRTUAL keyword
     Assume.assumeTrue(isMariadbServer() || !isMariadbServer() && minVersion(5, 7));
-
-    if (minVersion(10, 2) || !isMariadbServer()) {
-      createTable(
-          "tablegetcolumns",
-          "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-              + "d VARCHAR(5) AS (left(b,5)) STORED",
-          "CHARACTER SET 'utf8mb4'");
-    } else {
-      createTable(
-          "tablegetcolumns",
-          "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-              + "d VARCHAR(5) AS (left(b,5)) PERSISTENT",
-          "CHARACTER SET 'utf8mb4'");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      if (minVersion(10, 2) || !isMariadbServer()) {
+        stmt.execute(
+            "CREATE TABLE tablegetcolumns("
+                + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
+      } else {
+        stmt.execute(
+            "CREATE TABLE tablegetcolumns("
+                + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                + "d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET 'utf8mb4'");
+      }
+      stmt.execute("FLUSH TABLES");
     }
 
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
@@ -1373,16 +1398,6 @@ public class DatabaseMetadataTest extends BaseTest {
 
   @Test
   public void getPrecision() throws SQLException {
-    createTable(
-        "getPrecision",
-        "num1 NUMERIC(9,4), "
-            + "num2 NUMERIC (9,0),"
-            + "num3 NUMERIC (9,4) UNSIGNED,"
-            + "num4 NUMERIC (9,0) UNSIGNED,"
-            + "num5 FLOAT(9,4),"
-            + "num6 FLOAT(9,4) UNSIGNED,"
-            + "num7 DOUBLE(9,4),"
-            + "num8 DOUBLE(9,4) UNSIGNED");
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT * FROM getPrecision");
     ResultSetMetaData rsmd = rs.getMetaData();
@@ -1407,15 +1422,6 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void getTimePrecision() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-    createTable(
-        "getTimePrecision",
-        "d date, "
-            + "t1 datetime(0),"
-            + "t2 datetime(6),"
-            + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
-            + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
-            + "t5 time(0),"
-            + "t6 time(6)");
     Statement stmt = sharedConnection.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT * FROM getTimePrecision");
     ResultSetMetaData rsmd = rs.getMetaData();
@@ -1445,20 +1451,11 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void metaTimeResultSet() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-    createTable(
-        "getTimePrecision",
-        "d date, "
-            + "t1 datetime(0),"
-            + "t2 datetime(6),"
-            + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
-            + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
-            + "t5 time(0),"
-            + "t6 time(6)");
 
     final int columnSizeField = 7;
 
     DatabaseMetaData dmd = sharedConnection.getMetaData();
-    ResultSet rs = dmd.getColumns(null, null, "getTimePrecision", null);
+    ResultSet rs = dmd.getColumns(null, null, "getTimePrecision2", null);
     // date
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(columnSizeField));
@@ -1491,12 +1488,6 @@ public class DatabaseMetadataTest extends BaseTest {
    */
   @Test
   public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
-    createProcedure(
-        "getProcTimePrecision2",
-        "(IN  I date, "
-            + "IN t1 DATETIME,"
-            + "IN t3 timestamp,"
-            + "IN t5 time) BEGIN SELECT I; END");
 
     final int precisionField = 8;
     final int lengthField = 9;
@@ -1537,15 +1528,6 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void metaTimeProcedureResultSet() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-    createProcedure(
-        "getProcTimePrecision",
-        "(IN  I date, "
-            + "IN t1 DATETIME(0),"
-            + "IN t2 DATETIME(6),"
-            + "IN t3 timestamp(0),"
-            + "IN t4 timestamp(6),"
-            + "IN t5 time ,"
-            + "IN t6 time(6)) BEGIN SELECT I; END");
 
     final int precisionField = 8;
     final int lengthField = 9;

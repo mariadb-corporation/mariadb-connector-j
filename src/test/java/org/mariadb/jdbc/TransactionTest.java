@@ -58,29 +58,28 @@ import static org.junit.Assert.fail;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 public class TransactionTest extends BaseTest {
 
-  /**
-   * Tables initialisation.
-   *
-   * @throws SQLException exception
-   */
-  @Before
-  public void beforeTest() throws SQLException {
-    if (testSingleHost) {
-      Statement stmt = sharedConnection.createStatement();
-      stmt.execute("drop table if exists tx_fore_key");
-      stmt.execute("drop table if exists tx_prim_key");
-      createTable("tx_prim_key", "id int not null primary key", "engine=innodb");
-      createTable(
-          "tx_fore_key",
-          "id int not null primary key, id_ref int not null, "
-              + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict",
-          "engine=innodb");
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key)");
+      stmt.execute(
+          "CREATE TABLE tx_fore_key("
+              + "id int not null primary key, "
+              + "id_ref int not null, "
+              + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS tx_fore_key");
+      stmt.execute("DROP TABLE IF EXISTS tx_prim_key");
     }
   }
 

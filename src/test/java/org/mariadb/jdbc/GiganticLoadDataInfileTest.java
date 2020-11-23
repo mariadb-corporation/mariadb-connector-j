@@ -61,23 +61,27 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class GiganticLoadDataInfileTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "gigantic_load_data_infile",
-        "id int not null primary key auto_increment, name char(20)",
-        "ENGINE=myisam");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE gigantic_load_data_infile(id int not null primary key auto_increment, name char(20)) ENGINE=myisam");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE gigantic_load_data_infile");
+    }
   }
 
   @Ignore

@@ -39,6 +39,8 @@ matrix:
       jdk: openjdk11
     - env: SKYSQL=true PACKET=8M
       jdk: openjdk11
+    - env: SKYSQL_HA=true PACKET=8M
+      jdk: openjdk11
     - env: DB=mysql:5.7 PACKET=8M
       jdk: openjdk11
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key

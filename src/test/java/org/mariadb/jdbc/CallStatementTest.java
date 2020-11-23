@@ -55,33 +55,63 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class CallStatementTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createProcedure("useParameterName", "(a int) begin select a; end");
-    createProcedure("useWrongParameterName", "(a int) begin select a; end");
-    createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
-    createProcedure("inoutParam", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-    createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-    createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
-    createProcedure(
-        "TEST_SP1",
-        "() BEGIN\n"
-            + "SELECT @Something := 'Something';\n"
-            + "SIGNAL SQLSTATE '70100'\n"
-            + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
-            + "END");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");
+      stmt.execute("CREATE PROCEDURE useWrongParameterName(a int) begin select a; end");
+      stmt.execute("CREATE PROCEDURE multiResultSets() BEGIN  SELECT 1; SELECT 2; END");
+      stmt.execute("CREATE PROCEDURE inoutParam(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+      stmt.execute("CREATE PROCEDURE testGetProcedures(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+      stmt.execute("CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a; end");
+      stmt.execute(
+          "CREATE PROCEDURE TEST_SP1() BEGIN\n"
+              + "SELECT @Something := 'Something';\n"
+              + "SIGNAL SQLSTATE '70100'\n"
+              + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+              + "END");
+      stmt.execute("CREATE PROCEDURE testCallWithFetchSize()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
+      stmt.execute("CREATE PROCEDURE prepareWithNoParameters()\nbegin\n    SELECT 'mike';end\n");
+      stmt.execute("CREATE PROCEDURE testMetaCatalog(x int, out y int)\nBEGIN\nSELECT 1;end\n");
+      stmt.execute("CREATE PROCEDURE callabletest1()\nBEGIN\nSELECT 1;end\n");
+      stmt.execute("CREATE PROCEDURE stmtSimple(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
+      stmt.execute(
+          "CREATE PROCEDURE prepareStmtSimple(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
+      stmt.execute(
+          "CREATE FUNCTION stmtSimpleFunction(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE prepareStmtWithOutParameter(x int, INOUT y int)\nBEGIN\nSELECT 1;end\n");
+      stmt.execute("CREATE PROCEDURE testMetaWildcard(x int, out y int)\nBEGIN\nSELECT 1;end\n");
+
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
+      stmt.execute("DROP PROCEDURE IF EXISTS useWrongParameterName");
+      stmt.execute("DROP PROCEDURE IF EXISTS multiResultSets");
+      stmt.execute("DROP PROCEDURE IF EXISTS inoutParam");
+      stmt.execute("DROP PROCEDURE IF EXISTS testGetProcedures");
+      stmt.execute("DROP PROCEDURE IF EXISTS withStrangeParameter");
+      stmt.execute("DROP PROCEDURE IF EXISTS TEST_SP1");
+      stmt.execute("DROP PROCEDURE IF EXISTS testCallWithFetchSize");
+      stmt.execute("DROP PROCEDURE IF EXISTS prepareWithNoParameters");
+      stmt.execute("DROP PROCEDURE IF EXISTS testMetaCatalog");
+      stmt.execute("DROP PROCEDURE IF EXISTS callabletest1");
+      stmt.execute("DROP PROCEDURE IF EXISTS stmtSimple");
+      stmt.execute("DROP PROCEDURE IF EXISTS prepareStmtSimple");
+      stmt.execute("DROP FUNCTION IF EXISTS stmtSimpleFunction");
+      stmt.execute("DROP PROCEDURE IF EXISTS prepareStmtWithOutParameter");
+      stmt.execute("DROP PROCEDURE IF EXISTS testMetaWildcard");
+    }
   }
 
   @Before
@@ -91,7 +121,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void stmtSimple() throws SQLException {
-    createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
     ResultSet rs = sharedConnection.createStatement().executeQuery("{call stmtSimple(2,2)}");
     assertTrue(rs.next());
     int result = rs.getInt(1);
@@ -100,7 +129,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void prepareStmtSimple() throws SQLException {
-    createProcedure("prepareStmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
     PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("{call prepareStmtSimple(?,?)}");
     preparedStatement.setInt(1, 2);
@@ -114,9 +142,6 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void stmtSimpleFunction() throws SQLException {
     try {
-      createFunction(
-          "stmtSimpleFunction",
-          "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
       sharedConnection.createStatement().execute("{call stmtSimpleFunction(2,2,2)}");
       fail("call mustn't work for function, use SELECT <function>");
     } catch (SQLSyntaxErrorException sqle) {
@@ -129,9 +154,6 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void prepareStmtSimpleFunction() throws SQLException {
     try {
-      createFunction(
-          "stmtSimpleFunction",
-          "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
       PreparedStatement preparedStatement =
           sharedConnection.prepareStatement("{call stmtSimpleFunction(?,?,?)}");
       preparedStatement.setInt(1, 2);
@@ -149,8 +171,6 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void prepareStmtWithOutParameter() throws SQLException {
     Assume.assumeTrue(sharedUsePrepare());
-    createProcedure(
-        "prepareStmtWithOutParameter", "(x int, INOUT y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
     PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
     preparedStatement.setInt(1, 2);
@@ -244,7 +264,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void meta() throws Exception {
-    createProcedure("callabletest1", "()\nBEGIN\nSELECT 1;end\n");
     ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "callabletest1");
     if (rs.next()) {
       assertTrue("callabletest1".equals(rs.getString(3)));
@@ -255,7 +274,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void testMetaWildcard() throws Exception {
-    createProcedure("testMetaWildcard", "(x int, out y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
     ResultSet rs =
         sharedConnection.getMetaData().getProcedureColumns(null, null, "testMetaWildcard%", "%");
     if (rs.next()) {
@@ -271,7 +289,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void testMetaCatalog() throws Exception {
-    createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSELECT 1;end\n");
     ResultSet rs =
         sharedConnection
             .getMetaData()
@@ -293,8 +310,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void prepareWithNoParameters() throws SQLException {
-    createProcedure("prepareWithNoParameters", "()\n" + "begin\n" + "    SELECT 'mike';" + "end\n");
-
     PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
     ResultSet rs = preparedStatement.executeQuery();
@@ -304,7 +319,6 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void testCallWithFetchSize() throws SQLException {
-    createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
     try (Statement statement = sharedConnection.createStatement()) {
       statement.setFetchSize(1);
       try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {

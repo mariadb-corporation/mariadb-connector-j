@@ -55,9 +55,27 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE yearTableMeta(xx tinyint(1), x2 tinyint(1) unsigned, yy year(4), zz bit, uu smallint)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE yearTableMeta");
+    }
+  }
 
   /**
    * CONJ-412: tinyInt1isBit and yearIsDateType is not applied in method columnTypeClause.
@@ -66,8 +84,6 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
    */
   @Test
   public void testYearDataType() throws Exception {
-    createTable(
-        "yearTableMeta", "xx tinyint(1), x2 tinyint(1) unsigned, yy year(4), zz bit, uu smallint");
     try (Connection connection = setConnection()) {
       checkResults(connection, true, true);
     }

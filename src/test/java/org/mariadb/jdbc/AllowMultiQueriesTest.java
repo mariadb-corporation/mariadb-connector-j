@@ -58,6 +58,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -70,14 +71,22 @@ public class AllowMultiQueriesTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "AllowMultiQueriesTest", "id int not null primary key auto_increment, test varchar(10)");
-    createTable(
-        "AllowMultiQueriesTest2", "id int not null primary key auto_increment, test varchar(10)");
-    if (testSingleHost) {
-      try (Statement stmt = sharedConnection.createStatement()) {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE AllowMultiQueriesTest(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE AllowMultiQueriesTest2(id int not null primary key auto_increment, test varchar(10))");
+      if (testSingleHost) {
         stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
       }
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE AllowMultiQueriesTest");
+      stmt.execute("DROP TABLE AllowMultiQueriesTest2");
     }
   }
 

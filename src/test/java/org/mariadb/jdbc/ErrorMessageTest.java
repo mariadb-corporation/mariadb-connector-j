@@ -59,6 +59,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.sql.DataSource;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -66,22 +67,27 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ErrorMessageTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "testErrorMessage",
-        "id int not null primary key auto_increment, test varchar(10), test2 int");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE testErrorMessage(id int not null primary key auto_increment, test varchar(10), test2 int)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testErrorMessage");
+    }
   }
 
   @Test
   public void testSmallRewriteErrorMessage() {
     try (Connection connection =
-        setBlankConnection("&rewriteBatchedStatements=true" + "&dumpQueriesOnException")) {
+        setBlankConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
       executeBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -131,7 +137,7 @@ public class ErrorMessageTest extends BaseTest {
   @Test
   public void testSmallPrepareErrorMessage() {
     try (Connection connection =
-        setBlankConnection("&useBatchMultiSend=false" + "&dumpQueriesOnException")) {
+        setBlankConnection("&useBatchMultiSend=false&dumpQueriesOnException")) {
       executeBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -180,14 +186,14 @@ public class ErrorMessageTest extends BaseTest {
       assertTrue(
           sqle.getCause()
               .getMessage()
-              .contains("INSERT INTO testErrorMessage(test, test2) values " + "(?, ?)"));
+              .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
   }
 
   @Test
   public void testBigRewriteErrorMessage() {
     try (Connection connection =
-        setBlankConnection("&rewriteBatchedStatements=true" + "&dumpQueriesOnException")) {
+        setBlankConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -238,7 +244,7 @@ public class ErrorMessageTest extends BaseTest {
   @Test
   public void testBigPrepareErrorMessage() throws SQLException {
     try (Connection connection =
-        setBlankConnection("&useBatchMultiSend=false" + "&dumpQueriesOnException")) {
+        setBlankConnection("&useBatchMultiSend=false&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -264,8 +270,7 @@ public class ErrorMessageTest extends BaseTest {
   @Test
   public void testBigBulkErrorMessage() throws SQLException {
     Assume.assumeFalse(sharedIsAurora());
-    try (Connection connection =
-        setConnection("&useBatchMultiSend=true" + "&dumpQueriesOnException")) {
+    try (Connection connection = setConnection("&useBatchMultiSend=true&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -348,7 +353,9 @@ public class ErrorMessageTest extends BaseTest {
   @Test
   public void testFailOverKillCmd() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(isMariadbServer());
     DataSource ds =
         new MariaDbDataSource(
@@ -449,8 +456,7 @@ public class ErrorMessageTest extends BaseTest {
   public void testSmallBulkErrorMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection =
-        setBlankConnection(
-            "&useBatchMultiSend=true&useBulkStmts=false" + "&dumpQueriesOnException")) {
+        setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false&dumpQueriesOnException")) {
       executeBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
@@ -474,9 +480,10 @@ public class ErrorMessageTest extends BaseTest {
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
       assertTrue(
+          sqle.getCause().getMessage(),
           sqle.getCause()
               .getMessage()
-              .contains("INSERT INTO testErrorMessage(test, test2) values " + "(?, ?)"));
+              .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
   }
 
@@ -545,8 +552,7 @@ public class ErrorMessageTest extends BaseTest {
   public void testBigBulkErrorMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection =
-        setBlankConnection(
-            "&useBatchMultiSend=true&useBulkStmts=false" + "&dumpQueriesOnException")) {
+        setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {

@@ -77,6 +77,7 @@ public abstract class BaseReplication extends BaseMonoServer {
           "create table replicationFailoverBinary"
               + jobId
               + " (id int not null primary key auto_increment, test VARCHAR(10))");
+      stmt.execute("FLUSH TABLES");
       stmt.execute("insert into replicationFailoverBinary" + jobId + "(test) values ('Harriba !')");
       final int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
@@ -266,6 +267,7 @@ public abstract class BaseReplication extends BaseMonoServer {
           "create table writeToReplica"
               + jobId
               + " (id int not null primary key , amount int not null) ENGINE = InnoDB");
+      st.execute("FLUSH TABLES");
       st.execute("insert into writeToReplica" + jobId + " (id, amount) VALUE (1 , 100)");
 
       int masterServerId = getServerId(connection);

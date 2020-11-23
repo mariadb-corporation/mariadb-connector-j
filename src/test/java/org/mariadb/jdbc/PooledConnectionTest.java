@@ -88,7 +88,7 @@ public class PooledConnectionTest extends BaseTest {
 
   @Test(expected = SQLException.class)
   public void testPooledConnectionException() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
 
     ConnectionPoolDataSource ds =
         new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);

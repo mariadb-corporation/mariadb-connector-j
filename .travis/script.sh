@@ -6,16 +6,25 @@ set -e
 ###################################################################################################################
 # test different type of configuration
 ###################################################################################################################
-if [ -n "$SKYSQL" ] ; then
-
-  if [ -z "$SKYSQL_HOST" ] ; then
-    echo "No SkySQL configuration found !"
-    exit 0
+if [ -n "$SKYSQL" ] || [ -n "$SKYSQL_HA" ]; then
+  if [ -n "$SKYSQL" ]; then
+    if [ -z "$SKYSQL_HOST" ] ; then
+      echo "No SkySQL configuration found !"
+      exit 0
+    else
+      testSingleHost=true
+      urlString="jdbc:mariadb://$SKYSQL_HOST:$SKYSQL_PORT/testj?user=$SKYSQL_USER&password=$SKYSQL_PASSWORD&enablePacketDebug=true&useSsl&serverSslCert=$SKYSQL_SSL_CA"
+        cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID} )
+    fi
   else
-    testSingleHost=true
-    urlString="jdbc:mariadb://$SKYSQL_HOST:$SKYSQL_PORT/testj?user=$SKYSQL_USER&password=$SKYSQL_PASSWORD&enablePacketDebug=true&useSsl&serverSslCert=$SKYSQL_SSL_CA"
-
-    cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID} )
+    if [ -z "$SKYSQL_HA_HOST" ] ; then
+      echo "No SkySQL HA configuration found !"
+      exit 0
+    else
+      testSingleHost=true
+      urlString="jdbc:mariadb://$SKYSQL_HA_HOST:$SKYSQL_HA_PORT/testj?user=$SKYSQL_HA_USER&password=$SKYSQL_HA_PASSWORD&enablePacketDebug=true&useSsl&serverSslCert=$SKYSQL_HA_SSL_CA"
+      cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID} )
+    fi
   fi
 
 else

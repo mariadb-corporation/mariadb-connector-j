@@ -55,18 +55,29 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TruncateExceptionTest extends BaseTest {
 
-  /** Tables initialisation. */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("TruncateExceptionTest", "id tinyint");
-    createTable(
-        "TruncateExceptionTest2", "id tinyint not null primary key auto_increment, id2 tinyint ");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE TruncateExceptionTest(id tinyint)");
+      stmt.execute(
+          "CREATE TABLE TruncateExceptionTest2(id tinyint not null primary key auto_increment, id2 tinyint)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS TruncateExceptionTest");
+      stmt.execute("DROP TABLE IF EXISTS TruncateExceptionTest2");
+    }
   }
 
   @Test

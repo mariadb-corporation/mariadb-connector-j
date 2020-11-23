@@ -25,25 +25,37 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ResultSetMetaDataTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "test_rsmd",
-        "id_col int not null primary key auto_increment, "
-            + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned");
-    createTable("t1", "id int, name varchar(20)");
-    createTable("t2", "id int, name varchar(20)");
-    createTable("t3", "id int, name varchar(20)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, "
+              + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned)");
+      stmt.execute("CREATE TABLE t1(id int, name varchar(20))");
+      stmt.execute("CREATE TABLE t2(id int, name varchar(20))");
+      stmt.execute("CREATE TABLE t3(id int, name varchar(20))");
+      stmt.execute("CREATE TABLE testAlias(id int, name varchar(20))");
+      stmt.execute("CREATE TABLE testAlias2(id2 int, name2 varchar(20))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS test_rsmd");
+      stmt.execute("DROP TABLE IF EXISTS t1");
+      stmt.execute("DROP TABLE IF EXISTS t2");
+      stmt.execute("DROP TABLE IF EXISTS t3");
+      stmt.execute("DROP TABLE IF EXISTS testAlias");
+      stmt.execute("DROP TABLE IF EXISTS testAlias2");
+    }
   }
 
   @Test
@@ -157,8 +169,6 @@ public class ResultSetMetaDataTest extends BaseTest {
 
   @Test
   public void testAlias() throws Exception {
-    createTable("testAlias", "id int, name varchar(20)");
-    createTable("testAlias2", "id2 int, name2 varchar(20)");
     Statement stmt = sharedConnection.createStatement();
 
     stmt.execute("INSERT INTO testAlias VALUES (1, 'foo')");

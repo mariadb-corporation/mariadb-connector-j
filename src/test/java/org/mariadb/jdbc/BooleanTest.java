@@ -55,6 +55,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -67,12 +68,24 @@ public class BooleanTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("booleantest", "id int not null primary key auto_increment, test boolean");
-    createTable("booleanvalue", "test boolean");
-    createTable(
-        "booleanAllField",
-        "t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
-            + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE booleantest(id int not null primary key auto_increment, test boolean)");
+      stmt.execute("CREATE TABLE booleanvalue(test boolean)");
+      stmt.execute(
+          "CREATE TABLE booleanAllField(t1 BIT, t2 TINYINT(1), t3 SMALLINT(1), t4 MEDIUMINT(1), t5 INT(1), t6 BIGINT(1), t7 DECIMAL(1), t8 FLOAT, "
+              + "t9 DOUBLE, t10 CHAR(1), t11 VARCHAR(1), t12 BINARY(1), t13 BLOB(1), t14 TEXT(1))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE booleantest");
+      stmt.execute("DROP TABLE booleanvalue");
+      stmt.execute("DROP TABLE booleanAllField");
+    }
   }
 
   @Test

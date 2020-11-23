@@ -55,10 +55,29 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class StateChangeTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE autoIncrementChange(id int not null primary key auto_increment, name char(20))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS autoIncrementChange");
+    }
+  }
 
   @Test
   public void databaseStateChange() throws SQLException {
@@ -106,7 +125,6 @@ public class StateChangeTest extends BaseTest {
     Assume.assumeFalse(isGalera());
     Assume.assumeTrue(
         (isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7)));
-    createTable("autoIncrementChange", "id int not null primary key auto_increment, name char(20)");
     try (Connection connection = setConnection()) {
       try (Statement stmt = connection.createStatement()) {
         try (PreparedStatement preparedStatement =

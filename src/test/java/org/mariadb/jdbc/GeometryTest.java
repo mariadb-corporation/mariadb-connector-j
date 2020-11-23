@@ -58,6 +58,7 @@ import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -65,14 +66,19 @@ public class GeometryTest extends BaseTest {
 
   private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("geom_test", "g geometry");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE geom_test(g geometry)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE geom_test");
+    }
   }
 
   private void geometryTest(String geometryString, String geometryBinary) throws SQLException {

@@ -67,12 +67,12 @@ public enum DefaultOptions {
       "tcpAbortiveClose",
       Boolean.FALSE,
       "1.1.1",
-      "Sets corresponding option on the connection " + "socket.",
+      "Sets corresponding option on the connection socket.",
       false),
   LOCAL_SOCKET_ADDRESS(
       "localSocketAddress",
       "1.1.8",
-      "Hostname or IP address to bind the connection socket to a " + "local (UNIX domain) socket.",
+      "Hostname or IP address to bind the connection socket to a local (UNIX domain) socket.",
       false),
   SOCKET_TIMEOUT(
       "socketTimeout",
@@ -120,7 +120,7 @@ public enum DefaultOptions {
       "createDatabaseIfNotExist",
       Boolean.FALSE,
       "1.1.8",
-      "the specified database in the " + "url will be created if non-existent.",
+      "the specified database in the url will be created if non-existent.",
       false),
   SERVER_TIMEZONE(
       "serverTimezone",
@@ -133,7 +133,7 @@ public enum DefaultOptions {
       "nullCatalogMeansCurrent",
       Boolean.TRUE,
       "1.1.8",
-      "DatabaseMetaData use current catalog" + " if null.",
+      "DatabaseMetaData use current catalog if null.",
       false),
   TINY_INT_IS_BIT(
       "tinyInt1isBit",
@@ -212,7 +212,7 @@ public enum DefaultOptions {
       "trustServerCertificate",
       Boolean.FALSE,
       "1.1.1",
-      "When using SSL, do not check server's" + " certificate.",
+      "When using SSL, do not check server's certificate.",
       false),
   SERVER_SSL_CERT(
       "serverSslCert",
@@ -278,7 +278,7 @@ public enum DefaultOptions {
       50,
       0,
       "1.2.0",
-      "time in second a server is" + " blacklisted after a connection failure.",
+      "time in second a server is blacklisted after a connection failure.",
       false),
   CACHE_PREP_STMTS(
       "cachePrepStmts",
@@ -388,7 +388,7 @@ public enum DefaultOptions {
       "continueBatchOnError",
       Boolean.TRUE,
       "1.4.0",
-      "When executing batch queries, must batch " + "continue on error.",
+      "When executing batch queries, must batch continue on error.",
       false),
   JDBC_COMPLIANT_TRUNCATION(
       "jdbcCompliantTruncation",
@@ -458,12 +458,12 @@ public enum DefaultOptions {
       null,
       0L,
       "1.5.0",
-      "Will log query with execution time superior" + " to this value (if defined )",
+      "Will log query with execution time superior to this value (if defined )",
       false),
   PASSWORD_CHARACTER_ENCODING(
       "passwordCharacterEncoding",
       "1.5.9",
-      "Indicate password encoding charset. If not set," + " driver use platform's default charset.",
+      "Indicate password encoding charset. If not set, driver use platform's default charset.",
       false),
   PIPELINE_AUTH(
       "usePipelineAuth",
@@ -525,7 +525,7 @@ public enum DefaultOptions {
       8,
       1,
       "2.2.0",
-      "The maximum number of physical connections that the pool should " + "contain.",
+      "The maximum number of physical connections that the pool should contain.",
       false),
   MIN_POOL_SIZE(
       "minPoolSize",

@@ -59,18 +59,35 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 public class CancelTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE timeoutBatch(id int not null primary key auto_increment, aa text)");
+      stmt.execute("CREATE TABLE timeoutBatch2(aa text)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS timeoutBatch");
+      stmt.execute("DROP TABLE IF EXISTS timeoutBatch2");
+    }
+  }
 
   @Before
   public void cancelSupported() throws SQLException {
     requireMinimumVersion(5, 0);
     Assume.assumeTrue(
-        System.getenv("SKYSQL") == null && System.getenv("MAXSCALE_TEST_DISABLE") == null);
+        System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("MAXSCALE_TEST_DISABLE") == null);
   }
 
   @Test
@@ -122,7 +139,6 @@ public class CancelTest extends BaseTest {
   public void timeoutBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
-    createTable("timeoutBatch", "id int not null primary key auto_increment, aa text");
 
     try (Connection connection = setConnection("&maxQuerySizeToLog=92")) {
       Statement stmt = connection.createStatement();
@@ -150,13 +166,13 @@ public class CancelTest extends BaseTest {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
     Assume.assumeTrue(!(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2)));
-    createTable("timeoutBatch", "aa text");
+
     try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
       char[] arr = new char[1000];
       Arrays.fill(arr, 'a');
       String str = String.valueOf(arr);
       try (PreparedStatement stmt =
-          tmpConnection.prepareStatement("INSERT INTO timeoutBatch VALUES (?)")) {
+          tmpConnection.prepareStatement("INSERT INTO timeoutBatch2 VALUES (?)")) {
         stmt.setQueryTimeout(1);
         for (int i = 0; i < 20000; i++) {
           stmt.setString(1, str);

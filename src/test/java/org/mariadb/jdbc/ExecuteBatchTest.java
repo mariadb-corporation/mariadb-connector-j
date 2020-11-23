@@ -64,6 +64,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -81,17 +82,22 @@ public class ExecuteBatchTest extends BaseTest {
     oneHundredLengthString = new String(chars);
   }
 
-  /**
-   * Create test tables.
-   *
-   * @throws SQLException if connection error occur
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "ExecuteBatchTest",
-        "id int not null primary key auto_increment, test varchar(100) , test2 int");
-    createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE ExecuteBatchTest(id int not null primary key auto_increment, test varchar(100) , test2 int)");
+      stmt.execute("CREATE TABLE ExecuteBatchUseBatchMultiSend(test varchar(100))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS ExecuteBatchTest");
+      stmt.execute("DROP TABLE IF EXISTS ExecuteBatchUseBatchMultiSend");
+    }
   }
 
   /**
@@ -357,50 +363,54 @@ public class ExecuteBatchTest extends BaseTest {
   public void ensureBulkSchedulerMaxPoolSizeRejection() throws Throwable {
     Assume.assumeFalse(sharedIsAurora() || sharedOptions().profileSql);
 
-    Statement statement = sharedConnection.createStatement();
-    ResultSet resultSet = statement.executeQuery("SELECT @@max_connections");
+    Statement stmt = sharedConnection.createStatement();
+    ResultSet resultSet = stmt.executeQuery("SELECT @@max_connections");
     assertTrue(resultSet.next());
     int maxConnection = resultSet.getInt(1);
     int limit = Math.min(1, Math.min(200, maxConnection - 10));
+    try {
+      for (int i = 0; i < limit; i++) {
+        stmt.execute("CREATE TABLE multipleSimultaneousBatch_" + i + "(a INT NOT NULL)");
+      }
 
-    for (int i = 0; i < limit; i++) {
-      createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
-    }
-
-    AtomicInteger counter = new AtomicInteger();
-    ExecutorService exec = Executors.newFixedThreadPool(limit + 50);
-    for (int i = 0; i < limit; i++) {
-      exec.execute(
-          () -> {
-            try (Connection connection = setConnection()) {
-              connection.setAutoCommit(false);
-              Statement stmt = connection.createStatement();
-              int connectionCounter = counter.getAndIncrement();
-              for (int j = 0; j < 1024; j++) {
-                stmt.addBatch(
-                    "INSERT INTO multipleSimultaneousBatch_"
-                        + connectionCounter
-                        + "(a) VALUES ("
-                        + j
-                        + ")");
+      AtomicInteger counter = new AtomicInteger();
+      ExecutorService exec = Executors.newFixedThreadPool(limit + 50);
+      for (int i = 0; i < limit; i++) {
+        exec.execute(
+            () -> {
+              try (Connection connection = setConnection()) {
+                connection.setAutoCommit(false);
+                Statement st = connection.createStatement();
+                int connectionCounter = counter.getAndIncrement();
+                for (int j = 0; j < 1024; j++) {
+                  st.addBatch(
+                      "INSERT INTO multipleSimultaneousBatch_"
+                          + connectionCounter
+                          + "(a) VALUES ("
+                          + j
+                          + ")");
+                }
+                st.executeBatch();
+                connection.commit();
+              } catch (Throwable e) {
+                e.printStackTrace();
               }
-              stmt.executeBatch();
-              connection.commit();
-            } catch (Throwable e) {
-              e.printStackTrace();
-            }
-          });
-    }
+            });
+      }
 
-    exec.shutdown();
-    exec.awaitTermination(150, TimeUnit.SECONDS);
+      exec.shutdown();
+      exec.awaitTermination(150, TimeUnit.SECONDS);
 
-    // check results
-    Statement stmt = sharedConnection.createStatement();
-    for (int i = 0; i < limit; i++) {
-      ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
-      assertTrue(rs.next());
-      assertEquals(1024, rs.getInt(1));
+      // check results
+      for (int i = 0; i < limit; i++) {
+        ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
+        assertTrue(rs.next());
+        assertEquals(1024, rs.getInt(1));
+      }
+    } finally {
+      for (int i = 0; i < limit; i++) {
+        stmt.execute("DROP TABLE multipleSimultaneousBatch_" + i);
+      }
     }
   }
 

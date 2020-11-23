@@ -61,42 +61,229 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 public class StoredProcedureTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createProcedure("useParameterName", "(a int) begin select a; end");
-    createProcedure("useWrongParameterName", "(a int) begin select a; end");
-    createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
-    createProcedure("inoutParam", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-    createProcedure("testGetProcedures", "(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-    createProcedure("withStrangeParameter", "(IN a DECIMAL(10,2)) begin select a; end");
-    createProcedure(
-        "TEST_SP1",
-        "() BEGIN\n"
-            + "SELECT @Something := 'Something';\n"
-            + "SIGNAL SQLSTATE '70100'\n"
-            + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
-            + "END");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE DATABASE IF NOT EXISTS testProcMultiDb");
+      stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");
+      stmt.execute("CREATE PROCEDURE useWrongParameterName(a int) begin select a; end");
+      stmt.execute("CREATE PROCEDURE multiResultSets() BEGIN  SELECT 1; SELECT 2; END");
+      stmt.execute("CREATE PROCEDURE inoutParam(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+      stmt.execute("CREATE PROCEDURE testGetProcedures(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
+      stmt.execute("CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a; end");
+      stmt.execute(
+          "CREATE PROCEDURE TEST_SP1() BEGIN\n"
+              + "SELECT @Something := 'Something';\n"
+              + "SIGNAL SQLSTATE '70100'\n"
+              + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
+              + "END");
+      stmt.execute(
+          "CREATE PROCEDURE StoredWithOutput(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+              + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+      stmt.execute(
+          "CREATE PROCEDURE StreamInterrupted(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+              + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+      stmt.execute(
+          "CREATE PROCEDURE StreamWithoutOutput(IN MAX_PARAM TINYINT)begin SELECT * from table_10; SELECT * from table_5;end");
+      stmt.execute(
+          "CREATE PROCEDURE testProcDecimalComa(decimalParam DECIMAL(18,0))\nBEGIN\n   SELECT 1;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE prepareStmtWithOutParameter(x int, INOUT y int)\nBEGIN\nSELECT 1;end\n");
+      stmt.execute("CREATE PROCEDURE withResultSet(a int) begin select a; end");
+      stmt.execute("CREATE PROCEDURE callabletest1()\nBEGIN\nSELECT 1;end\n");
+      stmt.execute(
+          "CREATE PROCEDURE testMetaCatalog(x int, out y int)  COMMENT 'my comment' \nBEGIN\nSET y = 2;\n end\n");
+      stmt.execute(
+          "CREATE PROCEDURE testInOutParam(IN p1 VARCHAR(255), INOUT p2 INT)\n"
+              + "begin\n"
+              + " DECLARE z INT;\n"
+              + " SET z = p2 + 1;\n"
+              + " SET p2 = z;\n"
+              + " SELECT p1;\n"
+              + " SELECT CONCAT('todo ', p1);\n"
+              + "end");
+      stmt.execute(
+          "CREATE PROCEDURE testResultsetWithInoutParameter(INOUT testValue VARCHAR(10))\n"
+              + "BEGIN\n"
+              + " insert into testResultsetWithInoutParameterTb(test) values (testValue);\n"
+              + " SELECT testValue;\n"
+              + " SET testValue = UPPER(testValue);\n"
+              + "END");
+      stmt.execute(
+          "CREATE PROCEDURE simpleproc(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
+              + "     BEGIN\n"
+              + "         SET inOutParam = UPPER(inOutParam);\n"
+              + "         SET outParam = CONCAT('Hello, ', inOutParam, ' and ', inParam);"
+              + "         SELECT 'a' FROM DUAL;\n"
+              + "     END;");
+      stmt.execute("CREATE PROCEDURE testProcedureParenthesis() BEGIN SELECT 1; END");
+      stmt.execute("CREATE PROCEDURE testProcLinefeed(\r\n)\r\n BEGIN SELECT 1; END");
+      stmt.execute(
+          "CREATE PROCEDURE testStreamInOutWithName(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testProcedureComment(a INT, b VARCHAR(32)) BEGIN SELECT CONCAT(CONVERT(a, CHAR(50)), b); END");
+      stmt.execute(
+          "CREATE PROCEDURE testCallableNullSettersProc"
+              + "(OUT value_1_v BIGINT, IN value_2_v BIGINT, IN value_3_v VARCHAR(20)) "
+              + "BEGIN "
+              + "INSERT INTO testCallableNullSettersTable VALUES (value_2_v,value_3_v); "
+              + "SET value_1_v = value_2_v; "
+              + "END;");
 
-    // sequence table are not in MySQL and MariaDB < 10.1, so create some basic table
-    createTable("table_10", "val int");
-    createTable("table_5", "val int");
-    if (testSingleHost) {
-      try (Statement stmt = sharedConnection.createStatement()) {
-        stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
-        stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
-      }
+      stmt.execute(
+          "CREATE FUNCTION testFunctionCall(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+      stmt.execute(
+          "CREATE FUNCTION callFunctionWithNoParameters()\n RETURNS CHAR(50) DETERMINISTIC\n RETURN 'mike';");
+      stmt.execute(
+          "CREATE FUNCTION testFunctionWith2parameters(s CHAR(20), s2 CHAR(20))\n"
+              + "    RETURNS CHAR(50) DETERMINISTIC\n"
+              + "    RETURN CONCAT(s,' and ', s2)");
+      stmt.execute("CREATE FUNCTION testFunctionParenthesis() RETURNS INT DETERMINISTIC RETURN 1;");
+      stmt.execute(
+          "CREATE FUNCTION testCallableNullSetters(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
+              + "DETERMINISTIC MODIFIES SQL DATA BEGIN "
+              + "INSERT INTO testCallableNullSettersTable VALUES (value_1_v,value_2_v); "
+              + "RETURN value_1_v; "
+              + "END;");
+      stmt.execute(
+          "CREATE FUNCTION test_function() RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN DECLARE max_value BIGINT; "
+              + "SELECT MAX(value_1) INTO max_value FROM testCallableThrowException2; RETURN max_value; END;");
+      stmt.execute("CREATE TABLE testCallableThrowException3(value_1 BIGINT PRIMARY KEY)");
+      stmt.execute(
+          "CREATE TABLE testCallableThrowException4(value_2 BIGINT PRIMARY KEY, "
+              + " FOREIGN KEY (value_2) REFERENCES testCallableThrowException3 (value_1) ON DELETE CASCADE)");
+
+      stmt.execute(
+          "CREATE FUNCTION test_function2(value BIGINT) RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN "
+              + "INSERT INTO testCallableThrowException4 VALUES (value); RETURN value; END;");
+
+      stmt.execute(
+          "CREATE FUNCTION testFunctionWithFixedParameter(a varchar(40), b bigint(20), c varchar(80)) RETURNS bigint(20) LANGUAGE SQL DETERMINISTIC "
+              + "MODIFIES SQL DATA COMMENT 'bbb' BEGIN RETURN 1; END; ");
+
+      stmt.execute(
+          "CREATE TABLE TMIX91P("
+              + "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             REAL,"
+              + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
+              + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
+              + " F12DATETIME         DATETIME, PRIMARY KEY (F01SMALLINT))");
+
+      stmt.execute(
+          "CREATE PROCEDURE MSQSPR100\n( p1_in  INTEGER , p2_in  CHAR(20), OUT p3_out INTEGER, OUT p4_out CHAR(11))\nBEGIN "
+              + "\n SELECT F01SMALLINT,F02INTEGER, F11DATE,F12DATETIME,F03REAL \n FROM TMIX91P WHERE F02INTEGER = p1_in; "
+              + "\n SELECT F02INTEGER,F07CHAR_10,F08VARCHAR_10,F09CHAR_20 \n FROM TMIX91P WHERE  F09CHAR_20 = p2_in ORDER BY F02INTEGER ; "
+              + "\n SET p3_out  = 144; \n SET p4_out  = 'CHARACTER11'; \n SELECT p3_out, p4_out; END");
+      stmt.execute(
+          "CREATE PROCEDURE testParameterNumber_1(OUT nfact VARCHAR(100), IN ccuenta VARCHAR(100),\nOUT ffact VARCHAR(100),\nOUT fdoc VARCHAR(100))\nBEGIN"
+              + "\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\nSET fdoc = 'fdoc string';\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testParameterNumber_2(IN ccuent1 VARCHAR(100), IN ccuent2 VARCHAR(100),\nOUT nfact VARCHAR(100),\nOUT ffact VARCHAR(100),"
+              + "\nOUT fdoc VARCHAR(100))\nBEGIN\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\n"
+              + "SET fdoc = 'fdoc string';\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testProcMultiDb.testProcMultiDbProc(x int, out y int)\nbegin\ndeclare z int;\nset z = x+1, y = z;\nend\n");
+      stmt.execute(
+          "CREATE PROCEDURE testProcSendNullInOut_1(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testProcSendNullInOut_2(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testProcSendNullInOut_3(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
+      stmt.execute(
+          "CREATE FUNCTION hello()\n    RETURNS CHAR(50) DETERMINISTIC\n    RETURN CONCAT('Hello, !');");
+      stmt.execute(
+          "CREATE PROCEDURE issue425(IN inValue TEXT, OUT testValue TEXT)\n"
+              + "BEGIN\n"
+              + " set testValue = CONCAT('o', inValue);\n"
+              + "END");
+      stmt.execute(
+          "CREATE FUNCTION issue425f(a TEXT, b TEXT) RETURNS TEXT NO SQL\nBEGIN\nRETURN CONCAT(a, b);\nEND");
+      stmt.execute("CREATE PROCEDURE cacheCall(IN inValue int)\nBEGIN\n /*do nothing*/ \nEND");
+      stmt.execute(
+          "CREATE FUNCTION hello2()\n    RETURNS CHAR(50) DETERMINISTIC\n    RETURN CONCAT('Hello, !');");
+      stmt.execute(
+          "CREATE PROCEDURE CONJ791(IN a TEXT, OUT b DATETIME) \nBEGIN\nSET b := '2006-01-01 01:01:16';\nEND");
+
+      stmt.execute("CREATE TABLE testResultsetWithInoutParameterTb(test VARCHAR(10))");
+      stmt.execute("CREATE TABLE table_10(val int)");
+      stmt.execute("CREATE TABLE table_5(val int)");
+      stmt.execute("CREATE TABLE testCallableThrowException1(value_1 BIGINT PRIMARY KEY)");
+      stmt.execute("CREATE TABLE testCallableThrowException2(value_2 BIGINT PRIMARY KEY)");
+      stmt.execute(
+          "CREATE TABLE testCallableNullSettersTable(value_1 BIGINT PRIMARY KEY,value_2 VARCHAR(20))");
+
+      stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+      stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
+
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP DATABASE IF EXISTS testProcMultiDb");
+      stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
+      stmt.execute("DROP PROCEDURE IF EXISTS useWrongParameterName");
+      stmt.execute("DROP PROCEDURE IF EXISTS multiResultSets");
+      stmt.execute("DROP PROCEDURE IF EXISTS inoutParam");
+      stmt.execute("DROP PROCEDURE IF EXISTS testGetProcedures");
+      stmt.execute("DROP PROCEDURE IF EXISTS withStrangeParameter");
+      stmt.execute("DROP PROCEDURE IF EXISTS TEST_SP1");
+      stmt.execute("DROP PROCEDURE IF EXISTS StoredWithOutput");
+      stmt.execute("DROP PROCEDURE IF EXISTS StreamInterrupted");
+      stmt.execute("DROP PROCEDURE IF EXISTS StreamWithoutOutput");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcDecimalComa");
+      stmt.execute("DROP PROCEDURE IF EXISTS prepareStmtWithOutParameter");
+      stmt.execute("DROP PROCEDURE IF EXISTS withResultSet");
+      stmt.execute("DROP PROCEDURE IF EXISTS callabletest1");
+      stmt.execute("DROP PROCEDURE IF EXISTS testMetaCatalog");
+      stmt.execute("DROP PROCEDURE IF EXISTS testInOutParam");
+      stmt.execute("DROP PROCEDURE IF EXISTS testResultsetWithInoutParameter");
+      stmt.execute("DROP PROCEDURE IF EXISTS simpleproc");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcedureParenthesis");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcLinefeed");
+      stmt.execute("DROP PROCEDURE IF EXISTS testStreamInOutWithName");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcedureComment");
+      stmt.execute("DROP PROCEDURE IF EXISTS testCallableNullSettersProc");
+
+      stmt.execute("DROP FUNCTION IF EXISTS testFunctionCall");
+      stmt.execute("DROP FUNCTION IF EXISTS callFunctionWithNoParameters");
+      stmt.execute("DROP FUNCTION IF EXISTS testFunctionWith2parameters");
+      stmt.execute("DROP FUNCTION IF EXISTS testFunctionParenthesis");
+      stmt.execute("DROP FUNCTION IF EXISTS testCallableNullSetters");
+      stmt.execute("DROP FUNCTION IF EXISTS test_function");
+      stmt.execute("DROP FUNCTION IF EXISTS test_function2");
+      stmt.execute("DROP FUNCTION IF EXISTS testFunctionWithFixedParameter");
+
+      stmt.execute("DROP TABLE IF EXISTS TMIX91P");
+
+      stmt.execute("DROP PROCEDURE IF EXISTS MSQSPR100");
+      stmt.execute("DROP PROCEDURE IF EXISTS testParameterNumber_1");
+      stmt.execute("DROP PROCEDURE IF EXISTS testParameterNumber_2");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcMultiDb.testProcMultiDbProc");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcSendNullInOut_1");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcSendNullInOut_2");
+      stmt.execute("DROP PROCEDURE IF EXISTS testProcSendNullInOut_3");
+      stmt.execute("DROP FUNCTION IF EXISTS hello");
+      stmt.execute("DROP PROCEDURE IF EXISTS issue425");
+      stmt.execute("DROP FUNCTION IF EXISTS issue425f");
+      stmt.execute("DROP PROCEDURE IF EXISTS cacheCall");
+      stmt.execute("DROP FUNCTION IF EXISTS hello2");
+      stmt.execute("DROP PROCEDURE IF EXISTS CONJ791");
+
+      stmt.execute("DROP TABLE IF EXISTS  testResultsetWithInoutParameterTb");
+      stmt.execute("DROP TABLE IF EXISTS table_10");
+      stmt.execute("DROP TABLE IF EXISTS table_5");
+      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException1");
+      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException2");
+      stmt.execute("DROP TABLE IF EXISTS testCallableNullSettersTable");
+      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException4");
+      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException3");
     }
   }
 
@@ -110,11 +297,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure(
-        "StoredWithOutput",
-        "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-            + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
 
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
@@ -159,11 +341,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure(
-        "StreamInterrupted",
-        "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-            + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
 
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
@@ -212,10 +389,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testStoreProcedureStreamingWithoutOutput() throws Exception {
-    createProcedure(
-        "StreamWithoutOutput",
-        "(IN MAX_PARAM TINYINT)" + "begin SELECT * from table_10; SELECT * from table_5;end");
-
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
       // indicate to stream results
@@ -294,9 +467,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure(
-        "prepareStmtWithOutParameter", "(x int, INOUT y int)\n" + "BEGIN\n" + "SELECT 1;end\n");
     CallableStatement callableStatement =
         sharedConnection.prepareCall("{call prepareStmtWithOutParameter(?,?)}");
     callableStatement.registerOutParameter(2, Types.INTEGER);
@@ -308,7 +478,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void callWithResultSet() throws Exception {
-    createProcedure("withResultSet", "(a int) begin select a; end");
     CallableStatement stmt = sharedConnection.prepareCall("{call withResultSet(?)}");
     stmt.setInt(1, 1);
     ResultSet rs = stmt.executeQuery();
@@ -393,7 +562,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void meta() throws Exception {
-    createProcedure("callabletest1", "()\nBEGIN\nSELECT 1;end\n");
     ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "callabletest1");
     if (rs.next()) {
       assertTrue("callabletest1".equals(rs.getString(3)));
@@ -404,7 +572,7 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
 
     // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
     cancelForVersion(10, 2, 2);
@@ -428,9 +596,6 @@ public class StoredProcedureTest extends BaseTest {
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
     properties.put("password", "testJ@dc1");
-
-    createProcedure(
-        "testMetaCatalog", "(x int, out y int)  COMMENT 'my comment' \nBEGIN\nSET y = 2;\n end\n");
 
     try (Connection connection = openConnection(connU, properties)) {
       CallableStatement callableStatement = connection.prepareCall("{call testMetaCatalog(?, ?)}");
@@ -480,49 +645,45 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testSameProcedureWithDifferentParameters() throws Exception {
-    sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
+      stmt.execute(
+          "CREATE PROCEDURE testj.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10), IN p2 VARCHAR(10))\nBEGIN\nselect 1;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testj2.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10))\nBEGIN\nselect 2;\nEND");
 
-    createProcedure(
-        "testj.testSameProcedureWithDifferentParameters",
-        "(OUT p1 VARCHAR(10), IN p2 VARCHAR(10))\nBEGIN" + "\nselect 1;" + "\nEND");
-
-    createProcedure(
-        "testj2.testSameProcedureWithDifferentParameters",
-        "(OUT p1 VARCHAR(10))\nBEGIN" + "\nselect 2;" + "\nEND");
-
-    try (CallableStatement callableStatement =
-        sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
-      callableStatement.registerOutParameter(1, Types.VARCHAR);
-      callableStatement.setString(2, "mike");
-      callableStatement.execute();
-    }
-    sharedConnection.setCatalog("testj2");
-    try (CallableStatement callableStatement =
-        sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
-      callableStatement.registerOutParameter(1, Types.VARCHAR);
-      callableStatement.setString(2, "mike");
-      try {
+      try (CallableStatement callableStatement =
+          sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
+        callableStatement.setString(2, "mike");
         callableStatement.execute();
-        fail("Should've thrown an exception");
-      } catch (SQLException sqlEx) {
-        assertEquals("42000", sqlEx.getSQLState());
       }
-    }
+      sharedConnection.setCatalog("testj2");
+      try (CallableStatement callableStatement =
+          sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
+        callableStatement.setString(2, "mike");
+        try {
+          callableStatement.execute();
+          fail("Should've thrown an exception");
+        } catch (SQLException sqlEx) {
+          assertEquals("42000", sqlEx.getSQLState());
+        }
+      }
 
-    try (CallableStatement callableStatement =
-        sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?) }")) {
-      callableStatement.registerOutParameter(1, Types.VARCHAR);
-      callableStatement.execute();
+      try (CallableStatement callableStatement =
+          sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?) }")) {
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
+        callableStatement.execute();
+      }
+      sharedConnection.setCatalog("testj");
+      stmt.execute("DROP PROCEDURE testj.testSameProcedureWithDifferentParameters");
+      stmt.executeUpdate("DROP DATABASE testj2");
     }
-    sharedConnection.setCatalog("testj");
-    sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
   }
 
   @Test
   public void testProcDecimalComa() throws Exception {
-    createProcedure(
-        "testProcDecimalComa",
-        "(decimalParam DECIMAL(18,0))\n" + "BEGIN\n" + "   SELECT 1;\n" + "END");
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
       callableStatement.setDouble(1, 18.0);
@@ -532,8 +693,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testFunctionCall() throws Exception {
-    createFunction(
-        "testFunctionCall", "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
     CallableStatement callableStatement =
         sharedConnection.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
     callableStatement.registerOutParameter(1, Types.INTEGER);
@@ -631,13 +790,15 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testCallOtherDb() throws Exception {
-    sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
-    createProcedure("testj2.otherDbProcedure", "()\nBEGIN\nSELECT 1;\nEND ");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE DATABASE IF NOT EXISTS testj2");
+      stmt.execute("CREATE PROCEDURE testj2.otherDbProcedure()\nBEGIN\nSELECT 1;\nEND ");
 
-    try (Connection noDbConn = setConnection()) {
-      noDbConn.prepareCall("{call `testj2`.otherDbProcedure()}").execute();
+      try (Connection noDbConn = setConnection()) {
+        noDbConn.prepareCall("{call `testj2`.otherDbProcedure()}").execute();
+      }
+      stmt.executeUpdate("DROP DATABASE testj2");
     }
-    sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
   }
 
   @Test
@@ -647,16 +808,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
 
-    createProcedure(
-        "testInOutParam",
-        "(IN p1 VARCHAR(255), INOUT p2 INT)\n"
-            + "begin\n"
-            + " DECLARE z INT;\n"
-            + " SET z = p2 + 1;\n"
-            + " SET p2 = z;\n"
-            + " SELECT p1;\n"
-            + " SELECT CONCAT('todo ', p1);\n"
-            + "end");
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall("{call testInOutParam(?, ?)}")) {
       callableStatement.registerOutParameter(2, Types.INTEGER);
@@ -682,10 +833,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void callFunctionWithNoParameters() throws SQLException {
-    createFunction(
-        "callFunctionWithNoParameters",
-        "()\n" + "    RETURNS CHAR(50) DETERMINISTIC\n" + "    RETURN 'mike';");
-
     CallableStatement callableStatement =
         sharedConnection.prepareCall("{? = call callFunctionWithNoParameters()}");
     callableStatement.registerOutParameter(1, Types.VARCHAR);
@@ -695,12 +842,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testFunctionWith2parameters() throws SQLException {
-    createFunction(
-        "testFunctionWith2parameters",
-        "(s CHAR(20), s2 CHAR(20))\n"
-            + "    RETURNS CHAR(50) DETERMINISTIC\n"
-            + "    RETURN CONCAT(s,' and ', s2)");
-
     CallableStatement callableStatement =
         sharedConnection.prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
     callableStatement.registerOutParameter(1, Types.VARCHAR);
@@ -712,12 +853,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testFunctionWithFixedParameters() throws SQLException {
-    createFunction(
-        "testFunctionWith2parameters",
-        "(s CHAR(20), s2 CHAR(20))\n"
-            + "    RETURNS CHAR(50) DETERMINISTIC\n"
-            + "    RETURN CONCAT(s,' and ', s2)");
-
     CallableStatement callableStatement =
         sharedConnection.prepareCall("{? = call testFunctionWith2parameters('mike', ?)}");
     callableStatement.registerOutParameter(1, Types.VARCHAR);
@@ -733,15 +868,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
 
-    createTable("testResultsetWithInoutParameterTb", "test VARCHAR(10)");
-    createProcedure(
-        "testResultsetWithInoutParameter",
-        "(INOUT testValue VARCHAR(10))\n"
-            + "BEGIN\n"
-            + " insert into testResultsetWithInoutParameterTb(test) values (testValue);\n"
-            + " SELECT testValue;\n"
-            + " SET testValue = UPPER(testValue);\n"
-            + "END");
     CallableStatement cstmt =
         sharedConnection.prepareCall("{call testResultsetWithInoutParameter(?)}");
     cstmt.registerOutParameter(1, Types.VARCHAR);
@@ -775,15 +901,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 4);
 
     try (Connection connection = setConnection()) {
-      createProcedure(
-          "simpleproc",
-          "(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
-              + "     BEGIN\n"
-              + "         SET inOutParam = UPPER(inOutParam);\n"
-              + "         SET outParam = CONCAT('Hello, ', inOutParam, ' and ', inParam);"
-              + "         SELECT 'a' FROM DUAL;\n"
-              + "     END;");
-
       CallableStatement callableStatement =
           connection.prepareCall("{call simpleproc('mike', ?, ?)}");
       callableStatement.registerOutParameter(1, Types.VARCHAR);
@@ -801,15 +918,12 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testNoParenthesisCall() throws Exception {
-    createProcedure("testProcedureParenthesis", "() BEGIN SELECT 1; END");
-    createFunction("testFunctionParenthesis", "() RETURNS INT DETERMINISTIC RETURN 1;");
     sharedConnection.prepareCall("{CALL testProcedureParenthesis}").execute();
     sharedConnection.prepareCall("{? = CALL testFunctionParenthesis}").execute();
   }
 
   @Test
   public void testProcLinefeed() throws Exception {
-    createProcedure("testProcLinefeed", "(\r\n)\r\n BEGIN SELECT 1; END");
     CallableStatement callStmt = sharedConnection.prepareCall("{CALL testProcLinefeed()}");
     callStmt.execute();
 
@@ -837,13 +951,16 @@ public class StoredProcedureTest extends BaseTest {
     }
 
     procDef.append(")\nBEGIN\nSELECT 1;\nEND");
-    createProcedure("testHugeNumberOfParameters", procDef.toString());
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE PROCEDURE testHugeNumberOfParameters" + procDef.toString());
 
-    try (CallableStatement callableStatement =
-        sharedConnection.prepareCall(
-            "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
-      callableStatement.registerOutParameter(274, Types.VARCHAR);
-      callableStatement.execute();
+      try (CallableStatement callableStatement =
+          sharedConnection.prepareCall(
+              "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
+        callableStatement.registerOutParameter(274, Types.VARCHAR);
+        callableStatement.execute();
+      }
+      stmt.execute("DROP PROCEDURE testHugeNumberOfParameters");
     }
   }
 
@@ -853,10 +970,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure(
-        "testStreamInOutWithName",
-        "(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
     try (CallableStatement cstmt =
         sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
       byte[] buffer = new byte[65];
@@ -910,10 +1023,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testProcedureComment() throws Exception {
-    createProcedure(
-        "testProcedureComment",
-        "(a INT, b VARCHAR(32)) BEGIN SELECT CONCAT(CONVERT(a, CHAR(50)), b); END");
-
     try (CallableStatement callableStatement =
         sharedConnection.prepareCall(
             "{ call /*comment ? */ testj.testProcedureComment(?, "
@@ -932,102 +1041,105 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testCommentParser() throws Exception {
-    createProcedure(
-        "testCommentParser",
-        "(_ACTION varchar(20),"
-            + "`/*dumb-identifier-1*/` int,"
-            + "\n`#dumb-identifier-2` int,"
-            + "\n`--dumb-identifier-3` int,"
-            + "\n_CLIENT_ID int, -- ABC"
-            + "\n_LOGIN_ID  int, # DEF"
-            + "\n_WHERE varchar(2000),"
-            + "\n_SORT varchar(2000),"
-            + "\n out _SQL varchar(/* inline right here - oh my gosh! */ 8000),"
-            + "\n _SONG_ID int,"
-            + "\n  _NOTES varchar(2000),"
-            + "\n out _RESULT varchar(10)"
-            + "\n /*"
-            + "\n ,    -- Generic result parameter"
-            + "\n out _PERIOD_ID int,         -- Returns the period_id. "
-            + "Useful when using @PREDEFLINK to return which is the last period"
-            + "\n   _SONGS_LIST varchar(8000),"
-            + "\n  _COMPOSERID int,"
-            + "\n  _PUBLISHERID int,"
-            + "\n   _PREDEFLINK int        -- If the user is accessing through a "
-            + "predefined link: 0=none  1=last period"
-            + "\n */) BEGIN SELECT 1; END");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE PROCEDURE testCommentParser ("
+              + "_ACTION varchar(20),"
+              + "`/*dumb-identifier-1*/` int,"
+              + "\n`#dumb-identifier-2` int,"
+              + "\n`--dumb-identifier-3` int,"
+              + "\n_CLIENT_ID int, -- ABC"
+              + "\n_LOGIN_ID  int, # DEF"
+              + "\n_WHERE varchar(2000),"
+              + "\n_SORT varchar(2000),"
+              + "\n out _SQL varchar(/* inline right here - oh my gosh! */ 8000),"
+              + "\n _SONG_ID int,"
+              + "\n  _NOTES varchar(2000),"
+              + "\n out _RESULT varchar(10)"
+              + "\n /*"
+              + "\n ,    -- Generic result parameter"
+              + "\n out _PERIOD_ID int,         -- Returns the period_id. "
+              + "Useful when using @PREDEFLINK to return which is the last period"
+              + "\n   _SONGS_LIST varchar(8000),"
+              + "\n  _COMPOSERID int,"
+              + "\n  _PUBLISHERID int,"
+              + "\n   _PREDEFLINK int        -- If the user is accessing through a "
+              + "predefined link: 0=none  1=last period"
+              + "\n */) BEGIN SELECT 1; END");
 
-    createProcedure(
-        "testCommentParser_1",
-        "(`/*id*/` /* before type 1 */ varchar(20),"
-            + "/* after type 1 */ OUT result2 DECIMAL(/*size1*/10,/*size2*/2) /* p2 */)BEGIN SELECT action, result; END");
+      stmt.execute(
+          "CREATE PROCEDURE testCommentParser_1(`/*id*/` /* before type 1 */ varchar(20),"
+              + "/* after type 1 */ OUT result2 DECIMAL(/*size1*/10,/*size2*/2) /* p2 */)BEGIN SELECT action, result; END");
 
-    sharedConnection
-        .prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
-        .close();
-    ResultSet rs =
-        sharedConnection
-            .getMetaData()
-            .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser", "%");
-    validateResult(
-        rs,
-        new String[] {
-          "_ACTION",
-          "/*dumb-identifier-1*/",
-          "#dumb-identifier-2",
-          "--dumb-identifier-3",
-          "_CLIENT_ID",
-          "_LOGIN_ID",
-          "_WHERE",
-          "_SORT",
-          "_SQL",
-          "_SONG_ID",
-          "_NOTES",
-          "_RESULT"
-        },
-        new int[] {
-          Types.VARCHAR,
-          Types.INTEGER,
-          Types.INTEGER,
-          Types.INTEGER,
-          Types.INTEGER,
-          Types.INTEGER,
-          Types.VARCHAR,
-          Types.VARCHAR,
-          Types.VARCHAR,
-          Types.INTEGER,
-          Types.VARCHAR,
-          Types.VARCHAR
-        },
-        new int[] {20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10},
-        new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-        new int[] {
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnOut,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnIn,
-          DatabaseMetaData.procedureColumnOut
-        });
+      sharedConnection
+          .prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}")
+          .close();
+      ResultSet rs =
+          sharedConnection
+              .getMetaData()
+              .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser", "%");
+      validateResult(
+          rs,
+          new String[] {
+            "_ACTION",
+            "/*dumb-identifier-1*/",
+            "#dumb-identifier-2",
+            "--dumb-identifier-3",
+            "_CLIENT_ID",
+            "_LOGIN_ID",
+            "_WHERE",
+            "_SORT",
+            "_SQL",
+            "_SONG_ID",
+            "_NOTES",
+            "_RESULT"
+          },
+          new int[] {
+            Types.VARCHAR,
+            Types.INTEGER,
+            Types.INTEGER,
+            Types.INTEGER,
+            Types.INTEGER,
+            Types.INTEGER,
+            Types.VARCHAR,
+            Types.VARCHAR,
+            Types.VARCHAR,
+            Types.INTEGER,
+            Types.VARCHAR,
+            Types.VARCHAR
+          },
+          new int[] {20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10},
+          new int[] {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+          new int[] {
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnOut,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnIn,
+            DatabaseMetaData.procedureColumnOut
+          });
 
-    sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
-    rs =
-        sharedConnection
-            .getMetaData()
-            .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser_1", "%");
-    validateResult(
-        rs,
-        new String[] {"/*id*/", "result2"},
-        new int[] {Types.VARCHAR, Types.DECIMAL},
-        new int[] {20, 10},
-        new int[] {0, 2},
-        new int[] {DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut});
+      sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
+      rs =
+          sharedConnection
+              .getMetaData()
+              .getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser_1", "%");
+      validateResult(
+          rs,
+          new String[] {"/*id*/", "result2"},
+          new int[] {Types.VARCHAR, Types.DECIMAL},
+          new int[] {20, 10},
+          new int[] {0, 2},
+          new int[] {DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut});
+      stmt.execute("DROP PROCEDURE testCommentParser");
+      stmt.execute("DROP PROCEDURE testCommentParser_1");
+    }
   }
 
   private void validateResult(
@@ -1072,21 +1184,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
 
-    createTable("testCallableNullSettersTable", "value_1 BIGINT PRIMARY KEY,value_2 VARCHAR(20)");
-    createFunction(
-        "testCallableNullSetters",
-        "(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
-            + "DETERMINISTIC MODIFIES SQL DATA BEGIN "
-            + "INSERT INTO testCallableNullSettersTable VALUES (value_1_v,value_2_v); "
-            + "RETURN value_1_v; "
-            + "END;");
-    createProcedure(
-        "testCallableNullSettersProc",
-        "(OUT value_1_v BIGINT, IN value_2_v BIGINT, IN value_3_v VARCHAR(20)) "
-            + "BEGIN "
-            + "INSERT INTO testCallableNullSettersTable VALUES (value_2_v,value_3_v); "
-            + "SET value_1_v = value_2_v; "
-            + "END;");
     // Prepare the function call
     try (CallableStatement callable =
         sharedConnection.prepareCall("{? = call testCallableNullSetters(?,?)}")) {
@@ -1236,55 +1333,37 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testCallableThrowException() throws Exception {
-    createTable("testCallableThrowException1", "value_1 BIGINT PRIMARY KEY", "ENGINE=InnoDB");
-    createTable("testCallableThrowException2", "value_2 BIGINT PRIMARY KEY", "ENGINE=InnoDB");
-
-    sharedConnection
-        .createStatement()
-        .executeUpdate("INSERT INTO testCallableThrowException1 VALUES (1)");
-    createFunction(
-        "test_function",
-        "() RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN DECLARE max_value BIGINT; "
-            + "SELECT MAX(value_1) INTO max_value FROM testCallableThrowException2; RETURN max_value; END;");
-
-    try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function()}")) {
-
-      callable.registerOutParameter(1, Types.BIGINT);
-
-      try {
-        callable.executeUpdate();
-        fail("impossible; we should never get here.");
-      } catch (SQLException sqlEx) {
-        assertEquals("42S22", sqlEx.getSQLState());
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("INSERT INTO testCallableThrowException1 VALUES (1)");
+      try (CallableStatement callable =
+          sharedConnection.prepareCall("{? = call test_function()}")) {
+        callable.registerOutParameter(1, Types.BIGINT);
+        try {
+          callable.executeUpdate();
+          fail("impossible; we should never get here.");
+        } catch (SQLException sqlEx) {
+          assertEquals("42S22", sqlEx.getSQLState());
+        }
       }
-    }
 
-    sharedConnection.createStatement().execute("DROP TABLE IF EXISTS testCallableThrowException4");
-    createTable("testCallableThrowException3", "value_1 BIGINT PRIMARY KEY", "ENGINE=InnoDB");
-    sharedConnection
-        .createStatement()
-        .executeUpdate("INSERT INTO testCallableThrowException3 VALUES (1)");
-    createTable(
-        "testCallableThrowException4",
-        "value_2 BIGINT PRIMARY KEY, "
-            + " FOREIGN KEY (value_2) REFERENCES testCallableThrowException3 (value_1) ON DELETE CASCADE",
-        "ENGINE=InnoDB");
-    createFunction(
-        "test_function",
-        "(value BIGINT) RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN "
-            + "INSERT INTO testCallableThrowException4 VALUES (value); RETURN value; END;");
+      stmt.execute("INSERT INTO testCallableThrowException3 VALUES (1)");
 
-    try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function(?)}")) {
-      callable.registerOutParameter(1, Types.BIGINT);
-      callable.setLong(2, 1);
-      callable.executeUpdate();
-      callable.setLong(2, 2);
-      try {
+      try (CallableStatement callable =
+          sharedConnection.prepareCall("{? = call test_function2(?)}")) {
+        callable.registerOutParameter(1, Types.BIGINT);
+        callable.setLong(2, 1);
         callable.executeUpdate();
-        fail("impossible; we should never get here.");
-      } catch (SQLException sqlEx) {
-        assertEquals("23000", sqlEx.getSQLState());
+        callable.setLong(2, 2);
+        try {
+          callable.executeUpdate();
+          fail("impossible; we should never get here.");
+        } catch (SQLException sqlEx) {
+          assertEquals("23000", sqlEx.getSQLState());
+        }
       }
+      //      stmt.execute("DROP FUNCTION IF EXISTS test_function");
+      //      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException3");
+      //      stmt.execute("DROP TABLE IF EXISTS testCallableThrowException4");
     }
   }
 
@@ -1299,11 +1378,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testFunctionWithFixedParameter() throws Exception {
-    createFunction(
-        "testFunctionWithFixedParameter",
-        "(a varchar(40), b bigint(20), c varchar(80)) RETURNS bigint(20) LANGUAGE SQL DETERMINISTIC "
-            + "MODIFIES SQL DATA COMMENT 'bbb' BEGIN RETURN 1; END; ");
-
     try (CallableStatement callable =
         sharedConnection.prepareCall("{? = call testFunctionWithFixedParameter(?,101,?)}")) {
       callable.registerOutParameter(1, Types.BIGINT);
@@ -1319,13 +1393,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createTable(
-        "TMIX91P",
-        "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             REAL,"
-            + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
-            + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
-            + " F12DATETIME         DATETIME, PRIMARY KEY (F01SMALLINT)");
     Statement stmt = sharedConnection.createStatement();
     stmt.executeUpdate(
         "INSERT INTO TMIX91P VALUES (1,1,1234567.12,1234567.12,111111111111111111111111111.1111,.111111111111111,'1234567890',"
@@ -1338,14 +1405,6 @@ public class StoredProcedureTest extends BaseTest {
     stmt.executeUpdate(
         "INSERT INTO TMIX91P VALUES (12,12,1234567.12,1234567.12,111222333.4444,.1234567890,'2234567891','2234567891','CHAR20',"
             + "'VARCHAR20VARCHAR20','2001-01-01','2001-01-01 01:01:01.111')");
-
-    createProcedure(
-        "MSQSPR100",
-        "\n( p1_in  INTEGER , p2_in  CHAR(20), OUT p3_out INTEGER, OUT p4_out CHAR(11))\nBEGIN "
-            + "\n SELECT F01SMALLINT,F02INTEGER, F11DATE,F12DATETIME,F03REAL \n FROM TMIX91P WHERE F02INTEGER = p1_in; "
-            + "\n SELECT F02INTEGER,F07CHAR_10,F08VARCHAR_10,F09CHAR_20 \n FROM TMIX91P WHERE  F09CHAR_20 = p2_in ORDER BY F02INTEGER ; "
-            + "\n SET p3_out  = 144; \n SET p4_out  = 'CHARACTER11'; \n SELECT p3_out, p4_out; END");
-
     String sql = "{call MSQSPR100(1,'CHAR20',?,?)}";
 
     CallableStatement cs = sharedConnection.prepareCall(sql);
@@ -1355,17 +1414,6 @@ public class StoredProcedureTest extends BaseTest {
 
     cs.execute();
     cs.close();
-
-    createProcedure(
-        "testParameterNumber_1",
-        "(OUT nfact VARCHAR(100), IN ccuenta VARCHAR(100),\nOUT ffact VARCHAR(100),\nOUT fdoc VARCHAR(100))\nBEGIN"
-            + "\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\nSET fdoc = 'fdoc string';\nEND");
-
-    createProcedure(
-        "testParameterNumber_2",
-        "(IN ccuent1 VARCHAR(100), IN ccuent2 VARCHAR(100),\nOUT nfact VARCHAR(100),\nOUT ffact VARCHAR(100),"
-            + "\nOUT fdoc VARCHAR(100))\nBEGIN\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\n"
-            + "SET fdoc = 'fdoc string';\nEND");
 
     Properties props = new Properties();
     props.put("jdbcCompliantTruncation", "true");
@@ -1419,14 +1467,6 @@ public class StoredProcedureTest extends BaseTest {
 
     String originalCatalog = sharedConnection.getCatalog();
 
-    sharedConnection
-        .createStatement()
-        .executeUpdate("CREATE DATABASE IF NOT EXISTS testProcMultiDb");
-
-    createProcedure(
-        "testProcMultiDb.testProcMultiDbProc",
-        "(x int, out y int)\nbegin\ndeclare z int;\nset z = x+1, y = z;\nend\n");
-
     CallableStatement callableStatement = null;
     try {
       callableStatement =
@@ -1463,7 +1503,6 @@ public class StoredProcedureTest extends BaseTest {
       callableStatement.clearParameters();
       callableStatement.close();
       sharedConnection.setCatalog(originalCatalog);
-      sharedConnection.createStatement().executeUpdate("DROP DATABASE testProcMultiDb");
     }
   }
 
@@ -1473,12 +1512,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure("testProcSendNullInOut_1", "(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
-    createProcedure(
-        "testProcSendNullInOut_2", "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
-    createProcedure("testProcSendNullInOut_3", "(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
-
     CallableStatement call = sharedConnection.prepareCall("{ call testProcSendNullInOut_1(?) }");
     call.registerOutParameter(1, Types.INTEGER);
     call.setInt(1, 1);
@@ -1537,9 +1570,6 @@ public class StoredProcedureTest extends BaseTest {
    */
   @Test
   public void testFunctionWithSpace() throws SQLException {
-    createFunction(
-        "hello",
-        "()\n" + "    RETURNS CHAR(50) DETERMINISTIC\n" + "    RETURN CONCAT('Hello, !');");
     CallableStatement callableStatement = sharedConnection.prepareCall("{? = call `hello` ()}");
     callableStatement.registerOutParameter(1, Types.INTEGER);
     assertFalse(callableStatement.execute());
@@ -1557,14 +1587,6 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
-
-    createProcedure(
-        "issue425",
-        "(IN inValue TEXT, OUT testValue TEXT)\n"
-            + "BEGIN\n"
-            + " set testValue = CONCAT('o', inValue);\n"
-            + "END");
-
     // registering with VARCHAR Type
     CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}");
     cstmt.registerOutParameter(2, Types.VARCHAR);
@@ -1591,9 +1613,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testOutputObjectTypeFunction() throws Exception {
-    createFunction(
-        "issue425f", "(a TEXT, b TEXT) RETURNS TEXT NO SQL\nBEGIN\nRETURN CONCAT(a, b);\nEND");
-
     // registering with VARCHAR Type
     CallableStatement cstmt = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
     cstmt.registerOutParameter(1, Types.VARCHAR);
@@ -1620,8 +1639,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void procedureCaching() throws SQLException {
-    createProcedure("cacheCall", "(IN inValue int)\n" + "BEGIN\n" + " /*do nothing*/ \n" + "END");
-
     CallableStatement st = sharedConnection.prepareCall("{call testj.cacheCall(?)}");
     st.setInt(1, 2);
     st.execute();
@@ -1647,9 +1664,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void functionCaching() throws SQLException {
-    createFunction(
-        "hello2",
-        "()\n" + "    RETURNS CHAR(50) DETERMINISTIC\n" + "    RETURN CONCAT('Hello, !');");
     CallableStatement st = sharedConnection.prepareCall("{? = call hello2()}");
     st.registerOutParameter(1, Types.INTEGER);
     assertFalse(st.execute());
@@ -1674,9 +1688,6 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testTimestampParameterOutput() throws Exception {
-    createProcedure(
-        "CONJ791", "(IN a TEXT, OUT b DATETIME) \nBEGIN\nSET b := '2006-01-01 01:01:16';\nEND");
-
     // registering with VARCHAR Type
     CallableStatement cstmt = sharedConnection.prepareCall("{call CONJ791(?, ?)}");
     cstmt.setString(1, "o");

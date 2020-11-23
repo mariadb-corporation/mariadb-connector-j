@@ -58,6 +58,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -67,27 +68,65 @@ public class DateTest extends BaseTest {
   private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
   private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
 
-  /**
-   * Initialization.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("dtest", "d date");
-    createTable(
-        "date_test2", "id int not null primary key auto_increment, d_from datetime ,d_to datetime");
-    createTable("timetest", "t time");
-    createTable("timetest2", "t time");
-    createTable("timestampzerotest", "ts timestamp, dt datetime, dd date");
-    createTable("dtest", "d datetime");
-    createTable("dtest2", "d date");
-    createTable("dtest3", "d date");
-    createTable("dtest4", "d  time");
-    createTable("date_test3", " x date");
-    createTable("date_test4", "x date");
-    if (doPrecisionTest) {
-      createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE dtest(d date)");
+      stmt.execute(
+          "CREATE TABLE date_test2(id int not null primary key auto_increment, d_from datetime ,d_to datetime)");
+      stmt.execute("CREATE TABLE timetest(t time)");
+      stmt.execute("CREATE TABLE timetest2(t time)");
+      stmt.execute("CREATE TABLE timestampzerotest(ts timestamp, dt datetime, dd date)");
+      stmt.execute("CREATE TABLE dtest6(d datetime)");
+      stmt.execute("CREATE TABLE dtest2(d date)");
+      stmt.execute("CREATE TABLE dtest3(d date)");
+      stmt.execute("CREATE TABLE dtest4(d time)");
+      stmt.execute("CREATE TABLE date_test3(x date)");
+      stmt.execute("CREATE TABLE date_test4(x date)");
+      stmt.execute("CREATE TABLE date_test5(x date)");
+      stmt.execute("CREATE TABLE nulltimestamp(ts timestamp(6) NULL)");
+      stmt.execute("CREATE TABLE zeroTimestamp(ts timestamp NULL)");
+      stmt.execute(
+          "CREATE TABLE date_test(id int not null primary key auto_increment, d_test date,dt_test datetime, "
+              + "t_test time)");
+      boolean isMariadbServer = isMariadbServer();
+      if (isMariadbServer) {
+        stmt.execute("CREATE TABLE yeartest(y1 year, y2 year(2))");
+        stmt.execute(
+            "CREATE TABLE timestampMillisecondsTest(id decimal(10), create_time datetime(6))");
+      } else {
+        stmt.execute(
+            "CREATE TABLE timestampMillisecondsTest(id decimal(10), create_time datetime)");
+      }
+      if (doPrecisionTest) {
+        stmt.execute("CREATE TABLE timestampAsDate(ts timestamp(6), dt datetime(6), dd date)");
+      }
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS dtest");
+      stmt.execute("DROP TABLE IF EXISTS date_test");
+      stmt.execute("DROP TABLE IF EXISTS date_test2");
+      stmt.execute("DROP TABLE IF EXISTS timetest");
+      stmt.execute("DROP TABLE IF EXISTS timetest2");
+      stmt.execute("DROP TABLE IF EXISTS timestampzerotest");
+      stmt.execute("DROP TABLE IF EXISTS dtest6");
+      stmt.execute("DROP TABLE IF EXISTS dtest2");
+      stmt.execute("DROP TABLE IF EXISTS dtest3");
+      stmt.execute("DROP TABLE IF EXISTS dtest4");
+      stmt.execute("DROP TABLE IF EXISTS date_test3");
+      stmt.execute("DROP TABLE IF EXISTS date_test4");
+      stmt.execute("DROP TABLE IF EXISTS timestampAsDate");
+      stmt.execute("DROP TABLE IF EXISTS yeartest");
+      stmt.execute("DROP TABLE IF EXISTS timestampMillisecondsTest");
+      stmt.execute("DROP TABLE IF EXISTS date_test5");
+      stmt.execute("DROP TABLE IF EXISTS nulltimestamp");
+      stmt.execute("DROP TABLE IF EXISTS zeroTimestamp");
     }
   }
 
@@ -109,6 +148,7 @@ public class DateTest extends BaseTest {
    */
   public void dateTest(boolean useLegacy) throws SQLException {
     Assume.assumeFalse(sharedIsRewrite());
+    sharedConnection.createStatement().execute("TRUNCATE date_test");
     try (Connection connection =
         setConnection(
             "&useLegacyDatetimeCode="
@@ -116,17 +156,14 @@ public class DateTest extends BaseTest {
                 + "&serverTimezone=+5:00&maximizeMysqlCompatibility=false&useServerPrepStmts=true")) {
 
       setSessionTimeZone(connection, "+5:00");
-      createTable(
-          "date_test",
-          "id int not null primary key auto_increment, d_test date,dt_test datetime, "
-              + "t_test time");
+
       Statement stmt = connection.createStatement();
       Date date = Date.valueOf("2009-01-17");
       Timestamp timestamp = Timestamp.valueOf("2009-01-17 15:41:01");
       Time time = Time.valueOf("23:59:59");
       PreparedStatement ps =
           connection.prepareStatement(
-              "insert into date_test (d_test, dt_test, t_test) " + "values (?,?,?)");
+              "insert into date_test (d_test, dt_test, t_test) values (?,?,?)");
       ps.setDate(1, date);
       ps.setTimestamp(2, timestamp);
       ps.setTime(3, time);
@@ -152,7 +189,7 @@ public class DateTest extends BaseTest {
   public void dateRangeTest() throws SQLException {
     PreparedStatement ps =
         sharedConnection.prepareStatement(
-            "insert into date_test2 (id, d_from, d_to) values " + "(1, ?,?)");
+            "insert into date_test2 (id, d_from, d_to) values (1, ?,?)");
     Timestamp timestamp1 = Timestamp.valueOf("2009-01-17 15:41:01");
     Timestamp timestamp2 = Timestamp.valueOf("2015-01-17 15:41:01");
     ps.setTimestamp(1, timestamp1);
@@ -160,7 +197,7 @@ public class DateTest extends BaseTest {
     ps.executeUpdate();
     PreparedStatement ps1 =
         sharedConnection.prepareStatement(
-            "select d_from, d_to from date_test2 " + "where d_from <= ? and d_to >= ?");
+            "select d_from, d_to from date_test2 where d_from <= ? and d_to >= ?");
     Timestamp timestamp3 = Timestamp.valueOf("2014-01-17 15:41:01");
     ps1.setTimestamp(1, timestamp3);
     ps1.setTimestamp(2, timestamp3);
@@ -199,7 +236,6 @@ public class DateTest extends BaseTest {
   @Test
   public void yearTest() throws SQLException {
     Assume.assumeTrue(isMariadbServer());
-    createTable("yeartest", "y1 year, y2 year(2)");
     sharedConnection
         .createStatement()
         .execute("insert into yeartest values (null, null), (1901, 70), (0, 0), (2155, 69)");
@@ -430,10 +466,10 @@ public class DateTest extends BaseTest {
   @Test
   public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
     java.util.Date currentDate = Calendar.getInstance(TimeZone.getDefault()).getTime();
-    PreparedStatement ps = sharedConnection.prepareStatement("insert into dtest values(?)");
+    PreparedStatement ps = sharedConnection.prepareStatement("insert into dtest6 values(?)");
     ps.setObject(1, currentDate, Types.TIMESTAMP);
     ps.executeUpdate();
-    ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest");
+    ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest6");
     assertTrue(rs.next());
     /* Check that time is correct, up to seconds precision */
     assertTrue(Math.abs((currentDate.getTime() - rs.getTimestamp(1).getTime())) <= 1000);
@@ -529,20 +565,21 @@ public class DateTest extends BaseTest {
 
     boolean isMariadbServer = isMariadbServer();
     if (isMariadbServer) {
-      createTable("tt", "id decimal(10), create_time datetime(6)");
-      statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
+      statement.execute(
+          "INSERT INTO timestampMillisecondsTest (id, create_time) VALUES (1,'2013-07-18 13:44:22.123456')");
     } else {
-      createTable("tt", "id decimal(10), create_time datetime");
-      statement.execute("INSERT INTO tt (id, create_time) VALUES (1,'2013-07-18 13:44:22')");
+      statement.execute(
+          "INSERT INTO timestampMillisecondsTest (id, create_time) VALUES (1,'2013-07-18 13:44:22')");
     }
     PreparedStatement ps =
-        sharedConnection.prepareStatement("insert into tt (id, create_time) values (?,?)");
+        sharedConnection.prepareStatement(
+            "insert into timestampMillisecondsTest (id, create_time) values (?,?)");
     ps.setInt(1, 2);
     Timestamp writeTs = new Timestamp(1273017612999L);
     Timestamp writeTsWithoutMilliSec = new Timestamp(1273017612999L);
     ps.setTimestamp(2, writeTs);
     ps.execute();
-    ResultSet rs = statement.executeQuery("SELECT * FROM tt");
+    ResultSet rs = statement.executeQuery("SELECT * FROM timestampMillisecondsTest");
     assertTrue(rs.next());
     if (isMariadbServer) {
       assertTrue("2013-07-18 13:44:22.123456".equals(rs.getString(2)));
@@ -607,7 +644,6 @@ public class DateTest extends BaseTest {
   public void nullDateString() throws Throwable {
     // null date isn't accepted anymore for mysql.
     Assume.assumeFalse(!isMariadbServer() && minVersion(5, 7, 0));
-    createTable("date_test5", "x date");
     Statement stmt = sharedConnection.createStatement();
     try {
       stmt.execute("INSERT INTO date_test5 (x) VALUES ('0000-00-00')");
@@ -636,8 +672,6 @@ public class DateTest extends BaseTest {
   @Test
   public void nullDateFromTimestamp() throws Throwable {
     Assume.assumeTrue(isMariadbServer());
-
-    createTable("nulltimestamp", "ts timestamp(6) NULL ");
     Statement stmt = sharedConnection.createStatement();
     try {
       stmt.execute("INSERT INTO nulltimestamp (ts) VALUES ('0000-00-00'), (null)");
@@ -675,7 +709,6 @@ public class DateTest extends BaseTest {
   @Test
   public void getZeroDateString() throws SQLException {
     Assume.assumeTrue(isMariadbServer());
-    createTable("zeroTimestamp", "ts timestamp NULL ");
     try (Statement statement = sharedConnection.createStatement()) {
       statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
       try (PreparedStatement preparedStatement =

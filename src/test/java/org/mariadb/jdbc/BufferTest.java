@@ -55,6 +55,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -82,7 +83,18 @@ public class BufferTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("buffer_test", "test longText");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE buffer_test(test longText)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS buffer_test");
+    }
   }
 
   @Test

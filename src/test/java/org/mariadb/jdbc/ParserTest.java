@@ -57,6 +57,7 @@ import static org.junit.Assert.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,15 +66,21 @@ import org.mariadb.jdbc.util.DefaultOptions;
 
 public class ParserTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("table1", "id1 int auto_increment primary key");
-    createTable("table2", "id2 int auto_increment primary key");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE table1(id1 int auto_increment primary key)");
+      stmt.execute("CREATE TABLE table2(id2 int auto_increment primary key)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS table1");
+      stmt.execute("DROP TABLE IF EXISTS table2");
+    }
   }
 
   @Test

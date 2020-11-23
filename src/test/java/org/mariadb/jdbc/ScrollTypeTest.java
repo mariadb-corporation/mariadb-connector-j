@@ -59,23 +59,32 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ScrollTypeTest extends BaseTest {
 
-  /**
-   * Data initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("resultsSetReadingTest", "id int not null primary key auto_increment, test int");
-    if (testSingleHost) {
-      Statement st = sharedConnection.createStatement();
-      st.execute("INSERT INTO resultsSetReadingTest (test) values (1), (2), (3)");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE resultsSetReadingTest(id int not null primary key auto_increment, test int)");
+      stmt.execute("CREATE TABLE scrollMultipleFetch(intvalue int)");
+      stmt.execute("FLUSH TABLES");
+      if (testSingleHost) {
+        stmt.execute("INSERT INTO resultsSetReadingTest (test) values (1), (2), (3)");
+      }
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS resultsSetReadingTest");
+      stmt.execute("DROP TABLE IF EXISTS scrollMultipleFetch");
     }
   }
 
@@ -139,8 +148,6 @@ public class ScrollTypeTest extends BaseTest {
 
   @Test
   public void scrollMultipleFetch() throws SQLException {
-    createTable("scrollMultipleFetch", "intvalue int");
-
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("INSERT INTO scrollMultipleFetch values (1), (2), (3)");
     stmt.setFetchSize(1);

@@ -76,7 +76,10 @@ public class MonoServerFailoverTest extends BaseMonoServer {
   /** Initialisation. */
   @Before
   public void init() {
-    Assume.assumeTrue(initialUrl != null && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        initialUrl != null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     defaultUrl = initialUrl;
     currentType = HaMode.NONE;
   }
@@ -164,7 +167,9 @@ public class MonoServerFailoverTest extends BaseMonoServer {
   @Test
   public void isValidConnectionThatIsKilledExternally() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("SKYSQL") == null && System.getenv("MAXSCALE_TEST_DISABLE") == null);
+        System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("MAXSCALE_TEST_DISABLE") == null);
     try (Connection connection = getNewConnection()) {
       connection.setCatalog("mysql");
       Protocol protocol = getProtocolFromConnection(connection);
@@ -184,7 +189,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists failt1");
       stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
-
+      stmt.execute("FLUSH TABLES");
       PreparedStatement preparedStatement =
           connection.prepareStatement("insert into failt1(id, tt) values (?,?)");
 

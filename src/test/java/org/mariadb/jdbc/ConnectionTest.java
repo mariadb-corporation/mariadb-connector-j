@@ -65,14 +65,22 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class ConnectionTest extends BaseTest {
 
-  /**
-   * Initialisation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("dummy", "a BLOB");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE dummy(a BLOB)");
+      stmt.execute("CREATE DATABASE gogogo");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS dummy");
+      stmt.execute("DROP DATABASE IF EXISTS gogogo");
+    }
   }
 
   /** Conj-166. Connection error code must be thrown */
@@ -429,7 +437,6 @@ public class ConnectionTest extends BaseTest {
     final String db = sharedConnection.getCatalog();
     Statement stmt = sharedConnection.createStatement();
 
-    stmt.execute("CREATE DATABASE gogogo");
     stmt.execute("USE gogogo");
     String db2 = sharedConnection.getCatalog();
     assertEquals("gogogo", db2);
@@ -583,7 +590,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -677,7 +686,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void replicaDownConnection() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     String url =
         "jdbc:mariadb:replication://"
             + hostname
@@ -709,7 +718,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void multiAuthPlugin() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
@@ -767,7 +778,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void connectionUnexpectedClose() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:failover//"
@@ -822,7 +833,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void setReadonlyError() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:replication://"
@@ -919,7 +930,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL") == null);
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     // only mariadb return a specific error when connection has explicitly been killed
     Assume.assumeTrue(isMariadbServer());
 
@@ -988,6 +1001,7 @@ public class ConnectionTest extends BaseTest {
   public void readOnly() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("CREATE TABLE testReadOnly(id int)");
+    stmt.execute("FLUSH TABLES");
     sharedConnection.setAutoCommit(false);
 
     sharedConnection.setReadOnly(true);

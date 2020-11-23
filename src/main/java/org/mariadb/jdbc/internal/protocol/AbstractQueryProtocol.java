@@ -870,9 +870,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       cmdPrologue();
 
-      return new ComStmtPrepare(this, sql)
-              .send(writer)
-              .read(reader, eofDeprecated);
+      return new ComStmtPrepare(this, sql).send(writer).read(reader, eofDeprecated);
 
     } catch (IOException e) {
       throw exceptionWithQuery(sql, handleIoException(e), explicitClosed);
@@ -1898,8 +1896,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     connection.reenableWarnings();
   }
 
-  public ServerPrepareResult putInCache(
-      String key, ServerPrepareResult serverPrepareResult) {
+  public ServerPrepareResult putInCache(String key, ServerPrepareResult serverPrepareResult) {
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }
 

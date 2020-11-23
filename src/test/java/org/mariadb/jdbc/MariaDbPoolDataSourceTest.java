@@ -35,12 +35,31 @@ import java.util.concurrent.TimeUnit;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.pool.Pools;
 import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 public class MariaDbPoolDataSourceTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testResetRollback");
+    }
+  }
 
   @Test
   public void testResetDatabase() throws SQLException {
@@ -221,7 +240,8 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void testResetTransactionIsolation() throws SQLException {
-    Assume.assumeTrue(!sharedIsAurora() && System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        !sharedIsAurora() && System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
@@ -296,7 +316,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
     // not for maxscale, testing thread id is not relevant.
     // appveyor is so slow wait time are not relevant.
     Assume.assumeTrue(
-        System.getenv("SKYSQL") == null && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
+        System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
 
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testIdleTimeout-*");
@@ -386,8 +408,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void testResetRollback() throws SQLException {
-    createTable(
-        "testResetRollback", "id int not null primary key auto_increment, test varchar(20)");
+    sharedConnection.createStatement().execute("FLUSH TABLES");
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         Statement stmt = connection.createStatement();
@@ -407,7 +428,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureUsingPool() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
     ThreadPoolExecutor connectionAppender =
         new ThreadPoolExecutor(
             50,

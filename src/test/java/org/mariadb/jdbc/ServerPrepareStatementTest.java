@@ -66,6 +66,7 @@ import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -73,48 +74,110 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ServerPrepareStatementTest extends BaseTest {
 
-  /**
-   * Tables initialisations.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable(
-        "ServerPrepareStatementTest", "id int not null primary key auto_increment, test boolean");
-    createTable(
-        "ServerPrepareStatementTestt", "id int not null primary key auto_increment, test boolean");
-    createTable(
-        "ServerPrepareStatementTestt2", "id int not null primary key auto_increment, test boolean");
-    createTable(
-        "ServerPrepareStatementTestCache",
-        "id int not null primary key auto_increment, test boolean");
-    createTable(
-        "ServerPrepareStatementCacheSize3",
-        "id int not null primary key auto_increment, test boolean");
-    if (doPrecisionTest) {
-      createTable(
-          "preparetestFactionnal",
-          "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementTest(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementTestt(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementTestt2(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementTestCache(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementCacheSize3(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE preparetestFactionnal(time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6))");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementCacheSize2(id int not null primary key auto_increment, test boolean)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementCacheSize5(id int not null primary key auto_increment, test blob)");
+      stmt.execute("CREATE TABLE ServerPrepareStatementParameters(id int, id2 int)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementCacheSize4(id int not null primary key auto_increment, test LONGBLOB) ROW_FORMAT=COMPRESSED ENGINE=INNODB");
+      stmt.execute("CREATE TABLE streamtest2(id int primary key not null, strm text)");
+      stmt.execute(
+          "CREATE TABLE testServerPrepareMeta(id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED)");
+      stmt.execute(
+          "CREATE TABLE ServerPrepareStatementSync(id int not null primary key auto_increment, test varchar(1007), tt boolean)");
+
+      stmt.execute(
+          "CREATE TABLE preparetest("
+              + "bit1 BIT(1),"
+              + "bit2 BIT(2),"
+              + "tinyint1 TINYINT(1),"
+              + "tinyint2 TINYINT(2),"
+              + "bool0 BOOL default 1,"
+              + "smallint0 SMALLINT default 1,"
+              + "smallint_unsigned SMALLINT UNSIGNED default 0,"
+              + "mediumint0 MEDIUMINT default 1,"
+              + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
+              + "int0 INT default 1,"
+              + "int_unsigned INT UNSIGNED default 0,"
+              + "bigint0 BIGINT default 1,"
+              + "bigint_unsigned BIGINT UNSIGNED default 0,"
+              + "float0 FLOAT default 0,"
+              + "double0 DOUBLE default 1,"
+              + "decimal0 DECIMAL default 0,"
+              + "decimal1 DECIMAL(15,4) default 0,"
+              + "date0 DATE default '2001-01-01',"
+              + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
+              + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
+              + "timestamp1 TIMESTAMP(0) null default  '2001-01-01 00:00:00',"
+              + "timestamp_zero TIMESTAMP  null, "
+              + "time0 TIME(6) default '22:11:00',"
+              + ((!isMariadbServer() && minVersion(5, 6))
+                  ? "year2 YEAR(4) default 99,"
+                  : "year2 YEAR(2) default 99,")
+              + "year4 YEAR(4) default 2011,"
+              + "char0 CHAR(1) default '0',"
+              + "char_binary CHAR (1) binary default '0',"
+              + "varchar0 VARCHAR(1) default '1',"
+              + "varchar_binary VARCHAR(10) BINARY default 0x1,"
+              + "binary0 BINARY(10) default 0x1,"
+              + "varbinary0 VARBINARY(10) default 0x1, "
+              + "id int not null AUTO_INCREMENT, PRIMARY KEY (id))");
+      stmt.execute(
+          "CREATE TABLE test_cache_table1(id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20))");
+      stmt.execute("CREATE TABLE PreparedStatementTest3(id int)");
+      stmt.execute(
+          "CREATE TABLE ensureRowStateWithNullValues(t1 varchar(20), t2 varchar(20), t3 varchar(20), t4 varchar(20), t5 varchar(20), t6 varchar(20))");
+      stmt.execute(
+          "CREATE TABLE ensureRowStateWithNullValuesSecond(ID int(11) NOT NULL,"
+              + " COLUMN_1 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+              + " COLUMN_2 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+              + " COLUMN_3 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+              + " PRIMARY KEY (ID))"
+              + "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin");
+
+      stmt.execute("FLUSH TABLES");
     }
-    createTable(
-        "ServerPrepareStatementCacheSize2",
-        "id int not null primary key auto_increment, test boolean");
-    createTable(
-        "ServerPrepareStatementCacheSize3",
-        "id int not null primary key auto_increment, test blob");
-    createTable("ServerPrepareStatementParameters", "id int, id2 int");
-    createTable(
-        "ServerPrepareStatementCacheSize4",
-        "id int not null primary key auto_increment, test LONGBLOB",
-        "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
-    createTable("streamtest2", "id int primary key not null, strm text");
-    createTable(
-        "testServerPrepareMeta",
-        "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
-    createTable(
-        "ServerPrepareStatementSync",
-        "id int not null primary key auto_increment, test varchar(1007), tt boolean");
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTest");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTestt");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTestt2");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTestCache");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementCacheSize3");
+      stmt.execute("DROP TABLE IF EXISTS preparetestFactionnal");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementCacheSize2");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementCacheSize5");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementParameters");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementCacheSize4");
+      stmt.execute("DROP TABLE IF EXISTS streamtest2");
+      stmt.execute("DROP TABLE IF EXISTS testServerPrepareMeta");
+      stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementSync");
+      stmt.execute("DROP TABLE IF EXISTS preparetest");
+      stmt.execute("DROP TABLE IF EXISTS test_cache_table1");
+      stmt.execute("DROP TABLE IF EXISTS PreparedStatementTest3");
+      stmt.execute("DROP TABLE IF EXISTS ensureRowStateWithNullValues");
+      stmt.execute("DROP TABLE IF EXISTS ensureRowStateWithNullValuesSecond");
+    }
   }
 
   @Test
@@ -356,53 +419,12 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
   }
 
-  private void prepareTestTable() throws SQLException {
-
-    createTable(
-        "preparetest",
-        "bit1 BIT(1),"
-            + "bit2 BIT(2),"
-            + "tinyint1 TINYINT(1),"
-            + "tinyint2 TINYINT(2),"
-            + "bool0 BOOL default 1,"
-            + "smallint0 SMALLINT default 1,"
-            + "smallint_unsigned SMALLINT UNSIGNED default 0,"
-            + "mediumint0 MEDIUMINT default 1,"
-            + "mediumint_unsigned MEDIUMINT UNSIGNED default 0,"
-            + "int0 INT default 1,"
-            + "int_unsigned INT UNSIGNED default 0,"
-            + "bigint0 BIGINT default 1,"
-            + "bigint_unsigned BIGINT UNSIGNED default 0,"
-            + "float0 FLOAT default 0,"
-            + "double0 DOUBLE default 1,"
-            + "decimal0 DECIMAL default 0,"
-            + "decimal1 DECIMAL(15,4) default 0,"
-            + "date0 DATE default '2001-01-01',"
-            + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
-            + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
-            + "timestamp1 TIMESTAMP(0) null default  '2001-01-01 00:00:00',"
-            + "timestamp_zero TIMESTAMP  null, "
-            + "time0 TIME(6) default '22:11:00',"
-            + ((!isMariadbServer() && minVersion(5, 6))
-                ? "year2 YEAR(4) default 99,"
-                : "year2 YEAR(2) default 99,")
-            + "year4 YEAR(4) default 2011,"
-            + "char0 CHAR(1) default '0',"
-            + "char_binary CHAR (1) binary default '0',"
-            + "varchar0 VARCHAR(1) default '1',"
-            + "varchar_binary VARCHAR(10) BINARY default 0x1,"
-            + "binary0 BINARY(10) default 0x1,"
-            + "varbinary0 VARBINARY(10) default 0x1, "
-            + "id int not null AUTO_INCREMENT, PRIMARY KEY (id)");
-  }
-
   @SuppressWarnings("ConstantConditions")
   @Test
   public void dataConformity() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
     TimeZone defaultTimeZone = TimeZone.getDefault();
     try {
-      prepareTestTable();
       PreparedStatement ps =
           sharedConnection.prepareStatement(
               "INSERT INTO preparetest (bit1,bit2,tinyint1,"
@@ -656,7 +678,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
       PreparedStatement ps =
           connection.prepareStatement(
-              "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+              "INSERT INTO ServerPrepareStatementCacheSize5(test) VALUES (?)");
       ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
       InputStream input = classLoader.getResourceAsStream("logback-test.xml");
 
@@ -751,7 +773,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
       PreparedStatement ps =
           connection.prepareStatement(
-              "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
+              "INSERT INTO ServerPrepareStatementCacheSize5(test) VALUES (?)");
       Reader reader =
           new BufferedReader(
               new InputStreamReader(ClassLoader.getSystemResourceAsStream("logback-test.xml")));
@@ -876,8 +898,7 @@ public class ServerPrepareStatementTest extends BaseTest {
   @Test
   public void dataConformity2() throws SQLException {
     Assume.assumeTrue(doPrecisionTest);
-    prepareTestTable();
-
+    sharedConnection.createStatement().execute("TRUNCATE preparetest");
     PreparedStatement ps =
         sharedConnection.prepareStatement(
             "INSERT INTO preparetest "
@@ -1008,9 +1029,6 @@ public class ServerPrepareStatementTest extends BaseTest {
     // tester le cache prepareStatement
     try (Connection connection = setConnection()) {
       Protocol protocol = getProtocolFromConnection(connection);
-      createTable(
-          "test_cache_table1",
-          "id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20)");
       PreparedStatement[] map = new PreparedStatement[280];
       for (int i = 0; i < 280; i++) {
         map[i] =
@@ -1037,7 +1055,6 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void testRewriteMultiPacket() throws SQLException {
-    createTable("PreparedStatementTest3", "id int");
     StringBuilder sql = new StringBuilder("INSERT INTO PreparedStatementTest3 VALUES (?)");
     for (int i = 1; i < 65535; i++) {
       sql.append(",(?)");
@@ -1129,9 +1146,6 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void ensureRowStateWithNullValues() throws SQLException {
-    createTable(
-        "ensureRowStateWithNullValues",
-        "t1 varchar(20), t2 varchar(20), t3 varchar(20), t4 varchar(20), t5 varchar(20), t6 varchar(20)");
     Statement stmt = sharedConnection.createStatement();
     stmt.execute(
         "INSERT INTO ensureRowStateWithNullValues VALUES ('12345678901234567890', null, 'otherString', '1234567890', null, '12345')");
@@ -1156,14 +1170,6 @@ public class ServerPrepareStatementTest extends BaseTest {
    */
   @Test
   public void ensureRowStateWithNullValuesSecond() throws Exception {
-    createTable(
-        "ensureRowStateWithNullValuesSecond",
-        " ID int(11) NOT NULL,"
-            + " COLUMN_1 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
-            + " COLUMN_2 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
-            + " COLUMN_3 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
-            + " PRIMARY KEY (ID)",
-        "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin");
     if (testSingleHost) {
       Statement st = sharedConnection.createStatement();
       st.execute(

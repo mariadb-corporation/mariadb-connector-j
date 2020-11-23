@@ -55,21 +55,28 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MariaDbCompatibilityTest extends BaseTest {
 
-  /**
-   * Preparation.
-   *
-   * @throws SQLException exception
-   */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("datatypesTest", "type_longvarchar TEXT NULL");
-    createTable(
-        "mysqlcompatibilitytest", "id int not null primary key auto_increment, test bit(1)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE datatypesTest(type_longvarchar TEXT NULL)");
+      stmt.execute(
+          "CREATE TABLE mysqlcompatibilitytest(id int not null primary key auto_increment, test bit(1))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS datatypesTest");
+      stmt.execute("DROP TABLE IF EXISTS mysqlcompatibilitytest");
+    }
   }
 
   /**

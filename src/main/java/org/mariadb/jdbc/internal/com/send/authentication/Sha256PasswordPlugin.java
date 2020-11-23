@@ -229,7 +229,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
       } else {
         if (!options.allowPublicKeyRetrieval) {
           throw new SQLException(
-              "RSA public key is not available client side (option " + "serverRsaPublicKeyFile)",
+              "RSA public key is not available client side (option serverRsaPublicKeyFile)",
               "S1009");
         }
 

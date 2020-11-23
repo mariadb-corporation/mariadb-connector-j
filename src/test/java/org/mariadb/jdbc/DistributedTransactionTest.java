@@ -57,16 +57,35 @@ import static org.junit.Assert.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.UUID;
 import javax.sql.XAConnection;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class DistributedTransactionTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE xatable(i int)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS xatable");
+    }
+  }
 
   private final MariaDbDataSource dataSource;
 
@@ -78,12 +97,6 @@ public class DistributedTransactionTest extends BaseTest {
     dataSource.setDatabaseName(database);
     dataSource.setUser(username);
     dataSource.setPassword(password);
-  }
-
-  @BeforeClass()
-  public static void initClass() throws SQLException {
-    Assume.assumeFalse(options.useSsl != null && options.useSsl);
-    createTable("xatable", "i int", "ENGINE=InnoDB");
   }
 
   private Xid newXid() {
@@ -236,6 +249,7 @@ public class DistributedTransactionTest extends BaseTest {
     ds.setUser(username);
     ds.setPassword(password);
     ds.setPort(port);
+
     XAConnection xaConn1 = null;
     Xid xid = newXid();
     try {

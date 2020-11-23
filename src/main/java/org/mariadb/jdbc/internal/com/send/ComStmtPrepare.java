@@ -78,6 +78,7 @@ public class ComStmtPrepare {
    * Send directly to socket the sql data.
    *
    * @param pos the writer
+   * @return ComStmtPrepare this object
    * @throws IOException if connection error occur
    */
   public ComStmtPrepare send(PacketOutputStream pos) throws IOException {
@@ -158,7 +159,8 @@ public class ComStmtPrepare {
         String key = protocol.getDatabase() + "-" + sql;
         ServerPrepareResult cachedServerPrepareResult =
             protocol.putInCache(key, serverPrepareResult);
-        // if same prepare result is already cached, dismissed prepared result, and reuse cached entry
+        // if same prepare result is already cached, dismissed prepared result, and reuse cached
+        // entry
         return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
       }
       return serverPrepareResult;

@@ -58,6 +58,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -66,6 +67,22 @@ public class DataSourceTest extends BaseTest {
 
   protected static final String defConnectToIP = null;
   protected static String connectToIP;
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE DATABASE test2");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP DATABASE IF EXISTS test2");
+    }
+  }
 
   /** Initialisation. */
   @BeforeClass
@@ -152,17 +169,18 @@ public class DataSourceTest extends BaseTest {
   @Test
   public void setDatabaseNameTest() throws SQLException {
     Assume.assumeFalse(options.useSsl != null && options.useSsl);
-    Assume.assumeTrue(System.getenv("SKYSQL") == null);
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null);
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {
-      connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
       ds.setDatabaseName("test2");
 
       try (Connection connection2 = ds.getConnection(username, password)) {
         assertEquals("test2", ds.getDatabaseName());
         assertEquals(ds.getDatabaseName(), connection2.getCatalog());
-        connection2.createStatement().execute("DROP DATABASE IF EXISTS test2");
       }
     }
   }

@@ -53,13 +53,30 @@
 package org.mariadb.jdbc;
 
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 
 public class ComMultiPrepareStatementTest extends BaseTest {
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE test_insert_select_com_multi(`field1` varchar(20))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE test_insert_select_com_multi");
+    }
+  }
 
   @org.junit.Test
   public void insertSelectTempTable2() throws Exception {
     requireMinimumVersion(10, 2);
-    createTable("test_insert_select_com_multi", "`field1` varchar(20)");
     // prepare doesn't work.
     PreparedStatement stmt =
         sharedConnection.prepareStatement(

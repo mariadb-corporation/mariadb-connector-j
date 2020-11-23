@@ -55,6 +55,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.*;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -68,16 +69,37 @@ public class BasicBatchTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("test_batch", "id int not null primary key auto_increment, test varchar(10)");
-    createTable("test_batch2", "id int not null primary key auto_increment, test varchar(10)");
-    createTable("test_batch3", "id int not null primary key auto_increment, test varchar(10)");
-    createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
-    createTable("batchPrepareUpdateException", "i int,PRIMARY KEY (i)");
-    createTable(
-        "rewritetest", "id int not null primary key, a varchar(10), b int", "engine=innodb");
-    createTable(
-        "rewritetest2", "id int not null primary key, a varchar(10), b int", "engine=innodb");
-    createTable("bug501452", "id int not null primary key, value varchar(20)");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE test_batch(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE test_batch2(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute(
+          "CREATE TABLE test_batch3(id int not null primary key auto_increment, test varchar(10))");
+      stmt.execute("CREATE TABLE batchUpdateException(i int,PRIMARY KEY (i))");
+      stmt.execute("CREATE TABLE batchPrepareUpdateException(i int,PRIMARY KEY (i))");
+      stmt.execute(
+          "CREATE TABLE rewritetest(id int not null primary key, a varchar(10), b int) engine=innodb");
+      stmt.execute(
+          "CREATE TABLE rewritetest2(id int not null primary key, a varchar(10), b int) engine=innodb");
+      stmt.execute("CREATE TABLE bug501452(id int not null primary key, value varchar(20))");
+      stmt.execute("CREATE TABLE testBatchString(charValue VARCHAR(100) NOT NULL)");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE test_batch");
+      stmt.execute("DROP TABLE test_batch2");
+      stmt.execute("DROP TABLE test_batch3");
+      stmt.execute("DROP TABLE batchUpdateException");
+      stmt.execute("DROP TABLE batchPrepareUpdateException");
+      stmt.execute("DROP TABLE rewritetest");
+      stmt.execute("DROP TABLE rewritetest2");
+      stmt.execute("DROP TABLE bug501452");
+      stmt.execute("DROP TABLE testBatchString");
+    }
   }
 
   @Test
@@ -343,7 +365,6 @@ public class BasicBatchTest extends BaseTest {
     Assume.assumeTrue(
         runLongTest
             && (sharedOptions().useBulkStmts || sharedIsRewrite())); // if not will be too long.
-    createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
     Statement stmt = sharedConnection.createStatement();
     String[] datas = new String[1_000_000];
     String empty =

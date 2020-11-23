@@ -31,9 +31,32 @@ import static org.junit.Assert.*;
 
 import java.math.BigInteger;
 import java.sql.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ScalarFunctionsTest extends BaseTest {
+
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    afterClass();
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute(
+          "CREATE TABLE TEST_SYNTAX_ERROR("
+              + "     id INTEGER unsigned NOT NULL AUTO_INCREMENT, "
+              + "     str_value MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL,"
+              + "     json_value  MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL, "
+              + "    PRIMARY KEY ( id ))");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS TEST_SYNTAX_ERROR");
+    }
+  }
 
   @Test
   public void nativeSqlTest() throws SQLException {
@@ -186,13 +209,6 @@ public class ScalarFunctionsTest extends BaseTest {
   @Test
   public void doubleBackslash() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS TEST_SYNTAX_ERROR");
-    stmt.execute(
-        "CREATE TABLE TEST_SYNTAX_ERROR("
-            + "     id INTEGER unsigned NOT NULL AUTO_INCREMENT, "
-            + "     str_value MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL,"
-            + "     json_value  MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL, "
-            + "    PRIMARY KEY ( id ))");
     stmt.execute(
         "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')");
   }

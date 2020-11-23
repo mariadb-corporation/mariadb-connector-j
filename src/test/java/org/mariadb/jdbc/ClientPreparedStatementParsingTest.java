@@ -163,7 +163,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                   + " tt VALUES "
                   + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
                   + " (",
-              ") " + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
+              ") /* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
             }));
   }
 

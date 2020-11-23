@@ -56,6 +56,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.sql.*;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -64,14 +65,24 @@ public class ByteTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    createTable("ByteTest", "test tinyint, test2 TINYBLOB");
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("CREATE TABLE ByteTest(test tinyint, test2 TINYBLOB)");
+      stmt.execute("FLUSH TABLES");
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() throws SQLException {
+    try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE ByteTest");
+    }
   }
 
   @Test
   public void byteSending() throws SQLException {
     Assume.assumeFalse(sharedUsePrepare());
     try (PreparedStatement prep =
-        sharedConnection.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
+        sharedConnection.prepareStatement("INSERT INTO ByteTest value (?, ?)")) {
       prep.setByte(1, (byte) -6);
       prep.setByte(2, (byte) -6);
       prep.execute();
@@ -88,8 +99,7 @@ public class ByteTest extends BaseTest {
   @Test
   public void byteSendingBinary() throws SQLException {
     try (Connection conn = setConnection("&useServerPrepStmts")) {
-      try (PreparedStatement prep =
-          conn.prepareStatement("INSERT INTO ByteTest value " + "(?, ?)")) {
+      try (PreparedStatement prep = conn.prepareStatement("INSERT INTO ByteTest value (?, ?)")) {
         prep.setByte(1, (byte) -6);
         prep.setByte(2, (byte) -6);
         prep.execute();
