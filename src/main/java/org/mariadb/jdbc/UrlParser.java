@@ -89,7 +89,7 @@ import org.mariadb.jdbc.util.Options;
  *
  * <p>host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * example : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  *
  * <p>Some examples :<br>
  * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
