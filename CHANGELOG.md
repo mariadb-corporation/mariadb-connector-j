@@ -110,7 +110,7 @@ Evolutions
 * CONJ-678 - permit indication of truststore/keystore type (JKS/PKCS12), then not relying on java default type
 * CONJ-378 - GSSAPI: client can provide SPN
 * CONJ-667 - Support MYSQL_TYPE_JSON datatype
-* CONJ-652 - faster results buffering socket available
+* CONJ-652 - faster results bufing socket available
 * CONJ-659 - improve text performance reading date/time/timestamp resultset
 * CONJ-670 - ability to Refresh SSL certificate
 
@@ -118,7 +118,7 @@ New options
 
 |Option|Description|
 |---|---|
-|useReadAheadInput|use a buffered inputSteam that read socket available data. <br /><i>Default: true</i>|
+|useReadAheadInput|use a bufed inputSteam that read socket available data. <br /><i>Default: true</i>|
 |keyStoreType|indicate key store type (JKS/PKCS12). default is null, then using java default type.|
 |trustStoreType|indicate trust store type (JKS/PKCS12). default is null, then using java default type|
 |servicePrincipalName|when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, connector will use this value, ignoring server information|
@@ -400,7 +400,7 @@ Bug
 
 Bug
 * CONJ-490 - DataSource connectTimeout is in second, but was set on socket timeout that is in milliseconds
-* CONJ-481 - Buffer overrun reading ResultSet when using option "useServerPrepStmts"
+* CONJ-481 - buf overrun reading ResultSet when using option "useServerPrepStmts"
 * CONJ-470 - Error when executing SQL contains "values" and rewriteBatchedStatements=true
 * CONJ-471 - PK_NAME returned by DatabaseMetadata.getPrimaryKeys() should not be null
 * CONJ-477 - Aurora not compatible with option usePipelineAuth. Now automatically disabled when aurora is detected
@@ -461,7 +461,7 @@ will be executed on close, to avoid having to parse all remaining results.
 
 ##= [CONJ-442]
 Memory optimization : streaming query.
-Very big command now doesn't use any intermediate buffer. Commands are send directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
+Very big command now doesn't use any intermediate buf. Commands are send directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
 
 ##= [CONJ-366]
 Faster connection : bundle first commands in authentication packet
@@ -650,7 +650,7 @@ Different performance improvement have been done :
 * Using PreparedStatement on client side use a simple query parser to identify query parameters. This parsing was taking up to 7% of query time, reduced to 3%.
 * Better UTF-8 decoding avoiding memory consumption and gain 1-2% query time for big String.
 * client parsing optimization : rewriteBatchedStatements (insert into ab (i) values (1) and insert into ab (i) values (2) rewritten as insert into ab (i) values (1), (2))
-    is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to contain query).
+    is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buf size is big enough to contain query).
 * there was some memory wastage when query return big resultset (> 10kb), slowing query.
 * ...
 
@@ -794,7 +794,7 @@ Loading all results for large result sets is using a lot of memory. This functio
 
 ### Memory footprint improvement
 CONJ-125
-Buffers have been optimized to reduced memory footprint
+bufs have been optimized to reduced memory footprint
 
 ### CallableStatement  performance improvement.
 CONJ-209

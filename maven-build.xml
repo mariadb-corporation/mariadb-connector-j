@@ -100,17 +100,17 @@
     <pathelement location="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"/>
     <pathelement location="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"/>
     <pathelement
-      location="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"/>
+        location="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"/>
   </path>
   <path id="build.test.classpath">
     <pathelement location="${maven.repo.local}/junit/junit/4.12/junit-4.12.jar"/>
     <pathelement
-      location="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"/>
+        location="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"/>
     <pathelement location="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"/>
     <pathelement location="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"/>
     <pathelement location="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"/>
     <pathelement
-      location="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"/>
+        location="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"/>
   </path>
 
   <!-- ====================================================================== -->
@@ -306,68 +306,68 @@
     <mkdir dir="${maven.repo.local}"/>
     <mkdir dir="${maven.repo.local}/junit/junit/4.12"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/junit/junit/4.12/junit-4.12.jar"
-      dest="${maven.repo.local}/junit/junit/4.12/junit-4.12.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/junit/junit/4.12/junit-4.12.jar"
+        dest="${maven.repo.local}/junit/junit/4.12/junit-4.12.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get src="https://repo.maven.apache.org/maven2/junit/junit/4.12/junit-4.12.jar"
          dest="${maven.repo.local}/junit/junit/4.12/junit-4.12.jar"
          usetimestamp="false"
          ignoreerrors="true"/>
     <mkdir dir="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
-      dest="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
+        dest="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get
-      src="https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
-      dest="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://repo.maven.apache.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
+        dest="${maven.repo.local}/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <mkdir dir="${maven.repo.local}/net/java/dev/jna/jna/3.3.0"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
-      dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
+        dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get src="https://repo.maven.apache.org/maven2/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
          dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0.jar"
          usetimestamp="false"
          ignoreerrors="true"/>
     <mkdir dir="${maven.repo.local}/net/java/dev/jna/jna/3.3.0"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
-      dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
+        dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get
-      src="https://repo.maven.apache.org/maven2/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
-      dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://repo.maven.apache.org/maven2/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
+        dest="${maven.repo.local}/net/java/dev/jna/jna/3.3.0/jna-3.3.0-platform.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <mkdir dir="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
-      dest="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
+        dest="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get
-      src="https://repo.maven.apache.org/maven2/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
-      dest="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://repo.maven.apache.org/maven2/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
+        dest="${maven.repo.local}/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <mkdir dir="${maven.repo.local}/commons-pool/commons-pool/1.5.4"/>
     <get
-      src="https://oss.sonatype.org/content/repositories/snapshots/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
-      dest="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://oss.sonatype.org/content/repositories/snapshots/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
+        dest="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
     <get
-      src="https://repo.maven.apache.org/maven2/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
-      dest="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
-      usetimestamp="false"
-      ignoreerrors="true"/>
+        src="https://repo.maven.apache.org/maven2/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
+        dest="${maven.repo.local}/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar"
+        usetimestamp="false"
+        ignoreerrors="true"/>
   </target>
 
 </project>

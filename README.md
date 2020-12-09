@@ -16,6 +16,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MariaDB/mariadb-connector-j&amp;utm_campaign=Badge_Grade)
+[![codecov][codecov-image]][codecov-url]
 
 ## Obtaining the driver
 
@@ -63,3 +64,7 @@ For a Getting started guide, API docs, recipes,  etc. see the
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
 [Developers Guide.](/documentation/developers-guide.creole)
+
+
+[codecov-image]:https://codecov.io/gh/rusher/mariadb-connector-j/branch/master/graph/badge.svg
+[codecov-url]:https://codecov.io/gh/rusher/mariadb-connector-j

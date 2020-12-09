@@ -1,5 +1,5 @@
 <!--
-  ~ /*
+  ~
   ~ MariaDB Client for Java
   ~
   ~ Copyright (c) 2012-2014 Monty Program Ab.
@@ -22,32 +22,7 @@
   ~ derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
   ~ the following copyright and notice provisions:
   ~
-  ~ Copyright (c) 2009-2011, Marcus Eriksson
   ~
-  ~ Redistribution and use in source and binary forms, with or without modification,
-  ~ are permitted provided that the following conditions are met:
-  ~ Redistributions of source code must retain the above copyright notice, this list
-  ~ of conditions and the following disclaimer.
-  ~
-  ~ Redistributions in binary form must reproduce the above copyright notice, this
-  ~ list of conditions and the following disclaimer in the documentation and/or
-  ~ other materials provided with the distribution.
-  ~
-  ~ Neither the name of the driver nor the names of its contributors may not be
-  ~ used to endorse or promote products derived from this software without specific
-  ~ prior written permission.
-  ~
-  ~ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-  ~ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  ~ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-  ~ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-  ~ INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-  ~ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-  ~ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-  ~ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-  ~ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-  ~ OF SUCH DAMAGE.
-  ~ */
   -->
 
 
@@ -60,15 +35,19 @@
   <artifactId>mariadb-java-client</artifactId>
   <packaging>jar</packaging>
   <name>mariadb-java-client</name>
-  <version>2.6.1-SNAPSHOT</version>
+  <version>3.0.0-SNAPSHOT</version>
   <description>JDBC driver for MariaDB and MySQL</description>
   <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jna.version>5.5.0</jna.version>
+    <jmh.version>1.23</jmh.version>
+    <junit.version>5.6.2</junit.version>
+    <assertj.version>3.15.0</assertj.version>
     <osgi.version>6.0.0</osgi.version>
     <osgi.compendium.version>5.0.0</osgi.compendium.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <logback.version>1.2.3</logback.version>
   </properties>
 
   <licenses>
@@ -109,6 +88,29 @@
     </snapshotRepository>
   </distributionManagement>
 
+  <dependencyManagement>
+    <dependencies>
+
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>com.amazonaws</groupId>
+        <artifactId>aws-java-sdk-bom</artifactId>
+        <version>1.11.788</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+    </dependencies>
+
+  </dependencyManagement>
+
   <build>
     <resources>
       <resource>
@@ -117,6 +119,11 @@
       </resource>
     </resources>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+      </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -138,62 +145,29 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>3.8.1</version>
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
+          <showWarnings>true</showWarnings>
           <compilerArgs>
-            <arg>-Xlint:all,-options,-path</arg>
+            <arg>-Xlint:all,-options,-path,-processing</arg>
           </compilerArgs>
         </configuration>
       </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>3.1.1</version>
         <configuration>
           <source>8</source>
+          <excludePackageNames>
+            org.mariadb.jdbc.client,org.mariadb.jdbc.codec,org.mariadb.jdbc.message,org.mariadb.jdbc.util
+          </excludePackageNames>
         </configuration>
         <executions>
           <execution>
             <id>attach-javadocs</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.0</version>
-        <configuration>
-          <archive>
-            <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-            <manifestEntries>
-              <Bundle-Version>${project.version}</Bundle-Version>
-              <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-              <Bundle-Name>mariadb-java-client</Bundle-Name>
-              <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
-              <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
-              <Export-Package>org.mariadb.jdbc</Export-Package>
-              <Import-Package>
-                org.osgi.framework,javax.naming,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional
-              </Import-Package>
-              <Bundle-Activator>org.mariadb.jdbc.internal.osgi.MariaDbActivator</Bundle-Activator>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.1</version>
-        <executions>
-          <execution>
-            <!--package phase-->
             <goals>
               <goal>jar</goal>
             </goals>
@@ -216,8 +190,6 @@
           <autoReleaseAfterClose>false</autoReleaseAfterClose>
         </configuration>
       </plugin>
-
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
@@ -250,50 +222,39 @@
     <dependency>
       <groupId>com.github.waffle</groupId>
       <artifactId>waffle-jna</artifactId>
-      <version>2.2.1</version>
+      <version>1.9.1</version>
       <optional>true</optional>
     </dependency>
-
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13</version>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>net.java.dev.jna</groupId>
-      <artifactId>jna</artifactId>
-      <version>${jna.version}</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>net.java.dev.jna</groupId>
-      <artifactId>jna-platform</artifactId>
-      <version>${jna.version}</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>[1.4.0,1.7.25]</version>
-      <optional>true</optional>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
+      <version>${logback.version}</version>
       <scope>test</scope>
-      <optional>true</optional>
     </dependency>
-
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-rds</artifactId>
-      <version>1.11.734</version>
-      <optional>true</optional>
-    </dependency>
-
+    <!--    <dependency>-->
+    <!--      <groupId>net.java.dev.jna</groupId>-->
+    <!--      <artifactId>jna</artifactId>-->
+    <!--      <version>${jna.version}</version>-->
+    <!--      <optional>true</optional>-->
+    <!--    </dependency>-->
+    <!--    <dependency>-->
+    <!--      <groupId>net.java.dev.jna</groupId>-->
+    <!--      <artifactId>jna-platform</artifactId>-->
+    <!--      <version>${jna.version}</version>-->
+    <!--      <optional>true</optional>-->
+    <!--    </dependency>-->
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
@@ -306,5 +267,109 @@
       <version>${osgi.compendium.version}</version>
       <scope>provided</scope>
     </dependency>
+    <!--    <dependency>-->
+    <!--      <groupId>com.amazonaws</groupId>-->
+    <!--      <artifactId>aws-java-sdk-rds</artifactId>-->
+    <!--      <optional>true</optional>-->
+    <!--    </dependency>-->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-rds</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
+
+
+  <profiles>
+    <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+    <profile>
+      <id>bench</id>
+
+      <dependencies>
+        <dependency>
+          <groupId>org.openjdk.jmh</groupId>
+          <artifactId>jmh-core</artifactId>
+          <version>${jmh.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.openjdk.jmh</groupId>
+          <artifactId>jmh-generator-annprocess</artifactId>
+          <version>${jmh.version}</version>
+        </dependency>
+
+        <dependency>
+          <groupId>mysql</groupId>
+          <artifactId>mysql-connector-java</artifactId>
+          <version>[8.0.20,)</version>
+        </dependency>
+
+      </dependencies>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.0.0</version>
+            <executions>
+              <execution>
+                <id>add-source</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/benchmark/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+              <execution>
+                <id>add-resource</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>add-resource</goal>
+                </goals>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>src/benchmark/resources</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>3.2.1</version>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>shade</goal>
+                </goals>
+                <configuration>
+                  <finalName>benchmarks</finalName>
+                  <transformers>
+                    <transformer
+                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                      <mainClass>org.openjdk.jmh.Main</mainClass>
+                    </transformer>
+                  </transformers>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
