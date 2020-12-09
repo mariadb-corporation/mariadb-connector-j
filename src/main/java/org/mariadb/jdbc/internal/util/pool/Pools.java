@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -47,8 +47,9 @@ public class Pools {
       synchronized (poolMap) {
         if (!poolMap.containsKey(urlParser)) {
           if (poolExecutor == null) {
-            poolExecutor = new ScheduledThreadPoolExecutor(1,
-                new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
+            poolExecutor =
+                new ScheduledThreadPoolExecutor(
+                    1, new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
           }
           Pool pool = new Pool(urlParser, poolIndex.incrementAndGet(), poolExecutor);
           poolMap.put(urlParser, pool);
@@ -69,15 +70,16 @@ public class Pools {
       synchronized (poolMap) {
         if (poolMap.containsKey(pool.getUrlParser())) {
           poolMap.remove(pool.getUrlParser());
-          shutdownExecutor();
+
+          if (poolMap.isEmpty()) {
+            shutdownExecutor();
+          }
         }
       }
     }
   }
 
-  /**
-   * Close all pools.
-   */
+  /** Close all pools. */
   public static void close() {
     synchronized (poolMap) {
       for (Pool pool : poolMap.values()) {
@@ -100,14 +102,9 @@ public class Pools {
     synchronized (poolMap) {
       for (Pool pool : poolMap.values()) {
         if (poolName.equals(pool.getUrlParser().getOptions().poolName)) {
-          pool.close();
-          poolMap.remove(pool.getUrlParser());
+          pool.close(); // Pool.close() calls Pools.remove(), which does the rest of the cleanup
           return;
         }
-      }
-
-      if (poolMap.isEmpty()) {
-        shutdownExecutor();
       }
     }
   }
@@ -117,9 +114,8 @@ public class Pools {
     try {
       poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
     } catch (InterruptedException interrupted) {
-      //eat
+      // eat
     }
     poolExecutor = null;
-
   }
 }

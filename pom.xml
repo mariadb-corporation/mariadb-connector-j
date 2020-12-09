@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.8.0</version>
+    <version>1.7.5</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -70,8 +70,8 @@
         <checkstyleVersion>8.12</checkstyleVersion>
         <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
         <driver.version.major>1</driver.version.major>
-        <driver.version.minor>8</driver.version.minor>
-        <driver.version.patch>0</driver.version.patch>
+        <driver.version.minor>7</driver.version.minor>
+        <driver.version.patch>5</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -315,7 +315,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.6</version>
+                <version>1.6.8</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>

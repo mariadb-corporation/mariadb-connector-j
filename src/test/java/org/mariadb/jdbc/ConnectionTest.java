@@ -800,7 +800,7 @@ public class ConnectionTest extends BaseTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
     SQLWarning warning = sharedConnection.getWarnings();
-    assertTrue(warning.getMessage().contains("Incorrect datetime value: '1'"));
+    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
     sharedConnection.clearWarnings();
     assertNull(sharedConnection.getWarnings());
   }

@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -34,10 +34,7 @@ public class GlobalStateInfo {
   private final String systemTimeZone;
   private final int defaultTransactionIsolation;
 
-  /**
-   * Default value.
-   * ! To be used for Connection that will only Kill query/connection !
-   */
+  /** Default value. ! To be used for Connection that will only Kill query/connection ! */
   public GlobalStateInfo() {
     this.maxAllowedPacket = 1000000;
     this.waitTimeout = 28800;
@@ -49,20 +46,26 @@ public class GlobalStateInfo {
   }
 
   /**
-   * Storing global server state to avoid asking server each new connection.
-   * Using this Object meaning having set the option "staticGlobal".
-   * Application must not change any of the following options.
+   * Storing global server state to avoid asking server each new connection. Using this Object
+   * meaning having set the option "staticGlobal". Application must not change any of the following
+   * options.
    *
-   * @param maxAllowedPacket            max_allowed_packet global variable value
-   * @param waitTimeout                 wait_timeout global variable value
-   * @param autocommit                  auto_commit global variable value
-   * @param autoIncrementIncrement      auto_increment_increment global variable value
-   * @param timeZone                    time_zone global variable value
-   * @param systemTimeZone              System global variable value
+   * @param maxAllowedPacket max_allowed_packet global variable value
+   * @param waitTimeout wait_timeout global variable value
+   * @param autocommit auto_commit global variable value
+   * @param autoIncrementIncrement auto_increment_increment global variable value
+   * @param timeZone time_zone global variable value
+   * @param systemTimeZone System global variable value
    * @param defaultTransactionIsolation tx_isolation variable value
    */
-  public GlobalStateInfo(long maxAllowedPacket, int waitTimeout, boolean autocommit, int autoIncrementIncrement,
-                         String timeZone, String systemTimeZone, int defaultTransactionIsolation) {
+  public GlobalStateInfo(
+      long maxAllowedPacket,
+      int waitTimeout,
+      boolean autocommit,
+      int autoIncrementIncrement,
+      String timeZone,
+      String systemTimeZone,
+      int defaultTransactionIsolation) {
     this.maxAllowedPacket = maxAllowedPacket;
     this.waitTimeout = waitTimeout;
     this.autocommit = autocommit;

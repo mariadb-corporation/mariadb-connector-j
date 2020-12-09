@@ -154,18 +154,32 @@ public class SslTest extends BaseTest {
     } catch (SQLException e) {
       //eat
     }
+    try {
+      stmt.execute("DROP USER 'ssltestUser'@'localhost'");
+    } catch (SQLException e) {
+      //eat
+    }
     boolean useOldNotation = true;
-    if ((isMariadbServer() && minVersion(10, 2, 0)) || (!isMariadbServer() && minVersion(8, 0,
-        0))) {
+    if ((isMariadbServer() && minVersion(10, 2, 0))
+        || (!isMariadbServer() && minVersion(8, 0, 0))) {
       useOldNotation = false;
     }
     if (useOldNotation) {
-      stmt.execute("CREATE USER 'ssltestUser'@'%'");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+      stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'%'");
+      stmt.execute(
+          "GRANT SELECT ON *.* TO 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost'");
+      stmt.execute(
+          "GRANT SELECT ON *.* TO 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
     } else {
-      stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'%'");
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+      stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'localhost'");
     }
+    stmt.execute("FLUSH PRIVILEGES");
   }
 
   @Test
@@ -237,12 +251,14 @@ public class SslTest extends BaseTest {
 
   @Test
   public void useSslForceTlsV1() throws Exception {
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     useSslForceTls("TLSv1");
   }
 
   @Test
   public void useSslForceTlsV11() throws Exception {
     // must either be mariadb or mysql version 5.7.10
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
     if (isMariadbServer() || minVersion(5, 7)) {
       useSslForceTls("TLSv1.1");
     }
@@ -347,7 +363,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1,TLSv1.1,TLSv1.2");
     } else {
-      useSslForceTls("TLSv1,TLSv1");
+      useSslForceTls("TLSv1,TLSv1.1");
     }
   }
 
@@ -356,7 +372,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
     } else {
-      useSslForceTls("TLSv1, TLSv1");
+      useSslForceTls("TLSv1, TLSv1.1");
     }
   }
 
@@ -366,7 +382,7 @@ public class SslTest extends BaseTest {
     if (isMariadbServer() && !Platform.isWindows()) {
       useSslForceTls("TLSv1 TLSv1.1 TLSv1.2");
     } else {
-      useSslForceTls("TLSv1 TLSv1");
+      useSslForceTls("TLSv1 TLSv1.1");
     }
   }
 
@@ -417,7 +433,7 @@ public class SslTest extends BaseTest {
    */
   public void testConnect(Properties info, boolean sslExpected) throws SQLException {
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
-    testConnect(info, sslExpected, "ssltestUser", "");
+    testConnect(info, sslExpected, "ssltestUser", "!Passw0rd3Works");
   }
 
   /**
@@ -579,7 +595,7 @@ public class SslTest extends BaseTest {
       Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
 
       long sessionsReused = 0;
-      try (Connection conn = createConnection(info, "ssltestUser", "")) {
+      try (Connection conn = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
         // First do a basic select test:
         Statement stmt = conn.createStatement();
 
@@ -595,7 +611,7 @@ public class SslTest extends BaseTest {
           sessionsReused = rs.getLong(2);
         }
 
-        try (Connection conn2 = createConnection(info, "ssltestUser", "")) {
+        try (Connection conn2 = createConnection(info, "ssltestUser", "!Passw0rd3Works")) {
           Statement stmt2 = conn2.createStatement();
 
           try (ResultSet rs = stmt2.executeQuery("SHOW STATUS LIKE 'Ssl_sessions_reused'")) {

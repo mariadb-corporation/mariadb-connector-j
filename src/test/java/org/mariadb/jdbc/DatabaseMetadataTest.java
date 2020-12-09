@@ -728,10 +728,10 @@ public class DatabaseMetadataTest extends BaseTest {
 
   @Test
   public void getColumnsBasic() throws SQLException {
-    cancelForVersion(10, 1); //due to server error MDEV-8984
-    if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")
-        || sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.3")) {
-      testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+    cancelForVersion(10, 1); // due to server error MDEV-8984
+    if (minVersion(10, 2)) {
+      testResultSetColumns(
+          sharedConnection.getMetaData().getColumns(null, null, null, null),
           "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
               + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
               + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
@@ -741,7 +741,8 @@ public class DatabaseMetadataTest extends BaseTest {
               + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
               + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
     } else {
-      testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+      testResultSetColumns(
+          sharedConnection.getMetaData().getColumns(null, null, null, null),
           "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
               + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
               + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"

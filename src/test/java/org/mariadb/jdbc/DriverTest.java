@@ -1456,12 +1456,16 @@ public class DriverTest extends BaseTest {
       return;  // skip test on non-Windows
     }
 
-    rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
-    if (!rs.next()) {
-      return;
-    }
+    try {
+      rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
+      if (!rs.next()) {
+        return;
+      }
 
-    if (!rs.getString(1).equals("1")) {
+      if (!rs.getString(1).equals("1")) {
+        return;
+      }
+    } catch (SQLException e) {
       return;
     }
 

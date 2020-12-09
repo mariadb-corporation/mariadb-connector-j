@@ -34,64 +34,19 @@ cache:
     - $HOME/.m2
 
 matrix:
-  allow_failures:
-    - env: DB=build PACKET=8M
-      jdk: openjdk7
-    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
-      jdk: openjdk7
-    - env: DB=mariadb:10.4 PACKET=8M
-      jdk: openjdk7
   include:
-    - env: DB=build PACKET=8M
-      jdk: openjdk7
-    - env: AURORA=true
-      jdk: openjdk7
-    - env: DB=mysql:5.5 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mysql:5.6 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mysql:5.7 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
-      jdk: openjdk7
-    - env: DB=mariadb:5.5 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mariadb:10.0 PACKET=8M
-      jdk: openjdk7
     - env: DB=mariadb:10.1 PACKET=8M
-      jdk: openjdk7
+      jdk: openjdk8
     - env: DB=mariadb:10.2 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M GALERA=true
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M PROFILE=true
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M TYPE=PREPARE
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M TYPE=REWRITE
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M TYPE=MULTI
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=20M
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=40M
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=40M TYPE=BULK_SERVER
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_CLIENT
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=40M COMPRESSION=true
-      jdk: openjdk7
-    - env: DB=mariadb:10.3 PACKET=8M
       jdk: openjdk8
     - env: DB=mariadb:10.3 PACKET=8M
-      jdk: openjdk11
+      jdk: openjdk8
     - env: DB=mariadb:10.4 PACKET=8M
-      jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.9
-      jdk: openjdk7
+      jdk: openjdk8
+    - env: DB=mariadb:10.5 PACKET=8M
+      jdk: openjdk8
+    - env: DB=mariadb:10.5 PACKET=8M
+      jdk: openjdk11
 
 script:
   - if [ "$DB" = "build" ] ; then .travis/build/build.sh; fi

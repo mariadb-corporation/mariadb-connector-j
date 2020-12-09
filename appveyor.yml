@@ -1,27 +1,22 @@
 version: '{build}'
 environment:
   matrix:
-    - DB: '10.2.21'
+    - DB: '10.2.34'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.3.12'
+    - DB: '10.3.25'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.1.37'
+    - DB: '10.4.15'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.0.38'
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
-      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-
-    - DB: '5.5.63'
+    - DB: '10.5.6'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
@@ -35,19 +30,18 @@ install:
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
-  - cmd: set FILE=http://mariadb.mirrors.ovh.net/MariaDB/mariadb-%DB%/winx64-packages/mariadb-%DB%-winx64.msi
-  - ps: Start-FileDownload $Env:FILE -FileName server.msi -Timeout 900000
+  - cmd: appveyor-download.bat
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
   - cmd: SET PATH=C:\maven\apache-maven-3.5.4\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
   - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.4
-  - cmd: SET M
   - cmd: cd c:\projects\mariadb-connector-j
   - cmd: mvn --version
   - cmd: java -version
 build_script:
-  - mvn clean package -Dmaven.test.skip=true
+  - mvn clean
+  - mvn test -Dmaven.test.skip=true
 test_script:
   - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root"
