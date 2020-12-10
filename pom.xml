@@ -219,30 +219,7 @@
                     </replacements>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.4.0</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <executable>git</executable>
-                    <arguments>
-                        <argument>archive</argument>
-                        <argument>--format</argument>
-                        <argument>tar.gz</argument>
-                        <argument>--output</argument>
-                        <argument>${project.name}-jre6.tar.gz</argument>
-                        <argument>develop-jre6</argument>
-                    </arguments>
-                </configuration>
-            </plugin>
+
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -296,7 +273,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.6</version>
+                <version>1.6.8</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
@@ -307,6 +284,7 @@
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                    <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
                 </configuration>
             </plugin>
 
