@@ -52,15 +52,14 @@
 
 package org.mariadb.jdbc;
 
-
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.sql.*;
 
-import static org.junit.Assert.*;
-
+import org.junit.AfterClass;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class BufferTest extends BaseTest {
 
@@ -83,9 +82,22 @@ public class BufferTest extends BaseTest {
         }
     }
 
+    /**
+     * Before class.
+     * @throws SQLException exeption
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createTable("BufferTest", "test longText");
+        afterClass();
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("CREATE TABLE buffer_test(test longText)");
+        stmt.execute("FLUSH TABLES");
+    }
+
+    @AfterClass
+    public static void afterClass() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("DROP TABLE IF EXISTS buffer_test");
     }
 
     @Test
@@ -130,7 +142,6 @@ public class BufferTest extends BaseTest {
         sendByteBufferData(true, array40m);
     }
 
-
     @Test
     public void send20mSqlNotCompressDataException() {
         try {
@@ -138,7 +149,8 @@ public class BufferTest extends BaseTest {
             sendSqlData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getMessage(),
                     sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -150,7 +162,8 @@ public class BufferTest extends BaseTest {
             sendSqlData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getMessage(),
                     sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -162,7 +175,8 @@ public class BufferTest extends BaseTest {
             sendSqlData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getMessage(),
                     sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -174,20 +188,22 @@ public class BufferTest extends BaseTest {
             sendSqlData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getMessage(),
                     sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
-
     @Test
     public void send20mByteBufferNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException", false));
+            Assume.assumeTrue(
+                    !checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
                     sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -195,11 +211,13 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mByteBufferCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException", false));
+            Assume.assumeTrue(
+                    !checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException", false));
             sendByteBufferData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
                     sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -207,11 +225,13 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mByteBufferNotCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException", false));
+            Assume.assumeTrue(
+                    !checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
                     sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -219,11 +239,13 @@ public class BufferTest extends BaseTest {
     @Test
     public void send40mByteBufferCompressDataException() {
         try {
-            Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException", false));
+            Assume.assumeTrue(
+                    !checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException", false));
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+            assertTrue(
+                    "not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
                     sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
@@ -240,10 +262,12 @@ public class BufferTest extends BaseTest {
         try {
             connection = setConnection("&useCompression=" + compression);
             Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE BufferTest");
-            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
+            stmt.execute("TRUNCATE buffer_test");
+            PreparedStatement preparedStatement =
+                    connection.prepareStatement("INSERT INTO buffer_test VALUES (?)");
             preparedStatement.setString(1, new String(arr));
             preparedStatement.execute();
+
             checkResult(arr);
         } finally {
             if (connection != null) connection.close();
@@ -262,8 +286,8 @@ public class BufferTest extends BaseTest {
         try {
             connection = setConnection("&useCompression=" + compression);
             Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE BufferTest");
-            stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
+            stmt.execute("TRUNCATE buffer_test");
+            stmt.execute("INSERT INTO buffer_test VALUES ('" + new String(arr) + "')");
             checkResult(arr);
         } finally {
             if (connection != null) connection.close();
@@ -272,7 +296,7 @@ public class BufferTest extends BaseTest {
 
     private void checkResult(char[] arr) throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM BufferTest");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM buffer_test");
         if (rs.next()) {
             String resString = rs.getString(1);
             char[] cc = resString.toCharArray();
@@ -283,5 +307,4 @@ public class BufferTest extends BaseTest {
             fail("Error, must have result");
         }
     }
-
 }

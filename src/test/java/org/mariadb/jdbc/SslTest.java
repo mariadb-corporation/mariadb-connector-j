@@ -136,12 +136,21 @@ public class SslTest extends BaseTest {
             useOldNotation = false;
         }
         if (useOldNotation) {
-            stmt.execute("CREATE USER 'ssltestUser'@'%'");
-            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+            stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'%'");
+            stmt.execute(
+                    "GRANT SELECT ON *.* TO 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+            stmt.execute("CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost'");
+            stmt.execute(
+                    "GRANT SELECT ON *.* TO 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
         } else {
-            stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
-            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
+            stmt.execute(
+                    "CREATE USER IF NOT EXISTS 'ssltestUser'@'%' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+            stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'%'");
+            stmt.execute(
+                    "CREATE USER IF NOT EXISTS 'ssltestUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works' REQUIRE SSL");
+            stmt.execute("GRANT SELECT ON *.* TO 'ssltestUser'@'localhost'");
         }
+
     }
 
     @Test
@@ -219,12 +228,14 @@ public class SslTest extends BaseTest {
 
     @Test
     public void useSslForceTlsV1() throws Exception {
+        Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
         useSslForceTls("TLSv1");
     }
 
     @Test
     public void useSslForceTlsV11() throws Exception {
         // must either be mariadb or mysql version 5.7.10
+        Assume.assumeFalse(isMariadbServer() && minVersion(10, 3));
         if (isMariadbServer() || minVersion(5, 7)) useSslForceTls("TLSv1.1");
     }
 
@@ -307,7 +318,7 @@ public class SslTest extends BaseTest {
         if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1,TLSv1.1,TLSv1.2");
         } else {
-            useSslForceTls("TLSv1,TLSv1");
+            useSslForceTls("TLSv1,TLSv1.1");
         }
     }
 
@@ -316,7 +327,7 @@ public class SslTest extends BaseTest {
         if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
         } else {
-            useSslForceTls("TLSv1, TLSv1");
+            useSslForceTls("TLSv1, TLSv1.1");
         }
     }
 
@@ -326,7 +337,7 @@ public class SslTest extends BaseTest {
         if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1 TLSv1.1 TLSv1.2");
         } else {
-            useSslForceTls("TLSv1 TLSv1");
+            useSslForceTls("TLSv1 TLSv1.1");
         }
     }
 
@@ -386,7 +397,7 @@ public class SslTest extends BaseTest {
      * @throws SQLException exception
      */
     public void testConnect(Properties info, boolean sslExpected) throws SQLException {
-        testConnect(info, sslExpected, "ssltestUser", "");
+        testConnect(info, sslExpected, "ssltestUser", "!Passw0rd3Works");
     }
 
     /**

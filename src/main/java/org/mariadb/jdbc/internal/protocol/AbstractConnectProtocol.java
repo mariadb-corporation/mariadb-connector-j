@@ -906,6 +906,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
             capabilities |= MariaDbServerCapabilities.CLIENT_INTERACTIVE;
         }
 
+        if (options.useBulkStmts) {
+            if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS)
+                    != 0) {
+                capabilities |= MariaDbServerCapabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
+            }
+        }
+
         // If a database is given, but createDatabaseIfNotExist is not defined or is false,
         // then just try to connect to the given database
         if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
@@ -1224,9 +1231,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException if protocol isn't a supported protocol
      */
     private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
-        if (options.enabledSslProtocolSuites == null) {
-            sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
-        } else {
+        if (options.enabledSslProtocolSuites != null) {
             List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
             String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
             for (String protocol : protocols) {

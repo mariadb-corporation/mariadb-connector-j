@@ -529,6 +529,10 @@ public class ConnectionTest extends BaseTest {
 
     @Test
     public void verificationEd25519AuthPlugin() throws Throwable {
+        Assume.assumeTrue(
+                System.getenv("MAXSCALE_TEST_DISABLE") == null
+                        && System.getenv("SKYSQL") == null
+                        && System.getenv("SKYSQL_HA") == null);
         Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
         Statement stmt = sharedConnection.createStatement();
 
@@ -538,26 +542,36 @@ public class ConnectionTest extends BaseTest {
             throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
         }
         try {
-            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
-                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+            if (minVersion(10, 4)) {
+                stmt.execute(
+                        "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                                + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
+            } else {
+                stmt.execute(
+                        "CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                                + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
+            }
         } catch (SQLException sqle) {
-            //already existing
+            // already existing
         }
-        stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
+        stmt.execute("GRANT SELECT on " + database + ".* to verificationEd25519AuthPlugin");
 
-        String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                + "?user=verificationEd25519AuthPlugin&password=secret&debug=true";
-
+        String url =
+                "jdbc:mariadb://"
+                        + hostname
+                        + ((port == 0) ? "" : ":" + port)
+                        + "/"
+                        + database
+                        + "?user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord";
         Connection connection = null;
         try {
             connection = openNewConnection(url);
-            //must have succeed
+            // must have succeed
         } finally {
             if (connection != null) connection.close();
         }
-        stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+        stmt.execute("drop user verificationEd25519AuthPlugin");
     }
-
 
     private void initializeDns(String host) {
         try {

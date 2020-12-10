@@ -369,7 +369,7 @@ public class PreparedStatementTest extends BaseTest {
                 int[] results = pstmt.executeBatch();
                 assertEquals(2, results.length);
                 for (int result : results) {
-                    if (!notRewritable || (isMariadbServer() && minVersion(10,2))) {
+                    if (!notRewritable || (isMariadbServer() && minVersion(10,2) && sharedBulkCapacity())) {
                         assertEquals(Statement.SUCCESS_NO_INFO, result);
                     } else {
                         assertEquals(1, result);

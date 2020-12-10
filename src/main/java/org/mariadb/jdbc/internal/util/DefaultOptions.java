@@ -456,7 +456,7 @@ public enum DefaultOptions {
      * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
      * (significant only if server MariaDB &ge; 10.2.7)
      */
-    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0"),
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.FALSE, "2.1.0"),
 
     /**
      * Set default autocommit value.
