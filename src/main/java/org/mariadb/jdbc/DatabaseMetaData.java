@@ -1933,11 +1933,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
-  private boolean haveInformationSchemaParameters() {
-    return connection.getContext().getVersion().versionGreaterOrEqual(5, 5, 3);
-  }
-
   /**
    * Retrieves a description of the given catalog's stored procedure parameter and result columns.
    *
@@ -2034,102 +2029,86 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getProcedureColumns(
       String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern)
       throws SQLException {
-    String sql;
 
-    if (haveInformationSchemaParameters()) {
-      /*
-       *  Get info from information_schema.parameters
-       */
-      sql =
-          "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-              + " PARAMETER_NAME COLUMN_NAME, "
-              + " CASE PARAMETER_MODE "
-              + "  WHEN 'IN' THEN "
-              + procedureColumnIn
-              + "  WHEN 'OUT' THEN "
-              + procedureColumnOut
-              + "  WHEN 'INOUT' THEN "
-              + procedureColumnInOut
-              + "  ELSE IF(PARAMETER_MODE IS NULL,"
-              + procedureColumnReturn
-              + ","
-              + procedureColumnUnknown
-              + ")"
-              + " END COLUMN_TYPE,"
-              + dataTypeClause("DTD_IDENTIFIER")
-              + " DATA_TYPE,"
-              + "DATA_TYPE TYPE_NAME,"
-              + " CASE DATA_TYPE"
-              + "  WHEN 'time' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                  : "10")
-              + "  WHEN 'date' THEN 10"
-              + "  WHEN 'datetime' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                  : "19")
-              + "  WHEN 'timestamp' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                  : "19")
-              + "  ELSE "
-              + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-              + Integer.MAX_VALUE
-              + "), NUMERIC_PRECISION) "
-              + " END `PRECISION`,"
-              + " CASE DATA_TYPE"
-              + "  WHEN 'time' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                  : "10")
-              + "  WHEN 'date' THEN 10"
-              + "  WHEN 'datetime' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                  : "19")
-              + "  WHEN 'timestamp' THEN "
-              + (datePrecisionColumnExist
-                  ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                  : "19")
-              + "  ELSE "
-              + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-              + Integer.MAX_VALUE
-              + "), NUMERIC_PRECISION) "
-              + " END `LENGTH`,"
-              + (datePrecisionColumnExist
-                  ? " CASE DATA_TYPE"
-                      + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-                      + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-                      + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-                      + "  ELSE NUMERIC_SCALE "
-                      + " END `SCALE`,"
-                  : " NUMERIC_SCALE `SCALE`,")
-              + "10 RADIX,"
-              + procedureNullableUnknown
-              + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-              + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-              + " FROM INFORMATION_SCHEMA.PARAMETERS "
-              + " WHERE "
-              + catalogCond("SPECIFIC_SCHEMA", catalog)
-              + patternCond("SPECIFIC_NAME", procedureNamePattern)
-              + patternCond("PARAMETER_NAME", columnNamePattern)
-              + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
-              + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
-    } else {
-
-      /* No information_schema.parameters
-       * TODO : figure out what to do with older versions (get info via mysql.proc)
-       * For now, just a dummy result set is returned.
-       */
-      sql =
-          "SELECT '' PROCEDURE_CAT, '' PROCEDURE_SCHEM , '' PROCEDURE_NAME,'' COLUMN_NAME, 0 COLUMN_TYPE,"
-              + "0 DATA_TYPE,'' TYPE_NAME, 0 `PRECISION`,0 LENGTH, 0 SCALE,10 RADIX,"
-              + "0 NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-              + "0 CHAR_OCTET_LENGTH ,0 ORDINAL_POSITION, '' IS_NULLABLE, '' SPECIFIC_NAME "
-              + " FROM DUAL "
-              + " WHERE 1=0 ";
-    }
+    /*
+     *  Get info from information_schema.parameters
+     */
+    String sql =
+        "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
+            + " PARAMETER_NAME COLUMN_NAME, "
+            + " CASE PARAMETER_MODE "
+            + "  WHEN 'IN' THEN "
+            + procedureColumnIn
+            + "  WHEN 'OUT' THEN "
+            + procedureColumnOut
+            + "  WHEN 'INOUT' THEN "
+            + procedureColumnInOut
+            + "  ELSE IF(PARAMETER_MODE IS NULL,"
+            + procedureColumnReturn
+            + ","
+            + procedureColumnUnknown
+            + ")"
+            + " END COLUMN_TYPE,"
+            + dataTypeClause("DTD_IDENTIFIER")
+            + " DATA_TYPE,"
+            + "DATA_TYPE TYPE_NAME,"
+            + " CASE DATA_TYPE"
+            + "  WHEN 'time' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+                : "10")
+            + "  WHEN 'date' THEN 10"
+            + "  WHEN 'datetime' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                : "19")
+            + "  WHEN 'timestamp' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                : "19")
+            + "  ELSE "
+            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+            + Integer.MAX_VALUE
+            + "), NUMERIC_PRECISION) "
+            + " END `PRECISION`,"
+            + " CASE DATA_TYPE"
+            + "  WHEN 'time' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+                : "10")
+            + "  WHEN 'date' THEN 10"
+            + "  WHEN 'datetime' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                : "19")
+            + "  WHEN 'timestamp' THEN "
+            + (datePrecisionColumnExist
+                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+                : "19")
+            + "  ELSE "
+            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+            + Integer.MAX_VALUE
+            + "), NUMERIC_PRECISION) "
+            + " END `LENGTH`,"
+            + (datePrecisionColumnExist
+                ? " CASE DATA_TYPE"
+                    + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
+                    + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
+                    + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
+                    + "  ELSE NUMERIC_SCALE "
+                    + " END `SCALE`,"
+                : " NUMERIC_SCALE `SCALE`,")
+            + "10 RADIX,"
+            + procedureNullableUnknown
+            + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
+            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+            + " FROM INFORMATION_SCHEMA.PARAMETERS "
+            + " WHERE "
+            + catalogCond("SPECIFIC_SCHEMA", catalog)
+            + patternCond("SPECIFIC_NAME", procedureNamePattern)
+            + patternCond("PARAMETER_NAME", columnNamePattern)
+            + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
+            + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
 
     try {
       return executeQuery(sql);
@@ -2231,49 +2210,32 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern)
       throws SQLException {
 
-    String sql;
-    if (haveInformationSchemaParameters()) {
-
-      sql =
-          "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
-              + " PARAMETER_NAME COLUMN_NAME, "
-              + " CASE PARAMETER_MODE "
-              + "  WHEN 'IN' THEN "
-              + functionColumnIn
-              + "  WHEN 'OUT' THEN "
-              + functionColumnOut
-              + "  WHEN 'INOUT' THEN "
-              + functionColumnInOut
-              + "  ELSE "
-              + functionReturn
-              + " END COLUMN_TYPE,"
-              + dataTypeClause("DTD_IDENTIFIER")
-              + " DATA_TYPE,"
-              + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
-              + procedureNullableUnknown
-              + " NULLABLE,NULL REMARKS,"
-              + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-              + " FROM INFORMATION_SCHEMA.PARAMETERS "
-              + " WHERE "
-              + catalogCond("SPECIFIC_SCHEMA", catalog)
-              + patternCond("SPECIFIC_NAME", functionNamePattern)
-              + patternCond("PARAMETER_NAME", columnNamePattern)
-              + " AND ROUTINE_TYPE='FUNCTION'"
-              + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
-    } else {
-      /*
-       * No information_schema.parameters
-       * TODO : figure out what to do with older versions (get info via mysql.proc)
-       * For now, just a dummy result set is returned.
-       */
-      sql =
-          "SELECT '' FUNCTION_CAT, NULL FUNCTION_SCHEM, '' FUNCTION_NAME,"
-              + " '' COLUMN_NAME, 0  COLUMN_TYPE, 0 DATA_TYPE,"
-              + " '' TYPE_NAME,0 `PRECISION`,0 LENGTH, 0 SCALE,0 RADIX,"
-              + " 0 NULLABLE,NULL REMARKS, 0 CHAR_OCTET_LENGTH , 0 ORDINAL_POSITION, "
-              + " '' IS_NULLABLE, '' SPECIFIC_NAME "
-              + " FROM DUAL WHERE 1=0 ";
-    }
+    String sql =
+        "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
+            + " PARAMETER_NAME COLUMN_NAME, "
+            + " CASE PARAMETER_MODE "
+            + "  WHEN 'IN' THEN "
+            + functionColumnIn
+            + "  WHEN 'OUT' THEN "
+            + functionColumnOut
+            + "  WHEN 'INOUT' THEN "
+            + functionColumnInOut
+            + "  ELSE "
+            + functionReturn
+            + " END COLUMN_TYPE,"
+            + dataTypeClause("DTD_IDENTIFIER")
+            + " DATA_TYPE,"
+            + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
+            + procedureNullableUnknown
+            + " NULLABLE,NULL REMARKS,"
+            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+            + " FROM INFORMATION_SCHEMA.PARAMETERS "
+            + " WHERE "
+            + catalogCond("SPECIFIC_SCHEMA", catalog)
+            + patternCond("SPECIFIC_NAME", functionNamePattern)
+            + patternCond("PARAMETER_NAME", columnNamePattern)
+            + " AND ROUTINE_TYPE='FUNCTION'"
+            + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION";
     return executeQuery(sql);
   }
 

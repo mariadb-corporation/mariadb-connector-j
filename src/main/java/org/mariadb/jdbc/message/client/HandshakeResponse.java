@@ -144,7 +144,10 @@ public final class HandshakeResponse implements ClientMessage {
     final byte[] authData;
     switch (authenticationPluginType) {
       case "mysql_clear_password":
-        // TODO check that SSL is enable
+        if ((clientCapabilities & Capabilities.SSL) == 0) {
+          throw new IllegalStateException(
+              "Server cannot required to send password in clear if SSL is not enabled.");
+        }
         if (password == null) {
           authData = new byte[0];
         } else {

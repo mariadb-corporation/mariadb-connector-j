@@ -570,8 +570,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   public CallableStatement prepareCall(
       String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
       throws SQLException {
-    // TODO
-    return null;
+    return prepareCall(sql, resultSetType, resultSetConcurrency);
   }
 
   @Override
