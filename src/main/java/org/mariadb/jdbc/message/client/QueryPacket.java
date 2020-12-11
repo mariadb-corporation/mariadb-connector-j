@@ -44,7 +44,9 @@ public final class QueryPacket implements RedoableClientMessage {
     writer.writeString(this.sql);
     writer.flush();
   }
-
+  public boolean isCommit() {
+    return "COMMIT".equalsIgnoreCase(sql);
+  }
   public String description() {
     return sql;
   }

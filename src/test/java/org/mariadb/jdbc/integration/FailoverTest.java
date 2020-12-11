@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -51,16 +52,22 @@ public class FailoverTest extends Common {
 
   @Test
   public void transactionReplay() throws SQLException {
+    transactionReplay(true);
+    transactionReplay(false);
+  }
+
+  private void transactionReplay(boolean transactionReplay) throws SQLException {
     Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS transaction_failover");
-    stmt.execute(
+    Statement st = sharedConn.createStatement();
+    st.execute("DROP TABLE IF EXISTS transaction_failover");
+    st.execute(
         "CREATE TABLE transaction_failover "
             + "(id int not null primary key auto_increment, test varchar(20)) "
             + "engine=innodb");
 
-    try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
-      stmt = con.createStatement();
+    try (Connection con =
+        createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
+      final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
 
@@ -69,28 +76,38 @@ public class FailoverTest extends Common {
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
       proxy.restart(300);
-      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
-      con.commit();
+      if (transactionReplay) {
+        stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
+        con.commit();
 
-      ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
-      for (int i = 0; i < 4; i++) {
-        assertTrue(rs.next());
-        assertEquals("test" + i, rs.getString("test"));
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
+        for (int i = 0; i < 4; i++) {
+          assertTrue(rs.next());
+          assertEquals("test" + i, rs.getString("test"));
+        }
+        con.commit();
+        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        assertFalse(con.getAutoCommit());
+      } else {
+        assertThrowsContains(
+            SQLTransientConnectionException.class,
+            () -> stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')"),
+            "In progress transaction was lost");
       }
-      con.commit();
-      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
-      assertFalse(con.getAutoCommit());
     }
   }
 
   @Test
   public void transactionReplayPreparedStatement() throws Exception {
     Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
-    transactionReplayPreparedStatement(true);
-    transactionReplayPreparedStatement(false);
+    transactionReplayPreparedStatement(true, true);
+    transactionReplayPreparedStatement(false, true);
+    transactionReplayPreparedStatement(true, false);
+    transactionReplayPreparedStatement(false, false);
   }
 
-  private void transactionReplayPreparedStatement(boolean binary) throws SQLException {
+  private void transactionReplayPreparedStatement(boolean binary, boolean transactionReplay)
+      throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_3");
     stmt.execute(
@@ -98,7 +115,10 @@ public class FailoverTest extends Common {
             + "(id int not null primary key auto_increment, test varchar(20)) "
             + "engine=innodb");
 
-    try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "&useServerPrepStmts=" + binary)) {
+    try (Connection con =
+        createProxyCon(
+            HaMode.SEQUENTIAL,
+            "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
@@ -112,32 +132,40 @@ public class FailoverTest extends Common {
         p.execute();
         proxy.restart(300);
         p.setString(1, "test3");
-        p.execute();
+        if (transactionReplay) {
+          p.execute();
+        } else {
+          assertThrowsContains(
+              SQLTransientConnectionException.class,
+              () -> p.execute(),
+              "In progress transaction was lost");
+        }
       }
-      con.commit();
+      if (transactionReplay) {
+        con.commit();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3");
 
-      ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3");
-      for (int i = 0; i < 4; i++) {
-        assertTrue(rs.next());
-        assertEquals("test" + i, rs.getString("test"));
+        for (int i = 0; i < 4; i++) {
+          assertTrue(rs.next());
+          assertEquals("test" + i, rs.getString("test"));
+        }
+        con.commit();
+        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        assertFalse(con.getAutoCommit());
       }
-      con.commit();
-      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
-      assertFalse(con.getAutoCommit());
     }
   }
 
   @Test
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
-    transactionReplayPreparedStatementBatch(true, false);
-    transactionReplayPreparedStatementBatch(true, true);
-    transactionReplayPreparedStatementBatch(false, false);
-    transactionReplayPreparedStatementBatch(false, true);
+    for (int i = 0; i < 8; i++) {
+      transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
+    }
   }
 
-  private void transactionReplayPreparedStatementBatch(boolean text, boolean useBulk)
-      throws SQLException {
+  private void transactionReplayPreparedStatementBatch(
+      boolean text, boolean useBulk, boolean transactionReplay) throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_2");
     stmt.execute(
@@ -147,7 +175,13 @@ public class FailoverTest extends Common {
 
     try (Connection con =
         createProxyCon(
-            HaMode.SEQUENTIAL, "&useServerPrepStmts=" + !text + "&useBulkStmts=" + useBulk)) {
+            HaMode.SEQUENTIAL,
+            "&useServerPrepStmts="
+                + !text
+                + "&useBulkStmts="
+                + useBulk
+                + "&transactionReplay="
+                + transactionReplay)) {
       stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
@@ -170,18 +204,26 @@ public class FailoverTest extends Common {
         p.addBatch();
         p.setString(1, "test6");
         p.addBatch();
-        p.executeBatch();
-      }
-      con.commit();
 
-      ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
-      for (int i = 0; i < 6; i++) {
-        assertTrue(rs.next());
-        assertEquals("test" + i, rs.getString("test"));
+        if (transactionReplay) {
+          p.executeBatch();
+          con.commit();
+
+          ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
+          for (int i = 0; i < 6; i++) {
+            assertTrue(rs.next());
+            assertEquals("test" + i, rs.getString("test"));
+          }
+          con.commit();
+          Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+          assertFalse(con.getAutoCommit());
+        } else {
+          assertThrowsContains(
+              SQLTransientConnectionException.class,
+              () -> p.executeBatch(),
+              "In progress transaction was lost");
+        }
       }
-      con.commit();
-      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
-      assertFalse(con.getAutoCommit());
     }
   }
 }

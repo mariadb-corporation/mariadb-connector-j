@@ -34,10 +34,16 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/**
+ * Handling connection failing automatic reconnection transparently when possible for replication Topology.
+ *
+ * remark: would have been better using proxy, but for AOT compilation, avoiding to using not supported proxy class.
+ */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryReplicaClient.class);
   protected static final long NEXT_TRY_TIMEOUT = 30_000L;
@@ -52,7 +58,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     primaryClient = currentClient;
 
     try {
-      replicaClient = connectHost(true);
+      replicaClient = connectHost(true, false);
     } catch (SQLException e) {
       replicaClient = null;
       nextTryReplica = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
@@ -65,7 +71,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       // try reconnect primary
       if (primaryClient == null && nextTryPrimary < System.currentTimeMillis()) {
         try {
-          primaryClient = connectHost(false);
+          primaryClient = connectHost(false, true);
           nextTryPrimary = -1;
         } catch (SQLException e) {
           nextTryPrimary = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
@@ -75,7 +81,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       // try reconnect replica
       if (replicaClient == null && nextTryReplica < System.currentTimeMillis()) {
         try {
-          replicaClient = connectHost(true);
+          replicaClient = connectHost(true, true);
           nextTryReplica = -1;
           if (requestReadOnly) {
             syncNewState(primaryClient);
@@ -88,10 +94,18 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     }
   }
 
+  /**
+   * Reconnect connection, trying to continue transparently if possible. Different cases. * replica
+   * fails => reconnect to replica or to master if no replica available
+   *
+   * <p>if reconnect succeed on replica / use master, no problem, continuing without interruption //
+   * if reconnect primary, then replay transaction / throw exception if was in transaction.
+   *
+   * @throws SQLException
+   */
   @Override
   protected void reConnect() throws SQLException {
-    blacklist.putIfAbsent(
-        currentClient.getHostAddress(), System.currentTimeMillis() + BLACKLIST_TIMEOUT);
+    denyList.putIfAbsent(currentClient.getHostAddress(), System.currentTimeMillis() + DENY_TIMEOUT);
     logger.info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;
@@ -105,7 +119,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       oldClient.getContext().getPrepareCache().reset();
 
       try {
-        currentClient = connectHost(requestReadOnly);
+        currentClient = connectHost(requestReadOnly, requestReadOnly);
         if (requestReadOnly) {
           nextTryReplica = -1;
           replicaClient = currentClient;
@@ -124,44 +138,61 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
             // replication fails, and no primary connection
             // trying to create new primary connection
             try {
-              primaryClient = connectHost(false);
+              primaryClient = connectHost(false, false);
               currentClient = primaryClient;
               nextTryPrimary = -1;
             } catch (SQLNonTransientConnectionException ee) {
               closed = true;
               throw new SQLNonTransientConnectionException(
-                      String.format(
-                              "Driver has failed to reconnect connection after a "
-                                      + "communications "
-                                      + "failure with %s",
-                              oldClient.getHostAddress()),
-                      "08000");
+                  String.format(
+                      "Driver has failed to reconnect connection after a "
+                          + "communications "
+                          + "failure with %s",
+                      oldClient.getHostAddress()),
+                  "08000");
             }
           }
         } else {
           throw new SQLNonTransientConnectionException(
-                  String.format(
-                          "Driver has failed to reconnect master connection after a "
-                                  + "communications "
-                                  + "failure with %s",
-                          oldClient.getHostAddress()),
-                  "08000");
+              String.format(
+                  "Driver has failed to reconnect master connection after a "
+                      + "communications "
+                      + "failure with %s",
+                  oldClient.getHostAddress()),
+              "08000");
         }
       }
 
       syncNewState(oldClient);
 
-      if (!requestReadOnly && !transactionReplay(oldClient)) {
-        // transaction cannot be replayed, but connection is now up again.
-        // changing exception to SQLTransientConnectionException
-        throw new SQLTransientConnectionException(
-            String.format(
-                "Driver has reconnect connection after a "
-                    + "communications "
-                    + "link "
-                    + "failure with %s, but wasn't able to replay transaction",
-                oldClient.getHostAddress()),
-            "25S03");
+      // if reconnect succeed on replica / use master, no problem, continuing without interruption
+      // if reconnect primary, then replay transaction / throw exception if was in transaction.
+      if (!requestReadOnly) {
+        if (conf.transactionReplay()) {
+          if (!executeTransactionReplay(oldClient)) {
+            // transaction cannot be replayed, but connection is now up again.
+            // changing exception to SQLTransientConnectionException
+            throw new SQLTransientConnectionException(
+                String.format(
+                    "Driver has reconnect connection after a "
+                        + "communications "
+                        + "link "
+                        + "failure with %s, but wasn't able to replay transaction",
+                    oldClient.getHostAddress()),
+                "25S03");
+          }
+        } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+          // transaction is lost, but connection is now up again.
+          // changing exception to SQLTransientConnectionException
+          throw new SQLTransientConnectionException(
+              String.format(
+                  "Driver has reconnect connection after a "
+                      + "communications "
+                      + "link "
+                      + "failure with %s. In progress transaction was lost",
+                  oldClient.getHostAddress()),
+              "25S03");
+        }
       }
 
     } catch (SQLNonTransientConnectionException sqle) {
@@ -264,7 +295,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
           currentClient = replicaClient;
         } else if (nextTryReplica < System.currentTimeMillis()) {
           try {
-            replicaClient = connectHost(true);
+            replicaClient = connectHost(true, true);
             currentClient = replicaClient;
             syncNewState(primaryClient);
           } catch (SQLException e) {
@@ -280,7 +311,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
           syncNewState(replicaClient);
         } else if (primaryClient == null && nextTryPrimary < System.currentTimeMillis()) {
           try {
-            primaryClient = connectHost(false);
+            primaryClient = connectHost(false, false);
             nextTryPrimary = -1;
           } catch (SQLException e) {
             nextTryPrimary = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;

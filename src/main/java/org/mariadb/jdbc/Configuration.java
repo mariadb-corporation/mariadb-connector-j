@@ -128,6 +128,7 @@ public class Configuration implements Cloneable {
   private boolean allowPublicKeyRetrieval;
   private boolean useReadAheadInput;
   private boolean cachePrepStmts;
+  private boolean transactionReplay;
 
   private Configuration(
       String database,
@@ -190,6 +191,7 @@ public class Configuration implements Cloneable {
       String serverSslCert,
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
+      Boolean transactionReplay,
       Properties nonMappedOptions)
       throws SQLException {
     this.database = database;
@@ -267,6 +269,7 @@ public class Configuration implements Cloneable {
         allowPublicKeyRetrieval != null ? allowPublicKeyRetrieval : false;
     this.useReadAheadInput = useReadAheadInput != null ? useReadAheadInput : true;
     this.cachePrepStmts = cachePrepStmts != null ? cachePrepStmts : true;
+    this.transactionReplay = transactionReplay != null ? transactionReplay : false;
     this.serverSslCert = serverSslCert;
 
     // *************************************************************
@@ -801,6 +804,10 @@ public class Configuration implements Cloneable {
     return cachePrepStmts;
   }
 
+  public boolean transactionReplay() {
+    return transactionReplay;
+  }
+
   /**
    * ToString implementation.
    *
@@ -880,6 +887,7 @@ public class Configuration implements Cloneable {
     private String galeraAllowedState;
     private String enabledSslProtocolSuites;
     private Boolean pinGlobalTxToPhysicalConnection;
+    private Boolean transactionReplay;
 
     // Pool options
     private Boolean pool;
@@ -1293,6 +1301,11 @@ public class Configuration implements Cloneable {
       return this;
     }
 
+    public Builder transactionReplay(Boolean transactionReplay) {
+      this.transactionReplay = transactionReplay;
+      return this;
+    }
+
     public Builder assureReadOnly(Boolean assureReadOnly) {
       this.assureReadOnly = assureReadOnly;
       return this;
@@ -1361,6 +1374,7 @@ public class Configuration implements Cloneable {
               this.serverSslCert,
               this.useReadAheadInput,
               this.cachePrepStmts,
+              this.transactionReplay,
               this._nonMappedOptions);
       conf.initialUrl = this.buildUrl(conf);
       return conf;

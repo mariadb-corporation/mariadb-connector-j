@@ -29,27 +29,27 @@ public enum HaMode {
   REPLICATION("replication") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
-        ConcurrentMap<HostAddress, Long> blacklist,
+        ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      return HaMode.getAvailableHostInOrder(hostAddresses, blacklist, primary);
+      return HaMode.getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
   SEQUENTIAL("sequential") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
-        ConcurrentMap<HostAddress, Long> blacklist,
+        ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      return getAvailableHostInOrder(hostAddresses, blacklist, primary);
+      return getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
   LOADBALANCE("load-balance") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
-        ConcurrentMap<HostAddress, Long> blacklist,
+        ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
       // use in order not blacklisted server
       List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
-      loopAddress.removeAll(blacklist.keySet());
+      loopAddress.removeAll(denyList.keySet());
       Collections.shuffle(loopAddress);
 
       return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
@@ -58,7 +58,7 @@ public enum HaMode {
   NONE("") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
-        ConcurrentMap<HostAddress, Long> blacklist,
+        ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
       return hostAddresses.isEmpty() ? Optional.empty() : Optional.of(hostAddresses.get(0));
     }
@@ -105,5 +105,5 @@ public enum HaMode {
   }
 
   public abstract Optional<HostAddress> getAvailableHost(
-      List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> blacklist, boolean primary);
+      List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary);
 }

@@ -41,17 +41,21 @@ import org.mariadb.jdbc.message.client.RedoableWithPrepareClientMessage;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.constants.ConnectionState;
-import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/**
+ * Handling connection failing automatic reconnection transparently when possible for multi-master Topology.
+ *
+ * remark: would have been better using proxy, but for AOT compilation, avoiding to using not supported proxy class.
+ */
 public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
-  protected static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
-  protected static final long BLACKLIST_TIMEOUT = 30_000L;
+  protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
+  protected static final long DENY_TIMEOUT = 60_000L;
   protected final Configuration conf;
   protected boolean closed = false;
   protected final ReentrantLock lock;
@@ -60,81 +64,114 @@ public class MultiPrimaryClient implements Client {
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
-    currentClient = connectHost(false);
+    currentClient = connectHost(false, false);
   }
 
-  protected Client connectHost(boolean readOnly) throws SQLException {
-    HaMode haMode = conf.haMode();
+  /**
+   * Trying connecting server.
+   *
+   * <p>searching each connecting primary / replica connection not temporary denied until found one.
+   * searching in temporary denied host if not succeed, until reaching `retriesAllDown` attempts.
+   *
+   * @param readOnly must connect a replica / primary
+   * @param failFast must try only not denyed server
+   * @return a valid connection client
+   * @throws SQLException if not succeed to create a connection.
+   */
+  protected Client connectHost(boolean readOnly, boolean failFast) throws SQLException {
+
     Optional<HostAddress> host;
-    int maxRetries = conf.retriesAllDown();
     SQLNonTransientConnectionException lastSqle = null;
-    while ((host = haMode.getAvailableHost(conf.addresses(), blacklist, !readOnly)).isPresent()) {
+    int maxRetries = conf.retriesAllDown();
+
+    while ((host = conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly))
+        .isPresent()) {
       try {
         return new ClientImpl(conf, host.get(), true, lock, false);
       } catch (SQLNonTransientConnectionException sqle) {
-        blacklist.putIfAbsent(host.get(), System.currentTimeMillis() + BLACKLIST_TIMEOUT);
+        lastSqle = sqle;
+        denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
         maxRetries--;
       } catch (SQLException sqle) {
         throw sqle;
       }
     }
 
+    if (failFast) throw lastSqle;
+
+    // All server corresponding to type are in deny list
+    // return the one with lower denylist timeout
+    // (check that server is in conf, because denyList is shared for all instances)
     while (maxRetries > 0) {
       try {
-        // All server corresponding to type are blacklisted
-        // return the one with lower blacklist timeout
         host =
-            blacklist.entrySet().stream()
+            denyList.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue())
-                .filter(e -> e.getKey().primary != readOnly)
+                .filter(
+                    e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly)
                 .findFirst()
                 .map(e -> e.getKey());
         if (host.isPresent()) {
           Client client = new ClientImpl(conf, host.get(), true, lock, false);
-          blacklist.remove(host.get());
+          denyList.remove(host.get());
           return client;
         }
       } catch (SQLNonTransientConnectionException sqle) {
         lastSqle = sqle;
         if (host.isPresent()) {
-          blacklist.putIfAbsent(host.get(), System.currentTimeMillis() + BLACKLIST_TIMEOUT);
+          denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
         }
         maxRetries--;
-        try {
-          // wait 250ms before looping through
-          Thread.sleep(250);
-        } catch (InterruptedException interrupted) {
-          // interrupted, continue
+        if (maxRetries > 0) {
+          try {
+            // wait 250ms before looping through
+            Thread.sleep(250);
+          } catch (InterruptedException interrupted) {
+            // interrupted, continue
+          }
         }
       } catch (SQLException sqle) {
         throw sqle;
       }
     }
+
     throw lastSqle;
   }
 
   protected void reConnect() throws SQLException {
 
-    blacklist.putIfAbsent(
-        currentClient.getHostAddress(), System.currentTimeMillis() + BLACKLIST_TIMEOUT);
+    denyList.putIfAbsent(currentClient.getHostAddress(), System.currentTimeMillis() + DENY_TIMEOUT);
     logger.info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;
       // remove cached prepare from existing server prepare statement
       oldClient.getContext().getPrepareCache().reset();
 
-      currentClient = connectHost(false);
+      currentClient = connectHost(false, false);
       syncNewState(oldClient);
 
-      if (!transactionReplay(oldClient)) {
-        // transaction cannot be replayed, but connection is now up again.
+      if (conf.transactionReplay()) {
+        if (!executeTransactionReplay(oldClient)) {
+          // transaction cannot be replayed, but connection is now up again.
+          // changing exception to SQLTransientConnectionException
+          throw new SQLTransientConnectionException(
+              String.format(
+                  "Driver has reconnect connection after a "
+                      + "communications "
+                      + "link "
+                      + "failure with %s, but wasn't able to replay transaction",
+                  oldClient.getHostAddress()),
+              "25S03");
+        }
+      } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+        // transaction is lost, but connection is now up again.
         // changing exception to SQLTransientConnectionException
         throw new SQLTransientConnectionException(
             String.format(
                 "Driver has reconnect connection after a "
                     + "communications "
                     + "link "
-                    + "failure with %s, but wasn't able to replay transaction",
+                    + "failure with %s. In progress transaction was lost",
                 oldClient.getHostAddress()),
             "25S03");
       }
@@ -148,9 +185,9 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
-  protected boolean transactionReplay(Client oldCli) throws SQLException {
+  protected boolean executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
-    if ((oldCli.getContext().getServerStatus() | ServerStatus.IN_TRANSACTION) > 0) {
+    if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
       if (!oldCli.getContext().getTransactionSaver().isCleanState()) return false;
       currentClient.transactionReplay(oldCli.getContext().getTransactionSaver());
     }
@@ -161,12 +198,13 @@ public class MultiPrimaryClient implements Client {
     Context oldCtx = oldCli.getContext();
     currentClient.getExceptionFactory().setConnection(oldCli.getExceptionFactory());
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_AUTOCOMMIT) > 0) {
-      if ((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT) ) {
+      if ((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT)
+          != (currentClient.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT)) {
         currentClient.getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
         currentClient.execute(
-                new QueryPacket(
-                        "set autocommit="
-                                + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")));
+            new QueryPacket(
+                "set autocommit="
+                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")));
       }
     }
 
@@ -181,14 +219,15 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
-            && conf.assureReadOnly()
-            && !currentClient.getHostAddress().primary
-            && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
+        && conf.assureReadOnly()
+        && !currentClient.getHostAddress().primary
+        && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
       currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"));
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
-            && currentClient.getContext().getTransactionIsolationLevel() != oldCtx.getTransactionIsolationLevel()) {
+        && currentClient.getContext().getTransactionIsolationLevel()
+            != oldCtx.getTransactionIsolationLevel()) {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (oldCtx.getTransactionIsolationLevel()) {
         case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -251,7 +290,19 @@ public class MultiPrimaryClient implements Client {
           resultSetType,
           closeOnCompletion);
     } catch (SQLNonTransientConnectionException e) {
+      HostAddress hostAddress = currentClient.getHostAddress();
       reConnect();
+
+      if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
+        throw new SQLTransientConnectionException(
+                String.format(
+                        "Driver has reconnect connection after a "
+                                + "communications "
+                                + "failure with %s during a COMMIT statement",
+                        hostAddress),
+                "25S03");
+      }
+
       if (message instanceof RedoableWithPrepareClientMessage) {
         ((RedoableWithPrepareClientMessage) message).rePrepare(currentClient);
       }

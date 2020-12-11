@@ -106,7 +106,7 @@ public class ClientImpl implements Client, AutoCloseable {
           InitialHandshakePacket.decode(reader.readPacket(true));
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       this.context =
-          conf.haMode() != HaMode.NONE
+          conf.transactionReplay()
               ? new RedoContext(handshake, conf, this.exceptionFactory, new PrepareCache(100, this))
               : new BaseContext(
                   handshake, conf, this.exceptionFactory, new PrepareCache(100, this));
@@ -757,7 +757,7 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   public boolean isPrimary() {
-      return hostAddress.primary;
+    return hostAddress.primary;
   }
 
   public ExceptionFactory getExceptionFactory() {
