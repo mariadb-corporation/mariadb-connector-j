@@ -40,9 +40,11 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 /**
- * Handling connection failing automatic reconnection transparently when possible for replication Topology.
+ * Handling connection failing automatic reconnection transparently when possible for replication
+ * Topology.
  *
- * remark: would have been better using proxy, but for AOT compilation, avoiding to using not supported proxy class.
+ * <p>remark: would have been better using proxy, but for AOT compilation, avoiding to using not
+ * supported proxy class.
  */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryReplicaClient.class);

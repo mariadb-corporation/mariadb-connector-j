@@ -64,6 +64,11 @@ if [ -z "$SKYSQL" ] && [ -z "$SKYSQL_HA" ]; then
     export TEST_DB_USER=bob
     export TEST_DB_OTHER=
 
+    if [ -n "COMPRESSION" ] ; then
+      export TEST_DB_OTHER=&useCompression
+    fi
+
+
     if [ -n "$MAXSCALE_VERSION" ] ; then
       export TEST_DB_PORT=4006
     fi

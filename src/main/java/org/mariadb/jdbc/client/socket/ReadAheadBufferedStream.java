@@ -31,7 +31,7 @@
  *
  */
 
-package org.mariadb.jdbc.client;
+package org.mariadb.jdbc.client.socket;
 /*
  * MariaDB Client for Java
  *

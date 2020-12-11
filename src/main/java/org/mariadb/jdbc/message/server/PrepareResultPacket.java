@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
 
 /** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion {

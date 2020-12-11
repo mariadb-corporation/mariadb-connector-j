@@ -47,9 +47,11 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 /**
- * Handling connection failing automatic reconnection transparently when possible for multi-master Topology.
+ * Handling connection failing automatic reconnection transparently when possible for multi-master
+ * Topology.
  *
- * remark: would have been better using proxy, but for AOT compilation, avoiding to using not supported proxy class.
+ * <p>remark: would have been better using proxy, but for AOT compilation, avoiding to using not
+ * supported proxy class.
  */
 public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
@@ -295,12 +297,12 @@ public class MultiPrimaryClient implements Client {
 
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
-                String.format(
-                        "Driver has reconnect connection after a "
-                                + "communications "
-                                + "failure with %s during a COMMIT statement",
-                        hostAddress),
-                "25S03");
+            String.format(
+                "Driver has reconnect connection after a "
+                    + "communications "
+                    + "failure with %s during a COMMIT statement",
+                hostAddress),
+            "25S03");
       }
 
       if (message instanceof RedoableWithPrepareClientMessage) {

@@ -32,6 +32,8 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
@@ -41,14 +43,7 @@ import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public interface ClientMessage {
 
-  default int encodePacket(PacketWriter writer, Context context) throws IOException, SQLException {
-    encode(writer, context);
-    return 1;
-  }
-
-  default void encode(PacketWriter writer, Context context) throws IOException, SQLException {
-    throw new SQLException("NOT IMPLEMENTED !");
-  }
+  int encode(PacketWriter writer, Context context) throws IOException, SQLException;
 
   default int batchUpdateLength() {
     return 0;

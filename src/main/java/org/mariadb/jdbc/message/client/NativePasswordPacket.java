@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class NativePasswordPacket implements ClientMessage {
 
@@ -66,12 +66,13 @@ public final class NativePasswordPacket implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
     writer.initPacket();
     if (password != null) {
       writer.writeBytes(encrypt(password, seed));
     }
     writer.flush();
+    return 1;
   }
 
   public String description() {

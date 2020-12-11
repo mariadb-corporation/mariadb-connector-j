@@ -19,14 +19,14 @@
  *
  */
 
-package org.mariadb.jdbc.client;
+package org.mariadb.jdbc.client.socket;
 
-import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.util.MutableInt;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
@@ -54,10 +54,7 @@ public class PacketReader {
    * @param conf connection options
    */
   public PacketReader(InputStream in, Configuration conf, MutableInt sequence) {
-    this.inputStream =
-        conf.useReadAheadInput()
-            ? new ReadAheadBufferedStream(in)
-            : new BufferedInputStream(in, 16384);
+    this.inputStream = in;
     this.maxQuerySizeToLog = conf.maxQuerySizeToLog();
     this.sequence = sequence;
   }
@@ -262,9 +259,11 @@ public class PacketReader {
    * @param serverThreadId current server thread id.
    * @param hostAddress host information
    */
-  public void setServerThreadId(long serverThreadId, HostAddress hostAddress) {
+  public void setServerThreadId(Long serverThreadId, HostAddress hostAddress) {
     Boolean isMaster = hostAddress != null ? hostAddress.primary : null;
     this.serverThreadLog =
-        "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        "conn="
+            + (serverThreadId == null ? "-1" : serverThreadId)
+            + ((isMaster != null) ? " (" + (isMaster ? "M" : "S") + ")" : "");
   }
 }

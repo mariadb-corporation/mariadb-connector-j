@@ -25,10 +25,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {

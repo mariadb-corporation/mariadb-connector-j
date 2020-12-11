@@ -29,9 +29,9 @@ import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import org.ietf.jgss.*;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public class StandardGssapiAuthentication implements GssapiAuth {
 

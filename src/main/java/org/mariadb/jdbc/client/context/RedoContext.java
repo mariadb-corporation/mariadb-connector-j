@@ -24,6 +24,7 @@ package org.mariadb.jdbc.client.context;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.TransactionSaver;
+import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.message.client.RedoableClientMessage;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -47,8 +48,14 @@ public class RedoContext extends BaseContext {
     if ((serverStatus & ServerStatus.IN_TRANSACTION) == 0) transactionSaver.clear();
   }
 
-  public void saveRedo(RedoableClientMessage msg) {
-    transactionSaver.add(msg);
+  public void saveRedo(ClientMessage msg) {
+    if (msg instanceof RedoableClientMessage) {
+      transactionSaver.add((RedoableClientMessage) msg);
+    }
+  }
+
+  public void saveRedo(ClientMessage[] msgs) {
+    for (ClientMessage msg : msgs) saveRedo(msg);
   }
 
   public TransactionSaver getTransactionSaver() {

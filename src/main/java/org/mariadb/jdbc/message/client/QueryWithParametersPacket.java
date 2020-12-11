@@ -23,8 +23,8 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
 
@@ -42,7 +42,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter encoder, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter encoder, Context context) throws IOException, SQLException {
     encoder.initPacket(preSqlCmd + parser.getSql());
     encoder.writeByte(0x03);
     if (!preSqlCmd.isEmpty()) encoder.writeAscii(preSqlCmd);
@@ -56,6 +56,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
       }
     }
     encoder.flush();
+    return 1;
   }
 
   public int batchUpdateLength() {

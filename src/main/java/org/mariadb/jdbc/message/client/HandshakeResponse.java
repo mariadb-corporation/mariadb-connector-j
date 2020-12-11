@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.util.Version;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
@@ -139,7 +139,7 @@ public final class HandshakeResponse implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
 
     final byte[] authData;
     switch (authenticationPluginType) {
@@ -198,6 +198,7 @@ public final class HandshakeResponse implements ClientMessage {
       writeConnectAttributes(writer, connectionAttributes, host);
     }
     writer.flush();
+    return 1;
   }
 
   public String description() {

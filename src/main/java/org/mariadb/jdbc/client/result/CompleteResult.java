@@ -28,9 +28,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.PacketReader;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 

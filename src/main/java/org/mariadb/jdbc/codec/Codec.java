@@ -25,9 +25,9 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public interface Codec<T> {

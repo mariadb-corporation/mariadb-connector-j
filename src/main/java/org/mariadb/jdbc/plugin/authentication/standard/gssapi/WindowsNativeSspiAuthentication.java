@@ -23,9 +23,9 @@ package org.mariadb.jdbc.plugin.authentication.standard.gssapi;
 
 import com.sun.jna.platform.win32.Sspi;
 import java.io.IOException;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 

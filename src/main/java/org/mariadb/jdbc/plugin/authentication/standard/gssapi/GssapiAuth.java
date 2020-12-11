@@ -23,8 +23,8 @@ package org.mariadb.jdbc.plugin.authentication.standard.gssapi;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public interface GssapiAuth {
 

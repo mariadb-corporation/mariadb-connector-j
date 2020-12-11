@@ -30,10 +30,10 @@ import java.security.PublicKey;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.SslMode;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
 

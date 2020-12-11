@@ -26,7 +26,6 @@ import java.lang.reflect.Constructor;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLNonTransientConnectionException;
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +38,8 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.SslMode;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.client.socket.SocketHandlerFunction;
 import org.mariadb.jdbc.client.socket.SocketUtility;
 import org.mariadb.jdbc.message.client.SslRequestPacket;
@@ -383,15 +384,6 @@ public class ConnectionHelper {
         }
       }
       sslSocket.setEnabledCipherSuites(ciphers);
-    }
-  }
-
-  public static void compressionHandler(Configuration configuration, Context context)
-      throws SQLException {
-    if (configuration.useCompression()
-        && ((context.getServerCapabilities() & Capabilities.COMPRESS) != 0)) {
-      // TODO write compression handler
-      throw new SQLFeatureNotSupportedException("Compression not implemented yet !");
     }
   }
 }

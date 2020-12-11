@@ -19,7 +19,7 @@
  *
  */
 
-package org.mariadb.jdbc.client;
+package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -45,6 +45,7 @@ public class PacketWriter {
   private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
   protected final MutableInt sequence;
+  protected final MutableInt compressSequence;
   private final int maxQuerySizeToLog;
   private final OutputStream out;
   protected byte[] buf;
@@ -60,15 +61,19 @@ public class PacketWriter {
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
-   * @param out socket outputStream
+   * @param out output stream
    * @param maxQuerySizeToLog maximum query size to log
+   * @param sequence packet sequence
+   * @param compressSequence compressed packet sequence
    */
-  public PacketWriter(OutputStream out, int maxQuerySizeToLog, MutableInt sequence) {
+  public PacketWriter(
+      OutputStream out, int maxQuerySizeToLog, MutableInt sequence, MutableInt compressSequence) {
     this.out = out;
-    buf = new byte[SMALL_BUFFER_SIZE];
+    this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
-    cmdLength = 0;
+    this.cmdLength = 0;
     this.sequence = sequence;
+    this.compressSequence = compressSequence;
   }
 
   public int pos() {
@@ -748,10 +753,12 @@ public class PacketWriter {
    * @param serverThreadId current server thread id.
    * @param hostAddress host information
    */
-  public void setServerThreadId(long serverThreadId, HostAddress hostAddress) {
+  public void setServerThreadId(Long serverThreadId, HostAddress hostAddress) {
     Boolean isMaster = hostAddress != null ? hostAddress.primary : null;
     this.serverThreadLog =
-        "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        "conn="
+            + (serverThreadId == null ? "-1" : serverThreadId)
+            + ((isMaster != null) ? " (" + (isMaster ? "M" : "S") + ")" : "");
   }
 
   public void mark() {
@@ -812,6 +819,7 @@ public class PacketWriter {
 
   public void initPacket() {
     sequence.set(-1);
+    compressSequence.set(-1);
     pos = 4;
     cmdLength = 0;
   }

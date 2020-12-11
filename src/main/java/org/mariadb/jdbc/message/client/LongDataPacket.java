@@ -26,9 +26,9 @@ import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.PacketReader;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -81,7 +81,7 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
   }
 
   @Override
-  public void reExecute(PacketWriter writer, Context context, PrepareResultPacket prepareResult)
+  public int reEncode(PacketWriter writer, Context context, PrepareResultPacket prepareResult)
       throws IOException {
     writer.initPacket();
     writer.writeByte(0x18);
@@ -89,6 +89,7 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
     writer.writeShort((short) index);
     writer.writeBytes(savedBuf);
     writer.flush();
+    return 1;
   }
 
   @Override

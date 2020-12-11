@@ -28,8 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientException;
 import java.util.Arrays;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.ScalarOps;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
@@ -95,12 +95,13 @@ public final class Ed25519PasswordPacket implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
     writer.initPacket();
     if (password != null && !password.toString().isEmpty()) {
       writer.writeBytes(ed25519SignWithPassword(password, seed));
     }
     writer.flush();
+    return 0;
   }
 
   public String description() {

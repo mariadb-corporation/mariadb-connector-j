@@ -28,6 +28,8 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
@@ -46,11 +48,12 @@ public final class PreparePacket implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x16);
     writer.writeString(this.sql);
     writer.flush();
+    return 1;
   }
 
   @Override

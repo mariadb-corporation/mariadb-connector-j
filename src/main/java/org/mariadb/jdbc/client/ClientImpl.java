@@ -21,6 +21,7 @@
 
 package org.mariadb.jdbc.client;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,6 +43,7 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
+import org.mariadb.jdbc.client.socket.*;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
@@ -58,7 +60,6 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 public class ClientImpl implements Client, AutoCloseable {
-
   private static final Logger logger = Loggers.getLogger(ClientImpl.class);
 
   private static Integer MAX_ALLOWED_PACKET = 0;
@@ -66,6 +67,7 @@ public class ClientImpl implements Client, AutoCloseable {
   private final Socket socket;
   private final Context context;
   private final MutableInt sequence = new MutableInt(0);
+  private final MutableInt compressionSequence = new MutableInt(0);
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
@@ -73,7 +75,6 @@ public class ClientImpl implements Client, AutoCloseable {
   private ExceptionFactory exceptionFactory;
   private PacketWriter writer;
   private PacketReader reader;
-  private OutputStream out;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
@@ -85,6 +86,7 @@ public class ClientImpl implements Client, AutoCloseable {
       ReentrantLock lock,
       boolean skipPostCommands)
       throws SQLException {
+
     this.conf = conf;
     this.lock = lock;
     this.hostAddress = hostAddress;
@@ -97,10 +99,19 @@ public class ClientImpl implements Client, AutoCloseable {
     String host = hostAddress != null ? hostAddress.host : null;
     int port = hostAddress != null ? hostAddress.port : 3306;
 
+    this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.createSocket(host, port, conf);
-    assignStream(this.socket, conf);
 
     try {
+      OutputStream out = socket.getOutputStream();
+      InputStream in =
+          conf.useReadAheadInput()
+              ? new ReadAheadBufferedStream(socket.getInputStream())
+              : new BufferedInputStream(socket.getInputStream(), 16384);
+
+      assignStream(out, in, conf, null, hostAddress);
+
+      if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       final InitialHandshakePacket handshake =
           InitialHandshakePacket.decode(reader.readPacket(true));
@@ -123,9 +134,12 @@ public class ClientImpl implements Client, AutoCloseable {
               host, socket, clientCapabilities, exchangeCharset, context, writer);
 
       if (sslSocket != null) {
-        assignStream(sslSocket, conf);
-        this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
-        this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
+        out = sslSocket.getOutputStream();
+        in =
+            conf.useReadAheadInput()
+                ? new ReadAheadBufferedStream(sslSocket.getInputStream())
+                : new BufferedInputStream(sslSocket.getInputStream(), 16384);
+        assignStream(out, in, conf, handshake.getThreadId(), hostAddress);
       }
 
       String authenticationPluginType = handshake.getAuthenticationPluginType();
@@ -146,9 +160,16 @@ public class ClientImpl implements Client, AutoCloseable {
       writer.flush();
 
       ConnectionHelper.authenticationHandler(credential, writer, reader, context);
-      ConnectionHelper.compressionHandler(conf, context);
 
-      if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
+      // activate compression if required
+      if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
+        assignStream(
+            new CompressOutputStream(out, compressionSequence),
+            new CompressInputStream(in, compressionSequence),
+            conf,
+            handshake.getThreadId(),
+            hostAddress);
+      }
 
       if (!skipPostCommands) {
         postConnectionQueries();
@@ -172,15 +193,17 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  private void assignStream(Socket socket, Configuration conf) throws SQLException {
-    try {
-      out = socket.getOutputStream();
-      this.writer = new PacketWriter(out, conf.maxQuerySizeToLog(), sequence);
-      this.reader = new PacketReader(socket.getInputStream(), conf, sequence);
-    } catch (IOException ioe) {
-      destroySocket();
-      throw exceptionFactory.create("Socket error: " + ioe.getMessage(), "08000", ioe);
-    }
+  private void assignStream(
+      OutputStream out,
+      InputStream in,
+      Configuration conf,
+      Long threadId,
+      HostAddress hostAddress) {
+    this.writer = new PacketWriter(out, conf.maxQuerySizeToLog(), sequence, compressionSequence);
+    this.writer.setServerThreadId(threadId, hostAddress);
+
+    this.reader = new PacketReader(in, conf, sequence);
+    this.reader.setServerThreadId(threadId, hostAddress);
   }
 
   /** Closing socket in case of Connection error after socket creation. */
@@ -325,7 +348,7 @@ public class ClientImpl implements Client, AutoCloseable {
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
-      return message.encodePacket(writer, context);
+      return message.encode(writer, context);
     } catch (IOException ioException) {
       destroySocket();
       throw exceptionFactory
@@ -375,6 +398,7 @@ public class ClientImpl implements Client, AutoCloseable {
                   closeOnCompletion));
         }
       }
+      context.saveRedo(messages);
       return results;
     } catch (SQLException sqlException) {
 
@@ -429,8 +453,17 @@ public class ClientImpl implements Client, AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException {
     sendQuery(message);
-    return readResponse(
-        stmt, message, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+    List<Completion> completions =
+        readResponse(
+            stmt,
+            message,
+            fetchSize,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion);
+    context.saveRedo(message);
+    return completions;
   }
 
   public List<Completion> readResponse(
@@ -497,7 +530,7 @@ public class ClientImpl implements Client, AutoCloseable {
     try {
       // replay all but last
       PrepareResultPacket prepare;
-      for (int i = 0; i < buffers.size() - 1; i++) {
+      for (int i = 0; i < buffers.size(); i++) {
         RedoableClientMessage querySaver = buffers.get(i);
         int responseNo;
         if (querySaver instanceof RedoableWithPrepareClientMessage) {
@@ -513,9 +546,9 @@ public class ClientImpl implements Client, AutoCloseable {
             sendQuery(preparePacket);
             prepare = (PrepareResultPacket) readPacket(preparePacket);
           }
-          responseNo = querySaver.reExecutePacket(writer, context, prepare);
+          responseNo = querySaver.reEncode(writer, context, prepare);
         } else {
-          responseNo = querySaver.reExecutePacket(writer, context, null);
+          responseNo = querySaver.reEncode(writer, context, null);
         }
         for (int j = 0; j < responseNo; j++) {
           readResponse(querySaver);

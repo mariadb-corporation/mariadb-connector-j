@@ -22,8 +22,8 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class QueryPacket implements RedoableClientMessage {
 
@@ -38,15 +38,18 @@ public final class QueryPacket implements RedoableClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x03);
     writer.writeString(this.sql);
     writer.flush();
+    return 1;
   }
+
   public boolean isCommit() {
     return "COMMIT".equalsIgnoreCase(sql);
   }
+
   public String description() {
     return sql;
   }

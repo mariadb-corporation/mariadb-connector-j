@@ -23,8 +23,8 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class SslRequestPacket implements ClientMessage {
 
@@ -41,13 +41,14 @@ public final class SslRequestPacket implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
     writer.writeInt((int) clientCapabilities);
     writer.writeInt(1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1 byte
     writer.writeBytes(0x00, 19); // 19  bytes
     writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
     writer.flush();
+    return 0;
   }
 
   @Override

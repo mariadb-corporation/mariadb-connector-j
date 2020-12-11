@@ -23,17 +23,18 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class Sha2PublicKeyRequestPacket implements ClientMessage {
 
   public static final Sha2PublicKeyRequestPacket INSTANCE = new Sha2PublicKeyRequestPacket();
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
     writer.writeByte(0x02);
     writer.flush();
+    return 1;
   }
 
   public String description() {

@@ -28,8 +28,8 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
 import javax.crypto.Cipher;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class Sha256PasswordPacket implements ClientMessage {
 
@@ -78,11 +78,12 @@ public final class Sha256PasswordPacket implements ClientMessage {
   }
 
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
     if (password != null) {
       writer.writeBytes(encrypt(publicKey, password, seed));
     }
     writer.flush();
+    return 1;
   }
 
   @Override

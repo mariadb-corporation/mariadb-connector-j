@@ -25,7 +25,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.TransactionSaver;
-import org.mariadb.jdbc.message.client.RedoableClientMessage;
+import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public interface Context {
@@ -70,7 +70,9 @@ public interface Context {
 
   void addStateFlag(int state);
 
-  void saveRedo(RedoableClientMessage msg);
+  void saveRedo(ClientMessage msg);
+
+  void saveRedo(ClientMessage[] msgs);
 
   TransactionSaver getTransactionSaver();
 }

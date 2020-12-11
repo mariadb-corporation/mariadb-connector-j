@@ -22,8 +22,8 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
-import org.mariadb.jdbc.client.PacketWriter;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public final class ClosePreparePacket implements ClientMessage {
 
@@ -38,11 +38,12 @@ public final class ClosePreparePacket implements ClientMessage {
    * https://mariadb.com/kb/en/3-binary-protocol-prepared-statements-com_stmt_close/
    */
   @Override
-  public void encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x19);
     writer.writeInt(statementId);
     writer.flush();
+    return 0;
   }
 
   public String description() {
