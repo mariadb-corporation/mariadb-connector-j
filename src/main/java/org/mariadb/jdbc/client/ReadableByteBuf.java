@@ -200,7 +200,7 @@ public final class ReadableByteBuf {
   }
 
   public int readUnsignedMedium() {
-    return buf[pos++] & 0xff | (buf[pos++] & 0xff) << 8 | (buf[pos++] & 0xff) << 16;
+    return ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8) + ((buf[pos++] & 0xff) << 16));
   }
 
   public int readInt() {

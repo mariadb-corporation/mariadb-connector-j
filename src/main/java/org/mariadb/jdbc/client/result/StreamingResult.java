@@ -46,7 +46,8 @@ public class StreamingResult extends Result {
       int fetchSize,
       ReentrantLock lock,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean traceEnable)
       throws IOException, SQLException {
 
     super(
@@ -57,7 +58,8 @@ public class StreamingResult extends Result {
         reader,
         context,
         resultSetType,
-        closeOnCompletion);
+        closeOnCompletion,
+        traceEnable);
     this.lock = lock;
     this.dataFetchTime = 0;
     this.fetchSize = fetchSize;

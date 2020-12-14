@@ -653,6 +653,7 @@ public class ClientImpl implements Client, AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException {
     try {
+      boolean traceEnable = logger.isTraceEnabled();
       Completion completion =
           message.readPacket(
               stmt,
@@ -664,7 +665,8 @@ public class ClientImpl implements Client, AutoCloseable {
               reader,
               context,
               exceptionFactory,
-              lock);
+              lock,
+              traceEnable);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;

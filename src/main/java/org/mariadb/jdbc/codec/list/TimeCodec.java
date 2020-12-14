@@ -101,16 +101,21 @@ public class TimeCodec implements Codec<Time> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar calParam)
       throws SQLDataException {
 
+    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+    long dayOfMonth = 1;
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
     switch (column.getType()) {
       case VARCHAR:
       case VARSTRING:
       case STRING:
-      case TIME:
         int[] parts = LocalTimeCodec.parseTime(buf, length, column);
         Time t;
 
         // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
         synchronized (cal) {
           cal.clear();
           cal.setLenient(true);
@@ -123,76 +128,46 @@ public class TimeCodec implements Codec<Time> {
           }
         }
         return t;
+      case TIME:
+        // specific case for TIME, to handle value not in 00:00:00-23:59:59
+        boolean negate = buf.readByte() == 1;
+        dayOfMonth = buf.readUnsignedInt();
+        hour = buf.readByte();
+        minutes = buf.readByte();
+        seconds = buf.readByte();
+        if (length > 8) {
+          microseconds = buf.readUnsignedInt();
+        }
+        int offset = cal.getTimeZone().getOffset(0);
+        long timeInMillis =
+            ((24 * dayOfMonth + hour) * 3_600_000
+                        + minutes * 60_000
+                        + seconds * 1_000
+                        + microseconds / 1_000)
+                    * (negate ? -1 : 1)
+                - offset;
+        return new Time(timeInMillis);
 
       case TIMESTAMP:
       case DATETIME:
-        int pos = buf.pos();
-        int nanoBegin = -1;
-        int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
-        int partIdx = 0;
-        for (int begin = 0; begin < length; begin++) {
-          byte b = buf.readByte();
-          if (b == '-' || b == ' ' || b == ':') {
-            partIdx++;
-            continue;
-          }
-          if (b == '.') {
-            partIdx++;
-            nanoBegin = begin;
-            continue;
-          }
-          if (b < '0' || b > '9') {
-            buf.pos(pos);
-            throw new SQLDataException(
-                String.format(
-                    "value '%s' (%s) cannot be decoded as Timestamp",
-                    buf.readString(length), column.getType()));
-          }
+        buf.skip(3); // year + month
+        dayOfMonth = buf.readByte();
 
-          timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
-        }
-        if (timestampsPart[0] == 0
-            && timestampsPart[1] == 0
-            && timestampsPart[2] == 0
-            && timestampsPart[3] == 0
-            && timestampsPart[4] == 0
-            && timestampsPart[5] == 0
-            && timestampsPart[6] == 0) {
-          return null;
-        }
+        if (length > 4) {
+          hour = buf.readByte();
+          minutes = buf.readByte();
+          seconds = buf.readByte();
 
-        // fix non leading tray for nanoseconds
-        if (nanoBegin > 0) {
-          for (int begin = 0; begin < 6 - (length - nanoBegin - 1); begin++) {
-            timestampsPart[6] = timestampsPart[6] * 10;
+          if (length > 7) {
+            microseconds = buf.readUnsignedInt();
           }
         }
 
-        Time time;
-        if (calParam == null) {
-          Calendar c = Calendar.getInstance();
-          c.set(
-              timestampsPart[0],
-              timestampsPart[1] - 1,
-              timestampsPart[2],
-              timestampsPart[3],
-              timestampsPart[4],
-              timestampsPart[5]);
-          time = new Time(c.getTime().getTime() + timestampsPart[6] / 1000);
-        } else {
-          synchronized (calParam) {
-            calParam.clear();
-            calParam.set(
-                timestampsPart[0],
-                timestampsPart[1] - 1,
-                timestampsPart[2],
-                timestampsPart[3],
-                timestampsPart[4],
-                timestampsPart[5]);
-            time = new Time(calParam.getTime().getTime() + timestampsPart[6] / 1000);
-          }
+        synchronized (cal) {
+          cal.clear();
+          cal.set(1970, 0, 1, hour, minutes, seconds);
+          return new Time(cal.getTimeInMillis() + microseconds / 1_000);
         }
-        return time;
 
       default:
         buf.skip(length);

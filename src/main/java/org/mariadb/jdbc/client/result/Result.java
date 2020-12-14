@@ -64,6 +64,7 @@ public abstract class Result implements ResultSet, Completion {
   protected Statement statement;
   protected long maxRows;
   private boolean forceAlias;
+  private boolean traceEnable;
 
   public Result(
       org.mariadb.jdbc.Statement stmt,
@@ -73,7 +74,8 @@ public abstract class Result implements ResultSet, Completion {
       PacketReader reader,
       Context context,
       int resultSetType,
-      boolean closeOnCompletion) {
+      boolean closeOnCompletion,
+      boolean traceEnable) {
     this.maxRows = maxRows;
     this.statement = stmt;
     this.closeOnCompletion = closeOnCompletion;
@@ -83,6 +85,7 @@ public abstract class Result implements ResultSet, Completion {
     this.exceptionFactory = context.getExceptionFactory();
     this.context = context;
     this.resultSetType = resultSetType;
+    this.traceEnable = traceEnable;
     row =
         binaryProtocol
             ? new BinaryRowDecoder(this.maxIndex, metadataList, context.getConf())
@@ -100,12 +103,13 @@ public abstract class Result implements ResultSet, Completion {
     this.statement = null;
     this.resultSetType = TYPE_FORWARD_ONLY;
     this.closeOnCompletion = false;
+    this.traceEnable = false;
     row = new TextRowDecoder(maxIndex, metadataList, context.getConf());
   }
 
   @SuppressWarnings("fallthrough")
   protected boolean readNext() throws SQLException, IOException {
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readPacket(false, traceEnable);
     switch (buf.getByte()) {
       case (byte) 0xFF:
         loaded = true;
@@ -153,7 +157,7 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("fallthrough")
   protected void skipRemaining() throws SQLException, IOException {
     while (true) {
-      ReadableByteBuf buf = reader.readPacket(true);
+      ReadableByteBuf buf = reader.readPacket(true, traceEnable);
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;

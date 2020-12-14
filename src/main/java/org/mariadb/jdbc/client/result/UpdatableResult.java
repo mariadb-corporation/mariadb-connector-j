@@ -44,7 +44,8 @@ public class UpdatableResult extends CompleteResult {
       PacketReader reader,
       Context context,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean traceEnable)
       throws IOException, SQLException {
     super(
         stmt,
@@ -54,7 +55,8 @@ public class UpdatableResult extends CompleteResult {
         reader,
         context,
         resultSetType,
-        closeOnCompletion);
+        closeOnCompletion,
+        traceEnable);
     checkIfUpdatable();
     parameters = new ParameterList(metadataList.length);
   }

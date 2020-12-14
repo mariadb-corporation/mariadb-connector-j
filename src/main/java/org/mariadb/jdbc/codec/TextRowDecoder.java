@@ -21,7 +21,6 @@
 
 package org.mariadb.jdbc.codec;
 
-import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
@@ -31,33 +30,6 @@ public class TextRowDecoder extends RowDecoder {
 
   public TextRowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
     super(columnCount, columns, conf);
-  }
-
-  /**
-   * Get value.
-   *
-   * @param index REAL index (0 = first)
-   * @param codec codec
-   * @return value
-   * @throws SQLException if cannot decode value
-   */
-  @Override
-  public <T> T getValue(int index, Codec<T> codec, Calendar cal) throws SQLException {
-    if (index < 1 || index > columnCount) {
-      throw new SQLException(
-          String.format(
-              "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
-    }
-    if (buf == null) {
-      throw new SQLDataException("wrong row position", "22023");
-    }
-    ColumnDefinitionPacket column = columns[index - 1];
-
-    setPosition(index - 1);
-    if (length == NULL_LENGTH) {
-      return null;
-    }
-    return codec.decodeText(buf, length, column, cal);
   }
 
   @Override

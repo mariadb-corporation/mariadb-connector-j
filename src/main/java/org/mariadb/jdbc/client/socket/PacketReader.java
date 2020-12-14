@@ -130,7 +130,18 @@ public class PacketReader {
    * @throws IOException if socket exception occur.
    */
   public ReadableByteBuf readPacket(boolean reUsable) throws IOException {
+    return readPacket(reUsable, logger.isTraceEnabled());
+  }
 
+  /**
+   * Get next packet. If packet is more than 16M, read as many packet needed to finish packet.
+   * (first that has not length = 16Mb)
+   *
+   * @param reUsable if can use existing reusable buf to avoid creating array
+   * @return array packet.
+   * @throws IOException if socket exception occur.
+   */
+  public ReadableByteBuf readPacket(boolean reUsable, boolean traceEnable) throws IOException {
     // ***************************************************
     // Read 4 byte header
     // ***************************************************
@@ -178,7 +189,7 @@ public class PacketReader {
       off += count;
     } while (remaining > 0);
 
-    if (logger.isTraceEnabled()) {
+    if (traceEnable) {
       logger.trace(
           "read: {}\n{}",
           serverThreadLog,
@@ -228,7 +239,7 @@ public class PacketReader {
           off += count;
         } while (remaining > 0);
 
-        if (logger.isTraceEnabled()) {
+        if (traceEnable) {
           logger.trace(
               "read: {}{}",
               serverThreadLog,

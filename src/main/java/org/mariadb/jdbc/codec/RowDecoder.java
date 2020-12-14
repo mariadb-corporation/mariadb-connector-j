@@ -147,7 +147,30 @@ public abstract class RowDecoder {
     return getValue(index, codec, null);
   }
 
-  public abstract <T> T getValue(int index, Codec<T> codec, Calendar cal) throws SQLException;
+  /**
+   * Get value.
+   *
+   * @param index REAL index (0 = first)
+   * @param codec codec
+   * @return value
+   * @throws SQLException if cannot decode value
+   */
+  public <T> T getValue(int index, Codec<T> codec, Calendar cal) throws SQLException {
+    if (index < 1 || index > columnCount) {
+      throw new SQLException(
+          String.format(
+              "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
+    }
+    if (buf == null) {
+      throw new SQLDataException("wrong row position", "22023");
+    }
+
+    setPosition(index - 1);
+    if (length == NULL_LENGTH) {
+      return null;
+    }
+    return decode(codec, cal);
+  }
 
   public <T> T getValue(String label, Codec<T> codec) throws SQLException {
     if (buf == null) {

@@ -103,7 +103,8 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
       PacketReader reader,
       Context context,
       ExceptionFactory exceptionFactory,
-      ReentrantLock lock)
+      ReentrantLock lock,
+      boolean traceEnable)
       throws IOException, SQLException {
     return null;
   }

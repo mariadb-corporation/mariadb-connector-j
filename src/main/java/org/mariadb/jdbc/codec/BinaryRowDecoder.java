@@ -21,7 +21,6 @@
 
 package org.mariadb.jdbc.codec;
 
-import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
@@ -34,34 +33,6 @@ public class BinaryRowDecoder extends RowDecoder {
 
   public BinaryRowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
     super(columnCount, columns, conf);
-  }
-
-  /**
-   * Get value.
-   *
-   * @param newIndex REAL index (0 = first)
-   * @param codec codec
-   * @return value
-   * @throws SQLException if cannot decode value
-   */
-  @SuppressWarnings("unchecked")
-  @Override
-  public <T> T getValue(int newIndex, Codec<T> codec, Calendar cal) throws SQLException {
-    if (newIndex < 1 || newIndex > columnCount) {
-      throw new SQLException(
-          String.format(
-              "Wrong index position. Is %s but must be in 1-%s range", newIndex, columnCount));
-    }
-    if (buf == null) {
-      throw new SQLDataException("wrong row position", "22023");
-    }
-    // check NULL-Bitmap that indicate if field is null
-    if ((nullBitmap[(newIndex + 1) / 8] & (1 << ((newIndex + 1) % 8))) != 0) {
-      index = newIndex - 1;
-      return null;
-    }
-    setPosition(newIndex - 1);
-    return codec.decodeBinary(buf, length, columns[index], cal);
   }
 
   @Override
@@ -153,6 +124,11 @@ public class BinaryRowDecoder extends RowDecoder {
         }
       }
       index++;
+    }
+
+    if ((nullBitmap[(index + 2) / 8] & (1 << ((index + 2) % 8))) > 0) {
+      length = NULL_LENGTH;
+      return;
     }
 
     // read asked field position and length

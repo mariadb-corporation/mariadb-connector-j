@@ -27,16 +27,19 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.Loggers;
 
 /** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion {
-
+  private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final ColumnDefinitionPacket[] parameters;
   private final ColumnDefinitionPacket[] columns;
   protected int statementId;
 
   public PrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
       throws IOException {
+    boolean trace = logger.isTraceEnabled();
     buffer.readByte(); /* skip COM_STMT_PREPARE_OK */
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
@@ -45,18 +48,18 @@ public class PrepareResultPacket implements Completion {
     this.columns = new ColumnDefinitionPacket[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] = new ColumnDefinitionPacket(reader.readPacket(false));
+        parameters[i] = new ColumnDefinitionPacket(reader.readPacket(false, trace));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true);
+        reader.readPacket(true, trace);
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
-        columns[i] = new ColumnDefinitionPacket(reader.readPacket(false));
+        columns[i] = new ColumnDefinitionPacket(reader.readPacket(false, trace));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true);
+        reader.readPacket(true, trace);
       }
     }
   }

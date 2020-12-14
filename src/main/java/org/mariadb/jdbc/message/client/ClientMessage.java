@@ -65,10 +65,11 @@ public interface ClientMessage {
       PacketReader reader,
       Context context,
       ExceptionFactory exceptionFactory,
-      ReentrantLock lock)
+      ReentrantLock lock,
+      boolean traceEnable)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true);
+    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
 
     switch (buf.getUnsignedByte()) {
 
@@ -99,12 +100,12 @@ public interface ClientMessage {
         // read columns information's
         ColumnDefinitionPacket[] ci = new ColumnDefinitionPacket[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
-          ci[i] = new ColumnDefinitionPacket(reader.readPacket(false));
+          ci[i] = new ColumnDefinitionPacket(reader.readPacket(false, traceEnable));
         }
 
         if (!context.isEofDeprecated()) {
           // skip intermediate EOF
-          reader.readPacket(true);
+          reader.readPacket(true, traceEnable);
         }
 
         // read resultSet
@@ -117,7 +118,8 @@ public interface ClientMessage {
               reader,
               context,
               resultSetType,
-              closeOnCompletion);
+              closeOnCompletion,
+              traceEnable);
         }
 
         if (fetchSize != 0) {
@@ -136,7 +138,8 @@ public interface ClientMessage {
                   fetchSize,
                   lock,
                   resultSetType,
-                  closeOnCompletion);
+                  closeOnCompletion,
+                  traceEnable);
           return result;
         } else {
           return new CompleteResult(
@@ -147,7 +150,8 @@ public interface ClientMessage {
               reader,
               context,
               resultSetType,
-              closeOnCompletion);
+              closeOnCompletion,
+              traceEnable);
         }
     }
   }

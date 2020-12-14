@@ -66,18 +66,6 @@ public class StringCodec implements Codec<String> {
           DataType.VARSTRING,
           DataType.STRING);
 
-  public static String zeroFillingIfNeeded(String value, ColumnDefinitionPacket col) {
-    if (col.isZeroFill()) {
-      StringBuilder zeroAppendStr = new StringBuilder();
-      long zeroToAdd = col.getDisplaySize() - value.length();
-      while (zeroToAdd-- > 0) {
-        zeroAppendStr.append("0");
-      }
-      return zeroAppendStr.append(value).toString();
-    }
-    return value;
-  }
-
   public String className() {
     return String.class.getName();
   }

@@ -46,7 +46,8 @@ public class CompleteResult extends Result {
       PacketReader reader,
       Context context,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean traceEnable)
       throws IOException, SQLException {
 
     super(
@@ -57,7 +58,8 @@ public class CompleteResult extends Result {
         reader,
         context,
         resultSetType,
-        closeOnCompletion);
+        closeOnCompletion,
+        traceEnable);
     this.data = new ReadableByteBuf[10];
     if (maxRows > 0) {
       while (readNext() && dataSize < maxRows) {}
