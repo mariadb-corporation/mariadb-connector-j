@@ -23,6 +23,8 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
@@ -206,11 +208,40 @@ public class BatchTest extends Common {
           prep.addBatch();
         }
 
-        int[] res = prep.executeBatch();
-        assertEquals(nb, res.length);
-        for (int i = 0; i < nb; i++) {
-          assertTrue(res[i] == 1 || res[i] == Statement.SUCCESS_NO_INFO);
+        try {
+          int[] res = prep.executeBatch();
+          assertEquals(nb, res.length);
+          for (int i = 0; i < nb; i++) {
+            assertTrue(res[i] == 1 || res[i] == Statement.SUCCESS_NO_INFO);
+          }
+        } catch (SQLException e) {
+          String s = null;
+          try {
+            Process p = Runtime.getRuntime().exec("journalctl -xe");
+
+            BufferedReader stdInput = new BufferedReader(new
+                    InputStreamReader(p.getInputStream()));
+
+            BufferedReader stdError = new BufferedReader(new
+                    InputStreamReader(p.getErrorStream()));
+
+            // read the output from the command
+            System.out.println("Here is the standard output of the command:\n");
+            while ((s = stdInput.readLine()) != null) {
+              System.out.println(s);
+            }
+
+            // read any errors from the attempted command
+            System.out.println("Here is the standard error of the command (if any):\n");
+            while ((s = stdError.readLine()) != null) {
+              System.out.println(s);
+            }
+          } catch (Exception ee) {
+
+          }
+          throw e;
         }
+
       }
       ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
       for (int i = 1; i <= nb; i++) {
