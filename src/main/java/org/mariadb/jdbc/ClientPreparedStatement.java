@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.sql.StatementEvent;
@@ -125,7 +126,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       return results;
     } catch (SQLException bue) {
       results = null;
-      throw bue;
+      throw exceptionFactory().createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
     }
   }
 

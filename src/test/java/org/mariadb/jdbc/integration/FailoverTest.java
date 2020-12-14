@@ -23,10 +23,8 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLTransientConnectionException;
+import java.sql.*;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -218,10 +216,13 @@ public class FailoverTest extends Common {
           Assertions.assertTrue(con.getContext().getThreadId() != threadId);
           assertFalse(con.getAutoCommit());
         } else {
-          assertThrowsContains(
-              SQLTransientConnectionException.class,
-              () -> p.executeBatch(),
-              "In progress transaction was lost");
+          try {
+            p.executeBatch();
+            Assertions.fail();
+          } catch (SQLException e) {
+            Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
+            assertTrue(ee.getMessage().contains("In progress transaction was lost"));
+          }
         }
       }
     }

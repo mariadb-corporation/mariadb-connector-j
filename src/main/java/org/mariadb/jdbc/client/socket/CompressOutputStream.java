@@ -48,8 +48,8 @@ public class CompressOutputStream extends OutputStream {
    * <p>If <code>b</code> is <code>null</code>, a <code>NullPointerException</code> is thrown.
    *
    * <p>If <code>off</code> is negative, or <code>len</code> is negative, or <code>off+len</code> is
-   * greater than the length of the array <code>b</code>, then an IndexOutOfBoundsException
-   * is thrown.
+   * greater than the length of the array <code>b</code>, then an IndexOutOfBoundsException is
+   * thrown.
    *
    * @param b the data.
    * @param off the start offset in the data.

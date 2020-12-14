@@ -122,8 +122,8 @@ public class PacketReader {
   }
 
   /**
-   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading MySQL packet.
-   * (first that has not length = 16Mb)
+   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
+   * MySQL packet. (first that has not length = 16Mb)
    *
    * @param reUsable if can use existing reusable buf to avoid creating array
    * @return array packet.
@@ -134,8 +134,8 @@ public class PacketReader {
   }
 
   /**
-   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading MySQL packet.
-   * (first that has not length = 16Mb)
+   * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
+   * MySQL packet. (first that has not length = 16Mb)
    *
    * @param reUsable if can use existing reusable buf to avoid creating array
    * @param traceEnable must trace packet.

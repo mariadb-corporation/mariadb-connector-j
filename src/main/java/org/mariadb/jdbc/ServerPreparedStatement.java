@@ -221,7 +221,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       return results;
     } catch (SQLException bue) {
       results = null;
-      throw bue;
+      throw exceptionFactory().createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
     }
   }
 
@@ -253,7 +253,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
     } catch (SQLException bue) {
       results = null;
-      throw bue;
+      throw exceptionFactory().createBatchUpdate(res, batchParameters.size(), bue);
     }
   }
 
