@@ -42,15 +42,6 @@ import org.mariadb.jdbc.Statement;
 
 public class PreparedStatementParametersTest extends Common {
 
-  @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS prepareParam");
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS prepareParam2");
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS prepareParam3");
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS prepareParam4");
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS prepareParam5");
-  }
-
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     after2();
@@ -62,6 +53,17 @@ public class PreparedStatementParametersTest extends Common {
         "CREATE TABLE prepareParam4 (t1 VARCHAR(30)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute("CREATE TABLE prepareParam5 (t1 TIMESTAMP(6))");
+    stmt.execute("FLUSH TABLES");
+  }
+
+  @AfterAll
+  public static void after2() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS prepareParam");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam2");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam3");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam4");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam5");
   }
 
   @Test
@@ -385,7 +387,7 @@ public class PreparedStatementParametersTest extends Common {
       Connection con)
       throws Exception {
     Statement stmt = con.createStatement();
-    stmt.execute("TRUNCATE " + table);
+    stmt.execute("START TRANSACTION");
     try (PreparedStatement preparedStatement =
         con.prepareStatement("INSERT INTO " + table + " VALUES (?)")) {
       consumer.accept(preparedStatement);
@@ -393,6 +395,7 @@ public class PreparedStatementParametersTest extends Common {
     }
     ResultSet rs = stmt.executeQuery("SELECT * FROM " + table);
     assertTrue(rs.next());
+    con.rollback();
     check.accept(rs);
   }
 

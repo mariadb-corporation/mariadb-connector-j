@@ -221,7 +221,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       return results;
     } catch (SQLException bue) {
       results = null;
-      throw exceptionFactory().createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
+      throw exceptionFactory()
+          .createBatchUpdate(Collections.emptyList(), batchParameters.size(), bue);
     }
   }
 
