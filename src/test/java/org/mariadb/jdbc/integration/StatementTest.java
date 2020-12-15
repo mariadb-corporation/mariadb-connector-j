@@ -52,7 +52,27 @@ public class StatementTest extends Common {
   @Test
   public void getConnection() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+    assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
     assertEquals(sharedConn, stmt.getConnection());
+
+    stmt =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+    assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
+
+    stmt =
+        sharedConn.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE,
+            ResultSet.CLOSE_CURSORS_AT_COMMIT);
+    assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+    assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+
+    // not supported
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
   }
 
   @Test

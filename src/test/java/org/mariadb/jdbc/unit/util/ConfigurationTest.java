@@ -516,4 +516,76 @@ public class ConfigurationTest extends Common {
     assertEquals(SslMode.VERIFY_FULL, jdbc.sslMode());
     assertEquals("pwd2", jdbc.password());
   }
+
+  @Test
+  public void builder() throws SQLException {
+    Configuration conf =
+        new Configuration.Builder()
+            .addresses(
+                new HostAddress[] {
+                  HostAddress.from("host1", 3305, true), HostAddress.from("host2", 3307, false)
+                })
+            .user("me")
+            .password("pwd")
+            .database("db")
+            .socketFactory("someSocketFactory")
+            .connectTimeout(22)
+            .pipe("pipeName")
+            .localSocket("localSocket")
+            .tcpKeepAlive(true)
+            .tcpAbortiveClose(true)
+            .localSocketAddress("localSocketAddress")
+            .socketTimeout(1000)
+            .allowMultiQueries(true)
+            .rewriteBatchedStatements(true)
+            .useCompression(true)
+            .blankTableNameMeta(true)
+            .credentialType("ENV")
+            .sslMode("REQUIRED")
+            .enabledSslCipherSuites("myCipher,cipher2")
+            .sessionVariables("blabla")
+            .tinyInt1isBit(false)
+            .yearIsDateType(false)
+            .timezone("UTC")
+            .dumpQueriesOnException(true)
+            .prepStmtCacheSize(2)
+            .useAffectedRows(true)
+            .useServerPrepStmts(true)
+            .connectionAttributes("bla=bla")
+            .useBulkStmts(false)
+            .autocommit(false)
+            .includeInnodbStatusInDeadlockExceptions(true)
+            .includeThreadDumpInDeadlockExceptions(true)
+            .servicePrincipalName("SPN")
+            .defaultFetchSize(10)
+            .tlsSocketType("TLStype")
+            .maxQuerySizeToLog(100)
+            .maxAllowedPacket(40000)
+            .retriesAllDown(10)
+            .assureReadOnly(true)
+            .validConnectionTimeout(100)
+            .galeraAllowedState("A,B")
+            .enabledSslProtocolSuites("TLSv1.2")
+            .pinGlobalTxToPhysicalConnection(false)
+            .transactionReplay(true)
+            .pool(true)
+            .poolName("myPool")
+            .maxPoolSize(16)
+            .minPoolSize(12)
+            .maxIdleTime(25000)
+            .staticGlobal(true)
+            .registerJmxPool(true)
+            .poolValidMinDelay(260)
+            .useResetConnection(true)
+            .useReadAheadInput(false)
+            .cachePrepStmts(false)
+            .serverSslCert("mycertPath")
+            .serverRsaPublicKeyFile("RSAPath")
+            .allowPublicKeyRetrieval(true)
+            .build();
+    System.out.println(conf.toString());
+    assertEquals(
+        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&socketFactory=someSocketFactory&pipe=pipeName&localSocket=localSocket&localSocketAddress=localSocketAddress&credentialType=ENV&enabledSslCipherSuites=myCipher,cipher2&sessionVariables=blabla&tinyInt1isBit=false&yearIsDateType=false&timezone=UTC&connectionAttributes=bla=bla&useBulkStmts=false&autocommit=false&servicePrincipalName=SPN&tlsSocketType=TLStype&galeraAllowedState=A,B&enabledSslProtocolSuites=TLSv1.2&pinGlobalTxToPhysicalConnection=false&poolName=myPool&useReadAheadInput=false&cachePrepStmts=false&serverSslCert=mycertPath&serverRsaPublicKeyFile=RSAPath",
+        conf.toString());
+  }
 }

@@ -118,9 +118,16 @@ public class ClientImpl implements Client, AutoCloseable {
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       this.context =
           conf.transactionReplay()
-              ? new RedoContext(handshake, conf, this.exceptionFactory, new PrepareCache(100, this))
+              ? new RedoContext(
+                  handshake,
+                  conf,
+                  this.exceptionFactory,
+                  new PrepareCache(conf.prepStmtCacheSize(), this))
               : new BaseContext(
-                  handshake, conf, this.exceptionFactory, new PrepareCache(100, this));
+                  handshake,
+                  conf,
+                  this.exceptionFactory,
+                  new PrepareCache(conf.prepStmtCacheSize(), this));
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setContext(context);
@@ -737,6 +744,7 @@ public class ClientImpl implements Client, AutoCloseable {
 
     if (!this.closed) {
       this.closed = true;
+
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection
@@ -751,6 +759,9 @@ public class ClientImpl implements Client, AutoCloseable {
         } catch (IOException e) {
           // eat
         }
+      }
+      if (streamStmt != null) {
+        streamStmt.abort();
       }
       closeSocket();
     }
@@ -801,7 +812,7 @@ public class ClientImpl implements Client, AutoCloseable {
 
   public void reset(ExceptionFactory exceptionFactory) {
     this.exceptionFactory = exceptionFactory;
-    this.context.resetPrepareCache(new PrepareCache(250, this));
+    this.context.resetPrepareCache(new PrepareCache(conf.prepStmtCacheSize(), this));
   }
 
   public HostAddress getHostAddress() {

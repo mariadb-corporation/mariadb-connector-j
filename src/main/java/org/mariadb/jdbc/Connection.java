@@ -274,11 +274,9 @@ public class Connection implements java.sql.Connection, PooledConnection {
 
     Statement stmt = createStatement();
     ResultSet rs = stmt.executeQuery("select database()");
-    if (rs.next()) {
-      client.getContext().setDatabase(rs.getString(1));
-      return client.getContext().getDatabase();
-    }
-    return null;
+    rs.next();
+    client.getContext().setDatabase(rs.getString(1));
+    return client.getContext().getDatabase();
   }
 
   @Override
@@ -356,6 +354,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
     }
     lock.lock();
     try {
+      checkNotClosed();
       getContext().addStateFlag(ConnectionState.STATE_TRANSACTION_ISOLATION);
       client.getContext().setTransactionIsolationLevel(level);
       client.execute(new QueryPacket(query));

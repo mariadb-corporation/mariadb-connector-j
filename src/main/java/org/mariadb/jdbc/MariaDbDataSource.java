@@ -14,7 +14,7 @@ public class MariaDbDataSource implements DataSource {
     if (Configuration.acceptsUrl(url)) {
       conf = Configuration.parse(url);
     } else {
-      throw new SQLException(String.format("Wrong mariaDB url :", url));
+      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     }
   }
 

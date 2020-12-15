@@ -170,5 +170,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
 
   public void close() throws IOException {
     super.close();
+    end = 0;
+    pos = 0;
   }
 }

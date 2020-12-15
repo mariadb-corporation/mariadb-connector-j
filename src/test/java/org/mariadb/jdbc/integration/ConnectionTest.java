@@ -24,6 +24,9 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
@@ -359,6 +362,91 @@ public class ConnectionTest extends Common {
     assertEquals(sharedConn, sharedConn.getConnection());
     assertTrue(sharedConn.createBlob() instanceof Blob);
     assertTrue(sharedConn.createClob() instanceof Clob);
+    assertTrue(sharedConn.createNClob() instanceof NClob);
+    assertThrows(SQLException.class, () -> sharedConn.createSQLXML());
+    assertThrows(SQLException.class, () -> sharedConn.createArrayOf("", null));
+    assertThrows(SQLException.class, () -> sharedConn.createStruct("", null));
+    assertNull(sharedConn.getSchema());
+    sharedConn.setSchema("fff");
+    assertNull(sharedConn.getSchema());
+  }
+
+  @Test
+  public void clientInfo() throws SQLException {
+    assertTrue(sharedConn.getClientInfo().isEmpty());
+    sharedConn.setClientInfo("some", "value");
+    Properties props = new Properties();
+    props.put("another", "one");
+    props.put("and another", "two");
+    sharedConn.setClientInfo(props);
+    assertEquals(3, sharedConn.getClientInfo().size());
+    assertEquals("value", sharedConn.getClientInfo("some"));
+    assertNull(sharedConn.getClientInfo("some33"));
+  }
+
+  @Test
+  public void abortTestAlreadyClosed() throws SQLException {
+    Connection connection = createCon();
+    connection.close();
+    Executor executor = Runnable::run;
+    connection.abort(executor);
+  }
+
+  @Test
+  public void abortTestNoExecutor() {
+    try {
+      sharedConn.abort(null);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("Cannot abort the connection: null executor passed"));
+    }
+  }
+
+  @Test
+  public void abortClose() throws Throwable {
+    Connection connection = createCon();
+    Statement stmt = connection.createStatement();
+    stmt.setFetchSize(1);
+    ResultSet rs =
+        stmt.executeQuery(
+            "select * from information_schema.columns as c1, "
+                + "information_schema.tables, information_schema.tables as t2");
+    assertTrue(rs.next());
+    connection.abort(Runnable::run);
+    // must still work
+
+    Thread.sleep(20);
+    try {
+      assertTrue(rs.next());
+      fail();
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+    }
+  }
+
+  @Test
+  public void verificationAbort() throws Throwable {
+    Timer timer = new Timer();
+    try (Connection connection = createCon()) {
+      timer.schedule(
+          new TimerTask() {
+            @Override
+            public void run() {
+              try {
+                connection.abort(Runnable::run);
+              } catch (SQLException sqle) {
+                fail(sqle.getMessage());
+              }
+            }
+          },
+          10);
+
+      Statement stmt = connection.createStatement();
+      assertThrows(
+          SQLException.class,
+          () ->
+              stmt.executeQuery(
+                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2"));
+    }
   }
 
   @Test
@@ -638,5 +726,14 @@ public class ConnectionTest extends Common {
       //      }
       return new int[] {autoInc, autoIncOffset};
     }
+  }
+
+  @Test
+  public void various() throws SQLException {
+    assertThrows(SQLException.class, () -> sharedConn.setTypeMap(null));
+    assertTrue(sharedConn.getTypeMap().isEmpty());
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
+    sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
   }
 }

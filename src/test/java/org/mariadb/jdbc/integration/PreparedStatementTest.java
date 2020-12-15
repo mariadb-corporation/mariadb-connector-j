@@ -56,6 +56,38 @@ public class PreparedStatementTest extends Common {
     }
   }
 
+  @Test
+  public void prep() throws SQLException {
+    try (PreparedStatement stmt = sharedConn.prepareStatement("SELECT ?")) {
+      assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+      assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
+      assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
+      assertEquals(sharedConn, stmt.getConnection());
+    }
+
+    try (PreparedStatement stmt =
+        sharedConn.prepareStatement(
+            "SELECT ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
+      assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+      assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+      assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
+      assertEquals(sharedConn, stmt.getConnection());
+    }
+
+    try (PreparedStatement stmt =
+        sharedConn.prepareStatement(
+            "SELECT ?",
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE,
+            ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+      assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+      assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+      // not supported
+      assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
+      assertEquals(sharedConn, stmt.getConnection());
+    }
+  }
+
   private void execute(Connection conn) throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("TRUNCATE prepare1");

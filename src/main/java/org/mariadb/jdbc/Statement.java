@@ -169,6 +169,30 @@ public class Statement implements java.sql.Statement {
     }
   }
 
+  public void abort() throws SQLException {
+    lock.lock();
+    try {
+      if (!closed) {
+        closed = true;
+
+        if (currResult != null && currResult instanceof Result) {
+          ((Result) currResult).abort();
+        }
+
+        // close result-set
+        if (results != null) {
+          for (Completion completion : results) {
+            if (completion instanceof Result) {
+              ((Result) completion).abort();
+            }
+          }
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
   /**
    * Retrieves the maximum number of bytes that can be returned for character and binary column
    * values in a <code>ResultSet</code> object produced by this <code>Statement</code> object. This

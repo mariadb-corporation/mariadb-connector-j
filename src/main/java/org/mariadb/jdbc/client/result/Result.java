@@ -224,6 +224,13 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
+  public void abort() throws SQLException {
+    this.closed = true;
+    if (closeOnCompletion) {
+      statement.close();
+    }
+  }
+
   protected ReadableByteBuf getCurrentRowData() {
     return data[0];
   }
