@@ -177,7 +177,7 @@ public class BatchTest extends Common {
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();
     System.out.println("maxAllowedPacket:" + maxAllowedPacket);
-    bulkPacketSplit(2,  maxAllowedPacket - 40);
+    bulkPacketSplit(2, maxAllowedPacket - 40);
   }
 
   @Test

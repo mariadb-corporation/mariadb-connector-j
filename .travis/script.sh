@@ -58,7 +58,6 @@ if [ -z "$SKYSQL" ] && [ -z "$SKYSQL_HA" ]; then
     # run test suite
     ###################################################################################################################
     export TEST_DB_HOST=mariadb.example.com
-    export TEST_DB_HOST=mariadb.example.com
     export TEST_DB_PORT=3305
     export TEST_DB_DATABASE=testj
     export TEST_DB_USER=bob
