@@ -60,6 +60,7 @@ public class DataSourceTest extends Common {
       stmt.execute("CREATE USER 'dsUser'@'%'");
       stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%' IDENTIFIED BY 'password'");
     }
+    stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl);
     try (Connection con1 = ds.getConnection()) {

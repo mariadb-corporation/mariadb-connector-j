@@ -113,6 +113,22 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
             param.encodeBinary(writer, context);
           }
         }
+
+        if (!writer.isMarked() && writer.hasFlushed()) {
+          // parameter were too big to fit in a MySQL packet
+          // need to finish the packet separately
+          writer.flush();
+          if (!paramIterator.hasNext()) {
+            break main_loop;
+          }
+          parameters = paramIterator.next();
+          // reset header type
+          for (int j = 0; j < parameterCount; j++) {
+            parameterHeaderType[j] = parameters.get(j);
+          }
+          break parameter_loop;
+        }
+
         writer.mark();
 
         if (writer.bufIsDataAfterMark()) {

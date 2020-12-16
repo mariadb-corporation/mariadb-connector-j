@@ -241,7 +241,10 @@ public class Configuration implements Cloneable {
         rewriteBatchedStatements != null ? rewriteBatchedStatements : false;
     this.useCompression = useCompression != null ? useCompression : false;
     this.blankTableNameMeta = blankTableNameMeta != null ? blankTableNameMeta : false;
-    this.sslMode = sslMode != null ? SslMode.from(sslMode) : SslMode.DISABLE;
+    this.sslMode =
+        sslMode != null
+            ? (sslMode.isEmpty() ? SslMode.VERIFY_FULL : SslMode.from(sslMode))
+            : SslMode.DISABLE;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
     this.tinyInt1isBit = tinyInt1isBit != null ? tinyInt1isBit : true;
@@ -492,16 +495,6 @@ public class Configuration implements Cloneable {
                 throw new IllegalArgumentException(
                     String.format(
                         "Optional parameter %s must be Long, was '%s'", key, propertyValue));
-              }
-            } else if (field.getGenericType().equals(SslMode.class)) {
-              if (propertyValue.isEmpty()) {
-                field.set(builder, SslMode.VERIFY_FULL);
-              } else {
-                try {
-                  field.set(builder, SslMode.from(propertyValue));
-                } catch (IllegalArgumentException i) {
-                  throw new SQLException(i.getMessage());
-                }
               }
             }
           } catch (NoSuchFieldException nfe) {
@@ -1129,7 +1122,7 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder sslMode(String string) {
+    public Builder sslMode(String sslMode) {
       this.sslMode = sslMode;
       return this;
     }

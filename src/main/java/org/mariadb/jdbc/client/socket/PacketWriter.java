@@ -237,8 +237,9 @@ public class PacketWriter {
           if (mark != -1) {
             flushBufferStopAtMark();
           }
+        }
 
-        } else {
+        if (len > buf.length - pos) {
           // not enough space in buf, will stream :
           // fill buf and flush until all data are snd
           int remainingLen = len;
@@ -641,20 +642,22 @@ public class PacketWriter {
     } else {
       newCapacity = maxPacketLength;
     }
+    if (len + pos > newCapacity) {
+      if (mark != -1) {
+        // buf is > 16M with mark.
+        // flush until mark, reset pos at beginning
+        flushBufferStopAtMark();
 
-    if (mark != -1 && len + pos > newCapacity) {
-      // buf is > 16M with mark.
-      // flush until mark, reset pos at beginning
-      flushBufferStopAtMark();
+        if (len + pos <= bufLength) {
+          return;
+        }
 
-      if (len + pos <= bufLength) {
-        return;
-      }
-
-      // need to keep all data, buf can grow more than maxPacketLength
-      // grow buf if needed
-      if (len + pos > newCapacity) {
-        newCapacity = len + pos;
+        // need to keep all data, buf can grow more than maxPacketLength
+        // grow buf if needed
+        if (bufLength == maxPacketLength) return;
+        if (len + pos > newCapacity) {
+          newCapacity = Math.min(maxPacketLength, len + pos);
+        }
       }
     }
 
@@ -767,6 +770,10 @@ public class PacketWriter {
 
   public boolean isMarked() {
     return mark != -1;
+  }
+
+  public boolean hasFlushed() {
+    return sequence.get() != -1;
   }
 
   /**

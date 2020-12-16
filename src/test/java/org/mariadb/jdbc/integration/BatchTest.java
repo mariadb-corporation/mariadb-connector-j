@@ -23,14 +23,11 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
-import org.slf4j.LoggerFactory;
 
 public class BatchTest extends Common {
 
@@ -178,20 +175,14 @@ public class BatchTest extends Common {
 
   @Test
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
-    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-    ch.qos.logback.classic.Logger logger = loggerContext.getLogger("org.mariadb.jdbc");
-    Level initialLvl = logger.getLevel();
-    logger.setLevel(Level.TRACE);
-    try {
-      bulkPacketSplit(2, getMaxAllowedPacket() - 40);
-    } finally {
-      logger.setLevel(initialLvl);
-    }
+    int maxAllowedPacket = getMaxAllowedPacket();
+    System.out.println("maxAllowedPacket:" + maxAllowedPacket);
+    bulkPacketSplit(2,  maxAllowedPacket - 40);
   }
 
   @Test
   public void bulkPacketSplitMultiplePacket() throws SQLException {
-    bulkPacketSplit(getMaxAllowedPacket() / 800, 1000);
+    bulkPacketSplit(4, getMaxAllowedPacket() / 3);
   }
 
   @Test

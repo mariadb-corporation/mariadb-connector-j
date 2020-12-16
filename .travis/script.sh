@@ -76,10 +76,6 @@ if [ -z "$SKYSQL" ] && [ -z "$SKYSQL_HA" ]; then
     echo "Running tests for JDK version: $TRAVIS_JDK_VERSION"
     mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}
 
-    if ![ $? -eq 0 ]
-    then
-      docker-compose -f ${COMPOSE_FILE} exec ${DB} tail -n 1000 /var/log/syslog
-    fi
   fi
 else
   if [ -n "$SKYSQL" ]; then

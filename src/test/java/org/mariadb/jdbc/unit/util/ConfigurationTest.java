@@ -583,9 +583,8 @@ public class ConfigurationTest extends Common {
             .serverRsaPublicKeyFile("RSAPath")
             .allowPublicKeyRetrieval(true)
             .build();
-    System.out.println(conf.toString());
     assertEquals(
-        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&socketFactory=someSocketFactory&pipe=pipeName&localSocket=localSocket&localSocketAddress=localSocketAddress&credentialType=ENV&enabledSslCipherSuites=myCipher,cipher2&sessionVariables=blabla&tinyInt1isBit=false&yearIsDateType=false&timezone=UTC&connectionAttributes=bla=bla&useBulkStmts=false&autocommit=false&servicePrincipalName=SPN&tlsSocketType=TLStype&galeraAllowedState=A,B&enabledSslProtocolSuites=TLSv1.2&pinGlobalTxToPhysicalConnection=false&poolName=myPool&useReadAheadInput=false&cachePrepStmts=false&serverSslCert=mycertPath&serverRsaPublicKeyFile=RSAPath",
+        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&pinGlobalTxToPhysicalConnection=false&socketFactory=someSocketFactory&pipe=pipeName&localSocket=localSocket&localSocketAddress=localSocketAddress&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=REQUIRED&serverSslCert=mycertPath&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&useBulkStmts=false&cachePrepStmts=false&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&tinyInt1isBit=false&yearIsDateType=false&galeraAllowedState=A,B&poolName=myPool&serverRsaPublicKeyFile=RSAPath",
         conf.toString());
   }
 }
