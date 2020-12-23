@@ -137,7 +137,7 @@ public class CmdInformationSingle implements CmdInformation {
   }
 
   private boolean isDuplicateKeyUpdate(String sql) {
-    return sql.matches("(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
+    return sql.matches("(?s)(?i).*ON\\s+DUPLICATE\\s+KEY\\s+UPDATE.*");
   }
 
   @Override
