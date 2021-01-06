@@ -606,8 +606,11 @@ public class StoredProcedureTest extends BaseTest {
       } catch (SQLException sqlException) {
         assertTrue(
             sqlException
-                .getMessage()
-                .startsWith("Access to metaData informations not granted for current user"));
+                    .getMessage()
+                    .startsWith("Access to metaData informations not granted for current user")
+                || sqlException
+                    .getMessage()
+                    .startsWith("Access to metaData information not granted for current user"));
       }
       callableStatement.setString(1, "1");
       callableStatement.execute();
@@ -617,8 +620,11 @@ public class StoredProcedureTest extends BaseTest {
       } catch (SQLException sqlException) {
         assertTrue(
             sqlException
-                .getMessage()
-                .startsWith("Access to metaData informations not granted for current user"));
+                    .getMessage()
+                    .startsWith("Access to metaData informations not granted for current user")
+                || sqlException
+                    .getMessage()
+                    .startsWith("Access to metaData information not granted for current user"));
       }
       assertEquals(2, callableStatement.getInt(2));
 
