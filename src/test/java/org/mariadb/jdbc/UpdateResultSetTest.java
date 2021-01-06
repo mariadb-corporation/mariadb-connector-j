@@ -392,18 +392,19 @@ public class UpdateResultSetTest extends BaseTest {
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
       preparedStatement.setFetchSize(2);
-      ResultSet rs = preparedStatement.executeQuery();
+      try (ResultSet rs = preparedStatement.executeQuery()) {
 
-      rs.moveToInsertRow();
-      rs.updateInt(1, -1);
-      rs.updateString(2, "0-1");
-      rs.updateString(3, "0-2");
-      rs.insertRow();
+        rs.moveToInsertRow();
+        rs.updateInt(1, -1);
+        rs.updateString(2, "0-1");
+        rs.updateString(3, "0-2");
+        rs.insertRow();
 
-      rs.next();
-      rs.next();
-      rs.updateString(2, utf8escapeQuote);
-      rs.updateRow();
+        rs.next();
+        rs.next();
+        rs.updateString(2, utf8escapeQuote);
+        rs.updateRow();
+      }
     }
 
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWhenFetch");
@@ -442,41 +443,42 @@ public class UpdateResultSetTest extends BaseTest {
             "SELECT t1, t2, id FROM PrimaryGenerated",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertFalse(rs.next());
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        assertFalse(rs.next());
 
-      rs.moveToInsertRow();
-      rs.updateString(1, "1-1");
-      rs.updateString(2, "1-2");
-      rs.insertRow();
-
-      rs.moveToInsertRow();
-      rs.updateString(1, "2-1");
-      rs.insertRow();
-
-      rs.moveToInsertRow();
-      rs.updateString(2, "3-2");
-      try {
+        rs.moveToInsertRow();
+        rs.updateString(1, "1-1");
+        rs.updateString(2, "1-2");
         rs.insertRow();
-        fail("must not occur since t1 cannot be null");
-      } catch (SQLException sqle) {
-        assertTrue(
-            sqle.getMessage(),
-            sqle.getMessage().contains("Field 't1' doesn't have a default value")
-                || sqle.getMessage().contains("Column 't1' cannot be null"));
+
+        rs.moveToInsertRow();
+        rs.updateString(1, "2-1");
+        rs.insertRow();
+
+        rs.moveToInsertRow();
+        rs.updateString(2, "3-2");
+        try {
+          rs.insertRow();
+          fail("must not occur since t1 cannot be null");
+        } catch (SQLException sqle) {
+          assertTrue(
+              sqle.getMessage(),
+              sqle.getMessage().contains("Field 't1' doesn't have a default value")
+                  || sqle.getMessage().contains("Column 't1' cannot be null"));
+        }
+
+        rs.absolute(1);
+        assertEquals("1-1", rs.getString(1));
+        assertEquals("1-2", rs.getString(2));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(3));
+
+        assertTrue(rs.next());
+        assertEquals("2-1", rs.getString(1));
+        assertEquals("default-value", rs.getString(2));
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(3));
+
+        assertFalse(rs.next());
       }
-
-      rs.absolute(1);
-      assertEquals("1-1", rs.getString(1));
-      assertEquals("1-2", rs.getString(2));
-      assertEquals(autoInc[0] + autoInc[1], rs.getInt(3));
-
-      assertTrue(rs.next());
-      assertEquals("2-1", rs.getString(1));
-      assertEquals("default-value", rs.getString(2));
-      assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(3));
-
-      assertFalse(rs.next());
     }
 
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
@@ -501,25 +503,26 @@ public class UpdateResultSetTest extends BaseTest {
             "SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertFalse(rs.next());
-      rs.moveToInsertRow();
-      rs.insertRow();
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        assertFalse(rs.next());
+        rs.moveToInsertRow();
+        rs.insertRow();
 
-      rs.moveToInsertRow();
-      rs.insertRow();
-      rs.beforeFirst();
+        rs.moveToInsertRow();
+        rs.insertRow();
+        rs.beforeFirst();
 
-      assertTrue(rs.next());
-      assertEquals(autoInc[1] + autoInc[0], rs.getInt(1));
-      assertEquals("default-value1", rs.getString(2));
-      assertNotNull(rs.getDate(3));
+        assertTrue(rs.next());
+        assertEquals(autoInc[1] + autoInc[0], rs.getInt(1));
+        assertEquals("default-value1", rs.getString(2));
+        assertNotNull(rs.getDate(3));
 
-      assertTrue(rs.next());
-      assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
-      assertEquals("default-value1", rs.getString(2));
-      assertNotNull(rs.getDate(3));
-      assertFalse(rs.next());
+        assertTrue(rs.next());
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
+        assertEquals("default-value1", rs.getString(2));
+        assertNotNull(rs.getDate(3));
+        assertFalse(rs.next());
+      }
     }
 
     Statement stmt = sharedConnection.createStatement();
@@ -546,25 +549,26 @@ public class UpdateResultSetTest extends BaseTest {
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
             "SELECT * FROM testDelete", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      try {
-        rs.deleteRow();
-        fail();
-      } catch (SQLException sqle) {
-        assertTrue(
-            sqle.getMessage(),
-            sqle.getMessage().contains("Current position is before the first row"));
-      }
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        try {
+          rs.deleteRow();
+          fail();
+        } catch (SQLException sqle) {
+          assertTrue(
+              sqle.getMessage(),
+              sqle.getMessage().contains("Current position is before the first row"));
+        }
 
-      assertTrue(rs.next());
-      assertTrue(rs.next());
-      assertEquals(2, rs.getInt(1));
-      rs.deleteRow();
-      assertEquals(1, rs.getInt(1));
-      assertEquals(-1, rs.getInt(2));
-      assertTrue(rs.next());
-      assertEquals(3, rs.getInt(1));
-      assertEquals(-3, rs.getInt(2));
+        assertTrue(rs.next());
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        rs.deleteRow();
+        assertEquals(1, rs.getInt(1));
+        assertEquals(-1, rs.getInt(2));
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertEquals(-3, rs.getInt(2));
+      }
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM testDelete");
@@ -598,18 +602,18 @@ public class UpdateResultSetTest extends BaseTest {
             "SELECT * FROM testUpdateChangingMultiplePrimaryKey",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        assertTrue(rs.next());
+        assertTrue(rs.next());
+        rs.updateInt(1, 4);
+        rs.updateInt(2, -4);
+        rs.updateString(3, "4");
+        rs.updateRow();
 
-      assertTrue(rs.next());
-      assertTrue(rs.next());
-      rs.updateInt(1, 4);
-      rs.updateInt(2, -4);
-      rs.updateString(3, "4");
-      rs.updateRow();
-
-      assertEquals(4, rs.getInt(1));
-      assertEquals(-4, rs.getInt(2));
-      assertEquals("4", rs.getString(3));
+        assertEquals(4, rs.getInt(1));
+        assertEquals(-4, rs.getInt(2));
+        assertEquals("4", rs.getString(3));
+      }
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdateChangingMultiplePrimaryKey");
@@ -648,14 +652,15 @@ public class UpdateResultSetTest extends BaseTest {
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement(
             "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
-      InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        assertTrue(rs.next());
+        InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
 
-      rs.updateBlob(2, updatedStream);
-      rs.updateRow();
+        rs.updateBlob(2, updatedStream);
+        rs.updateRow();
 
-      checkResult(rs, updatedBlob);
+        checkResult(rs, updatedBlob);
+      }
     }
 
     try (PreparedStatement preparedStatement =
