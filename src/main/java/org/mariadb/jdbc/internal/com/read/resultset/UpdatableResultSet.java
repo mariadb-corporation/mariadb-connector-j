@@ -1470,7 +1470,7 @@ public class UpdatableResultSet extends SelectResultSet {
   }
 
   public void close() throws SQLException {
-    refreshPreparedStatement.close();
+    if (refreshPreparedStatement != null) refreshPreparedStatement.close();
     super.close();
   }
 }
