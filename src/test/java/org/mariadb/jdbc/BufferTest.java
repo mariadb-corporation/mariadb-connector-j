@@ -264,12 +264,14 @@ public class BufferTest extends BaseTest {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
       stmt.execute("TRUNCATE buffer_test");
+      stmt.execute("START TRANSACTION");
       try (PreparedStatement preparedStatement =
           connection.prepareStatement("INSERT INTO buffer_test VALUES (?)")) {
         preparedStatement.setString(1, new String(arr));
         preparedStatement.execute();
       }
-      checkResult(arr);
+      checkResult(arr, connection);
+      connection.rollback();
     }
   }
 
@@ -284,13 +286,15 @@ public class BufferTest extends BaseTest {
     try (Connection connection = setConnection("&useCompression=" + compression)) {
       Statement stmt = connection.createStatement();
       stmt.execute("TRUNCATE buffer_test");
+      stmt.execute("START TRANSACTION");
       stmt.execute("INSERT INTO buffer_test VALUES ('" + new String(arr) + "')");
-      checkResult(arr);
+      checkResult(arr, connection);
+      connection.rollback();
     }
   }
 
-  private void checkResult(char[] arr) throws SQLException {
-    Statement stmt = sharedConnection.createStatement();
+  private void checkResult(char[] arr, Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT * FROM buffer_test");
     if (rs.next()) {
       String resString = rs.getString(1);

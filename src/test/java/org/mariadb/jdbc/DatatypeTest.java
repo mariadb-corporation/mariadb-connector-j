@@ -708,7 +708,7 @@ public class DatatypeTest extends BaseTest {
 
     try (Connection connection = setConnection()) {
       Statement stmt = connection.createStatement();
-
+      stmt.execute("START TRANSACTION");
       try (PreparedStatement ps =
           connection.prepareStatement("insert into bintest3 (bin1) values (?)")) {
         ps.setBinaryStream(1, is);
@@ -722,6 +722,7 @@ public class DatatypeTest extends BaseTest {
       for (int i = 0; i < 1000000; i++) {
         assertEquals(buf[i], buf2[i]);
       }
+      connection.rollback();
     }
   }
 
