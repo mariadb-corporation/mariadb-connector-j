@@ -319,7 +319,11 @@ public class ConnectionTest extends BaseTest {
    */
   @Test
   public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
-    Assume.assumeFalse(sharedIsAurora());
+    Assume.assumeTrue(
+        !sharedIsAurora()
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("MAXSCALE_TEST_DISABLE") == null);
     try (Connection connection = setConnection()) {
       try (Statement statement = connection.createStatement()) {
         statement.execute("set session wait_timeout=1");

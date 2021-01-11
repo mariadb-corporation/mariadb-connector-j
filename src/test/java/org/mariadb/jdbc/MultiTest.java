@@ -467,9 +467,12 @@ public class MultiTest extends BaseTest {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
     props.setProperty("allowMultiQueries", "true");
+
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      verifyInsertCount(tmpConnection, 0);
       Statement statement = tmpConnection.createStatement();
+      statement.execute("START TRANSACTION");
+
+      verifyInsertCount(tmpConnection, 0);
       for (int i = 0; i < totalInsertCommands; i++) {
         statement.addBatch(
             "INSERT INTO " + tableName + " VALUES (" + i + ", 'testValue" + i + "')");
@@ -483,6 +486,7 @@ public class MultiTest extends BaseTest {
       }
       assertEquals(totalInsertCommands, totalUpdates);
       verifyInsertCount(tmpConnection, totalInsertCommands);
+      tmpConnection.rollback();
     }
   }
 
@@ -541,6 +545,8 @@ public class MultiTest extends BaseTest {
     props.setProperty("allowMultiQueries", "true");
 
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement stmt = tmpConnection.createStatement();
+      stmt.execute("START TRANSACTION");
       final int currentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
       PreparedStatement sqlInsert =
@@ -601,6 +607,7 @@ public class MultiTest extends BaseTest {
           fail(bue.getMessage());
         }
       }
+      tmpConnection.rollback();
     }
   }
 
@@ -631,21 +638,22 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      Statement sqlInsert = tmpConnection.createStatement();
+      Statement stmt = tmpConnection.createStatement();
+      stmt.execute("START TRANSACTION");
+
       verifyInsertCount(tmpConnection, 0);
 
       for (int i = 0; i < 100; i++) {
-        sqlInsert.addBatch(
-            "insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
+        stmt.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "');");
       }
-      sqlInsert.executeBatch();
+      stmt.executeBatch();
       verifyInsertCount(tmpConnection, 100);
       for (int i = 0; i < 100; i++) {
-        sqlInsert.addBatch(
-            "insert into MultiTestprepsemi (text) values ('This is a test" + i + "')");
+        stmt.addBatch("insert into MultiTestprepsemi (text) values ('This is a test" + i + "')");
       }
-      sqlInsert.executeBatch();
+      stmt.executeBatch();
       verifyInsertCount(tmpConnection, 200);
+      tmpConnection.rollback();
     }
   }
 
@@ -661,6 +669,9 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement stmt = tmpConnection.createStatement();
+      stmt.execute("START TRANSACTION");
+
       tmpConnection.setClientInfo(props);
       verifyUpdateCount(tmpConnection, 0);
       int cycles = 1000;
@@ -681,6 +692,7 @@ public class MultiTest extends BaseTest {
       }
 
       verifyUpdateCount(tmpConnection, cycles); // 1000 update commande launched
+      tmpConnection.rollback();
     }
   }
 
@@ -696,6 +708,8 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement stmt = tmpConnection.createStatement();
+      stmt.execute("START TRANSACTION");
       tmpConnection.setClientInfo(props);
       verifyUpdateCount(tmpConnection, 0);
       tmpConnection.createStatement().execute("insert into MultiTestt8 values(1,'a'),(2,'a')");
@@ -717,6 +731,7 @@ public class MultiTest extends BaseTest {
       preparedStatement.addBatch();
       updateCounts = preparedStatement.executeBatch();
       assertEquals(1, updateCounts.length);
+      tmpConnection.rollback();
     }
   }
 
@@ -726,8 +741,10 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
-      verifyInsertCount(tmpConnection, 0);
       Statement statement = tmpConnection.createStatement();
+      statement.execute("START TRANSACTION");
+      verifyInsertCount(tmpConnection, 0);
+
       for (int i = 0; i < 100; i++) {
         int newId = i % 20; // to create duplicate id's
         String roleTxt = "VAMPIRE" + newId;
@@ -746,6 +763,7 @@ public class MultiTest extends BaseTest {
       }
       verifyInsertCount(tmpConnection, 100);
       verifyUpdateCount(tmpConnection, 0);
+      tmpConnection.rollback();
     }
   }
 
@@ -756,6 +774,9 @@ public class MultiTest extends BaseTest {
     props.setProperty("allowMultiQueries", "true");
     props.setProperty("useBulkStmts", "false");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement statement = tmpConnection.createStatement();
+      statement.execute("START TRANSACTION");
+
       PreparedStatement sqlInsert =
           tmpConnection.prepareStatement("INSERT IGNORE INTO MultiTestt4 (id,test) VALUES (?,?)");
       sqlInsert.setInt(1, 1);
@@ -796,6 +817,7 @@ public class MultiTest extends BaseTest {
       assertEquals(1, updateCounts[0]);
       assertEquals(0, updateCounts[1]);
       assertEquals(2, updateCounts[2]);
+      tmpConnection.rollback();
     }
   }
 
@@ -809,6 +831,9 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement statement = tmpConnection.createStatement();
+      statement.execute("START TRANSACTION");
+
       PreparedStatement insertStmt =
           tmpConnection.prepareStatement(
               "INSERT INTO MultiTesttest_table (col1, col2,"
@@ -820,6 +845,7 @@ public class MultiTest extends BaseTest {
       insertStmt.setString(2, "b2");
       insertStmt.addBatch();
       insertStmt.executeBatch();
+      tmpConnection.rollback();
     }
   }
 
@@ -829,6 +855,9 @@ public class MultiTest extends BaseTest {
     props.setProperty("rewriteBatchedStatements", "true");
     props.setProperty("allowMultiQueries", "true");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement statement = tmpConnection.createStatement();
+      statement.execute("START TRANSACTION");
+
       PreparedStatement insertStmt =
           tmpConnection.prepareStatement(
               "INSERT INTO MultiTesttest_table2 "
@@ -840,6 +869,7 @@ public class MultiTest extends BaseTest {
       insertStmt.setString(2, "b2");
       insertStmt.addBatch();
       insertStmt.executeBatch();
+      tmpConnection.rollback();
     }
   }
 
@@ -1088,6 +1118,9 @@ public class MultiTest extends BaseTest {
     props.setProperty("useServerPrepStmts", "false");
     sharedConnection.createStatement().execute("TRUNCATE batchUpdateException");
     try (Connection tmpConnection = openNewConnection(connUri, props)) {
+      Statement stmt = tmpConnection.createStatement();
+      stmt.execute("START TRANSACTION");
+
       verifyInsertCount(tmpConnection, 0);
 
       PreparedStatement ps =
@@ -1125,6 +1158,7 @@ public class MultiTest extends BaseTest {
         }
         assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
       }
+      tmpConnection.rollback();
     }
   }
 
@@ -1365,6 +1399,7 @@ public class MultiTest extends BaseTest {
   public void testInsertSelectBulk() throws SQLException {
 
     try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("START TRANSACTION");
       stmt.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
 
       try (PreparedStatement preparedStatement =
@@ -1392,6 +1427,7 @@ public class MultiTest extends BaseTest {
       assertEquals(5, rs.getInt(1));
       assertEquals(3, rs.getInt(2));
     }
+    sharedConnection.rollback();
   }
 
   @Test
@@ -1404,9 +1440,11 @@ public class MultiTest extends BaseTest {
     try (Connection con = setConnection(useAffectedRows ? "&useAffectedRows" : "")) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE testAffectedRow");
+      stmt.execute("START TRANSACTION");
       stmt.execute("INSERT INTO testAffectedRow values (1), (1), (2), (3)");
       int rowCount = stmt.executeUpdate("UPDATE testAffectedRow set id = 1");
       assertEquals(useAffectedRows ? 2 : 4, rowCount);
+      con.rollback();
     }
   }
 
@@ -1415,6 +1453,7 @@ public class MultiTest extends BaseTest {
     try (Connection con = openNewConnection(connUri, new Properties())) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("START TRANSACTION");
       }
       try (PreparedStatement pstmt =
           con.prepareStatement(
@@ -1440,6 +1479,7 @@ public class MultiTest extends BaseTest {
           assertFalse(rs.next());
         }
       }
+      con.rollback();
     }
   }
 
@@ -1450,6 +1490,7 @@ public class MultiTest extends BaseTest {
     try (Connection con = openNewConnection(connUri, properties)) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("START TRANSACTION");
       }
       try (PreparedStatement pstmt =
           con.prepareStatement(
@@ -1469,6 +1510,7 @@ public class MultiTest extends BaseTest {
           assertFalse(rs.next());
         }
       }
+      con.rollback();
     }
   }
 
@@ -1477,6 +1519,7 @@ public class MultiTest extends BaseTest {
     try (Connection con = openNewConnection(connUri, new Properties())) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("START TRANSACTION");
       }
       try (PreparedStatement pstmt =
           con.prepareStatement(
@@ -1494,6 +1537,7 @@ public class MultiTest extends BaseTest {
           assertFalse(rs.next());
         }
       }
+      con.rollback();
     }
   }
 
@@ -1502,6 +1546,7 @@ public class MultiTest extends BaseTest {
     try (Connection con = openNewConnection(connUri, new Properties())) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("START TRANSACTION");
         stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
       }
       try (PreparedStatement pstmt =
@@ -1518,6 +1563,7 @@ public class MultiTest extends BaseTest {
           assertFalse(rs.next());
         }
       }
+      con.rollback();
     }
   }
 
@@ -1526,6 +1572,7 @@ public class MultiTest extends BaseTest {
     try (Connection con = openNewConnection(connUri, new Properties())) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("truncate table testMultiGeneratedKey");
+        stmt.execute("START TRANSACTION");
         stmt.execute("INSERT INTO testMultiGeneratedKey(id, text) VALUES (1, 'bouh')");
       }
       try (PreparedStatement pstmt =
@@ -1544,6 +1591,7 @@ public class MultiTest extends BaseTest {
           assertFalse(rs.next());
         }
       }
+      con.rollback();
     }
   }
 
@@ -1561,6 +1609,7 @@ public class MultiTest extends BaseTest {
         setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE testAffectedRowBatch");
+      stmt.execute("START TRANSACTION");
       try (PreparedStatement preparedStatement =
           con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
         preparedStatement.setInt(1, 1);
@@ -1616,6 +1665,7 @@ public class MultiTest extends BaseTest {
           assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
         }
       }
+      con.rollback();
     }
   }
 
@@ -1624,6 +1674,7 @@ public class MultiTest extends BaseTest {
         setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE testAffectedRowBatch");
+      stmt.execute("START TRANSACTION");
       try (PreparedStatement preparedStatement =
           con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
         preparedStatement.setInt(1, 1);
@@ -1679,6 +1730,7 @@ public class MultiTest extends BaseTest {
           assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
         }
       }
+      con.rollback();
     }
   }
 }
