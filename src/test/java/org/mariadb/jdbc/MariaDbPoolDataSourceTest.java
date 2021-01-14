@@ -475,6 +475,8 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureClosed() throws Throwable {
+    Assume.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null && System.getenv("SKYSQL_HA") == null);
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
 
