@@ -14,7 +14,6 @@ before_install:
   - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
 
 install:
-  - wget -qO- 'https://github.com/tianon/pgp-happy-eyeballs/raw/master/hack-my-builds.sh' | bash
   - mkdir tmp
   - .travis/gen-ssl.sh mariadb.example.com tmp
   - export PROJ_PATH=`pwd`
