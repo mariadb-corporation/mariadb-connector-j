@@ -30,12 +30,12 @@ env:
 
 matrix:
   allow_failures:
-    - env: DB=build PACKET=8M
+    - env: DB=build:10.6 PACKET=8M
       jdk: openjdk11
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
       jdk: openjdk11
   include:
-    - env: DB=build PACKET=8M
+    - env: DB=build:10.6 PACKET=8M
       jdk: openjdk11
     - env: SKYSQL=true PACKET=8M
       jdk: openjdk11
@@ -85,8 +85,8 @@ matrix:
       jdk: openjdk11
 
 script:
-  - if [ "$DB" = "build" ] ; then .travis/build/build.sh; fi
-  - if [ "$DB" = "build" ] ; then docker build -t build:latest --label build .travis/build/; fi
+  - if [[ "$DB" == build* ]] ; then .travis/build/build.sh; fi
+  - if [[ "$DB" == build* ]] ; then docker build -t build:10.6 --label build .travis/build/; fi
   - .travis/script.sh
 
 after_success:
