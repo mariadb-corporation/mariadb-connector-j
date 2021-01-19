@@ -699,9 +699,9 @@ public class ServerPrepareStatementTest extends BaseTest {
       ps.addBatch();
       ps.setObject(1, 'd', Types.VARCHAR);
       ps.addBatch();
-      ps.setObject(1, new Character('e'), Types.CHAR);
+      ps.setObject(1, Character.valueOf('e'), Types.CHAR);
       ps.addBatch();
-      ps.setObject(1, new Character('f'), Types.VARCHAR);
+      ps.setObject(1, Character.valueOf('f'), Types.VARCHAR);
       ps.addBatch();
       ps.setObject(1, '1', Types.INTEGER);
       ps.addBatch();
