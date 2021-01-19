@@ -1457,7 +1457,7 @@ public class MultiTest extends BaseTest {
       }
       try (PreparedStatement pstmt =
           con.prepareStatement(
-              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) "
+              "INSERT INTO testMultiGeneratedKey (id, text) \nVALUES (?, ?) "
                   + "ON DUPLICATE KEY UPDATE text = VALUES(text)",
               Statement.RETURN_GENERATED_KEYS)) {
         // Insert a row.
