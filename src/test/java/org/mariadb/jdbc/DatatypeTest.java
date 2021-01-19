@@ -60,10 +60,15 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.sql.rowset.serial.SerialException;
 
 public class DatatypeTest extends BaseTest {
 
@@ -86,6 +91,7 @@ public class DatatypeTest extends BaseTest {
       stmt.execute(
           "CREATE TABLE bigdectest(id int not null primary key auto_increment, bd decimal)");
       stmt.execute("CREATE TABLE bytetest(id int not null primary key auto_increment, a int)");
+      stmt.execute("CREATE TABLE objtest(id int not null primary key auto_increment, a blob)");
       stmt.execute("CREATE TABLE shorttest(id int not null primary key auto_increment,a int)");
       stmt.execute("CREATE TABLE doubletest(id int not null primary key auto_increment,a double)");
       stmt.execute("CREATE TABLE bittest(id int not null primary key auto_increment, b int)");
@@ -176,6 +182,7 @@ public class DatatypeTest extends BaseTest {
       stmt.execute("DROP TABLE IF EXISTS LatinTable");
       stmt.execute("DROP TABLE IF EXISTS testShortBit");
       stmt.execute("DROP TABLE IF EXISTS testTextNullValue");
+      stmt.execute("DROP TABLE IF EXISTS objtest");
     }
   }
 
@@ -1190,5 +1197,37 @@ public class DatatypeTest extends BaseTest {
     assertEquals((double) expectedValue, rs.getDouble(index), 0.01);
     assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
     assertEquals(String.valueOf(expectedValue), rs.getString(index));
+  }
+
+  /**
+   * Inner object are not serializable
+   */
+  private class NonSerializableObject  {
+    private static final long serialVersionUID = -6552319171850636836L;
+    private List<Object> objects = new ArrayList<>();
+
+    public void addObject(Object obj) {
+      objects.add(obj);
+    }
+
+    public List<Object> getObjects() {
+      return objects;
+    }
+  }
+
+  @Test
+  public void setNonSerializableObject() throws SQLException {
+    PreparedStatement ps =
+            sharedConnection.prepareStatement("insert into objtest values (?,?)");
+    ps.setObject(1, 0);
+    ps.setObject(2, new NonSerializableObject());
+    try {
+      ps.execute();
+      fail();
+    } catch (SQLSyntaxErrorException  sqle) {
+      assertTrue(sqle.getCause().getCause() instanceof SerialException);
+    }
+    // ensure connection still up
+    sharedConnection.createStatement().execute("DO 1");
   }
 }

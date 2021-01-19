@@ -55,10 +55,7 @@ package org.mariadb.jdbc.internal.protocol;
 import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -104,6 +101,8 @@ import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
+
+import javax.sql.rowset.serial.SerialException;
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
@@ -2023,11 +2022,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         mustReconnect = true;
       } else {
         return new SQLNonTransientConnectionException(
-            initialException.getMessage() + getTraces(),
-            UNDEFINED_SQLSTATE.getSqlState(),
-            initialException);
+                initialException.getMessage() + getTraces(),
+                UNDEFINED_SQLSTATE.getSqlState(),
+                initialException);
       }
-    } else {
+    } else if (initialException instanceof NotSerializableException) {
+      return new SerialException(
+              "Parameter cannot be serialized: " + initialException.getMessage());
+    } else  {
       maxSizeError = writer.exceedMaxLength();
       if (maxSizeError) {
         mustReconnect = true;
