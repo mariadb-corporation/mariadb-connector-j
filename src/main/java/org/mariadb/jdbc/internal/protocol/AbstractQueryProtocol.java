@@ -67,6 +67,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.sql.rowset.serial.SerialException;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -101,8 +102,6 @@ import org.mariadb.jdbc.internal.util.exceptions.MariaDbSqlException;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-
-import javax.sql.rowset.serial.SerialException;
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
@@ -2022,14 +2021,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         mustReconnect = true;
       } else {
         return new SQLNonTransientConnectionException(
-                initialException.getMessage() + getTraces(),
-                UNDEFINED_SQLSTATE.getSqlState(),
-                initialException);
+            initialException.getMessage() + getTraces(),
+            UNDEFINED_SQLSTATE.getSqlState(),
+            initialException);
       }
     } else if (initialException instanceof NotSerializableException) {
       return new SerialException(
-              "Parameter cannot be serialized: " + initialException.getMessage());
-    } else  {
+          "Parameter cannot be serialized: " + initialException.getMessage());
+    } else {
       maxSizeError = writer.exceedMaxLength();
       if (maxSizeError) {
         mustReconnect = true;
