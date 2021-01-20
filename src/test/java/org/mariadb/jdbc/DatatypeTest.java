@@ -62,13 +62,11 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
+import javax.sql.rowset.serial.SerialException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import javax.sql.rowset.serial.SerialException;
 
 public class DatatypeTest extends BaseTest {
 
@@ -1199,10 +1197,8 @@ public class DatatypeTest extends BaseTest {
     assertEquals(String.valueOf(expectedValue), rs.getString(index));
   }
 
-  /**
-   * Inner object are not serializable
-   */
-  private class NonSerializableObject  {
+  /** Inner object are not serializable */
+  private class NonSerializableObject {
     private static final long serialVersionUID = -6552319171850636836L;
     private List<Object> objects = new ArrayList<>();
 
@@ -1217,14 +1213,13 @@ public class DatatypeTest extends BaseTest {
 
   @Test
   public void setNonSerializableObject() throws SQLException {
-    PreparedStatement ps =
-            sharedConnection.prepareStatement("insert into objtest values (?,?)");
+    PreparedStatement ps = sharedConnection.prepareStatement("insert into objtest values (?,?)");
     ps.setObject(1, 0);
     ps.setObject(2, new NonSerializableObject());
     try {
       ps.execute();
       fail();
-    } catch (SQLSyntaxErrorException  sqle) {
+    } catch (SQLSyntaxErrorException sqle) {
       assertTrue(sqle.getCause().getCause() instanceof SerialException);
     }
     // ensure connection still up
