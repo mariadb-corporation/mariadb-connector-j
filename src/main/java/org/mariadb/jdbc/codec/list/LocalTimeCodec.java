@@ -127,7 +127,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         parts[1] = parts[1] % 24;
         if (parts[0] == -1) {
           // negative
-          long seconds = (24 * 60 * 60 - (parts[1] * 3600 + parts[2] * 60 + parts[3]));
+          long seconds = (24 * 60 * 60 - (parts[1] * 3600 + parts[2] * 60L + parts[3]));
           return LocalTime.ofNanoOfDay(seconds * 1_000_000_000 - parts[4]);
         }
         return LocalTime.of(parts[1] % 24, parts[2], parts[3], parts[4]);

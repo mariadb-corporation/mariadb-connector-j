@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientException;
 import java.util.Arrays;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
@@ -45,8 +44,7 @@ public final class Ed25519PasswordPacket implements ClientMessage {
     this.seed = seed;
   }
 
-  private static byte[] ed25519SignWithPassword(final CharSequence password, final byte[] seed)
-      throws SQLNonTransientException {
+  private static byte[] ed25519SignWithPassword(final CharSequence password, final byte[] seed) {
 
     try {
       byte[] bytePwd = password.toString().getBytes(StandardCharsets.UTF_8);

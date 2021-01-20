@@ -64,6 +64,11 @@ public class ClobCodec implements Codec<Clob> {
   public Clob decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
+    return getClob(buf, length, column);
+  }
+
+  private Clob getClob(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
+      throws SQLDataException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -83,19 +88,7 @@ public class ClobCodec implements Codec<Clob> {
   public Clob decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
-    switch (column.getType()) {
-      case STRING:
-      case VARCHAR:
-      case VARSTRING:
-        Clob clob = new MariaDbClob(buf.buf(), buf.pos(), length);
-        buf.skip(length);
-        return clob;
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Clob", column.getType()));
-    }
+    return getClob(buf, length, column);
   }
 
   @Override

@@ -211,7 +211,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     int pos = offset;
 
     // set ASCII (<= 127 chars)
-    for (; len < length && data[pos] >= 0; ) {
+    while (len < length && data[pos] >= 0) {
       len++;
       pos++;
     }
@@ -259,7 +259,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     int pos = offset;
 
     // set ASCII (<= 127 chars)
-    for (; len < length && len < truncateLen && data[pos] >= 0; ) {
+    while (len < length && len < truncateLen && data[pos] >= 0) {
       len++;
       pos++;
     }

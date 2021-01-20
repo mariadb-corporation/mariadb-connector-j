@@ -71,6 +71,8 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
     buf = new byte[BUF_SIZE];
+    end = 0;
+    pos = 0;
   }
 
   /**

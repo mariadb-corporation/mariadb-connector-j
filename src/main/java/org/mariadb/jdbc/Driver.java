@@ -44,6 +44,7 @@ public final class Driver implements java.sql.Driver {
     try {
       DriverManager.registerDriver(new Driver());
     } catch (SQLException e) {
+      // eat
     }
   }
 
@@ -115,6 +116,7 @@ public final class Driver implements java.sql.Driver {
           Driver.class.getClassLoader().getResourceAsStream("driver.properties")) {
         propDesc.load(inputStream);
       } catch (IOException io) {
+        // eat
       }
 
       List<DriverPropertyInfo> props = new ArrayList<>();
@@ -134,7 +136,7 @@ public final class Driver implements java.sql.Driver {
           }
         }
       }
-      return props.toArray(new DriverPropertyInfo[props.size()]);
+      return props.toArray(new DriverPropertyInfo[0]);
     }
     return new DriverPropertyInfo[0];
   }

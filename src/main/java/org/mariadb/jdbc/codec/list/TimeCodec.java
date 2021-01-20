@@ -77,7 +77,7 @@ public class TimeCodec implements Codec<Time> {
         int offset = c.getTimeZone().getOffset(0);
         int[] parts = LocalTimeCodec.parseTime(buf, length, column);
         long timeInMillis =
-            (parts[1] * 3_600_000 + parts[2] * 60_000 + parts[3] * 1_000 + parts[4] / 1_000_000)
+            (parts[1] * 3_600_000L + parts[2] * 60_000L + parts[3] * 1_000L + parts[4] / 1_000_000)
                     * parts[0]
                 - offset;
         return new Time(timeInMillis);
@@ -102,7 +102,7 @@ public class TimeCodec implements Codec<Time> {
       throws SQLDataException {
 
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    long dayOfMonth = 1;
+    long dayOfMonth;
     int hour = 0;
     int minutes = 0;
     int seconds = 0;
@@ -120,10 +120,16 @@ public class TimeCodec implements Codec<Time> {
           cal.clear();
           cal.setLenient(true);
           if (parts[0] == -1) {
-            cal.set(1970, 0, 1, parts[0] * parts[1], parts[0] * parts[2], parts[0] * parts[3] - 1);
+            cal.set(
+                1970,
+                Calendar.JANUARY,
+                1,
+                parts[0] * parts[1],
+                parts[0] * parts[2],
+                parts[0] * parts[3] - 1);
             t = new Time(cal.getTimeInMillis() + (1000 - parts[4]));
           } else {
-            cal.set(1970, 0, 1, parts[1], parts[2], parts[3]);
+            cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
             t = new Time(cal.getTimeInMillis() + parts[4] / 1_000_000);
           }
         }
@@ -151,7 +157,7 @@ public class TimeCodec implements Codec<Time> {
       case TIMESTAMP:
       case DATETIME:
         buf.skip(3); // year + month
-        dayOfMonth = buf.readByte();
+        buf.readByte(); // day of month
 
         if (length > 4) {
           hour = buf.readByte();
@@ -165,7 +171,7 @@ public class TimeCodec implements Codec<Time> {
 
         synchronized (cal) {
           cal.clear();
-          cal.set(1970, 0, 1, hour, minutes, seconds);
+          cal.set(1970, Calendar.JANUARY, 1, hour, minutes, seconds);
           return new Time(cal.getTimeInMillis() + microseconds / 1_000);
         }
 

@@ -335,16 +335,9 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case DATE:
       case NEWDATE:
         return DateCodec.INSTANCE;
-      case TIME:
-        return TimeCodec.INSTANCE;
-      case YEAR:
-        if (conf.yearIsDateType()) return DateCodec.INSTANCE;
-        return ShortCodec.INSTANCE;
       case OLDDECIMAL:
       case DECIMAL:
         return BigDecimalCodec.INSTANCE;
-      case BIT:
-        return BitSetCodec.INSTANCE;
       case GEOMETRY:
         return ByteArrayCodec.INSTANCE;
       case TINYBLOB:
@@ -352,9 +345,15 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case LONGBLOB:
       case BLOB:
         return BlobCodec.INSTANCE;
-      default:
-        return null;
+      case TIME:
+        return TimeCodec.INSTANCE;
+      case YEAR:
+        if (conf.yearIsDateType()) return DateCodec.INSTANCE;
+        return ShortCodec.INSTANCE;
+      case BIT:
+        return BitSetCodec.INSTANCE;
     }
+    throw new IllegalArgumentException(String.format("Unexpected datatype %s", dataType));
   }
 
   @Override

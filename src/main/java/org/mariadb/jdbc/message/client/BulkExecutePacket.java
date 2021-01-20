@@ -82,7 +82,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     while (true) {
       bulkPacketNo++;
 
-      writer.initPacket(command);
+      writer.initPacket();
       writer.writeByte(0xfa); // COM_STMT_BULK_EXECUTE
       writer.writeInt(statementId);
       writer.writeShort((short) 128); // always SEND_TYPES_TO_SERVER

@@ -312,7 +312,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     // send COM_STMT_PREPARE
     List<Completion> tmpResults = new ArrayList<>();
     SQLException error = null;
-    for (int i = 0; i < batchParameters.size(); i++) {
+    for (ParameterList batchParameter : batchParameters) {
       // prepare is in loop, because if connection fail, prepare is reset, and need to be re
       // prepared
       if (prepareResult == null) {
@@ -323,7 +323,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         }
       }
       try {
-        ExecutePacket execute = new ExecutePacket(prepareResult, batchParameters.get(i), cmd, this);
+        ExecutePacket execute = new ExecutePacket(prepareResult, batchParameter, cmd, this);
         tmpResults.addAll(con.getClient().execute(execute, this));
       } catch (SQLException e) {
         if (error == null) error = e;
@@ -551,7 +551,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-        exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false, false);
+        exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
   }
 
   /**

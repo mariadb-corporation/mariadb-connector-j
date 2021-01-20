@@ -55,6 +55,6 @@ public class SocketUtility {
     } catch (Throwable cle) {
       // jna jar's are not in classpath
     }
-    return (options, host) -> ConnectionHelper.standardSocket(options, host);
+    return ConnectionHelper::standardSocket;
   }
 }

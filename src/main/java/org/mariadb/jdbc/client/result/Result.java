@@ -64,7 +64,7 @@ public abstract class Result implements ResultSet, Completion {
   protected Statement statement;
   protected long maxRows;
   private boolean forceAlias;
-  private boolean traceEnable;
+  private final boolean traceEnable;
 
   public Result(
       org.mariadb.jdbc.Statement stmt,
@@ -224,6 +224,11 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
+  public void closeFromStmtClose() throws SQLException {
+    this.fetchRemaining();
+    this.closed = true;
+  }
+
   public void abort() throws SQLException {
     this.closed = true;
     if (closeOnCompletion) {
@@ -260,7 +265,7 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
     Boolean b = row.getValue(columnIndex, BooleanCodec.INSTANCE);
-    return (b == null) ? false : b;
+    return b != null && b;
   }
 
   @Override
@@ -303,7 +308,7 @@ public abstract class Result implements ResultSet, Completion {
   @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     BigDecimal d = row.getValue(columnIndex, BigDecimalCodec.INSTANCE);
-    if (d == null) return d;
+    if (d == null) return null;
     return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
   }
 
@@ -351,7 +356,7 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public boolean getBoolean(String columnLabel) throws SQLException {
     Boolean b = row.getValue(columnLabel, BooleanCodec.INSTANCE);
-    return (b == null) ? false : b;
+    return b != null && b;
   }
 
   @Override
@@ -394,7 +399,7 @@ public abstract class Result implements ResultSet, Completion {
   @Deprecated
   public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
     BigDecimal d = row.getValue(columnLabel, BigDecimalCodec.INSTANCE);
-    if (d == null) return d;
+    if (d == null) return null;
     return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
   }
 
@@ -456,8 +461,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public ResultSetMetaData getMetaData() {
-    return new ResultSetMetaData(
-        exceptionFactory, metadataList, context.getConf(), forceAlias, false);
+    return new ResultSetMetaData(exceptionFactory, metadataList, context.getConf(), forceAlias);
   }
 
   @Override
@@ -818,11 +822,11 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   @Override
-  public Statement getStatement() throws SQLException {
+  public Statement getStatement() {
     return statement;
   }
 
-  public void setStatement(Statement stmt) throws SQLException {
+  public void setStatement(Statement stmt) {
     statement = stmt;
   }
 
@@ -992,7 +996,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   @Override
-  public int getHoldability() throws SQLException {
+  public int getHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 

@@ -66,8 +66,8 @@ public class ClientImpl implements Client, AutoCloseable {
 
   private final Socket socket;
   private final Context context;
-  private final MutableInt sequence = new MutableInt(0);
-  private final MutableInt compressionSequence = new MutableInt(0);
+  private final MutableInt sequence = new MutableInt();
+  private final MutableInt compressionSequence = new MutableInt();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
@@ -130,7 +130,6 @@ public class ClientImpl implements Client, AutoCloseable {
                   new PrepareCache(conf.prepStmtCacheSize(), this));
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
-      this.writer.setContext(context);
 
       long clientCapabilities =
           ConnectionHelper.initializeClientCapabilities(conf, this.context.getServerCapabilities());
@@ -429,12 +428,10 @@ public class ClientImpl implements Client, AutoCloseable {
       }
 
       // prepare associated to PrepareStatement need to be uncached
-      for (int i = 0; i < results.size(); i++) {
-        if (results.get(i) instanceof PrepareResultPacket
-            && stmt instanceof ServerPreparedStatement) {
+      for (Completion result : results) {
+        if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
           try {
-            ((PrepareResultPacket) results.get(i))
-                .decrementUse(this, (ServerPreparedStatement) stmt);
+            ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
           } catch (SQLException e) {
             // eat
           }
@@ -442,8 +439,8 @@ public class ClientImpl implements Client, AutoCloseable {
       }
 
       int batchUpdateLength = 0;
-      for (int i = 0; i < messages.length; i++) {
-        batchUpdateLength += messages[i].batchUpdateLength();
+      for (ClientMessage message : messages) {
+        batchUpdateLength += message.batchUpdateLength();
       }
       throw exceptionFactory.createBatchUpdate(
           results, batchUpdateLength, responseMsg, sqlException);
@@ -537,8 +534,7 @@ public class ClientImpl implements Client, AutoCloseable {
     try {
       // replay all but last
       PrepareResultPacket prepare;
-      for (int i = 0; i < buffers.size(); i++) {
-        RedoableClientMessage querySaver = buffers.get(i);
+      for (RedoableClientMessage querySaver : buffers) {
         int responseNo;
         if (querySaver instanceof RedoableWithPrepareClientMessage) {
           // command is a prepare statement query
@@ -564,18 +560,6 @@ public class ClientImpl implements Client, AutoCloseable {
     } catch (IOException e) {
       throw exceptionFactory.create("Socket error during transaction replay", "08000", e);
     }
-  }
-
-  private void readResults(ClientMessage message, List<Completion> results) throws SQLException {
-    readResults(
-        null,
-        message,
-        results,
-        0,
-        0L,
-        ResultSet.CONCUR_READ_ONLY,
-        ResultSet.TYPE_FORWARD_ONLY,
-        false);
   }
 
   public void readStreamingResults(

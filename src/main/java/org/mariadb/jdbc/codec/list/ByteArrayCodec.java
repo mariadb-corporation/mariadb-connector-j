@@ -65,6 +65,11 @@ public class ByteArrayCodec implements Codec<byte[]> {
   public byte[] decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
+    return getBytes(buf, length, column);
+  }
+
+  private byte[] getBytes(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
+      throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
@@ -88,23 +93,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
   public byte[] decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
-    switch (column.getType()) {
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-      case STRING:
-      case VARSTRING:
-      case VARCHAR:
-        byte[] arr = new byte[length];
-        buf.readBytes(arr);
-        return arr;
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as byte[]", column.getType()));
-    }
+    return getBytes(buf, length, column);
   }
 
   public boolean canEncode(Object value) {

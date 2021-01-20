@@ -142,23 +142,19 @@ public final class HandshakeResponse implements ClientMessage {
   public int encode(PacketWriter writer, Context context) throws IOException {
 
     final byte[] authData;
-    switch (authenticationPluginType) {
-      case "mysql_clear_password":
-        if ((clientCapabilities & Capabilities.SSL) == 0) {
-          throw new IllegalStateException(
-              "Server cannot required to send password in clear if SSL is not enabled.");
-        }
-        if (password == null) {
-          authData = new byte[0];
-        } else {
-          authData = password.toString().getBytes(StandardCharsets.UTF_8);
-        }
-        break;
-
-      default:
-        authenticationPluginType = "mysql_native_password";
-        authData = NativePasswordPacket.encrypt(password, seed);
-        break;
+    if ("mysql_clear_password".equals(authenticationPluginType)) {
+      if ((clientCapabilities & Capabilities.SSL) == 0) {
+        throw new IllegalStateException(
+            "Server cannot required to send password in clear if SSL is not enabled.");
+      }
+      if (password == null) {
+        authData = new byte[0];
+      } else {
+        authData = password.toString().getBytes(StandardCharsets.UTF_8);
+      }
+    } else {
+      authenticationPluginType = "mysql_native_password";
+      authData = NativePasswordPacket.encrypt(password, seed);
     }
 
     writer.writeInt((int) clientCapabilities);

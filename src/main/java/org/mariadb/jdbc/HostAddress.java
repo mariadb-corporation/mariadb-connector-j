@@ -89,7 +89,6 @@ public class HostAddress {
   private static HostAddress parseSimpleHostAddress(String str, HaMode haMode, boolean first) {
     String host;
     int port = 3306;
-    Boolean primary = null;
 
     if (str.charAt(0) == '[') {
       /* IPv6 addresses in URLs are enclosed in square brackets */
@@ -108,17 +107,7 @@ public class HostAddress {
       host = str;
     }
 
-    if (primary == null) {
-      switch (haMode) {
-        case REPLICATION:
-          primary = first;
-          break;
-
-        default:
-          primary = true;
-          break;
-      }
-    }
+    boolean primary = haMode != HaMode.REPLICATION || first;
 
     return new HostAddress(host, port, primary);
   }
@@ -168,14 +157,10 @@ public class HostAddress {
     }
 
     if (primary == null) {
-      switch (haMode) {
-        case REPLICATION:
-          primary = first;
-          break;
-
-        default:
-          primary = true;
-          break;
+      if (haMode == HaMode.REPLICATION) {
+        primary = first;
+      } else {
+        primary = true;
       }
     }
 

@@ -33,7 +33,7 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 public class StreamingResult extends Result {
 
   private final ReentrantLock lock;
-  private int dataFetchTime = 0;
+  private int dataFetchTime;
   private int fetchSize;
 
   public StreamingResult(
@@ -48,7 +48,7 @@ public class StreamingResult extends Result {
       int resultSetType,
       boolean closeOnCompletion,
       boolean traceEnable)
-      throws IOException, SQLException {
+      throws SQLException {
 
     super(
         stmt,
@@ -149,8 +149,6 @@ public class StreamingResult extends Result {
             row.setRow(data[rowPointer]);
             return true;
           }
-          row.setRow(null);
-          return false;
         } else {
           // cursor can move backward, so driver must keep the results.
           // results have been added to current resultSet
@@ -159,9 +157,9 @@ public class StreamingResult extends Result {
             row.setRow(data[rowPointer]);
             return true;
           }
-          row.setRow(null);
-          return false;
         }
+        row.setRow(null);
+        return false;
       }
 
       // all data are reads and pointer is after last
@@ -202,9 +200,7 @@ public class StreamingResult extends Result {
     } else {
       // when streaming and not having read all results,
       // must read next packet to know if next packet is an EOF packet or some additional data
-      if (!loaded) {
-        addStreamingValue();
-      }
+      addStreamingValue();
 
       if (loaded) {
         // now driver is sure when data ends.
@@ -298,7 +294,6 @@ public class StreamingResult extends Result {
 
       rowPointer = dataSize; // go to afterLast() position
       row.setRow(null);
-      return false;
 
     } else {
 
@@ -310,8 +305,8 @@ public class StreamingResult extends Result {
       }
       row.setRow(null);
       rowPointer = -1; // go to before first position
-      return false;
     }
+    return false;
   }
 
   @Override

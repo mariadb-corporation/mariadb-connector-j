@@ -172,9 +172,6 @@ public class CompressInputStream extends InputStream {
     } while (remaining > 0);
 
     if (compressed) {
-      if (packetLength < 0) {
-        System.out.println("dd");
-      }
       buf = new byte[packetLength];
       Inflater inflater = new Inflater();
       inflater.setInput(intermediaryBuf);

@@ -56,49 +56,6 @@ public abstract class RowDecoder {
     }
   }
 
-  protected IllegalArgumentException noDecoderException(
-      ColumnDefinitionPacket column, Class<?> type) {
-
-    if (type.isArray()) {
-      if (EnumSet.of(
-              DataType.TINYINT,
-              DataType.SMALLINT,
-              DataType.MEDIUMINT,
-              DataType.INTEGER,
-              DataType.BIGINT)
-          .contains(column.getType())) {
-        throw new IllegalArgumentException(
-            String.format(
-                "No decoder for type %s[] and column type %s(%s)",
-                type.getComponentType().getName(),
-                column.getType().toString(),
-                column.isSigned() ? "signed" : "unsigned"));
-      }
-      throw new IllegalArgumentException(
-          String.format(
-              "No decoder for type %s[] and column type %s",
-              type.getComponentType().getName(), column.getType().toString()));
-    }
-    if (EnumSet.of(
-            DataType.TINYINT,
-            DataType.SMALLINT,
-            DataType.MEDIUMINT,
-            DataType.INTEGER,
-            DataType.BIGINT)
-        .contains(column.getType())) {
-      throw new IllegalArgumentException(
-          String.format(
-              "No decoder for type %s and column type %s(%s)",
-              type.getName(),
-              column.getType().toString(),
-              column.isSigned() ? "signed" : "unsigned"));
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "No decoder for type %s and column type %s",
-            type.getName(), column.getType().toString()));
-  }
-
   public abstract void setPosition(int position);
 
   public abstract <T> T decode(Codec<T> codec, Calendar calendar) throws SQLException;

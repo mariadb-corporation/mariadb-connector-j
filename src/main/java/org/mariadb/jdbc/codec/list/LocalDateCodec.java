@@ -123,9 +123,9 @@ public class LocalDateCodec implements Codec<LocalDate> {
         }
 
         try {
-          int year = Integer.valueOf(stDatePart[0]);
-          int month = Integer.valueOf(stDatePart[1]);
-          int dayOfMonth = Integer.valueOf(stDatePart[2]);
+          int year = Integer.parseInt(stDatePart[0]);
+          int month = Integer.parseInt(stDatePart[1]);
+          int dayOfMonth = Integer.parseInt(stDatePart[2]);
           return LocalDate.of(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
@@ -173,9 +173,9 @@ public class LocalDateCodec implements Codec<LocalDate> {
         }
 
         try {
-          year = Integer.valueOf(stDatePart[0]);
-          month = Integer.valueOf(stDatePart[1]);
-          dayOfMonth = Integer.valueOf(stDatePart[2]);
+          year = Integer.parseInt(stDatePart[0]);
+          month = Integer.parseInt(stDatePart[1]);
+          dayOfMonth = Integer.parseInt(stDatePart[2]);
           return LocalDate.of(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(

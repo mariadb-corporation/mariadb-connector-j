@@ -70,86 +70,86 @@ public class Configuration implements Cloneable {
   // standard options
   private String user;
   private String password;
-  private String database;
-  private List<HostAddress> addresses;
-  private HaMode haMode;
+  private final String database;
+  private final List<HostAddress> addresses;
+  private final HaMode haMode;
 
   private String initialUrl;
-  private Properties nonMappedOptions;
+  private final Properties nonMappedOptions;
 
   // various
-  private String timezone;
-  private boolean autocommit;
-  private int defaultFetchSize;
-  private int maxQuerySizeToLog;
-  private boolean pinGlobalTxToPhysicalConnection;
+  private final String timezone;
+  private final boolean autocommit;
+  private final int defaultFetchSize;
+  private final int maxQuerySizeToLog;
+  private final boolean pinGlobalTxToPhysicalConnection;
 
   // socket
-  private String socketFactory;
+  private final String socketFactory;
   private Integer connectTimeout;
-  private String pipe;
-  private String localSocket;
-  private boolean tcpKeepAlive;
-  private boolean tcpAbortiveClose;
-  private String localSocketAddress;
-  private int socketTimeout;
-  private boolean useReadAheadInput;
-  private String tlsSocketType;
+  private final String pipe;
+  private final String localSocket;
+  private final boolean tcpKeepAlive;
+  private final boolean tcpAbortiveClose;
+  private final String localSocketAddress;
+  private final int socketTimeout;
+  private final boolean useReadAheadInput;
+  private final String tlsSocketType;
 
   // SSL
-  private SslMode sslMode;
-  private String serverSslCert;
-  private String enabledSslCipherSuites;
-  private String enabledSslProtocolSuites;
+  private final SslMode sslMode;
+  private final String serverSslCert;
+  private final String enabledSslCipherSuites;
+  private final String enabledSslProtocolSuites;
 
   // protocol
-  private boolean allowMultiQueries;
-  private boolean rewriteBatchedStatements;
-  private boolean useCompression;
-  private boolean useAffectedRows;
-  private boolean useBulkStmts;
-  private Integer maxAllowedPacket;
+  private final boolean allowMultiQueries;
+  private final boolean rewriteBatchedStatements;
+  private final boolean useCompression;
+  private final boolean useAffectedRows;
+  private final boolean useBulkStmts;
+  private final Integer maxAllowedPacket;
 
   // prepare
-  private boolean cachePrepStmts;
-  private int prepStmtCacheSize;
-  private boolean useServerPrepStmts;
+  private final boolean cachePrepStmts;
+  private final int prepStmtCacheSize;
+  private final boolean useServerPrepStmts;
 
   // authentication
-  private CredentialPlugin credentialType;
-  private String sessionVariables;
-  private String connectionAttributes;
-  private String servicePrincipalName;
+  private final CredentialPlugin credentialType;
+  private final String sessionVariables;
+  private final String connectionAttributes;
+  private final String servicePrincipalName;
 
   // meta
-  private boolean blankTableNameMeta;
-  private boolean tinyInt1isBit;
-  private boolean yearIsDateType;
-  private boolean dumpQueriesOnException;
-  private boolean includeInnodbStatusInDeadlockExceptions;
-  private boolean includeThreadDumpInDeadlockExceptions;
+  private final boolean blankTableNameMeta;
+  private final boolean tinyInt1isBit;
+  private final boolean yearIsDateType;
+  private final boolean dumpQueriesOnException;
+  private final boolean includeInnodbStatusInDeadlockExceptions;
+  private final boolean includeThreadDumpInDeadlockExceptions;
 
   // HA options
-  private int retriesAllDown;
-  private boolean assureReadOnly;
-  private int validConnectionTimeout;
-  private String galeraAllowedState;
-  private boolean transactionReplay;
+  private final int retriesAllDown;
+  private final boolean assureReadOnly;
+  private final int validConnectionTimeout;
+  private final String galeraAllowedState;
+  private final boolean transactionReplay;
 
   // Pool options
-  private boolean pool;
-  private String poolName;
-  private int maxPoolSize;
-  private Integer minPoolSize;
-  private int maxIdleTime;
-  private boolean staticGlobal;
-  private boolean registerJmxPool;
-  private int poolValidMinDelay;
-  private boolean useResetConnection;
+  private final boolean pool;
+  private final String poolName;
+  private final int maxPoolSize;
+  private final Integer minPoolSize;
+  private final int maxIdleTime;
+  private final boolean staticGlobal;
+  private final boolean registerJmxPool;
+  private final int poolValidMinDelay;
+  private final boolean useResetConnection;
 
   // MySQL sha authentication
-  private String serverRsaPublicKeyFile;
-  private Boolean allowPublicKeyRetrieval;
+  private final String serverRsaPublicKeyFile;
+  private final Boolean allowPublicKeyRetrieval;
 
   private Configuration(
       String database,
@@ -241,10 +241,17 @@ public class Configuration implements Cloneable {
         rewriteBatchedStatements != null ? rewriteBatchedStatements : false;
     this.useCompression = useCompression != null ? useCompression : false;
     this.blankTableNameMeta = blankTableNameMeta != null ? blankTableNameMeta : false;
-    this.sslMode =
-        sslMode != null
-            ? (sslMode.isEmpty() ? SslMode.VERIFY_FULL : SslMode.from(sslMode))
-            : SslMode.DISABLE;
+    if (this.credentialType != null
+        && this.credentialType.mustUseSsl()
+        && (sslMode == null || SslMode.from(sslMode) == SslMode.DISABLE)) {
+      this.sslMode = SslMode.VERIFY_FULL;
+    } else {
+      this.sslMode =
+          sslMode != null
+              ? (sslMode.isEmpty() ? SslMode.VERIFY_FULL : SslMode.from(sslMode))
+              : SslMode.DISABLE;
+    }
+
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
     this.tinyInt1isBit = tinyInt1isBit != null ? tinyInt1isBit : true;
@@ -253,7 +260,12 @@ public class Configuration implements Cloneable {
     this.dumpQueriesOnException = dumpQueriesOnException != null ? dumpQueriesOnException : false;
     this.prepStmtCacheSize = prepStmtCacheSize != null ? prepStmtCacheSize : 250;
     this.useAffectedRows = useAffectedRows != null ? useAffectedRows : false;
-    this.useServerPrepStmts = useServerPrepStmts != null ? useServerPrepStmts : false;
+    // disable use server prepare id using client rewrite
+    if (this.rewriteBatchedStatements) {
+      this.useServerPrepStmts = false;
+    } else {
+      this.useServerPrepStmts = useServerPrepStmts != null ? useServerPrepStmts : false;
+    }
     this.connectionAttributes = connectionAttributes;
     this.useBulkStmts = useBulkStmts != null ? useBulkStmts : true;
     this.autocommit = autocommit != null ? autocommit : true;
@@ -266,7 +278,8 @@ public class Configuration implements Cloneable {
             ? includeThreadDumpInDeadlockExceptions
             : false;
     this.servicePrincipalName = servicePrincipalName;
-    this.defaultFetchSize = defaultFetchSize != null ? defaultFetchSize : 0;
+    this.defaultFetchSize =
+        defaultFetchSize != null ? (defaultFetchSize < 0 ? 0 : defaultFetchSize) : 0;
     this.tlsSocketType = tlsSocketType;
     this.maxQuerySizeToLog = maxQuerySizeToLog != null ? maxQuerySizeToLog : 1024;
     this.maxAllowedPacket = maxAllowedPacket;
@@ -277,7 +290,10 @@ public class Configuration implements Cloneable {
     this.pool = pool != null ? pool : false;
     this.poolName = poolName;
     this.maxPoolSize = maxPoolSize != null ? maxPoolSize : 8;
-    this.minPoolSize = minPoolSize;
+    // if min pool size default to maximum pool size if not set
+    this.minPoolSize =
+        minPoolSize == null ? this.maxPoolSize : Math.min(minPoolSize, this.maxPoolSize);
+
     this.maxIdleTime = maxIdleTime != null ? maxIdleTime : 600;
     this.staticGlobal = staticGlobal != null ? staticGlobal : false;
     this.registerJmxPool = registerJmxPool != null ? registerJmxPool : true;
@@ -309,33 +325,6 @@ public class Configuration implements Cloneable {
       }
     } catch (IllegalArgumentException | IllegalAccessException ie) {
       // eat
-    }
-
-    // *************************************************************
-    // option coherence check
-    // *************************************************************
-    // disable use server prepare id using client rewrite
-    if (this.rewriteBatchedStatements) {
-      this.useServerPrepStmts = false;
-    }
-
-    // if min pool size default to maximum pool size if not set
-    if (this.pool) {
-      this.minPoolSize =
-          this.minPoolSize == null
-              ? this.maxPoolSize
-              : Math.min(this.minPoolSize, this.maxPoolSize);
-    }
-
-    // if fetchSize is set to less than 0, default it to 0
-    if (this.defaultFetchSize < 0) {
-      this.defaultFetchSize = 0;
-    }
-
-    if (this.credentialType != null
-        && this.credentialType.mustUseSsl()
-        && this.sslMode == SslMode.DISABLE) {
-      this.sslMode = SslMode.VERIFY_FULL;
     }
   }
 
@@ -397,8 +386,7 @@ public class Configuration implements Cloneable {
       if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
         hostAddressesString = urlSecondPart.substring(0, paramIndex);
         additionalParameters = urlSecondPart.substring(paramIndex);
-      } else if ((dbIndex < paramIndex && dbIndex > -1)
-          || (dbIndex > paramIndex && paramIndex < 0)) {
+      } else if (dbIndex < paramIndex || dbIndex > paramIndex && paramIndex < 0) {
         hostAddressesString = urlSecondPart.substring(0, dbIndex);
         additionalParameters = urlSecondPart.substring(dbIndex);
       } else {
@@ -439,8 +427,7 @@ public class Configuration implements Cloneable {
     }
   }
 
-  private static void mapPropertiesToOption(Builder builder, Properties properties)
-      throws SQLException {
+  private static void mapPropertiesToOption(Builder builder, Properties properties) {
     Properties nonMappedOptions = new Properties();
 
     try {
@@ -969,9 +956,7 @@ public class Configuration implements Cloneable {
 
     public Builder addresses(HostAddress... hostAddress) {
       this._addresses = new ArrayList<>();
-      for (HostAddress address : hostAddress) {
-        this._addresses.add(address);
-      }
+      this._addresses.addAll(Arrays.asList(hostAddress));
       return this;
     }
 
@@ -1424,9 +1409,7 @@ public class Configuration implements Cloneable {
             continue;
           }
           Object obj = field.get(this);
-          if (obj != null
-              && (!(obj instanceof Properties)
-                  || (obj instanceof Properties && ((Properties) obj).size() > 0))) {
+          if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
 
             if (field.getType().equals(String.class)) {
               sb.append(first ? '?' : '&');
@@ -1434,7 +1417,7 @@ public class Configuration implements Cloneable {
               sb.append(field.getName()).append('=');
               sb.append((String) field.get(this));
             } else if (field.getType().equals(Boolean.class)) {
-              if (!((Boolean) obj).booleanValue()) {
+              if (!(Boolean) obj) {
                 sb.append(first ? '?' : '&');
                 first = false;
                 sb.append(field.getName()).append('=');

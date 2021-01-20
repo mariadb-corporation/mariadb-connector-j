@@ -201,9 +201,9 @@ public class UnixDomainSocket extends Socket {
           int bytes = 0;
           int remainingLength = len;
           int size;
-          byte[] data = new byte[(len < 10240) ? len : 10240];
+          byte[] data = new byte[Math.min(len, 10240)];
           do {
-            size = recv(fd, data, (remainingLength < 10240) ? remainingLength : 10240, 0);
+            size = recv(fd, data, Math.min(remainingLength, 10240), 0);
             if (size > 0) {
               System.arraycopy(data, 0, bytesEntry, off, size);
               bytes += size;
@@ -245,9 +245,9 @@ public class UnixDomainSocket extends Socket {
         if (off > 0) {
           int size;
           int remainingLength = len;
-          byte[] data = new byte[(len < 10240) ? len : 10240];
+          byte[] data = new byte[Math.min(len, 10240)];
           do {
-            size = (remainingLength < 10240) ? remainingLength : 10240;
+            size = Math.min(remainingLength, 10240);
             System.arraycopy(bytesEntry, off, data, 0, size);
             bytes = send(fd, data, size, 0);
             if (bytes > 0) {

@@ -119,7 +119,6 @@ public class UpdatableResult extends CompleteResult {
             .createStatement()
             .executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
-    boolean primaryFound = false;
     while (rs.next()) {
       if ("PRI".equals(rs.getString("Key"))) {
         boolean canBeNull = "YES".equals(rs.getString("Null"));
@@ -450,8 +449,8 @@ public class UpdatableResult extends CompleteResult {
   /**
    * Build insert query
    *
-   * @return
-   * @throws SQLException
+   * @return insert sql
+   * @throws SQLException exception
    */
   private String buildInsertQuery() throws SQLException {
     StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
@@ -657,8 +656,7 @@ public class UpdatableResult extends CompleteResult {
           for (int pos = 0; pos < metadataList.length; pos++) {
             ColumnDefinitionPacket colInfo = metadataList[pos];
             if (colInfo.isPrimaryKey()) {
-              ((BasePreparedStatement) preparedStatement)
-                  .setObject(++fieldsIndex, getObject(pos + 1));
+              preparedStatement.setObject(++fieldsIndex, getObject(pos + 1));
             }
           }
 
@@ -692,8 +690,7 @@ public class UpdatableResult extends CompleteResult {
     StringBuilder deleteSql =
         new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
     boolean firstPrimary = true;
-    for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+    for (ColumnDefinitionPacket colInfo : metadataList) {
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           deleteSql.append("AND ");
@@ -747,7 +744,7 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void cancelRowUpdates() throws SQLException {
+  public void cancelRowUpdates() {
     parameters = new ParameterList(parameters.size());
     state = STATE_STANDARD;
   }
@@ -763,7 +760,7 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void moveToCurrentRow() throws SQLException {
+  public void moveToCurrentRow() {
     state = STATE_STANDARD;
     resetToRowPointer();
   }

@@ -26,7 +26,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.util.MutableInt;
 import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.util.log.Logger;
@@ -676,7 +675,7 @@ public class PacketWriter {
     buf[0] = (byte) 0x00;
     buf[1] = (byte) 0x00;
     buf[2] = (byte) 0x00;
-    buf[3] = (byte) this.sequence.incrementAndGet();
+    buf[3] = this.sequence.incrementAndGet();
     out.write(buf, 0, 4);
 
     if (logger.isTraceEnabled()) {
@@ -705,10 +704,6 @@ public class PacketWriter {
     mark = -1;
   }
 
-  public boolean checkRemainingSize(int len) {
-    return maxPacketLength - pos > len;
-  }
-
   /**
    * Count query size. If query size is greater than max_allowed_packet and nothing has been already
    * send, throw an exception to avoid having the connection closed.
@@ -729,16 +724,8 @@ public class PacketWriter {
     }
   }
 
-  public boolean exceedMaxLength() {
-    return cmdLength + (pos - initialPacketPos()) >= maxAllowedPacket;
-  }
-
   public OutputStream getOutputStream() {
     return out;
-  }
-
-  public int getMaxAllowedPacket() {
-    return maxAllowedPacket;
   }
 
   public void setMaxAllowedPacket(int maxAllowedPacket) {
@@ -820,13 +807,9 @@ public class PacketWriter {
     return 4;
   }
 
-  public void initPacket(String command) {
-    initPacket();
-  }
-
   public void initPacket() {
-    sequence.set(-1);
-    compressSequence.set(-1);
+    sequence.set((byte) -1);
+    compressSequence.set((byte) -1);
     pos = 4;
     cmdLength = 0;
   }
@@ -842,7 +825,7 @@ public class PacketWriter {
       buf[0] = (byte) (pos - 4);
       buf[1] = (byte) ((pos - 4) >>> 8);
       buf[2] = (byte) ((pos - 4) >>> 16);
-      buf[3] = (byte) this.sequence.incrementAndGet();
+      buf[3] = this.sequence.incrementAndGet();
       checkMaxAllowedLength(pos - 4);
       out.write(buf, 0, pos);
       cmdLength += pos - 4;
@@ -868,6 +851,4 @@ public class PacketWriter {
   public void close() throws IOException {
     out.close();
   }
-
-  public void setContext(Context context) {}
 }

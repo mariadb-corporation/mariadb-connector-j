@@ -69,7 +69,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
     if (accurateAlias.size() == 0) {
       return null;
     }
-    return accurateAlias.toArray(new String[accurateAlias.size()]);
+    return accurateAlias.toArray(new String[0]);
   }
 
   @Override

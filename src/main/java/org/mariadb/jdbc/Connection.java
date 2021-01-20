@@ -61,10 +61,10 @@ public class Connection implements java.sql.Connection, PooledConnection {
   private final Client client;
   private final Properties clientInfo = new Properties();
   private int lowercaseTableNames = -1;
-  private AtomicInteger savepointId = new AtomicInteger();
+  private final AtomicInteger savepointId = new AtomicInteger();
   private boolean readOnly;
-  private boolean canUseServerTimeout;
-  private boolean canUseServerMaxRows;
+  private final boolean canUseServerTimeout;
+  private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
 
   public Connection(Configuration conf, ReentrantLock lock, Client client) throws SQLException {
@@ -157,7 +157,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public boolean getAutoCommit() throws SQLException {
+  public boolean getAutoCommit() {
     return (client.getContext().getServerStatus() & ServerStatus.AUTOCOMMIT) > 0;
   }
 
@@ -382,11 +382,10 @@ public class Connection implements java.sql.Connection, PooledConnection {
           SQLWarning warning = new SQLWarning(message, null, code);
           if (first == null) {
             first = warning;
-            last = warning;
           } else {
             last.setNextWarning(warning);
-            last = warning;
           }
+          last = warning;
         }
       }
     }
@@ -394,7 +393,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() {
     client.getContext().setWarning(0);
   }
 
@@ -472,7 +471,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public Map<String, Class<?>> getTypeMap() throws SQLException {
+  public Map<String, Class<?>> getTypeMap() {
     return new HashMap<>();
   }
 
@@ -482,12 +481,12 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public int getHoldability() throws SQLException {
+  public int getHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
   @Override
-  public void setHoldability(int holdability) throws SQLException {
+  public void setHoldability(int holdability) {
     // not supported
   }
 
@@ -635,22 +634,22 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public void setClientInfo(String name, String value) throws SQLClientInfoException {
+  public void setClientInfo(String name, String value) {
     clientInfo.put(name, value);
   }
 
   @Override
-  public String getClientInfo(String name) throws SQLException {
+  public String getClientInfo(String name) {
     return (String) clientInfo.get(name);
   }
 
   @Override
-  public Properties getClientInfo() throws SQLException {
+  public Properties getClientInfo() {
     return clientInfo;
   }
 
   @Override
-  public void setClientInfo(Properties properties) throws SQLClientInfoException {
+  public void setClientInfo(Properties properties) {
     for (Map.Entry<?, ?> entry : properties.entrySet()) {
       clientInfo.put(entry.getKey(), entry.getValue());
     }
@@ -667,13 +666,13 @@ public class Connection implements java.sql.Connection, PooledConnection {
   }
 
   @Override
-  public String getSchema() throws SQLException {
+  public String getSchema() {
     // We support only catalog
     return null;
   }
 
   @Override
-  public void setSchema(String schema) throws SQLException {
+  public void setSchema(String schema) {
     // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will
     // silently ignore this request."
   }

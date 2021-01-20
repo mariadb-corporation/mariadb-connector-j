@@ -44,7 +44,6 @@ public class PacketReader {
   private final int maxQuerySizeToLog;
 
   private final MutableInt sequence;
-  private int lastPacketLength;
   private String serverThreadLog = "";
 
   /**
@@ -160,7 +159,8 @@ public class PacketReader {
       off += count;
     } while (remaining > 0);
 
-    lastPacketLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+    int lastPacketLength =
+        (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
     sequence.set(header[3]);
 
     // prepare array

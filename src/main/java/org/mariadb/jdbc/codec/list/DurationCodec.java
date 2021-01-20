@@ -107,54 +107,52 @@ public class DurationCodec implements Codec<Duration> {
     int seconds = 0;
     long microseconds = 0;
 
-    switch (column.getType()) {
-      case TIME:
-        boolean negate = false;
-        if (length > 0) {
-          negate = buf.readUnsignedByte() == 0x01;
-          if (length > 4) {
-            days = buf.readUnsignedInt();
-            if (length > 7) {
-              hours = buf.readByte();
-              minutes = buf.readByte();
-              seconds = buf.readByte();
-              if (length > 8) {
-                microseconds = buf.readInt();
-              }
+    if (column.getType() == DataType.TIME) {
+      boolean negate = false;
+      if (length > 0) {
+        negate = buf.readUnsignedByte() == 0x01;
+        if (length > 4) {
+          days = buf.readUnsignedInt();
+          if (length > 7) {
+            hours = buf.readByte();
+            minutes = buf.readByte();
+            seconds = buf.readByte();
+            if (length > 8) {
+              microseconds = buf.readInt();
             }
           }
         }
+      }
 
-        Duration duration =
-            Duration.ZERO
-                .plusDays(days)
-                .plusHours(hours)
-                .plusMinutes(minutes)
-                .plusSeconds(seconds)
-                .plusNanos(microseconds * 1000);
-        if (negate) return duration.negated();
-        return duration;
-
-      default:
-        buf.readUnsignedShort(); // skip year
-        buf.readByte(); // skip month
-        days = buf.readByte();
-        if (length > 4) {
-          hours = buf.readByte();
-          minutes = buf.readByte();
-          seconds = buf.readByte();
-
-          if (length > 7) {
-            microseconds = buf.readUnsignedInt();
-          }
-        }
-        return Duration.ZERO
-            .plusDays(days - 1)
-            .plusHours(hours)
-            .plusMinutes(minutes)
-            .plusSeconds(seconds)
-            .plusNanos(microseconds * 1000);
+      Duration duration =
+          Duration.ZERO
+              .plusDays(days)
+              .plusHours(hours)
+              .plusMinutes(minutes)
+              .plusSeconds(seconds)
+              .plusNanos(microseconds * 1000);
+      if (negate) return duration.negated();
+      return duration;
     }
+
+    buf.readUnsignedShort(); // skip year
+    buf.readByte(); // skip month
+    days = buf.readByte();
+    if (length > 4) {
+      hours = buf.readByte();
+      minutes = buf.readByte();
+      seconds = buf.readByte();
+
+      if (length > 7) {
+        microseconds = buf.readUnsignedInt();
+      }
+    }
+    return Duration.ZERO
+        .plusDays(days - 1)
+        .plusHours(hours)
+        .plusMinutes(minutes)
+        .plusSeconds(seconds)
+        .plusNanos(microseconds * 1000);
   }
 
   @Override
@@ -179,20 +177,20 @@ public class DurationCodec implements Codec<Duration> {
     int nano = value.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 12);
-      encoder.writeByte((byte) (value.isNegative() ? 1 : 0));
-      encoder.writeInt((int) value.toDays());
-      encoder.writeByte((byte) (value.toHours() - 24 * value.toDays()));
-      encoder.writeByte((byte) (value.toMinutes() - 60 * value.toHours()));
-      encoder.writeByte((byte) (value.getSeconds() - 60 * value.toMinutes()));
+      encodeDuration(encoder, value);
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 8);
-      encoder.writeByte((byte) (value.isNegative() ? 1 : 0));
-      encoder.writeInt((int) value.toDays());
-      encoder.writeByte((byte) (value.toHours() - 24 * value.toDays()));
-      encoder.writeByte((byte) (value.toMinutes() - 60 * value.toHours()));
-      encoder.writeByte((byte) (value.getSeconds() - 60 * value.toMinutes()));
+      encodeDuration(encoder, value);
     }
+  }
+
+  private void encodeDuration(PacketWriter encoder, Duration value) throws IOException {
+    encoder.writeByte((byte) (value.isNegative() ? 1 : 0));
+    encoder.writeInt((int) value.toDays());
+    encoder.writeByte((byte) (value.toHours() - 24 * value.toDays()));
+    encoder.writeByte((byte) (value.toMinutes() - 60 * value.toHours()));
+    encoder.writeByte((byte) (value.getSeconds() - 60 * value.toMinutes()));
   }
 
   public DataType getBinaryEncodeType() {

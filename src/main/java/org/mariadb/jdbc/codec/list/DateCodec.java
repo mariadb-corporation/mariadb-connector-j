@@ -91,23 +91,7 @@ public class DateCodec implements Codec<Date> {
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
         }
 
-        try {
-          int year = Integer.valueOf(stDatePart[0]);
-          int month = Integer.valueOf(stDatePart[1]);
-          int dayOfMonth = Integer.valueOf(stDatePart[2]);
-          Calendar c = cal == null ? Calendar.getInstance() : cal;
-          synchronized (c) {
-            c.clear();
-            c.set(Calendar.YEAR, year);
-            c.set(Calendar.MONTH, month - 1);
-            c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-            return new Date(c.getTimeInMillis());
-          }
-
-        } catch (NumberFormatException nfe) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
+        return getDate(column, cal, val, stDatePart);
 
       case TIMESTAMP:
       case DATETIME:
@@ -118,6 +102,27 @@ public class DateCodec implements Codec<Date> {
         buf.skip(length);
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Date", column.getType()));
+    }
+  }
+
+  private Date getDate(ColumnDefinitionPacket column, Calendar cal, String val, String[] stDatePart)
+      throws SQLDataException {
+    try {
+      int year = Integer.parseInt(stDatePart[0]);
+      int month = Integer.parseInt(stDatePart[1]);
+      int dayOfMonth = Integer.parseInt(stDatePart[2]);
+      Calendar c = cal == null ? Calendar.getInstance() : cal;
+      synchronized (c) {
+        c.clear();
+        c.set(Calendar.YEAR, year);
+        c.set(Calendar.MONTH, month - 1);
+        c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+        return new Date(c.getTimeInMillis());
+      }
+
+    } catch (NumberFormatException nfe) {
+      throw new SQLDataException(
+          String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
     }
   }
 
@@ -150,23 +155,7 @@ public class DateCodec implements Codec<Date> {
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
         }
 
-        try {
-          int year = Integer.valueOf(stDatePart[0]);
-          int month = Integer.valueOf(stDatePart[1]);
-          int dayOfMonth = Integer.valueOf(stDatePart[2]);
-          Calendar c = cal == null ? Calendar.getInstance() : cal;
-          synchronized (c) {
-            c.clear();
-            c.set(Calendar.YEAR, year);
-            c.set(Calendar.MONTH, month - 1);
-            c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-            return new Date(c.getTimeInMillis());
-          }
-
-        } catch (NumberFormatException nfe) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
+        return getDate(column, cal, val, stDatePart);
 
       case DATE:
         Calendar c = cal == null ? Calendar.getInstance() : cal;

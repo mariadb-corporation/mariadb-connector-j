@@ -64,8 +64,7 @@ public class ConnectionHelper {
     try {
       init = SocketUtility.getSocketHandler();
     } catch (Throwable t) {
-      SocketHandlerFunction defaultSocketHandler = (conf, host) -> standardSocket(conf, host);
-      init = defaultSocketHandler;
+      init = ConnectionHelper::standardSocket;
     }
     socketHandler = init;
   }
@@ -98,14 +97,12 @@ public class ConnectionHelper {
         @SuppressWarnings("unchecked")
         Class<? extends SocketFactory> socketFactoryClass =
             (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
-        if (socketFactoryClass != null) {
-          Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
-          socketFactory = constructor.newInstance();
-          if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
-            ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, host);
-          }
-          return socketFactory.createSocket();
+        Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
+        socketFactory = constructor.newInstance();
+        if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
+          ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, host);
         }
+        return socketFactory.createSocket();
       } catch (Exception exp) {
         throw new IOException(
             "Socket factory failed to initialized with option \"socketFactory\" set to \""
@@ -294,7 +291,7 @@ public class ConnectionHelper {
     if (conf.sslMode() != SslMode.DISABLE) {
 
       if ((context.getServerCapabilities() & Capabilities.SSL) == 0) {
-        context
+        throw context
             .getExceptionFactory()
             .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
       }

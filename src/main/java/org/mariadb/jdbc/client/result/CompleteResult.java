@@ -159,6 +159,11 @@ public class CompleteResult extends Result {
   public void fetchRemaining() throws SQLException {}
 
   @Override
+  public void closeFromStmtClose() throws SQLException {
+    this.closed = true;
+  }
+
+  @Override
   public boolean isAfterLast() throws SQLException {
     checkClose();
     if (rowPointer < dataSize) {

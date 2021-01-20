@@ -67,7 +67,7 @@ public class CompressOutputStream extends OutputStream {
       header[0] = (byte) len;
       header[1] = (byte) (len >>> 8);
       header[2] = (byte) (len >>> 16);
-      header[3] = (byte) sequence.incrementAndGet();
+      header[3] = sequence.incrementAndGet();
       header[4] = 0;
       header[5] = 0;
       header[6] = 0;
@@ -96,7 +96,7 @@ public class CompressOutputStream extends OutputStream {
           header[0] = (byte) partLen;
           header[1] = (byte) (partLen >>> 8);
           header[2] = (byte) (partLen >>> 16);
-          header[3] = (byte) sequence.incrementAndGet();
+          header[3] = sequence.incrementAndGet();
           header[4] = (byte) len;
           header[5] = (byte) (len >>> 8);
           header[6] = (byte) (len >>> 16);
@@ -112,7 +112,7 @@ public class CompressOutputStream extends OutputStream {
             header[0] = 0;
             header[1] = 0;
             header[2] = 0;
-            header[3] = (byte) sequence.incrementAndGet();
+            header[3] = sequence.incrementAndGet();
             header[4] = 0;
             header[5] = 0;
             header[6] = 0;

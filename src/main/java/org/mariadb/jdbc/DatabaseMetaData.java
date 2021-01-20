@@ -1193,9 +1193,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * "useMysqlMetadata"
    *
    * @return server type
-   * @throws SQLException in case of socket error.
    */
-  public String getDatabaseProductName() throws SQLException {
+  public String getDatabaseProductName() {
     if (connection.getContext().getVersion().isMariaDBServer()) {
       return "MariaDB";
     }
@@ -3818,7 +3817,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return false;
   }
 
-  public class Identifier {
+  public static class Identifier {
 
     public String schema;
     public String name;

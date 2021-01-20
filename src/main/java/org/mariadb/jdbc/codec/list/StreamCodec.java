@@ -23,7 +23,6 @@ package org.mariadb.jdbc.codec.list;
 
 import java.io.*;
 import java.sql.SQLDataException;
-import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -172,8 +171,7 @@ public class StreamCodec implements Codec<InputStream> {
 
   @Override
   public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, InputStream value, Long length)
-      throws IOException, SQLException {
+      PacketWriter encoder, Context context, InputStream value, Long length) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     byte[] array = new byte[4096];
     int len;

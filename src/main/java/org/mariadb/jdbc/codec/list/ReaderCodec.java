@@ -71,17 +71,7 @@ public class ReaderCodec implements Codec<Reader> {
   public Reader decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
-    switch (column.getType()) {
-      case STRING:
-      case VARCHAR:
-      case VARSTRING:
-        return new StringReader(buf.readString(length));
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Reader", column.getType()));
-    }
+    return decodeText(buf, length, column, cal);
   }
 
   public boolean canEncode(Object value) {
@@ -164,8 +154,7 @@ public class ReaderCodec implements Codec<Reader> {
 
   @Override
   public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Reader reader, Long length)
-      throws IOException, SQLException {
+      PacketWriter encoder, Context context, Reader reader, Long length) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     char[] buf = new char[4096];
     int len;

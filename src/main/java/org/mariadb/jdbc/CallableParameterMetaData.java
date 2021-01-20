@@ -6,8 +6,8 @@ import java.util.BitSet;
 import java.util.Locale;
 
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
-  private ResultSet rs;
-  private int parameterCount;
+  private final ResultSet rs;
+  private final int parameterCount;
 
   public CallableParameterMetaData(ResultSet rs) throws SQLException {
     this.rs = rs;
@@ -21,11 +21,10 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * <code>ParameterMetaData</code> object contains information.
    *
    * @return the number of parameters
-   * @throws SQLException if a database access error occurs
    * @since 1.4
    */
   @Override
-  public int getParameterCount() throws SQLException {
+  public int getParameterCount() {
     return parameterCount;
   }
 
@@ -222,6 +221,10 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "INTEGER":
         return int.class.getName();
       case "BINARY":
+      case "SET":
+      case "GEOMETRY":
+      case "VARBINARY":
+      case "TINYBLOB":
         return byte[].class.getName();
       case "BIGINT":
         return long.class.getName();
@@ -253,12 +256,6 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "MEDIUMBLOB":
       case "LONGBLOB":
         return Blob.class.getName();
-
-      case "SET":
-      case "GEOMETRY":
-      case "VARBINARY":
-      case "TINYBLOB":
-        return byte[].class.getName();
       default:
         return Object.class.getName();
     }

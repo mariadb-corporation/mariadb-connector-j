@@ -135,9 +135,9 @@ public class StringCodec implements Codec<String> {
         return String.valueOf(buf.readByte());
 
       case YEAR:
-        String s = String.valueOf(buf.readUnsignedShort());
-        while (s.length() < column.getLength()) s = "0" + s;
-        return s;
+        StringBuilder s = new StringBuilder(String.valueOf(buf.readUnsignedShort()));
+        while (s.length() < column.getLength()) s.insert(0, "0");
+        return s.toString();
 
       case SMALLINT:
         if (!column.isSigned()) {
@@ -212,9 +212,9 @@ public class StringCodec implements Codec<String> {
                 + (tSeconds < 10 ? "0" : "")
                 + tSeconds;
         if (column.getDecimals() == 0) return stTime;
-        String stMicro = String.valueOf(tMicroseconds);
+        StringBuilder stMicro = new StringBuilder(String.valueOf(tMicroseconds));
         while (stMicro.length() < column.getDecimals()) {
-          stMicro = "0" + stMicro;
+          stMicro.insert(0, "0");
         }
         return stTime + "." + stMicro;
 

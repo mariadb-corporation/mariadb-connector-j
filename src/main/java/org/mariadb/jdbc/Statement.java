@@ -151,15 +151,15 @@ public class Statement implements java.sql.Statement {
       if (!closed) {
         closed = true;
 
-        if (currResult != null && currResult instanceof ResultSet) {
-          ((ResultSet) currResult).close();
+        if (currResult != null && currResult instanceof Result) {
+          ((Result) currResult).closeFromStmtClose();
         }
 
         // close result-set
         if (results != null) {
           for (Completion completion : results) {
-            if (completion instanceof ResultSet) {
-              ((ResultSet) completion).close();
+            if (completion instanceof Result) {
+              ((Result) completion).closeFromStmtClose();
             }
           }
         }
@@ -368,12 +368,9 @@ public class Statement implements java.sql.Statement {
    * Clears all the warnings reported on this <code>Statement</code> object. After a call to this
    * method, the method <code>getWarnings</code> will return <code>null</code> until a new warning
    * is reported for this <code>Statement</code> object.
-   *
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *     <code>Statement</code>
    */
   @Override
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() {
     con.getContext().setWarning(0);
   }
 
@@ -504,13 +501,11 @@ public class Statement implements java.sql.Statement {
    *
    * @return the default fetch direction for result sets generated from this <code>Statement</code>
    *     object
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *     <code>Statement</code>
    * @see #setFetchDirection
    * @since 1.2
    */
   @Override
-  public int getFetchDirection() throws SQLException {
+  public int getFetchDirection() {
     return ResultSet.FETCH_FORWARD;
   }
 
@@ -1131,12 +1126,10 @@ public class Statement implements java.sql.Statement {
    *
    * @return either <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>
    *     ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *     <code>Statement</code>
    * @since 1.4
    */
   @Override
-  public int getResultSetHoldability() throws SQLException {
+  public int getResultSetHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 

@@ -21,6 +21,7 @@
 
 package org.mariadb.jdbc.message.server;
 
+import java.util.Arrays;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 
@@ -45,6 +46,6 @@ public class AuthMoreDataPacket implements ServerMessage {
 
   @Override
   public String toString() {
-    return "AuthMoreDataPacket{data=" + data + '}';
+    return "AuthMoreDataPacket{data=" + Arrays.toString(data) + '}';
   }
 }

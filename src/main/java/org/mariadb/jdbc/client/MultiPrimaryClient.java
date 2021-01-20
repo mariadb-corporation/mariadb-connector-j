@@ -22,10 +22,7 @@
 package org.mariadb.jdbc.client;
 
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -94,8 +91,6 @@ public class MultiPrimaryClient implements Client {
         lastSqle = sqle;
         denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
         maxRetries--;
-      } catch (SQLException sqle) {
-        throw sqle;
       }
     }
 
@@ -112,7 +107,7 @@ public class MultiPrimaryClient implements Client {
                 .filter(
                     e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly)
                 .findFirst()
-                .map(e -> e.getKey());
+                .map(Map.Entry::getKey);
         if (host.isPresent()) {
           Client client = new ClientImpl(conf, host.get(), true, lock, false);
           denyList.remove(host.get());
@@ -120,9 +115,9 @@ public class MultiPrimaryClient implements Client {
         }
       } catch (SQLNonTransientConnectionException sqle) {
         lastSqle = sqle;
-        if (host.isPresent()) {
-          denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
-        }
+        host.ifPresent(
+            hostAddress ->
+                denyList.putIfAbsent(hostAddress, System.currentTimeMillis() + DENY_TIMEOUT));
         maxRetries--;
         if (maxRetries > 0) {
           try {
@@ -132,8 +127,6 @@ public class MultiPrimaryClient implements Client {
             // interrupted, continue
           }
         }
-      } catch (SQLException sqle) {
-        throw sqle;
       }
     }
 
@@ -153,7 +146,7 @@ public class MultiPrimaryClient implements Client {
       syncNewState(oldClient);
 
       if (conf.transactionReplay()) {
-        if (!executeTransactionReplay(oldClient)) {
+        if (executeTransactionReplay(oldClient)) {
           // transaction cannot be replayed, but connection is now up again.
           // changing exception to SQLTransientConnectionException
           throw new SQLTransientConnectionException(
@@ -182,18 +175,16 @@ public class MultiPrimaryClient implements Client {
       currentClient = null;
       closed = true;
       throw sqle;
-    } catch (SQLException sqle) {
-      throw sqle;
     }
   }
 
   protected boolean executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
     if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      if (!oldCli.getContext().getTransactionSaver().isCleanState()) return false;
+      if (!oldCli.getContext().getTransactionSaver().isCleanState()) return true;
       currentClient.transactionReplay(oldCli.getContext().getTransactionSaver());
     }
-    return true;
+    return false;
   }
 
   public void syncNewState(Client oldCli) throws SQLException {
@@ -211,7 +202,7 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
-        && currentClient.getContext().getDatabase() != oldCtx.getDatabase()) {
+        && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase())) {
       currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
       currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()));
     }
@@ -407,7 +398,7 @@ public class MultiPrimaryClient implements Client {
   }
 
   @Override
-  public void transactionReplay(TransactionSaver transactionSaver) throws SQLException {}
+  public void transactionReplay(TransactionSaver transactionSaver) {}
 
   @Override
   public void abort(Executor executor) throws SQLException {

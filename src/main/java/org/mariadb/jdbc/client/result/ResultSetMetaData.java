@@ -35,7 +35,6 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   private final ColumnDefinitionPacket[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
-  private final boolean updatable;
 
   /**
    * Constructor.
@@ -44,19 +43,16 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @param fieldPackets column informations
    * @param conf connection options
    * @param forceAlias force table and column name alias as original data
-   * @param updatable is column updatable
    */
   public ResultSetMetaData(
       final ExceptionFactory exceptionFactory,
       final ColumnDefinitionPacket[] fieldPackets,
       final Configuration conf,
-      final boolean forceAlias,
-      final boolean updatable) {
+      final boolean forceAlias) {
     this.exceptionFactory = exceptionFactory;
     this.fieldPackets = fieldPackets;
     this.conf = conf;
     this.forceAlias = forceAlias;
-    this.updatable = updatable;
   }
 
   /**
@@ -84,9 +80,8 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isCaseSensitive(final int column) throws SQLException {
+  public boolean isCaseSensitive(final int column) {
     return true;
   }
 

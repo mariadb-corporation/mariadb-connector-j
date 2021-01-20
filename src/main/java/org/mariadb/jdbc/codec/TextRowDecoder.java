@@ -57,7 +57,7 @@ public class TextRowDecoder extends RowDecoder {
     }
 
     while (index < newIndex) {
-      int type = this.buf.readUnsignedByte();
+      short type = this.buf.readUnsignedByte();
       switch (type) {
         case 252:
           buf.skip(buf.readUnsignedShort());

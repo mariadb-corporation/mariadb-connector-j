@@ -81,11 +81,17 @@ public class TimestampCodec implements Codec<Timestamp> {
           cal.clear();
           cal.setLenient(true);
           if (parts[0] == -1) {
-            cal.set(1970, 0, 1, parts[0] * parts[1], parts[0] * parts[2], parts[0] * parts[3] - 1);
+            cal.set(
+                1970,
+                Calendar.JANUARY,
+                1,
+                parts[0] * parts[1],
+                parts[0] * parts[2],
+                parts[0] * parts[3] - 1);
             t = new Timestamp(cal.getTimeInMillis());
             t.setNanos(1_000_000_000 - parts[4]);
           } else {
-            cal.set(1970, 0, 1, parts[1], parts[2], parts[3]);
+            cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
             t = new Timestamp(cal.getTimeInMillis());
             t.setNanos(parts[4]);
           }
@@ -101,9 +107,9 @@ public class TimestampCodec implements Codec<Timestamp> {
         synchronized (calParam) {
           calParam.clear();
           calParam.set(
-              Integer.valueOf(datePart[0]),
-              Integer.valueOf(datePart[1]) - 1,
-              Integer.valueOf(datePart[2]));
+              Integer.parseInt(datePart[0]),
+              Integer.parseInt(datePart[1]) - 1,
+              Integer.parseInt(datePart[2]));
           return new Timestamp(calParam.getTimeInMillis());
         }
 
@@ -194,9 +200,9 @@ public class TimestampCodec implements Codec<Timestamp> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar calParam)
       throws SQLDataException {
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    int year = 1970;
-    int month = 1;
-    long dayOfMonth = 1;
+    int year;
+    int month;
+    long dayOfMonth;
     int hour = 0;
     int minutes = 0;
     int seconds = 0;

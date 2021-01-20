@@ -366,7 +366,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     IP
   }
 
-  private class GeneralName {
+  private static class GeneralName {
 
     private final String value;
     private final Extension extension;
@@ -382,7 +382,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     }
   }
 
-  private class SubjectAltNames {
+  private static class SubjectAltNames {
 
     private final List<GeneralName> generalNames = new ArrayList<>();
 

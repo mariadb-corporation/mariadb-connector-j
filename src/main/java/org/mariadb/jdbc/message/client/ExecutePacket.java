@@ -68,7 +68,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       }
     }
 
-    writer.initPacket(command);
+    writer.initPacket();
     writer.writeByte(0x17);
     writer.writeInt(statementId);
     writer.writeByte(0x00); // NO CURSOR

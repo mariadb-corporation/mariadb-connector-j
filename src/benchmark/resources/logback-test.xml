@@ -24,8 +24,7 @@
     </encoder>
   </appender>
 
-  <logger level="ERROR" name="org.mariadb.r2dbc"/>
-  <logger level="ERROR" name="dev.miku.r2dbc.mysql"/>
+  <logger level="ERROR" name="org.mariadb.jdbc"/>
 
   <root level="WARN">
     <appender-ref ref="STDOUT"/>

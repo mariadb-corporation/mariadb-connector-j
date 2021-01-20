@@ -104,11 +104,10 @@ public class MariaDbDataSource implements DataSource {
    * Implementation doesn't use logwriter
    *
    * @return the log writer for this data source or null if logging is disabled
-   * @throws SQLException if a database access error occurs
    * @see #setLogWriter
    */
   @Override
-  public PrintWriter getLogWriter() throws SQLException {
+  public PrintWriter getLogWriter() {
     return null;
   }
 
@@ -116,11 +115,10 @@ public class MariaDbDataSource implements DataSource {
    * Implementation doesn't use logwriter
    *
    * @param out the new log writer; to disable logging, set to null
-   * @throws SQLException if a database access error occurs
    * @see #getLogWriter
    */
   @Override
-  public void setLogWriter(PrintWriter out) throws SQLException {}
+  public void setLogWriter(PrintWriter out) {}
 
   /**
    * Gets the maximum time in seconds that this data source can wait while attempting to connect to
@@ -143,12 +141,11 @@ public class MariaDbDataSource implements DataSource {
    * is created, the login timeout is initially 30s.
    *
    * @param seconds the data source login time limit
-   * @throws SQLException if a database access error occurs.
    * @see #getLoginTimeout
    * @since 1.4
    */
   @Override
-  public void setLoginTimeout(int seconds) throws SQLException {
+  public void setLoginTimeout(int seconds) {
     conf.connectTimeout(seconds * 1000);
   }
 

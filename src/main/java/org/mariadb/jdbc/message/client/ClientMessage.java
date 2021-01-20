@@ -29,7 +29,6 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.result.CompleteResult;
-import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
 import org.mariadb.jdbc.client.socket.PacketReader;
@@ -127,20 +126,18 @@ public interface ClientMessage {
             context.setServerStatus(context.getServerStatus() - ServerStatus.MORE_RESULTS_EXISTS);
           }
 
-          Result result =
-              new StreamingResult(
-                  stmt,
-                  binaryProtocol(),
-                  maxRows,
-                  ci,
-                  reader,
-                  context,
-                  fetchSize,
-                  lock,
-                  resultSetType,
-                  closeOnCompletion,
-                  traceEnable);
-          return result;
+          return new StreamingResult(
+              stmt,
+              binaryProtocol(),
+              maxRows,
+              ci,
+              reader,
+              context,
+              fetchSize,
+              lock,
+              resultSetType,
+              closeOnCompletion,
+              traceEnable);
         } else {
           return new CompleteResult(
               stmt,

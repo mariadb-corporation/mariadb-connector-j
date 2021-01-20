@@ -8,11 +8,12 @@ services:
     volumes:
       - $SSLCERT:/etc/sslcert
       - $ENTRYPOINT:/docker-entrypoint-initdb.d
+      - $ENTRYPOINT_PAM:/pam
     environment:
       MYSQL_DATABASE: testj
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
     healthcheck:
-      test: ["CMD", "mysql", "--protocol=tcp", "-ubob", "-h127.0.0.1", "-ubob"]
+      test: ["CMD", "mysql", "--protocol=tcp", "-ubob", "-h127.0.0.1"]
       timeout: 20s
       retries: 10
 

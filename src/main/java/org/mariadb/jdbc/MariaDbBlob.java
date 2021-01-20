@@ -70,6 +70,16 @@ public class MariaDbBlob implements Blob, Serializable {
     this.length = Math.min(bytes.length - offset, length);
   }
 
+  private MariaDbBlob(int offset, int length, byte[] bytes) {
+    this.data = bytes;
+    this.offset = offset;
+    this.length = length;
+  }
+
+  public static MariaDbBlob safeMariaDbBlob(byte[] bytes, int offset, int length) {
+    return new MariaDbBlob(offset, length, bytes);
+  }
+
   /**
    * Returns the number of bytes in the <code>BLOB</code> value designated by this <code>Blob</code>
    * object.
@@ -371,7 +381,7 @@ public class MariaDbBlob implements Blob, Serializable {
     return result;
   }
 
-  class BlobOutputStream extends OutputStream {
+  static class BlobOutputStream extends OutputStream {
 
     private final MariaDbBlob blob;
     private int pos;

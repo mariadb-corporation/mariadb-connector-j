@@ -82,8 +82,7 @@ public class BlobCodec implements Codec<Blob> {
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        buf.skip(length);
-        return new MariaDbBlob(buf.buf(), buf.pos() - length, length);
+        return buf.readBlob(length);
 
       default:
         buf.skip(length);

@@ -1,21 +1,17 @@
 package org.mariadb.jdbc.util;
 
 public class MutableInt {
-  private int value;
+  private byte value = 0;
 
-  public MutableInt(int value) {
+  public void set(byte value) {
     this.value = value;
   }
 
-  public void set(int value) {
-    this.value = value;
-  }
-
-  public int get() {
+  public byte get() {
     return this.value;
   }
 
-  public int incrementAndGet() {
+  public byte incrementAndGet() {
     return ++value;
   }
 }

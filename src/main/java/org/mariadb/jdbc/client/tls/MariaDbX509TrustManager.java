@@ -57,10 +57,8 @@ public class MariaDbX509TrustManager implements X509TrustManager {
           "Failed to create keystore instance", "08000", generalSecurityEx);
     }
 
-    InputStream inStream = null;
-    try {
+    try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
       // generate a keyStore from the provided cert
-      inStream = getInputStreamFromPath(conf.serverSslCert());
 
       // Note: KeyStore requires it be loaded even if you don't load anything into it
       // (will be initialized with "javax.net.ssl.trustStore") values.
@@ -92,15 +90,8 @@ public class MariaDbX509TrustManager implements X509TrustManager {
           "Failed to store certificate from serverSslCert into a keyStore",
           "08000",
           generalSecurityEx);
-    } finally {
-      if (inStream != null) {
-        try {
-          inStream.close();
-        } catch (IOException ioEx) {
-          // ignore error
-        }
-      }
     }
+    // ignore error
   }
 
   private static InputStream getInputStreamFromPath(String path) throws IOException {

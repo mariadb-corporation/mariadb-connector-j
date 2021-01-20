@@ -152,7 +152,7 @@ public class TinyIntCodec implements Codec<Byte> {
       case BIT:
         result = 0;
         for (int i = 0; i < Math.min(length, 8); i++) {
-          result += (buf.readByte() & 0xff) << i * 8;
+          result += (long) (buf.readByte() & 0xff) << i * 8;
         }
         if (length > 8) {
           buf.skip(length - 8);

@@ -77,6 +77,12 @@ public class BooleanCodec implements Codec<Boolean> {
       case VARCHAR:
       case VARSTRING:
       case STRING:
+      case TINYINT:
+      case SMALLINT:
+      case MEDIUMINT:
+      case INTEGER:
+      case BIGINT:
+      case YEAR:
         String s = buf.readAscii(length);
         return !"0".equals(s);
 
@@ -85,15 +91,6 @@ public class BooleanCodec implements Codec<Boolean> {
       case FLOAT:
       case DOUBLE:
         return new BigDecimal(buf.readAscii(length)).intValue() != 0;
-
-      case TINYINT:
-      case SMALLINT:
-      case MEDIUMINT:
-      case INTEGER:
-      case BIGINT:
-      case YEAR:
-        String val = buf.readAscii(length);
-        return !"0".equals(val);
 
       default:
         buf.skip(length);

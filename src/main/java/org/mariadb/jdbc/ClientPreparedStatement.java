@@ -316,7 +316,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
     try {
       return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-          exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false, false);
+          exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
     } finally {
       prepareResult.close(con.getClient());
     }

@@ -22,6 +22,7 @@
 package org.mariadb.jdbc.client;
 
 import java.nio.charset.StandardCharsets;
+import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.util.MutableInt;
 
 public final class ReadableByteBuf {
@@ -29,13 +30,14 @@ public final class ReadableByteBuf {
   private final int limit;
   private final byte[] buf;
   private int pos;
-  private int mark = -1;
+  private int mark;
 
   public ReadableByteBuf(MutableInt sequence, byte[] buf, int limit) {
     this.sequence = sequence;
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
+    this.mark = -1;
   }
 
   public int readableBytes() {
@@ -74,6 +76,11 @@ public final class ReadableByteBuf {
   public ReadableByteBuf skip(int length) {
     pos += length;
     return this;
+  }
+
+  public MariaDbBlob readBlob(int length) {
+    pos += length;
+    return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
   }
 
   public MutableInt getSequence() {

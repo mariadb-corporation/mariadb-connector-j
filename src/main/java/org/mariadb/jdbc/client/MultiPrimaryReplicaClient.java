@@ -103,7 +103,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    * <p>if reconnect succeed on replica / use master, no problem, continuing without interruption //
    * if reconnect primary, then replay transaction / throw exception if was in transaction.
    *
-   * @throws SQLException
+   * @throws SQLException if exception
    */
   @Override
   protected void reConnect() throws SQLException {
@@ -171,7 +171,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       // if reconnect primary, then replay transaction / throw exception if was in transaction.
       if (!requestReadOnly) {
         if (conf.transactionReplay()) {
-          if (!executeTransactionReplay(oldClient)) {
+          if (executeTransactionReplay(oldClient)) {
             // transaction cannot be replayed, but connection is now up again.
             // changing exception to SQLTransientConnectionException
             throw new SQLTransientConnectionException(
@@ -203,8 +203,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       if (replicaClient != null) {
         replicaClient.close();
       }
-      throw sqle;
-    } catch (SQLException sqle) {
       throw sqle;
     }
   }
@@ -311,7 +309,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
         if (primaryClient != null) {
           currentClient = primaryClient;
           syncNewState(replicaClient);
-        } else if (primaryClient == null && nextTryPrimary < System.currentTimeMillis()) {
+        } else if (nextTryPrimary < System.currentTimeMillis()) {
           try {
             primaryClient = connectHost(false, false);
             nextTryPrimary = -1;
