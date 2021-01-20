@@ -24,7 +24,6 @@ package org.mariadb.jdbc;
 import org.openjdk.jmh.annotations.*;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
@@ -32,8 +31,8 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 @Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
 @Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
-@Fork(value = 5)
-//@Threads(value = 1) // detecting CPU count
+@Fork(value = 2)
+@Threads(value = -1) // detecting CPU count
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class Common {
@@ -48,41 +47,52 @@ public class Common {
     public final String password = System.getProperty("TEST_PASSWORD", "");
     public final String database = System.getProperty("TEST_DATABASE", "testj");
     // connections
-    protected Connection connection;
+    protected Connection connectionText;
+    protected Connection connectionBinary;
+
     @Param({"mysql", "mariadb"})
     String driver;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
-        String jdbcUrl =
-                String.format(
-                        "%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=true",
-                        host, port, database, username, password);
 
-        String className;
-        switch (driver) {
-            case "mysql":
-                className = "com.mysql.cj.jdbc.Driver";
-                break;
-            case "mariadb":
-                className = "org.mariadb.jdbc.Driver";
-                break;
-            default:
-                throw new RuntimeException("wrong param");
-        }
-        try {
-            connection =
-                    ((java.sql.Driver) Class.forName(className).newInstance())
-                            .connect("jdbc:" + driver + "://" + jdbcUrl, new Properties());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+      String className;
+      switch (driver) {
+        case "mysql":
+          className = "com.mysql.cj.jdbc.Driver";
+          break;
+        case "mariadb":
+          className = "org.mariadb.jdbc.Driver";
+          break;
+        default:
+          throw new RuntimeException("wrong param");
+      }
+      try {
+        String jdbcBase = "%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC";
+        String jdbcUrlText =
+                String.format(
+                        jdbcBase,
+                        host, port, database, username, password, false, false);
+        String jdbcUrlBinary =
+                String.format(
+                        jdbcBase,
+                        host, port, database, username, password, true, true);
+        connectionText =
+            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                .connect("jdbc:" + driver + "://" + jdbcUrlText, new Properties());
+        connectionBinary =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect("jdbc:" + driver + "://" + jdbcUrlBinary, new Properties());
+      } catch (SQLException e) {
+        e.printStackTrace();
+        throw new RuntimeException(e);
+      }
     }
 
     @TearDown(Level.Trial)
     public void doTearDown() throws SQLException {
-      connection.close();
+      connectionText.close();
+      connectionBinary.close();
     }
   }
 }

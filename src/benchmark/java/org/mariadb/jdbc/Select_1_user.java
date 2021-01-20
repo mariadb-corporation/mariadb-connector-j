@@ -23,15 +23,26 @@ package org.mariadb.jdbc;
 
 import org.openjdk.jmh.annotations.Benchmark;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class Select_1_user extends Common {
 
   @Benchmark
-  public Object[] run(MyState state) throws Throwable {
+  public Object[] text(MyState state) throws Throwable {
+    return run(state.connectionText);
+  }
+
+
+  @Benchmark
+  public Object[] binary(MyState state) throws Throwable {
+    return run(state.connectionBinary);
+  }
+
+  private Object[] run(Connection con) throws Throwable {
     final int numberOfUserCol = 46;
-    try (Statement st = state.connection.createStatement()) {
+    try (Statement st = con.createStatement()) {
       ResultSet rs = st.executeQuery("select * FROM mysql.user LIMIT 1");
       rs.next();
       Object[] objs = new Object[numberOfUserCol];
