@@ -30,7 +30,7 @@ import java.util.Arrays;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519ScalarOps;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec;
 
@@ -66,8 +66,7 @@ public final class Ed25519PasswordPacket implements ClientMessage {
       hash.reset();
       byte[] nonce = hash.digest(buff);
 
-      org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.ScalarOps scalar =
-          new ScalarOps();
+      Ed25519ScalarOps scalar = new Ed25519ScalarOps();
 
       EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
       GroupElement elementAvalue = spec.getB().scalarMultiply(az);

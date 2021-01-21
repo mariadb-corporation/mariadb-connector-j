@@ -13,7 +13,6 @@ import java.io.Serializable;
 
 /** Note: concrete subclasses must implement hashCode() and equals() */
 public abstract class FieldElement implements Serializable {
-
   private static final long serialVersionUID = 1239527465875676L;
 
   protected final Field f;

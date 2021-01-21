@@ -15,7 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Curve;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ScalarOps;
 
 /**
  * Parameter specification for an EdDSA algorithm.
@@ -23,7 +23,6 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Scal
  * @author str4d
  */
 public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable {
-
   private static final long serialVersionUID = 8274987108472012L;
   private final Curve curve;
   private final String hashAlgo;
@@ -41,9 +40,8 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
     try {
       MessageDigest hash = MessageDigest.getInstance(hashAlgo);
       // EdDSA hash function must produce 2b-bit output
-      if (curve.getField().getb() / 4 != hash.getDigestLength()) {
+      if (curve.getField().getb() / 4 != hash.getDigestLength())
         throw new IllegalArgumentException("Hash output is not 2b-bit");
-      }
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalArgumentException("Unsupported hash algorithm");
     }
@@ -78,16 +76,9 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (!(o
-        instanceof
-        org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec)) {
-      return false;
-    }
-    org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec s =
-        (org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec) o;
+    if (o == this) return true;
+    if (!(o instanceof EdDSAParameterSpec)) return false;
+    EdDSAParameterSpec s = (EdDSAParameterSpec) o;
     return hashAlgo.equals(s.getHashAlgorithm())
         && curve.equals(s.getCurve())
         && B.equals(s.getB());

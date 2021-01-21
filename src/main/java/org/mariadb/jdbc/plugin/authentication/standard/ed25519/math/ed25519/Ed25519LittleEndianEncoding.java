@@ -18,22 +18,6 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement
  * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class Ed25519LittleEndianEncoding extends Encoding {
-
-  static int load_3(byte[] in, int offset) {
-    int result = in[offset++] & 0xff;
-    result |= (in[offset++] & 0xff) << 8;
-    result |= (in[offset] & 0xff) << 16;
-    return result;
-  }
-
-  static long load_4(byte[] in, int offset) {
-    int result = in[offset++] & 0xff;
-    result |= (in[offset++] & 0xff) << 8;
-    result |= (in[offset++] & 0xff) << 16;
-    result |= in[offset] << 24;
-    return ((long) result) & 0xffffffffL;
-  }
-
   /**
    * Encodes a given field element in its 32 byte representation. This is done in two steps:
    *
@@ -192,6 +176,21 @@ public class Ed25519LittleEndianEncoding extends Encoding {
     s[30] = (byte) (h9 >> 10);
     s[31] = (byte) (h9 >> 18);
     return s;
+  }
+
+  static int load_3(byte[] in, int offset) {
+    int result = in[offset++] & 0xff;
+    result |= (in[offset++] & 0xff) << 8;
+    result |= (in[offset] & 0xff) << 16;
+    return result;
+  }
+
+  static long load_4(byte[] in, int offset) {
+    int result = in[offset++] & 0xff;
+    result |= (in[offset++] & 0xff) << 8;
+    result |= (in[offset++] & 0xff) << 16;
+    result |= in[offset] << 24;
+    return ((long) result) & 0xffffffffL;
   }
 
   /**

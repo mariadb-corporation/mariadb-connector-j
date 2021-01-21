@@ -231,7 +231,8 @@ public class ConnectionHelper {
           AuthenticationPlugin authenticationPlugin =
               AuthenticationPluginLoader.get(authSwitchPacket.getPlugin());
 
-          authenticationPlugin.initialize(credential.getPassword(), context.getSeed(), conf);
+          authenticationPlugin.initialize(
+              credential.getPassword(), authSwitchPacket.getSeed(), conf);
           buf = authenticationPlugin.process(writer, reader, context);
           break;
 

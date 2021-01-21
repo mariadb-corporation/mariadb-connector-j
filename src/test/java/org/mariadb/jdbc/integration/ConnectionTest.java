@@ -28,10 +28,7 @@ import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
@@ -735,5 +732,45 @@ public class ConnectionTest extends Common {
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
     sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
+  }
+
+  @Test
+  public void verificationEd25519AuthPlugin() throws Throwable {
+    Assumptions.assumeTrue(
+        System.getenv("MAXSCALE_TEST_DISABLE") == null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && isMariaDBServer()
+            && minVersion(10, 2, 0));
+    Statement stmt = sharedConn.createStatement();
+
+    try {
+      stmt.execute("INSTALL SONAME 'auth_ed25519'");
+    } catch (SQLException sqle) {
+      Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
+    }
+    stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+    try {
+      if (minVersion(10, 4, 0)) {
+        stmt.execute(
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+                + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
+      } else {
+        stmt.execute(
+            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
+                + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
+      }
+    } catch (SQLException sqle) {
+      // already existing
+    }
+    stmt.execute(
+        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+
+    try (Connection connection =
+        createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
+      // must have succeed
+      connection.getCatalog();
+    }
+    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
   }
 }

@@ -17,7 +17,6 @@ import java.io.Serializable;
  * @author str4d
  */
 public class Field implements Serializable {
-
   private static final long serialVersionUID = 8746587465875676L;
 
   public final FieldElement ZERO;
@@ -87,11 +86,8 @@ public class Field implements Serializable {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Field)) {
-      return false;
-    }
-    org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Field f =
-        (org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Field) obj;
+    if (!(obj instanceof Field)) return false;
+    Field f = (Field) obj;
     return b == f.b && q.equals(f.q);
   }
 }

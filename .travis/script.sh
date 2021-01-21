@@ -70,12 +70,12 @@ else
   # wait for docker initialisation
   ###################################################################################################################
 
-  for i in {30..0}; do
+  for i in {15..0}; do
     if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
         break
     fi
     echo 'data server still not active'
-    sleep 2
+    sleep 5
   done
 
   if [ "$i" = 0 ]; then

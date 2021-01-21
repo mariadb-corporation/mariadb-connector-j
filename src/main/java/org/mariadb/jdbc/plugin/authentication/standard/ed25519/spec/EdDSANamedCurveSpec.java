@@ -11,7 +11,7 @@ package org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec;
 
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Curve;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ScalarOps;
 
 /**
  * EdDSA Curve specification that can also be referred to by name.
@@ -19,8 +19,7 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Scal
  * @author str4d
  */
 public class EdDSANamedCurveSpec extends EdDSAParameterSpec {
-
-  private static final long serialVersionUID = -3500447861947430719L;
+  private static final long serialVersionUID = -4080022735829727073L;
   private final String name;
 
   public EdDSANamedCurveSpec(

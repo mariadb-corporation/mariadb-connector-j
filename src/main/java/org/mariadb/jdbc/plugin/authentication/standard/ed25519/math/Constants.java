@@ -12,7 +12,6 @@ package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.Utils;
 
 final class Constants {
-
   public static final byte[] ZERO =
       Utils.hexToBytes("0000000000000000000000000000000000000000000000000000000000000000");
   public static final byte[] ONE =

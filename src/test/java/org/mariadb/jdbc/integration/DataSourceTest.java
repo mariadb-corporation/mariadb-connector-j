@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.*;
 import java.sql.*;
 import javax.sql.DataSource;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbDataSource;
@@ -52,20 +53,21 @@ public class DataSourceTest extends Common {
 
   @Test
   public void switchUser() throws SQLException {
+    Assumptions.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
     Statement stmt = sharedConn.createStatement();
     if (minVersion(8, 0, 0)) {
-      stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'password'");
+      stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
       stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
     } else {
       stmt.execute("CREATE USER 'dsUser'@'%'");
-      stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%' IDENTIFIED BY 'password'");
+      stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
     stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl);
     try (Connection con1 = ds.getConnection()) {
 
-      try (Connection con2 = ds.getConnection("dsUser", "password")) {
+      try (Connection con2 = ds.getConnection("dsUser", "MySup8%rPassw@ord")) {
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
         ResultSet rs2 = con2.createStatement().executeQuery("SELECT 2");
         while (rs1.next()) {

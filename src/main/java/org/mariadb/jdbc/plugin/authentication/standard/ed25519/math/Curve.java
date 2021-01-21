@@ -17,7 +17,6 @@ import java.io.Serializable;
  * @author str4d
  */
 public class Curve implements Serializable {
-
   private static final long serialVersionUID = 4578920872509827L;
   private final Field f;
   private final FieldElement d;
@@ -26,6 +25,7 @@ public class Curve implements Serializable {
 
   private final GroupElement zeroP2;
   private final GroupElement zeroP3;
+  private final GroupElement zeroP3PrecomputedDouble;
   private final GroupElement zeroPrecomp;
 
   public Curve(Field f, byte[] d, FieldElement I) {
@@ -37,7 +37,8 @@ public class Curve implements Serializable {
     FieldElement zero = f.ZERO;
     FieldElement one = f.ONE;
     zeroP2 = GroupElement.p2(this, zero, one, one);
-    zeroP3 = GroupElement.p3(this, zero, one, one, zero);
+    zeroP3 = GroupElement.p3(this, zero, one, one, zero, false);
+    zeroP3PrecomputedDouble = GroupElement.p3(this, zero, one, one, zero, true);
     zeroPrecomp = GroupElement.precomp(this, one, one, zero);
   }
 
@@ -63,6 +64,8 @@ public class Curve implements Serializable {
         return zeroP2;
       case P3:
         return zeroP3;
+      case P3PrecomputedDouble:
+        return zeroP3PrecomputedDouble;
       case PRECOMP:
         return zeroPrecomp;
       default:
@@ -71,10 +74,7 @@ public class Curve implements Serializable {
   }
 
   public GroupElement createPoint(byte[] P, boolean precompute) {
-    GroupElement ge = new GroupElement(this, P);
-    if (precompute) {
-      ge.precompute(true);
-    }
+    GroupElement ge = new GroupElement(this, P, precompute);
     return ge;
   }
 
@@ -85,14 +85,9 @@ public class Curve implements Serializable {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) {
-      return true;
-    }
-    if (!(o instanceof org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Curve)) {
-      return false;
-    }
-    org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Curve c =
-        (org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Curve) o;
+    if (o == this) return true;
+    if (!(o instanceof Curve)) return false;
+    Curve c = (Curve) o;
     return f.equals(c.getField()) && d.equals(c.getD()) && I.equals(c.getI());
   }
 }

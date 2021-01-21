@@ -33,7 +33,7 @@ matrix:
       jdk: openjdk11
     - env: SKYSQL=true
       jdk: openjdk11
-    - env: SKYSQL_HA=true
+    - env: SKYSQL_HA=true MAXSCALE_TEST_DISABLE=true
       jdk: openjdk11
     - env: DB=mysql:5.7
       jdk: openjdk11

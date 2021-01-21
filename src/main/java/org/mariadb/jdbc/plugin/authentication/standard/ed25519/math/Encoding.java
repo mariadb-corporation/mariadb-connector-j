@@ -15,13 +15,10 @@ package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math;
  * @author str4d
  */
 public abstract class Encoding {
-
   protected Field f;
 
   public synchronized void setField(Field f) {
-    if (this.f != null) {
-      throw new IllegalStateException("already set");
-    }
+    if (this.f != null) throw new IllegalStateException("already set");
     this.f = f;
   }
 
