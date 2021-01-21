@@ -32,7 +32,7 @@ public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
 
   private final Configuration conf;
-  protected ReadableByteBuf buf;
+  protected ReadableByteBuf readBuf = new ReadableByteBuf(null, new byte[0], 0);
   protected ColumnDefinitionPacket[] columns;
 
   protected int length;
@@ -46,14 +46,9 @@ public abstract class RowDecoder {
     this.conf = conf;
   }
 
-  public void setRow(ReadableByteBuf buf) {
-    if (buf == null) {
-      this.buf = null;
-    } else {
-      this.buf = buf;
-      this.buf.pos(0);
-      index = -1;
-    }
+  public void setRow(byte[] buf) {
+    this.readBuf.buf(buf, buf == null ? 0 : buf.length).pos(0);
+    index = -1;
   }
 
   public abstract void setPosition(int position);
@@ -62,7 +57,7 @@ public abstract class RowDecoder {
 
   @SuppressWarnings("unchecked")
   public <T> T getValue(int index, Class<T> type, Calendar calendar) throws SQLException {
-    if (buf == null) {
+    if (readBuf.buf() == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
     if (index < 1 || index > columnCount) {
@@ -83,7 +78,7 @@ public abstract class RowDecoder {
 
     ColumnDefinitionPacket column = columns[index - 1];
     // type generic, return "natural" java type
-    if (Object.class == type || type == null) {
+    if (Object.class.equals(type) || type == null) {
       Codec<T> defaultCodec = ((Codec<T>) column.getDefaultCodec(conf));
       return decode(defaultCodec, calendar);
     }
@@ -93,16 +88,12 @@ public abstract class RowDecoder {
         return decode((Codec<T>) codec, calendar);
       }
     }
-    buf.skip(length);
+    readBuf.skip(length);
     throw new SQLException(
         String.format("Type %s not supported type for %s type", type, column.getType().name()));
   }
 
   public abstract boolean wasNull();
-
-  public <T> T getValue(int index, Codec<T> codec) throws SQLException {
-    return getValue(index, codec, null);
-  }
 
   /**
    * Get value.
@@ -118,7 +109,7 @@ public abstract class RowDecoder {
           String.format(
               "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
     }
-    if (buf == null) {
+    if (readBuf.buf() == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
 
@@ -129,15 +120,8 @@ public abstract class RowDecoder {
     return decode(codec, cal);
   }
 
-  public <T> T getValue(String label, Codec<T> codec) throws SQLException {
-    if (buf == null) {
-      throw new SQLDataException("wrong row position", "22023");
-    }
-    return getValue(getIndex(label), codec);
-  }
-
   public <T> T getValue(String label, Codec<T> codec, Calendar cal) throws SQLException {
-    if (buf == null) {
+    if (readBuf.buf() == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
     return getValue(getIndex(label), codec, cal);

@@ -81,7 +81,7 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
    */
   public static PublicKey readPublicKeyFromSocket(PacketReader reader, Context context)
       throws SQLException, IOException {
-    ReadableByteBuf buf = reader.readPacket(true);
+    ReadableByteBuf buf = reader.readReadablePacket(true);
 
     switch (buf.getByte(0)) {
       case (byte) 0xFF:
@@ -238,6 +238,6 @@ public class Sha256PasswordPlugin implements AuthenticationPlugin {
       }
     }
 
-    return in.readPacket(true);
+    return in.readReadablePacket(true);
   }
 }

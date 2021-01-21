@@ -8,7 +8,6 @@ import java.sql.*;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.codec.BinaryRowDecoder;
@@ -422,7 +421,7 @@ public class UpdatableResult extends CompleteResult {
         if (context.getVersion().isMariaDBServer()
             && context.getVersion().versionGreaterOrEqual(10, 5, 1)) {
           if (insertRs.next()) {
-            ReadableByteBuf rowByte = ((Result) insertRs).getCurrentRowData();
+            byte[] rowByte = ((Result) insertRs).getCurrentRowData();
             addRowData(rowByte);
           }
         } else if (isAutoincrementPk) {
@@ -559,7 +558,7 @@ public class UpdatableResult extends CompleteResult {
             row instanceof BinaryRowDecoder);
   }
 
-  private ReadableByteBuf refreshRawData() throws SQLException {
+  private byte[] refreshRawData() throws SQLException {
     int fieldsPrimaryIndex = 0;
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
       for (int pos = 0; pos < metadataList.length; pos++) {

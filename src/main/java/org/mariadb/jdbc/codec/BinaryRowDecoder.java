@@ -24,7 +24,6 @@ package org.mariadb.jdbc.codec;
 import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public class BinaryRowDecoder extends RowDecoder {
@@ -37,19 +36,17 @@ public class BinaryRowDecoder extends RowDecoder {
 
   @Override
   public <T> T decode(Codec<T> codec, Calendar cal) throws SQLException {
-    return codec.decodeBinary(buf, length, columns[index], cal);
+    return codec.decodeBinary(readBuf, length, columns[index], cal);
   }
 
   @Override
-  public void setRow(ReadableByteBuf buf) {
+  public void setRow(byte[] buf) {
     if (buf != null) {
-      this.buf = buf;
-      buf.pos(1); // skip 0x00 header
+      this.readBuf.buf(buf, buf.length).pos(1); // skip 0x00 header
       nullBitmap = new byte[(columnCount + 9) / 8];
-      buf.readBytes(nullBitmap);
-      this.buf.mark();
+      this.readBuf.readBytes(nullBitmap).mark();
     } else {
-      this.buf = null;
+      this.readBuf.buf(null, 0);
     }
     index = -1;
   }
@@ -69,7 +66,7 @@ public class BinaryRowDecoder extends RowDecoder {
 
     if (index >= newIndex) {
       index = 0;
-      buf.reset();
+      readBuf.reset();
     } else {
       index++;
     }
@@ -80,44 +77,44 @@ public class BinaryRowDecoder extends RowDecoder {
         switch (columns[index].getType()) {
           case BIGINT:
           case DOUBLE:
-            buf.skip(8);
+            readBuf.skip(8);
             break;
 
           case INTEGER:
           case MEDIUMINT:
           case FLOAT:
-            buf.skip(4);
+            readBuf.skip(4);
             break;
 
           case SMALLINT:
           case YEAR:
-            buf.skip(2);
+            readBuf.skip(2);
             break;
 
           case TINYINT:
-            buf.skip(1);
+            readBuf.skip(1);
             break;
 
           default:
-            int type = this.buf.readUnsignedByte();
+            int type = this.readBuf.readUnsignedByte();
             switch (type) {
               case 251:
                 break;
 
               case 252:
-                this.buf.skip(this.buf.readUnsignedShort());
+                this.readBuf.skip(this.readBuf.readUnsignedShort());
                 break;
 
               case 253:
-                this.buf.skip(this.buf.readUnsignedMedium());
+                this.readBuf.skip(this.readBuf.readUnsignedMedium());
                 break;
 
               case 254:
-                this.buf.skip((int) this.buf.readLong());
+                this.readBuf.skip((int) this.readBuf.readLong());
                 break;
 
               default:
-                this.buf.skip(type);
+                this.readBuf.skip(type);
                 break;
             }
             break;
@@ -155,7 +152,7 @@ public class BinaryRowDecoder extends RowDecoder {
 
       default:
         // field with variable length
-        int len = this.buf.readUnsignedByte();
+        int len = this.readBuf.readUnsignedByte();
         switch (len) {
           case 251:
             // null length field
@@ -166,17 +163,17 @@ public class BinaryRowDecoder extends RowDecoder {
 
           case 252:
             // length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
-            length = this.buf.readUnsignedShort();
+            length = this.readBuf.readUnsignedShort();
             return;
 
           case 253:
             // length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
-            length = this.buf.readUnsignedMedium();
+            length = this.readBuf.readUnsignedMedium();
             return;
 
           case 254:
             // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
-            length = (int) this.buf.readLong();
+            length = (int) this.readBuf.readLong();
             return;
 
           default:

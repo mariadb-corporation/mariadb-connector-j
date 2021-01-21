@@ -71,7 +71,7 @@ public final class PreparePacket implements ClientMessage {
       boolean traceEnable)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReadablePacket(true, traceEnable);
     switch (buf.getUnsignedByte()) {
         // *********************************************************************************************************
         // * ERROR response

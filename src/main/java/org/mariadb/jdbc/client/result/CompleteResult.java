@@ -28,7 +28,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.codec.DataType;
@@ -60,7 +59,7 @@ public class CompleteResult extends Result {
         resultSetType,
         closeOnCompletion,
         traceEnable);
-    this.data = new ReadableByteBuf[10];
+    this.data = new byte[10][];
     if (maxRows > 0) {
       while (readNext() && dataSize < maxRows) {}
       if (!loaded) skipRemaining();
@@ -70,8 +69,7 @@ public class CompleteResult extends Result {
     loaded = true;
   }
 
-  public CompleteResult(
-      ColumnDefinitionPacket[] metadataList, ReadableByteBuf[] data, Context context) {
+  public CompleteResult(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
     super(metadataList, data, context);
   }
 
@@ -103,7 +101,7 @@ public class CompleteResult extends Result {
       columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i]);
     }
 
-    List<ReadableByteBuf> rows = new ArrayList<>();
+    List<byte[]> rows = new ArrayList<>();
     for (String[] rowData : data) {
       assert rowData.length == columnNameLength;
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -132,9 +130,9 @@ public class CompleteResult extends Result {
         }
       }
       byte[] bb = baos.toByteArray();
-      rows.add(new ReadableByteBuf(null, bb, bb.length));
+      rows.add(bb);
     }
-    return new CompleteResult(columns, rows.toArray(new ReadableByteBuf[0]), context);
+    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context);
   }
 
   @Override

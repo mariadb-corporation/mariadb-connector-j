@@ -27,8 +27,8 @@ import org.mariadb.jdbc.util.MutableInt;
 
 public final class ReadableByteBuf {
   private final MutableInt sequence;
-  private final int limit;
-  private final byte[] buf;
+  private int limit;
+  private byte[] buf;
   private int pos;
   private int mark;
 
@@ -50,6 +50,12 @@ public final class ReadableByteBuf {
 
   public byte[] buf() {
     return buf;
+  }
+
+  public ReadableByteBuf buf(byte[] buf, int limit) {
+    this.buf = buf;
+    this.limit = limit;
+    return this;
   }
 
   public ReadableByteBuf pos(int pos) {

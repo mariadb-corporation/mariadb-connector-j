@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
@@ -63,7 +62,7 @@ public class StreamingResult extends Result {
     this.lock = lock;
     this.dataFetchTime = 0;
     this.fetchSize = fetchSize;
-    this.data = new ReadableByteBuf[Math.max(fetchSize, 10)];
+    this.data = new byte[Math.max(fetchSize, 10)][];
 
     addStreamingValue();
   }

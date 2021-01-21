@@ -217,7 +217,7 @@ public class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readReadablePacket(false);
 
     authentication_loop:
     while (true) {

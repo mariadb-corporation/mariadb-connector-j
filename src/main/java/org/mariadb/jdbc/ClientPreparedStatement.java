@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.sql.StatementEvent;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.message.client.*;
@@ -209,8 +208,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       if (currResult instanceof Result) return (Result) currResult;
     }
-    return new CompleteResult(
-        new ColumnDefinitionPacket[0], new ReadableByteBuf[0], con.getContext());
+    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
   }
 
   /**

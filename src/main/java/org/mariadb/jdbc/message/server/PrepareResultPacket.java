@@ -48,18 +48,18 @@ public class PrepareResultPacket implements Completion {
     this.columns = new ColumnDefinitionPacket[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] = new ColumnDefinitionPacket(reader.readPacket(false, trace));
+        parameters[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, trace));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.readReadablePacket(true, trace);
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
-        columns[i] = new ColumnDefinitionPacket(reader.readPacket(false, trace));
+        columns[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, trace));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.readReadablePacket(true, trace);
       }
     }
   }

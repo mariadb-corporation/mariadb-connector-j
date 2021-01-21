@@ -114,7 +114,7 @@ public class ClientImpl implements Client, AutoCloseable {
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       final InitialHandshakePacket handshake =
-          InitialHandshakePacket.decode(reader.readPacket(true));
+          InitialHandshakePacket.decode(reader.readReadablePacket(true));
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       this.context =
           conf.transactionReplay()

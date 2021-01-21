@@ -25,7 +25,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.DataType;
@@ -102,8 +101,7 @@ public class Statement implements java.sql.Statement {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
     if (currResult instanceof Result) return (Result) currResult;
-    return new CompleteResult(
-        new ColumnDefinitionPacket[0], new ReadableByteBuf[0], con.getContext());
+    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
   }
 
   /**
@@ -829,8 +827,7 @@ public class Statement implements java.sql.Statement {
           "insert_id", DataType.BIGINT, new String[] {lastInsertId}, con.getContext());
     }
 
-    return new CompleteResult(
-        new ColumnDefinitionPacket[0], new ReadableByteBuf[0], con.getContext());
+    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
   }
 
   /**

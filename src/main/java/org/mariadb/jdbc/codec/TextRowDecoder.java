@@ -34,7 +34,7 @@ public class TextRowDecoder extends RowDecoder {
 
   @Override
   public <T> T decode(Codec<T> codec, Calendar cal) throws SQLException {
-    return codec.decodeText(buf, length, columns[index], cal);
+    return codec.decodeText(readBuf, length, columns[index], cal);
   }
 
   @Override
@@ -51,46 +51,46 @@ public class TextRowDecoder extends RowDecoder {
   public void setPosition(int newIndex) {
     if (index >= newIndex) {
       index = 0;
-      buf.pos(0);
+      readBuf.pos(0);
     } else {
       index++;
     }
 
     while (index < newIndex) {
-      short type = this.buf.readUnsignedByte();
+      short type = this.readBuf.readUnsignedByte();
       switch (type) {
         case 252:
-          buf.skip(buf.readUnsignedShort());
+          readBuf.skip(readBuf.readUnsignedShort());
           break;
         case 253:
-          buf.skip(buf.readUnsignedMedium());
+          readBuf.skip(readBuf.readUnsignedMedium());
           break;
         case 254:
-          buf.skip((int) (4 + buf.readUnsignedInt()));
+          readBuf.skip((int) (4 + readBuf.readUnsignedInt()));
           break;
         case 251:
           break;
         default:
-          buf.skip(type);
+          readBuf.skip(type);
           break;
       }
       index++;
     }
 
-    short type = this.buf.readUnsignedByte();
+    short type = this.readBuf.readUnsignedByte();
     switch (type) {
       case 251:
         length = NULL_LENGTH;
         break;
       case 252:
-        length = buf.readUnsignedShort();
+        length = readBuf.readUnsignedShort();
         break;
       case 253:
-        length = buf.readUnsignedMedium();
+        length = readBuf.readUnsignedMedium();
         break;
       case 254:
-        length = (int) buf.readUnsignedInt();
-        buf.skip(4);
+        length = (int) readBuf.readUnsignedInt();
+        readBuf.skip(4);
         break;
       default:
         length = type;

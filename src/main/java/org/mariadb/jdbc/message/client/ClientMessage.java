@@ -68,7 +68,7 @@ public interface ClientMessage {
       boolean traceEnable)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReadablePacket(true, traceEnable);
 
     switch (buf.getUnsignedByte()) {
 
@@ -99,12 +99,12 @@ public interface ClientMessage {
         // read columns information's
         ColumnDefinitionPacket[] ci = new ColumnDefinitionPacket[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
-          ci[i] = new ColumnDefinitionPacket(reader.readPacket(false, traceEnable));
+          ci[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, traceEnable));
         }
 
         if (!context.isEofDeprecated()) {
           // skip intermediate EOF
-          reader.readPacket(true, traceEnable);
+          reader.readReadablePacket(true, traceEnable);
         }
 
         // read resultSet

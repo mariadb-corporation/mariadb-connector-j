@@ -56,7 +56,7 @@ public abstract class Result implements ResultSet, Completion {
   protected ColumnDefinitionPacket[] metadataList;
   protected RowDecoder row;
   protected int dataSize = 0;
-  protected ReadableByteBuf[] data;
+  protected byte[][] data;
   protected boolean loaded;
   protected boolean outputParameter;
   protected int rowPointer = -1;
@@ -92,7 +92,7 @@ public abstract class Result implements ResultSet, Completion {
             : new TextRowDecoder(this.maxIndex, metadataList, context.getConf());
   }
 
-  public Result(ColumnDefinitionPacket[] metadataList, ReadableByteBuf[] data, Context context) {
+  public Result(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
@@ -109,32 +109,33 @@ public abstract class Result implements ResultSet, Completion {
 
   @SuppressWarnings("fallthrough")
   protected boolean readNext() throws SQLException, IOException {
-    ReadableByteBuf buf = reader.readPacket(false, traceEnable);
-    switch (buf.getByte()) {
+    byte[] buf = reader.readPacket(false, traceEnable);
+    switch (buf[0]) {
       case (byte) 0xFF:
         loaded = true;
-        ErrorPacket errorPacket = new ErrorPacket(buf, context);
+        ErrorPacket errorPacket =
+            new ErrorPacket(new ReadableByteBuf(null, buf, buf.length), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
-        if ((context.isEofDeprecated() && buf.readableBytes() < 0xffffff)
-            || (!context.isEofDeprecated() && buf.readableBytes() < 8)) {
-
-          buf.skip(); // skip header
+        if ((context.isEofDeprecated() && buf.length < 0xffffff)
+            || (!context.isEofDeprecated() && buf.length < 8)) {
+          ReadableByteBuf readBuf = new ReadableByteBuf(null, buf, buf.length);
+          readBuf.skip(); // skip header
           int serverStatus;
           int warnings;
 
           if (!context.isEofDeprecated()) {
             // EOF_Packet
-            warnings = buf.readUnsignedShort();
-            serverStatus = buf.readUnsignedShort();
+            warnings = readBuf.readUnsignedShort();
+            serverStatus = readBuf.readUnsignedShort();
           } else {
             // OK_Packet with a 0xFE header
-            buf.skip(buf.readLengthNotNull()); // skip update count
-            buf.skip(buf.readLengthNotNull()); // skip insert id
-            serverStatus = buf.readUnsignedShort();
-            warnings = buf.readUnsignedShort();
+            readBuf.skip(readBuf.readLengthNotNull()); // skip update count
+            readBuf.skip(readBuf.readLengthNotNull()); // skip insert id
+            serverStatus = readBuf.readUnsignedShort();
+            warnings = readBuf.readUnsignedShort();
           }
           outputParameter = (serverStatus & ServerStatus.PS_OUT_PARAMETERS) != 0;
           context.setServerStatus(serverStatus);
@@ -157,7 +158,7 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("fallthrough")
   protected void skipRemaining() throws SQLException, IOException {
     while (true) {
-      ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+      ReadableByteBuf buf = reader.readReadablePacket(true, traceEnable);
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;
@@ -236,18 +237,18 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
-  protected ReadableByteBuf getCurrentRowData() {
+  protected byte[] getCurrentRowData() {
     return data[0];
   }
 
-  protected void addRowData(ReadableByteBuf buf) {
+  protected void addRowData(byte[] buf) {
     if (dataSize + 1 >= data.length) {
       growDataArray();
     }
     data[dataSize++] = buf;
   }
 
-  protected void updateRowData(ReadableByteBuf rawData) {
+  protected void updateRowData(byte[] rawData) {
     data[rowPointer] = rawData;
     row.setRow(rawData);
   }
@@ -259,62 +260,62 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public String getString(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StringCodec.INSTANCE);
+    return row.getValue(columnIndex, StringCodec.INSTANCE, null);
   }
 
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
-    Boolean b = row.getValue(columnIndex, BooleanCodec.INSTANCE);
+    Boolean b = row.getValue(columnIndex, BooleanCodec.INSTANCE, null);
     return b != null && b;
   }
 
   @Override
   public byte getByte(int columnIndex) throws SQLException {
-    Byte b = row.getValue(columnIndex, ByteCodec.INSTANCE);
+    Byte b = row.getValue(columnIndex, ByteCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public short getShort(int columnIndex) throws SQLException {
-    Short b = row.getValue(columnIndex, ShortCodec.INSTANCE);
+    Short b = row.getValue(columnIndex, ShortCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public int getInt(int columnIndex) throws SQLException {
-    Integer b = row.getValue(columnIndex, IntCodec.INSTANCE);
+    Integer b = row.getValue(columnIndex, IntCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public long getLong(int columnIndex) throws SQLException {
-    Long b = row.getValue(columnIndex, LongCodec.INSTANCE);
+    Long b = row.getValue(columnIndex, LongCodec.INSTANCE, null);
     return (b == null) ? 0L : b;
   }
 
   @Override
   public float getFloat(int columnIndex) throws SQLException {
-    Float b = row.getValue(columnIndex, FloatCodec.INSTANCE);
+    Float b = row.getValue(columnIndex, FloatCodec.INSTANCE, null);
     return (b == null) ? 0F : b;
   }
 
   @Override
   public double getDouble(int columnIndex) throws SQLException {
-    Double b = row.getValue(columnIndex, DoubleCodec.INSTANCE);
+    Double b = row.getValue(columnIndex, DoubleCodec.INSTANCE, null);
     return (b == null) ? 0D : b;
   }
 
   @Override
   @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-    BigDecimal d = row.getValue(columnIndex, BigDecimalCodec.INSTANCE);
+    BigDecimal d = row.getValue(columnIndex, BigDecimalCodec.INSTANCE, null);
     if (d == null) return null;
     return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
   }
 
   @Override
   public byte[] getBytes(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, ByteArrayCodec.INSTANCE);
+    return row.getValue(columnIndex, ByteArrayCodec.INSTANCE, null);
   }
 
   @Override
@@ -334,78 +335,78 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StreamCodec.INSTANCE);
+    return row.getValue(columnIndex, StreamCodec.INSTANCE, null);
   }
 
   @Override
   @Deprecated
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StreamCodec.INSTANCE);
+    return row.getValue(columnIndex, StreamCodec.INSTANCE, null);
   }
 
   @Override
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StreamCodec.INSTANCE);
+    return row.getValue(columnIndex, StreamCodec.INSTANCE, null);
   }
 
   @Override
   public String getString(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, StringCodec.INSTANCE);
+    return row.getValue(columnLabel, StringCodec.INSTANCE, null);
   }
 
   @Override
   public boolean getBoolean(String columnLabel) throws SQLException {
-    Boolean b = row.getValue(columnLabel, BooleanCodec.INSTANCE);
+    Boolean b = row.getValue(columnLabel, BooleanCodec.INSTANCE, null);
     return b != null && b;
   }
 
   @Override
   public byte getByte(String columnLabel) throws SQLException {
-    Byte b = row.getValue(columnLabel, ByteCodec.INSTANCE);
+    Byte b = row.getValue(columnLabel, ByteCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public short getShort(String columnLabel) throws SQLException {
-    Short b = row.getValue(columnLabel, ShortCodec.INSTANCE);
+    Short b = row.getValue(columnLabel, ShortCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public int getInt(String columnLabel) throws SQLException {
-    Integer b = row.getValue(columnLabel, IntCodec.INSTANCE);
+    Integer b = row.getValue(columnLabel, IntCodec.INSTANCE, null);
     return (b == null) ? 0 : b;
   }
 
   @Override
   public long getLong(String columnLabel) throws SQLException {
-    Long b = row.getValue(columnLabel, LongCodec.INSTANCE);
+    Long b = row.getValue(columnLabel, LongCodec.INSTANCE, null);
     return (b == null) ? 0L : b;
   }
 
   @Override
   public float getFloat(String columnLabel) throws SQLException {
-    Float b = row.getValue(columnLabel, FloatCodec.INSTANCE);
+    Float b = row.getValue(columnLabel, FloatCodec.INSTANCE, null);
     return (b == null) ? 0F : b;
   }
 
   @Override
   public double getDouble(String columnLabel) throws SQLException {
-    Double b = row.getValue(columnLabel, DoubleCodec.INSTANCE);
+    Double b = row.getValue(columnLabel, DoubleCodec.INSTANCE, null);
     return (b == null) ? 0D : b;
   }
 
   @Override
   @Deprecated
   public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-    BigDecimal d = row.getValue(columnLabel, BigDecimalCodec.INSTANCE);
+    BigDecimal d = row.getValue(columnLabel, BigDecimalCodec.INSTANCE, null);
     if (d == null) return null;
     return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
   }
 
   @Override
   public byte[] getBytes(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, ByteArrayCodec.INSTANCE);
+    return row.getValue(columnLabel, ByteArrayCodec.INSTANCE, null);
   }
 
   @Override
@@ -425,18 +426,18 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public InputStream getAsciiStream(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, StreamCodec.INSTANCE);
+    return row.getValue(columnLabel, StreamCodec.INSTANCE, null);
   }
 
   @Override
   @Deprecated
   public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, StreamCodec.INSTANCE);
+    return row.getValue(columnLabel, StreamCodec.INSTANCE, null);
   }
 
   @Override
   public InputStream getBinaryStream(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, StreamCodec.INSTANCE);
+    return row.getValue(columnLabel, StreamCodec.INSTANCE, null);
   }
 
   @Override
@@ -487,22 +488,22 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public Reader getCharacterStream(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, ReaderCodec.INSTANCE);
+    return row.getValue(columnIndex, ReaderCodec.INSTANCE, null);
   }
 
   @Override
   public Reader getCharacterStream(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, ReaderCodec.INSTANCE);
+    return row.getValue(columnLabel, ReaderCodec.INSTANCE, null);
   }
 
   @Override
   public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, BigDecimalCodec.INSTANCE);
+    return row.getValue(columnIndex, BigDecimalCodec.INSTANCE, null);
   }
 
   @Override
   public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, BigDecimalCodec.INSTANCE);
+    return row.getValue(columnLabel, BigDecimalCodec.INSTANCE, null);
   }
 
   protected void checkClose() throws SQLException {
@@ -850,12 +851,12 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public Blob getBlob(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, BlobCodec.INSTANCE);
+    return row.getValue(columnIndex, BlobCodec.INSTANCE, null);
   }
 
   @Override
   public Clob getClob(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, ClobCodec.INSTANCE);
+    return row.getValue(columnIndex, ClobCodec.INSTANCE, null);
   }
 
   @Override
@@ -876,12 +877,12 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public Blob getBlob(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, BlobCodec.INSTANCE);
+    return row.getValue(columnLabel, BlobCodec.INSTANCE, null);
   }
 
   @Override
   public Clob getClob(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, ClobCodec.INSTANCE);
+    return row.getValue(columnLabel, ClobCodec.INSTANCE, null);
   }
 
   @Override
@@ -921,7 +922,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public URL getURL(int columnIndex) throws SQLException {
-    String s = row.getValue(columnIndex, StringCodec.INSTANCE);
+    String s = row.getValue(columnIndex, StringCodec.INSTANCE, null);
     if (s == null) return null;
     try {
       return new URL(s);
@@ -1027,12 +1028,12 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public NClob getNClob(int columnIndex) throws SQLException {
-    return (NClob) row.getValue(columnIndex, ClobCodec.INSTANCE);
+    return (NClob) row.getValue(columnIndex, ClobCodec.INSTANCE, null);
   }
 
   @Override
   public NClob getNClob(String columnLabel) throws SQLException {
-    return (NClob) row.getValue(columnLabel, ClobCodec.INSTANCE);
+    return (NClob) row.getValue(columnLabel, ClobCodec.INSTANCE, null);
   }
 
   @Override
@@ -1057,22 +1058,22 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public String getNString(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StringCodec.INSTANCE);
+    return row.getValue(columnIndex, StringCodec.INSTANCE, null);
   }
 
   @Override
   public String getNString(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, StringCodec.INSTANCE);
+    return row.getValue(columnLabel, StringCodec.INSTANCE, null);
   }
 
   @Override
   public Reader getNCharacterStream(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, ReaderCodec.INSTANCE);
+    return row.getValue(columnIndex, ReaderCodec.INSTANCE, null);
   }
 
   @Override
   public Reader getNCharacterStream(String columnLabel) throws SQLException {
-    return row.getValue(columnLabel, ReaderCodec.INSTANCE);
+    return row.getValue(columnLabel, ReaderCodec.INSTANCE, null);
   }
 
   @Override
