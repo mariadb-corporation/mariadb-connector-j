@@ -285,7 +285,7 @@ public class TimestampCodec implements Codec<Timestamp> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Timestamp val, Calendar providedCal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
@@ -299,10 +299,10 @@ public class TimestampCodec implements Codec<Timestamp> {
 
   @Override
   public void encodeBinary(
-      PacketWriter encoder, Context context, Timestamp value, Calendar providedCal)
+      PacketWriter encoder, Context context, Object value, Calendar providedCal)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(value.getTime());
+    cal.setTimeInMillis(((Timestamp)value).getTime());
     if (cal.get(Calendar.MILLISECOND) == 0) {
       encoder.writeByte(7); // length
       encoder.writeShort((short) cal.get(Calendar.YEAR));
@@ -323,7 +323,7 @@ public class TimestampCodec implements Codec<Timestamp> {
     }
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DATETIME;
+  public int getBinaryEncodeType() {
+    return DataType.DATETIME.get();
   }
 }

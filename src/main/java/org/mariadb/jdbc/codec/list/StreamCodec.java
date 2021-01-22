@@ -105,19 +105,20 @@ public class StreamCodec implements Codec<InputStream> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, InputStream value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
     int len;
+    InputStream stream = (InputStream) value;
 
     if (maxLen == null) {
-      while ((len = value.read(array)) > 0) {
+      while ((len = stream.read(array)) > 0) {
         encoder.writeBytesEscaped(
             array, len, (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
       }
     } else {
-      while ((len = value.read(array)) > 0 && maxLen > 0) {
+      while ((len = stream.read(array)) > 0 && maxLen > 0) {
         encoder.writeBytesEscaped(
             array,
             Math.min(len, maxLen.intValue()),
@@ -129,15 +130,16 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, InputStream value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
     // length is not known
     byte[] blobBytes = new byte[4096];
     int pos = 0;
     byte[] array = new byte[4096];
+    InputStream stream = (InputStream) value;
 
     int len;
-    while ((len = value.read(array)) > 0) {
+    while ((len = stream.read(array)) > 0) {
       if (blobBytes.length - (pos + 1) < len) {
         byte[] newBlobBytes = new byte[blobBytes.length + 65536];
         System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
@@ -191,8 +193,8 @@ public class StreamCodec implements Codec<InputStream> {
     return val;
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.BLOB;
+  public int getBinaryEncodeType() {
+    return DataType.BLOB.get();
   }
 
   public boolean canEncodeLongData() {

@@ -184,10 +184,10 @@ public class TimeCodec implements Codec<Time> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Time val, Calendar providedCal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss.SSS");
     sdf.setTimeZone(cal.getTimeZone());
     String dateString = sdf.format(val);
 
@@ -197,10 +197,10 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Time value, Calendar providedCal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar providedCal)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTime(value);
+    cal.setTime((Time)value);
     cal.set(Calendar.DAY_OF_MONTH, 1);
     if (cal.get(Calendar.MILLISECOND) > 0) {
       encoder.writeByte((byte) 12);
@@ -220,7 +220,7 @@ public class TimeCodec implements Codec<Time> {
     }
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.TIME;
+  public int getBinaryEncodeType() {
+    return DataType.TIME.get();
   }
 }

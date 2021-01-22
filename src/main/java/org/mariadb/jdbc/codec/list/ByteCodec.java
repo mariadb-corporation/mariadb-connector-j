@@ -242,18 +242,18 @@ public class ByteCodec implements Codec<Byte> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Byte value, Calendar cal, Long maxLength)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeAscii(Integer.toString((int) value));
+    encoder.writeAscii(Integer.toString((Byte) value));
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Byte value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeByte(value);
+    encoder.writeByte((byte)value);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.TINYINT;
+  public int getBinaryEncodeType() {
+    return DataType.TINYINT.get();
   }
 }

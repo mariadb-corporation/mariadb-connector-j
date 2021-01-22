@@ -86,43 +86,44 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, ZonedDateTime val, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
       throws IOException {
+    ZonedDateTime zdt = (ZonedDateTime) val;
     encoder.writeByte('\'');
     encoder.writeAscii(
-        val.format(
-            val.getNano() != 0
+            zdt.format(
+                    zdt.getNano() != 0
                 ? LocalDateTimeCodec.TIMESTAMP_FORMAT
                 : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     encoder.writeByte('\'');
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, ZonedDateTime value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-
-    int nano = value.getNano();
+    ZonedDateTime zdt = (ZonedDateTime) value;
+    int nano = zdt.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 11);
-      encoder.writeShort((short) value.get(ChronoField.YEAR));
-      encoder.writeByte(value.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(value.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(value.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(value.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(value.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) zdt.get(ChronoField.YEAR));
+      encoder.writeByte(zdt.get(ChronoField.MONTH_OF_YEAR));
+      encoder.writeByte(zdt.get(ChronoField.DAY_OF_MONTH));
+      encoder.writeByte(zdt.get(ChronoField.HOUR_OF_DAY));
+      encoder.writeByte(zdt.get(ChronoField.MINUTE_OF_HOUR));
+      encoder.writeByte(zdt.get(ChronoField.SECOND_OF_MINUTE));
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 7);
-      encoder.writeShort((short) value.get(ChronoField.YEAR));
-      encoder.writeByte(value.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(value.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(value.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(value.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(value.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) zdt.get(ChronoField.YEAR));
+      encoder.writeByte(zdt.get(ChronoField.MONTH_OF_YEAR));
+      encoder.writeByte(zdt.get(ChronoField.DAY_OF_MONTH));
+      encoder.writeByte(zdt.get(ChronoField.HOUR_OF_DAY));
+      encoder.writeByte(zdt.get(ChronoField.MINUTE_OF_HOUR));
+      encoder.writeByte(zdt.get(ChronoField.SECOND_OF_MINUTE));
     }
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DATETIME;
+  public int getBinaryEncodeType() {
+    return DataType.DATETIME.get();
   }
 }

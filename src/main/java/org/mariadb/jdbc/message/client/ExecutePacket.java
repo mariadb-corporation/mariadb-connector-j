@@ -26,7 +26,6 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
@@ -62,7 +61,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     // send long data value in separate packet
     for (int i = 0; i < parameterCount; i++) {
       Parameter<?> p = parameters.get(i);
-      if (p != null && !p.isNull() && p.canEncodeLongData()) {
+      if (!p.isNull() && p.canEncodeLongData()) {
         new LongDataPacket(statementId, p, i, command, prep)
             .encode(writer, context, newPrepareResult);
       }
@@ -76,16 +75,11 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
     if (parameterCount > 0) {
 
-      // create null bitmap
+      // create null bitmap and reserve place in writer
       int nullCount = (parameterCount + 7) / 8;
       byte[] nullBitsBuffer = new byte[nullCount];
-      for (int i = 0; i < parameterCount; i++) {
-        Parameter<?> p = parameters.get(i);
-        if (p == null || p.isNull()) {
-          nullBitsBuffer[i / 8] |= (1 << (i % 8));
-        }
-      }
-      writer.writeBytes(nullBitsBuffer);
+      int initialPos = writer.pos();
+      writer.pos(initialPos + nullCount);
 
       // Send Parameter type flag
       writer.writeByte(0x01);
@@ -93,14 +87,20 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       // Store types of parameters in first in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {
         Parameter<?> p = parameters.get(i);
-        writer.writeByte((p == null) ? DataType.VARCHAR.get() : p.getBinaryEncodeType().get());
+        writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
+        if (p.isNull()) {
+          nullBitsBuffer[i / 8] |= (1 << (i % 8));
+        }
       }
+
+      // write nullBitsBuffer in reserved place
+      writer.writeBytesAtPos(nullBitsBuffer, initialPos);
 
       // send not null parameter, not long data
       for (int i = 0; i < parameterCount; i++) {
         Parameter<?> p = parameters.get(i);
-        if (p != null && !p.isNull() && !p.canEncodeLongData()) {
+        if (!p.isNull() && !p.canEncodeLongData()) {
           p.encodeBinary(writer, context);
         }
       }

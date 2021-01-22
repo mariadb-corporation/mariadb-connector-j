@@ -16,17 +16,20 @@ import org.mariadb.jdbc.Statement;
 
 public class FloatCodecTest extends CommonCodecTest {
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE FloatCodec");
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS FloatCodec");
+    stmt.execute("DROP TABLE IF EXISTS FloatCodec2");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS FloatCodec");
-    stmt.execute("DROP TABLE IF EXISTS FloatCodecUnsigned");
     stmt.execute("CREATE TABLE FloatCodec (t1 FLOAT, t2 FLOAT, t3 FLOAT, t4 FLOAT)");
     stmt.execute("INSERT INTO FloatCodec VALUES (0, 105.21, -1.6, null)");
+    stmt.execute("CREATE TABLE FloatCodec2 (t1 FLOAT)");
+    stmt.execute("FLUSH TABLES");
   }
 
   private ResultSet get() throws SQLException {
@@ -38,9 +41,9 @@ public class FloatCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepare() throws SQLException {
+  private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
-        sharedConn.prepareStatement(
+        con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from FloatCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
@@ -57,7 +60,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectPrepare() throws SQLException {
-    getObject(getPrepare());
+    getObject(getPrepare(sharedConn));
+    getObject(getPrepare(sharedConnBinary));
   }
 
   public void getObject(ResultSet rs) throws SQLException {
@@ -79,7 +83,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectTypePrepare() throws Exception {
-    getObjectType(getPrepare());
+    getObjectType(getPrepare(sharedConn));
+    getObjectType(getPrepare(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
@@ -116,7 +121,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare());
+    getString(getPrepare(sharedConn));
+    getString(getPrepare(sharedConnBinary));
   }
 
   public void getString(ResultSet rs) throws SQLException {
@@ -139,7 +145,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getNStringPrepare() throws SQLException {
-    getNString(getPrepare());
+    getNString(getPrepare(sharedConn));
+    getNString(getPrepare(sharedConnBinary));
   }
 
   public void getNString(ResultSet rs) throws SQLException {
@@ -162,7 +169,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBooleanPrepare() throws SQLException {
-    getBoolean(getPrepare());
+    getBoolean(getPrepare(sharedConn));
+    getBoolean(getPrepare(sharedConnBinary));
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
@@ -184,7 +192,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytePrepare() throws SQLException {
-    getByte(getPrepare());
+    getByte(getPrepare(sharedConn));
+    getByte(getPrepare(sharedConnBinary));
   }
 
   public void getByte(ResultSet rs) throws SQLException {
@@ -206,7 +215,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getShortPrepare() throws SQLException {
-    getShort(getPrepare());
+    getShort(getPrepare(sharedConn));
+    getShort(getPrepare(sharedConnBinary));
   }
 
   public void getShort(ResultSet rs) throws SQLException {
@@ -228,7 +238,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getIntPrepare() throws SQLException {
-    getInt(getPrepare());
+    getInt(getPrepare(sharedConn));
+    getInt(getPrepare(sharedConnBinary));
   }
 
   public void getInt(ResultSet rs) throws SQLException {
@@ -250,7 +261,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getLongPrepare() throws SQLException {
-    getLong(getPrepare());
+    getLong(getPrepare(sharedConn));
+    getLong(getPrepare(sharedConnBinary));
   }
 
   public void getLong(ResultSet rs) throws SQLException {
@@ -272,7 +284,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getFloatPrepare() throws SQLException {
-    getFloat(getPrepare());
+    getFloat(getPrepare(sharedConn));
+    getFloat(getPrepare(sharedConnBinary));
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
@@ -294,7 +307,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getDoublePrepare() throws SQLException {
-    getDouble(getPrepare());
+    getDouble(getPrepare(sharedConn));
+    getDouble(getPrepare(sharedConnBinary));
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
@@ -316,7 +330,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBigDecimalPrepare() throws SQLException {
-    getBigDecimal(getPrepare());
+    getBigDecimal(getPrepare(sharedConn));
+    getBigDecimal(getPrepare(sharedConnBinary));
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
@@ -340,7 +355,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getDatePrepare() throws SQLException {
-    getDate(getPrepare());
+    getDate(getPrepare(sharedConn));
+    getDate(getPrepare(sharedConnBinary));
   }
 
   public void getDate(ResultSet rs) throws SQLException {
@@ -359,7 +375,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimePrepare() throws SQLException {
-    getTime(getPrepare());
+    getTime(getPrepare(sharedConn));
+    getTime(getPrepare(sharedConnBinary));
   }
 
   public void getTime(ResultSet rs) throws SQLException {
@@ -378,7 +395,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimestampPrepare() throws SQLException {
-    getTimestamp(getPrepare());
+    getTimestamp(getPrepare(sharedConn));
+    getTimestamp(getPrepare(sharedConnBinary));
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
@@ -399,7 +417,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getAsciiStreamPrepare() throws SQLException {
-    getAsciiStream(getPrepare());
+    getAsciiStream(getPrepare(sharedConn));
+    getAsciiStream(getPrepare(sharedConnBinary));
   }
 
   public void getAsciiStream(ResultSet rs) throws SQLException {
@@ -420,7 +439,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getUnicodeStreamPrepare() throws SQLException {
-    getUnicodeStream(getPrepare());
+    getUnicodeStream(getPrepare(sharedConn));
+    getUnicodeStream(getPrepare(sharedConnBinary));
   }
 
   @SuppressWarnings("deprecation")
@@ -442,7 +462,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBinaryStreamPrepare() throws SQLException {
-    getBinaryStream(getPrepare());
+    getBinaryStream(getPrepare(sharedConn));
+    getBinaryStream(getPrepare(sharedConnBinary));
   }
 
   public void getBinaryStream(ResultSet rs) throws SQLException {
@@ -463,7 +484,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytesPrepare() throws SQLException {
-    getBytes(getPrepare());
+    getBytes(getPrepare(sharedConn));
+    getBytes(getPrepare(sharedConnBinary));
   }
 
   public void getBytes(ResultSet rs) throws SQLException {
@@ -484,7 +506,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getCharacterStreamPrepare() throws SQLException {
-    getCharacterStream(getPrepare());
+    getCharacterStream(getPrepare(sharedConn));
+    getCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getCharacterStream(ResultSet rs) throws SQLException {
@@ -505,7 +528,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getNCharacterStreamPrepare() throws SQLException {
-    getNCharacterStream(getPrepare());
+    getNCharacterStream(getPrepare(sharedConn));
+    getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getNCharacterStream(ResultSet rs) throws SQLException {
@@ -535,7 +559,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getBlobPrepare() throws SQLException {
-    getBlob(getPrepare());
+    getBlob(getPrepare(sharedConn));
+    getBlob(getPrepare(sharedConnBinary));
   }
 
   public void getBlob(ResultSet rs) throws SQLException {
@@ -556,7 +581,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getClobPrepare() throws SQLException {
-    getClob(getPrepare());
+    getClob(getPrepare(sharedConn));
+    getClob(getPrepare(sharedConnBinary));
   }
 
   public void getClob(ResultSet rs) throws SQLException {
@@ -575,7 +601,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getNClobPrepare() throws SQLException {
-    getNClob(getPrepare());
+    getNClob(getPrepare(sharedConn));
+    getNClob(getPrepare(sharedConnBinary));
   }
 
   public void getNClob(ResultSet rs) throws SQLException {
@@ -605,7 +632,8 @@ public class FloatCodecTest extends CommonCodecTest {
 
   @Test
   public void getURLPrepare() throws SQLException {
-    getURL(getPrepare());
+    getURL(getPrepare(sharedConn));
+    getURL(getPrepare(sharedConnBinary));
   }
 
   public void getURL(ResultSet rs) throws SQLException {
@@ -640,5 +668,42 @@ public class FloatCodecTest extends CommonCodecTest {
     assertEquals(31, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(12, meta.getColumnDisplaySize(1));
+  }
+
+  @Test
+  public void sendParam() throws SQLException {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE FloatCodec2");
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO FloatCodec2 VALUES (?)")) {
+      prep.setFloat(1, 1.1F);
+      prep.execute();
+      prep.setObject(1, 2.1F);
+      prep.execute();
+      prep.setObject(1, null);
+      prep.execute();
+      prep.setObject(1, 3.1F, Types.DECIMAL);
+      prep.execute();
+      prep.setObject(1, null, Types.DECIMAL);
+      prep.execute();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM FloatCodec2");
+    assertTrue(rs.next());
+    assertEquals(1.1F, rs.getFloat(1));
+    assertTrue(rs.next());
+    assertEquals(2.1F, rs.getFloat(1));
+    assertTrue(rs.next());
+    assertEquals(0F, rs.getFloat(1));
+    assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertEquals(3.1F, rs.getFloat(1));
+    assertTrue(rs.next());
+    assertEquals(0F, rs.getFloat(1));
+    assertTrue(rs.wasNull());
   }
 }

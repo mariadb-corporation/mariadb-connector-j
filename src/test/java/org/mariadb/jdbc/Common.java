@@ -39,6 +39,7 @@ import org.mariadb.jdbc.util.constants.HaMode;
 public class Common {
 
   public static Connection sharedConn;
+  public static Connection sharedConnBinary;
   public static TcpProxy proxy;
   public static String mDefUrl;
   private static Instant initialTest;
@@ -72,11 +73,14 @@ public class Common {
   @BeforeAll
   public static void beforeAll() throws Exception {
     sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
+    String binUrl = mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "useServerPrepStmts=true";
+    sharedConnBinary = (Connection) DriverManager.getConnection(binUrl);
   }
 
   @AfterAll
   public static void afterEAll() throws SQLException {
     sharedConn.close();
+    sharedConnBinary.close();
   }
 
   public static boolean isMariaDBServer() {
@@ -125,16 +129,8 @@ public class Common {
   @AfterEach
   public void afterEach1() throws SQLException {
     sharedConn.isValid(2000);
+    sharedConnBinary.isValid(2000);
   }
-
-  //  public boolean haveSsl(MariadbConnection connection) {
-  //    return connection
-  //        .createStatement("select @@have_ssl")
-  //        .execute()
-  //        .flatMap(r -> r.map((row, metadata) -> row.get(0, String.class)))
-  //        .blockLast()
-  //        .equals("YES");
-  //  }
 
   public void assertThrowsContains(
       Class<? extends Exception> expectedType, Executable executable, String expected) {

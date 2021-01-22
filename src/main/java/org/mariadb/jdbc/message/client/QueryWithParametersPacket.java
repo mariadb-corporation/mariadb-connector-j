@@ -51,7 +51,11 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
     } else {
       encoder.writeBytes(parser.getQueryParts().get(0));
       for (int i = 0; i < parser.getParamCount(); i++) {
-        parameters.get(i).encodeText(encoder, context);
+        if (parameters.get(i).isNull()) {
+          encoder.writeAscii("null");
+        } else {
+          parameters.get(i).encodeText(encoder, context);
+        }
         encoder.writeBytes(parser.getQueryParts().get(i + 1));
       }
     }

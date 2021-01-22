@@ -212,7 +212,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNull(int parameterIndex, int sqlType) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
   }
@@ -229,7 +228,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(BooleanCodec.INSTANCE, x));
   }
@@ -246,7 +244,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setByte(int parameterIndex, byte x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ByteCodec.INSTANCE, x));
   }
@@ -263,7 +260,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setShort(int parameterIndex, short x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ShortCodec.INSTANCE, x));
   }
@@ -280,7 +276,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setInt(int parameterIndex, int x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(IntCodec.INSTANCE, x));
   }
@@ -297,7 +292,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setLong(int parameterIndex, long x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(LongCodec.INSTANCE, x));
   }
@@ -314,7 +308,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setFloat(int parameterIndex, float x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(FloatCodec.INSTANCE, x));
   }
@@ -331,7 +324,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setDouble(int parameterIndex, double x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(DoubleCodec.INSTANCE, x));
   }
@@ -348,7 +340,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(BigDecimalCodec.INSTANCE, x));
   }
@@ -367,7 +358,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setString(int parameterIndex, String x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StringCodec.INSTANCE, x));
   }
@@ -386,7 +376,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ByteArrayCodec.INSTANCE, x));
   }
@@ -404,7 +393,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setDate(int parameterIndex, Date x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(DateCodec.INSTANCE, x));
   }
@@ -421,7 +409,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setTime(int parameterIndex, Time x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(TimeCodec.INSTANCE, x));
   }
@@ -438,7 +425,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(TimestampCodec.INSTANCE, x));
   }
@@ -462,7 +448,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x, (long) length));
   }
@@ -494,7 +479,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   @Deprecated
   public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x, (long) length));
   }
@@ -517,7 +501,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x, (long) length));
   }
@@ -617,7 +600,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader, int length)
       throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(
         parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader, (long) length));
@@ -654,7 +636,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBlob(int parameterIndex, Blob x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(BlobCodec.INSTANCE, x));
   }
@@ -673,7 +654,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setClob(int parameterIndex, Clob x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ClobCodec.INSTANCE, x));
   }
@@ -713,7 +693,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(DateCodec.INSTANCE, x));
   }
@@ -736,7 +715,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(TimeCodec.INSTANCE, x, cal));
   }
@@ -759,7 +737,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(TimestampCodec.INSTANCE, x, cal));
   }
@@ -796,7 +773,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
   }
@@ -815,7 +791,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setURL(int parameterIndex, URL x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StringCodec.INSTANCE, x.toString()));
   }
@@ -854,7 +829,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNString(int parameterIndex, String value) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StringCodec.INSTANCE, value));
   }
@@ -877,7 +851,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setNCharacterStream(int parameterIndex, Reader value, long length)
       throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, value, length));
   }
@@ -897,7 +870,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNClob(int parameterIndex, NClob value) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ClobCodec.INSTANCE, value));
   }
@@ -923,7 +895,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader, length));
   }
@@ -951,7 +922,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setBlob(int parameterIndex, InputStream inputStream, long length)
       throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, inputStream, length));
   }
@@ -979,7 +949,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader, length));
   }
@@ -1050,7 +1019,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @SuppressWarnings({"unchecked", "rawtypes"})
   private void setInternalObject(int parameterIndex, Object x, Long scaleOrLength)
       throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     if (x == null) {
       parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
@@ -1088,7 +1056,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x, length));
   }
@@ -1112,7 +1079,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x, length));
   }
@@ -1138,7 +1104,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader, long length)
       throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader, length));
   }
@@ -1166,7 +1131,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x));
   }
@@ -1193,7 +1157,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, x));
   }
@@ -1221,7 +1184,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader));
   }
@@ -1248,7 +1210,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, value));
   }
@@ -1275,7 +1236,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setClob(int parameterIndex, Reader reader) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader));
   }
@@ -1302,7 +1262,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(StreamCodec.INSTANCE, inputStream));
   }
@@ -1329,7 +1288,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-    checkNotClosed();
     checkIndex(parameterIndex);
     parameters.set(parameterIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, reader));
   }

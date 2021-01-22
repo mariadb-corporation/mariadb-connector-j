@@ -210,25 +210,26 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, LocalDate val, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    encoder.writeAscii(val.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    encoder.writeAscii(((LocalDate)val).format(DateTimeFormatter.ISO_LOCAL_DATE));
     encoder.writeByte('\'');
   }
 
   @Override
   public void encodeBinary(
-      PacketWriter encoder, Context context, LocalDate value, Calendar providedCal)
+      PacketWriter encoder, Context context, Object value, Calendar providedCal)
       throws IOException {
+    LocalDate val = (LocalDate) value;
     encoder.writeByte(7); // length
-    encoder.writeShort((short) value.get(ChronoField.YEAR));
-    encoder.writeByte(value.get(ChronoField.MONTH_OF_YEAR));
-    encoder.writeByte(value.get(ChronoField.DAY_OF_MONTH));
+    encoder.writeShort((short) val.get(ChronoField.YEAR));
+    encoder.writeByte(val.get(ChronoField.MONTH_OF_YEAR));
+    encoder.writeByte(val.get(ChronoField.DAY_OF_MONTH));
     encoder.writeBytes(new byte[] {0, 0, 0});
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DATE;
+  public int getBinaryEncodeType() {
+    return DataType.DATE.get();
   }
 }

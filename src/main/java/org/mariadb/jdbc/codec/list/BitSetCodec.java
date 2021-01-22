@@ -81,9 +81,9 @@ public class BitSetCodec implements Codec<BitSet> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, BitSet value, Calendar cal, Long length)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException {
-    byte[] bytes = value.toByteArray();
+    byte[] bytes = ((BitSet)value).toByteArray();
     revertOrder(bytes);
 
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
@@ -95,15 +95,15 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, BitSet value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    byte[] bytes = value.toByteArray();
+    byte[] bytes = ((BitSet)value).toByteArray();
     revertOrder(bytes);
     encoder.writeLength(bytes.length);
     encoder.writeBytes(bytes);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.BLOB;
+  public int getBinaryEncodeType() {
+    return DataType.BLOB.get();
   }
 }

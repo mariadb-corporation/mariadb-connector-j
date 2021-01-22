@@ -171,18 +171,18 @@ public class DoubleCodec implements Codec<Double> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Double value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
-    encoder.writeAscii(String.valueOf(value));
+    encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Double value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeDouble(value);
+    encoder.writeDouble((Double)value);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DOUBLE;
+  public int getBinaryEncodeType() {
+    return DataType.DOUBLE.get();
   }
 }

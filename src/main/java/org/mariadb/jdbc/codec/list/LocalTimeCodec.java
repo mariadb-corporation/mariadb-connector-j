@@ -232,8 +232,9 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, LocalTime val, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
+    LocalTime val = (LocalTime) value;
     StringBuilder dateString = new StringBuilder(15);
     dateString
         .append(val.getHour() < 10 ? "0" : "")
@@ -259,28 +260,29 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, LocalTime value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    int nano = value.getNano();
+    LocalTime val = (LocalTime) value;
+    int nano = val.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 12);
       encoder.writeByte((byte) 0);
       encoder.writeInt(0);
-      encoder.writeByte((byte) value.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte((byte) value.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte((byte) value.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeByte((byte) val.get(ChronoField.HOUR_OF_DAY));
+      encoder.writeByte((byte) val.get(ChronoField.MINUTE_OF_HOUR));
+      encoder.writeByte((byte) val.get(ChronoField.SECOND_OF_MINUTE));
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 8);
       encoder.writeByte((byte) 0);
       encoder.writeInt(0);
-      encoder.writeByte((byte) value.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte((byte) value.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte((byte) value.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeByte((byte) val.get(ChronoField.HOUR_OF_DAY));
+      encoder.writeByte((byte) val.get(ChronoField.MINUTE_OF_HOUR));
+      encoder.writeByte((byte) val.get(ChronoField.SECOND_OF_MINUTE));
     }
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.TIME;
+  public int getBinaryEncodeType() {
+    return DataType.TIME.get();
   }
 }

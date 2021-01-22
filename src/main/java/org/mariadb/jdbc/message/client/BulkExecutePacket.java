@@ -88,7 +88,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       writer.writeShort((short) 128); // always SEND_TYPES_TO_SERVER
 
       for (int i = 0; i < parameterCount; i++) {
-        writer.writeShort((short) parameterHeaderType[i].getBinaryEncodeType().get());
+        writer.writeShort((short) parameterHeaderType[i].getBinaryEncodeType());
       }
 
       if (lastCmdData != null) {
@@ -145,8 +145,8 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
 
         // ensure type has not changed
         for (int i = 0; i < parameterCount; i++) {
-          if (parameterHeaderType[i].getBinaryEncodeType().get()
-              != parameters.get(i).getBinaryEncodeType().get()) {
+          if (parameterHeaderType[i].getBinaryEncodeType()
+              != parameters.get(i).getBinaryEncodeType()) {
             writer.flush();
             // reset header type
             for (int j = 0; j < parameterCount; j++) {

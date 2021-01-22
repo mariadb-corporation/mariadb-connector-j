@@ -22,19 +22,24 @@ import org.mariadb.jdbc.Statement;
 public class VarcharCodecTest extends CommonCodecTest {
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE StringCodec");
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS StringCodec");
+    stmt.execute("DROP TABLE IF EXISTS StringParamCodec");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    after2();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS StringCodec");
     stmt.execute(
         "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20)) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
         "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
+    stmt.execute("CREATE TABLE StringParamCodec(t1 VARCHAR(20))");
+
+    stmt.execute("FLUSH TABLES");
   }
 
   private ResultSet get() throws SQLException {
@@ -46,9 +51,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepare() throws SQLException {
+  private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
-        sharedConn.prepareStatement(
+        con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
@@ -65,7 +70,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectPrepare() throws SQLException {
-    getObject(getPrepare());
+    getObject(getPrepare(sharedConn));
+    getObject(getPrepare(sharedConnBinary));
   }
 
   public void getObject(ResultSet rs) throws SQLException {
@@ -87,7 +93,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectTypePrepare() throws Exception {
-    getObjectType(getPrepare());
+    getObjectType(getPrepare(sharedConn));
+    getObjectType(getPrepare(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
@@ -131,7 +138,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare());
+    getString(getPrepare(sharedConn));
+    getString(getPrepare(sharedConnBinary));
   }
 
   public void getString(ResultSet rs) throws SQLException {
@@ -153,7 +161,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getNStringPrepare() throws SQLException {
-    getNString(getPrepare());
+    getNString(getPrepare(sharedConn));
+    getNString(getPrepare(sharedConnBinary));
   }
 
   public void getNString(ResultSet rs) throws SQLException {
@@ -175,7 +184,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBooleanPrepare() throws SQLException {
-    getBoolean(getPrepare());
+    getBoolean(getPrepare(sharedConn));
+    getBoolean(getPrepare(sharedConnBinary));
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
@@ -197,7 +207,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytePrepare() throws SQLException {
-    getByte(getPrepare());
+    getByte(getPrepare(sharedConn));
+    getByte(getPrepare(sharedConnBinary));
   }
 
   public void getByte(ResultSet rs) throws SQLException {
@@ -222,7 +233,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getShortPrepare() throws SQLException {
-    getShort(getPrepare());
+    getShort(getPrepare(sharedConn));
+    getShort(getPrepare(sharedConnBinary));
   }
 
   public void getShort(ResultSet rs) throws SQLException {
@@ -245,7 +257,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getIntPrepare() throws SQLException {
-    getInt(getPrepare());
+    getInt(getPrepare(sharedConn));
+    getInt(getPrepare(sharedConnBinary));
   }
 
   public void getInt(ResultSet rs) throws SQLException {
@@ -268,7 +281,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getLongPrepare() throws SQLException {
-    getLong(getPrepare());
+    getLong(getPrepare(sharedConn));
+    getLong(getPrepare(sharedConnBinary));
   }
 
   public void getLong(ResultSet rs) throws SQLException {
@@ -293,7 +307,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getFloatPrepare() throws SQLException {
-    getFloat(getPrepare());
+    getFloat(getPrepare(sharedConn));
+    getFloat(getPrepare(sharedConnBinary));
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
@@ -316,7 +331,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getDoublePrepare() throws SQLException {
-    getDouble(getPrepare());
+    getDouble(getPrepare(sharedConn));
+    getDouble(getPrepare(sharedConnBinary));
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
@@ -341,7 +357,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBigDecimalPrepare() throws SQLException {
-    getBigDecimal(getPrepare());
+    getBigDecimal(getPrepare(sharedConn));
+    getBigDecimal(getPrepare(sharedConnBinary));
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
@@ -366,7 +383,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getDatePrepare() throws SQLException {
-    getDate(getPrepare());
+    getDate(getPrepare(sharedConn));
+    getDate(getPrepare(sharedConnBinary));
   }
 
   public void getDate(ResultSet rs) throws SQLException {
@@ -397,7 +415,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimePrepare() throws SQLException {
-    getTime(getPrepare());
+    getTime(getPrepare(sharedConn));
+    getTime(getPrepare(sharedConnBinary));
   }
 
   public void getTime(ResultSet rs) throws SQLException {
@@ -427,7 +446,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimestampPrepare() throws SQLException {
-    getTimestamp(getPrepare());
+    getTimestamp(getPrepare(sharedConn));
+    getTimestamp(getPrepare(sharedConnBinary));
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
@@ -473,7 +493,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getAsciiStreamPrepare() throws Exception {
-    getAsciiStream(getPrepare());
+    getAsciiStream(getPrepare(sharedConn));
+    getAsciiStream(getPrepare(sharedConnBinary));
   }
 
   public void getAsciiStream(ResultSet rs) throws Exception {
@@ -496,7 +517,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getUnicodeStreamPrepare() throws Exception {
-    getUnicodeStream(getPrepare());
+    getUnicodeStream(getPrepare(sharedConn));
+    getUnicodeStream(getPrepare(sharedConnBinary));
   }
 
   @SuppressWarnings("deprecation")
@@ -521,7 +543,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBinaryStreamPrepare() throws Exception {
-    getBinaryStream(getPrepare());
+    getBinaryStream(getPrepare(sharedConn));
+    getBinaryStream(getPrepare(sharedConnBinary));
   }
 
   public void getBinaryStream(ResultSet rs) throws Exception {
@@ -544,7 +567,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytesPrepare() throws SQLException {
-    getBytes(getPrepare());
+    getBytes(getPrepare(sharedConn));
+    getBytes(getPrepare(sharedConnBinary));
   }
 
   public void getBytes(ResultSet rs) throws SQLException {
@@ -566,7 +590,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getCharacterStreamPrepare() throws Exception {
-    getCharacterStream(getPrepare());
+    getCharacterStream(getPrepare(sharedConn));
+    getCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getCharacterStream(ResultSet rs) throws Exception {
@@ -588,7 +613,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getNCharacterStreamPrepare() throws Exception {
-    getNCharacterStream(getPrepare());
+    getNCharacterStream(getPrepare(sharedConn));
+    getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getNCharacterStream(ResultSet rs) throws Exception {
@@ -610,7 +636,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getBlobPrepare() throws Exception {
-    getBlob(getPrepare());
+    getBlob(getPrepare(sharedConn));
+    getBlob(getPrepare(sharedConnBinary));
   }
 
   public void getBlob(ResultSet rs) throws Exception {
@@ -627,7 +654,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getClobPrepare() throws Exception {
-    getClob(getPrepare());
+    getClob(getPrepare(sharedConn));
+    getClob(getPrepare(sharedConnBinary));
   }
 
   public void getClob(ResultSet rs) throws Exception {
@@ -649,7 +677,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void getNClobPrepare() throws Exception {
-    getNClob(getPrepare());
+    getNClob(getPrepare(sharedConn));
+    getNClob(getPrepare(sharedConnBinary));
   }
 
   public void getNClob(ResultSet rs) throws Exception {
@@ -679,5 +708,44 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
+  }
+
+  @Test
+  public void sendParam() throws SQLException {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE StringParamCodec");
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO StringParamCodec VALUES (?)")) {
+      prep.setString(1, "e🌟1");
+      prep.execute();
+      prep.setString(1, null);
+      prep.execute();
+      prep.setObject(1, "e🌟2");
+      prep.execute();
+      prep.setObject(1, null);
+      prep.execute();
+      prep.setObject(1, "e🌟3", Types.VARCHAR);
+      prep.execute();
+      prep.setObject(1, null, Types.VARCHAR);
+      prep.execute();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
+    assertTrue(rs.next());
+    assertEquals("e🌟1", rs.getString(1));
+    assertTrue(rs.next());
+    assertNull(rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟2", rs.getString(1));
+    assertTrue(rs.next());
+    assertNull(rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟3", rs.getString(1));
+    assertTrue(rs.next());
+    assertNull(rs.getString(1));
   }
 }

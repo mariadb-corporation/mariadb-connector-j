@@ -194,20 +194,20 @@ public class BigIntegerCodec implements Codec<BigInteger> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, BigInteger value, Calendar cal, Long length)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException {
     encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, BigInteger value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
     String asciiFormat = value.toString();
     encoder.writeLength(asciiFormat.length());
     encoder.writeAscii(asciiFormat);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DECIMAL;
+  public int getBinaryEncodeType() {
+    return DataType.DECIMAL.get();
   }
 }

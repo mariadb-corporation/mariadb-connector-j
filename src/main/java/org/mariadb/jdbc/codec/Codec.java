@@ -52,10 +52,10 @@ public interface Codec<T> {
       final Calendar cal)
       throws SQLDataException;
 
-  void encodeText(PacketWriter encoder, Context context, T value, Calendar cal, Long length)
+  void encodeText(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
-  void encodeBinary(PacketWriter encoder, Context context, T value, Calendar cal)
+  void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException, SQLException;
 
   default boolean canEncodeLongData() {
@@ -73,5 +73,5 @@ public interface Codec<T> {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }
 
-  DataType getBinaryEncodeType();
+  int getBinaryEncodeType();
 }

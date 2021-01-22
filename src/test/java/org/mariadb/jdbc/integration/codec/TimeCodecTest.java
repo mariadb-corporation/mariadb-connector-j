@@ -17,15 +17,18 @@ import org.mariadb.jdbc.Statement;
 
 public class TimeCodecTest extends CommonCodecTest {
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE TimeCodec");
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS TimeCodec");
+    stmt.execute("DROP TABLE IF EXISTS TimeCodec2");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS TimeCodec");
     stmt.execute("CREATE TABLE TimeCodec (t1 TIME(3), t2 TIME(6), t3 TIME(6), t4 TIME(6))");
+    stmt.execute("CREATE TABLE TimeCodec2 (t1 TIME(3))");
     stmt.execute(
         "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), ('-838:59:58.999', "
             + "'838:59:58.999999', null, '23:54:51.84001')");
@@ -40,9 +43,9 @@ public class TimeCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepare() throws SQLException {
+  private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
-        sharedConn.prepareStatement(
+        con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from TimeCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
@@ -59,7 +62,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectPrepare() throws SQLException {
-    getObject(getPrepare());
+    getObject(getPrepare(sharedConn));
+    getObject(getPrepare(sharedConnBinary));
   }
 
   public void getObject(ResultSet rs) throws SQLException {
@@ -87,7 +91,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectTypePrepare() throws Exception {
-    getObjectType(getPrepare());
+    getObjectType(getPrepare(sharedConn));
+    getObjectType(getPrepare(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
@@ -125,7 +130,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare());
+    getString(getPrepare(sharedConn));
+    getString(getPrepare(sharedConnBinary));
   }
 
   public void getString(ResultSet rs) throws SQLException {
@@ -147,7 +153,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getNStringPrepare() throws SQLException {
-    getNString(getPrepare());
+    getNString(getPrepare(sharedConn));
+    getNString(getPrepare(sharedConnBinary));
   }
 
   public void getNString(ResultSet rs) throws SQLException {
@@ -169,7 +176,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBooleanPrepare() throws SQLException {
-    getBoolean(getPrepare());
+    getBoolean(getPrepare(sharedConn));
+    getBoolean(getPrepare(sharedConnBinary));
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
@@ -184,7 +192,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytePrepare() throws SQLException {
-    getByte(getPrepare());
+    getByte(getPrepare(sharedConn));
+    getByte(getPrepare(sharedConnBinary));
   }
 
   public void getByte(ResultSet rs) throws SQLException {
@@ -199,7 +208,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getShortPrepare() throws SQLException {
-    getShort(getPrepare());
+    getShort(getPrepare(sharedConn));
+    getShort(getPrepare(sharedConnBinary));
   }
 
   public void getShort(ResultSet rs) throws SQLException {
@@ -214,7 +224,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getIntPrepare() throws SQLException {
-    getInt(getPrepare());
+    getInt(getPrepare(sharedConn));
+    getInt(getPrepare(sharedConnBinary));
   }
 
   public void getInt(ResultSet rs) throws SQLException {
@@ -229,7 +240,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getLongPrepare() throws SQLException {
-    getLong(getPrepare());
+    getLong(getPrepare(sharedConn));
+    getLong(getPrepare(sharedConnBinary));
   }
 
   public void getLong(ResultSet rs) throws SQLException {
@@ -244,7 +256,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getFloatPrepare() throws SQLException {
-    getFloat(getPrepare());
+    getFloat(getPrepare(sharedConn));
+    getFloat(getPrepare(sharedConnBinary));
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
@@ -259,7 +272,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getDoublePrepare() throws SQLException {
-    getDouble(getPrepare());
+    getDouble(getPrepare(sharedConn));
+    getDouble(getPrepare(sharedConnBinary));
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
@@ -274,7 +288,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBigDecimalPrepare() throws SQLException {
-    getBigDecimal(getPrepare());
+    getBigDecimal(getPrepare(sharedConn));
+    getBigDecimal(getPrepare(sharedConnBinary));
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
@@ -291,7 +306,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getDatePrepare() throws SQLException {
-    getDate(getPrepare());
+    getDate(getPrepare(sharedConn));
+    getDate(getPrepare(sharedConnBinary));
   }
 
   public void getDate(ResultSet rs) throws SQLException {
@@ -306,7 +322,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimePrepare() throws SQLException {
-    getTime(getPrepare());
+    getTime(getPrepare(sharedConn));
+    getTime(getPrepare(sharedConnBinary));
   }
 
   public void getTime(ResultSet rs) throws SQLException {
@@ -334,7 +351,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getDurationPrepare() throws SQLException {
-    getDuration(getPrepare());
+    getDuration(getPrepare(sharedConn));
+    getDuration(getPrepare(sharedConnBinary));
   }
 
   public void getDuration(ResultSet rs) throws SQLException {
@@ -367,7 +385,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getLocalTimePrepare() throws SQLException {
-    getLocalTime(getPrepare());
+    getLocalTime(getPrepare(sharedConn));
+    getLocalTime(getPrepare(sharedConnBinary));
   }
 
   public void getLocalTime(ResultSet rs) throws SQLException {
@@ -401,7 +420,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimestampPrepare() throws SQLException {
-    getTimestamp(getPrepare());
+    getTimestamp(getPrepare(sharedConn));
+    getTimestamp(getPrepare(sharedConnBinary));
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
@@ -432,7 +452,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getAsciiStreamPrepare() throws SQLException {
-    getAsciiStream(getPrepare());
+    getAsciiStream(getPrepare(sharedConn));
+    getAsciiStream(getPrepare(sharedConnBinary));
   }
 
   public void getAsciiStream(ResultSet rs) throws SQLException {
@@ -449,7 +470,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getUnicodeStreamPrepare() throws Exception {
-    getUnicodeStream(getPrepare());
+    getUnicodeStream(getPrepare(sharedConn));
+    getUnicodeStream(getPrepare(sharedConnBinary));
   }
 
   @SuppressWarnings("deprecation")
@@ -467,7 +489,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBinaryStreamPrepare() throws Exception {
-    getBinaryStream(getPrepare());
+    getBinaryStream(getPrepare(sharedConn));
+    getBinaryStream(getPrepare(sharedConnBinary));
   }
 
   public void getBinaryStream(ResultSet rs) throws Exception {
@@ -484,7 +507,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytesPrepare() throws SQLException {
-    getBytes(getPrepare());
+    getBytes(getPrepare(sharedConn));
+    getBytes(getPrepare(sharedConnBinary));
   }
 
   public void getBytes(ResultSet rs) throws SQLException {
@@ -499,7 +523,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getCharacterStreamPrepare() throws Exception {
-    getCharacterStream(getPrepare());
+    getCharacterStream(getPrepare(sharedConn));
+    getCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getCharacterStream(ResultSet rs) throws Exception {
@@ -516,7 +541,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getNCharacterStreamPrepare() throws Exception {
-    getNCharacterStream(getPrepare());
+    getNCharacterStream(getPrepare(sharedConn));
+    getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
   public void getNCharacterStream(ResultSet rs) throws Exception {
@@ -533,7 +559,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getBlobPrepare() throws Exception {
-    getBlob(getPrepare());
+    getBlob(getPrepare(sharedConn));
+    getBlob(getPrepare(sharedConnBinary));
   }
 
   public void getBlob(ResultSet rs) throws Exception {
@@ -548,7 +575,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getClobPrepare() throws Exception {
-    getClob(getPrepare());
+    getClob(getPrepare(sharedConn));
+    getClob(getPrepare(sharedConnBinary));
   }
 
   public void getClob(ResultSet rs) throws Exception {
@@ -563,7 +591,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getNClobPrepare() throws Exception {
-    getNClob(getPrepare());
+    getNClob(getPrepare(sharedConn));
+    getNClob(getPrepare(sharedConnBinary));
   }
 
   public void getNClob(ResultSet rs) throws Exception {
@@ -586,5 +615,46 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(3, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(14, meta.getColumnDisplaySize(1));
+  }
+
+  @Test
+  public void sendParam() throws SQLException {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE TimeCodec2");
+    Time tt = Time.valueOf("01:55:12");
+    tt.setTime(tt.getTime() + 120);
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2 VALUES (?)")) {
+      prep.setTime(1, tt);
+      prep.execute();
+      prep.setTime(1, null);
+      prep.execute();
+      prep.setObject(1, Time.valueOf("01:55:13"));
+      prep.execute();
+      prep.setObject(1, null);
+      prep.execute();
+      prep.setObject(1, Time.valueOf("01:55:14"), Types.TIME);
+      prep.execute();
+      prep.setObject(1, null, Types.TIME);
+      prep.execute();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM TimeCodec2");
+    assertTrue(rs.next());
+    assertEquals(tt.getTime(), rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertNull(rs.getTime(1));
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("01:55:13").getTime(), rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertNull(rs.getTime(1));
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertNull(rs.getTime(1));
   }
 }

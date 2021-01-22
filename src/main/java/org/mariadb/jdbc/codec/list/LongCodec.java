@@ -240,18 +240,18 @@ public class LongCodec implements Codec<Long> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Long value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
-    encoder.writeAscii(String.valueOf(value));
+    encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Long value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeLong(value);
+    encoder.writeLong((Long)value);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.BIGINT;
+  public int getBinaryEncodeType() {
+    return DataType.BIGINT.get();
   }
 }

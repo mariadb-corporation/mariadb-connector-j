@@ -199,20 +199,20 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, BigDecimal value, Calendar cal, Long length)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException {
-    encoder.writeAscii(value.toPlainString());
+    encoder.writeAscii(((BigDecimal)value).toPlainString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, BigDecimal value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    String asciiFormat = value.toPlainString();
+    String asciiFormat = ((BigDecimal)value).toPlainString();
     encoder.writeLength(asciiFormat.length());
     encoder.writeAscii(asciiFormat);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DECIMAL;
+  public int getBinaryEncodeType() {
+    return DataType.DECIMAL.get();
   }
 }

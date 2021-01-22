@@ -44,7 +44,7 @@ public class PreparedStatementParametersTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    after2();
+    drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE prepareParam (t1 BLOB(20))");
     stmt.execute("CREATE TABLE prepareParam2 (t1 BIGINT)");
@@ -53,27 +53,45 @@ public class PreparedStatementParametersTest extends Common {
         "CREATE TABLE prepareParam4 (t1 VARCHAR(30)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute("CREATE TABLE prepareParam5 (t1 TIMESTAMP(6))");
+    stmt.execute("CREATE TABLE prepareParam6 (t1 BIGINT)");
     stmt.execute("FLUSH TABLES");
   }
 
   @AfterAll
-  public static void after2() throws SQLException {
+  public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepareParam");
     stmt.execute("DROP TABLE IF EXISTS prepareParam2");
     stmt.execute("DROP TABLE IF EXISTS prepareParam3");
     stmt.execute("DROP TABLE IF EXISTS prepareParam4");
     stmt.execute("DROP TABLE IF EXISTS prepareParam5");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam6");
+  }
+
+  @Test
+  public void validateParameters() throws Exception {
+    validateParameters(sharedConn, true);
+    validateParameters(sharedConnBinary, false);
+  }
+
+  public void validateParameters(org.mariadb.jdbc.Connection con, boolean text) throws Exception {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
+      try {
+        prep.execute();
+        fail();
+      } catch (SQLException sqle) { }
+    }
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
+      prep.setInt(1, 1);
+      prep.execute();
+      assertThrowsContains(SQLTransientConnectionException.class, () -> prep.execute(), "Parameter at position 1 is not set");
+    }
   }
 
   @Test
   public void checkParameters() throws Exception {
-    try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
-      checkParameters(con, true);
-    }
-    try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      checkParameters(con, false);
-    }
+    checkParameters(sharedConn, true);
+    checkParameters(sharedConnBinary, false);
   }
 
   @SuppressWarnings("deprecation")
@@ -158,7 +176,7 @@ public class PreparedStatementParametersTest extends Common {
                       assertEquals(
                           Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
                   con),
-          "Incorrect datetime value: '18:16:01'");
+          "Incorrect datetime value: '18:16:01.123'");
     } else {
       checkSendTimestamp(
           ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
@@ -311,12 +329,8 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void checkNotSupported() throws Exception {
-    try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
-      checkNotSupported(con, true);
-    }
-    try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      checkNotSupported(con, false);
-    }
+    checkNotSupported(sharedConn, true);
+    checkNotSupported(sharedConnBinary, false);
   }
 
   private void checkNotSupported(Connection con, boolean text) throws SQLException {

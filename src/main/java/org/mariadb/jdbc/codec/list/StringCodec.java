@@ -257,23 +257,23 @@ public class StringCodec implements Codec<String> {
   }
 
   public void encodeText(
-      PacketWriter encoder, Context context, String value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
     encoder.writeStringEscaped(
-        maxLen == null ? value : value.substring(0, maxLen.intValue()),
+        maxLen == null ? value.toString() : value.toString().substring(0, maxLen.intValue()),
         (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(PacketWriter writer, Context context, String value, Calendar cal)
+  public void encodeBinary(PacketWriter writer, Context context, Object value, Calendar cal)
       throws IOException {
-    byte[] b = value.getBytes(StandardCharsets.UTF_8);
+    byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
     writer.writeLength(b.length);
     writer.writeBytes(b);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.VARSTRING;
+  public int getBinaryEncodeType() {
+    return DataType.VARSTRING.get();
   }
 }

@@ -181,7 +181,7 @@ public class DateCodec implements Codec<Date> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Date val, Calendar providedCal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -194,17 +194,17 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Date value, Calendar providedCal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar providedCal)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(value.getTime());
+    cal.setTimeInMillis(((Date)value).getTime());
     encoder.writeByte(4); // length
     encoder.writeShort((short) cal.get(Calendar.YEAR));
     encoder.writeByte(((cal.get(Calendar.MONTH) + 1) & 0xff));
     encoder.writeByte((cal.get(Calendar.DAY_OF_MONTH) & 0xff));
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.DATE;
+  public int getBinaryEncodeType() {
+    return DataType.DATE.get();
   }
 }

@@ -128,11 +128,11 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Blob value, Calendar cal, Long maxLength)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
-    InputStream is = value.getBinaryStream();
+    InputStream is = ((Blob)value).getBinaryStream();
     int len;
 
     if (maxLength == null) {
@@ -154,12 +154,12 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Blob value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException, SQLException {
     long length;
-    InputStream is = value.getBinaryStream();
+    InputStream is = ((Blob)value).getBinaryStream();
     try {
-      length = value.length();
+      length = ((Blob)value).length();
 
       // if not have thrown an error
       encoder.writeLength(length);
@@ -241,8 +241,8 @@ public class BlobCodec implements Codec<Blob> {
     return val;
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.BLOB;
+  public int getBinaryEncodeType() {
+    return DataType.BLOB.get();
   }
 
   public boolean canEncodeLongData() {

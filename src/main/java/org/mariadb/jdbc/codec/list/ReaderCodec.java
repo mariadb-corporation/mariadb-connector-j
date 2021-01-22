@@ -80,8 +80,9 @@ public class ReaderCodec implements Codec<Reader> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Reader reader, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
       throws IOException, SQLException {
+    Reader reader = (Reader) val;
     encoder.writeByte('\'');
     char[] buf = new char[4096];
     int len;
@@ -108,13 +109,13 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Reader reader, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];
     int pos = 0;
     char[] buf = new char[4096];
-
+    Reader reader = (Reader) val;
     int len;
     while ((len = reader.read(buf)) > 0) {
       byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
@@ -177,8 +178,8 @@ public class ReaderCodec implements Codec<Reader> {
     return val;
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.VARSTRING;
+  public int getBinaryEncodeType() {
+    return DataType.VARSTRING.get();
   }
 
   public boolean canEncodeLongData() {

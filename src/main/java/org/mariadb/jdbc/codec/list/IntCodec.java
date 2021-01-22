@@ -140,21 +140,22 @@ public class IntCodec implements Codec<Integer> {
     long result;
     switch (column.getType()) {
       case TINYINT:
-        result = column.isSigned() ? buf.readByte() : buf.readUnsignedByte();
-        break;
+        return (int) (column.isSigned() ? buf.readByte() : buf.readUnsignedByte());
 
       case YEAR:
       case SMALLINT:
-        result = column.isSigned() ? buf.readShort() : buf.readUnsignedShort();
-        break;
+        return column.isSigned() ? buf.readShort() : buf.readUnsignedShort();
 
       case MEDIUMINT:
-        result = column.isSigned() ? buf.readMedium() : buf.readUnsignedMedium();
+        int res = column.isSigned() ? buf.readMedium() : buf.readUnsignedMedium();
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
-        break;
+        return res;
 
       case INTEGER:
-        result = column.isSigned() ? buf.readInt() : buf.readUnsignedInt();
+        if (column.isSigned()) {
+          return buf.readInt();
+        }
+        result = buf.readUnsignedInt();
         break;
 
       case BIGINT:
@@ -225,18 +226,18 @@ public class IntCodec implements Codec<Integer> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Integer value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
-    encoder.writeAscii(String.valueOf(value));
+    encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Integer value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeInt(value);
+    encoder.writeInt(((Integer)value).intValue());
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.INTEGER;
+  public int getBinaryEncodeType() {
+    return DataType.INTEGER.get();
   }
 }

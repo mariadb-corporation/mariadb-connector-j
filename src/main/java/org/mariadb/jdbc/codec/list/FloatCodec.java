@@ -170,18 +170,18 @@ public class FloatCodec implements Codec<Float> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Float value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException {
-    encoder.writeAscii(String.valueOf(value));
+    encoder.writeAscii(value.toString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Float value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeFloat(value);
+    encoder.writeFloat((Float)value);
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.FLOAT;
+  public int getBinaryEncodeType() {
+    return DataType.FLOAT.get();
   }
 }

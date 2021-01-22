@@ -15,21 +15,25 @@ import org.mariadb.jdbc.Statement;
 
 public class TinyIntCodecTest extends CommonCodecTest {
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE TinyIntCodec");
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS TinyIntCodec");
+    stmt.execute("DROP TABLE IF EXISTS TinyIntCodec2");
+    stmt.execute("DROP TABLE IF EXISTS TinyIntCodecUnsigned");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS TinyIntCodec");
-    stmt.execute("DROP TABLE IF EXISTS TinyIntCodecUnsigned");
     stmt.execute("CREATE TABLE TinyIntCodec (t1 TINYINT, t2 TINYINT, t3 TINYINT, t4 TINYINT)");
+    stmt.execute("CREATE TABLE TinyIntCodec2 (t1 TINYINT)");
     stmt.execute(
         "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT UNSIGNED, t4 TINYINT "
             + "UNSIGNED)");
     stmt.execute("INSERT INTO TinyIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO TinyIntCodecUnsigned VALUES (0, 1, 255, null)");
+    stmt.execute("FLUSH TABLES");
   }
 
   private ResultSet getSigned() throws SQLException {
@@ -40,12 +44,12 @@ public class TinyIntCodecTest extends CommonCodecTest {
     return get("TinyIntCodecUnsigned");
   }
 
-  private ResultSet getPrepareSigned() throws SQLException {
-    return getPrepare("TinyIntCodec");
+  private ResultSet getPrepareSigned(Connection con) throws SQLException {
+    return getPrepare(con, "TinyIntCodec");
   }
 
-  private ResultSet getPrepareUnsigned() throws SQLException {
-    return getPrepare("TinyIntCodecUnsigned");
+  private ResultSet getPrepareUnsigned(Connection con) throws SQLException {
+    return getPrepare(con, "TinyIntCodecUnsigned");
   }
 
   private ResultSet get(String table) throws SQLException {
@@ -57,9 +61,9 @@ public class TinyIntCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepare(String table) throws SQLException {
+  private ResultSet getPrepare(Connection con, String table) throws SQLException {
     PreparedStatement stmt =
-        sharedConn.prepareStatement(
+        con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " WHERE 1 > ?");
@@ -77,7 +81,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectPrepare() throws Exception {
-    getObject(getPrepareSigned());
+    getObject(getPrepareSigned(sharedConn));
+    getObject(getPrepareSigned(sharedConnBinary));
   }
 
   public void getObject(ResultSet rs) throws Exception {
@@ -99,7 +104,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectUnsignedPrepare() throws Exception {
-    getObjectUnsigned(getPrepareUnsigned());
+    getObjectUnsigned(getPrepareUnsigned(sharedConn));
+    getObjectUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getObjectUnsigned(ResultSet rs) throws Exception {
@@ -121,7 +127,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectTypePrepare() throws Exception {
-    getObjectType(getPrepareSigned());
+    getObjectType(getPrepareSigned(sharedConn));
+    getObjectType(getPrepareSigned(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
@@ -158,7 +165,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectTypeBooleanPrepare() throws Exception {
-    getObjectTypeBoolean(getPrepareSigned());
+    getObjectTypeBoolean(getPrepareSigned(sharedConn));
+    getObjectTypeBoolean(getPrepareSigned(sharedConnBinary));
   }
 
   public void getObjectTypeBoolean(ResultSet rs) throws Exception {
@@ -180,7 +188,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getStringPrepare() throws Exception {
-    getString(getPrepareSigned());
+    getString(getPrepareSigned(sharedConn));
+    getString(getPrepareSigned(sharedConnBinary));
   }
 
   public void getString(ResultSet rs) throws Exception {
@@ -202,7 +211,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getNStringPrepare() throws Exception {
-    getNString(getPrepareSigned());
+    getNString(getPrepareSigned(sharedConn));
+    getNString(getPrepareSigned(sharedConnBinary));
   }
 
   public void getNString(ResultSet rs) throws Exception {
@@ -224,7 +234,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBooleanPrepare() throws Exception {
-    getBoolean(getPrepareSigned());
+    getBoolean(getPrepareSigned(sharedConn));
+    getBoolean(getPrepareSigned(sharedConnBinary));
   }
 
   public void getBoolean(ResultSet rs) throws Exception {
@@ -246,7 +257,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytePrepare() throws SQLException {
-    getByte(getPrepareSigned());
+    getByte(getPrepareSigned(sharedConn));
+    getByte(getPrepareSigned(sharedConnBinary));
   }
 
   public void getByte(ResultSet rs) throws SQLException {
@@ -268,7 +280,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getShortPrepare() throws SQLException {
-    getShort(getPrepareSigned());
+    getShort(getPrepareSigned(sharedConn));
+    getShort(getPrepareSigned(sharedConnBinary));
   }
 
   public void getShort(ResultSet rs) throws SQLException {
@@ -290,7 +303,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getIntPrepare() throws SQLException {
-    getInt(getPrepareSigned());
+    getInt(getPrepareSigned(sharedConn));
+    getInt(getPrepareSigned(sharedConnBinary));
   }
 
   public void getInt(ResultSet rs) throws SQLException {
@@ -312,7 +326,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getIntUnsignedPrepare() throws SQLException {
-    getIntUnsigned(getPrepareUnsigned());
+    getIntUnsigned(getPrepareUnsigned(sharedConn));
+    getIntUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getIntUnsigned(ResultSet rs) throws SQLException {
@@ -333,7 +348,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getLongPrepare() throws SQLException {
-    getLong(getPrepareSigned());
+    getLong(getPrepareSigned(sharedConn));
+    getLong(getPrepareSigned(sharedConnBinary));
   }
 
   public void getLong(ResultSet rs) throws SQLException {
@@ -355,7 +371,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getLongUnsignedPrepare() throws SQLException {
-    getLongUnsigned(getPrepareUnsigned());
+    getLongUnsigned(getPrepareUnsigned(sharedConn));
+    getLongUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getLongUnsigned(ResultSet rs) throws SQLException {
@@ -377,7 +394,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getFloatPrepare() throws SQLException {
-    getFloat(getPrepareSigned());
+    getFloat(getPrepareSigned(sharedConn));
+    getFloat(getPrepareSigned(sharedConnBinary));
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
@@ -399,7 +417,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getFloatUnsignedPrepare() throws SQLException {
-    getFloatUnsigned(getPrepareUnsigned());
+    getFloatUnsigned(getPrepareUnsigned(sharedConn));
+    getFloatUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getFloatUnsigned(ResultSet rs) throws SQLException {
@@ -421,7 +440,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getDoublePrepare() throws SQLException {
-    getDouble(getPrepareSigned());
+    getDouble(getPrepareSigned(sharedConn));
+    getDouble(getPrepareSigned(sharedConnBinary));
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
@@ -443,7 +463,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getDoubleUnsignedPrepare() throws SQLException {
-    getDoubleUnsigned(getPrepareUnsigned());
+    getDoubleUnsigned(getPrepareUnsigned(sharedConn));
+    getDoubleUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getDoubleUnsigned(ResultSet rs) throws SQLException {
@@ -465,7 +486,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBigDecimalPrepare() throws SQLException {
-    getBigDecimal(getPrepareSigned());
+    getBigDecimal(getPrepareSigned(sharedConn));
+    getBigDecimal(getPrepareSigned(sharedConnBinary));
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
@@ -487,7 +509,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBigDecimalUnsignedPrepare() throws SQLException {
-    getBigDecimalUnsigned(getPrepareUnsigned());
+    getBigDecimalUnsigned(getPrepareUnsigned(sharedConn));
+    getBigDecimalUnsigned(getPrepareUnsigned(sharedConnBinary));
   }
 
   public void getBigDecimalUnsigned(ResultSet rs) throws SQLException {
@@ -509,7 +532,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getDatePrepare() throws SQLException {
-    getDate(getPrepareSigned());
+    getDate(getPrepareSigned(sharedConn));
+    getDate(getPrepareSigned(sharedConnBinary));
   }
 
   public void getDate(ResultSet rs) throws SQLException {
@@ -528,7 +552,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimePrepare() throws SQLException {
-    getTime(getPrepareSigned());
+    getTime(getPrepareSigned(sharedConn));
+    getTime(getPrepareSigned(sharedConnBinary));
   }
 
   public void getTime(ResultSet rs) throws SQLException {
@@ -547,7 +572,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getTimestampPrepare() throws SQLException {
-    getTimestamp(getPrepareSigned());
+    getTimestamp(getPrepareSigned(sharedConn));
+    getTimestamp(getPrepareSigned(sharedConnBinary));
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
@@ -568,7 +594,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getAsciiStreamPrepare() throws SQLException {
-    getAsciiStream(getPrepareSigned());
+    getAsciiStream(getPrepareSigned(sharedConn));
+    getAsciiStream(getPrepareSigned(sharedConnBinary));
   }
 
   public void getAsciiStream(ResultSet rs) throws SQLException {
@@ -589,7 +616,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getUnicodeStreamPrepare() throws SQLException {
-    getUnicodeStream(getPrepareSigned());
+    getUnicodeStream(getPrepareSigned(sharedConn));
+    getUnicodeStream(getPrepareSigned(sharedConnBinary));
   }
 
   @SuppressWarnings("deprecation")
@@ -611,7 +639,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBinaryStreamPrepare() throws SQLException {
-    getBinaryStream(getPrepareSigned());
+    getBinaryStream(getPrepareSigned(sharedConn));
+    getBinaryStream(getPrepareSigned(sharedConnBinary));
   }
 
   public void getBinaryStream(ResultSet rs) throws SQLException {
@@ -632,7 +661,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBytesPrepare() throws SQLException {
-    getBytes(getPrepareSigned());
+    getBytes(getPrepareSigned(sharedConn));
+    getBytes(getPrepareSigned(sharedConnBinary));
   }
 
   public void getBytes(ResultSet rs) throws SQLException {
@@ -653,7 +683,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getCharacterStreamPrepare() throws SQLException {
-    getCharacterStream(getPrepareSigned());
+    getCharacterStream(getPrepareSigned(sharedConn));
+    getCharacterStream(getPrepareSigned(sharedConnBinary));
   }
 
   public void getCharacterStream(ResultSet rs) throws SQLException {
@@ -674,7 +705,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getNCharacterStreamPrepare() throws SQLException {
-    getNCharacterStream(getPrepareSigned());
+    getNCharacterStream(getPrepareSigned(sharedConn));
+    getNCharacterStream(getPrepareSigned(sharedConnBinary));
   }
 
   public void getNCharacterStream(ResultSet rs) throws SQLException {
@@ -695,7 +727,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getRefPrepare() throws SQLException {
-    getRef(getPrepareSigned());
+    getRef(getPrepareSigned(sharedConn));
+    getRef(getPrepareSigned(sharedConnBinary));
   }
 
   public void getRef(ResultSet rs) throws SQLException {
@@ -712,7 +745,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getBlobPrepare() throws SQLException {
-    getBlob(getPrepareSigned());
+    getBlob(getPrepareSigned(sharedConn));
+    getBlob(getPrepareSigned(sharedConnBinary));
   }
 
   public void getBlob(ResultSet rs) throws SQLException {
@@ -733,7 +767,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getClobPrepare() throws SQLException {
-    getClob(getPrepareSigned());
+    getClob(getPrepareSigned(sharedConn));
+    getClob(getPrepareSigned(sharedConnBinary));
   }
 
   public void getClob(ResultSet rs) throws SQLException {
@@ -752,7 +787,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getNClobPrepare() throws SQLException {
-    getNClob(getPrepareSigned());
+    getNClob(getPrepareSigned(sharedConn));
+    getNClob(getPrepareSigned(sharedConnBinary));
   }
 
   public void getNClob(ResultSet rs) throws SQLException {
@@ -773,7 +809,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getArrayPrepare() throws SQLException {
-    getArray(getPrepareSigned());
+    getArray(getPrepareSigned(sharedConn));
+    getArray(getPrepareSigned(sharedConnBinary));
   }
 
   public void getArray(ResultSet rs) throws SQLException {
@@ -792,7 +829,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getURLPrepare() throws SQLException {
-    getURL(getPrepareSigned());
+    getURL(getPrepareSigned(sharedConn));
+    getURL(getPrepareSigned(sharedConnBinary));
   }
 
   public void getURL(ResultSet rs) throws SQLException {
@@ -809,7 +847,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
   @Test
   public void getSQLXMLPrepare() throws SQLException {
-    getSQLXML(getPrepareSigned());
+    getSQLXML(getPrepareSigned(sharedConn));
+    getSQLXML(getPrepareSigned(sharedConnBinary));
   }
 
   public void getSQLXML(ResultSet rs) throws SQLException {
@@ -836,5 +875,47 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(4, meta.getColumnDisplaySize(1));
+  }
+
+
+  @Test
+  public void sendParam() throws SQLException {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE TinyIntCodec2");
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TinyIntCodec2 VALUES (?)")) {
+      prep.setByte(1, (byte) 1);
+      prep.execute();
+      prep.setObject(1, Byte.valueOf("2"));
+      prep.execute();
+      prep.setObject(1, null);
+      prep.execute();
+      prep.setObject(1, (byte) 3, Types.TINYINT);
+      prep.execute();
+      prep.setObject(1, Byte.valueOf("4"), Types.TINYINT);
+      prep.execute();
+      prep.setObject(1, null, Types.TINYINT);
+      prep.execute();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getByte(1));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getByte(1));
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(1));
+    assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertEquals(3, rs.getByte(1));
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(1));
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(1));
+    assertTrue(rs.wasNull());
   }
 }

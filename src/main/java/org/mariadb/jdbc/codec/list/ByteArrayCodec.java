@@ -102,21 +102,23 @@ public class ByteArrayCodec implements Codec<byte[]> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, byte[] value, Calendar cal, Long maxLength)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
+    int length = ((byte[]) value).length;
     encoder.writeBytes(BINARY_PREFIX);
     encoder.writeBytesEscaped(
-        value,
-        maxLength == null ? value.length : Math.min(value.length, maxLength.intValue()),
+        ((byte[]) value),
+        maxLength == null ? length : Math.min(length, maxLength.intValue()),
         (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
     encoder.writeByte('\'');
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, byte[] value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
       throws IOException {
-    encoder.writeLength(value.length);
-    encoder.writeBytes(value);
+    int length = ((byte[]) value).length;
+    encoder.writeLength(length);
+    encoder.writeBytes(((byte[]) value));
   }
 
   @Override
@@ -147,7 +149,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
     return true;
   }
 
-  public DataType getBinaryEncodeType() {
-    return DataType.BLOB;
+  public int getBinaryEncodeType() {
+    return DataType.BLOB.get();
   }
 }

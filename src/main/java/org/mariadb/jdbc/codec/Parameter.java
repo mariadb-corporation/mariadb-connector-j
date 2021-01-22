@@ -37,8 +37,8 @@ public class Parameter<T> {
         }
 
         @Override
-        public DataType getBinaryEncodeType() {
-          return DataType.VARCHAR;
+        public int getBinaryEncodeType() {
+          return DataType.VARCHAR.get();
         }
 
         @Override
@@ -99,12 +99,12 @@ public class Parameter<T> {
     return codec.canEncodeLongData();
   }
 
-  public DataType getBinaryEncodeType() {
+  public int getBinaryEncodeType() {
     return codec.getBinaryEncodeType();
   }
 
   public boolean isNull() {
-    return false;
+    return value == null;
   }
 
   @Override
