@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class IntCodecTest extends CommonCodecTest {
   @AfterAll
@@ -63,7 +64,7 @@ public class IntCodecTest extends CommonCodecTest {
 
   private ResultSet getPrepare(Connection con, String table) throws SQLException {
     try (PreparedStatement stmt =
-                 con.prepareStatement(
+        con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4"
                 + " as t4alias from "
                 + table
@@ -479,6 +480,56 @@ public class IntCodecTest extends CommonCodecTest {
     assertNull(rs.getBigDecimal(4));
     assertTrue(rs.wasNull());
   }
+
+
+  @Test
+  public void getBigInteger() throws SQLException {
+    getBigInteger(getSigned());
+  }
+
+  @Test
+  public void getBigIntegerPrepared() throws SQLException {
+    getBigInteger(getPreparedSigned(sharedConn));
+    getBigInteger(getPreparedSigned(sharedConnBinary));
+  }
+
+  private void getBigInteger(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertEquals(BigInteger.ZERO, rs.getBigInteger(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.ONE, rs.getBigInteger(2));
+    assertEquals(BigInteger.ONE, rs.getBigInteger("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.valueOf(-1), rs.getBigInteger(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigInteger(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getBigIntegerUnsigned() throws SQLException {
+    getBigIntegerUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getBigIntegerUnsignedPrepared() throws SQLException {
+    getBigIntegerUnsigned(getPreparedUnsigned(sharedConn));
+    getBigIntegerUnsigned(getPreparedUnsigned(sharedConnBinary));
+  }
+
+  private void getBigIntegerUnsigned(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertEquals(BigInteger.ZERO, rs.getBigInteger(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.ONE, rs.getBigInteger(2));
+    assertEquals(BigInteger.ONE, rs.getBigInteger("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.valueOf(4294967295L), rs.getBigInteger(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigInteger(4));
+    assertTrue(rs.wasNull());
+  }
+
 
   @Test
   public void getDate() throws SQLException {

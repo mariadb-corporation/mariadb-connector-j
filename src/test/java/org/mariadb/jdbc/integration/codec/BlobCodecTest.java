@@ -2,21 +2,25 @@ package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.Reader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.*;
+import java.util.Arrays;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class BlobCodecTest extends CommonCodecTest {
+  private static File tmpFile;
+  private static byte[] fileContent= new byte[11000];
+
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -25,16 +29,24 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @BeforeAll
-  public static void beforeAll2() throws SQLException {
+  public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB)");
     stmt.execute(
         "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
-    stmt.execute("CREATE TABLE BlobCodec2 (t1 TINYBLOB)");
-
+    stmt.execute("CREATE TABLE BlobCodec2 (t1 BLOB)");
     stmt.execute("FLUSH TABLES");
+
+    tmpFile = File.createTempFile("temp-file-name", ".tmp");
+    for (int i = 0; i < 11_000; i++) {
+      fileContent[i] = (byte) (i % 110 + 40);
+    }
+
+    try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+      fos.write(fileContent);
+    }
   }
 
   private ResultSet get() throws SQLException {
@@ -46,14 +58,14 @@ public class BlobCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepare(Connection con) throws SQLException {
+  private CompleteResult getPrepare(org.mariadb.jdbc.Connection con) throws SQLException {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    CompleteResult rs = (CompleteResult) stmt.executeQuery();
     assertTrue(rs.next());
     return rs;
   }
@@ -312,6 +324,20 @@ public class BlobCodecTest extends CommonCodecTest {
         SQLDataException.class,
         () -> rs.getBigDecimal(1),
         "Data type BLOB cannot be decoded as BigDecimal");
+    assertFalse(rs.wasNull());
+  }
+
+  @Test
+  public void getBigIntegerPrepare() throws SQLException {
+    getBigInteger(getPrepare(sharedConn));
+    getBigInteger(getPrepare(sharedConnBinary));
+  }
+
+  public void getBigInteger(CompleteResult rs) throws SQLException {
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getBigInteger(1),
+        "Data type BLOB cannot be decoded as BigInteger");
     assertFalse(rs.wasNull());
   }
 
@@ -578,12 +604,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void sendParam() throws SQLException {
+  public void sendParam() throws Exception {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
   }
 
-  private void sendParam(Connection con) throws SQLException {
+  private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2 VALUES (?)")) {
@@ -593,12 +619,38 @@ public class BlobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
+      prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 5);
+      prep.execute();
       prep.setObject(1, null);
       prep.execute();
       prep.setObject(1, new MariaDbBlob("e🌟3".getBytes(StandardCharsets.UTF_8)), Types.BLOB);
       prep.execute();
       prep.setObject(1, null, Types.BLOB);
       prep.execute();
+
+      prep.setObject(1, new MariaDbBlob("e🌟4".getBytes(StandardCharsets.UTF_8)));
+      prep.addBatch();
+      prep.setObject(1, new MariaDbBlob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 6);
+      prep.addBatch();
+      prep.executeBatch();
+
+      try (FileInputStream fis = new FileInputStream(tmpFile)) {
+        prep.setObject(1, fis, Types.BLOB);
+        prep.execute();
+      }
+      try (FileInputStream fis = new FileInputStream(tmpFile)) {
+        prep.setObject(1, fis, Types.BLOB, 5000);
+        prep.execute();
+      }
+      try (FileInputStream fis = new FileInputStream(tmpFile)) {
+        try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
+          prep.setObject(1, fis, Types.BLOB);
+          prep.addBatch();
+          prep.setObject(1, fis2, Types.BLOB, 5000);
+          prep.addBatch();
+          prep.executeBatch();
+        }
+      }
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM BlobCodec2");
@@ -613,6 +665,10 @@ public class BlobCodecTest extends CommonCodecTest {
         "e🌟2".getBytes(StandardCharsets.UTF_8),
         rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
+    assertArrayEquals(
+            "e🌟".getBytes(StandardCharsets.UTF_8),
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
     assertNull(rs.getBlob(1));
     assertTrue(rs.next());
     assertArrayEquals(
@@ -620,5 +676,31 @@ public class BlobCodecTest extends CommonCodecTest {
         rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertNull(rs.getBlob(1));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            "e🌟4".getBytes(StandardCharsets.UTF_8),
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            "e🌟5".getBytes(StandardCharsets.UTF_8),
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            fileContent,
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            Arrays.copyOfRange(fileContent, 0, 5000),
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            fileContent,
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(
+            Arrays.copyOfRange(fileContent, 0, 5000),
+            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+
+
   }
 }

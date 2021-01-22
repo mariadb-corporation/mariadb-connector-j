@@ -256,7 +256,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
         if (length == 1) {
           return Types.BIT;
         }
-        return Types.TINYINT;
+        return isSigned() ? Types.TINYINT : Types.SMALLINT;
       case BIT:
         if (length == 1) {
           return Types.BIT;

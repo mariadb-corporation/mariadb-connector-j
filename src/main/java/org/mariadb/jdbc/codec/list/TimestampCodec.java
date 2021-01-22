@@ -299,10 +299,10 @@ public class TimestampCodec implements Codec<Timestamp> {
 
   @Override
   public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar providedCal)
+      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(((Timestamp)value).getTime());
+    cal.setTimeInMillis(((Timestamp) value).getTime());
     if (cal.get(Calendar.MILLISECOND) == 0) {
       encoder.writeByte(7); // length
       encoder.writeShort((short) cal.get(Calendar.YEAR));

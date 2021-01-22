@@ -266,11 +266,12 @@ public class StringCodec implements Codec<String> {
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(PacketWriter writer, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
-    writer.writeLength(b.length);
-    writer.writeBytes(b);
+    int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;
+    writer.writeLength(len);
+    writer.writeBytes(b, 0, len);
   }
 
   public int getBinaryEncodeType() {

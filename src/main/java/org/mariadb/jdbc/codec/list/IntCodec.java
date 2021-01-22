@@ -95,12 +95,9 @@ public class IntCodec implements Codec<Integer> {
 
       case BIT:
         result = 0;
-        for (int i = 0; i < Math.min(length, 8); i++) {
+        for (int i = 0; i < length; i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
-        }
-        if (length > 8) {
-          buf.skip(length - 8);
         }
         break;
 
@@ -179,12 +176,9 @@ public class IntCodec implements Codec<Integer> {
 
       case BIT:
         result = 0;
-        for (int i = 0; i < Math.min(length, 8); i++) {
+        for (int i = 0; i < length; i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
-        }
-        if (length > 8) {
-          buf.skip(length - 8);
         }
         break;
 
@@ -232,9 +226,9 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeInt(((Integer)value).intValue());
+    encoder.writeInt(((Integer) value).intValue());
   }
 
   public int getBinaryEncodeType() {

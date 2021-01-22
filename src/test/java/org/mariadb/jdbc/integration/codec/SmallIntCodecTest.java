@@ -881,6 +881,20 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(6, meta.getColumnDisplaySize(1));
+
+    rs = getUnsigned();
+    meta = rs.getMetaData();
+    assertEquals("SMALLINT", meta.getColumnTypeName(1));
+    assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
+    assertEquals("java.lang.Integer", meta.getColumnClassName(1));
+    assertEquals("t1alias", meta.getColumnLabel(1));
+    assertEquals("t1", meta.getColumnName(1));
+    assertEquals(Types.INTEGER, meta.getColumnType(1));
+    assertEquals(4, meta.getColumnCount());
+    assertEquals(5, meta.getPrecision(1));
+    assertEquals(0, meta.getScale(1));
+    assertEquals("", meta.getSchemaName(1));
+    assertEquals(5, meta.getColumnDisplaySize(1));
   }
 
   @Test
@@ -893,7 +907,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE SmallIntCodec2");
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO SmallIntCodec2 VALUES (?)")) {
-      prep.setShort(1, (short)1);
+      prep.setShort(1, (short) 1);
       prep.execute();
       prep.setObject(1, 2);
       prep.execute();
@@ -919,5 +933,4 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getShort(1));
     assertTrue(rs.wasNull());
   }
-
 }

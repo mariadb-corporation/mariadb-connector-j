@@ -91,15 +91,15 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
     ZonedDateTime zdt = (ZonedDateTime) val;
     encoder.writeByte('\'');
     encoder.writeAscii(
-            zdt.format(
-                    zdt.getNano() != 0
+        zdt.format(
+            zdt.getNano() != 0
                 ? LocalDateTimeCodec.TIMESTAMP_FORMAT
                 : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     encoder.writeByte('\'');
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     ZonedDateTime zdt = (ZonedDateTime) value;
     int nano = zdt.getNano();

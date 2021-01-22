@@ -654,7 +654,6 @@ public class DoubleCodecTest extends CommonCodecTest {
     assertEquals(22, meta.getColumnDisplaySize(1));
   }
 
-
   @Test
   public void sendParam() throws SQLException {
     sendParam(sharedConn);

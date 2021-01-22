@@ -248,9 +248,9 @@ public class ByteCodec implements Codec<Byte> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeByte((byte)value);
+    encoder.writeByte((byte) value);
   }
 
   public int getBinaryEncodeType() {

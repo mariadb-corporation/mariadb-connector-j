@@ -132,7 +132,7 @@ public class BlobCodec implements Codec<Blob> {
       throws IOException, SQLException {
     encoder.writeBytes(ByteArrayCodec.BINARY_PREFIX);
     byte[] array = new byte[4096];
-    InputStream is = ((Blob)value).getBinaryStream();
+    InputStream is = ((Blob) value).getBinaryStream();
     int len;
 
     if (maxLength == null) {
@@ -154,19 +154,23 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     long length;
-    InputStream is = ((Blob)value).getBinaryStream();
+    InputStream is = ((Blob) value).getBinaryStream();
     try {
-      length = ((Blob)value).length();
+      length = ((Blob) value).length();
+      if (maxLength != null) length = Math.min(maxLength, length);
 
       // if not have thrown an error
       encoder.writeLength(length);
       byte[] array = new byte[4096];
       int len;
+      long remainingLen = length;
       while ((len = is.read(array)) > 0) {
-        encoder.writeBytes(array, 0, len);
+        encoder.writeBytes(array, 0, Math.min((int)remainingLen, len));
+        remainingLen -= len;
+        if (remainingLen < 0) break;
       }
 
     } catch (SQLException sqle) {
@@ -177,16 +181,18 @@ public class BlobCodec implements Codec<Blob> {
       byte[] array = new byte[4096];
 
       int len;
-      while ((len = is.read(array)) > 0) {
-        if (blobBytes.length - (pos + 1) < len) {
+      long remainingLen = maxLength.longValue();
+      while ((len = is.read(array)) > 0 && remainingLen > 0) {
+        len = Math.min((int) remainingLen, len);
+        if (blobBytes.length - pos < len) {
           byte[] newBlobBytes = new byte[blobBytes.length + 65536];
           System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
-          pos = blobBytes.length;
           blobBytes = newBlobBytes;
         }
         System.arraycopy(array, 0, blobBytes, pos, len);
         pos += len;
       }
+
       encoder.writeLength(pos);
       encoder.writeBytes(blobBytes, 0, pos);
     }

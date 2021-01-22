@@ -96,12 +96,9 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
       case BIT:
         long result = 0;
-        for (int i = 0; i < Math.min(length, 8); i++) {
+        for (int i = 0; i < length; i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
-        }
-        if (length > 8) {
-          buf.skip(length - 8);
         }
         return BigDecimal.valueOf(result);
 
@@ -168,12 +165,9 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
       case BIT:
         long result = 0;
-        for (int i = 0; i < Math.min(length, 8); i++) {
+        for (int i = 0; i < length; i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
-        }
-        if (length > 8) {
-          buf.skip(length - 8);
         }
         return BigDecimal.valueOf(result);
 
@@ -201,13 +195,13 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException {
-    encoder.writeAscii(((BigDecimal)value).toPlainString());
+    encoder.writeAscii(((BigDecimal) value).toPlainString());
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    String asciiFormat = ((BigDecimal)value).toPlainString();
+    String asciiFormat = ((BigDecimal) value).toPlainString();
     encoder.writeLength(asciiFormat.length());
     encoder.writeAscii(asciiFormat);
   }

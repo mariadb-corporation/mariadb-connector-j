@@ -146,13 +146,13 @@ public class BooleanCodec implements Codec<Boolean> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeAscii(((Boolean)value) ? "1" : "0");
+    encoder.writeAscii(((Boolean) value) ? "1" : "0");
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeByte(((Boolean)value) ? 1 : 0);
+    encoder.writeByte(((Boolean) value) ? 1 : 0);
   }
 
   public int getBinaryEncodeType() {

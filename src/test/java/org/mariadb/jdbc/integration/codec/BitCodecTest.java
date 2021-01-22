@@ -90,6 +90,7 @@ public class BitCodecTest extends CommonCodecTest {
 
   public void getObjectType(ResultSet rs) throws Exception {
     testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Byte.class, Byte.valueOf("0"));
     testObject(rs, String.class, "b''");
     testObject(rs, Long.class, Long.valueOf(0));
     testObject(rs, Short.class, Short.valueOf((short) 0));

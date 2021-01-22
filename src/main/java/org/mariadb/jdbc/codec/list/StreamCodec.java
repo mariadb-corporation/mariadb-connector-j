@@ -130,7 +130,7 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     // length is not known
     byte[] blobBytes = new byte[4096];
@@ -139,31 +139,46 @@ public class StreamCodec implements Codec<InputStream> {
     InputStream stream = (InputStream) value;
 
     int len;
-    while ((len = stream.read(array)) > 0) {
-      if (blobBytes.length - (pos + 1) < len) {
-        byte[] newBlobBytes = new byte[blobBytes.length + 65536];
-        System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
-        pos = blobBytes.length;
-        blobBytes = newBlobBytes;
+    if (maxLength == null) {
+      while ((len = stream.read(array)) > 0) {
+        if (blobBytes.length - pos < len) {
+          byte[] newBlobBytes = new byte[blobBytes.length + 65536];
+          System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
+          blobBytes = newBlobBytes;
+        }
+        System.arraycopy(array, 0, blobBytes, pos, len);
+        pos += len;
       }
-      System.arraycopy(array, 0, blobBytes, pos, len);
-      pos += len;
+    } else {
+      long remainingLen = maxLength.longValue();
+      while ((len = stream.read(array)) > 0 && remainingLen > 0) {
+        len = Math.min((int) remainingLen, len);
+        if (blobBytes.length - pos < len) {
+          byte[] newBlobBytes = new byte[blobBytes.length + 65536];
+          System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
+          blobBytes = newBlobBytes;
+        }
+        System.arraycopy(array, 0, blobBytes, pos, len);
+        pos += len;
+        remainingLen -= len;
+      }
+
     }
     encoder.writeLength(pos);
     encoder.writeBytes(blobBytes, 0, pos);
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, InputStream value, Long length)
+  public void encodeLongData(PacketWriter encoder, Context context, InputStream value, Long maxLength)
       throws IOException {
     byte[] array = new byte[4096];
     int len;
-    if (length == null) {
+    if (maxLength == null) {
       while ((len = value.read(array)) > 0) {
         encoder.writeBytes(array, 0, len);
       }
     } else {
-      long maxLen = length;
+      long maxLen = maxLength;
       while ((len = value.read(array)) > 0 && maxLen > 0) {
         encoder.writeBytes(array, 0, Math.min(len, (int) maxLen));
         maxLen -= len;

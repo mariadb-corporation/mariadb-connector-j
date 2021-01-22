@@ -79,12 +79,16 @@ public class PreparedStatementParametersTest extends Common {
       try {
         prep.execute();
         fail();
-      } catch (SQLException sqle) { }
+      } catch (SQLException sqle) {
+      }
     }
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
       prep.setInt(1, 1);
       prep.execute();
-      assertThrowsContains(SQLTransientConnectionException.class, () -> prep.execute(), "Parameter at position 1 is not set");
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> prep.execute(),
+          "Parameter at position 1 is not set");
     }
   }
 

@@ -197,10 +197,11 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar providedCal)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTime((Time)value);
+    cal.setTime((Time) value);
     cal.set(Calendar.DAY_OF_MONTH, 1);
     if (cal.get(Calendar.MILLISECOND) > 0) {
       encoder.writeByte((byte) 12);

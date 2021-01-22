@@ -121,6 +121,7 @@ public class DateCodecTest extends CommonCodecTest {
     testObject(rs, LocalDateTime.class, LocalDateTime.parse("2010-01-12T00:00:00"));
     testErrObject(rs, LocalTime.class);
     testErrObject(rs, Time.class);
+    testErrObject(rs, BigInteger.class);
     testObject(rs, Timestamp.class, Timestamp.valueOf("2010-01-12 00:00:00"));
     testObject(
         rs,

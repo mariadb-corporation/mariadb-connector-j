@@ -95,7 +95,7 @@ public class ClobCodec implements Codec<Clob> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
       throws IOException, SQLException {
-    Reader reader = ((Clob)value).getCharacterStream();
+    Reader reader = ((Clob) value).getCharacterStream();
     char[] buf = new char[4096];
     int len;
     encoder.writeByte('\'');
@@ -108,10 +108,10 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
-    Reader reader = ((Clob)value).getCharacterStream();
+    Reader reader = ((Clob) value).getCharacterStream();
     byte[] clobBytes = new byte[4096];
     int pos = 0;
     char[] buf = new char[4096];

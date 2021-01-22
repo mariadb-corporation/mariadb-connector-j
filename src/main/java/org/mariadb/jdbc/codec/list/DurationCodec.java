@@ -159,8 +159,8 @@ public class DurationCodec implements Codec<Duration> {
   public void encodeText(
       PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
       throws IOException {
-    long s = ((Duration)val).getSeconds();
-    long microSecond = ((Duration)val).getNano() / 1000;
+    long s = ((Duration) val).getSeconds();
+    long microSecond = ((Duration) val).getNano() / 1000;
     encoder.writeByte('\'');
     if (microSecond != 0) {
       encoder.writeAscii(
@@ -172,16 +172,16 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {
-    int nano = ((Duration)val).getNano();
+    int nano = ((Duration) val).getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 12);
-      encodeDuration(encoder, ((Duration)val));
+      encodeDuration(encoder, ((Duration) val));
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 8);
-      encodeDuration(encoder, ((Duration)val));
+      encodeDuration(encoder, ((Duration) val));
     }
   }
 

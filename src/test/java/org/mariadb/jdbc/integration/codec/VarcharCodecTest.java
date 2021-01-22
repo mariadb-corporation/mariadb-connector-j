@@ -37,7 +37,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
-    stmt.execute("CREATE TABLE StringParamCodec(t1 VARCHAR(20))");
+    stmt.execute("CREATE TABLE StringParamCodec(t1 VARCHAR(20)) " +
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -100,6 +101,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   public void getObjectType(ResultSet rs) throws Exception {
     testObject(rs, Integer.class, Integer.valueOf(0));
     testObject(rs, String.class, "0");
+    testObject(rs, Byte.class, Byte.valueOf("0"));
     testObject(rs, Long.class, Long.valueOf(0));
     testObject(rs, Short.class, Short.valueOf((short) 0));
     testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
@@ -126,6 +128,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         rs,
         ZonedDateTime.class,
         LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault()));
+    testErrObject(rs, BigInteger.class);
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, OffsetTime.class);
     testObject(rs, java.util.Date.class, new Timestamp(tt.getTime() + 152), 2);

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
@@ -291,6 +292,14 @@ public abstract class Result implements ResultSet, Completion {
   public long getLong(int columnIndex) throws SQLException {
     Long b = row.getValue(columnIndex, LongCodec.INSTANCE, null);
     return (b == null) ? 0L : b;
+  }
+
+  public BigInteger getBigInteger(int columnIndex) throws SQLException {
+    return row.getValue(columnIndex, BigIntegerCodec.INSTANCE, null);
+  }
+
+  public BigInteger getBigInteger(String columnLabel) throws SQLException {
+    return row.getValue(columnLabel, BigIntegerCodec.INSTANCE, null);
   }
 
   @Override

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class MediumIntCodecTest extends CommonCodecTest {
   @AfterAll
@@ -477,6 +478,54 @@ public class MediumIntCodecTest extends CommonCodecTest {
     assertEquals(BigDecimal.valueOf(16777215L), rs.getBigDecimal(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getBigInteger() throws SQLException {
+    getBigInteger(getSigned());
+  }
+
+  @Test
+  public void getBigIntegerPrepared() throws SQLException {
+    getBigInteger(getSignedPrepared(sharedConn));
+    getBigInteger(getSignedPrepared(sharedConnBinary));
+  }
+
+  private void getBigInteger(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertEquals(BigInteger.ZERO, rs.getBigInteger(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.ONE, rs.getBigInteger(2));
+    assertEquals(BigInteger.ONE, rs.getBigInteger("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.valueOf(-1), rs.getBigInteger(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigInteger(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getBigIntegerUnsigned() throws SQLException {
+    getBigIntegerUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getBigIntegerUnsignedPrepared() throws SQLException {
+    getBigIntegerUnsigned(getUnsignedPrepared(sharedConn));
+    getBigIntegerUnsigned(getUnsignedPrepared(sharedConnBinary));
+  }
+
+  private void getBigIntegerUnsigned(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertEquals(BigInteger.ZERO, rs.getBigInteger(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.ONE, rs.getBigInteger(2));
+    assertEquals(BigInteger.ONE, rs.getBigInteger("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.valueOf(16777215L), rs.getBigInteger(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigInteger(4));
     assertTrue(rs.wasNull());
   }
 

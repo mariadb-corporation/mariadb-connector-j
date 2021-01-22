@@ -26,8 +26,6 @@ matrix:
   allow_failures:
     - env: DB=build:10.6
       jdk: openjdk11
-    - env: DB=mysql:8.0 ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
-      jdk: openjdk11
   include:
     - env: DB=build:10.6
       jdk: openjdk11

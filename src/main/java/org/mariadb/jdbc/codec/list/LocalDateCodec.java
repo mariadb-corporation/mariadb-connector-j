@@ -213,13 +213,13 @@ public class LocalDateCodec implements Codec<LocalDate> {
       PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
       throws IOException {
     encoder.writeByte('\'');
-    encoder.writeAscii(((LocalDate)val).format(DateTimeFormatter.ISO_LOCAL_DATE));
+    encoder.writeAscii(((LocalDate) val).format(DateTimeFormatter.ISO_LOCAL_DATE));
     encoder.writeByte('\'');
   }
 
   @Override
   public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar providedCal)
+      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     LocalDate val = (LocalDate) value;
     encoder.writeByte(7); // length

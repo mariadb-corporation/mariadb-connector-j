@@ -109,7 +109,7 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal)
+  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];
@@ -117,16 +117,39 @@ public class ReaderCodec implements Codec<Reader> {
     char[] buf = new char[4096];
     Reader reader = (Reader) val;
     int len;
-    while ((len = reader.read(buf)) > 0) {
-      byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-      if (clobBytes.length - (pos + 1) < data.length) {
-        byte[] newBlobBytes = new byte[clobBytes.length + 65536];
-        System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
-        pos = clobBytes.length;
-        clobBytes = newBlobBytes;
+    if (maxLength == null) {
+      while ((len = reader.read(buf)) > 0) {
+        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+        if (clobBytes.length - (pos + 1) < data.length) {
+          byte[] newBlobBytes = new byte[clobBytes.length + 65536];
+          System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
+          pos = clobBytes.length;
+          clobBytes = newBlobBytes;
+        }
+        System.arraycopy(data, 0, clobBytes, pos, data.length);
+        pos += len;
       }
-      System.arraycopy(data, 0, clobBytes, pos, data.length);
-      pos += len;
+    } else {
+      long maxLen = maxLength.longValue();
+      while ((len = reader.read(buf)) > 0) {
+        if (len < maxLen) {
+          maxLen -= len;
+        } else {
+          len = (int)maxLen;
+          maxLen = 0L;
+        }
+
+        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+        if (clobBytes.length - (pos + 1) < data.length) {
+          byte[] newBlobBytes = new byte[clobBytes.length + 65536];
+          System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
+          pos = clobBytes.length;
+          clobBytes = newBlobBytes;
+        }
+        System.arraycopy(data, 0, clobBytes, pos, data.length);
+        pos += len;
+        if (maxLen == 0L) break;
+      }
     }
     encoder.writeLength(pos);
     encoder.writeBytes(clobBytes, 0, pos);

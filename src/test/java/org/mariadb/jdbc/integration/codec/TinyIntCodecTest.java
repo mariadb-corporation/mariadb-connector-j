@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class TinyIntCodecTest extends CommonCodecTest {
   @AfterAll
@@ -526,6 +527,30 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getBigIntegerUnsigned() throws SQLException {
+    getBigIntegerUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getBigIntegerUnsignedPrepare() throws SQLException {
+    getBigIntegerUnsigned(getPrepareUnsigned(sharedConn));
+    getBigIntegerUnsigned(getPrepareUnsigned(sharedConnBinary));
+  }
+
+  public void getBigIntegerUnsigned(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertEquals(BigInteger.ZERO, rs.getBigInteger(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.ONE, rs.getBigInteger(2));
+    assertEquals(BigInteger.ONE, rs.getBigInteger("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigInteger.valueOf(255L), rs.getBigInteger(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigInteger(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
   public void getDate() throws SQLException {
     getDate(getSigned());
   }
@@ -875,8 +900,21 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(4, meta.getColumnDisplaySize(1));
-  }
 
+    rs = getUnsigned();
+    meta = rs.getMetaData();
+    assertEquals("TINYINT", meta.getColumnTypeName(1));
+    assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
+    assertEquals("java.lang.Short", meta.getColumnClassName(1));
+    assertEquals("t1alias", meta.getColumnLabel(1));
+    assertEquals("t1", meta.getColumnName(1));
+    assertEquals(Types.SMALLINT, meta.getColumnType(1));
+    assertEquals(4, meta.getColumnCount());
+    assertEquals(3, meta.getPrecision(1));
+    assertEquals(0, meta.getScale(1));
+    assertEquals("", meta.getSchemaName(1));
+    assertEquals(3, meta.getColumnDisplaySize(1));
+  }
 
   @Test
   public void sendParam() throws SQLException {

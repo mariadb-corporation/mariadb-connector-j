@@ -55,7 +55,7 @@ public interface Codec<T> {
   void encodeText(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
-  void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal)
+  void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   default boolean canEncodeLongData() {

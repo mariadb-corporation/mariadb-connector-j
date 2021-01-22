@@ -78,7 +78,7 @@ public class Parameter<T> {
   }
 
   public void encodeBinary(PacketWriter encoder, Context context) throws IOException, SQLException {
-    codec.encodeBinary(encoder, context, this.value, this.cal);
+    codec.encodeBinary(encoder, context, this.value, this.cal, length);
   }
 
   public void encodeLongData(PacketWriter encoder, Context context)
@@ -105,10 +105,5 @@ public class Parameter<T> {
 
   public boolean isNull() {
     return value == null;
-  }
-
-  @Override
-  public String toString() {
-    return "Parameter{codec=" + codec.className() + ", value=" + value + '}';
   }
 }

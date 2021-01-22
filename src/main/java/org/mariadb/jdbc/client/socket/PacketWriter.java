@@ -218,7 +218,6 @@ public class PacketWriter {
     System.arraycopy(arr, 0, buf, pos, arr.length);
   }
 
-
   /**
    * Write byte array to buf. If buf is full, flush socket.
    *
