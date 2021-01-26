@@ -45,7 +45,11 @@ public class StreamCodec implements Codec<InputStream> {
           DataType.LONGBLOB,
           DataType.VARCHAR,
           DataType.VARSTRING,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return InputStream.class.getName();
@@ -130,7 +134,8 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     // length is not known
     byte[] blobBytes = new byte[4096];
@@ -162,15 +167,14 @@ public class StreamCodec implements Codec<InputStream> {
         pos += len;
         remainingLen -= len;
       }
-
     }
     encoder.writeLength(pos);
     encoder.writeBytes(blobBytes, 0, pos);
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, InputStream value, Long maxLength)
-      throws IOException {
+  public void encodeLongData(
+      PacketWriter encoder, Context context, InputStream value, Long maxLength) throws IOException {
     byte[] array = new byte[4096];
     int len;
     if (maxLength == null) {

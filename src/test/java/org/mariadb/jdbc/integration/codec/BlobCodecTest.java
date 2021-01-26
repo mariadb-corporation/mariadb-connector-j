@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,7 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class BlobCodecTest extends CommonCodecTest {
   private static File tmpFile;
-  private static byte[] fileContent= new byte[11000];
+  private static byte[] fileContent = new byte[11000];
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -145,14 +144,21 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertEquals("0", rs.getString(1));
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString(1),
+        "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
-    assertEquals("1", rs.getString(2));
-    assertEquals("1", rs.getString("t2alias"));
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString(2),
+        "Data type BLOB cannot be decoded as String");
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString("t2alias"),
+        "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getString(3));
-    assertFalse(rs.wasNull());
-    assertNull(rs.getString(4));
+    assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
   }
 
@@ -168,12 +174,19 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("0", rs.getNString(1));
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString(1),
+        "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
-    assertEquals("1", rs.getNString(2));
-    assertEquals("1", rs.getNString("t2alias"));
-    assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getNString(3));
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString(2),
+        "Data type BLOB cannot be decoded as String");
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getNString("t2alias"),
+        "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -607,6 +620,14 @@ public class BlobCodecTest extends CommonCodecTest {
   public void sendParam() throws Exception {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
+
+    String urlWithHaMode =
+        mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:")
+            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
+            + "useServerPrepStmts=true";
+    try (Connection con = DriverManager.getConnection(urlWithHaMode)) {
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws Exception {
@@ -651,6 +672,26 @@ public class BlobCodecTest extends CommonCodecTest {
           prep.executeBatch();
         }
       }
+      try (FileInputStream fis = new FileInputStream(tmpFile)) {
+        prep.setBlob(1, new BlobInputStream(fis));
+        prep.addBatch();
+        prep.executeBatch();
+      }
+      try (FileInputStream fis = new FileInputStream(tmpFile)) {
+        prep.setObject(1, new BlobInputStream(fis), Types.BLOB, 5000);
+        prep.addBatch();
+        prep.executeBatch();
+      }
+
+      prep.setObject(1, "e🌟6".getBytes(StandardCharsets.UTF_8));
+      prep.addBatch();
+      prep.setObject(1, "e🌟76".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
+      prep.addBatch();
+      prep.executeBatch();
+      prep.setObject(1, "e🌟85".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
+      prep.execute();
+      prep.setBytes(1, "e🌟9".getBytes(StandardCharsets.UTF_8));
+      prep.execute();
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM BlobCodec2");
@@ -666,8 +707,8 @@ public class BlobCodecTest extends CommonCodecTest {
         rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            "e🌟".getBytes(StandardCharsets.UTF_8),
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        "e🌟".getBytes(StandardCharsets.UTF_8),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertNull(rs.getBlob(1));
     assertTrue(rs.next());
@@ -678,29 +719,112 @@ public class BlobCodecTest extends CommonCodecTest {
     assertNull(rs.getBlob(1));
     assertTrue(rs.next());
     assertArrayEquals(
-            "e🌟4".getBytes(StandardCharsets.UTF_8),
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        "e🌟4".getBytes(StandardCharsets.UTF_8),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            "e🌟5".getBytes(StandardCharsets.UTF_8),
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        "e🌟5".getBytes(StandardCharsets.UTF_8),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(fileContent, rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            fileContent,
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(fileContent, rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            Arrays.copyOfRange(fileContent, 0, 5000),
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals(fileContent, rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            fileContent,
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        Arrays.copyOfRange(fileContent, 0, 5000),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-            Arrays.copyOfRange(fileContent, 0, 5000),
-            rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+        "e🌟6".getBytes(StandardCharsets.UTF_8),
+        rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟7".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟8".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟9".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+  }
 
+  private class BlobInputStream implements Blob {
+    private InputStream data;
 
+    public BlobInputStream(InputStream data) {
+      this.data = data;
+    }
+
+    @Override
+    public long length() throws SQLException {
+      throw new SQLException("Length not available");
+    }
+
+    @Override
+    public byte[] getBytes(final long pos, final int length) throws SQLException {
+
+      // if not have thrown an error
+      byte[] buf = new byte[length];
+      byte[] array = new byte[4096];
+      int len;
+      int intpos = 0;
+      try {
+        while ((len = data.read(buf, intpos, length - intpos)) > 0) {
+          intpos += len;
+          if (pos >= len) break;
+        }
+        return buf;
+      } catch (IOException io) {
+        throw new SQLException("Error reading stream");
+      }
+    }
+
+    @Override
+    public InputStream getBinaryStream() throws SQLException {
+      return data;
+    }
+
+    @Override
+    public long position(byte[] bytes, long l) throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public long position(Blob blob, long l) throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public int setBytes(long l, byte[] bytes) throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public int setBytes(long l, byte[] bytes, int i, int i1) throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public OutputStream setBinaryStream(long l) throws SQLException {
+      return null;
+    }
+
+    @Override
+    public void truncate(long l) throws SQLException {}
+
+    @Override
+    public void free() throws SQLException {}
+
+    @Override
+    public InputStream getBinaryStream(long l, long l1) throws SQLException {
+      return null;
+    }
   }
 }

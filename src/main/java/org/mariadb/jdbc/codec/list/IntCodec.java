@@ -55,7 +55,11 @@ public class IntCodec implements Codec<Integer> {
           DataType.INTEGER,
           DataType.BIGINT,
           DataType.BIT,
-          DataType.YEAR);
+          DataType.YEAR,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Integer.class.getName();
@@ -71,6 +75,7 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Integer decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -100,6 +105,18 @@ public class IntCodec implements Codec<Integer> {
           result = (result << 8) + (b & 0xff);
         }
         break;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Integer", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case FLOAT:
       case DOUBLE:
@@ -131,6 +148,7 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Integer decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -190,6 +208,18 @@ public class IntCodec implements Codec<Integer> {
         result = (long) buf.readDouble();
         break;
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Integer", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case OLDDECIMAL:
       case VARCHAR:
       case DECIMAL:
@@ -226,7 +256,8 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeInt(((Integer) value).intValue());
   }

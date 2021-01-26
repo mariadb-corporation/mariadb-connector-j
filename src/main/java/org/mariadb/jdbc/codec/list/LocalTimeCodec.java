@@ -47,7 +47,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           DataType.TIMESTAMP,
           DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public static int[] parseTime(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
@@ -110,6 +114,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalTime decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -131,6 +136,18 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           return LocalTime.ofNanoOfDay(seconds * 1_000_000_000 - parts[4]);
         }
         return LocalTime.of(parts[1] % 24, parts[2], parts[3], parts[4]);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -160,6 +177,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalTime decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -202,6 +220,18 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           return LocalTime.ofNanoOfDay(nanos * 1_000_000_000 - microseconds * 1000);
         }
         return LocalTime.of(hour % 24, minutes, seconds, (int) microseconds * 1000);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -260,7 +290,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     LocalTime val = (LocalTime) value;
     int nano = val.getNano();

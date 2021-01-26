@@ -52,7 +52,11 @@ public class DoubleCodec implements Codec<Double> {
           DataType.DECIMAL,
           DataType.VARCHAR,
           DataType.VARSTRING,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Double.class.getName();
@@ -68,6 +72,7 @@ public class DoubleCodec implements Codec<Double> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Double decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -82,6 +87,18 @@ public class DoubleCodec implements Codec<Double> {
       case OLDDECIMAL:
       case DECIMAL:
         return Double.valueOf(buf.readAscii(length));
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Double", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -101,6 +118,7 @@ public class DoubleCodec implements Codec<Double> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Double decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -152,6 +170,18 @@ public class DoubleCodec implements Codec<Double> {
       case DECIMAL:
         return new BigDecimal(buf.readAscii(length)).doubleValue();
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Double", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:
@@ -177,7 +207,8 @@ public class DoubleCodec implements Codec<Double> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeDouble((Double) value);
   }

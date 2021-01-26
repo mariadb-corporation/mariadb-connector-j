@@ -44,7 +44,11 @@ public class DurationCodec implements Codec<Duration> {
           DataType.TIMESTAMP,
           DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Duration.class.getName();
@@ -59,6 +63,7 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Duration decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -75,6 +80,18 @@ public class DurationCodec implements Codec<Duration> {
             .plusMinutes(parts[4])
             .plusSeconds(parts[5])
             .plusNanos(parts[6]);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Duration", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case TIME:
       case VARCHAR:
@@ -98,6 +115,7 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Duration decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal) {
 
@@ -172,7 +190,8 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException {
     int nano = ((Duration) val).getNano();
     if (nano > 0) {

@@ -51,6 +51,7 @@ public class TinyIntCodec implements Codec<Byte> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Byte decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -72,6 +73,20 @@ public class TinyIntCodec implements Codec<Byte> {
           result = (result << 8) + (b & 0xff);
         }
         break;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          if (length > 0) {
+            byte b = buf.readByte();
+            buf.skip(length - 1);
+            return b;
+          }
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case FLOAT:
       case DOUBLE:
@@ -103,6 +118,7 @@ public class TinyIntCodec implements Codec<Byte> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Byte decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -162,6 +178,20 @@ public class TinyIntCodec implements Codec<Byte> {
         result = (long) buf.readDouble();
         break;
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          if (length > 0) {
+            byte b = buf.readByte();
+            buf.skip(length - 1);
+            return b;
+          }
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case OLDDECIMAL:
       case VARCHAR:
       case DECIMAL:
@@ -194,7 +224,8 @@ public class TinyIntCodec implements Codec<Byte> {
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen) {}
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength) {}
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength) {}
 
   public int getBinaryEncodeType() {
     return DataType.TINYINT.get();

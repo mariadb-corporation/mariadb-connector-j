@@ -47,7 +47,11 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
           DataType.VARSTRING,
           DataType.VARCHAR,
           DataType.STRING,
-          DataType.TIME);
+          DataType.TIME,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return ZonedDateTime.class.getName();
@@ -99,7 +103,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     ZonedDateTime zdt = (ZonedDateTime) value;
     int nano = zdt.getNano();

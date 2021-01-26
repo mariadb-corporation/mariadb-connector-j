@@ -47,7 +47,11 @@ public class TimeCodec implements Codec<Time> {
           DataType.TIMESTAMP,
           DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Time.class.getName();
@@ -64,11 +68,24 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Time decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
 
     switch (column.getType()) {
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Time", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:
@@ -97,6 +114,7 @@ public class TimeCodec implements Codec<Time> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Time decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar calParam)
       throws SQLDataException {
@@ -109,6 +127,18 @@ public class TimeCodec implements Codec<Time> {
     long microseconds = 0;
 
     switch (column.getType()) {
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Time", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:

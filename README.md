@@ -66,5 +66,5 @@ To get started with a development installation and learn more about contributing
 [Developers Guide.](/documentation/developers-guide.creole)
 
 
-[codecov-image]:https://codecov.io/gh/rusher/mariadb-connector-j/branch/master/graph/badge.svg
-[codecov-url]:https://codecov.io/gh/rusher/mariadb-connector-j
+[codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
+[codecov-url]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j

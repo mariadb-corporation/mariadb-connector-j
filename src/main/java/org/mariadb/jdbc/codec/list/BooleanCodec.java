@@ -51,7 +51,11 @@ public class BooleanCodec implements Codec<Boolean> {
           DataType.OLDDECIMAL,
           DataType.FLOAT,
           DataType.DOUBLE,
-          DataType.BIT);
+          DataType.BIT,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Boolean.class.getName();
@@ -67,12 +71,25 @@ public class BooleanCodec implements Codec<Boolean> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Boolean decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case BIT:
         return ByteCodec.parseBit(buf, length) != 0;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Boolean", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -100,12 +117,25 @@ public class BooleanCodec implements Codec<Boolean> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Boolean decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case BIT:
         return ByteCodec.parseBit(buf, length) != 0;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Boolean", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -150,7 +180,8 @@ public class BooleanCodec implements Codec<Boolean> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeByte(((Boolean) value) ? 1 : 0);
   }

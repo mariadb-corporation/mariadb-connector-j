@@ -54,7 +54,11 @@ public class ShortCodec implements Codec<Short> {
           DataType.INTEGER,
           DataType.BIGINT,
           DataType.BIT,
-          DataType.YEAR);
+          DataType.YEAR,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
@@ -70,6 +74,7 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Short decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -91,6 +96,18 @@ public class ShortCodec implements Codec<Short> {
           result = (result << 8) + (b & 0xff);
         }
         break;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Short", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case FLOAT:
       case DOUBLE:
@@ -122,6 +139,7 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Short decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -168,6 +186,18 @@ public class ShortCodec implements Codec<Short> {
         result = (long) buf.readDouble();
         break;
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Short", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case OLDDECIMAL:
       case VARCHAR:
       case DECIMAL:
@@ -203,7 +233,8 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeShort((Short) value);
   }

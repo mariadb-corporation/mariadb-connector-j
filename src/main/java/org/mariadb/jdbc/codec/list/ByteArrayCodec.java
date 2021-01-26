@@ -61,6 +61,10 @@ public class ByteArrayCodec implements Codec<byte[]> {
             || type.isAssignableFrom(byte[].class));
   }
 
+  public boolean canEncode(Object value) {
+    return value instanceof byte[];
+  }
+
   @Override
   public byte[] decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
@@ -96,10 +100,6 @@ public class ByteArrayCodec implements Codec<byte[]> {
     return getBytes(buf, length, column);
   }
 
-  public boolean canEncode(Object value) {
-    return value instanceof byte[];
-  }
-
   @Override
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
@@ -115,7 +115,8 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     int length = ((byte[]) value).length;
     if (maxLength != null) length = Math.min(length, maxLength.intValue());

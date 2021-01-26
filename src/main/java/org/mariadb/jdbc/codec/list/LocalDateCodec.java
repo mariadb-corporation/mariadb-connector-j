@@ -48,7 +48,11 @@ public class LocalDateCodec implements Codec<LocalDate> {
           DataType.YEAR,
           DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public static int[] parseDate(ReadableByteBuf buf, int length) {
     int[] datePart = new int[] {0, 0, 0};
@@ -83,6 +87,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalDate decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -111,6 +116,18 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case DATETIME:
         parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length));
         break;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Date", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -142,6 +159,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalDate decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -161,6 +179,18 @@ public class LocalDateCodec implements Codec<LocalDate> {
           buf.skip(length - 4);
         }
         return LocalDate.of(year, month, dayOfMonth);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Date", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

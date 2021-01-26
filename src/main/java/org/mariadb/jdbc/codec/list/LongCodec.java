@@ -55,7 +55,11 @@ public class LongCodec implements Codec<Long> {
           DataType.INTEGER,
           DataType.BIGINT,
           DataType.BIT,
-          DataType.YEAR);
+          DataType.YEAR,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public static long parseNotEmpty(ReadableByteBuf buf, int length) {
 
@@ -91,6 +95,7 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Long decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -134,6 +139,18 @@ public class LongCodec implements Codec<Long> {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str2));
         }
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Long", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:
@@ -152,6 +169,7 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Long decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -213,6 +231,18 @@ public class LongCodec implements Codec<Long> {
       case DOUBLE:
         return (long) buf.readDouble();
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Long", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARSTRING:
       case VARCHAR:
       case STRING:
@@ -240,7 +270,8 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeLong((Long) value);
   }

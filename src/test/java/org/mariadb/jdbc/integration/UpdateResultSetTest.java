@@ -615,7 +615,7 @@ public class UpdateResultSetTest extends Common {
   private void refreshRow(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS refreshRow");
-    stmt.execute("CREATE TABLE refreshRow(id int not null primary key, strm blob)");
+    stmt.execute("CREATE TABLE refreshRow(id int not null primary key, strm text)");
 
     java.sql.Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);

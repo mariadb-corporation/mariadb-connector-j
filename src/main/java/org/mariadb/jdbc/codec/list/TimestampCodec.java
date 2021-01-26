@@ -51,7 +51,11 @@ public class TimestampCodec implements Codec<Timestamp> {
           DataType.VARSTRING,
           DataType.VARCHAR,
           DataType.STRING,
-          DataType.TIME);
+          DataType.TIME,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Timestamp.class.getName();
@@ -66,6 +70,7 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Timestamp decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar calParam)
       throws SQLDataException {
@@ -112,6 +117,18 @@ public class TimestampCodec implements Codec<Timestamp> {
               Integer.parseInt(datePart[2]));
           return new Timestamp(calParam.getTimeInMillis());
         }
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Timestamp", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
@@ -196,6 +213,7 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Timestamp decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar calParam)
       throws SQLDataException {
@@ -228,6 +246,18 @@ public class TimestampCodec implements Codec<Timestamp> {
                     * (negate ? -1 : 1)
                 - offset;
         return new Timestamp(timeInMillis);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Timestamp", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

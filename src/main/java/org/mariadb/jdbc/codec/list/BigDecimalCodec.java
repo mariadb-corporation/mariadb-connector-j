@@ -53,7 +53,11 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.DECIMAL,
           DataType.VARCHAR,
           DataType.VARSTRING,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return BigDecimal.class.getName();
@@ -68,6 +72,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public BigDecimal decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -82,6 +87,18 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case DECIMAL:
       case OLDDECIMAL:
         return new BigDecimal(buf.readAscii(length));
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -110,6 +127,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public BigDecimal decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -171,6 +189,18 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         }
         return BigDecimal.valueOf(result);
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:
@@ -199,7 +229,8 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     String asciiFormat = ((BigDecimal) value).toPlainString();
     encoder.writeLength(asciiFormat.length());

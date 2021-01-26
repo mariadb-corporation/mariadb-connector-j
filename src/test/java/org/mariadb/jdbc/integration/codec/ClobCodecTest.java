@@ -19,26 +19,26 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
 
-public class VarcharCodecTest extends CommonCodecTest {
+public class ClobCodecTest extends CommonCodecTest {
   @AfterAll
-  public static void after2() throws SQLException {
+  public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS StringCodec");
-    stmt.execute("DROP TABLE IF EXISTS StringParamCodec");
+    stmt.execute("DROP TABLE IF EXISTS ClobCodec");
+    stmt.execute("DROP TABLE IF EXISTS ClobParamCodec");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    after2();
+    drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20)) CHARACTER "
+        "CREATE TABLE ClobCodec (t1 TINYTEXT, t2 TEXT, t3 MEDIUMTEXT, t4 LONGTEXT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
+        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
     stmt.execute(
-        "CREATE TABLE StringParamCodec(t1 VARCHAR(20)) "
+        "CREATE TABLE ClobParamCodec(t1 TEXT) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
@@ -48,7 +48,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec");
     assertTrue(rs.next());
     return rs;
   }
@@ -56,7 +56,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec"
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
@@ -77,12 +77,12 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals("0", rs.getObject(1));
+    assertEquals(new MariaDbClob("0".getBytes()), rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertEquals("1", rs.getObject(2));
-    assertEquals("1", rs.getObject("t2alias"));
+    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject(2));
+    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getObject(3));
+    assertEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -224,7 +224,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (VARSTRING) cannot be decoded as Byte");
+        "value 'some\uD83C\uDF1F' (BLOB) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -393,9 +393,7 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   public void getDate(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getDate(1),
-        "value '0' (VARSTRING) cannot be decoded as Date");
+        SQLDataException.class, () -> rs.getDate(1), "value '0' (BLOB) cannot be decoded as Date");
     rs.next();
     assertEquals("2011-01-01", rs.getDate(1).toString());
     assertFalse(rs.wasNull());
@@ -406,7 +404,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
-        "value '23:54:51.840010' (VARSTRING) cannot be decoded as Date");
+        "value '23:54:51.840010' (BLOB) cannot be decoded as Date");
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
@@ -428,12 +426,12 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(1),
-        "VARSTRING value '2011-01-01' cannot be decoded as Time");
+        "BLOB value '2011-01-01' cannot be decoded as Time");
     assertFalse(rs.wasNull());
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(2),
-        "VARSTRING value '2010-12-31 23:59:59.152' cannot be decoded as Time");
+        "BLOB value '2010-12-31 23:59:59.152' cannot be decoded as Time");
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(3).getTime());
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime("t3alias").getTime());
     Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -648,7 +646,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),
-        "Data type VARSTRING (not binary) cannot be decoded as Blob");
+        "Data type BLOB (not binary) cannot be decoded as Blob");
   }
 
   @Test
@@ -701,17 +699,17 @@ public class VarcharCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("VARSTRING", meta.getColumnTypeName(1));
+    assertEquals("BLOB", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.lang.String", meta.getColumnClassName(1));
+    assertEquals("java.sql.Clob", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARCHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(80, meta.getPrecision(1));
+    assertEquals(1020, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(20, meta.getColumnDisplaySize(1));
+    assertEquals(1020, meta.getColumnDisplaySize(1));
   }
 
   @Test
@@ -722,8 +720,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
-    stmt.execute("TRUNCATE TABLE StringParamCodec");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO StringParamCodec VALUES (?)")) {
+    stmt.execute("TRUNCATE TABLE ClobParamCodec");
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO ClobParamCodec VALUES (?)")) {
       prep.setString(1, "e🌟1");
       prep.execute();
       prep.setString(1, null);
@@ -738,7 +736,7 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ClobParamCodec");
     assertTrue(rs.next());
     assertEquals("e🌟1", rs.getString(1));
     assertTrue(rs.next());

@@ -160,6 +160,29 @@ public class LongCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getStringUnsigned() throws SQLException {
+    getStringUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getStringUnsignedPrepared() throws SQLException {
+    getStringUnsigned(getUnsignedPrepared(sharedConn));
+    getStringUnsigned(getUnsignedPrepared(sharedConnBinary));
+  }
+
+  private void getStringUnsigned(ResultSet rs) throws SQLException {
+    assertEquals("0", rs.getString(1));
+    assertFalse(rs.wasNull());
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("18446744073709551615", rs.getString(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getString(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
   public void getNString() throws SQLException {
     getNString(getSigned());
   }
@@ -226,6 +249,27 @@ public class LongCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getByteUnsigned() throws SQLException {
+    getByteUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getByteUnsignedPrepared() throws SQLException {
+    getByteUnsigned(getUnsignedPrepared(sharedConn));
+    getByteUnsigned(getUnsignedPrepared(sharedConnBinary));
+  }
+
+  private void getByteUnsigned(ResultSet rs) throws SQLException {
+    assertEquals((byte) 0, rs.getByte(1));
+    assertFalse(rs.wasNull());
+    assertEquals((byte) 1, rs.getByte(2));
+    assertEquals((byte) 1, rs.getByte("t2alias"));
+    assertFalse(rs.wasNull());
+    assertThrows(SQLDataException.class, () -> rs.getByte(3));
+    assertFalse(rs.wasNull());
   }
 
   @Test

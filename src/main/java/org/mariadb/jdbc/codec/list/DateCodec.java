@@ -48,7 +48,11 @@ public class DateCodec implements Codec<Date> {
           DataType.YEAR,
           DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Date.class.getName();
@@ -63,6 +67,7 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Date decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -79,6 +84,18 @@ public class DateCodec implements Codec<Date> {
           }
         }
         return Date.valueOf(y + "-01-01");
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Date", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -127,6 +144,7 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Date decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -144,6 +162,18 @@ public class DateCodec implements Codec<Date> {
           }
         }
         return Date.valueOf(v + "-01-01");
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Date", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:

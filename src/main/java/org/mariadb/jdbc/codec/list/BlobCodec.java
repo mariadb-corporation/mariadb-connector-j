@@ -61,6 +61,10 @@ public class BlobCodec implements Codec<Blob> {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Blob.class);
   }
 
+  public boolean canEncode(Object value) {
+    return value instanceof Blob;
+  }
+
   @Override
   @SuppressWarnings("fallthrough")
   public Blob decodeText(
@@ -82,6 +86,12 @@ public class BlobCodec implements Codec<Blob> {
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
+        if (!column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format(
+                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
+        }
         return buf.readBlob(length);
 
       default:
@@ -112,6 +122,12 @@ public class BlobCodec implements Codec<Blob> {
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
+        if (!column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format(
+                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
+        }
         buf.skip(length);
         return new MariaDbBlob(buf.buf(), buf.pos() - length, length);
 
@@ -120,10 +136,6 @@ public class BlobCodec implements Codec<Blob> {
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Blob", column.getType()));
     }
-  }
-
-  public boolean canEncode(Object value) {
-    return value instanceof Blob;
   }
 
   @Override
@@ -154,7 +166,8 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     long length;
     InputStream is = ((Blob) value).getBinaryStream();
@@ -168,50 +181,48 @@ public class BlobCodec implements Codec<Blob> {
       int len;
       long remainingLen = length;
       while ((len = is.read(array)) > 0) {
-        encoder.writeBytes(array, 0, Math.min((int)remainingLen, len));
+        encoder.writeBytes(array, 0, Math.min((int) remainingLen, len));
         remainingLen -= len;
         if (remainingLen < 0) break;
       }
 
     } catch (SQLException sqle) {
-
-      // length is not known
-      byte[] blobBytes = new byte[4096];
-      int pos = 0;
+      ByteArrayOutputStream bb = new ByteArrayOutputStream();
       byte[] array = new byte[4096];
 
-      int len;
-      long remainingLen = maxLength.longValue();
-      while ((len = is.read(array)) > 0 && remainingLen > 0) {
-        len = Math.min((int) remainingLen, len);
-        if (blobBytes.length - pos < len) {
-          byte[] newBlobBytes = new byte[blobBytes.length + 65536];
-          System.arraycopy(blobBytes, 0, newBlobBytes, 0, blobBytes.length);
-          blobBytes = newBlobBytes;
+      if (maxLength == null) {
+        int len;
+        while ((len = is.read(array)) > 0) {
+          bb.write(array, 0, len);
         }
-        System.arraycopy(array, 0, blobBytes, pos, len);
-        pos += len;
+      } else {
+        long maxLen = maxLength;
+        int len;
+        while ((len = is.read(array)) > 0 && maxLen > 0) {
+          bb.write(array, 0, Math.min(len, (int) maxLen));
+          maxLen -= len;
+        }
       }
+      byte[] val = bb.toByteArray();
 
-      encoder.writeLength(pos);
-      encoder.writeBytes(blobBytes, 0, pos);
+      encoder.writeLength(val.length);
+      encoder.writeBytes(val, 0, val.length);
     }
   }
 
   @Override
   public void encodeLongData(PacketWriter encoder, Context context, Blob value, Long maxLength)
       throws IOException, SQLException {
+    byte[] array = new byte[4096];
+    InputStream is = value.getBinaryStream();
+
     if (maxLength == null) {
-      byte[] array = new byte[4096];
-      InputStream is = value.getBinaryStream();
       int len;
       while ((len = is.read(array)) > 0) {
         encoder.writeBytes(array, 0, len);
       }
     } else {
       long maxLen = maxLength;
-      byte[] array = new byte[4096];
-      InputStream is = value.getBinaryStream();
       int len;
       while ((len = is.read(array)) > 0 && maxLen > 0) {
         encoder.writeBytes(array, 0, Math.min(len, (int) maxLen));
@@ -225,17 +236,16 @@ public class BlobCodec implements Codec<Blob> {
       PacketWriter encoder, Context context, Blob value, Long maxLength)
       throws IOException, SQLException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
+    byte[] array = new byte[4096];
+    InputStream is = value.getBinaryStream();
+
     if (maxLength == null) {
-      byte[] array = new byte[4096];
-      InputStream is = value.getBinaryStream();
       int len;
       while ((len = is.read(array)) > 0) {
         bb.write(array, 0, len);
       }
     } else {
       long maxLen = maxLength;
-      byte[] array = new byte[4096];
-      InputStream is = value.getBinaryStream();
       int len;
       while ((len = is.read(array)) > 0 && maxLen > 0) {
         bb.write(array, 0, Math.min(len, (int) maxLen));

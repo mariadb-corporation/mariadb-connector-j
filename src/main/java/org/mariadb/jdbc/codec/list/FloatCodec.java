@@ -52,7 +52,11 @@ public class FloatCodec implements Codec<Float> {
           DataType.DOUBLE,
           DataType.VARCHAR,
           DataType.VARSTRING,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Float.class.getName();
@@ -68,6 +72,7 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Float decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -82,6 +87,18 @@ public class FloatCodec implements Codec<Float> {
       case DECIMAL:
       case FLOAT:
         return Float.valueOf(buf.readAscii(length));
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Float", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -101,6 +118,7 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Float decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -151,6 +169,18 @@ public class FloatCodec implements Codec<Float> {
       case DECIMAL:
         return new BigDecimal(buf.readAscii(length)).floatValue();
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Float", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case VARCHAR:
       case VARSTRING:
       case STRING:
@@ -176,7 +206,8 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeFloat((Float) value);
   }

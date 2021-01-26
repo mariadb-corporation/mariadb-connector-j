@@ -40,7 +40,14 @@ public class ReaderCodec implements Codec<Reader> {
   public static final ReaderCodec INSTANCE = new ReaderCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
-      EnumSet.of(DataType.STRING, DataType.VARCHAR, DataType.VARSTRING);
+      EnumSet.of(
+          DataType.STRING,
+          DataType.VARCHAR,
+          DataType.VARSTRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Reader.class);
@@ -51,10 +58,23 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public Reader decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Reader", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case STRING:
       case VARCHAR:
       case VARSTRING:
@@ -109,7 +129,8 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];
@@ -135,7 +156,7 @@ public class ReaderCodec implements Codec<Reader> {
         if (len < maxLen) {
           maxLen -= len;
         } else {
-          len = (int)maxLen;
+          len = (int) maxLen;
           maxLen = 0L;
         }
 

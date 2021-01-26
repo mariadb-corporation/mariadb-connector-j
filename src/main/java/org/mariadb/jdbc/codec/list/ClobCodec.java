@@ -45,7 +45,14 @@ public class ClobCodec implements Codec<Clob> {
   public static final ClobCodec INSTANCE = new ClobCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
-      EnumSet.of(DataType.VARCHAR, DataType.VARSTRING, DataType.STRING);
+      EnumSet.of(
+          DataType.VARCHAR,
+          DataType.VARSTRING,
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return Clob.class.getName();
@@ -67,9 +74,22 @@ public class ClobCodec implements Codec<Clob> {
     return getClob(buf, length, column);
   }
 
+  @SuppressWarnings("fallthrough")
   private Clob getClob(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as Clob", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case STRING:
       case VARCHAR:
       case VARSTRING:
@@ -108,7 +128,8 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     Reader reader = ((Clob) value).getCharacterStream();

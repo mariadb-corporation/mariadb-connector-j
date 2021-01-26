@@ -129,6 +129,16 @@ public class ByteCodec implements Codec<Byte> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
+        if (!column.isBinary()) {
+          String str2 = buf.readString(length);
+          try {
+            result = new BigDecimal(str2).setScale(0, RoundingMode.DOWN).byteValueExact();
+          } catch (NumberFormatException | ArithmeticException nfe) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Byte", str2, column.getType()));
+          }
+          break;
+        }
         if (length > 0) {
           byte b = buf.readByte();
           buf.skip(length - 1);
@@ -184,7 +194,13 @@ public class ByteCodec implements Codec<Byte> {
             bb[i] = buf.readByte();
           }
           BigInteger val = new BigInteger(1, bb);
-          result = val.longValue();
+          try {
+            result = val.longValueExact();
+          } catch (NumberFormatException | ArithmeticException nfe) {
+            throw new SQLDataException(
+                String.format(
+                    "value '%s' (%s) cannot be decoded as Byte", val.toString(), column.getType()));
+          }
         }
         break;
 
@@ -220,6 +236,17 @@ public class ByteCodec implements Codec<Byte> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
+        if (!column.isBinary()) {
+          // TEXT column
+          String str2 = buf.readString(length);
+          try {
+            result = new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValue();
+          } catch (NumberFormatException nfe) {
+            throw new SQLDataException(
+                String.format("value '%s' (%s) cannot be decoded as Byte", str2, column.getType()));
+          }
+          break;
+        }
         if (length > 0) {
           byte b = buf.readByte();
           buf.skip(length - 1);
@@ -248,7 +275,8 @@ public class ByteCodec implements Codec<Byte> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeByte((byte) value);
   }

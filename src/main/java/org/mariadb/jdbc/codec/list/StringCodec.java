@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLDataException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Calendar;
@@ -64,7 +65,11 @@ public class StringCodec implements Codec<String> {
           DataType.SET,
           DataType.VARCHAR,
           DataType.VARSTRING,
-          DataType.STRING);
+          DataType.STRING,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   public String className() {
     return String.class.getName();
@@ -82,33 +87,49 @@ public class StringCodec implements Codec<String> {
       final ReadableByteBuf buf,
       final int length,
       final ColumnDefinitionPacket column,
-      final Calendar cal) {
-    if (column.getType() == DataType.BIT) {
-      byte[] bytes = new byte[length];
-      buf.readBytes(bytes);
-      StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
-      sb.append("b'");
-      boolean firstByteNonZero = false;
-      for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
-        boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
-        if (b) {
-          sb.append('1');
-          firstByteNonZero = true;
-        } else if (firstByteNonZero) {
-          sb.append('0');
+      final Calendar cal)
+      throws SQLDataException {
+    switch (column.getType()) {
+      case BIT:
+        byte[] bytes = new byte[length];
+        buf.readBytes(bytes);
+        StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
+        sb.append("b'");
+        boolean firstByteNonZero = false;
+        for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
+          boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
+          if (b) {
+            sb.append('1');
+            firstByteNonZero = true;
+          } else if (firstByteNonZero) {
+            sb.append('0');
+          }
         }
-      }
-      sb.append("'");
-      return sb.toString();
+        sb.append("'");
+        return sb.toString();
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as String", column.getType()));
+        }
+        return buf.readString(length);
+
+      default:
+        return buf.readString(length);
     }
-    return buf.readString(length);
   }
 
   public String decodeBinary(
       final ReadableByteBuf buf,
       final int length,
       final ColumnDefinitionPacket column,
-      final Calendar cal) {
+      final Calendar cal)
+      throws SQLDataException {
     switch (column.getType()) {
       case BIT:
         byte[] bytes = new byte[length];
@@ -251,6 +272,17 @@ public class StringCodec implements Codec<String> {
                 .plusNanos(microseconds * 1000);
         return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().toString();
 
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as String", column.getType()));
+        }
+        return buf.readString(length);
+
       default:
         return buf.readString(length);
     }
@@ -266,7 +298,8 @@ public class StringCodec implements Codec<String> {
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(PacketWriter writer, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter writer, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
     int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;

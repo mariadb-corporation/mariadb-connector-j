@@ -300,4 +300,20 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     }
     length = pos - offset;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    MariaDbClob that = (MariaDbClob) o;
+
+    if (length != that.length) return false;
+
+    for (int i = 0; i < length; i++) {
+      if (data[offset + i] != that.data[that.offset + i]) return false;
+    }
+    return true;
+  }
+
 }

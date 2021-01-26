@@ -344,7 +344,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
-        return BlobCodec.INSTANCE;
+        return isBinary() ? BlobCodec.INSTANCE : ClobCodec.INSTANCE;
       case TIME:
         return TimeCodec.INSTANCE;
       case YEAR:

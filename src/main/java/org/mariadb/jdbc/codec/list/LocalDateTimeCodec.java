@@ -54,7 +54,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           DataType.VARCHAR,
           DataType.STRING,
           DataType.TIME,
-          DataType.DATE);
+          DataType.DATE,
+          DataType.BLOB,
+          DataType.TINYBLOB,
+          DataType.MEDIUMBLOB,
+          DataType.LONGBLOB);
 
   static {
     MARIADB_LOCAL_DATE_TIME =
@@ -117,11 +121,24 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalDateTime decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     int[] parts;
     switch (column.getType()) {
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
+
       case STRING:
       case VARCHAR:
       case VARSTRING:
@@ -161,6 +178,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
+  @SuppressWarnings("fallthrough")
   public LocalDateTime decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
@@ -183,6 +201,18 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           microseconds = buf.readUnsignedInt();
         }
         break;
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (column.isBinary()) {
+          buf.skip(length);
+          throw new SQLDataException(
+              String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
+        }
+        // expected fallthrough
+        // BLOB is considered as String if has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
@@ -239,7 +269,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     LocalDateTime val = (LocalDateTime) value;
     int nano = val.getNano();

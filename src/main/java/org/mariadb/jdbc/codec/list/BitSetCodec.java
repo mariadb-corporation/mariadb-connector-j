@@ -95,7 +95,8 @@ public class BitSetCodec implements Codec<BitSet> {
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
     byte[] bytes = ((BitSet) value).toByteArray();
     revertOrder(bytes);

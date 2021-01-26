@@ -481,7 +481,6 @@ public class IntCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
   }
 
-
   @Test
   public void getBigInteger() throws SQLException {
     getBigInteger(getSigned());
@@ -529,7 +528,6 @@ public class IntCodecTest extends CommonCodecTest {
     assertNull(rs.getBigInteger(4));
     assertTrue(rs.wasNull());
   }
-
 
   @Test
   public void getDate() throws SQLException {
