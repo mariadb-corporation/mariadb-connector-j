@@ -197,6 +197,6 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.VARCHAR.get();
+    return DataType.VARSTRING.get();
   }
 }

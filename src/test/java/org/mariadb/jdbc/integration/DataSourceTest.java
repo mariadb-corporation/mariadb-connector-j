@@ -56,8 +56,13 @@ public class DataSourceTest extends Common {
     Assumptions.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
     Statement stmt = sharedConn.createStatement();
     if (minVersion(8, 0, 0)) {
-      stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-      stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
+      if (isMariaDBServer()) {
+        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+        stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
+      } else {
+        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
+        stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
+      }
     } else {
       stmt.execute("CREATE USER 'dsUser'@'%'");
       stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");

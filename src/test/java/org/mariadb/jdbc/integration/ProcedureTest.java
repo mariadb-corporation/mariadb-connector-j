@@ -454,10 +454,10 @@ public class ProcedureTest extends Common {
       assertEquals("12c", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setBlob(1, new ByteArrayInputStream("sef".getBytes()));
+      callableStatement.setBlob(1, new ByteArrayInputStream("eef".getBytes()));
       callableStatement.setString(2, "c");
       callableStatement.execute();
-      assertEquals("sefc", callableStatement.getString(2));
+      assertEquals("eefc", callableStatement.getString(2));
 
       reset(callableStatement);
       callableStatement.setDate(1, new Date(0));
@@ -484,48 +484,48 @@ public class ProcedureTest extends Common {
       callableStatement.getTime(2);
 
       reset(callableStatement);
-      callableStatement.setAsciiStream(1, new ByteArrayInputStream("abc".getBytes()));
+      callableStatement.setAsciiStream(1, new ByteArrayInputStream("dbc".getBytes()));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("abcb", callableStatement.getString(2));
+      assertEquals("dbcb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setAsciiStream(1, new ByteArrayInputStream("abc".getBytes()), 2);
+      callableStatement.setAsciiStream(1, new ByteArrayInputStream("cbc".getBytes()), 2);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("abb", callableStatement.getString(2));
+      assertEquals("cbb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setBinaryStream(1, new ByteArrayInputStream("sef".getBytes()));
+      callableStatement.setBinaryStream(1, new ByteArrayInputStream("bef".getBytes()));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("befb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setBinaryStream(1, new ByteArrayInputStream("sef".getBytes()), 2);
+      callableStatement.setBinaryStream(1, new ByteArrayInputStream("aef".getBytes()), 2);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("seb", callableStatement.getString(2));
+      assertEquals("aeb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setObject(1, new ByteArrayInputStream("sef".getBytes()));
+      callableStatement.setObject(1, new ByteArrayInputStream("saf".getBytes()));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
-
-      reset(callableStatement);
-      callableStatement.setObject(
-          1, new ByteArrayInputStream("sef".getBytes()), Types.LONGVARBINARY);
-      callableStatement.setString(2, "b");
-      callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("safb", callableStatement.getString(2));
 
       reset(callableStatement);
       callableStatement.setObject(
-          1, new ByteArrayInputStream("sef".getBytes()), JDBCType.LONGVARBINARY);
+          1, new ByteArrayInputStream("sbf".getBytes()), Types.LONGVARBINARY);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("sbfb", callableStatement.getString(2));
+
+      reset(callableStatement);
+      callableStatement.setObject(
+          1, new ByteArrayInputStream("scf".getBytes()), JDBCType.LONGVARBINARY);
+      callableStatement.setString(2, "b");
+      callableStatement.execute();
+      assertEquals("scfb", callableStatement.getString(2));
 
       reset(callableStatement);
       callableStatement.setObject(1, null);
@@ -535,35 +535,35 @@ public class ProcedureTest extends Common {
 
       reset(callableStatement);
       callableStatement.setObject(
-          1, new ByteArrayInputStream("sef".getBytes()), Types.LONGVARBINARY, 10);
+          1, new ByteArrayInputStream("sdf".getBytes()), Types.LONGVARBINARY, 10);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("sdfb", callableStatement.getString(2));
 
       reset(callableStatement);
       callableStatement.setObject(
-          1, new ByteArrayInputStream("sef".getBytes()), JDBCType.LONGVARBINARY, 10);
+          1, new ByteArrayInputStream("sea".getBytes()), JDBCType.LONGVARBINARY, 10);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("seab", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setCharacterStream(1, new StringReader("sef"));
+      callableStatement.setCharacterStream(1, new StringReader("seb"));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("sebb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setClob(1, new MariaDbClob("sef".getBytes(), 0, 16));
+      callableStatement.setClob(1, new MariaDbClob("sec".getBytes(), 0, 16));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("secb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setClob(1, new StringReader("sef"));
+      callableStatement.setClob(1, new StringReader("sed"));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("sedb", callableStatement.getString(2));
 
       reset(callableStatement);
       callableStatement.setClob(1, new StringReader("sef"), 2);
@@ -572,37 +572,37 @@ public class ProcedureTest extends Common {
       assertEquals("seb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNClob(1, new MariaDbClob("sef".getBytes(), 0, 16));
-      callableStatement.setString(2, "b");
+      callableStatement.setNClob(1, new MariaDbClob("seg".getBytes(), 0, 16));
+      callableStatement.setString(2, "c");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("segc", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNClob(1, new StringReader("sef"));
+      callableStatement.setNClob(1, new StringReader("seh"));
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("sehb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNClob(1, new StringReader("sef"), 2);
-      callableStatement.setString(2, "b");
-      callableStatement.execute();
-      assertEquals("seb", callableStatement.getString(2));
-
-      reset(callableStatement);
-      callableStatement.setCharacterStream(1, new StringReader("sef"), 2);
+      callableStatement.setNClob(1, new StringReader("sei"), 2);
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("seb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNCharacterStream(1, new StringReader("sef"));
+      callableStatement.setCharacterStream(1, new StringReader("sej"), 2);
       callableStatement.setString(2, "b");
       callableStatement.execute();
-      assertEquals("sefb", callableStatement.getString(2));
+      assertEquals("seb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNCharacterStream(1, new StringReader("sef"), 2);
+      callableStatement.setNCharacterStream(1, new StringReader("seh"));
+      callableStatement.setString(2, "b");
+      callableStatement.execute();
+      assertEquals("sehb", callableStatement.getString(2));
+
+      reset(callableStatement);
+      callableStatement.setNCharacterStream(1, new StringReader("sek"), 2);
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("seb", callableStatement.getString(2));
