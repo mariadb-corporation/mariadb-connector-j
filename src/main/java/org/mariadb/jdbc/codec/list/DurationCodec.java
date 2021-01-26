@@ -117,60 +117,80 @@ public class DurationCodec implements Codec<Duration> {
   @Override
   @SuppressWarnings("fallthrough")
   public Duration decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal) {
+      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal) throws SQLDataException {
 
     long days = 0;
     int hours = 0;
     int minutes = 0;
     int seconds = 0;
     long microseconds = 0;
-
-    if (column.getType() == DataType.TIME) {
-      boolean negate = false;
-      if (length > 0) {
-        negate = buf.readUnsignedByte() == 0x01;
-        if (length > 4) {
-          days = buf.readUnsignedInt();
-          if (length > 7) {
-            hours = buf.readByte();
-            minutes = buf.readByte();
-            seconds = buf.readByte();
-            if (length > 8) {
-              microseconds = buf.readInt();
+    switch (column.getType()) {
+      case TIME:
+        boolean negate = false;
+        if (length > 0) {
+          negate = buf.readUnsignedByte() == 0x01;
+          if (length > 4) {
+            days = buf.readUnsignedInt();
+            if (length > 7) {
+              hours = buf.readByte();
+              minutes = buf.readByte();
+              seconds = buf.readByte();
+              if (length > 8) {
+                microseconds = buf.readInt();
+              }
             }
           }
         }
-      }
 
-      Duration duration =
-          Duration.ZERO
-              .plusDays(days)
-              .plusHours(hours)
-              .plusMinutes(minutes)
-              .plusSeconds(seconds)
-              .plusNanos(microseconds * 1000);
-      if (negate) return duration.negated();
-      return duration;
+        Duration duration =
+                Duration.ZERO
+                        .plusDays(days)
+                        .plusHours(hours)
+                        .plusMinutes(minutes)
+                        .plusSeconds(seconds)
+                        .plusNanos(microseconds * 1000);
+        if (negate) return duration.negated();
+        return duration;
+
+      case TIMESTAMP:
+      case DATETIME:
+        buf.readUnsignedShort(); // skip year
+        buf.readByte(); // skip month
+        days = buf.readByte();
+        if (length > 4) {
+          hours = buf.readByte();
+          minutes = buf.readByte();
+          seconds = buf.readByte();
+
+          if (length > 7) {
+            microseconds = buf.readUnsignedInt();
+          }
+        }
+        return Duration.ZERO
+                .plusDays(days - 1)
+                .plusHours(hours)
+                .plusMinutes(minutes)
+                .plusSeconds(seconds)
+                .plusNanos(microseconds * 1000);
+
+      case VARCHAR:
+      case VARSTRING:
+      case STRING:
+        int[] parts = LocalTimeCodec.parseTime(buf, length, column);
+        Duration d =
+                Duration.ZERO
+                        .plusHours(parts[1])
+                        .plusMinutes(parts[2])
+                        .plusSeconds(parts[3])
+                        .plusNanos(parts[4]);
+        if (parts[0] == -1) return d.negated();
+        return d;
+
+      default:
+        buf.skip(length);
+        throw new SQLDataException(
+                String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }
-
-    buf.readUnsignedShort(); // skip year
-    buf.readByte(); // skip month
-    days = buf.readByte();
-    if (length > 4) {
-      hours = buf.readByte();
-      minutes = buf.readByte();
-      seconds = buf.readByte();
-
-      if (length > 7) {
-        microseconds = buf.readUnsignedInt();
-      }
-    }
-    return Duration.ZERO
-        .plusDays(days - 1)
-        .plusHours(hours)
-        .plusMinutes(minutes)
-        .plusSeconds(seconds)
-        .plusNanos(microseconds * 1000);
   }
 
   @Override

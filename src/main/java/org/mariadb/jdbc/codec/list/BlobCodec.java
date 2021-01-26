@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -62,7 +63,7 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   public boolean canEncode(Object value) {
-    return value instanceof Blob;
+    return value instanceof Blob && !(value instanceof Clob);
   }
 
   @Override
@@ -154,7 +155,7 @@ public class BlobCodec implements Codec<Blob> {
       }
     } else {
       long maxLen = maxLength;
-      while ((len = is.read(array)) > 0 && maxLen > 0) {
+      while (maxLen > 0 && (len = is.read(array)) > 0) {
         encoder.writeBytesEscaped(
             array,
             Math.min(len, (int) maxLen),
@@ -198,7 +199,7 @@ public class BlobCodec implements Codec<Blob> {
       } else {
         long maxLen = maxLength;
         int len;
-        while ((len = is.read(array)) > 0 && maxLen > 0) {
+        while (maxLen > 0 && (len = is.read(array)) > 0) {
           bb.write(array, 0, Math.min(len, (int) maxLen));
           maxLen -= len;
         }
@@ -224,7 +225,7 @@ public class BlobCodec implements Codec<Blob> {
     } else {
       long maxLen = maxLength;
       int len;
-      while ((len = is.read(array)) > 0 && maxLen > 0) {
+      while (maxLen > 0 && (len = is.read(array)) > 0) {
         encoder.writeBytes(array, 0, Math.min(len, (int) maxLen));
         maxLen -= len;
       }
@@ -247,7 +248,7 @@ public class BlobCodec implements Codec<Blob> {
     } else {
       long maxLen = maxLength;
       int len;
-      while ((len = is.read(array)) > 0 && maxLen > 0) {
+      while (maxLen > 0 && (len = is.read(array)) > 0) {
         bb.write(array, 0, Math.min(len, (int) maxLen));
         maxLen -= len;
       }

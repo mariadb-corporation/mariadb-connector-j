@@ -113,16 +113,19 @@ public class ClobCodec implements Codec<Clob> {
 
   @Override
   public void encodeText(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLen)
+      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     Reader reader = ((Clob) value).getCharacterStream();
     char[] buf = new char[4096];
     int len;
+    long remainingLen = maxLength == null ? Long.MAX_VALUE : maxLength;
     encoder.writeByte('\'');
-    while ((len = reader.read(buf)) >= 0) {
-      byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+    while (remainingLen > 0 && (len = reader.read(buf)) >= 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, remainingLen)).getBytes(StandardCharsets.UTF_8);
       encoder.writeBytesEscaped(
           data, data.length, (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0);
+      remainingLen -= len;
     }
     encoder.writeByte('\'');
   }
@@ -136,46 +139,53 @@ public class ClobCodec implements Codec<Clob> {
     byte[] clobBytes = new byte[4096];
     int pos = 0;
     char[] buf = new char[4096];
-
+    long remainingLen = maxLength == null ? Long.MAX_VALUE : maxLength;
     int len;
-    while ((len = reader.read(buf)) > 0) {
-      byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-      if (clobBytes.length - (pos + 1) < data.length) {
+    while (remainingLen > 0 && (len = reader.read(buf)) > 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, remainingLen)).getBytes(StandardCharsets.UTF_8);
+      if (clobBytes.length - pos < data.length) {
         byte[] newBlobBytes = new byte[clobBytes.length + 65536];
-        System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
-        pos = clobBytes.length;
+        System.arraycopy(clobBytes, 0, newBlobBytes, 0, pos);
         clobBytes = newBlobBytes;
       }
       System.arraycopy(data, 0, clobBytes, pos, data.length);
-      pos += len;
+      pos += data.length;
+      remainingLen -= len;
     }
     encoder.writeLength(pos);
     encoder.writeBytes(clobBytes, 0, pos);
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, Clob value, Long length)
+  public void encodeLongData(PacketWriter encoder, Context context, Clob value, Long maxLength)
       throws IOException, SQLException {
     Reader reader = value.getCharacterStream();
     char[] buf = new char[4096];
     int len;
-    while ((len = reader.read(buf)) >= 0) {
-      byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+    long remainingLen = maxLength == null ? Long.MAX_VALUE : maxLength;
+    while (remainingLen > 0 && (len = reader.read(buf)) > 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, remainingLen)).getBytes(StandardCharsets.UTF_8);
       encoder.writeBytes(data, 0, data.length);
+      remainingLen -= len;
     }
   }
 
   @Override
   public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Clob value, Long length)
+      PacketWriter encoder, Context context, Clob value, Long maxLength)
       throws IOException, SQLException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     Reader reader = value.getCharacterStream();
     char[] buf = new char[4096];
     int len;
-    while ((len = reader.read(buf)) >= 0) {
-      byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
+    long remainingLen = maxLength == null ? Long.MAX_VALUE : maxLength;
+    while (remainingLen > 0 && (len = reader.read(buf)) > 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, remainingLen)).getBytes(StandardCharsets.UTF_8);
       bb.write(data, 0, data.length);
+      remainingLen -= len;
     }
     byte[] val = bb.toByteArray();
     encoder.writeBytes(val);
@@ -187,6 +197,6 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.VARSTRING.get();
+    return DataType.VARCHAR.get();
   }
 }

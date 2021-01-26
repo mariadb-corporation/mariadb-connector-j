@@ -50,7 +50,6 @@ public class Codecs {
         DateCodec.INSTANCE,
         ShortCodec.INSTANCE,
         StreamCodec.INSTANCE,
-        StringCodec.INSTANCE,
-        TinyIntCodec.INSTANCE
+        StringCodec.INSTANCE
       };
 }

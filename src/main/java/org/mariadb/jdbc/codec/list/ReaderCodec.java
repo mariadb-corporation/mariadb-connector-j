@@ -138,84 +138,49 @@ public class ReaderCodec implements Codec<Reader> {
     char[] buf = new char[4096];
     Reader reader = (Reader) val;
     int len;
-    if (maxLength == null) {
-      while ((len = reader.read(buf)) > 0) {
-        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-        if (clobBytes.length - (pos + 1) < data.length) {
-          byte[] newBlobBytes = new byte[clobBytes.length + 65536];
-          System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
-          pos = clobBytes.length;
-          clobBytes = newBlobBytes;
-        }
-        System.arraycopy(data, 0, clobBytes, pos, data.length);
-        pos += len;
-      }
-    } else {
-      long maxLen = maxLength.longValue();
-      while ((len = reader.read(buf)) > 0) {
-        if (len < maxLen) {
-          maxLen -= len;
-        } else {
-          len = (int) maxLen;
-          maxLen = 0L;
-        }
 
-        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-        if (clobBytes.length - (pos + 1) < data.length) {
-          byte[] newBlobBytes = new byte[clobBytes.length + 65536];
-          System.arraycopy(clobBytes, 0, newBlobBytes, 0, clobBytes.length);
-          pos = clobBytes.length;
-          clobBytes = newBlobBytes;
-        }
-        System.arraycopy(data, 0, clobBytes, pos, data.length);
-        pos += len;
-        if (maxLen == 0L) break;
+    long maxLen = maxLength != null ? maxLength : Long.MAX_VALUE;
+    while (maxLen > 0 && (len = reader.read(buf)) > 0) {
+      byte[] data = new String(buf, 0, (int) Math.min(len, maxLen)).getBytes(StandardCharsets.UTF_8);
+      if (clobBytes.length - pos < data.length) {
+        byte[] newBlobBytes = new byte[clobBytes.length + 65536];
+        System.arraycopy(clobBytes, 0, newBlobBytes, 0, pos);
+        clobBytes = newBlobBytes;
       }
+      System.arraycopy(data, 0, clobBytes, pos, data.length);
+      pos += data.length;
+      maxLen -= len;
     }
     encoder.writeLength(pos);
     encoder.writeBytes(clobBytes, 0, pos);
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, Reader reader, Long length)
+  public void encodeLongData(PacketWriter encoder, Context context, Reader reader, Long maxLength)
       throws IOException {
     char[] buf = new char[4096];
     int len;
-    if (length == null) {
-      while ((len = reader.read(buf)) >= 0) {
-        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-        encoder.writeBytes(data, 0, data.length);
-      }
-    } else {
-      long maxLen = length;
-      while ((len = reader.read(buf)) >= 0 && maxLen > 0) {
-        byte[] data =
-            new String(buf, 0, Math.min(len, (int) maxLen)).getBytes(StandardCharsets.UTF_8);
-        maxLen -= len;
-        encoder.writeBytes(data, 0, data.length);
-      }
+    long maxLen = maxLength != null ? maxLength : Long.MAX_VALUE;
+    while (maxLen > 0 && (len = reader.read(buf)) >= 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, maxLen)).getBytes(StandardCharsets.UTF_8);
+      encoder.writeBytes(data, 0, data.length);
+      maxLen -= len;
     }
   }
 
   @Override
   public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Reader reader, Long length) throws IOException {
+      PacketWriter encoder, Context context, Reader reader, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     char[] buf = new char[4096];
     int len;
-    if (length == null) {
-      while ((len = reader.read(buf)) >= 0) {
-        byte[] data = new String(buf, 0, len).getBytes(StandardCharsets.UTF_8);
-        bb.write(data, 0, data.length);
-      }
-    } else {
-      long maxLen = length;
-      while ((len = reader.read(buf)) >= 0 && maxLen > 0) {
-        byte[] data =
-            new String(buf, 0, Math.min(len, (int) maxLen)).getBytes(StandardCharsets.UTF_8);
-        maxLen -= len;
-        bb.write(data, 0, data.length);
-      }
+    long maxLen = maxLength != null ? maxLength : Long.MAX_VALUE;
+    while (maxLen > 0 && (len = reader.read(buf)) >= 0) {
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, maxLen)).getBytes(StandardCharsets.UTF_8);
+      bb.write(data, 0, data.length);
+      maxLen -= len;
     }
     byte[] val = bb.toByteArray();
     encoder.writeBytes(val);

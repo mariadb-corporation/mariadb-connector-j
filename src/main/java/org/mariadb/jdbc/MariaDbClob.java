@@ -315,5 +315,4 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     }
     return true;
   }
-
 }

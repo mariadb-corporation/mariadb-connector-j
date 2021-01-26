@@ -54,6 +54,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           DataType.VARCHAR,
           DataType.STRING,
           DataType.TIME,
+          DataType.YEAR,
           DataType.DATE,
           DataType.BLOB,
           DataType.TINYBLOB,
@@ -70,7 +71,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
             .toFormatter();
   }
 
-  public static int[] parseTimestamp(String raw) {
+  public static int[] parseTimestamp(String raw) throws DateTimeException {
     int nanoLen = -1;
     int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
     int partIdx = 0;
@@ -88,6 +89,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       if (nanoLen >= 0) nanoLen++;
       timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
     }
+    if (partIdx < 2) throw new DateTimeException("Wrong timestamp format");
     if (timestampsPart[0] == 0 && timestampsPart[1] == 0 && timestampsPart[2] == 0) {
       if (timestampsPart[3] == 0
           && timestampsPart[4] == 0
@@ -170,6 +172,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
         parts = LocalTimeCodec.parseTime(buf, length, column);
         return LocalDateTime.of(1970, 1, 1, parts[1] % 24, parts[2], parts[3]).plusNanos(parts[4]);
 
+      case YEAR:
+        int year = Integer.parseInt(buf.readAscii(length));
+        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        return LocalDateTime.of(year, 1, 1, 0, 0);
+
       default:
         buf.skip(length);
         throw new SQLDataException(
@@ -247,6 +254,10 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
         }
         break;
 
+      case YEAR:
+        year = buf.readUnsignedShort();
+        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        break;
       default:
         buf.skip(length);
         throw new SQLDataException(

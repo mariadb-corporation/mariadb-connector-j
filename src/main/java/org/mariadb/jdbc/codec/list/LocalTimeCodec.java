@@ -25,10 +25,13 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
+import java.util.TimeZone;
+
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
@@ -155,10 +158,10 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         String val = buf.readString(length);
         try {
           if (val.contains(" ")) {
+            ZoneId tz = cal != null ? cal.getTimeZone().toZoneId() : TimeZone.getDefault().toZoneId();
             return LocalDateTime.parse(
                     val,
-                    LocalDateTimeCodec.MARIADB_LOCAL_DATE_TIME.withZone(
-                        cal.getTimeZone().toZoneId()))
+                    LocalDateTimeCodec.MARIADB_LOCAL_DATE_TIME.withZone(tz))
                 .toLocalTime();
           } else {
             return LocalTime.parse(val);
@@ -239,10 +242,10 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         String val = buf.readString(length);
         try {
           if (val.contains(" ")) {
+            ZoneId tz = cal != null ? cal.getTimeZone().toZoneId() : TimeZone.getDefault().toZoneId();
             return LocalDateTime.parse(
                     val,
-                    LocalDateTimeCodec.MARIADB_LOCAL_DATE_TIME.withZone(
-                        cal.getTimeZone().toZoneId()))
+                    LocalDateTimeCodec.MARIADB_LOCAL_DATE_TIME.withZone(tz))
                 .toLocalTime();
           } else {
             return LocalTime.parse(val);

@@ -113,6 +113,7 @@ public class DateCodecTest extends CommonCodecTest {
     testErrObject(rs, Byte.class);
     testErrObject(rs, byte[].class);
     testErrObject(rs, Boolean.class);
+    testErrObject(rs, Duration.class);
     testErrObject(rs, Clob.class);
     testErrObject(rs, NClob.class);
     testErrObject(rs, InputStream.class);
@@ -645,6 +646,8 @@ public class DateCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.DATE);
       prep.execute();
+      prep.setObject(1, LocalDate.parse("9999-12-31"), Types.DATE);
+      prep.execute();
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM DateCodec2");
@@ -660,5 +663,7 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("2010-01-14"), rs.getDate(1));
     assertTrue(rs.next());
     assertNull(rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(1));
   }
 }

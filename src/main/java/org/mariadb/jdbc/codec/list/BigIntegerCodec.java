@@ -120,6 +120,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case MEDIUMINT:
       case INTEGER:
       case BIGINT:
+      case YEAR:
         return new BigInteger(buf.readAscii(length));
 
       default:

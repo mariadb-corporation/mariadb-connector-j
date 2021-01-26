@@ -46,6 +46,7 @@ public class BooleanCodec implements Codec<Boolean> {
           DataType.INTEGER,
           DataType.MEDIUMINT,
           DataType.SMALLINT,
+          DataType.YEAR,
           DataType.TINYINT,
           DataType.DECIMAL,
           DataType.OLDDECIMAL,

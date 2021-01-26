@@ -103,6 +103,17 @@ public class TimestampCodec implements Codec<Timestamp> {
         }
         return t;
 
+      case YEAR:
+        Calendar cal1 = calParam == null ? Calendar.getInstance() : calParam;
+
+        int year = Integer.parseInt(buf.readAscii(length));
+        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        synchronized (cal1) {
+          cal1.clear();
+          cal1.set(year, 0, 1);
+          return new Timestamp(cal1.getTimeInMillis());
+        }
+
       case DATE:
         if (calParam == null || calParam.getTimeZone().equals(TimeZone.getDefault())) {
           return new Timestamp(Date.valueOf(buf.readAscii(length)).getTime());
@@ -219,8 +230,8 @@ public class TimestampCodec implements Codec<Timestamp> {
       throws SQLDataException {
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
     int year;
-    int month;
-    long dayOfMonth;
+    int month = 1;
+    long dayOfMonth = 1;
     int hour = 0;
     int minutes = 0;
     int seconds = 0;
@@ -296,6 +307,11 @@ public class TimestampCodec implements Codec<Timestamp> {
             microseconds = buf.readUnsignedInt();
           }
         }
+        break;
+
+      case YEAR:
+        year = buf.readUnsignedShort();
+        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
         break;
 
       default:

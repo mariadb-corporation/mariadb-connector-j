@@ -86,6 +86,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case DOUBLE:
       case DECIMAL:
       case OLDDECIMAL:
+      case YEAR:
         return new BigDecimal(buf.readAscii(length));
 
       case BLOB:

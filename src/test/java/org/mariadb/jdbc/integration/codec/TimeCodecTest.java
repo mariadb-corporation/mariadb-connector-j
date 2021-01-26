@@ -641,6 +641,14 @@ public class TimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.TIME);
       prep.execute();
+      prep.setObject(1, Duration.parse("PT23H54M51.84001S"), Types.TIME);
+      prep.execute();
+      prep.setObject(1, Duration.parse("PT23H54M52S"), Types.TIME);
+      prep.execute();
+      prep.setObject(1, LocalTime.parse("05:29:47.450"), Types.TIME);
+      prep.execute();
+      prep.setObject(1, LocalTime.parse("05:29:57"), Types.TIME);
+      prep.execute();
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM TimeCodec2");
@@ -656,5 +664,13 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(1).getTime());
     assertTrue(rs.next());
     assertNull(rs.getTime(1));
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(1).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(1).getTime());
   }
 }

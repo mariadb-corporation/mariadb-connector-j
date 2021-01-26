@@ -15,23 +15,21 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
 
-public class DateTimeCodecTest extends CommonCodecTest {
+public class YearCodecTest extends CommonCodecTest {
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS DateTimeCodec");
-    stmt.execute("DROP TABLE IF EXISTS DateTimeCodec2");
+    stmt.execute("DROP TABLE IF EXISTS YearCodec");
+    stmt.execute("DROP TABLE IF EXISTS YearCodec2");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
-    stmt.execute(
-        "INSERT INTO DateTimeCodec VALUES ('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null)");
-    stmt.execute("CREATE TABLE DateTimeCodec2 (t1 DATETIME(6))");
+    stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
+    stmt.execute("INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (80, '1901', '2155', null)");
+    stmt.execute("CREATE TABLE YearCodec2 (t1 YEAR(4))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -39,7 +37,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec");
     assertTrue(rs.next());
     return rs;
   }
@@ -47,7 +45,19 @@ public class DateTimeCodecTest extends CommonCodecTest {
   private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec"
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec"
+                + " WHERE 1 > ?");
+    stmt.closeOnCompletion();
+    stmt.setInt(1, 0);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    return rs;
+  }
+
+  private ResultSet getPrepareBinary() throws SQLException {
+    PreparedStatement stmt =
+        sharedConn.prepareStatement(
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
@@ -69,20 +79,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getObject(ResultSet rs) throws SQLException {
     assertFalse(rs.wasNull());
-    assertEquals(
-        Timestamp.valueOf("2010-01-12 01:55:12").getTime(),
-        ((Timestamp) rs.getObject(1)).getTime());
+    assertEquals(Date.valueOf("2010-01-01").getTime(), ((Date) rs.getObject(1)).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(
-        Timestamp.valueOf("1000-01-01 01:55:13.2").getTime(),
-        ((Timestamp) rs.getObject(2)).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(
-        Timestamp.valueOf("9999-12-31 18:30:12.55").getTime(),
-        ((Timestamp) rs.getObject(3)).getTime());
+    assertEquals(Date.valueOf("1901-01-01").getTime(), ((Date) rs.getObject(2)).getTime());
+    assertFalse(rs.wasNull());
+    assertEquals(Date.valueOf("2155-01-01").getTime(), ((Date) rs.getObject(3)).getTime());
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(Date.valueOf("1980-01-01").getTime(), ((Date) rs.getObject(1)).getTime());
   }
 
   @Test
@@ -97,31 +104,60 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testErrObject(rs, Integer.class);
-    testObject(rs, String.class, "2010-01-12 01:55:12");
-    testErrObject(rs, Long.class);
-    testErrObject(rs, Short.class);
-    testErrObject(rs, BigDecimal.class);
-    testErrObject(rs, BigInteger.class);
-    testErrObject(rs, Double.class);
-    testErrObject(rs, Float.class);
-    testErrObject(rs, Byte.class);
+    testObject(rs, Integer.class, 10);
+    testObject(rs, String.class, "10");
+    testObject(rs, Long.class, 10L);
+    testObject(rs, Short.class, (short) 10);
+    testObject(rs, BigDecimal.class, BigDecimal.TEN);
+    testObject(rs, BigInteger.class, BigInteger.TEN);
+    testObject(rs, Double.class, 10d);
+    testObject(rs, Float.class, 10f);
+    testObject(rs, Byte.class, (byte) 0x0a);
     testErrObject(rs, byte[].class);
-    testErrObject(rs, Boolean.class);
+    testObject(rs, Boolean.class, true);
     testErrObject(rs, Clob.class);
     testErrObject(rs, NClob.class);
     testErrObject(rs, InputStream.class);
     testErrObject(rs, Reader.class);
-    testObject(rs, LocalDate.class, LocalDate.parse("2010-01-12"));
-    testObject(rs, LocalDateTime.class, LocalDateTime.parse("2010-01-12T01:55:12"));
-    testObject(rs, LocalTime.class, LocalTime.parse("01:55:12"));
-    testObject(rs, Time.class, Time.valueOf("01:55:12"));
-    testObject(rs, Timestamp.class, Timestamp.valueOf("2010-01-12 01:55:12"));
+    testObject(rs, LocalDate.class, LocalDate.parse("2010-01-01"));
+    testObject(rs, LocalDateTime.class, LocalDateTime.parse("2010-01-01T00:00:00"));
+    testErrObject(rs, LocalTime.class);
+    testErrObject(rs, Time.class);
+    testObject(rs, BigInteger.class, BigInteger.TEN);
+    testObject(rs, Timestamp.class, Timestamp.valueOf("2010-01-01 00:00:00"));
     testObject(
         rs,
         ZonedDateTime.class,
-        LocalDateTime.parse("2010-01-12T01:55:12").atZone(ZoneId.systemDefault()));
-    testObject(rs, java.util.Date.class, Timestamp.valueOf("2010-01-12 01:55:12.0"));
+        LocalDateTime.parse("2010-01-01T00:00:00").atZone(ZoneId.systemDefault()));
+    testObject(rs, java.util.Date.class, Timestamp.valueOf("2010-01-01 00:00:00.0"));
+    rs.next();
+
+    testObject(rs, Integer.class, 80);
+    testObject(rs, String.class, "80");
+    testObject(rs, Long.class, 80L);
+    testObject(rs, Short.class, (short) 80);
+    testObject(rs, BigDecimal.class, BigDecimal.valueOf(80));
+    testObject(rs, BigInteger.class, BigInteger.valueOf(80));
+    testObject(rs, Double.class, 80d);
+    testObject(rs, Float.class, 80f);
+    testObject(rs, Byte.class, (byte) 80);
+    testErrObject(rs, byte[].class);
+    testObject(rs, Boolean.class, true);
+    testErrObject(rs, Clob.class);
+    testErrObject(rs, NClob.class);
+    testErrObject(rs, InputStream.class);
+    testErrObject(rs, Reader.class);
+    testObject(rs, LocalDate.class, LocalDate.parse("1980-01-01"));
+    testObject(rs, LocalDateTime.class, LocalDateTime.parse("1980-01-01T00:00:00"));
+    testErrObject(rs, LocalTime.class);
+    testErrObject(rs, Time.class);
+    testObject(rs, BigInteger.class, BigInteger.valueOf(80));
+    testObject(rs, Timestamp.class, Timestamp.valueOf("1980-01-01 00:00:00"));
+    testObject(
+            rs,
+            ZonedDateTime.class,
+            LocalDateTime.parse("1980-01-01T00:00:00").atZone(ZoneId.systemDefault()));
+    testObject(rs, java.util.Date.class, Timestamp.valueOf("1980-01-01 00:00:00.0"));
   }
 
   @Test
@@ -136,18 +172,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertEquals("2010-01-12 01:55:12", rs.getString(1));
+    assertEquals("10", rs.getString(1));
     assertFalse(rs.wasNull());
-    String s = rs.getString(2);
-    assertTrue(s.equals("1000-01-01 01:55:13.200") || s.equals("1000-01-01 01:55:13.200000"));
-    s = rs.getString("t2alias");
-    assertTrue(s.equals("1000-01-01 01:55:13.200") || s.equals("1000-01-01 01:55:13.200000"));
+    assertEquals("1901", rs.getString(2));
+    assertEquals("1901", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    s = rs.getString(3);
-    assertTrue(s.equals("9999-12-31 18:30:12.550000") || s.equals("9999-12-31 18:30:12.550"));
+    assertEquals("2155", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals("80", rs.getString(1));
   }
 
   @Test
@@ -162,18 +197,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("2010-01-12 01:55:12", rs.getNString(1));
+    assertEquals("10", rs.getNString(1));
     assertFalse(rs.wasNull());
-    String s = rs.getNString(2);
-    assertTrue(s.equals("1000-01-01 01:55:13.200000") || s.equals("1000-01-01 01:55:13.200"));
-    s = rs.getNString("t2alias");
-    assertTrue(s.equals("1000-01-01 01:55:13.200000") || s.equals("1000-01-01 01:55:13.200"));
+    assertEquals("1901", rs.getNString(2));
+    assertEquals("1901", rs.getNString("t2alias"));
     assertFalse(rs.wasNull());
-    s = rs.getNString(3);
-    assertTrue(s.equals("9999-12-31 18:30:12.550000") || s.equals("9999-12-31 18:30:12.550"));
+    assertEquals("2155", rs.getNString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals("80", rs.getString(1));
   }
 
   @Test
@@ -188,10 +222,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class,
-        () -> rs.getBoolean(1),
-        "Data type DATETIME cannot be decoded as Boolean");
+    assertEquals(true, rs.getBoolean(1));
+    assertFalse(rs.wasNull());
+    assertEquals(true, rs.getBoolean(2));
+    assertEquals(true, rs.getBoolean("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(true, rs.getBoolean(3));
+    assertFalse(rs.wasNull());
+    assertEquals(false, rs.getBoolean(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -206,8 +245,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getByte(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class, () -> rs.getByte(1), "Data type DATETIME cannot be decoded as Byte");
+    assertEquals(Byte.valueOf("10"), rs.getByte(1));
+    assertFalse(rs.wasNull());
+    assertThrowsContains(SQLDataException.class, () -> rs.getByte(2), "byte overflow");
+    assertThrowsContains(SQLDataException.class, () -> rs.getByte("t2alias"), "byte overflow");
+    assertFalse(rs.wasNull());
   }
 
   @Test
@@ -222,8 +264,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getShort(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class, () -> rs.getShort(1), "Data type DATETIME cannot be decoded as Short");
+    assertEquals(10, rs.getShort(1));
+    assertFalse(rs.wasNull());
+    assertEquals(1901, rs.getShort(2));
+    assertEquals(1901, rs.getShort("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(2155, rs.getShort(3));
+    assertFalse(rs.wasNull());
+    assertEquals(0, rs.getShort(4));
+    assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(80, rs.getShort(1));
   }
 
   @Test
@@ -238,8 +289,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getInt(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class, () -> rs.getInt(1), "Data type DATETIME cannot be decoded as Integer");
+    assertEquals(10, rs.getInt(1));
+    assertFalse(rs.wasNull());
+    assertEquals(1901, rs.getInt(2));
+    assertEquals(1901, rs.getInt("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(2155, rs.getInt(3));
+    assertFalse(rs.wasNull());
+    assertEquals(0, rs.getInt(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -254,8 +312,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getLong(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class, () -> rs.getLong(1), "Data type DATETIME cannot be decoded as Long");
+    assertEquals(10, rs.getLong(1));
+    assertFalse(rs.wasNull());
+    assertEquals(1901, rs.getLong(2));
+    assertEquals(1901, rs.getLong("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(2155, rs.getLong(3));
+    assertFalse(rs.wasNull());
+    assertEquals(0, rs.getLong(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -270,8 +335,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class, () -> rs.getFloat(1), "Data type DATETIME cannot be decoded as Float");
+    assertEquals(10F, rs.getFloat(1));
+    assertFalse(rs.wasNull());
+    assertEquals(1901F, rs.getFloat(2));
+    assertEquals(1901F, rs.getFloat("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(2155F, rs.getFloat(3));
+    assertFalse(rs.wasNull());
+    assertEquals(0F, rs.getFloat(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -286,10 +358,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class,
-        () -> rs.getDouble(1),
-        "Data type DATETIME cannot be decoded as Double");
+    assertEquals(10D, rs.getDouble(1));
+    assertFalse(rs.wasNull());
+    assertEquals(1901D, rs.getDouble(2));
+    assertEquals(1901D, rs.getDouble("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(2155D, rs.getDouble(3));
+    assertFalse(rs.wasNull());
+    assertEquals(0D, rs.getDouble(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -304,10 +381,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLException.class,
-        () -> rs.getBigDecimal(1),
-        "Data type DATETIME cannot be decoded as BigDecimal");
+    assertEquals(BigDecimal.TEN, rs.getBigDecimal(1));
+    assertFalse(rs.wasNull());
+    assertEquals(BigDecimal.valueOf(1901), rs.getBigDecimal(2));
+    assertEquals(BigDecimal.valueOf(1901), rs.getBigDecimal("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals(BigDecimal.valueOf(2155), rs.getBigDecimal(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBigDecimal(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -322,27 +404,16 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) throws SQLException {
-    assertEquals(
-        1263261312000L, rs.getDate(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertEquals(Date.valueOf("2010-01-01").getTime(), rs.getDate(1).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(
-        1263261312000L - TimeZone.getDefault().getOffset(1263261312000L), rs.getDate(1).getTime());
+    assertEquals(Date.valueOf("1901-01-01").getTime(), rs.getDate(2).getTime());
     assertFalse(rs.wasNull());
-
-    assertEquals(
-        -30609785086800L,
-        rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
-    assertFalse(rs.wasNull());
-    assertEquals(
-        -30609785086800L - TimeZone.getDefault().getOffset(-30609785086800L),
-        rs.getDate(2).getTime());
-    assertFalse(rs.wasNull());
-    assertEquals(
-        253402281012550L - TimeZone.getDefault().getOffset(253402281012550L),
-        rs.getDate(3).getTime());
+    assertEquals(Date.valueOf("2155-01-01").getTime(), rs.getDate(3).getTime());
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(Date.valueOf("1980-01-01").getTime(), rs.getDate(1).getTime());
   }
 
   @Test
@@ -357,22 +428,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getTime(ResultSet rs) throws SQLException {
-    assertEquals(
-        6912000, rs.getTime(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
-    assertFalse(rs.wasNull());
-
-    assertEquals(Time.valueOf("01:55:12").getTime(), rs.getTime(1).getTime());
-    assertFalse(rs.wasNull());
-
-    assertEquals(
-        6913200, rs.getTime(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
-    assertFalse(rs.wasNull());
-    assertEquals(Time.valueOf("01:55:13").getTime() + 200, rs.getTime(2).getTime());
-    assertFalse(rs.wasNull());
-    assertEquals(Time.valueOf("18:30:12").getTime() + 550, rs.getTime(3).getTime());
-    assertFalse(rs.wasNull());
-    assertNull(rs.getTime(4));
-    assertTrue(rs.wasNull());
+    assertThrowsContains(
+        SQLException.class, () -> rs.getTime(1), "Data type YEAR cannot be decoded as Time");
   }
 
   @Test
@@ -387,7 +444,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getDuration(ResultSet rs) throws SQLException {
-    assertEquals(Duration.parse("PT265H55M12S"), rs.getObject(1, Duration.class));
+    assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, Duration.class),
+        "Type class java.time.Duration not supported type for YEAR type");
   }
 
   @Test
@@ -402,14 +462,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getLocalTime(ResultSet rs) throws SQLException {
-    assertEquals(LocalTime.parse("01:55:12"), rs.getObject(1, LocalTime.class));
-    assertFalse(rs.wasNull());
-    assertEquals(LocalTime.parse("01:55:13.2"), rs.getObject(2, LocalTime.class));
-    assertFalse(rs.wasNull());
-    assertEquals(LocalTime.parse("18:30:12.55"), rs.getObject(3, LocalTime.class));
-    assertFalse(rs.wasNull());
-    assertNull(rs.getTime(4));
-    assertTrue(rs.wasNull());
+    assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, LocalTime.class),
+        "Type class java.time.LocalTime not supported type for YEAR type");
   }
 
   @Test
@@ -424,14 +480,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getLocalDate(ResultSet rs) throws SQLException {
-    assertEquals(LocalDate.parse("2010-01-12"), rs.getObject(1, LocalDate.class));
+    assertEquals(LocalDate.parse("2010-01-01"), rs.getObject(1, LocalDate.class));
     assertFalse(rs.wasNull());
-    assertEquals(LocalDate.parse("1000-01-01"), rs.getObject(2, LocalDate.class));
+    assertEquals(LocalDate.parse("1901-01-01"), rs.getObject(2, LocalDate.class));
+    assertEquals(LocalDate.parse("1901-01-01"), rs.getObject("t2alias", LocalDate.class));
     assertFalse(rs.wasNull());
-    assertEquals(LocalDate.parse("9999-12-31"), rs.getObject(3, LocalDate.class));
+    assertEquals(LocalDate.parse("2155-01-01"), rs.getObject(3, LocalDate.class));
     assertFalse(rs.wasNull());
-    assertNull(rs.getObject(4, LocalTime.class));
+    assertNull(rs.getObject(4, LocalDate.class));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(LocalDate.parse("1980-01-01"), rs.getObject(1, LocalDate.class));
   }
 
   @Test
@@ -446,17 +505,33 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
-    assertFalse(rs.wasNull());
-    assertEquals(Timestamp.valueOf("2010-01-12 01:55:12").getTime(), rs.getTimestamp(1).getTime());
-    assertFalse(rs.wasNull());
+    assertEquals(Timestamp.valueOf("2010-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
-        Timestamp.valueOf("1000-01-01 01:55:13.2").getTime(), rs.getTimestamp(2).getTime());
-    assertFalse(rs.wasNull());
+        1262304000000L,
+        rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
-        Timestamp.valueOf("9999-12-31 18:30:12.55").getTime(), rs.getTimestamp(3).getTime());
+        Timestamp.valueOf("2010-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
+    assertEquals(
+        1262304000000L,
+        rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
-    assertNull(rs.getDate(4));
+    assertEquals(Timestamp.valueOf("1901-01-01 00:00:00").getTime(), rs.getTimestamp(2).getTime());
+    assertEquals(
+        -2177452800000L,
+        rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertFalse(rs.wasNull());
+
+    assertEquals(Timestamp.valueOf("2155-01-01 00:00:00").getTime(), rs.getTimestamp(3).getTime());
+    assertEquals(
+        5838048000000L,
+        rs.getTimestamp(3, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertFalse(rs.wasNull());
+    assertEquals(Timestamp.valueOf("2155-01-01 00:00:00"), rs.getTimestamp(3));
+    assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(Timestamp.valueOf("1980-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
+
   }
 
   @Test
@@ -474,7 +549,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getAsciiStream(1),
-        "Data type DATETIME cannot be decoded as Stream");
+        "Data type YEAR cannot be decoded as Stream");
   }
 
   @Test
@@ -493,7 +568,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getUnicodeStream(1),
-        "Data type DATETIME cannot be decoded as Stream");
+        "Data type YEAR cannot be decoded as Stream");
   }
 
   @Test
@@ -511,7 +586,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getBinaryStream(1),
-        "Data type DATETIME cannot be decoded as Stream");
+        "Data type YEAR cannot be decoded as Stream");
   }
 
   @Test
@@ -527,7 +602,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getBytes(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLException.class, () -> rs.getBytes(1), "Data type DATETIME cannot be decoded as byte[]");
+        SQLException.class, () -> rs.getBytes(1), "Data type YEAR cannot be decoded as byte[]");
   }
 
   @Test
@@ -545,7 +620,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getCharacterStream(1),
-        "Data type DATETIME cannot be decoded as Reader");
+        "Data type YEAR cannot be decoded as Reader");
   }
 
   @Test
@@ -563,7 +638,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
-        "Data type DATETIME cannot be decoded as Reader");
+        "Data type YEAR cannot be decoded as Reader");
   }
 
   @Test
@@ -579,7 +654,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getBlob(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLException.class, () -> rs.getBlob(1), "Data type DATETIME cannot be decoded as Blob");
+        SQLException.class, () -> rs.getBlob(1), "Data type YEAR cannot be decoded as Blob");
   }
 
   @Test
@@ -595,121 +670,39 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getClob(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLException.class, () -> rs.getClob(1), "Data type DATETIME cannot be decoded as Clob");
+        SQLException.class, () -> rs.getClob(1), "Data type YEAR cannot be decoded as Clob");
   }
 
   @Test
   public void getNClob() throws SQLException {
-    getClob(get());
+    getNClob(get());
   }
 
   @Test
   public void getNClobPrepare() throws SQLException {
-    getClob(getPrepare(sharedConn));
-    getClob(getPrepare(sharedConnBinary));
+    getNClob(getPrepare(sharedConn));
+    getNClob(getPrepare(sharedConnBinary));
   }
 
   public void getNClob(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLException.class, () -> rs.getNClob(1), "Data type DATETIME cannot be decoded as Clob");
+        SQLException.class, () -> rs.getNClob(1), "Data type YEAR cannot be decoded as Clob");
   }
 
   @Test
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("DATETIME", meta.getColumnTypeName(1));
+    assertEquals("YEAR", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.sql.Timestamp", meta.getColumnClassName(1));
+    assertEquals("java.sql.Date", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.TIMESTAMP, meta.getColumnType(1));
+    assertEquals(Types.DATE, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(19, meta.getPrecision(1));
+    assertEquals(2, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(19, meta.getColumnDisplaySize(1));
-  }
-
-  @Test
-  public void sendParam() throws SQLException {
-    sendParam(sharedConn);
-    sendParam(sharedConnBinary);
-  }
-
-  private void sendParam(Connection con) throws SQLException {
-    java.sql.Statement stmt = con.createStatement();
-    stmt.execute("TRUNCATE TABLE DateTimeCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateTimeCodec2 VALUES (?)")) {
-      prep.setDate(1, Date.valueOf("2010-01-12"));
-      prep.execute();
-      prep.setDate(1, null);
-      prep.execute();
-      prep.setObject(1, Date.valueOf("2010-01-13"));
-      prep.execute();
-      prep.setObject(1, null);
-      prep.execute();
-      prep.setObject(1, Date.valueOf("2010-01-14"), Types.DATE);
-      prep.execute();
-      prep.setObject(1, null, Types.DATE);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12"), Types.TIMESTAMP);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2011-01-12T01:55:12").atZone(ZoneId.systemDefault()), Types.TIMESTAMP);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2011-01-12T01:55:12.456").atZone(ZoneId.systemDefault()), Types.TIMESTAMP);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
-      prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
-      prep.execute();
-      prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12"));
-      prep.execute();
-      prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12.654"));
-      prep.execute();
-      prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12"));
-      prep.execute();
-      prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12.654"));
-      prep.execute();
-    }
-
-    ResultSet rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-13"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-14"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(1, LocalDateTime.class));
-
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2011-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2011-01-12T01:55:12.456"), rs.getObject(1, LocalDateTime.class));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")), rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
-
-
-    assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12"), rs.getTimestamp(1));
-    assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(1));
-    assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(1));
-    assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(1));
+    assertEquals(2, meta.getColumnDisplaySize(1));
   }
 }

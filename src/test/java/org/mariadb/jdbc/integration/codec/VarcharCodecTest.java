@@ -35,8 +35,9 @@ public class VarcharCodecTest extends CommonCodecTest {
         "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20)) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), " +
+                "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null), "
+    + "('aaaa-bb-cc', '2010-12-31 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute(
         "CREATE TABLE StringParamCodec(t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -410,6 +411,11 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertThrowsContains(
+            SQLDataException.class,
+            () -> rs.getDate(1),
+            "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
   }
 
   @Test
@@ -441,6 +447,57 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(86091840, rs.getTime("t3alias", utc).getTime());
 
     assertFalse(rs.wasNull());
+  }
+
+  @Test
+  public void getLocalTime() throws SQLException {
+    getLocalTime(get());
+  }
+
+  @Test
+  public void getLocalTimePrepare() throws SQLException {
+    getLocalTime(getPrepare(sharedConn));
+    getLocalTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalTime(ResultSet rs) throws SQLException {
+    rs.next();
+    assertThrowsContains(
+            SQLDataException.class,
+            () -> rs.getObject(1, LocalTime.class),
+            "value '2011-01-01' (VARSTRING) cannot be decoded as LocalTime");
+    assertFalse(rs.wasNull());
+
+    assertEquals(LocalTime.parse("23:59:59.152"), rs.getObject(2, LocalTime.class));
+    assertEquals(LocalTime.parse("23:54:51.840010"), rs.getObject(3, LocalTime.class));
+    assertEquals(LocalTime.parse("23:54:51.840010"), rs.getObject("t3alias", LocalTime.class));
+    assertFalse(rs.wasNull());
+  }
+
+  @Test
+  public void getDuration() throws SQLException {
+    getDuration(get());
+  }
+
+  @Test
+  public void getDurationPrepare() throws SQLException {
+    getDuration(getPrepare(sharedConn));
+    getDuration(getPrepare(sharedConnBinary));
+  }
+
+  public void getDuration(ResultSet rs) throws SQLException {
+    rs.next();
+    assertThrowsContains(
+            SQLDataException.class,
+            () -> rs.getObject(1, Duration.class),
+            "VARSTRING value '2011-01-01' cannot be decoded as Time");
+    assertFalse(rs.wasNull());
+    assertThrowsContains(
+            SQLDataException.class,
+            () -> rs.getObject(2, Duration.class),
+            "VARSTRING value '2010-12-31 23:59:59.152' cannot be decoded as Time");
+    assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject(3, Duration.class));
+    assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject("t3alias", Duration.class));
   }
 
   @Test
@@ -485,9 +542,28 @@ public class VarcharCodecTest extends CommonCodecTest {
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
-    //
-    //    ('2011-01-01', '2010-12-31 23:59:59.152',"
-    //            + " '23:54:51.840010', null)
+  }
+
+  @Test
+  public void getLocalDateTime() throws SQLException {
+    getLocalDateTime(get());
+  }
+
+  @Test
+  public void getLocalDateTimePrepare() throws SQLException {
+    getLocalDateTime(getPrepare(sharedConn));
+    getLocalDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalDateTime(ResultSet rs) throws SQLException {
+    assertThrowsContains(SQLDataException.class, () -> rs.getObject(1, LocalDateTime.class), "value '0' (VARSTRING) cannot be decoded as LocalDateTime");
+    rs.next();
+    assertEquals(LocalDateTime.parse("2011-01-01T00:00:00"), rs.getObject(1, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+            LocalDateTime.parse("2010-12-31T23:59:59.152"), rs.getObject(2, LocalDateTime.class));
+    rs.next();
+    assertThrowsContains(SQLDataException.class, () -> rs.getObject(1, LocalDateTime.class), "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as LocalDateTime");
   }
 
   @Test

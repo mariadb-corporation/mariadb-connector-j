@@ -135,6 +135,7 @@ public class IntCodecTest extends CommonCodecTest {
     testErrObject(rs, NClob.class);
     testErrObject(rs, InputStream.class);
     testErrObject(rs, Reader.class);
+    rs.next();
   }
 
   @Test
@@ -227,6 +228,27 @@ public class IntCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getUnsignedByte() throws SQLException {
+    getUnsignedByte(getUnsigned());
+  }
+
+  @Test
+  public void getUnsignedBytePrepared() throws SQLException {
+    getUnsignedByte(getPreparedUnsigned(sharedConn));
+    getUnsignedByte(getPreparedUnsigned(sharedConnBinary));
+  }
+
+  private void getUnsignedByte(ResultSet rs) throws SQLException {
+    assertEquals((byte) 0, rs.getByte(1));
+    assertFalse(rs.wasNull());
+    assertEquals((byte) 1, rs.getByte(2));
+    assertEquals((byte) 1, rs.getByte("t2alias"));
+    assertFalse(rs.wasNull());
+    assertThrowsContains(SQLDataException.class, () -> rs.getByte(3), "byte overflow");
+    assertFalse(rs.wasNull());
   }
 
   @Test

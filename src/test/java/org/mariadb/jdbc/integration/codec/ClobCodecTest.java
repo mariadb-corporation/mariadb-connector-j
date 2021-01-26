@@ -716,15 +716,22 @@ public class ClobCodecTest extends CommonCodecTest {
   public void sendParam() throws SQLException {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
+    String urlWithHaMode =
+        mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:")
+            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
+            + "useServerPrepStmts=true";
+    try (Connection con = DriverManager.getConnection(urlWithHaMode)) {
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO ClobParamCodec VALUES (?)")) {
-      prep.setString(1, "e🌟1");
+      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
-      prep.setString(1, null);
+      prep.setClob(1, (Clob) null);
       prep.execute();
       prep.setObject(1, "e🌟2");
       prep.execute();
@@ -734,6 +741,31 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.VARCHAR);
       prep.execute();
+      prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.execute();
+
+      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.addBatch();
+      prep.setClob(1, (Clob) null);
+      prep.addBatch();
+      prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.addBatch();
+      prep.executeBatch();
+
+      prep.setCharacterStream(1, new StringReader("e🌟789"));
+      prep.execute();
+      prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.execute();
+      prep.setObject(1, new StringReader("e🌟568"), Types.CLOB);
+      prep.execute();
+      prep.setObject(1, new StringReader("e🌟568"), Types.CLOB, 4);
+      prep.execute();
+
+      prep.setCharacterStream(1, new StringReader("e🌟789"));
+      prep.addBatch();
+      prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.addBatch();
+      prep.executeBatch();
     }
 
     ResultSet rs = stmt.executeQuery("SELECT * FROM ClobParamCodec");
@@ -749,5 +781,27 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e🌟3", rs.getString(1));
     assertTrue(rs.next());
     assertNull(rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟1", rs.getString(1));
+    assertTrue(rs.next());
+    assertNull(rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(1));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟568", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(1));
+
   }
 }

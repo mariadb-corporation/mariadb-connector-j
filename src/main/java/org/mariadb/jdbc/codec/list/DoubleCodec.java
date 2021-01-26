@@ -86,6 +86,7 @@ public class DoubleCodec implements Codec<Double> {
       case DOUBLE:
       case OLDDECIMAL:
       case DECIMAL:
+      case YEAR:
         return Double.valueOf(buf.readAscii(length));
 
       case BLOB:

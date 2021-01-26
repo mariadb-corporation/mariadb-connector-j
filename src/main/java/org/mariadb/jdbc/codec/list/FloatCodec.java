@@ -86,6 +86,7 @@ public class FloatCodec implements Codec<Float> {
       case OLDDECIMAL:
       case DECIMAL:
       case FLOAT:
+      case YEAR:
         return Float.valueOf(buf.readAscii(length));
 
       case BLOB:
