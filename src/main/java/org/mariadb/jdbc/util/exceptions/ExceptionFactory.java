@@ -2,7 +2,9 @@ package org.mariadb.jdbc.util.exceptions;
 
 import java.sql.*;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.sql.ConnectionEvent;
 import javax.sql.StatementEvent;
 import org.mariadb.jdbc.Configuration;
@@ -13,6 +15,8 @@ import org.mariadb.jdbc.message.server.OkPacket;
 
 public class ExceptionFactory {
 
+  private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
+      new HashSet<>(Arrays.asList(1205, 1213, 1614));
   private final Configuration conf;
   private final HostAddress hostAddress;
   private Connection connection;
@@ -38,17 +42,22 @@ public class ExceptionFactory {
   }
 
   private static String buildMsgText(
-      String initialMessage, long threadId, Configuration conf, Exception cause, String sql) {
+      String initialMessage,
+      long threadId,
+      Configuration conf,
+      Exception cause,
+      String sql,
+      int errorCode,
+      Connection connection) {
 
     StringBuilder msg = new StringBuilder();
     String deadLockException = null;
     String threadName = null;
 
     if (threadId != -1L) {
-      msg.append("(conn=").append(threadId).append(") ").append(initialMessage);
-    } else {
-      msg.append(initialMessage);
+      msg.append("(conn=").append(threadId).append(") ");
     }
+    msg.append(initialMessage);
 
     if (conf.dumpQueriesOnException() && sql != null) {
       if (conf != null
@@ -60,27 +69,18 @@ public class ExceptionFactory {
       }
     }
 
-    //    if (cause instanceof MariaDbSqlException) {
-    //      MariaDbSqlException exception = ((MariaDbSqlException) cause);
-    //      String sql = exception.getSql();
-    //      if (options.dumpQueriesOnException && sql != null) {
-    //        if (options != null
-    //            && options.maxQuerySizeToLog != 0
-    //            && sql.length() > options.maxQuerySizeToLog - 3) {
-    //          msg.append("\nQuery is: ").append(sql, 0, options.maxQuerySizeToLog -
-    // 3).append("...");
-    //        } else {
-    //          msg.append("\nQuery is: ").append(sql);
-    //        }
-    //      }
-    //      deadLockException = exception.getDeadLockInfo();
-    //      threadName = exception.getThreadName();
-    //    }
-
-    if (conf != null
-        && conf.includeInnodbStatusInDeadlockExceptions()
-        && deadLockException != null) {
-      msg.append("\ndeadlock information: ").append(deadLockException);
+    if (conf != null && conf.includeInnodbStatusInDeadlockExceptions()) {
+      if (LOCK_DEADLOCK_ERROR_CODES.contains(errorCode) && connection != null) {
+        Statement stmt = connection.createStatement();
+        try {
+          ResultSet rs = stmt.executeQuery("SHOW ENGINE INNODB STATUS");
+          if (rs.next()) {
+            msg.append("\ndeadlock information: ").append(rs.getString(3));
+          }
+        } catch (SQLException sqle) {
+          // eat
+        }
+      }
     }
 
     if (conf != null && conf.includeThreadDumpInDeadlockExceptions()) {
@@ -174,7 +174,8 @@ public class ExceptionFactory {
   private SQLException createException(
       String initialMessage, String sqlState, int errorCode, Exception cause) {
 
-    String msg = buildMsgText(initialMessage, threadId, conf, cause, getSql());
+    String msg =
+        buildMsgText(initialMessage, threadId, conf, cause, getSql(), errorCode, connection);
 
     if ("70100".equals(sqlState)) { // ER_QUERY_INTERRUPTED
       return new SQLTimeoutException(msg, sqlState, errorCode);
@@ -228,17 +229,17 @@ public class ExceptionFactory {
 
     return returnEx;
   }
-
-  public SQLException create(SQLException cause) {
-
-    return createException(
-        cause.getMessage().contains("\n")
-            ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n"))
-            : cause.getMessage(),
-        cause.getSQLState(),
-        cause.getErrorCode(),
-        cause);
-  }
+  //
+  //  public SQLException create(SQLException cause) {
+  //
+  //    return createException(
+  //        cause.getMessage().contains("\n")
+  //            ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n"))
+  //            : cause.getMessage(),
+  //        cause.getSQLState(),
+  //        cause.getErrorCode(),
+  //        cause);
+  //  }
 
   public SQLException notSupported(String message) {
     return createException(message, "0A000", -1, null);

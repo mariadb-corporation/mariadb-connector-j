@@ -29,7 +29,7 @@ public class BitCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE BitCodec (t1 BIT(1), t2 BIT(4), t3 BIT(16), t4 BIT(24))");
     stmt.execute("INSERT INTO BitCodec VALUES (b'0000', b'0001', b'0000111100000100', null)");
-    stmt.execute("CREATE TABLE BitCodec2 (t1 BIT(16))");
+    stmt.execute("CREATE TABLE BitCodec2 (id int not null primary key auto_increment, t1 BIT(16))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -643,7 +643,7 @@ public class BitCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BitCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BitCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BitCodec2(t1) VALUES (?)")) {
       prep.setObject(1, BitSet.valueOf(new byte[] {0x00, 0x01}));
       prep.execute();
       prep.setObject(1, null);
@@ -654,14 +654,41 @@ public class BitCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM BitCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM BitCodec2");
     assertTrue(rs.next());
-    assertEquals("b'100000000'", rs.getString(1));
+    assertEquals("b'100000000'", rs.getString(2));
+    rs.updateObject(2, BitSet.valueOf(new byte[] {0x02, 0x00}));
+    rs.updateRow();
+    assertEquals("b'10'", rs.getString(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getBytes(1));
+    assertNull(rs.getBytes(2));
+    rs.updateObject(2, BitSet.valueOf(new byte[] {0x03, 0x00}), Types.BINARY);
+    rs.updateRow();
+    assertEquals("b'11'", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("b'1000000000'", rs.getString(1));
+    assertEquals("b'1000000000'", rs.getString(2));
+    rs.updateObject(2, null);
+    rs.updateRow();
+    assertNull(rs.getBytes(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getBytes(1));
+    assertNull(rs.getBytes(2));
+    rs.updateObject("t1", BitSet.valueOf(new byte[] {0x04, 0x00}), Types.BINARY);
+    rs.updateRow();
+    assertEquals("b'100'", rs.getString(2));
+
+    rs = stmt.executeQuery("SELECT * FROM BitCodec2");
+    assertTrue(rs.next());
+    assertEquals("b'10'", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("b'11'", rs.getString(2));
+    assertTrue(rs.next());
+    assertNull(rs.getBytes(2));
+    assertTrue(rs.next());
+    assertEquals("b'100'", rs.getString(2));
   }
 }

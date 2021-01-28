@@ -28,7 +28,8 @@ public class TimeCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE TimeCodec (t1 TIME(3), t2 TIME(6), t3 TIME(6), t4 TIME(6))");
-    stmt.execute("CREATE TABLE TimeCodec2 (t1 TIME(3))");
+    stmt.execute(
+        "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(3))");
     stmt.execute(
         "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), ('-838:59:58.999', "
             + "'838:59:58.999999', null, '23:54:51.84001')");
@@ -628,7 +629,7 @@ public class TimeCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE TimeCodec2");
     Time tt = Time.valueOf("01:55:12");
     tt.setTime(tt.getTime() + 120);
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(t1) VALUES (?)")) {
       prep.setTime(1, tt);
       prep.execute();
       prep.setTime(1, null);
@@ -650,27 +651,70 @@ public class TimeCodecTest extends CommonCodecTest {
       prep.setObject(1, LocalTime.parse("05:29:57"), Types.TIME);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM TimeCodec2");
+    assertTrue(rs.next());
+    assertEquals(tt.getTime(), rs.getTime(2).getTime());
+    rs.updateTime("t1", null);
+    rs.updateRow();
+    assertNull(rs.getTime(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM TimeCodec2");
     assertTrue(rs.next());
-    assertEquals(tt.getTime(), rs.getTime(1).getTime());
+    assertNull(rs.getTime(2));
+    rs.updateTime("t1", tt);
+    rs.updateRow();
+    assertEquals(tt.getTime(), rs.getTime(2).getTime());
+
     assertTrue(rs.next());
-    assertNull(rs.getTime(1));
+    assertEquals(Time.valueOf("01:55:13").getTime(), rs.getTime(2).getTime());
+    rs.updateObject(2, Time.valueOf("01:55:14"), JDBCType.TIME);
+    rs.updateRow();
+    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(2).getTime());
+
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("01:55:13").getTime(), rs.getTime(1).getTime());
+    assertNull(rs.getTime(2));
+    rs.updateTime(2, tt);
+    rs.updateRow();
+    assertEquals(tt.getTime(), rs.getTime(2).getTime());
+
     assertTrue(rs.next());
-    assertNull(rs.getTime(1));
+    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(1).getTime());
+    assertNull(rs.getTime(2));
     assertTrue(rs.next());
-    assertNull(rs.getTime(1));
+    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(1).getTime());
+    assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(1).getTime());
+    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(1).getTime());
+    assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
+
+    rs = stmt.executeQuery("SELECT * FROM TimeCodec2");
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(1).getTime());
+    assertNull(rs.getTime(2));
+
+    assertTrue(rs.next());
+    assertEquals(tt.getTime(), rs.getTime(2).getTime());
+
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(2).getTime());
+
+    assertTrue(rs.next());
+    assertEquals(tt.getTime(), rs.getTime(2).getTime());
+
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("01:55:14").getTime(), rs.getTime(2).getTime());
+    assertTrue(rs.next());
+    assertNull(rs.getTime(2));
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(2).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(2).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
+    assertTrue(rs.next());
+    assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
   }
 }

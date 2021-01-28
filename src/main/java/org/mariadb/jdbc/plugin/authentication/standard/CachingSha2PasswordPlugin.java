@@ -34,7 +34,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Base64;
-
+import javax.crypto.Cipher;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.SslMode;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -44,8 +44,6 @@ import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
-
-import javax.crypto.Cipher;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
@@ -164,8 +162,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               PublicKey publicKey;
               if (conf.serverRsaPublicKeyFile() != null
                   && !conf.serverRsaPublicKeyFile().isEmpty()) {
-                publicKey =
-                    readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
+                publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
               } else {
                 if (!conf.allowPublicKeyRetrieval()) {
                   throw new SQLException(
@@ -181,8 +178,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               }
 
               try {
-                byte[] cipherBytes =
-                    encrypt(publicKey, authenticationData, seed);
+                byte[] cipherBytes = encrypt(publicKey, authenticationData, seed);
                 out.writeBytes(cipherBytes);
                 out.flush();
               } catch (Exception ex) {
@@ -214,11 +210,11 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
     } catch (IOException ex) {
       throw new SQLException(
-              "Could not read server RSA public key from file : "
-                      + "serverRsaPublicKeyFile="
-                      + serverRsaPublicKeyFile,
-              "S1009",
-              ex);
+          "Could not read server RSA public key from file : "
+              + "serverRsaPublicKeyFile="
+              + serverRsaPublicKeyFile,
+          "S1009",
+          ex);
     }
     return generatePublicKey(keyBytes);
   }
@@ -233,7 +229,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @throws IOException if error reading socket
    */
   public static PublicKey readPublicKeyFromSocket(PacketReader reader, Context context)
-          throws SQLException, IOException {
+      throws SQLException, IOException {
     ReadableByteBuf buf = reader.readReadablePacket(true);
 
     switch (buf.getByte(0)) {
@@ -241,13 +237,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
         ErrorPacket ep = new ErrorPacket(buf, context);
         String message = ep.getMessage();
         throw new SQLException(
-                "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
+            "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
 
       case (byte) 0xFE:
         // Erroneous AuthSwitchRequest packet when security exception
         throw new SQLException(
-                "Could not connect: receive AuthSwitchRequest in place of RSA public key. "
-                        + "Did user has the rights to connect to database ?");
+            "Could not connect: receive AuthSwitchRequest in place of RSA public key. "
+                + "Did user has the rights to connect to database ?");
       default:
         // AuthMoreData packet
         buf.skip();
@@ -267,8 +263,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   public static PublicKey generatePublicKey(byte[] publicKeyBytes) throws SQLException {
     try {
       String publicKey =
-              new String(publicKeyBytes, StandardCharsets.US_ASCII)
-                      .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
+          new String(publicKeyBytes, StandardCharsets.US_ASCII)
+              .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
 
       byte[] keyBytes = Base64.getMimeDecoder().decode(publicKey);
       X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
@@ -289,7 +285,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @throws SQLException if cannot encode password
    */
   public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed)
-          throws SQLException {
+      throws SQLException {
 
     byte[] correctedSeed;
     if (seed.length > 0) {
@@ -315,7 +311,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       return cipher.doFinal(xorBytes);
     } catch (Exception ex) {
       throw new SQLException(
-              "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
+          "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
     }
   }
 }

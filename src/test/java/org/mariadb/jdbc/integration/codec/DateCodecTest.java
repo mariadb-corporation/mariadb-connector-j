@@ -29,7 +29,7 @@ public class DateCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE DateCodec (t1 DATE, t2 DATE, t3 DATE, t4 DATE)");
     stmt.execute("INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null)");
-    stmt.execute("CREATE TABLE DateCodec2 (t1 DATE)");
+    stmt.execute("CREATE TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -633,7 +633,7 @@ public class DateCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
       prep.execute();
       prep.setDate(1, null);
@@ -650,20 +650,56 @@ public class DateCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM DateCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM DateCodec2");
     assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(1));
+    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    rs.updateDate(2, Date.valueOf("2021-01-12"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2021-01-12"), rs.getDate(2));
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateDate("t1", Date.valueOf("2021-01-15"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2021-01-15"), rs.getDate(2));
     assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-13"), rs.getDate(1));
+    assertEquals(Date.valueOf("2010-01-13"), rs.getDate(2));
+    rs.updateDate(2, null);
+    rs.updateRow();
+    assertNull(rs.getString(2));
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject(2, Date.valueOf("2021-01-14"), Types.DATE);
+    rs.updateRow();
+    assertEquals(Date.valueOf("2021-01-14"), rs.getDate(2));
     assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-14"), rs.getDate(1));
+    assertEquals(Date.valueOf("2010-01-14"), rs.getDate(2));
+    rs.updateObject(2, null, Types.DATE);
+    rs.updateRow();
+    assertNull(rs.getString(2));
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject(2, LocalDate.parse("9999-12-31"), Types.DATE);
+    rs.updateRow();
+    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
-    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(1));
+    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
+
+    rs = stmt.executeQuery("SELECT * FROM DateCodec2");
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2021-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2021-01-15"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2021-01-14"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
   }
 }

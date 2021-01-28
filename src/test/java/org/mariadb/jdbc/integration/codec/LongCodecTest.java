@@ -33,7 +33,7 @@ public class LongCodecTest extends CommonCodecTest {
             + "UNSIGNED)");
     stmt.execute("INSERT INTO LongCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO LongCodecUnsigned VALUES (0, 1, 18446744073709551615, null)");
-    stmt.execute("CREATE TABLE LongCodec2 (t1 BIGINT)");
+    stmt.execute("CREATE TABLE LongCodec2 (id int not null primary key auto_increment, t1 BIGINT)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -960,7 +960,7 @@ public class LongCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LongCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO LongCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO LongCodec2(t1) VALUES (?)")) {
       prep.setLong(1, 1L);
       prep.execute();
       prep.setObject(1, 2L);
@@ -976,23 +976,83 @@ public class LongCodecTest extends CommonCodecTest {
       prep.setObject(1, null, Types.BIGINT);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM LongCodec2");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+    rs.updateLong(2, 50L);
+    rs.updateRow();
+    assertEquals(50L, rs.getLong(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM LongCodec2");
     assertTrue(rs.next());
-    assertEquals(1, rs.getLong(1));
+    assertEquals(2, rs.getLong(2));
+    rs.updateLong("t1", 60L);
+    rs.updateRow();
+    assertEquals(60L, rs.getLong(2));
+
     assertTrue(rs.next());
-    assertEquals(2, rs.getLong(1));
-    assertTrue(rs.next());
-    assertEquals(10, rs.getLong(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getLong(1));
+    assertEquals(10, rs.getLong(2));
+    rs.updateObject("t1", null);
+    rs.updateRow();
+    assertEquals(0L, rs.getLong(2));
     assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(3, rs.getLong(1));
-    assertTrue(rs.next());
-    assertEquals(4, rs.getLong(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getLong(1));
+    assertEquals(0, rs.getLong(2));
     assertTrue(rs.wasNull());
+    rs.updateObject("t1", 70L);
+    rs.updateRow();
+    assertEquals(70L, rs.getLong(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(3, rs.getLong(2));
+    rs.updateObject("t1", null, Types.BIGINT);
+    rs.updateRow();
+    assertEquals(0L, rs.getLong(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(4, rs.getLong(2));
+    rs.updateObject(2, BigInteger.valueOf(80));
+    rs.updateRow();
+    assertEquals(80L, rs.getLong(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(2));
+    assertTrue(rs.wasNull());
+    rs.updateObject("t1", BigInteger.valueOf(180), Types.BIGINT);
+    rs.updateRow();
+    assertEquals(180L, rs.getLong(2));
+    assertFalse(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM LongCodec2");
+    assertTrue(rs.next());
+    assertEquals(50L, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(60L, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(0L, rs.getLong(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(70L, rs.getLong(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0L, rs.getLong(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(80L, rs.getLong(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(180L, rs.getLong(2));
+    assertFalse(rs.wasNull());
   }
 }

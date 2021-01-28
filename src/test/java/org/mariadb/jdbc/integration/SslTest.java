@@ -111,10 +111,14 @@ public class SslTest extends Common {
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrows(SQLInvalidAuthorizationSpecException.class, () -> createCon(baseOptions + "&sslMode=disable"));
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+    if (System.getenv("MAXSCALE_VERSION") == null) {
+      assertThrows(
+              SQLException.class,
+              () -> createCon(baseOptions + "&sslMode=disable"));
+      assertThrows(
+              SQLInvalidAuthorizationSpecException.class,
+              () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+    }
   }
 
   @Test

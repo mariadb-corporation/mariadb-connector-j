@@ -33,7 +33,7 @@ public class IntCodecTest extends CommonCodecTest {
             + "UNSIGNED)");
     stmt.execute("INSERT INTO IntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO IntCodecUnsigned VALUES (0, 1, 4294967295, null)");
-    stmt.execute("CREATE TABLE IntCodec2 (t1 int)");
+    stmt.execute("CREATE TABLE IntCodec2 (id int not null primary key auto_increment, t1 int)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -912,7 +912,7 @@ public class IntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE IntCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO IntCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO IntCodec2(t1) VALUES (?)")) {
       prep.setInt(1, 1);
       prep.execute();
       prep.setObject(1, 2);
@@ -925,18 +925,63 @@ public class IntCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM IntCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM IntCodec2");
     assertTrue(rs.next());
-    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt(2));
+    rs.updateInt("t1", 10);
+    rs.updateRow();
+    assertEquals(10, rs.getInt(2));
+
     assertTrue(rs.next());
-    assertEquals(2, rs.getInt(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
+    assertEquals(2, rs.getInt(2));
+    rs.updateObject(2, null);
+    rs.updateRow();
+    assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(3, rs.getInt(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
+    assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
+    rs.updateObject(2, 20);
+    rs.updateRow();
+    assertEquals(20, rs.getInt(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(3, rs.getInt(2));
+    rs.updateObject("t1", null, Types.INTEGER);
+    rs.updateRow();
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+    rs.updateObject(2, 25, Types.INTEGER);
+    rs.updateRow();
+    assertEquals(25, rs.getInt(2));
+    assertFalse(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM IntCodec2");
+    assertTrue(rs.next());
+    assertEquals(10, rs.getInt(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(20, rs.getInt(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(25, rs.getInt(2));
+    assertFalse(rs.wasNull());
   }
 }

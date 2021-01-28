@@ -38,7 +38,8 @@ public class BinaryCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO BinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
-    stmt.execute("CREATE TABLE BinaryCodec2 (t1 VARBINARY(20))");
+    stmt.execute(
+        "CREATE TABLE BinaryCodec2 (id int not null primary key auto_increment, t1 VARBINARY(20))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -727,7 +728,7 @@ public class BinaryCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BinaryCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BinaryCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BinaryCodec2(t1) VALUES (?)")) {
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setClob(1, (Clob) null);
@@ -742,18 +743,55 @@ public class BinaryCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM BinaryCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM BinaryCodec2");
+
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getClob(1).toString());
+    assertEquals("e🌟1", rs.getClob(2).toString());
+    rs.updateClob(2, new MariaDbClob("f🌟1".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟1", rs.getClob(2).toString());
+
     assertTrue(rs.next());
-    assertNull(rs.getClob(1));
+    assertNull(rs.getClob(2));
+    rs.updateObject(2, new MariaDbClob("f🌟2".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟2", rs.getClob(2).toString());
+
     assertTrue(rs.next());
-    assertEquals("e🌟2", rs.getClob(1).toString());
+    assertEquals("e🌟2", rs.getClob(2).toString());
+    rs.updateClob("t1", (Clob) null);
+    rs.updateRow();
+    assertNull(rs.getClob(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getClob(1));
+    assertNull(rs.getClob(2));
+    rs.updateObject("t1", new MariaDbClob("f🌟3".getBytes(StandardCharsets.UTF_8)), Types.CLOB);
+    rs.updateRow();
+    assertEquals("f🌟3", rs.getClob(2).toString());
+
     assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getClob(1).toString());
+    assertEquals("e🌟3", rs.getClob(2).toString());
+    rs.updateObject(2, null, Types.CLOB);
+    rs.updateRow();
+    assertNull(rs.getClob(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getClob(1));
+    assertNull(rs.getClob(2));
+
+    rs = stmt.executeQuery("SELECT * FROM BinaryCodec2");
+    assertTrue(rs.next());
+    assertEquals("f🌟1", rs.getClob(2).toString());
+    assertTrue(rs.next());
+    assertEquals("f🌟2", rs.getClob(2).toString());
+    assertTrue(rs.next());
+    assertNull(rs.getClob(2));
+    assertTrue(rs.next());
+    assertEquals("f🌟3", rs.getClob(2).toString());
+    assertTrue(rs.next());
+    assertNull(rs.getClob(2));
+    assertTrue(rs.next());
+    assertNull(rs.getClob(2));
   }
 }

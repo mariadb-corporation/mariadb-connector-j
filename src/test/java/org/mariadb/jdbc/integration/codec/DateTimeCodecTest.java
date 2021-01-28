@@ -31,7 +31,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
     stmt.execute(
         "INSERT INTO DateTimeCodec VALUES ('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null)");
-    stmt.execute("CREATE TABLE DateTimeCodec2 (t1 DATETIME(6))");
+    stmt.execute(
+        "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -640,7 +641,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateTimeCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateTimeCodec2 VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO DateTimeCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
       prep.execute();
       prep.setDate(1, null);
@@ -685,46 +687,90 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM DateTimeCodec2");
     assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-13"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(Date.valueOf("2010-01-14"), rs.getDate(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
-    assertTrue(rs.next());
-    assertEquals(
-        LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(1, LocalDateTime.class));
+    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    rs.updateDate(2, null);
+    rs.updateRow();
+    assertNull(rs.getDate(2));
 
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2011-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
+    assertNull(rs.getString(2));
+    rs.updateDate(2, Date.valueOf("2011-01-12"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2011-01-12"), rs.getDate(2));
+
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-01-13"), rs.getDate(2));
+    rs.updateObject(2, null);
+    rs.updateRow();
+    assertNull(rs.getDate(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    rs.updateObject(2, Date.valueOf("2021-01-12"));
+    rs.updateRow();
+    assertEquals(Date.valueOf("2021-01-12"), rs.getDate(2));
+
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-01-14"), rs.getDate(2));
+    rs.updateObject(2, LocalDateTime.parse("2021-01-12T01:55:12"), Types.TIMESTAMP);
+    rs.updateRow();
+    assertEquals(LocalDateTime.parse("2021-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    rs.updateTimestamp(2, Timestamp.valueOf("2015-12-12 01:55:12.654"));
+    rs.updateRow();
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    rs.updateTimestamp("t1", Timestamp.valueOf("2015-12-12 01:55:12.654"));
+    rs.updateRow();
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
+
+    rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2011-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2021-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(LocalDateTime.parse("2021-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.next());
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
+
+    assertTrue(rs.next());
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
     assertTrue(rs.next());
     assertEquals(
-        LocalDateTime.parse("2011-01-12T01:55:12.456"), rs.getObject(1, LocalDateTime.class));
+        LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(2, LocalDateTime.class));
+
+    assertTrue(rs.next());
+    assertEquals(LocalDateTime.parse("2011-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.next());
+    assertEquals(
+        LocalDateTime.parse("2011-01-12T01:55:12.456"), rs.getObject(2, LocalDateTime.class));
     assertTrue(rs.next());
     assertEquals(
         LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")),
-        rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
+        rs.getObject(2, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
     assertTrue(rs.next());
     assertEquals(
         LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")),
-        rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
+        rs.getObject(2, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
 
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12"), rs.getTimestamp(1));
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12"), rs.getTimestamp(2));
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(1));
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(1));
+    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(2));
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(1));
+    assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(2));
   }
 }

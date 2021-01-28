@@ -20,7 +20,6 @@ public class YearCodecTest extends CommonCodecTest {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS YearCodec");
-    stmt.execute("DROP TABLE IF EXISTS YearCodec2");
   }
 
   @BeforeAll
@@ -36,7 +35,6 @@ public class YearCodecTest extends CommonCodecTest {
       stmt.execute(
           "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155', null)");
     }
-    stmt.execute("CREATE TABLE YearCodec2 (t1 YEAR(4))");
     stmt.execute("FLUSH TABLES");
   }
 

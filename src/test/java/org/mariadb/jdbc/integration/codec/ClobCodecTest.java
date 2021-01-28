@@ -38,7 +38,7 @@ public class ClobCodecTest extends CommonCodecTest {
         "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
     stmt.execute(
-        "CREATE TABLE ClobParamCodec(t1 TEXT) "
+        "CREATE TABLE ClobParamCodec(id int not null primary key auto_increment, t1 TEXT) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
@@ -728,7 +728,8 @@ public class ClobCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO ClobParamCodec VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO ClobParamCodec(t1) VALUES (?)")) {
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setClob(1, (Clob) null);
@@ -741,9 +742,13 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.VARCHAR);
       prep.execute();
+      prep.setObject(1, null, Types.VARCHAR);
+      prep.execute();
       prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
       prep.execute();
 
+      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.addBatch();
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
       prep.setClob(1, (Clob) null);
@@ -766,41 +771,190 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
       prep.addBatch();
       prep.executeBatch();
+
+      prep.setNClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.execute();
+
+      prep.setNClob(1, new MariaDbClob("e🌟145".getBytes(StandardCharsets.UTF_8)));
+      prep.execute();
+
+      prep.setNCharacterStream(1, new StringReader("e🌟789"));
+      prep.execute();
+      prep.setNCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.execute();
+      prep.setNCharacterStream(1, new StringReader("e🌟789"));
+      prep.execute();
+      prep.setNCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ClobParamCodec");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM ClobParamCodec");
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("e🌟2", rs.getString(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getString(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(1));
-    assertTrue(rs.next());
-    assertNull(rs.getString(1));
-    assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(1));
+    assertEquals("e🌟1", rs.getString(2));
+    rs.updateClob(2, new MariaDbClob("f🌟10".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟10", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateClob("t1", new MariaDbClob("f🌟15".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟15", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(1));
+    assertEquals("e🌟2", rs.getString(2));
+    rs.updateClob("t1", (Clob) null);
+    rs.updateRow();
+    assertNull(rs.getString(2));
+    assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals("e🌟568", rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject("t1", new MariaDbClob("f🌟56".getBytes(StandardCharsets.UTF_8)), 4);
+    rs.updateRow();
+    assertEquals("f🌟5", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(1));
+    assertEquals("e🌟3", rs.getString(2));
+    rs.updateCharacterStream(2, new StringReader("e🌟789"));
+    rs.updateRow();
+    assertEquals("e🌟789", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateCharacterStream(2, new StringReader("e🌟789"), 4);
+    rs.updateRow();
+    assertEquals("e🌟7", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateCharacterStream(2, new StringReader("e🌟789"), 4L);
+    rs.updateRow();
+    assertEquals("e🌟7", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(2));
+    rs.updateCharacterStream("t1", new StringReader("e🌟789"));
+    rs.updateRow();
+    assertEquals("e🌟789", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟1", rs.getString(2));
+    rs.updateCharacterStream("t1", new StringReader("e🌟789"), 4);
+    rs.updateRow();
+    assertEquals("e🌟7", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟1", rs.getString(2));
+    rs.updateCharacterStream("t1", new StringReader("e🌟789"), 4L);
+    rs.updateRow();
+    assertEquals("e🌟7", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟568", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟1", rs.getString(2));
+    rs.updateNClob(2, new MariaDbClob("g🌟14".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("g🌟14", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟145", rs.getString(2));
+    rs.updateNClob("t1", new MariaDbClob("h🌟14".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("h🌟14", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    rs.updateNCharacterStream("t1", new StringReader("e🌟5789"));
+    rs.updateRow();
+    assertEquals("e🌟5789", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+    rs.updateNCharacterStream("t1", new StringReader("e🌟5789"), 5);
+    rs.updateRow();
+    assertEquals("e🌟57", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    rs.updateNCharacterStream(2, new StringReader("e🌟5789"));
+    rs.updateRow();
+    assertEquals("e🌟5789", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+    rs.updateNCharacterStream(2, new StringReader("e🌟5789"), 5);
+    rs.updateRow();
+    assertEquals("e🌟57", rs.getString(2));
+
+    rs = stmt.executeQuery("SELECT * FROM ClobParamCodec");
+    assertTrue(rs.next());
+    assertEquals("f🌟10", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("f🌟15", rs.getString(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertEquals("f🌟5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟7", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟7", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟7", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟7", rs.getString(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟568", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟8", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("g🌟14", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("h🌟14", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟57", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟5789", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("e🌟57", rs.getString(2));
   }
 }

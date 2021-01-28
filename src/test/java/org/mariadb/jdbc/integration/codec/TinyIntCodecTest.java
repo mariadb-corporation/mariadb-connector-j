@@ -28,7 +28,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE TinyIntCodec (t1 TINYINT, t2 TINYINT, t3 TINYINT, t4 TINYINT)");
-    stmt.execute("CREATE TABLE TinyIntCodec2 (t1 TINYINT)");
+    stmt.execute(
+        "CREATE TABLE TinyIntCodec2 (id int not null primary key auto_increment, t1 TINYINT)");
     stmt.execute(
         "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT UNSIGNED, t4 TINYINT "
             + "UNSIGNED)");
@@ -925,8 +926,17 @@ public class TinyIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE TinyIntCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TinyIntCodec2 VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO TinyIntCodec2(t1) VALUES (?)")) {
       prep.setByte(1, (byte) 1);
+      prep.execute();
+      prep.setBoolean(1, true);
+      prep.execute();
+      prep.setBoolean(1, false);
+      prep.execute();
+      prep.setBoolean(1, true);
+      prep.execute();
+      prep.setBoolean(1, false);
       prep.execute();
       prep.setObject(1, Byte.valueOf("2"));
       prep.execute();
@@ -939,21 +949,90 @@ public class TinyIntCodecTest extends CommonCodecTest {
       prep.setObject(1, null, Types.TINYINT);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM TinyIntCodec2");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getByte(2));
+    rs.updateByte("t1", (byte) 10);
+    rs.updateRow();
+    assertEquals((byte) 10, rs.getByte(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2");
     assertTrue(rs.next());
-    assertEquals(1, rs.getByte(1));
+    assertTrue(rs.getBoolean(2));
+    rs.updateBoolean("t1", false);
+    rs.updateRow();
+    assertFalse(rs.getBoolean(2));
+
     assertTrue(rs.next());
-    assertEquals(2, rs.getByte(1));
+    assertFalse(rs.getBoolean(2));
+    rs.updateBoolean("t1", true);
+    rs.updateRow();
+    assertTrue(rs.getBoolean(2));
+
     assertTrue(rs.next());
-    assertEquals(0, rs.getByte(1));
+    assertTrue(rs.getBoolean(2));
+    rs.updateBoolean(2, false);
+    rs.updateRow();
+    assertFalse(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(2));
+    rs.updateBoolean(2, true);
+    rs.updateRow();
+    assertTrue(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertEquals(2, rs.getByte(2));
+    rs.updateObject(2, (Byte) null);
+    rs.updateRow();
+    assertEquals(0, rs.getByte(2));
     assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(3, rs.getByte(1));
+    assertEquals(0, rs.getByte(2));
+    assertTrue(rs.wasNull());
+    rs.updateByte(2, (byte) 15);
+    rs.updateRow();
+    assertEquals((byte) 15, rs.getByte(2));
+
     assertTrue(rs.next());
-    assertEquals(4, rs.getShort(1));
+    assertEquals(3, rs.getByte(2));
     assertTrue(rs.next());
-    assertEquals(0, rs.getByte(1));
+    assertEquals(4, rs.getShort(2));
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(2));
+    assertTrue(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2");
+    assertTrue(rs.next());
+    assertEquals((byte) 10, rs.getByte(2));
+
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals((byte) 15, rs.getByte(2));
+
+    assertTrue(rs.next());
+    assertEquals(3, rs.getByte(2));
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
+    assertTrue(rs.next());
+    assertEquals(0, rs.getByte(2));
     assertTrue(rs.wasNull());
   }
 }

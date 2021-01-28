@@ -31,7 +31,8 @@ public class DecimalCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0))");
     stmt.execute("INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null)");
-    stmt.execute("CREATE TABLE DecimalCodec3 (t1 DECIMAL(10,0))");
+    stmt.execute(
+        "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -722,7 +723,8 @@ public class DecimalCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DecimalCodec3");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DecimalCodec3 VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO DecimalCodec3(t1) VALUES (?)")) {
       prep.setBigDecimal(1, BigDecimal.valueOf(1));
       prep.execute();
       prep.setBigDecimal(1, null);
@@ -737,18 +739,64 @@ public class DecimalCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM DecimalCodec3");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM DecimalCodec3");
+
     assertTrue(rs.next());
-    assertEquals("1", rs.getBigDecimal(1).toString());
+    assertEquals("1", rs.getBigDecimal(2).toString());
+    rs.updateBigDecimal(2, null);
+    rs.updateRow();
+    assertNull(rs.getBigDecimal(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getBigDecimal(1));
+    assertNull(rs.getBigDecimal(2));
+    rs.updateBigDecimal("t1", BigDecimal.ONE);
+    rs.updateRow();
+    assertEquals("1", rs.getBigDecimal(2).toString());
+
     assertTrue(rs.next());
-    assertEquals("2", rs.getBigDecimal(1).toString());
+    assertEquals("2", rs.getBigDecimal(2).toString());
+    rs.updateObject(2, null);
+    rs.updateRow();
+    assertNull(rs.getBigDecimal(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject(2, BigDecimal.valueOf(20));
+    rs.updateRow();
+    assertEquals(BigDecimal.valueOf(20), rs.getBigDecimal(2));
+
     assertTrue(rs.next());
-    assertEquals("3", rs.getBigDecimal(1).toString());
+    assertEquals("3", rs.getBigDecimal(2).toString());
+    rs.updateObject("t1", null, Types.DECIMAL);
+    rs.updateRow();
+    assertNull(rs.getBigDecimal(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject(2, BigDecimal.valueOf(30), Types.DECIMAL);
+    rs.updateRow();
+    assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
+
+    rs = stmt.executeQuery("SELECT * FROM DecimalCodec3");
+
+    assertTrue(rs.next());
+    assertNull(rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertEquals("1", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertNull(rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(20), rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
   }
 }

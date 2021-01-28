@@ -68,7 +68,7 @@ public class UpdateResultSetTest extends Common {
       assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "1"),
-          "The result-set contains fields without without any database information");
+          "The result-set contains fields without without any database/table information");
     }
   }
 
@@ -118,7 +118,7 @@ public class UpdateResultSetTest extends Common {
           SQLException.class,
           () -> rs.updateString("t1", "new value"),
           "ResultSet cannot be updated. "
-              + "The result-set contains fields without without any database information");
+              + "The result-set contains fields without without any database/table information");
     }
   }
 
@@ -941,6 +941,41 @@ public class UpdateResultSetTest extends Common {
       rs.next();
       assertEquals("de6f7774-e399-11ea-aa68-c8348e0fed44", rs.getString(1));
       assertEquals("x", rs.getString(2));
+    }
+  }
+
+  @Test
+  public void expectedErrorField() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
+    Statement stmt = sharedConn.createStatement();
+    stmt.executeQuery("DROP TABLE IF EXISTS testExpError");
+    stmt.execute(
+        "CREATE TABLE testExpError ("
+            + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+            + "`t1` varchar(100) DEFAULT NULL,"
+            + "`t2` varchar(100) DEFAULT NULL)");
+    String sql = "SELECT * FROM testExpError t WHERE 1 = 2";
+    try (PreparedStatement pstmt =
+        sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+      pstmt.execute();
+      ResultSet rs = pstmt.getResultSet();
+      rs.moveToInsertRow();
+      assertThrowsContains(SQLException.class, () -> rs.updateRef(2, null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateRef("t1", null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateArray(2, null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateArray("t1", null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateRowId(2, null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateRowId("t1", null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
+      assertThrowsContains(SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.deleteRow(),
+          "Cannot call deleteRow() when inserting a new row");
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateRow(),
+          "Cannot call updateRow() when inserting a new row");
     }
   }
 }

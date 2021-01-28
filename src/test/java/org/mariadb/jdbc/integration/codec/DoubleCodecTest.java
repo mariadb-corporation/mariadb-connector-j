@@ -27,7 +27,8 @@ public class DoubleCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE DoubleCodec (t1 DOUBLE, t2 DOUBLE, t3 DOUBLE, t4 DOUBLE)");
     stmt.execute("INSERT INTO DoubleCodec VALUES (0, 105.21, -1.6, null)");
-    stmt.execute("CREATE TABLE DoubleCodec2 (t1 DOUBLE)");
+    stmt.execute(
+        "CREATE TABLE DoubleCodec2 (id int not null primary key auto_increment, t1 DOUBLE)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -663,7 +664,7 @@ public class DoubleCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DoubleCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2(t1) VALUES (?)")) {
       prep.setDouble(1, 1D);
       prep.execute();
       prep.setObject(1, 2D);
@@ -676,16 +677,53 @@ public class DoubleCodecTest extends CommonCodecTest {
       prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM DoubleCodec2");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM DoubleCodec2");
     assertTrue(rs.next());
-    assertEquals(1D, rs.getDouble(1));
+    assertEquals(1D, rs.getDouble(2));
+    rs.updateDouble("t1", 10D);
+    rs.updateRow();
+    assertEquals(10D, rs.getDouble(2));
+
     assertTrue(rs.next());
-    assertEquals(2D, rs.getDouble(1));
+    assertEquals(2D, rs.getDouble(2));
+    rs.updateObject(2, null);
+    rs.updateRow();
+    assertNull(rs.getString(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject("t1", 20D);
+    rs.updateRow();
+    assertEquals(20D, rs.getDouble(2));
+
     assertTrue(rs.next());
-    assertEquals(3D, rs.getDouble(1));
+    assertEquals(3D, rs.getDouble(2));
+    rs.updateObject(2, null, Types.DECIMAL);
+    rs.updateRow();
+    assertNull(rs.getString(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject("t1", 30D, Types.DECIMAL);
+    rs.updateRow();
+    assertEquals(30D, rs.getDouble(2));
+
+    rs = stmt.executeQuery("SELECT * FROM DoubleCodec2");
+    assertTrue(rs.next());
+    assertEquals(10D, rs.getDouble(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals(20D, rs.getDouble(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals(30D, rs.getDouble(2));
   }
 }

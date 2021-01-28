@@ -28,7 +28,7 @@ public class FloatCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE FloatCodec (t1 FLOAT, t2 FLOAT, t3 FLOAT, t4 FLOAT)");
     stmt.execute("INSERT INTO FloatCodec VALUES (0, 105.21, -1.6, null)");
-    stmt.execute("CREATE TABLE FloatCodec2 (t1 FLOAT)");
+    stmt.execute("CREATE TABLE FloatCodec2 (id int not null primary key auto_increment, t1 FLOAT)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -679,7 +679,7 @@ public class FloatCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE FloatCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO FloatCodec2 VALUES (?)")) {
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO FloatCodec2(t1) VALUES (?)")) {
       prep.setFloat(1, 1.1F);
       prep.execute();
       prep.setObject(1, 2.1F);
@@ -691,19 +691,57 @@ public class FloatCodecTest extends CommonCodecTest {
       prep.setObject(1, null, Types.DECIMAL);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM FloatCodec2");
+    assertTrue(rs.next());
+    assertEquals(1.1F, rs.getFloat(2));
+    rs.updateFloat(2, 4.4f);
+    rs.updateRow();
+    assertEquals(4.4F, rs.getFloat(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM FloatCodec2");
     assertTrue(rs.next());
-    assertEquals(1.1F, rs.getFloat(1));
+    assertEquals(2.1F, rs.getFloat(2));
+    rs.updateFloat("t1", 5.4f);
+    rs.updateRow();
+    assertEquals(5.4F, rs.getFloat(2));
+
     assertTrue(rs.next());
-    assertEquals(2.1F, rs.getFloat(1));
-    assertTrue(rs.next());
-    assertEquals(0F, rs.getFloat(1));
+    assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
+    rs.updateObject(2, 5.1F, Types.DECIMAL);
+    rs.updateRow();
+    assertEquals(5.1F, rs.getFloat(2));
+    assertFalse(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(3.1F, rs.getFloat(1));
+    assertEquals(3.1F, rs.getFloat(2));
+    rs.updateObject("t1", null, Types.DECIMAL);
+    rs.updateRow();
+    assertEquals(0F, rs.getFloat(2));
+    assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(0F, rs.getFloat(1));
+    assertEquals(0F, rs.getFloat(2));
+    assertTrue(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM FloatCodec2");
+    assertTrue(rs.next());
+    assertEquals(4.4F, rs.getFloat(2));
+
+    assertTrue(rs.next());
+    assertEquals(5.4F, rs.getFloat(2));
+
+    assertTrue(rs.next());
+    assertEquals(5.1F, rs.getFloat(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0F, rs.getFloat(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
   }
 }

@@ -1057,12 +1057,12 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
+    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
   }
 
   @Override
   public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
+    throw exceptionFactory.notSupported("Method ResultSet.updateSQLXML not supported");
   }
 
   @Override

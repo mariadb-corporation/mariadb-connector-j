@@ -100,10 +100,6 @@ public enum HaMode {
     return Optional.empty();
   }
 
-  public String value() {
-    return value;
-  }
-
   public abstract Optional<HostAddress> getAvailableHost(
       List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary);
 }

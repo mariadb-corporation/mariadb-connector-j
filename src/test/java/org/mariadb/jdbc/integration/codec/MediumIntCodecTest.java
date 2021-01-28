@@ -34,7 +34,8 @@ public class MediumIntCodecTest extends CommonCodecTest {
             + "UNSIGNED)");
     stmt.execute("INSERT INTO MediumIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null)");
-    stmt.execute("CREATE TABLE MediumIntCodec2 (t1 MEDIUMINT)");
+    stmt.execute(
+        "CREATE TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -896,7 +897,8 @@ public class MediumIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MediumIntCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO MediumIntCodec2 VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO MediumIntCodec2(t1) VALUES (?)")) {
       prep.setInt(1, 1);
       prep.execute();
       prep.setObject(1, 2);
@@ -908,19 +910,59 @@ public class MediumIntCodecTest extends CommonCodecTest {
       prep.setObject(1, null, Types.INTEGER);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM MediumIntCodec2");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(2));
+    rs.updateInt("t1", 10);
+    rs.updateRow();
+    assertEquals(10, rs.getInt(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM MediumIntCodec2");
     assertTrue(rs.next());
-    assertEquals(1, rs.getInt(1));
+    assertEquals(2, rs.getInt(2));
+    rs.updateObject("t1", null);
+    rs.updateRow();
+    assertEquals(0, rs.getInt(2));
+
     assertTrue(rs.next());
-    assertEquals(2, rs.getInt(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
+    assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
+    rs.updateInt(2, 50);
+    rs.updateRow();
+    assertEquals(50, rs.getInt(2));
+
     assertTrue(rs.next());
-    assertEquals(3, rs.getInt(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getInt(1));
+    assertEquals(3, rs.getInt(2));
+    rs.updateObject(2, null, Types.INTEGER);
+    rs.updateRow();
+    assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+    rs.updateObject(2, 85, Types.INTEGER);
+    rs.updateRow();
+    assertEquals(85, rs.getInt(2));
+    assertFalse(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM MediumIntCodec2");
+    assertTrue(rs.next());
+    assertEquals(10, rs.getInt(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+
+    assertTrue(rs.next());
+    assertEquals(50, rs.getInt(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getInt(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(85, rs.getInt(2));
+    assertFalse(rs.wasNull());
   }
 }

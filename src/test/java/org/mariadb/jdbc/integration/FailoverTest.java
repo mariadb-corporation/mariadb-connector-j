@@ -64,6 +64,8 @@ public class FailoverTest extends Common {
 
     try (Connection con =
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
+      assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+      con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
@@ -85,6 +87,7 @@ public class FailoverTest extends Common {
         con.commit();
         Assertions.assertTrue(con.getContext().getThreadId() != threadId);
         assertFalse(con.getAutoCommit());
+        assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
             SQLTransientConnectionException.class,

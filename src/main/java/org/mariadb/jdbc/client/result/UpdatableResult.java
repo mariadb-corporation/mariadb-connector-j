@@ -69,34 +69,26 @@ public class UpdatableResult extends CompleteResult {
     database = null;
     table = null;
     for (ColumnDefinitionPacket columnDefinition : metadataList) {
-      if (columnDefinition.getSchema() == null || columnDefinition.getSchema().isEmpty()) {
+      if (columnDefinition.getSchema() == null
+          || columnDefinition.getSchema().isEmpty()
+          || columnDefinition.getTable() == null
+          || columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
-            "The result-set contains fields without without any database information");
+            "The result-set contains fields without without any database/table information");
         return;
-      } else {
-        if (database != null && !database.equals(columnDefinition.getSchema())) {
-          cannotUpdateInsertRow("The result-set contains more than one database");
-          return;
-        }
-        database = columnDefinition.getSchema();
       }
 
-      if (columnDefinition.getTable() == null || columnDefinition.getTable().isEmpty()) {
-        cannotUpdateInsertRow(
-            "The result-set contains fields without without any table information");
+      if (database != null && !database.equals(columnDefinition.getSchema())) {
+        cannotUpdateInsertRow("The result-set contains more than one database");
         return;
-      } else {
-        if (table != null && !table.equals(columnDefinition.getTable())) {
-          cannotUpdateInsertRow("The result-set contains fields on different tables");
-          return;
-        }
-        table = columnDefinition.getTable();
       }
-    }
+      database = columnDefinition.getSchema();
 
-    if (database == null || table == null) {
-      cannotUpdateInsertRow("The result-set does not contain any table information");
-      return;
+      if (table != null && !table.equals(columnDefinition.getTable())) {
+        cannotUpdateInsertRow("The result-set contains fields on different tables");
+        return;
+      }
+      table = columnDefinition.getTable();
     }
 
     // check that listed column contain primary field
@@ -765,16 +757,6 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void updateRef(int columnIndex, Ref x) throws SQLException {
-    super.updateRef(columnIndex, x);
-  }
-
-  @Override
-  public void updateRef(String columnLabel, Ref x) throws SQLException {
-    super.updateRef(columnLabel, x);
-  }
-
-  @Override
   public void updateBlob(int columnIndex, Blob x) throws SQLException {
     checkUpdatable(columnIndex);
     parameters.set(columnIndex - 1, new Parameter<>(BlobCodec.INSTANCE, x));
@@ -797,26 +779,6 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void updateArray(int columnIndex, Array x) throws SQLException {
-    super.updateArray(columnIndex, x);
-  }
-
-  @Override
-  public void updateArray(String columnLabel, Array x) throws SQLException {
-    super.updateArray(columnLabel, x);
-  }
-
-  @Override
-  public void updateRowId(int columnIndex, RowId x) throws SQLException {
-    super.updateRowId(columnIndex, x);
-  }
-
-  @Override
-  public void updateRowId(String columnLabel, RowId x) throws SQLException {
-    super.updateRowId(columnLabel, x);
-  }
-
-  @Override
   public void updateNString(int columnIndex, String nString) throws SQLException {
     updateString(columnIndex, nString);
   }
@@ -834,16 +796,6 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void updateNClob(String columnLabel, NClob nClob) throws SQLException {
     updateClob(columnLabel, nClob);
-  }
-
-  @Override
-  public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-    super.updateSQLXML(columnIndex, xmlObject);
-  }
-
-  @Override
-  public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-    super.updateSQLXML(columnLabel, xmlObject);
   }
 
   @Override

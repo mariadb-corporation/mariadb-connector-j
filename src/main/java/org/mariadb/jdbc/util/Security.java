@@ -45,7 +45,7 @@ public class Security {
 
       if (state == Parse.Escape) {
         sb.append(car);
-        state = singleQuotes ? Parse.Quote : Parse.String;
+        state = Parse.String;
         continue;
       }
 

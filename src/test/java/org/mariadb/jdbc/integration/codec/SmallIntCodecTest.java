@@ -27,7 +27,8 @@ public class SmallIntCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE SmallIntCodec (t1 SMALLINT, t2 SMALLINT, t3 SMALLINT, t4 SMALLINT)");
-    stmt.execute("CREATE TABLE SmallIntCodec2 (t1 SMALLINT)");
+    stmt.execute(
+        "CREATE TABLE SmallIntCodec2 (id int not null primary key auto_increment, t1 SMALLINT)");
     stmt.execute(
         "CREATE TABLE SmallIntCodecUnsigned (t1 SMALLINT UNSIGNED, t2 SMALLINT UNSIGNED, t3 SMALLINT UNSIGNED, t4 SMALLINT "
             + "UNSIGNED)");
@@ -906,7 +907,8 @@ public class SmallIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE SmallIntCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO SmallIntCodec2 VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO SmallIntCodec2(t1) VALUES (?)")) {
       prep.setShort(1, (short) 1);
       prep.execute();
       prep.setObject(1, 2);
@@ -918,19 +920,61 @@ public class SmallIntCodecTest extends CommonCodecTest {
       prep.setObject(1, null, Types.SMALLINT);
       prep.execute();
     }
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM SmallIntCodec2");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getShort(2));
+    rs.updateShort("t1", (short) 45);
+    rs.updateRow();
+    assertEquals((short) 45, rs.getShort(2));
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM SmallIntCodec2");
     assertTrue(rs.next());
-    assertEquals(1, rs.getShort(1));
-    assertTrue(rs.next());
-    assertEquals(2, rs.getShort(1));
-    assertTrue(rs.next());
-    assertEquals(0, rs.getShort(1));
+    assertEquals(2, rs.getShort(2));
+    rs.updateObject("t1", (Short) null);
+    rs.updateRow();
+    assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
+
     assertTrue(rs.next());
-    assertEquals(3, rs.getShort(1));
+    assertEquals(0, rs.getShort(2));
+    assertTrue(rs.wasNull());
+    rs.updateShort(2, (short) 55);
+    rs.updateRow();
+    assertEquals((short) 55, rs.getShort(2));
+
     assertTrue(rs.next());
-    assertEquals(0, rs.getShort(1));
+    assertEquals(3, rs.getShort(2));
+    rs.updateObject(2, Short.valueOf("5"), Types.SMALLINT);
+    rs.updateRow();
+    assertEquals(5, rs.getShort(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(2));
+    assertTrue(rs.wasNull());
+    rs.updateObject(2, null, Types.SMALLINT);
+    rs.updateRow();
+    assertEquals(0, rs.getShort(2));
+    assertTrue(rs.wasNull());
+
+    rs = stmt.executeQuery("SELECT * FROM SmallIntCodec2");
+    assertTrue(rs.next());
+    assertEquals((short) 45, rs.getShort(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(2));
+    assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals((short) 55, rs.getShort(2));
+
+    assertTrue(rs.next());
+    assertEquals(5, rs.getShort(2));
+    assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
   }
 }

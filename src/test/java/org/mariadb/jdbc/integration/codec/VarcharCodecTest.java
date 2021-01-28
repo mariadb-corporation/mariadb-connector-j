@@ -39,7 +39,7 @@ public class VarcharCodecTest extends CommonCodecTest {
             + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null), "
             + "('aaaa-bb-cc', '2010-12-31 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute(
-        "CREATE TABLE StringParamCodec(t1 VARCHAR(20)) "
+        "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
@@ -804,7 +804,8 @@ public class VarcharCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE StringParamCodec");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO StringParamCodec VALUES (?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO StringParamCodec(t1) VALUES (?)")) {
       prep.setString(1, "e🌟1");
       prep.execute();
       prep.setString(1, null);
@@ -817,20 +818,152 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.VARCHAR);
       prep.execute();
+      prep.setAsciiStream(1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.execute();
+      prep.setAsciiStream(
+          1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+      prep.execute();
+      prep.setAsciiStream(
+          1, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+      prep.execute();
+      prep.setAsciiStream(1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.execute();
+      prep.setAsciiStream(
+          1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+      prep.execute();
+      prep.setAsciiStream(
+          1, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+      prep.execute();
+      prep.setNString(1, "e🌟13");
+      prep.execute();
+      prep.setNString(1, "e🌟12");
+      prep.execute();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM StringParamCodec");
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(1));
+    assertEquals("e🌟1", rs.getString(2));
+    rs.updateString("t1", "f🌟12");
+    rs.updateRow();
+    assertEquals("f🌟12", rs.getString(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateString(2, "f🌟125");
+    rs.updateRow();
+    assertEquals("f🌟125", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟2", rs.getString(1));
+    assertEquals("e🌟2", rs.getString(2));
+    rs.updateString(2, null);
+    rs.updateRow();
+    assertNull(rs.getString(2));
+
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+    rs.updateObject(2, "f🌟125", JDBCType.VARCHAR, 5);
+    rs.updateRow();
+    assertEquals("f🌟12", rs.getString(2));
+
     assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getString(1));
+    assertEquals("e🌟3", rs.getString(2));
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNull(rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟3654", rs.getString(2));
+    rs.updateAsciiStream(
+        "t1", new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟3654", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟36", rs.getString(2));
+    rs.updateAsciiStream(
+        "t1", new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+    rs.updateRow();
+    assertEquals("f🌟36", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟46", rs.getString(2));
+    rs.updateAsciiStream(
+        "t1", new ByteArrayInputStream("f🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+    rs.updateRow();
+    assertEquals("f🌟46", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟3654", rs.getString(2));
+    rs.updateAsciiStream(2, new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)));
+    rs.updateRow();
+    assertEquals("f🌟3654", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟36", rs.getString(2));
+    rs.updateAsciiStream(
+        2, new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+    rs.updateRow();
+    assertEquals("f🌟36", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟46", rs.getString(2));
+    rs.updateAsciiStream(
+        2, new ByteArrayInputStream("f🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+    rs.updateRow();
+    assertEquals("f🌟46", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟13", rs.getString(2));
+    rs.updateNString(2, "f🌟14");
+    rs.updateRow();
+    assertEquals("f🌟14", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟12", rs.getString(2));
+    rs.updateNString("t1", "f🌟15");
+    rs.updateRow();
+    assertEquals("f🌟15", rs.getString(2));
+
+    rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
+    assertTrue(rs.next());
+    assertEquals("f🌟12", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟125", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟12", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e🌟3", rs.getString(2));
+    assertTrue(rs.next());
+    assertNull(rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("f🌟3654", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟36", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟46", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟3654", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟36", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟46", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟14", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("f🌟15", rs.getString(2));
   }
 }
