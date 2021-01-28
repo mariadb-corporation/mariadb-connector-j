@@ -117,7 +117,8 @@ public class DurationCodec implements Codec<Duration> {
   @Override
   @SuppressWarnings("fallthrough")
   public Duration decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      throws SQLDataException {
 
     long days = 0;
     int hours = 0;
@@ -143,12 +144,12 @@ public class DurationCodec implements Codec<Duration> {
         }
 
         Duration duration =
-                Duration.ZERO
-                        .plusDays(days)
-                        .plusHours(hours)
-                        .plusMinutes(minutes)
-                        .plusSeconds(seconds)
-                        .plusNanos(microseconds * 1000);
+            Duration.ZERO
+                .plusDays(days)
+                .plusHours(hours)
+                .plusMinutes(minutes)
+                .plusSeconds(seconds)
+                .plusNanos(microseconds * 1000);
         if (negate) return duration.negated();
         return duration;
 
@@ -167,29 +168,29 @@ public class DurationCodec implements Codec<Duration> {
           }
         }
         return Duration.ZERO
-                .plusDays(days - 1)
-                .plusHours(hours)
-                .plusMinutes(minutes)
-                .plusSeconds(seconds)
-                .plusNanos(microseconds * 1000);
+            .plusDays(days - 1)
+            .plusHours(hours)
+            .plusMinutes(minutes)
+            .plusSeconds(seconds)
+            .plusNanos(microseconds * 1000);
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         int[] parts = LocalTimeCodec.parseTime(buf, length, column);
         Duration d =
-                Duration.ZERO
-                        .plusHours(parts[1])
-                        .plusMinutes(parts[2])
-                        .plusSeconds(parts[3])
-                        .plusNanos(parts[4]);
+            Duration.ZERO
+                .plusHours(parts[1])
+                .plusMinutes(parts[2])
+                .plusSeconds(parts[3])
+                .plusNanos(parts[4]);
         if (parts[0] == -1) return d.negated();
         return d;
 
       default:
         buf.skip(length);
         throw new SQLDataException(
-                String.format("Data type %s cannot be decoded as Duration", column.getType()));
+            String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }
   }
 

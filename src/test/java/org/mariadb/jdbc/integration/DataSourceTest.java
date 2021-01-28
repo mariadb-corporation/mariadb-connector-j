@@ -60,7 +60,8 @@ public class DataSourceTest extends Common {
         stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
         stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
       } else {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
+        stmt.execute(
+            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
         stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%'");
       }
     } else {

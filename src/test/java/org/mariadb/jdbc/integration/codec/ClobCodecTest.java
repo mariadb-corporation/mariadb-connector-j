@@ -802,6 +802,5 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e🌟789", rs.getString(1));
     assertTrue(rs.next());
     assertEquals("e🌟8", rs.getString(1));
-
   }
 }

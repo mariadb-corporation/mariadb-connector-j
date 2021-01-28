@@ -106,8 +106,18 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     TrustManager[] trustManager = null;
     KeyManager[] keyManager = null;
 
-    if (conf.serverSslCert() != null) {
-      trustManager = new X509TrustManager[] {new MariaDbX509TrustManager(conf, exceptionFactory)};
+    switch (conf.sslMode()) {
+      case TRUST:
+        trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
+        break;
+
+      default:
+        // if certificate is provided, load it.
+        // if not, relying on default truststore
+        if (conf.serverSslCert() != null) {
+          trustManager =
+              new X509TrustManager[] {new MariaDbX509TrustManager(conf, exceptionFactory)};
+        }
     }
 
     //    if (conf.keyStore != null) {
@@ -140,6 +150,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     //        }
     //      }
     //    }
+
     try {
       SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(keyManager, trustManager, null);

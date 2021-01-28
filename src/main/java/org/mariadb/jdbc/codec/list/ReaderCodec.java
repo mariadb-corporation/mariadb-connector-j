@@ -141,7 +141,8 @@ public class ReaderCodec implements Codec<Reader> {
 
     long maxLen = maxLength != null ? maxLength : Long.MAX_VALUE;
     while (maxLen > 0 && (len = reader.read(buf)) > 0) {
-      byte[] data = new String(buf, 0, (int) Math.min(len, maxLen)).getBytes(StandardCharsets.UTF_8);
+      byte[] data =
+          new String(buf, 0, (int) Math.min(len, maxLen)).getBytes(StandardCharsets.UTF_8);
       if (clobBytes.length - pos < data.length) {
         byte[] newBlobBytes = new byte[clobBytes.length + 65536];
         System.arraycopy(clobBytes, 0, newBlobBytes, 0, pos);

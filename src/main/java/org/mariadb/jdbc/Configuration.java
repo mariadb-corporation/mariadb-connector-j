@@ -440,7 +440,7 @@ public class Configuration implements Cloneable {
         if (realKey == null) realKey = key;
         final String propertyValue = properties.getProperty(realKey);
 
-        if (propertyValue != null) {
+        if (propertyValue != null && !key.isEmpty()) {
           try {
             final Field field = Builder.class.getDeclaredField(realKey);
             field.setAccessible(true);
@@ -473,15 +473,6 @@ public class Configuration implements Cloneable {
                 throw new IllegalArgumentException(
                     String.format(
                         "Optional parameter %s must be Integer, was '%s'", key, propertyValue));
-              }
-            } else if (field.getGenericType().equals(Long.class)) {
-              try {
-                final Long value = Long.parseLong(propertyValue);
-                field.set(builder, value);
-              } catch (NumberFormatException n) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "Optional parameter %s must be Long, was '%s'", key, propertyValue));
               }
             }
           } catch (NoSuchFieldException nfe) {
@@ -524,20 +515,6 @@ public class Configuration implements Cloneable {
       throw new IllegalArgumentException(
           "wrong failover parameter format in connection String " + url);
     }
-  }
-
-  /**
-   * Parse url connection string.
-   *
-   * @param url connection string
-   * @return Configuration class
-   * @throws SQLException if url format is incorrect
-   */
-  public static Configuration parseUrl(String url) throws SQLException {
-    if (acceptsUrl(url)) {
-      return parseInternal(url, new Properties());
-    }
-    return null;
   }
 
   protected Configuration clone(String username, String password)
@@ -1367,6 +1344,7 @@ public class Configuration implements Cloneable {
     }
 
     private String buildUrl(Configuration conf) {
+      Builder defaultBuilder = new Builder();
       StringBuilder sb = new StringBuilder();
       sb.append("jdbc:mariadb:");
       if (_haMode != null && _haMode != HaMode.NONE) {
@@ -1417,23 +1395,22 @@ public class Configuration implements Cloneable {
               sb.append(field.getName()).append('=');
               sb.append((String) field.get(this));
             } else if (field.getType().equals(Boolean.class)) {
-              if (!(Boolean) obj) {
+              Object defaultValue = field.get(defaultBuilder);
+              if (obj != null && !obj.equals(defaultValue)) {
                 sb.append(first ? '?' : '&');
                 first = false;
                 sb.append(field.getName()).append('=');
                 sb.append(((Boolean) obj).toString());
               }
-            } else if (field.getType().equals(Integer.class)
-                || field.getType().equals(Long.class)) {
+            } else if (field.getType().equals(Integer.class)) {
               try {
-                Field confField = Configuration.class.getDeclaredField(field.getName());
-                confField.setAccessible(true);
-                if (!confField.get(conf).equals(obj)) {
+                Object defaultValue = field.get(defaultBuilder);
+                if (obj != null && !obj.equals(defaultValue)) {
                   sb.append(first ? '?' : '&');
                   sb.append(field.getName()).append('=').append(obj.toString());
                   first = false;
                 }
-              } catch (NoSuchFieldException | IllegalAccessException n) {
+              } catch (IllegalAccessException n) {
                 // eat
               }
             } else if (field.getType().equals(Properties.class)) {

@@ -120,6 +120,28 @@ public class ConfigurationTest extends Common {
     assertEquals(
         "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary),address=(host=host2)(port=3307)(type=replica)/DB",
         conf.initialUrl());
+
+    conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addresses("local", 3306, true)
+            .haMode(HaMode.REPLICATION)
+            .socketTimeout(50)
+            .build();
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB?socketTimeout=50",
+        conf.initialUrl());
+
+    conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addresses("local", 3306, true)
+            .haMode(HaMode.REPLICATION)
+            .autocommit(false)
+            .build();
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB?autocommit=false",
+        conf.initialUrl());
   }
 
   @Test
@@ -137,8 +159,8 @@ public class ConfigurationTest extends Common {
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify_full");
     assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
 
-    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=no-verification");
-    assertTrue(SslMode.NO_VERIFICATION == conf.sslMode());
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=trust");
+    assertTrue(SslMode.TRUST == conf.sslMode());
 
     try {
       Configuration.parse("jdbc:mariadb://localhost/test?sslMode=wrong_trust");
@@ -194,6 +216,14 @@ public class ConfigurationTest extends Common {
     assertEquals("true", conf.nonMappedOptions().get("autoReconnect"));
     assertEquals("root", conf.user());
     assertEquals("toto", conf.password());
+  }
+
+  @Test
+  public void wrongTypeParsing() {
+    assertThrowsContains(
+        SQLException.class,
+        () -> Configuration.parse("jdbc:mariadb://localhost/test?socketTimeout=20aa"),
+        "Optional parameter socketTimeout must be Integer, was '20aa'");
   }
 
   @Test
@@ -584,7 +614,7 @@ public class ConfigurationTest extends Common {
             .allowPublicKeyRetrieval(true)
             .build();
     assertEquals(
-        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&pinGlobalTxToPhysicalConnection=false&socketFactory=someSocketFactory&pipe=pipeName&localSocket=localSocket&localSocketAddress=localSocketAddress&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=REQUIRED&serverSslCert=mycertPath&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&useBulkStmts=false&cachePrepStmts=false&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&tinyInt1isBit=false&yearIsDateType=false&galeraAllowedState=A,B&poolName=myPool&serverRsaPublicKeyFile=RSAPath",
+        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&pinGlobalTxToPhysicalConnection=false&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=REQUIRED&serverSslCert=mycertPath&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&rewriteBatchedStatements=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&maxAllowedPacket=40000&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&assureReadOnly=true&validConnectionTimeout=100&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&staticGlobal=true&registerJmxPool=true&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
   }
 }

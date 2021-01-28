@@ -684,7 +684,7 @@ public class PacketWriter {
 
     if (logger.isTraceEnabled()) {
       logger.trace(
-          "send com : content length=0 {}{}", serverThreadLog, LoggerHelper.hex(buf, 0, 4));
+          "send com : content length=0 {}\n{}", serverThreadLog, LoggerHelper.hex(buf, 0, 4));
     }
     out.flush();
     cmdLength = 0;

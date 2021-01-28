@@ -19,32 +19,27 @@
  *
  */
 
-package org.mariadb.jdbc.message.client;
+package org.mariadb.jdbc.client.tls;
 
-import java.io.IOException;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.X509TrustManager;
 
-public final class ClearPasswordPacket implements ClientMessage {
+/**
+ * Class to accept any server certificate.
+ *
+ * <p>This permit to have network encrypted, BUT client doesn't validate server identity !!
+ */
+public class MariaDbX509TrustingManager implements X509TrustManager {
 
-  private final CharSequence password;
-
-  public ClearPasswordPacket(CharSequence password) {
-    this.password = password;
-  }
+  public MariaDbX509TrustingManager() {}
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
-    writer.initPacket();
-    if (password != null) {
-      writer.writeString(password.toString());
-      writer.writeByte(0);
-    }
-    writer.flush();
-    return 0;
-  }
+  public void checkClientTrusted(X509Certificate[] x509Certificates, String string) {}
 
-  public String description() {
-    return "-ClearPasswordPacket-";
+  @Override
+  public void checkServerTrusted(X509Certificate[] x509Certificates, String string) {}
+
+  public X509Certificate[] getAcceptedIssuers() {
+    return null;
   }
 }

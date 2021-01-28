@@ -32,11 +32,6 @@ public class Parameter<T> {
   public static final Parameter<?> NULL_PARAMETER =
       new Parameter(null, null) {
         @Override
-        public void encodeText(PacketWriter encoder, Context context) throws IOException {
-          encoder.writeAscii("null");
-        }
-
-        @Override
         public int getBinaryEncodeType() {
           return DataType.VARCHAR.get();
         }
@@ -89,10 +84,6 @@ public class Parameter<T> {
   public byte[] encodeLongDataReturning(PacketWriter encoder, Context context)
       throws IOException, SQLException {
     return codec.encodeLongDataReturning(encoder, context, this.value, length);
-  }
-
-  public Long getLength() {
-    return length;
   }
 
   public boolean canEncodeLongData() {

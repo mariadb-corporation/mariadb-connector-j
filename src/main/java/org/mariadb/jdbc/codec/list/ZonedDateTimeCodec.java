@@ -98,11 +98,11 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
     ;
     encoder.writeByte('\'');
     encoder.writeAscii(
-            zdt.withZoneSameInstant(cal.getTimeZone().toZoneId())
-                    .format(
-            zdt.getNano() != 0
-                ? LocalDateTimeCodec.TIMESTAMP_FORMAT
-                : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
+        zdt.withZoneSameInstant(cal.getTimeZone().toZoneId())
+            .format(
+                zdt.getNano() != 0
+                    ? LocalDateTimeCodec.TIMESTAMP_FORMAT
+                    : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     encoder.writeByte('\'');
   }
 

@@ -657,13 +657,23 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2011-01-12T01:55:12").atZone(ZoneId.systemDefault()), Types.TIMESTAMP);
+      prep.setObject(
+          1,
+          LocalDateTime.parse("2011-01-12T01:55:12").atZone(ZoneId.systemDefault()),
+          Types.TIMESTAMP);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2011-01-12T01:55:12.456").atZone(ZoneId.systemDefault()), Types.TIMESTAMP);
+      prep.setObject(
+          1,
+          LocalDateTime.parse("2011-01-12T01:55:12.456").atZone(ZoneId.systemDefault()),
+          Types.TIMESTAMP);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
+      prep.setObject(
+          1, LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
+      prep.setObject(
+          1,
+          LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")),
+          Types.TIMESTAMP);
       prep.execute();
       prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12"));
       prep.execute();
@@ -691,17 +701,22 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(1, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(1, LocalDateTime.class));
 
     assertTrue(rs.next());
     assertEquals(LocalDateTime.parse("2011-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2011-01-12T01:55:12.456"), rs.getObject(1, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("2011-01-12T01:55:12.456"), rs.getObject(1, LocalDateTime.class));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
+    assertEquals(
+        LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")),
+        rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")), rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
-
+    assertEquals(
+        LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")),
+        rs.getObject(1, ZonedDateTime.class).withZoneSameInstant(ZoneId.of("UTC")));
 
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12"), rs.getTimestamp(1));

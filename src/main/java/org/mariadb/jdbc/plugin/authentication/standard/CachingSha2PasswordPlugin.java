@@ -24,10 +24,17 @@ package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Base64;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.SslMode;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -35,7 +42,10 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
+import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+
+import javax.crypto.Cipher;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
@@ -52,48 +62,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @param password password
    * @param seed seed
    * @return encrypted pwd
-   * @throws NoSuchAlgorithmException if SHA-256 algorithm is unknown
-   */
-  public static byte[] sha256encryptPassword(final String password, final byte[] seed)
-      throws NoSuchAlgorithmException {
-
-    if (password == null || password.isEmpty()) {
-      return new byte[0];
-    }
-
-    final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-    byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
-
-    final byte[] stage1 = messageDigest.digest(bytePwd);
-    messageDigest.reset();
-
-    final byte[] stage2 = messageDigest.digest(stage1);
-    messageDigest.reset();
-
-    messageDigest.update(stage2);
-    messageDigest.update(seed);
-
-    final byte[] digest = messageDigest.digest();
-    final byte[] returnBytes = new byte[digest.length];
-    for (int i = 0; i < digest.length; i++) {
-      returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
-    }
-    return returnBytes;
-  }
-
-  /**
-   * Send a SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
-   * SHA256(SHA256(password))))
-   *
-   * @param password password
-   * @param seed seed
-   * @return encrypted pwd
    */
   public static byte[] sha256encryptPassword(final CharSequence password, final byte[] seed) {
-
-    if (password == null || password.length() == 0) {
-      return new byte[0];
-    }
     byte[] truncatedSeed = new byte[seed.length - 1];
     System.arraycopy(seed, 0, truncatedSeed, 0, seed.length - 1);
     try {
@@ -158,13 +128,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     if (authenticationData == null || authenticationData.isEmpty()) {
       out.writeEmptyPacket();
     } else {
-      try {
-        byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
-        new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
-        out.flush();
-      } catch (NoSuchAlgorithmException e) {
-        throw new SQLException("Could not use SHA-256, failing", e);
-      }
+      byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
+      new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
+      out.flush();
     }
 
     ReadableByteBuf buf = in.readReadablePacket(true);
@@ -199,7 +165,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               if (conf.serverRsaPublicKeyFile() != null
                   && !conf.serverRsaPublicKeyFile().isEmpty()) {
                 publicKey =
-                    Sha256PasswordPlugin.readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
+                    readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
               } else {
                 if (!conf.allowPublicKeyRetrieval()) {
                   throw new SQLException(
@@ -211,12 +177,12 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 out.writeByte(2);
                 out.flush();
 
-                publicKey = Sha256PasswordPlugin.readPublicKeyFromSocket(in, context);
+                publicKey = readPublicKeyFromSocket(in, context);
               }
 
               try {
                 byte[] cipherBytes =
-                    Sha256PasswordPlugin.encrypt(publicKey, authenticationData, seed);
+                    encrypt(publicKey, authenticationData, seed);
                 out.writeBytes(cipherBytes);
                 out.flush();
               } catch (Exception ex) {
@@ -232,6 +198,124 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 "Protocol exchange error. Expect login success or RSA login request message",
                 "S1009");
         }
+    }
+  }
+
+  /**
+   * Read public Key from file.
+   *
+   * @param serverRsaPublicKeyFile RSA public key file
+   * @return public key
+   * @throws SQLException if cannot read file or file content is not a public key.
+   */
+  public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
+    byte[] keyBytes;
+    try {
+      keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
+    } catch (IOException ex) {
+      throw new SQLException(
+              "Could not read server RSA public key from file : "
+                      + "serverRsaPublicKeyFile="
+                      + serverRsaPublicKeyFile,
+              "S1009",
+              ex);
+    }
+    return generatePublicKey(keyBytes);
+  }
+
+  /**
+   * Read public Key from socket.
+   *
+   * @param reader input stream reader
+   * @param context connection context
+   * @return public key
+   * @throws SQLException if server return an Error packet or public key cannot be parsed.
+   * @throws IOException if error reading socket
+   */
+  public static PublicKey readPublicKeyFromSocket(PacketReader reader, Context context)
+          throws SQLException, IOException {
+    ReadableByteBuf buf = reader.readReadablePacket(true);
+
+    switch (buf.getByte(0)) {
+      case (byte) 0xFF:
+        ErrorPacket ep = new ErrorPacket(buf, context);
+        String message = ep.getMessage();
+        throw new SQLException(
+                "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
+
+      case (byte) 0xFE:
+        // Erroneous AuthSwitchRequest packet when security exception
+        throw new SQLException(
+                "Could not connect: receive AuthSwitchRequest in place of RSA public key. "
+                        + "Did user has the rights to connect to database ?");
+      default:
+        // AuthMoreData packet
+        buf.skip();
+        byte[] authMoreData = new byte[buf.readableBytes()];
+        buf.readBytes(authMoreData);
+        return generatePublicKey(authMoreData);
+    }
+  }
+
+  /**
+   * Read public pem key from String.
+   *
+   * @param publicKeyBytes public key bytes value
+   * @return public key
+   * @throws SQLException if key cannot be parsed
+   */
+  public static PublicKey generatePublicKey(byte[] publicKeyBytes) throws SQLException {
+    try {
+      String publicKey =
+              new String(publicKeyBytes, StandardCharsets.US_ASCII)
+                      .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
+
+      byte[] keyBytes = Base64.getMimeDecoder().decode(publicKey);
+      X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      return kf.generatePublic(spec);
+    } catch (Exception ex) {
+      throw new SQLException("Could read server RSA public key: " + ex.getMessage(), "S1009", ex);
+    }
+  }
+
+  /**
+   * Encode password with seed and public key.
+   *
+   * @param publicKey public key
+   * @param password password
+   * @param seed seed
+   * @return encoded password
+   * @throws SQLException if cannot encode password
+   */
+  public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed)
+          throws SQLException {
+
+    byte[] correctedSeed;
+    if (seed.length > 0) {
+      // Seed is ended with a null byte value.
+      correctedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
+    } else {
+      correctedSeed = new byte[0];
+    }
+
+    byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
+
+    byte[] nullFinishedPwd = Arrays.copyOf(bytePwd, bytePwd.length + 1);
+    byte[] xorBytes = new byte[nullFinishedPwd.length];
+    int seedLength = correctedSeed.length;
+
+    for (int i = 0; i < xorBytes.length; i++) {
+      xorBytes[i] = (byte) (nullFinishedPwd[i] ^ correctedSeed[i % seedLength]);
+    }
+
+    try {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+      cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+      return cipher.doFinal(xorBytes);
+    } catch (Exception ex) {
+      throw new SQLException(
+              "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
     }
   }
 }

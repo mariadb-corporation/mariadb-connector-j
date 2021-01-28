@@ -638,6 +638,9 @@ public class BlobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setBlob(1, (Blob) null);
       prep.execute();
+      prep.setNull(1, Types.BLOB);
+      prep.execute();
+
       prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 5);
@@ -699,6 +702,8 @@ public class BlobCodecTest extends CommonCodecTest {
     assertArrayEquals(
         "e🌟1".getBytes(StandardCharsets.UTF_8),
         rs.getBlob(1).getBytes(1, (int) rs.getBlob(1).length()));
+    assertTrue(rs.next());
+    assertNull(rs.getBlob(1));
     assertTrue(rs.next());
     assertNull(rs.getBlob(1));
     assertTrue(rs.next());

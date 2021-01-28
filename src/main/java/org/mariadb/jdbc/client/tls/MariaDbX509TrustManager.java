@@ -35,7 +35,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.SslMode;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
@@ -44,10 +43,6 @@ public class MariaDbX509TrustManager implements X509TrustManager {
 
   public MariaDbX509TrustManager(Configuration conf, ExceptionFactory exceptionFactory)
       throws SQLException {
-
-    if (SslMode.NO_VERIFICATION == conf.sslMode()) {
-      return;
-    }
 
     KeyStore ks;
     try {
@@ -121,6 +116,12 @@ public class MariaDbX509TrustManager implements X509TrustManager {
         if (path.startsWith("-----")) {
           is = new ByteArrayInputStream(path.getBytes());
           break;
+        } else {
+          File f = new File(path);
+          if (f.exists() && !f.isDirectory()) {
+            is = f.toURI().toURL().openStream();
+            break;
+          }
         }
         throw new IOException(
             String.format("Wrong value for option `serverSslCert` (value: '%s')", path));

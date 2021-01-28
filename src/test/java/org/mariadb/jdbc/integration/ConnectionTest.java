@@ -773,4 +773,35 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
   }
+
+  @Test
+  public void pamAuthPlugin() throws Throwable {
+    // https://mariadb.com/kb/en/authentication-plugin-pam/
+    // only test on travis, because only work on Unix-like operating systems.
+    // /etc/pam.d/mariadb pam configuration is created beforehand
+
+    Assumptions.assumeTrue(
+        isMariaDBServer()
+            && System.getenv("TRAVIS") != null
+            && System.getenv("SKYSQL") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("MAXSCALE_VERSION") == null);
+
+    Statement stmt = sharedConn.createStatement();
+    try {
+      stmt.execute("INSTALL PLUGIN pam SONAME 'auth_pam'");
+    } catch (SQLException sqle) {
+      // might be already set
+    }
+    stmt.execute("DROP USER IF EXISTS 'testPam'@'%'");
+    stmt.execute("CREATE USER 'testPam'@'%' IDENTIFIED VIA pam USING 'mariadb'");
+    stmt.execute("GRANT SELECT ON *.* TO 'testPam'@'%' IDENTIFIED VIA pam");
+    stmt.execute("FLUSH PRIVILEGES");
+
+    try (Connection connection = createCon("user=testPam&password=myPwd")) {
+      // must have succeed
+      connection.getCatalog();
+    }
+    stmt.execute("drop user testPam@'%'");
+  }
 }

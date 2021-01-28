@@ -26,7 +26,7 @@ public enum SslMode {
   DISABLE("disable", "DISABLED"),
 
   // Encryption only (no certificate and hostname validation) (DEVELOPMENT ONLY)
-  NO_VERIFICATION("no-verification", "REQUIRED"),
+  TRUST("trust", "REQUIRED"),
 
   // Encryption, certificates validation, BUT no hostname verification
   VERIFY_CA("verify-ca", "VERIFY_CA"),

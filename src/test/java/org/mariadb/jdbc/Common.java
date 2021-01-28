@@ -21,9 +21,12 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
@@ -115,6 +118,13 @@ public class Common {
     return (Connection) DriverManager.getConnection(url + opts);
   }
 
+  public static boolean haveSsl() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select @@have_ssl");
+    assertTrue(rs.next());
+    return "YES".equals(rs.getString(1));
+  }
+
   public void cancelForVersion(int major, int minor) {
     String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
     Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
@@ -124,6 +134,16 @@ public class Common {
 
   public Connection createCon(String option) throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl + "&" + option);
+  }
+
+  public Connection createCon(String option, Integer sslPort) throws SQLException {
+    Configuration conf = Configuration.parse(mDefUrl + "&" + option);
+    if (sslPort != null) {
+      for (HostAddress hostAddress : conf.addresses()) {
+        hostAddress.port = sslPort;
+      }
+    }
+    return Driver.connect(conf);
   }
 
   @AfterEach
