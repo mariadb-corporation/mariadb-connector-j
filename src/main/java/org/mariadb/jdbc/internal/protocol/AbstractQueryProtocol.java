@@ -55,10 +55,7 @@ package org.mariadb.jdbc.internal.protocol;
 import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -70,6 +67,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.sql.rowset.serial.SerialException;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -2027,6 +2025,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             UNDEFINED_SQLSTATE.getSqlState(),
             initialException);
       }
+    } else if (initialException instanceof NotSerializableException) {
+      return new SerialException(
+          "Parameter cannot be serialized: " + initialException.getMessage());
     } else {
       maxSizeError = writer.exceedMaxLength();
       if (maxSizeError) {

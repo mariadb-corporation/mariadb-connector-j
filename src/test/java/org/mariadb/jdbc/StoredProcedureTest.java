@@ -582,16 +582,22 @@ public class StoredProcedureTest extends BaseTest {
     Statement statement = sharedConnection.createStatement();
     statement.execute("DROP USER IF EXISTS 'test_jdbc'@'%'");
     statement.execute("DROP USER IF EXISTS 'test_jdbc'@'localhost'");
-    statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1'");
+    statement.execute(
+        "CREATE USER 'test_jdbc'@'localhost' IDENTIFIED /*!80000 WITH mysql_native_password */ BY 'testJ@dc1'");
     statement.execute(
         "GRANT ALL ON "
             + database
-            + ".* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
-    statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
+            + ".* TO 'test_jdbc'@'localhost' "
+            + ((isMariadbServer() || !minVersion(8, 0)) ? " IDENTIFIED BY 'testJ@dc1' " : "")
+            + " WITH GRANT OPTION");
+    statement.execute(
+        "CREATE USER 'test_jdbc'@'%' IDENTIFIED /*!80000 WITH mysql_native_password */ BY 'testJ@dc1'");
     statement.execute(
         "GRANT ALL ON "
             + database
-            + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+            + ".* TO 'test_jdbc'@'%' "
+            + ((isMariadbServer() || !minVersion(8, 0)) ? " IDENTIFIED BY 'testJ@dc1' " : "")
+            + " WITH GRANT OPTION");
     statement.execute("FLUSH PRIVILEGES");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
@@ -606,8 +612,11 @@ public class StoredProcedureTest extends BaseTest {
       } catch (SQLException sqlException) {
         assertTrue(
             sqlException
-                .getMessage()
-                .startsWith("Access to metaData informations not granted for current user"));
+                    .getMessage()
+                    .startsWith("Access to metaData informations not granted for current user")
+                || sqlException
+                    .getMessage()
+                    .startsWith("Access to metaData information not granted for current user"));
       }
       callableStatement.setString(1, "1");
       callableStatement.execute();
@@ -617,8 +626,11 @@ public class StoredProcedureTest extends BaseTest {
       } catch (SQLException sqlException) {
         assertTrue(
             sqlException
-                .getMessage()
-                .startsWith("Access to metaData informations not granted for current user"));
+                    .getMessage()
+                    .startsWith("Access to metaData informations not granted for current user")
+                || sqlException
+                    .getMessage()
+                    .startsWith("Access to metaData information not granted for current user"));
       }
       assertEquals(2, callableStatement.getInt(2));
 

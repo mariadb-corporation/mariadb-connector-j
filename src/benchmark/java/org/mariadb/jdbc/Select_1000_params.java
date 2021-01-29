@@ -22,8 +22,8 @@
 package org.mariadb.jdbc;
 
 import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.infra.Blackhole;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -48,17 +48,27 @@ public class Select_1000_params extends Common {
   }
 
   @Benchmark
-  public Integer run(MyState state, Blackhole blackhole) throws Throwable {
+  public Integer text(MyState state) throws Throwable {
+    return run(state.connectionText);
+  }
+
+  @Benchmark
+  public Integer binary(MyState state) throws Throwable {
+    return run(state.connectionBinary);
+  }
+
+  private Integer run(Connection con) throws Throwable {
     int[] rnds = randParams();
-    try (PreparedStatement st = state.connection.prepareStatement(sql)) {
+    try (PreparedStatement st = con.prepareStatement(sql)) {
       for (int i = 1; i <= 1000; i++) {
         st.setInt(i, rnds[i - 1]);
       }
       ResultSet rs = st.executeQuery();
       rs.next();
-      Integer val = rs.getInt(1);
-      if (rnds[0] != val) throw new IllegalStateException("ERROR");
-      return val;
+      for (int i = 1; i <= 1000; i++) {
+        if (rnds[i - 1] != rs.getInt(i)) throw new IllegalStateException("ERROR");
+      }
+      return rs.getInt(1);
     }
   }
 }

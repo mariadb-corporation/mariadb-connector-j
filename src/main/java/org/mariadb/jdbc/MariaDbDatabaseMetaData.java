@@ -1069,8 +1069,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     boolean hasIsGeneratedCol =
-        (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 2, 0))
-            || (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8, 0, 0));
+        (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 2, 0));
 
     String sql =
         "SELECT "

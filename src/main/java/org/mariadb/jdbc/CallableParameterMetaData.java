@@ -212,7 +212,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
       throw new SQLException(
-          "Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
+          "Access to metaData information not granted for current user. Consider grant select access to mysql.proc "
               + " or avoid using parameter by name",
           sqlSyntaxErrorException);
     }

@@ -96,7 +96,7 @@ public class ServerPrepareStatementTest extends BaseTest {
           "CREATE TABLE ServerPrepareStatementCacheSize5(id int not null primary key auto_increment, test blob)");
       stmt.execute("CREATE TABLE ServerPrepareStatementParameters(id int, id2 int)");
       stmt.execute(
-          "CREATE TABLE ServerPrepareStatementCacheSize4(id int not null primary key auto_increment, test LONGBLOB) ROW_FORMAT=COMPRESSED ENGINE=INNODB");
+          "CREATE TABLE ServerPrepareStatementCacheSize4(id int not null primary key auto_increment, test LONGBLOB)");
       stmt.execute("CREATE TABLE streamtest2(id int primary key not null, strm text)");
       stmt.execute(
           "CREATE TABLE testServerPrepareMeta(id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED)");
@@ -699,9 +699,9 @@ public class ServerPrepareStatementTest extends BaseTest {
       ps.addBatch();
       ps.setObject(1, 'd', Types.VARCHAR);
       ps.addBatch();
-      ps.setObject(1, new Character('e'), Types.CHAR);
+      ps.setObject(1, Character.valueOf('e'), Types.CHAR);
       ps.addBatch();
-      ps.setObject(1, new Character('f'), Types.VARCHAR);
+      ps.setObject(1, Character.valueOf('f'), Types.VARCHAR);
       ps.addBatch();
       ps.setObject(1, '1', Types.INTEGER);
       ps.addBatch();

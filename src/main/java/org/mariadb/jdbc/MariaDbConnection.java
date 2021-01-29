@@ -682,7 +682,7 @@ public class MariaDbConnection implements Connection {
   }
 
   /**
-   * returns true if statements on this connection are auto commited.
+   * returns true if statements on this connection are auto committed.
    *
    * @return true if auto commit is on.
    * @throws SQLException if there is an error
@@ -692,9 +692,9 @@ public class MariaDbConnection implements Connection {
   }
 
   /**
-   * Sets whether this connection is auto commited.
+   * Sets whether this connection is auto committed.
    *
-   * @param autoCommit if it should be auto commited.
+   * @param autoCommit if it should be auto committed.
    * @throws SQLException if something goes wrong talking to the server.
    */
   public void setAutoCommit(boolean autoCommit) throws SQLException {
@@ -711,7 +711,7 @@ public class MariaDbConnection implements Connection {
   /**
    * Sends commit to the server.
    *
-   * @throws SQLException if there is an error commiting.
+   * @throws SQLException if there is an error committing.
    */
   public void commit() throws SQLException {
     lock.lock();
@@ -1007,7 +1007,7 @@ public class MariaDbConnection implements Connection {
     warningsCleared = true;
   }
 
-  /** Reenable warnings, when next statement is executed. */
+  /** Re-enable warnings, when next statement is executed. */
   public void reenableWarnings() {
     warningsCleared = false;
   }

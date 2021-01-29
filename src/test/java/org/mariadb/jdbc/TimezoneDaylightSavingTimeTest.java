@@ -382,7 +382,10 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeOffsetNowUseServer() throws SQLException {
-    Assume.assumeTrue(System.getenv("AURORA") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        System.getenv("AURORA") == null
+            && System.getenv("SKYSQL_HA") == null
+            && System.getenv("SKYSQL") == null);
     try (Connection connection =
         setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
       setSessionTimeZone(connection, "+5:00");
@@ -393,7 +396,9 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
       assertTrue(rs.next());
       Timestamp nowServer = rs.getTimestamp(1);
       long timeDifference = currentTimeParis.getTime() - nowServer.getTime();
-      assertTrue(timeDifference < 1000); // must have less than one second difference
+      assertTrue(
+          "Error, timeDifference too important : " + timeDifference,
+          timeDifference < 1000); // must have less than one second difference
     }
   }
 

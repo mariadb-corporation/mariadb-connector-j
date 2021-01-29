@@ -11,3 +11,4 @@ services:
     environment:
       MYSQL_DATABASE: testj
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      MYSQL_INITDB_SKIP_TZINFO: 1
