@@ -141,10 +141,10 @@ public class DatabaseMetadataTest extends BaseTest {
               + "t5 time(0),"
               + "t6 time(6))");
       stmt.execute(
-              "CREATE TABLE getStringPrecision("
-                      + "col1 CHAR(100) CHARSET utf8mb4, "
-                      + "col2 CHAR(100) CHARSET utf8,"
-                      + "col3 CHAR(100) CHARSET latin2)");
+          "CREATE TABLE getStringPrecision("
+              + "col1 CHAR(100) CHARSET utf8mb4, "
+              + "col2 CHAR(100) CHARSET utf8,"
+              + "col3 CHAR(100) CHARSET latin2)");
       stmt.execute(
           "CREATE TABLE getTimePrecision2("
               + "d date, "
@@ -1453,7 +1453,6 @@ public class DatabaseMetadataTest extends BaseTest {
     assertEquals(17, rsmd.getPrecision(7));
     assertEquals(6, rsmd.getScale(7));
   }
-
 
   @Test
   public void getStringPrecision() throws SQLException {

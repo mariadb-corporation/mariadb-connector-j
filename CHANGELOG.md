@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.7.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.2) (29 Jan. 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.1...2.7.2)
+
+* CONJ-847 NPE at UpdatableResultSet#close
+* CONJ-849 driver now doesn't close connection caused java.io.NotSerializableException as a result of incorrect data bind to a prepared statement parameter
+* CONJ-850 MariaDbResultSetMetaData#getPrecision(int) now returns correct length for character data		
+* CONJ-851 metadata getBestRowIdentifier incompatibility with MySQL 8 correction
+* CONJ-853 Support Aurora cluster custom endpoints
+* CONJ-852 ON DUPLICATE KEY detection failed when using new line
+
+
 ## [2.7.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.1) (23 Nov. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.0...2.7.1)
 
