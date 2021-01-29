@@ -582,16 +582,22 @@ public class StoredProcedureTest extends BaseTest {
     Statement statement = sharedConnection.createStatement();
     statement.execute("DROP USER IF EXISTS 'test_jdbc'@'%'");
     statement.execute("DROP USER IF EXISTS 'test_jdbc'@'localhost'");
-    statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1'");
+    statement.execute(
+        "CREATE USER 'test_jdbc'@'localhost' IDENTIFIED /*!80000 WITH mysql_native_password */ BY 'testJ@dc1'");
     statement.execute(
         "GRANT ALL ON "
             + database
-            + ".* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
-    statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
+            + ".* TO 'test_jdbc'@'localhost' "
+            + ((isMariadbServer() || !minVersion(8, 0)) ? " IDENTIFIED BY 'testJ@dc1' " : "")
+            + " WITH GRANT OPTION");
+    statement.execute(
+        "CREATE USER 'test_jdbc'@'%' IDENTIFIED /*!80000 WITH mysql_native_password */ BY 'testJ@dc1'");
     statement.execute(
         "GRANT ALL ON "
             + database
-            + ".* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
+            + ".* TO 'test_jdbc'@'%' "
+            + ((isMariadbServer() || !minVersion(8, 0)) ? " IDENTIFIED BY 'testJ@dc1' " : "")
+            + " WITH GRANT OPTION");
     statement.execute("FLUSH PRIVILEGES");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
