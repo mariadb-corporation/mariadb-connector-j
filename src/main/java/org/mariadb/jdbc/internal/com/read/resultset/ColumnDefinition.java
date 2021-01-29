@@ -273,6 +273,18 @@ public class ColumnDefinition {
         } else {
           return length - ((decimals > 0) ? 1 : 0);
         }
+      case VARCHAR:
+      case JSON:
+      case ENUM:
+      case SET:
+      case VARSTRING:
+      case STRING:
+        int maxWidth = maxCharlen[charsetNumber & 0xff];
+        if (maxWidth == 0) {
+          return length;
+        }
+        return length / maxWidth;
+
       default:
         return length;
     }

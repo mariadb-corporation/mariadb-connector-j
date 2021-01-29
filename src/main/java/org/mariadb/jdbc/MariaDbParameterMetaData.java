@@ -108,7 +108,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
 
   @Override
   public int getPrecision(int param) throws SQLException {
-    long length = getParameterInformation(param).getLength();
+    long length = getParameterInformation(param).getPrecision();
     return (length > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) length;
   }
 
