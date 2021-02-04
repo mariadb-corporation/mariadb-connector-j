@@ -149,16 +149,12 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
       int byteValue = data[pos] & 0xff;
       if (byteValue < 0x80) {
         pos += 1;
-      } else if (byteValue < 0xC2) {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
       } else if (byteValue < 0xE0) {
         pos += 2;
       } else if (byteValue < 0xF0) {
         pos += 3;
       } else if (byteValue < 0xF8) {
         pos += 4;
-      } else {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
       }
     }
     return pos;

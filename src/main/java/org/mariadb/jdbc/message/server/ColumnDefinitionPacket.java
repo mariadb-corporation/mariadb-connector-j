@@ -245,6 +245,18 @@ public class ColumnDefinitionPacket implements ServerMessage {
         } else {
           return length - ((decimals > 0) ? 1 : 0);
         }
+      case VARCHAR:
+      case JSON:
+      case ENUM:
+      case SET:
+      case VARSTRING:
+      case STRING:
+        Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+        if (maxWidth == null) {
+          return length;
+        }
+        return length / maxWidth;
+
       default:
         return length;
     }

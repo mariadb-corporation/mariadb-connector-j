@@ -23,10 +23,7 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import java.sql.*;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
@@ -598,6 +595,29 @@ public class PreparedStatementTest extends Common {
       assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, prep.getResultSetType());
 
       prep.execute();
+    }
+  }
+
+  @Test
+  public void more2BytesParameters() throws Throwable {
+    int[] rnds = new int[100000];
+    StringBuilder sb = new StringBuilder("select ?");
+    for (int i = 0; i < 100000; i++) {
+      rnds[i] = (int) (Math.random() * 1000);
+    }
+    for (int i = 1; i < 100000; i++) {
+      sb.append(",?");
+    }
+    String sql = sb.toString();
+
+    try (PreparedStatement st = sharedConnBinary.prepareStatement(sql)) {
+      for (int i = 1; i <= 100000; i++) {
+        st.setInt(i, rnds[i - 1]);
+      }
+      assertThrowsContains(
+          BatchUpdateException.class,
+          () -> st.executeQuery(),
+          "Prepared statement contains too many placeholders");
     }
   }
 }

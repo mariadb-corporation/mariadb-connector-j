@@ -64,9 +64,6 @@ public class HostAddress {
    * @return parsed endpoints
    */
   public static List<HostAddress> parse(String spec, HaMode haMode) throws SQLException {
-    if (spec == null) {
-      throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
-    }
     if ("".equals(spec)) {
       return new ArrayList<>(0);
     }
@@ -86,7 +83,8 @@ public class HostAddress {
     return arr;
   }
 
-  private static HostAddress parseSimpleHostAddress(String str, HaMode haMode, boolean first) {
+  private static HostAddress parseSimpleHostAddress(String str, HaMode haMode, boolean first)
+      throws SQLException {
     String host;
     int port = 3306;
 
@@ -112,11 +110,11 @@ public class HostAddress {
     return new HostAddress(host, port, primary);
   }
 
-  private static int getPort(String portString) {
+  private static int getPort(String portString) throws SQLException {
     try {
       return Integer.parseInt(portString);
     } catch (NumberFormatException nfe) {
-      throw new IllegalArgumentException("Incorrect port value : " + portString);
+      throw new SQLException("Incorrect port value : " + portString);
     }
   }
 
@@ -165,65 +163,6 @@ public class HostAddress {
     }
 
     return new HostAddress(host, port, primary);
-  }
-
-  /**
-   * ToString implementation of addresses.
-   *
-   * @param addrs address list
-   * @return String value
-   */
-  public static String toString(List<HostAddress> addrs) {
-    StringBuilder str = new StringBuilder();
-    for (int i = 0; i < addrs.size(); i++) {
-      if (addrs.get(i).primary != null) {
-        str.append("address=(host=")
-            .append(addrs.get(i).host)
-            .append(")(port=")
-            .append(addrs.get(i).port)
-            .append(")(type=")
-            .append(addrs.get(i).primary ? "primary" : "replica")
-            .append(")");
-      } else {
-        boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
-        String host = (isIPv6) ? ("[" + addrs.get(i).host + "]") : addrs.get(i).host;
-        str.append(host).append(":").append(addrs.get(i).port);
-      }
-      if (i < addrs.size() - 1) {
-        str.append(",");
-      }
-    }
-    return str.toString();
-  }
-
-  /**
-   * ToString implementation of addresses.
-   *
-   * @param addrs address array
-   * @return String value
-   */
-  @SuppressWarnings("unused")
-  public static String toString(HostAddress[] addrs) {
-    StringBuilder str = new StringBuilder();
-    for (int i = 0; i < addrs.length; i++) {
-      if (addrs[i].primary != null) {
-        str.append("address=(host=")
-            .append(addrs[i].host)
-            .append(")(port=")
-            .append(addrs[i].port)
-            .append(")(type=")
-            .append(addrs[i].primary ? "primary" : "replica")
-            .append(")");
-      } else {
-        boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
-        String host = (isIPv6) ? ("[" + addrs[i].host + "]") : addrs[i].host;
-        str.append(host).append(":").append(addrs[i].port);
-      }
-      if (i < addrs.length - 1) {
-        str.append(",");
-      }
-    }
-    return str.toString();
   }
 
   @Override

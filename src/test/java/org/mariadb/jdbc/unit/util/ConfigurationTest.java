@@ -66,12 +66,18 @@ public class ConfigurationTest extends Common {
 
   @Test
   public void testWrongFormat() {
-    try {
-      Configuration.parse("jdbc:mariadb:/localhost/test");
-      fail("Must have throw exception");
-    } catch (SQLException ie) {
-      assertTrue(ie.getMessage().contains("url parsing error : '//' is not present in the url"));
-    }
+    assertThrowsContains(
+        SQLException.class,
+        () -> Configuration.parse("jdbc:mariadb:/localhost/test"),
+        "url parsing error : '//' is not present in the url");
+  }
+
+  @Test
+  public void testWrongHostFormat() {
+    assertThrowsContains(
+        SQLException.class,
+        () -> Configuration.parse("jdbc:mariadb://localhost:wrongPort/test"),
+        "Incorrect port value : wrongPort");
   }
 
   @Test
@@ -273,7 +279,27 @@ public class ConfigurationTest extends Common {
   @Test()
   public void testJdbcParserSimpleIpv4basic() throws SQLException {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database";
-    Configuration.parse(url);
+    Configuration conf = Configuration.parse(url);
+    assertEquals(
+        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=primary),address=(host=slave2)(port=3308)(type=primary)/database",
+        conf.initialUrl());
+    url =
+        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
+    conf = Configuration.parse(url);
+    assertEquals(
+        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        conf.initialUrl());
+    url =
+        "jdbc:mariadb://address=(host=master)(port=3306)(type=master),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
+    conf = Configuration.parse(url);
+    assertEquals(
+        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        conf.initialUrl());
+    url = "jdbc:mariadb:replication://master:3306,slave1:3307,slave2:3308/database";
+    conf = Configuration.parse(url);
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        conf.initialUrl());
   }
 
   @Test

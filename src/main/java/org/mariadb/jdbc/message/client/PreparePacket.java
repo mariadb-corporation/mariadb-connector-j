@@ -85,7 +85,9 @@ public final class PreparePacket implements ClientMessage {
             .create(
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
       default:
-        if (context.getConf().useServerPrepStmts() && context.getConf().cachePrepStmts()) {
+        if (context.getConf().useServerPrepStmts()
+            && context.getConf().cachePrepStmts()
+            && sql.length() < 1000) {
           CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
           PrepareResultPacket previousCached =
               context

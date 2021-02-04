@@ -158,6 +158,25 @@ public class ClobTest extends Common {
     assertEquals("ccd🙏f", clob2.getSubString(1, 6));
     clob2.setString(2, "opml", 3, 200);
     assertEquals("cld🙏f", clob2.getSubString(1, 6));
+
+    clob2.setString(5, "අข\uD800\uDFA2");
+    assertEquals("cld🙏අข\uD800\uDFA2", clob2.getSubString(1, 20));
+    assertEquals(9, clob2.length());
+    clob2.setString(6, "ข\uD800\uDFA2");
+    assertEquals("cld🙏අข\uD800\uDFA2", clob2.getSubString(1, 20));
+    clob2.setString(7, "\uD800\uDFA2");
+    assertEquals("cld🙏අข\uD800\uDFA2", clob2.getSubString(1, 20));
+    clob2.truncate(9);
+    assertEquals("cld🙏අข\uD800\uDFA2", clob2.getSubString(1, 20));
+    clob2.truncate(7);
+    assertEquals("cld🙏අข", clob2.getSubString(1, 20));
+    clob2.truncate(6);
+    assertEquals("cld🙏අ", clob2.getSubString(1, 20));
+    clob2.truncate(5);
+    assertEquals("cld🙏", clob2.getSubString(1, 20));
+    clob2.truncate(3);
+    assertEquals("cld", clob2.getSubString(1, 20));
+
     assertThrowsContains(
         SQLException.class, () -> clob.setString(-1, "7"), "position must be >= 0");
     assertThrowsContains(
@@ -169,6 +188,8 @@ public class ClobTest extends Common {
     assertThrowsContains(
         SQLException.class, () -> clob.getSubString(-1, 7), "position must be >= 1");
     assertThrowsContains(SQLException.class, () -> clob.getSubString(1, -7), "length must be > 0");
+    assertThrowsContains(
+        SQLException.class, () -> clob.setString(-2, "rrr"), "position must be >= 0");
   }
 
   @Test

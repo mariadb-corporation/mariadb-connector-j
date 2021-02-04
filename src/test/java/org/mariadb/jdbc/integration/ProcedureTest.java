@@ -159,6 +159,86 @@ public class ProcedureTest extends Common {
     }
   }
 
+  @Test
+  @SuppressWarnings("deprecated")
+  public void multiOutputProcedure() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS multiOutputProcedure");
+    stmt.execute(
+        "CREATE PROCEDURE multiOutputProcedure (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT) BEGIN \n"
+            + "SELECT 1;"
+            + "set t3 = t1 * t4;\n"
+            + "set t2 = t2 * t1;\n"
+            + "END");
+    try (CallableStatement callableStatement =
+        sharedConn.prepareCall("{call multiOutputProcedure(?,?,?,?)}")) {
+      assertThrowsContains(
+          SQLException.class, () -> callableStatement.getString(1), "No output result");
+      callableStatement.getParameterMetaData();
+      assertThrowsContains(
+          SQLSyntaxErrorException.class,
+          () -> callableStatement.registerOutParameter(20, JDBCType.INTEGER),
+          "wrong parameter index 20");
+
+      callableStatement.registerOutParameter(2, JDBCType.INTEGER);
+      callableStatement.registerOutParameter(3, JDBCType.INTEGER);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter(2, Types.INTEGER);
+      callableStatement.registerOutParameter(3, Types.INTEGER);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter(2, Types.INTEGER, 10);
+      callableStatement.registerOutParameter(3, Types.INTEGER, 10);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter(2, JDBCType.INTEGER, 10);
+      callableStatement.registerOutParameter(3, JDBCType.INTEGER, 10);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter(2, Types.INTEGER, "typeName");
+      callableStatement.registerOutParameter(3, Types.INTEGER, "typeName");
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter(2, JDBCType.INTEGER, "typeName");
+      callableStatement.registerOutParameter(3, JDBCType.INTEGER, "typeName");
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", JDBCType.INTEGER);
+      callableStatement.registerOutParameter("t3", JDBCType.INTEGER);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", Types.INTEGER);
+      callableStatement.registerOutParameter("t3", Types.INTEGER);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", Types.INTEGER, 10);
+      callableStatement.registerOutParameter("t3", Types.INTEGER, 10);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", JDBCType.INTEGER, 10);
+      callableStatement.registerOutParameter("t3", JDBCType.INTEGER, 10);
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", Types.INTEGER, "typeName");
+      callableStatement.registerOutParameter("t3", Types.INTEGER, "typeName");
+      checkResults(callableStatement);
+
+      callableStatement.registerOutParameter("t2", JDBCType.INTEGER, "typeName");
+      callableStatement.registerOutParameter("t3", JDBCType.INTEGER, "typeName");
+      checkResults(callableStatement);
+
+      assertThrowsContains(
+          SQLException.class,
+          () -> callableStatement.registerOutParameter(100, JDBCType.BINARY),
+          "wrong parameter index 100");
+      assertThrowsContains(
+          SQLException.class,
+          () -> callableStatement.registerOutParameter("unknown", JDBCType.INTEGER),
+          "parameterName unknown not found");
+    }
+  }
+
   @SuppressWarnings("deprecation")
   private void checkResults(CallableStatement callableStatement) throws SQLException {
     callableStatement.setInt(1, 2);

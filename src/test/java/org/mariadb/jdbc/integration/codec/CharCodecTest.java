@@ -692,7 +692,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.CHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(100, meta.getPrecision(1));
+    assertEquals(25, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(25, meta.getColumnDisplaySize(1));

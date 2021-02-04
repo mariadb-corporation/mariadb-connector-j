@@ -24,7 +24,6 @@ package org.mariadb.jdbc;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.message.server.Completion;
 
@@ -61,25 +60,13 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
 
   @Override
   protected void handleParameterOutput() throws SQLException {
-    // resultset might be ended by an OK_packet
-    // note. correction for MySQL 5.6 that wrongly remove PS_OUT_PARAMETERS flag of resultset.
-
-    ServerVersion version = con.getContext().getVersion();
-    Completion compl = this.results.get(this.results.size() - 1);
-    if (compl instanceof Result
-        && (((Result) compl).isOutputParameter()
-            || (version.isMariaDBServer() && !version.versionGreaterOrEqual(10, 2, 0))
-            || (!version.isMariaDBServer() && !version.versionGreaterOrEqual(5, 7, 0)))) {
-      this.outputResult = (Result) compl;
-      this.results.remove(this.results.size() - 1);
-    } else if (this.results.size() > 1) {
-      compl = this.results.get(this.results.size() - 2);
-      if (compl instanceof Result
-          && (((Result) compl).isOutputParameter()
-              || (version.isMariaDBServer() && !version.versionGreaterOrEqual(10, 2, 0))
-              || (!version.isMariaDBServer() && !version.versionGreaterOrEqual(5, 7, 0)))) {
+    // output result-set is the last result-set
+    // or in case finishing with an OK_PACKET, just the one before
+    for (int i = 1; i <= 2; i++) {
+      Completion compl = this.results.get(this.results.size() - i);
+      if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
         this.outputResult = (Result) compl;
-        this.results.remove(this.results.size() - 2);
+        this.results.remove(this.results.size() - i);
       }
     }
     this.outputResult.next();

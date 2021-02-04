@@ -79,7 +79,8 @@ public class PacketWriter {
     return pos;
   }
 
-  public int pos(int pos) {
+  public int pos(int pos) throws IOException {
+    if (pos > buf.length) growBuffer(pos);
     return this.pos = pos;
   }
 
