@@ -204,9 +204,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   @Override
   public ResultSet executeQuery() throws SQLException {
     executeInternal();
-    if (!results.isEmpty()) {
-      currResult = results.remove(0);
-      if (currResult instanceof Result) return (Result) currResult;
+    currResult = results.remove(0);
+    if (currResult instanceof Result) {
+      return (Result) currResult;
     }
     return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
   }

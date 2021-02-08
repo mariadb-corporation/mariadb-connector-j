@@ -64,10 +64,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         resultSetConcurrency,
         defaultFetchSize);
 
-    // MySQL server doesn't permit pipelining
-    if (!con.getContext().getVersion().isMariaDBServer()) {
-      prepareIfNotAlready(escapeTimeout(sql));
-    }
     parameters = new ParameterList();
   }
 
@@ -95,6 +91,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         } else {
           executeStandard(cmd);
         }
+      } catch (BatchUpdateException b) {
+        throw (SQLException) b.getCause();
       } finally {
         parameters = new ParameterList();
         lock.unlock();

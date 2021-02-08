@@ -849,8 +849,11 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
+    if (map == null || map.isEmpty()) {
+      return getObject(columnIndex);
+    }
     throw exceptionFactory.notSupported(
-        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
+        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported for non empty map");
   }
 
   @Override
@@ -875,6 +878,9 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
+    if (map == null || map.isEmpty()) {
+      return getObject(columnLabel);
+    }
     throw exceptionFactory.notSupported(
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
   }

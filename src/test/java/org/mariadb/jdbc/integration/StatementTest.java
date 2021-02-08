@@ -34,19 +34,22 @@ import org.mariadb.jdbc.Statement;
 public class StatementTest extends Common {
 
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE StatementTest");
-    sharedConn.createStatement().execute("DROP TABLE executeGenerated");
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS StatementTest");
+    stmt.execute("DROP TABLE IF EXISTS executeGenerated");
+    stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS StatementTest");
     stmt.execute("CREATE TABLE StatementTest (t1 int not null primary key auto_increment, t2 int)");
-    stmt.execute("DROP TABLE IF EXISTS executeGenerated");
     stmt.execute(
         "CREATE TABLE executeGenerated (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute(
+        "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
   }
 
   @Test
@@ -117,6 +120,21 @@ public class StatementTest extends Common {
     ResultSet rs = stmt.getGeneratedKeys();
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
+  }
+
+  @Test
+  public void executeGeneratedBatch() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.addBatch("INSERT INTO executeGenerated2(t2) values (110)");
+    stmt.addBatch("INSERT INTO executeGenerated2(t2) values (120)");
+    int[] res = stmt.executeBatch();
+    assertArrayEquals(new int[] {1, 1}, res);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+    assertFalse(rs.next());
   }
 
   @Test

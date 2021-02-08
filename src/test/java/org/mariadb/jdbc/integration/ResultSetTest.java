@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -173,13 +174,15 @@ public class ResultSetTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     assertThrowsContains(ns, () -> rs.getRowId(1), "RowId are not supported");
     assertThrowsContains(ns, () -> rs.getRowId("t1"), "RowId are not supported");
+    Map<String, Class<?>> map = new HashMap<>();
+    map.put("f", Integer.class);
     assertThrowsContains(
         ns,
-        () -> rs.getObject(1, (Map<String, Class<?>>) null),
+        () -> rs.getObject(1, map),
         "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     assertThrowsContains(
         ns,
-        () -> rs.getObject("t1", (Map<String, Class<?>>) null),
+        () -> rs.getObject("t1", map),
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
     assertThrowsContains(ns, () -> rs.getCursorName(), "Cursors are not supported");
   }

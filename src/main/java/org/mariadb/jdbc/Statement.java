@@ -687,6 +687,7 @@ public class Statement implements java.sql.Statement {
     try {
       List<Completion> res = executeInternalBatch();
       results = res;
+
       int[] updates = new int[res.size()];
       for (int i = 0; i < res.size(); i++) {
         updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
@@ -822,9 +823,16 @@ public class Statement implements java.sql.Statement {
 
     if (currResult instanceof OkPacket) {
       OkPacket ok = ((OkPacket) currResult);
-      String lastInsertId = String.valueOf(ok.getLastInsertId());
-      return CompleteResult.createResultSet(
-          "insert_id", DataType.BIGINT, new String[] {lastInsertId}, con.getContext());
+      List<String[]> insertIds = new ArrayList<>();
+      insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
+      for (int i = 0; i < results.size(); i++) {
+        if (results.get(i) instanceof OkPacket) {
+          insertIds.add(
+              new String[] {String.valueOf(((OkPacket) results.get(i)).getLastInsertId())});
+        }
+      }
+      String[][] ids = insertIds.toArray(new String[0][]);
+      return CompleteResult.createResultSet("insert_id", DataType.BIGINT, ids, con.getContext());
     }
 
     return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());

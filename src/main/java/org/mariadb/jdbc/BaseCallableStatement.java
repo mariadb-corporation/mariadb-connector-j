@@ -510,9 +510,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public Ref getRef(int parameterIndex) throws SQLException {
-    checkNotClosed();
-    checkOutputResult();
-    return outputResult.getRef(idxToOutIdx(parameterIndex));
+    throw exceptionFactory().notSupported("Method ResultSet.getRef not supported");
   }
 
   /**
@@ -569,7 +567,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   public Array getArray(int parameterIndex) throws SQLException {
     checkNotClosed();
     checkOutputResult();
-    return outputResult.getArray(idxToOutIdx(parameterIndex));
+    throw exceptionFactory().notSupported("Method ResultSet.getArray not supported");
   }
 
   /**
@@ -714,7 +712,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   }
 
   private int nameToIndex(String parameterName) throws SQLException {
-    if (parameterName == null) throw exceptionFactory().create("parameterName cannot be null");
+    if (parameterName == null) throw exceptionFactory().create("parameter name cannot be null");
     if (parameterMetaData == null) parameterMetaData = getParameterMetaData();
 
     int count = parameterMetaData.getParameterCount();
@@ -724,7 +722,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         return i;
       }
     }
-    throw exceptionFactory().create(String.format("parameterName %s not found", parameterName));
+    throw exceptionFactory().create(String.format("parameter name %s not found", parameterName));
   }
 
   /**
@@ -1637,7 +1635,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public Ref getRef(String parameterName) throws SQLException {
-    return outputResult.getRef(idxToOutIdx(nameToIndex(parameterName)));
+    throw exceptionFactory().notSupported("Method ResultSet.getRef not supported");
   }
 
   /**
@@ -1688,7 +1686,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public Array getArray(String parameterName) throws SQLException {
-    return outputResult.getArray(idxToOutIdx(nameToIndex(parameterName)));
+    throw exceptionFactory().notSupported("Method ResultSet.getArray not supported");
   }
 
   /**
@@ -2048,7 +2046,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
-    return getSQLXML(nameToIndex(parameterName));
+    throw exceptionFactory().notSupported("SQLXML are not supported");
   }
 
   /**

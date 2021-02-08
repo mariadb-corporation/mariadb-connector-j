@@ -121,8 +121,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getParameterType(int index) throws SQLException {
     setIndex(index);
-    String str = rs.getString("DATA_TYPE");
-    switch (str.toUpperCase(Locale.ROOT)) {
+    String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    switch (str) {
       case "BIT":
         return Types.BIT;
       case "TINYINT":

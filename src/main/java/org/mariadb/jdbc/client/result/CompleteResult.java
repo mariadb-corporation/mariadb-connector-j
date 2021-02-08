@@ -74,9 +74,8 @@ public class CompleteResult extends Result {
   }
 
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[] data, Context context) {
-    return createResultSet(
-        new String[] {columnName}, new DataType[] {columnType}, new String[][] {data}, context);
+      String columnName, DataType columnType, String[][] data, Context context) {
+    return createResultSet(new String[] {columnName}, new DataType[] {columnType}, data, context);
   }
 
   /**

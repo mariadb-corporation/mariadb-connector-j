@@ -32,15 +32,18 @@ import org.mariadb.jdbc.Statement;
 public class PreparedStatementTest extends Common {
 
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE prepare1");
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS prepare1");
+    stmt.execute("DROP TABLE IF EXISTS prepare2");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS prepare1");
     stmt.execute("CREATE TABLE prepare1 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("CREATE TABLE prepare2 (t1 int not null primary key auto_increment, t2 int)");
   }
 
   @Test
@@ -278,6 +281,100 @@ public class PreparedStatementTest extends Common {
       assertEquals(127, rs.getInt(1));
       assertEquals(45, rs.getInt(2));
       assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  public void executeBatchGenerated() throws SQLException {
+    try (PreparedStatement preparedStatement =
+        sharedConn.prepareStatement(
+            "INSERT INTO prepare2(t2) VALUES (?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+      preparedStatement.setInt(1, 10);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 20);
+      preparedStatement.addBatch();
+      preparedStatement.executeBatch();
+      ResultSet rs = preparedStatement.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+
+    try (PreparedStatement preparedStatement =
+        sharedConnBinary.prepareStatement(
+            "INSERT INTO prepare2(t2) VALUES (?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+      preparedStatement.setInt(1, 10);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 20);
+      preparedStatement.addBatch();
+      preparedStatement.executeBatch();
+      ResultSet rs = preparedStatement.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(3, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(4, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+
+    try (Connection con = createCon("allowMultiQueries")) {
+      try (PreparedStatement preparedStatement =
+          con.prepareStatement(
+              "INSERT INTO prepare2(t2) VALUES (?);INSERT INTO prepare2(t2) VALUES (?)",
+              java.sql.Statement.RETURN_GENERATED_KEYS)) {
+        preparedStatement.setInt(1, 30);
+        preparedStatement.setInt(2, 50);
+        preparedStatement.execute();
+        ResultSet rs = preparedStatement.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(5, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(6, rs.getInt(1));
+        assertFalse(rs.next());
+
+        preparedStatement.setInt(1, 210);
+        preparedStatement.setInt(2, 110);
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 220);
+        preparedStatement.setInt(2, 220);
+        preparedStatement.addBatch();
+        preparedStatement.executeBatch();
+
+        rs = preparedStatement.getGeneratedKeys();
+        assertTrue(rs.next());
+        assertEquals(7, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(8, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(9, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(1));
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
+  public void emptyExecuteBatch() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE prepare1");
+    stmt.execute("INSERT INTO prepare1(t1, t2) VALUES (5,10), (40,20), (127,45)");
+    try (PreparedStatement preparedStatement =
+        sharedConn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      assertEquals(0, preparedStatement.executeBatch().length);
+    }
+    try (PreparedStatement preparedStatement =
+        sharedConnBinary.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      assertEquals(0, preparedStatement.executeBatch().length);
+    }
+    try (PreparedStatement preparedStatement =
+        sharedConn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      assertEquals(0, preparedStatement.executeLargeBatch().length);
+    }
+    try (PreparedStatement preparedStatement =
+        sharedConnBinary.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      assertEquals(0, preparedStatement.executeLargeBatch().length);
     }
   }
 
@@ -615,7 +712,7 @@ public class PreparedStatementTest extends Common {
         st.setInt(i, rnds[i - 1]);
       }
       assertThrowsContains(
-          BatchUpdateException.class,
+          SQLTransientConnectionException.class,
           () -> st.executeQuery(),
           "Prepared statement contains too many placeholders");
     }

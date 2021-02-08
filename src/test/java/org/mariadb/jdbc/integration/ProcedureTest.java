@@ -24,11 +24,13 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
@@ -82,16 +84,19 @@ public class ProcedureTest extends Common {
 
   @Test
   @SuppressWarnings("deprecated")
-  public void basicProcedure() throws SQLException {
+  public void basicProcedure() throws Throwable {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT) BEGIN \n"
+        "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT, OUT t5 VARCHAR(20), OUT t6 TIMESTAMP, OUT t7 blob) BEGIN \n"
             + "set t3 = t1 * t4;\n"
             + "set t2 = t2 * t1;\n"
+            + "set t5 = 'test';\n"
+            + "set t6 = TIMESTAMP('2003-12-31 12:00:00');\n"
+            + "set t7 = 'test';\n"
             + "END");
     try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call basic_proc(?,?,?,?)}")) {
+        sharedConn.prepareCall("{call basic_proc(?,?,?,?,?,?,?)}")) {
       assertThrowsContains(
           SQLException.class, () -> callableStatement.getString(1), "No output result");
       callableStatement.getParameterMetaData();
@@ -102,50 +107,86 @@ public class ProcedureTest extends Common {
 
       callableStatement.registerOutParameter(2, JDBCType.INTEGER);
       callableStatement.registerOutParameter(3, JDBCType.INTEGER);
+      callableStatement.registerOutParameter(5, JDBCType.VARCHAR);
+      callableStatement.registerOutParameter(6, JDBCType.TIMESTAMP);
+      callableStatement.registerOutParameter(7, JDBCType.TIMESTAMP);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter(2, Types.INTEGER);
       callableStatement.registerOutParameter(3, Types.INTEGER);
+      callableStatement.registerOutParameter(5, Types.VARCHAR);
+      callableStatement.registerOutParameter(6, Types.TIMESTAMP);
+      callableStatement.registerOutParameter(7, Types.TIMESTAMP);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter(2, Types.INTEGER, 10);
       callableStatement.registerOutParameter(3, Types.INTEGER, 10);
+      callableStatement.registerOutParameter(5, Types.VARCHAR, 10);
+      callableStatement.registerOutParameter(6, Types.TIMESTAMP, 10);
+      callableStatement.registerOutParameter(7, Types.TIMESTAMP, 10);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter(2, JDBCType.INTEGER, 10);
       callableStatement.registerOutParameter(3, JDBCType.INTEGER, 10);
+      callableStatement.registerOutParameter(5, JDBCType.VARCHAR, 10);
+      callableStatement.registerOutParameter(6, JDBCType.TIMESTAMP, 10);
+      callableStatement.registerOutParameter(7, JDBCType.TIMESTAMP, 10);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter(2, Types.INTEGER, "typeName");
       callableStatement.registerOutParameter(3, Types.INTEGER, "typeName");
+      callableStatement.registerOutParameter(5, Types.VARCHAR, "typeName");
+      callableStatement.registerOutParameter(6, Types.TIMESTAMP, "typeName");
+      callableStatement.registerOutParameter(7, Types.BLOB, "typeName");
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter(2, JDBCType.INTEGER, "typeName");
       callableStatement.registerOutParameter(3, JDBCType.INTEGER, "typeName");
+      callableStatement.registerOutParameter(5, JDBCType.VARCHAR, "typeName");
+      callableStatement.registerOutParameter(6, JDBCType.TIMESTAMP, "typeName");
+      callableStatement.registerOutParameter(7, JDBCType.BLOB, "typeName");
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", JDBCType.INTEGER);
       callableStatement.registerOutParameter("t3", JDBCType.INTEGER);
+      callableStatement.registerOutParameter("t5", JDBCType.VARCHAR);
+      callableStatement.registerOutParameter("t6", JDBCType.TIMESTAMP);
+      callableStatement.registerOutParameter("t7", JDBCType.BLOB);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", Types.INTEGER);
       callableStatement.registerOutParameter("t3", Types.INTEGER);
+      callableStatement.registerOutParameter("t5", Types.VARCHAR);
+      callableStatement.registerOutParameter("t6", Types.TIMESTAMP);
+      callableStatement.registerOutParameter("t7", Types.BLOB);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", Types.INTEGER, 10);
       callableStatement.registerOutParameter("t3", Types.INTEGER, 10);
+      callableStatement.registerOutParameter("t5", Types.VARCHAR, 10);
+      callableStatement.registerOutParameter("t6", Types.TIMESTAMP, 10);
+      callableStatement.registerOutParameter("t7", Types.BLOB, 10);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", JDBCType.INTEGER, 10);
       callableStatement.registerOutParameter("t3", JDBCType.INTEGER, 10);
+      callableStatement.registerOutParameter("t5", JDBCType.VARCHAR, 10);
+      callableStatement.registerOutParameter("t6", JDBCType.TIMESTAMP, 10);
+      callableStatement.registerOutParameter("t7", JDBCType.BLOB, 10);
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", Types.INTEGER, "typeName");
       callableStatement.registerOutParameter("t3", Types.INTEGER, "typeName");
+      callableStatement.registerOutParameter("t5", Types.VARCHAR, "typeName");
+      callableStatement.registerOutParameter("t6", Types.TIMESTAMP, "typeName");
+      callableStatement.registerOutParameter("t7", Types.BLOB, "typeName");
       checkResults(callableStatement);
 
       callableStatement.registerOutParameter("t2", JDBCType.INTEGER, "typeName");
       callableStatement.registerOutParameter("t3", JDBCType.INTEGER, "typeName");
+      callableStatement.registerOutParameter("t5", JDBCType.VARCHAR, "typeName");
+      callableStatement.registerOutParameter("t6", JDBCType.TIMESTAMP, "typeName");
+      callableStatement.registerOutParameter("t7", JDBCType.BLOB, "typeName");
       checkResults(callableStatement);
 
       assertThrowsContains(
@@ -155,92 +196,12 @@ public class ProcedureTest extends Common {
       assertThrowsContains(
           SQLException.class,
           () -> callableStatement.registerOutParameter("unknown", JDBCType.INTEGER),
-          "parameterName unknown not found");
-    }
-  }
-
-  @Test
-  @SuppressWarnings("deprecated")
-  public void multiOutputProcedure() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS multiOutputProcedure");
-    stmt.execute(
-        "CREATE PROCEDURE multiOutputProcedure (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT) BEGIN \n"
-            + "SELECT 1;"
-            + "set t3 = t1 * t4;\n"
-            + "set t2 = t2 * t1;\n"
-            + "END");
-    try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call multiOutputProcedure(?,?,?,?)}")) {
-      assertThrowsContains(
-          SQLException.class, () -> callableStatement.getString(1), "No output result");
-      callableStatement.getParameterMetaData();
-      assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter(20, JDBCType.INTEGER),
-          "wrong parameter index 20");
-
-      callableStatement.registerOutParameter(2, JDBCType.INTEGER);
-      callableStatement.registerOutParameter(3, JDBCType.INTEGER);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter(2, Types.INTEGER);
-      callableStatement.registerOutParameter(3, Types.INTEGER);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter(2, Types.INTEGER, 10);
-      callableStatement.registerOutParameter(3, Types.INTEGER, 10);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter(2, JDBCType.INTEGER, 10);
-      callableStatement.registerOutParameter(3, JDBCType.INTEGER, 10);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter(2, Types.INTEGER, "typeName");
-      callableStatement.registerOutParameter(3, Types.INTEGER, "typeName");
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter(2, JDBCType.INTEGER, "typeName");
-      callableStatement.registerOutParameter(3, JDBCType.INTEGER, "typeName");
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", JDBCType.INTEGER);
-      callableStatement.registerOutParameter("t3", JDBCType.INTEGER);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", Types.INTEGER);
-      callableStatement.registerOutParameter("t3", Types.INTEGER);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", Types.INTEGER, 10);
-      callableStatement.registerOutParameter("t3", Types.INTEGER, 10);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", JDBCType.INTEGER, 10);
-      callableStatement.registerOutParameter("t3", JDBCType.INTEGER, 10);
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", Types.INTEGER, "typeName");
-      callableStatement.registerOutParameter("t3", Types.INTEGER, "typeName");
-      checkResults(callableStatement);
-
-      callableStatement.registerOutParameter("t2", JDBCType.INTEGER, "typeName");
-      callableStatement.registerOutParameter("t3", JDBCType.INTEGER, "typeName");
-      checkResults(callableStatement);
-
-      assertThrowsContains(
-          SQLException.class,
-          () -> callableStatement.registerOutParameter(100, JDBCType.BINARY),
-          "wrong parameter index 100");
-      assertThrowsContains(
-          SQLException.class,
-          () -> callableStatement.registerOutParameter("unknown", JDBCType.INTEGER),
-          "parameterName unknown not found");
+          "parameter name unknown not found");
     }
   }
 
   @SuppressWarnings("deprecation")
-  private void checkResults(CallableStatement callableStatement) throws SQLException {
+  private void checkResults(CallableStatement callableStatement) throws SQLException, IOException {
     callableStatement.setInt(1, 2);
     callableStatement.setInt(2, 3);
     callableStatement.setInt(4, 10);
@@ -256,6 +217,25 @@ public class ProcedureTest extends Common {
     assertEquals(6D, callableStatement.getDouble(2));
     assertEquals(6, callableStatement.getBigDecimal(2).intValue());
     assertEquals(6, callableStatement.getBigDecimal(2, 5).intValue());
+    assertEquals(6L, callableStatement.getObject(2, (Map<String, Class<?>>) null));
+    assertEquals(6L, callableStatement.getObject(2, new HashMap<>()));
+    assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBlob(7).getBytes(1, 4));
+    assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBytes(5));
+    assertEquals("test", callableStatement.getClob(5).toString());
+    assertEquals("test", callableStatement.getNClob(5).toString());
+    assertEquals("2003-12-31 12:00:00.0", callableStatement.getTimestamp(6).toString());
+    assertEquals("12:00:00", callableStatement.getTime(6).toString());
+    assertEquals("2003-12-31", callableStatement.getDate(6).toString());
+    char[] res = new char[4];
+    callableStatement.getCharacterStream(5).read(res);
+    assertEquals("test", new String(res));
+    callableStatement.getNCharacterStream(5).read(res);
+    assertEquals("test", new String(res));
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> callableStatement.getBytes(2),
+        "Data type INTEGER cannot be decoded as byte[]");
     assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getDate(2),
@@ -285,9 +265,11 @@ public class ProcedureTest extends Common {
         () -> callableStatement.getTimestamp(2, (Calendar) null),
         "Data type INTEGER cannot be decoded as Timestamp");
     assertEquals(6L, callableStatement.getObject(2));
+    Map<String, Class<?>> map = new HashMap<>();
+    map.put("f", Integer.class);
     assertThrowsContains(
         SQLFeatureNotSupportedException.class,
-        () -> callableStatement.getObject(2, (Map<String, Class<?>>) null),
+        () -> callableStatement.getObject(2, map),
         " Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     assertThrowsContains(
         SQLException.class,
@@ -338,6 +320,27 @@ public class ProcedureTest extends Common {
     assertEquals(6F, callableStatement.getFloat("t2"));
     assertEquals(6D, callableStatement.getDouble("t2"));
     assertEquals(6, callableStatement.getBigDecimal("t2").intValue());
+    assertEquals(6L, callableStatement.getObject("t2", (Map<String, Class<?>>) null));
+    assertEquals(6L, callableStatement.getObject("t2", new HashMap<>()));
+    assertArrayEquals(
+        new byte[] {116, 101, 115, 116}, callableStatement.getBlob("t7").getBytes(1, 4));
+    assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBytes("t5"));
+    assertEquals("test", callableStatement.getClob("t5").toString());
+    assertEquals("test", callableStatement.getNClob("t5").toString());
+
+    callableStatement.getCharacterStream("t5").read(res);
+    assertEquals("test", new String(res));
+    callableStatement.getNCharacterStream("t5").read(res);
+    assertEquals("test", new String(res));
+
+    assertEquals("2003-12-31 12:00:00.0", callableStatement.getTimestamp("t6").toString());
+    assertEquals("12:00:00", callableStatement.getTime("t6").toString());
+    assertEquals("2003-12-31", callableStatement.getDate("t6").toString());
+    assertThrowsContains(
+        SQLException.class,
+        () -> callableStatement.getBytes(null),
+        "parameter name cannot be null");
+
     assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBytes("t2"),
@@ -372,7 +375,7 @@ public class ProcedureTest extends Common {
     assertEquals(6L, callableStatement.getObject("t2"));
     assertThrowsContains(
         SQLFeatureNotSupportedException.class,
-        () -> callableStatement.getObject("t2", (Map<String, Class<?>>) null),
+        () -> callableStatement.getObject("t2", map),
         " Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     assertThrowsContains(
         SQLException.class,
@@ -415,6 +418,7 @@ public class ProcedureTest extends Common {
     assertFalse(callableStatement.wasNull());
     assertEquals(20, callableStatement.getInt(3));
     assertFalse(callableStatement.wasNull());
+    assertThrowsContains(SQLException.class, () -> callableStatement.getInt(-1), "wrong index");
 
     assertThrowsContains(
         SQLException.class, () -> callableStatement.getInt(4), "index 4 not declared as output");

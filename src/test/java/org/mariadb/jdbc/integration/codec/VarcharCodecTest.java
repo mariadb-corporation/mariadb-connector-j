@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.*;
 import java.util.Calendar;
+import java.util.Map;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -964,6 +965,6 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("f🌟14", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟15", rs.getString(2));
+    assertEquals("f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));
   }
 }

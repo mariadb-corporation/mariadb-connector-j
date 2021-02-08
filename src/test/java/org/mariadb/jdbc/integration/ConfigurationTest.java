@@ -60,14 +60,10 @@ public class ConfigurationTest extends Common {
 
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
-      assertFalse(rs.next());
-
-      stmt.getMoreResults();
-
-      rs = stmt.getGeneratedKeys();
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
       assertFalse(rs.next());
+      assertFalse(stmt.getMoreResults());
     }
 
     try (Connection connection =

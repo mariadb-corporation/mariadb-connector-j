@@ -98,7 +98,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
         lock,
         canUseServerTimeout,
         canUseServerMaxRows,
-        Statement.NO_GENERATED_KEYS,
+        Statement.RETURN_GENERATED_KEYS,
         ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
         defaultFetchSize);
@@ -406,7 +406,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
         lock,
         canUseServerTimeout,
         canUseServerMaxRows,
-        Statement.NO_GENERATED_KEYS,
+        Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
         defaultFetchSize);
@@ -417,7 +417,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
       throws SQLException {
     return prepareInternal(
         sql,
-        Statement.NO_GENERATED_KEYS,
+        Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
         conf.useServerPrepStmts());
