@@ -196,7 +196,7 @@ public class SslTest extends Common {
     if (path == null) return null;
     File f = new File(path);
     if (f.exists()) {
-      return f.getCanonicalPath();
+      return f.getCanonicalPath().replace("\\", "/");
     }
     return null;
   }

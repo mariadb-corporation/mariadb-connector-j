@@ -51,7 +51,7 @@ public class Sha256AuthenticationTest extends Common {
     File f = new File(path);
     if (f.exists()) {
       System.out.println("path exist :" + path);
-      return f.getCanonicalPath();
+      return f.getCanonicalPath().replace("\\", "/");
     }
     return null;
   }

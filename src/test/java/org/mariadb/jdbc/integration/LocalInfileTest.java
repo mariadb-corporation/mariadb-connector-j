@@ -97,18 +97,16 @@ public class LocalInfileTest extends Common {
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
       assertThrowsContains(
-          SQLTransientConnectionException.class,
+          SQLException.class,
           () ->
               stmt.execute(
                   "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
-          "The used command is not allowed because the MariaDB server or client has disabled the local infile capability");
+          "The used command is not allowed");
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       assertThrowsContains(
-          BatchUpdateException.class,
-          () -> stmt.executeBatch(),
-          "The used command is not allowed because the MariaDB server or client has disabled the local infile capability");
+          BatchUpdateException.class, () -> stmt.executeBatch(), "The used command is not allowed");
     }
   }
 
@@ -126,7 +124,7 @@ public class LocalInfileTest extends Common {
           () ->
               stmt.execute(
                   "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
-          "Could not send file : someFile (No such file or directory)");
+          "Could not send file : someFile");
     }
   }
 
@@ -145,7 +143,7 @@ public class LocalInfileTest extends Common {
       Statement stmt = con.createStatement();
       stmt.execute(
           "LOAD DATA LOCAL INFILE '"
-              + temp.getCanonicalPath()
+              + temp.getCanonicalPath().replace("\\", "/")
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
       assertTrue(rs.next());
@@ -159,7 +157,7 @@ public class LocalInfileTest extends Common {
       stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE '"
-              + temp.getCanonicalPath()
+              + temp.getCanonicalPath().replace("\\", "/")
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       stmt.executeBatch();
@@ -223,7 +221,7 @@ public class LocalInfileTest extends Common {
       int insertNumber =
           stmt.executeUpdate(
               "LOAD DATA LOCAL INFILE '"
-                  + file.getCanonicalPath()
+                  + file.getCanonicalPath().replace("\\", "/")
                   + "' "
                   + "INTO TABLE `infile` "
                   + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "

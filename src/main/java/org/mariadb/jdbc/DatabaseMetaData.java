@@ -27,6 +27,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.DataType;
@@ -39,8 +40,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   private final org.mariadb.jdbc.Connection connection;
   private final Configuration conf;
-
-  private boolean datePrecisionColumnExist = true;
 
   /**
    * Constructor.
@@ -173,10 +172,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     }
     String escaped = value.replace("'", "''");
-    if (noBackslashEscapes) {
-      return escaped;
-    }
-    return escaped.replace("\\", "\\\\");
+    return (noBackslashEscapes) ? escaped : escaped.replace("\\", "\\\\");
   }
 
   private int parseIdentifierList(char[] part, int startPos, List<Identifier> list)
@@ -240,7 +236,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     for (String part : parts) {
       part = part.trim();
-      if (!part.startsWith("CONSTRAINT") && !part.contains("FOREIGN KEY")) {
+      if (!part.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")
+          && !part.contains("FOREIGN KEY")) {
         continue;
       }
       char[] partChar = part.toCharArray();
@@ -263,11 +260,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       int onUpdateReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
       int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
 
-      for (String referenceAction : new String[] {"RESTRICT", "CASCADE", "SET NULL", "NO ACTION"}) {
-        if (part.contains("ON UPDATE " + referenceAction)) {
+      for (String referenceAction :
+          new String[] {"RESTRICT", "CASCADE", "SET NULL", "NO ACTION", "SET DEFAULT"}) {
+        if (part.toUpperCase(Locale.ROOT).contains("ON UPDATE " + referenceAction)) {
           onUpdateReferenceAction = getImportedKeyAction(referenceAction);
         }
-        if (part.contains("ON DELETE " + referenceAction)) {
+        if (part.toUpperCase(Locale.ROOT).contains("ON DELETE " + referenceAction)) {
           onDeleteReferenceAction = getImportedKeyAction(referenceAction);
         }
       }
@@ -495,9 +493,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private String escapeQuote(String value) {
-    if (value == null) {
-      return "NULL";
-    }
     return "'"
         + escapeString(
             value,
@@ -758,18 +753,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " TYPE_NAME, "
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                : "10")
+            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'timestamp' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
@@ -797,15 +786,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + patternCond("COLUMN_NAME", columnNamePattern)
             + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
-    try {
-      return executeQuery(sql);
-    } catch (SQLException sqlException) {
-      if (sqlException.getMessage().contains("Unknown column 'DATETIME_PRECISION'")) {
-        datePrecisionColumnExist = false;
-        return getColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern);
-      }
-      throw sqlException;
-    }
+    return executeQuery(sql);
   }
 
   /**
@@ -919,9 +900,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingInformationSchema(String catalog, String table)
       throws SQLException {
-    if (table == null) {
-      throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-    }
     String sql =
         "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
             + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
@@ -968,15 +946,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String table)
       throws Exception {
-
-    if (catalog == null || catalog.isEmpty()) {
-      throw new IllegalArgumentException("catalog");
-    }
-
-    if (table == null || table.isEmpty()) {
-      throw new IllegalArgumentException("table");
-    }
-
     ResultSet rs =
         connection
             .createStatement()
@@ -1145,10 +1114,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return connection
         .createStatement()
         .executeQuery(
-            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM,"
-                + "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS,"
-                + "10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL "
-                + "WHERE 1=0");
+            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, "
+                + "0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, "
+                + "'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
   }
 
   public boolean allProceduresAreCallable() {
@@ -1168,8 +1136,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return conf.user();
   }
 
-  public boolean isReadOnly() {
-    return false;
+  public boolean isReadOnly() throws SQLException {
+    java.sql.Statement st = connection.createStatement();
+    ResultSet rs = st.executeQuery("SELECT @@READ_ONLY");
+    rs.next();
+    return rs.getInt(1) == 1;
   }
 
   public boolean nullsAreSortedHigh() {
@@ -1577,7 +1548,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   @Override
   public boolean supportsExtendedSQLGrammar() {
-    return false;
+    return true;
   }
 
   @Override
@@ -1648,7 +1619,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsSchemasInPrivilegeDefinitions() {
-    return true;
+    return false;
   }
 
   public boolean supportsCatalogsInDataManipulation() {
@@ -1732,11 +1703,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getMaxBinaryLiteralLength() {
-    return 16777208;
+    return Integer.MAX_VALUE;
   }
 
   public int getMaxCharLiteralLength() {
-    return 16777208;
+    return Integer.MAX_VALUE;
   }
 
   public int getMaxColumnNameLength() {
@@ -1756,7 +1727,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getMaxColumnsInSelect() {
-    return 256;
+    return Short.MAX_VALUE;
   }
 
   public int getMaxColumnsInTable() {
@@ -1776,7 +1747,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getMaxSchemaNameLength() {
-    return 32;
+    return 0;
   }
 
   public int getMaxProcedureNameLength() {
@@ -1812,7 +1783,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getMaxUserNameLength() {
-    return 16;
+    return 0;
   }
 
   public int getDefaultTransactionIsolation() {
@@ -1914,7 +1885,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     String sql =
         "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
-            + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3,"
+            + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3, ROUTINE_COMMENT REMARKS,"
             + " CASE ROUTINE_TYPE "
             + "  WHEN 'FUNCTION' THEN "
             + procedureReturnsResult
@@ -1923,7 +1894,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "  ELSE "
             + procedureResultUnknown
             + " END PROCEDURE_TYPE,"
-            + " ROUTINE_COMMENT REMARKS, SPECIFIC_NAME "
+            + " SPECIFIC_NAME "
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
@@ -2053,18 +2024,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "DATA_TYPE TYPE_NAME,"
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                : "10")
+            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'timestamp' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
@@ -2072,31 +2037,23 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " END `PRECISION`,"
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                : "10")
+            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + "  WHEN 'timestamp' THEN "
-            + (datePrecisionColumnExist
-                ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                : "19")
+            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
             + "), NUMERIC_PRECISION) "
             + " END `LENGTH`,"
-            + (datePrecisionColumnExist
-                ? " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-                    + "  ELSE NUMERIC_SCALE "
-                    + " END `SCALE`,"
-                : " NUMERIC_SCALE `SCALE`,")
+            + " CASE DATA_TYPE"
+            + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
+            + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
+            + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
+            + "  ELSE NUMERIC_SCALE "
+            + " END `SCALE`,"
             + "10 RADIX,"
             + procedureNullableUnknown
             + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
@@ -2109,15 +2066,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
             + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
 
-    try {
-      return executeQuery(sql);
-    } catch (SQLException sqlException) {
-      if (sqlException.getMessage().contains("Unknown column 'DATETIME_PRECISION'")) {
-        datePrecisionColumnExist = false;
-        return getProcedureColumns(catalog, schemaPattern, procedureNamePattern, columnNamePattern);
-      }
-      throw sqlException;
-    }
+    return executeQuery(sql);
   }
 
   /**
@@ -3300,7 +3249,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getIndexInfo(
       String catalog, String schema, String table, boolean unique, boolean approximate)
       throws SQLException {
-
+    if (table == null) {
+      throw new SQLException("'table' parameter must not be null");
+    }
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
             + " TABLE_SCHEMA INDEX_QUALIFIER, INDEX_NAME, "
@@ -3669,7 +3620,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   @Override
   public int getSQLStateType() {
-    return sqlStateSQL;
+    return sqlStateSQL99;
   }
 
   public boolean locatorsUpdateCopy() {
@@ -3799,12 +3750,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  public <T> T unwrap(final Class<T> iface) {
-    return null;
+  @Override
+  public <T> T unwrap(Class<T> iface) throws SQLException {
+    if (isWrapperFor(iface)) {
+      return iface.cast(this);
+    }
+    throw new SQLException("The receiver is not a wrapper for " + iface.getName());
   }
 
-  public boolean isWrapperFor(final Class<?> iface) {
-    return false;
+  @Override
+  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+    return iface.isInstance(this);
   }
 
   @Override
@@ -3818,20 +3774,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public static class Identifier {
-
     public String schema;
     public String name;
-
-    /**
-     * Identifier string value.
-     *
-     * @return the datas.
-     */
-    public String toString() {
-      if (schema != null) {
-        return schema + "." + name;
-      }
-      return name;
-    }
   }
 }

@@ -14,15 +14,15 @@ public class Loggers {
     LoggerFactory loggerFactory;
     try {
       loggerFactory = new Slf4JLoggerFactory();
-      loggerFactory.getLogger(name).debug("Using Slf4j logging framework");
+      loggerFactory.getLogger(name);
     } catch (Throwable t) {
       // default to console or use JDK logger if explicitly set by System property
       if ("JDK".equalsIgnoreCase(System.getProperty(FALLBACK_PROPERTY))) {
         loggerFactory = new JdkLoggerFactory();
-        loggerFactory.getLogger(name).debug("Using JDK logging framework");
+        loggerFactory.getLogger(name);
       } else {
         loggerFactory = new ConsoleLoggerFactory();
-        loggerFactory.getLogger(name).debug("Using Console logging");
+        loggerFactory.getLogger(name);
       }
     }
     LOGGER_FACTORY = loggerFactory;

@@ -34,10 +34,11 @@ import org.mariadb.jdbc.Statement;
 public class DatabaseMetadataTest extends Common {
 
   @AfterAll
-  public static void after2() throws SQLException {
+  public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision");
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision2");
+    stmt.execute("DROP PROCEDURE IF EXISTS testMetaCatalog");
     stmt.execute("DROP TABLE IF EXISTS dbpk_test");
     stmt.execute("DROP TABLE IF EXISTS datetime_test");
     stmt.execute("DROP TABLE IF EXISTS manycols");
@@ -53,10 +54,12 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists cross3");
     stmt.execute("drop table if exists cross2");
     stmt.execute("drop table if exists cross1");
+    stmt.execute("drop table if exists get_index_info");
   }
 
   @BeforeAll
   public static void initClass() throws SQLException {
+    drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS getTimePrecision("
@@ -67,7 +70,8 @@ public class DatabaseMetadataTest extends Common {
             + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
             + "t5 time(0),"
             + "t6 time(6))");
-
+    stmt.execute(
+        "CREATE PROCEDURE testMetaCatalog(x int, out y int) COMMENT 'comments' \nBEGIN\nSELECT 1;end\n");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS dbpk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
             + "id2)) engine=innodb");
@@ -131,6 +135,15 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute(
         "create table getBestRowIdentifier2(id_ref0 int not null, "
             + "id_ref1 int, id_ref2 int not null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
+    stmt.execute(
+        "CREATE TABLE IF NOT EXISTS get_index_info(\n"
+            + "    no INT NOT NULL AUTO_INCREMENT,\n"
+            + "    product_category INT NOT NULL,\n"
+            + "    product_id INT NOT NULL,\n"
+            + "    customer_id INT NOT NULL,\n"
+            + "    PRIMARY KEY(no),\n"
+            + "    INDEX ind_prod (product_category, product_id),\n"
+            + "    INDEX ind_cust (customer_id))");
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -141,8 +154,8 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void primaryKeysTest() throws SQLException {
-    DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs = dbmd.getPrimaryKeys("testj", null, "dbpk_test");
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    ResultSet rs = meta.getPrimaryKeys("testj", null, "dbpk_test");
     int counter = 0;
     while (rs.next()) {
       counter++;
@@ -193,11 +206,11 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void functionColumns() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    DatabaseMetaData md = sharedConn.getMetaData();
+    DatabaseMetaData meta = sharedConn.getMetaData();
 
-    if (md.getDatabaseMajorVersion() < 5) {
+    if (meta.getDatabaseMajorVersion() < 5) {
       return;
-    } else if (md.getDatabaseMajorVersion() == 5 && md.getDatabaseMinorVersion() < 5) {
+    } else if (meta.getDatabaseMajorVersion() == 5 && meta.getDatabaseMinorVersion() < 5) {
       return;
     }
 
@@ -205,7 +218,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute(
         "CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  "
             + "RETURN CONCAT('Hello, ',s,'!')");
-    ResultSet rs = sharedConn.getMetaData().getFunctionColumns(null, null, "hello", null);
+    ResultSet rs = meta.getFunctionColumns(null, null, "hello", null);
 
     assertTrue(rs.next());
     /* First row is for return value */
@@ -238,7 +251,10 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
     java.sql.Statement st = sharedConn.createStatement();
 
-    st.execute("DROP TABLE IF EXISTS product_order");
+    st.execute("DROP TABLE IF EXISTS product_order1");
+    st.execute("DROP TABLE IF EXISTS product_order2");
+    st.execute("DROP TABLE IF EXISTS product_order3");
+    st.execute("DROP TABLE IF EXISTS product_order4");
     st.execute("DROP TABLE IF EXISTS t1.product ");
     st.execute("DROP TABLE IF EXISTS `cus``tomer`");
     st.execute("DROP DATABASE IF EXISTS test1");
@@ -252,7 +268,7 @@ public class DatabaseMetadataTest extends Common {
     st.execute("CREATE TABLE `cus``tomer` (id INT NOT NULL, PRIMARY KEY (id))   ENGINE=INNODB");
 
     st.execute(
-        "CREATE TABLE product_order (\n"
+        "CREATE TABLE product_order1 (\n"
             + "    no INT NOT NULL AUTO_INCREMENT,\n"
             + "    product_category INT NOT NULL,\n"
             + "    product_id INT NOT NULL,\n"
@@ -262,19 +278,47 @@ public class DatabaseMetadataTest extends Common {
             + "    INDEX (customer_id),\n"
             + "    FOREIGN KEY (product_category, product_id)\n"
             + "      REFERENCES t1.product(category, id)\n"
-            + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
+            + "      ON UPDATE CASCADE ON DELETE CASCADE,\n"
             + "    FOREIGN KEY (customer_id)\n"
             + "      REFERENCES `cus``tomer`(id)\n"
-            + ")   ENGINE=INNODB;");
+            + ")   ENGINE=INNODB");
 
+    st.execute(
+        "CREATE TABLE product_order2 (\n"
+            + "    no INT NOT NULL,\n"
+            + "    customer_id INT,\n"
+            + "    FOREIGN KEY (customer_id)\n"
+            + "      REFERENCES `cus``tomer`(id)\n"
+            + "      ON UPDATE RESTRICT ON DELETE RESTRICT)");
+
+    st.execute(
+        "CREATE TABLE product_order3 (\n"
+            + "    no INT NOT NULL,\n"
+            + "    customer_id INT,\n"
+            + "    FOREIGN KEY (customer_id)\n"
+            + "      REFERENCES `cus``tomer`(id)\n"
+            + "      ON UPDATE SET NULL ON DELETE SET NULL)");
+
+    st.execute(
+        "CREATE TABLE product_order4 (\n"
+            + "    no INT NOT NULL,\n"
+            + "    customer_id INT,\n"
+            + "    FOREIGN KEY (customer_id)\n"
+            + "      REFERENCES `cus``tomer`(id)\n"
+            + "      ON UPDATE NO ACTION ON DELETE NO ACTION)");
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> sharedConn.getMetaData().getImportedKeys("testj", null, null),
+        "'table' parameter in getImportedKeys cannot be null");
     /*
     Test that I_S implementation is equivalent to parsing "show create table" .
      Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
     */
     ResultSet rs1 =
-        sharedConn.getMetaData().getImportedKeysUsingShowCreateTable("testj", "product_order");
+        sharedConn.getMetaData().getImportedKeysUsingShowCreateTable("testj", "product_order1");
     ResultSet rs2 =
-        sharedConn.getMetaData().getImportedKeysUsingInformationSchema("testj", "product_order");
+        sharedConn.getMetaData().getImportedKeysUsingInformationSchema("testj", "product_order1");
     assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
     for (int i = 0; i < 2; i++) {
       ResultSet rs = i == 0 ? rs1 : rs2;
@@ -286,12 +330,12 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("category", rs.getString("PKCOLUMN_NAME"));
       assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
       assertEquals(null, rs.getString("FKTABLE_SCHEM"));
-      assertEquals("product_order", rs.getString("FKTABLE_NAME"));
+      assertEquals("product_order1", rs.getString("FKTABLE_NAME"));
       assertEquals("product_category", rs.getString("FKCOLUMN_NAME"));
       assertEquals(1, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
+      assertEquals("product_order1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
       assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -303,12 +347,12 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("id", rs.getString("PKCOLUMN_NAME"));
       assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
       assertEquals(null, rs.getString("FKTABLE_SCHEM"));
-      assertEquals("product_order", rs.getString("FKTABLE_NAME"));
+      assertEquals("product_order1", rs.getString("FKTABLE_NAME"));
       assertEquals("product_id", rs.getString("FKCOLUMN_NAME"));
       assertEquals(2, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
-      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
+      assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
+      assertEquals("product_order1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
       assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -320,12 +364,12 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("id", rs.getString("PKCOLUMN_NAME"));
       assertEquals(sharedConn.getCatalog(), rs.getString("FKTABLE_CAT"));
       assertEquals(null, rs.getString("FKTABLE_SCHEM"));
-      assertEquals("product_order", rs.getString("FKTABLE_NAME"));
+      assertEquals("product_order1", rs.getString("FKTABLE_NAME"));
       assertEquals("customer_id", rs.getString("FKCOLUMN_NAME"));
       assertEquals(1, rs.getInt("KEY_SEQ"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
-      assertEquals("product_order_ibfk_2", rs.getString("FK_NAME"));
+      assertEquals("product_order1_ibfk_2", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
       assertEquals((i == 0) ? null : "PRIMARY", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
@@ -337,7 +381,41 @@ public class DatabaseMetadataTest extends Common {
     for (int i = 1; i <= md1.getColumnCount(); i++) {
       assertEquals(md1.getColumnLabel(i), md2.getColumnLabel(i));
     }
-    st.execute("DROP TABLE IF EXISTS product_order");
+
+    rs1 = sharedConn.getMetaData().getImportedKeysUsingShowCreateTable("testj", "product_order2");
+    rs2 = sharedConn.getMetaData().getImportedKeysUsingInformationSchema("testj", "product_order2");
+    assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
+    for (int i = 0; i < 2; i++) {
+      ResultSet rs = i == 0 ? rs1 : rs2;
+      assertTrue(rs.next());
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
+    }
+
+    rs1 = sharedConn.getMetaData().getImportedKeysUsingShowCreateTable("testj", "product_order3");
+    rs2 = sharedConn.getMetaData().getImportedKeysUsingInformationSchema("testj", "product_order3");
+    assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
+    for (int i = 0; i < 2; i++) {
+      ResultSet rs = i == 0 ? rs1 : rs2;
+      assertTrue(rs.next());
+      assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("DELETE_RULE"));
+    }
+
+    rs1 = sharedConn.getMetaData().getImportedKeysUsingShowCreateTable("testj", "product_order4");
+    rs2 = sharedConn.getMetaData().getImportedKeysUsingInformationSchema("testj", "product_order4");
+    assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
+    for (int i = 0; i < 2; i++) {
+      ResultSet rs = i == 0 ? rs1 : rs2;
+      assertTrue(rs.next());
+      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
+    }
+
+    st.execute("DROP TABLE IF EXISTS product_order1");
+    st.execute("DROP TABLE IF EXISTS product_order2");
+    st.execute("DROP TABLE IF EXISTS product_order3");
+    st.execute("DROP TABLE IF EXISTS product_order4");
     st.execute("DROP TABLE IF EXISTS t1.product ");
     st.execute("DROP TABLE IF EXISTS `cus``tomer`");
     st.execute("DROP DATABASE IF EXISTS test1");
@@ -664,6 +742,32 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(rs.next());
   }
 
+  @Test
+  public void testGetColumnstinyInt1isBit() throws SQLException {
+    try (Connection con = createCon("tinyInt1isBit=false")) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("CREATE TABLE IF NOT EXISTS tinyInt1isBitCols(id1 tinyint(1), id2 tinyint(2))");
+      DatabaseMetaData dbmd = sharedConn.getMetaData();
+      ResultSet rs = dbmd.getColumns(null, null, "tinyInt1isBitCols", null);
+
+      assertTrue(rs.next());
+      assertEquals(Types.BIT, rs.getInt(5));
+      assertTrue(rs.next());
+      assertEquals(Types.TINYINT, rs.getInt(5));
+
+      dbmd = con.getMetaData();
+      rs = dbmd.getColumns(null, null, "tinyInt1isBitCols", null);
+
+      assertTrue(rs.next());
+      assertEquals(Types.TINYINT, rs.getInt(5));
+      assertTrue(rs.next());
+      assertEquals(Types.TINYINT, rs.getInt(5));
+
+    } finally {
+      sharedConn.createStatement().execute("DROP TABLE IF EXISTS tinyInt1isBitCols");
+    }
+  }
+
   private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
     ResultSetMetaData rsmd = rs.getMetaData();
     String[] tokens = spec.split(",");
@@ -742,6 +846,16 @@ public class DatabaseMetadataTest extends Common {
           break;
       }
     }
+  }
+
+  @Test
+  public void getSchemas() throws SQLException {
+    DatabaseMetaData dbmd = sharedConn.getMetaData();
+    ResultSet rs = dbmd.getSchemas();
+    assertFalse(rs.next());
+
+    rs = dbmd.getSchemas("*", "*");
+    assertFalse(rs.next());
   }
 
   @Test
@@ -838,13 +952,18 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getBestRowIdentifier() throws SQLException {
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    assertThrowsContains(
+        SQLException.class,
+        () -> meta.getBestRowIdentifier(null, null, null, 0, true),
+        "'table' parameter cannot be null in getBestRowIdentifier()");
     testResultSetColumns(
-        sharedConn.getMetaData().getBestRowIdentifier(null, null, "", 0, true),
+        meta.getBestRowIdentifier(null, null, "", 0, true),
         "SCOPE short,COLUMN_NAME String,DATA_TYPE int, TYPE_NAME String,"
             + "COLUMN_SIZE int,BUFFER_LENGTH int,"
             + "DECIMAL_DIGITS short,PSEUDO_COLUMN short");
 
-    ResultSet rs = sharedConn.getMetaData().getBestRowIdentifier(null, null, "cross1", 0, true);
+    ResultSet rs = meta.getBestRowIdentifier(null, null, "cross1", 0, true);
     assertTrue(rs.next());
 
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
@@ -857,7 +976,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
     assertFalse(rs.next());
 
-    rs = sharedConn.getMetaData().getBestRowIdentifier(null, null, "cross2", 0, true);
+    rs = meta.getBestRowIdentifier(null, null, "cross2", 0, true);
     assertTrue(rs.next());
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
     assertEquals("id", rs.getString(2));
@@ -878,7 +997,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
     assertFalse(rs.next());
 
-    rs = sharedConn.getMetaData().getBestRowIdentifier(null, null, "cross3", 0, true);
+    rs = meta.getBestRowIdentifier(null, null, "cross3", 0, true);
     assertTrue(rs.next());
 
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
@@ -893,8 +1012,7 @@ public class DatabaseMetadataTest extends Common {
 
     // CHECK using PRI even if exist UNI
 
-    rs =
-        sharedConn.getMetaData().getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
+    rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier1", 0, true);
     assertTrue(rs.next());
 
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
@@ -907,8 +1025,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowNotPseudo, rs.getInt(8));
     assertFalse(rs.next());
 
-    rs =
-        sharedConn.getMetaData().getBestRowIdentifier(null, null, "getBestRowIdentifier2", 0, true);
+    rs = meta.getBestRowIdentifier(null, null, "getBestRowIdentifier2", 0, true);
     assertTrue(rs.next());
     assertEquals(org.mariadb.jdbc.DatabaseMetaData.bestRowSession, rs.getInt(1));
     assertEquals("id_ref0", rs.getString(2));
@@ -1019,6 +1136,10 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
+        "'table' parameter must not be null");
     testResultSetColumns(
         sharedConn.getMetaData().getColumnPrivileges(null, null, "", null),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
@@ -1537,5 +1658,269 @@ public class DatabaseMetadataTest extends Common {
   public void various() throws SQLException {
     org.mariadb.jdbc.DatabaseMetaData meta = sharedConn.getMetaData();
     assertEquals(64, meta.getMaxProcedureNameLength());
+  }
+
+  @Test
+  public void getIndexInfo() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    DatabaseMetaData meta = sharedConn.getMetaData();
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> meta.getIndexInfo(null, null, null, true, true),
+        "'table' parameter must not be null");
+
+    ResultSet rs = meta.getIndexInfo(null, null, "get_index_info", false, true);
+    rs.next();
+    assertEquals(sharedConn.getCatalog(), rs.getString(1));
+    assertNull(rs.getString(2));
+    assertEquals("get_index_info", rs.getString(3));
+    assertFalse(rs.getBoolean(4));
+    assertEquals(sharedConn.getCatalog(), rs.getString(5));
+    assertEquals("PRIMARY", rs.getString(6));
+    assertEquals(DatabaseMetaData.tableIndexOther, rs.getShort(7));
+    assertEquals(1, rs.getShort(8));
+    assertEquals("no", rs.getString(9));
+    assertEquals("A", rs.getString(10));
+    assertEquals(0l, rs.getLong(11));
+    assertNull(rs.getString(12));
+    assertNull(rs.getString(13));
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString(1));
+    assertNull(rs.getString(2));
+    assertEquals("get_index_info", rs.getString(3));
+    assertTrue(rs.getBoolean(4));
+    assertEquals(sharedConn.getCatalog(), rs.getString(5));
+    assertEquals("ind_cust", rs.getString(6));
+    assertEquals(DatabaseMetaData.tableIndexOther, rs.getShort(7));
+    assertEquals(1, rs.getShort(8));
+    assertEquals("customer_id", rs.getString(9));
+    assertEquals("A", rs.getString(10));
+    assertEquals(0l, rs.getLong(11));
+    assertNull(rs.getString(12));
+    assertNull(rs.getString(13));
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString(1));
+    assertNull(rs.getString(2));
+    assertEquals("get_index_info", rs.getString(3));
+    assertTrue(rs.getBoolean(4));
+    assertEquals(sharedConn.getCatalog(), rs.getString(5));
+    assertEquals("ind_prod", rs.getString(6));
+    assertEquals(DatabaseMetaData.tableIndexOther, rs.getShort(7));
+    assertEquals(1, rs.getShort(8));
+    assertEquals("product_category", rs.getString(9));
+    assertEquals("A", rs.getString(10));
+    assertEquals(0l, rs.getLong(11));
+    assertNull(rs.getString(12));
+    assertNull(rs.getString(13));
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString(1));
+    assertNull(rs.getString(2));
+    assertEquals("get_index_info", rs.getString(3));
+    assertTrue(rs.getBoolean(4));
+    assertEquals(sharedConn.getCatalog(), rs.getString(5));
+    assertEquals("ind_prod", rs.getString(6));
+    assertEquals(DatabaseMetaData.tableIndexOther, rs.getShort(7));
+    assertEquals(2, rs.getShort(8));
+    assertEquals("product_id", rs.getString(9));
+    assertEquals("A", rs.getString(10));
+    assertEquals(0l, rs.getLong(11));
+    assertNull(rs.getString(12));
+    assertNull(rs.getString(13));
+  }
+
+  @Test
+  public void getPseudoColumns() throws SQLException {
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    ResultSet rs = meta.getPseudoColumns(null, null, null, null);
+    assertFalse(rs.next());
+  }
+
+  @Test
+  public void constantTest() throws SQLException {
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    assertFalse(meta.othersUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    assertFalse(meta.othersDeletesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    assertFalse(meta.othersInsertsAreVisible(ResultSet.TYPE_FORWARD_ONLY));
+    assertFalse(meta.updatesAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    assertFalse(meta.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    assertFalse(meta.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY));
+    assertTrue(meta.supportsBatchUpdates());
+    assertEquals(sharedConn, sharedConn.getConnection());
+
+    assertTrue(meta.supportsSavepoints());
+    assertFalse(meta.supportsNamedParameters());
+    assertFalse(meta.supportsMultipleOpenResults());
+    assertTrue(meta.supportsGetGeneratedKeys());
+    assertTrue(meta.supportsResultSetHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT));
+    assertFalse(meta.supportsResultSetHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT));
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, meta.getResultSetHoldability());
+    assertTrue(meta.getDatabaseMajorVersion() >= 5);
+    assertTrue(meta.getDatabaseMinorVersion() >= 0);
+    assertEquals(4, meta.getJDBCMajorVersion());
+    assertEquals(2, meta.getJDBCMinorVersion());
+    assertEquals(DatabaseMetaData.sqlStateSQL99, meta.getSQLStateType());
+    assertFalse(meta.locatorsUpdateCopy());
+    assertFalse(meta.supportsStatementPooling());
+    assertEquals(RowIdLifetime.ROWID_UNSUPPORTED, meta.getRowIdLifetime());
+    assertTrue(meta.supportsStoredFunctionsUsingCallSyntax());
+    assertFalse(meta.autoCommitFailureClosesAllResultSets());
+
+    meta.unwrap(java.sql.DatabaseMetaData.class);
+    assertThrowsContains(
+        SQLException.class,
+        () -> meta.unwrap(String.class),
+        "The receiver is not a wrapper for java.lang.String");
+
+    assertEquals(4294967295L, meta.getMaxLogicalLobSize());
+    assertFalse(meta.supportsRefCursors());
+    assertTrue(meta.supportsGetGeneratedKeys());
+    assertTrue(meta.generatedKeyAlwaysReturned());
+    assertTrue(meta.allProceduresAreCallable());
+    assertTrue(meta.allTablesAreSelectable());
+    assertNotNull(meta.getURL());
+    assertNotNull(meta.getUserName());
+    assertFalse(meta.isReadOnly());
+    assertFalse(meta.nullsAreSortedHigh());
+    assertTrue(meta.nullsAreSortedLow());
+    assertFalse(meta.nullsAreSortedAtStart());
+    assertTrue(meta.nullsAreSortedAtEnd());
+    assertEquals(isMariaDBServer() ? "MariaDB" : "MySQL", meta.getDatabaseProductName());
+    assertEquals("MariaDB Connector/J", meta.getDriverName());
+    assertTrue(meta.getDriverVersion().startsWith("3."));
+    assertTrue(meta.getDriverMajorVersion() >= 0);
+    assertTrue(meta.getDriverMinorVersion() >= 0);
+    assertFalse(meta.usesLocalFiles());
+    assertFalse(meta.usesLocalFilePerTable());
+    assertEquals(meta.supportsMixedCaseIdentifiers(), meta.supportsMixedCaseQuotedIdentifiers());
+    assertEquals(meta.storesUpperCaseIdentifiers(), meta.storesUpperCaseQuotedIdentifiers());
+    assertEquals(meta.storesLowerCaseIdentifiers(), meta.storesLowerCaseQuotedIdentifiers());
+    assertEquals(meta.storesMixedCaseIdentifiers(), meta.storesMixedCaseQuotedIdentifiers());
+    assertEquals("`", meta.getIdentifierQuoteString());
+    assertNotNull(meta.getSQLKeywords());
+    assertNotNull(meta.getNumericFunctions());
+    assertNotNull(meta.getStringFunctions());
+    assertNotNull(meta.getSystemFunctions());
+    assertNotNull(meta.getTimeDateFunctions());
+    assertEquals("\\", meta.getSearchStringEscape());
+    assertEquals("#@", meta.getExtraNameCharacters());
+    assertTrue(meta.supportsAlterTableWithAddColumn());
+    assertTrue(meta.supportsAlterTableWithDropColumn());
+    assertTrue(meta.supportsColumnAliasing());
+    assertTrue(meta.supportsConvert());
+    assertTrue(meta.supportsAlterTableWithAddColumn());
+    assertTrue(meta.supportsConvert(Types.INTEGER, Types.REAL));
+    assertTrue(meta.supportsTableCorrelationNames());
+    assertTrue(meta.supportsDifferentTableCorrelationNames());
+    assertTrue(meta.supportsExpressionsInOrderBy());
+    assertTrue(meta.supportsOrderByUnrelated());
+    assertTrue(meta.supportsGroupBy());
+    assertTrue(meta.supportsGroupByUnrelated());
+    assertTrue(meta.supportsGroupByBeyondSelect());
+    assertTrue(meta.supportsLikeEscapeClause());
+    assertTrue(meta.supportsMultipleResultSets());
+    assertTrue(meta.supportsMultipleTransactions());
+    assertTrue(meta.supportsNonNullableColumns());
+    assertTrue(meta.supportsMinimumSQLGrammar());
+    assertTrue(meta.supportsCoreSQLGrammar());
+    assertTrue(meta.supportsExtendedSQLGrammar());
+    assertTrue(meta.supportsANSI92EntryLevelSQL());
+    assertTrue(meta.supportsANSI92FullSQL());
+    assertTrue(meta.supportsIntegrityEnhancementFacility());
+    assertTrue(meta.supportsOuterJoins());
+    assertTrue(meta.supportsFullOuterJoins());
+    assertTrue(meta.supportsLimitedOuterJoins());
+    assertEquals("schema", meta.getSchemaTerm());
+    assertEquals("procedure", meta.getProcedureTerm());
+    assertEquals("database", meta.getCatalogTerm());
+    assertTrue(meta.isCatalogAtStart());
+    assertEquals(".", meta.getCatalogSeparator());
+    assertFalse(meta.supportsSchemasInDataManipulation());
+    assertFalse(meta.supportsSchemasInProcedureCalls());
+    assertFalse(meta.supportsSchemasInTableDefinitions());
+    assertFalse(meta.supportsSchemasInIndexDefinitions());
+    assertFalse(meta.supportsSchemasInPrivilegeDefinitions());
+    assertTrue(meta.supportsCatalogsInDataManipulation());
+    assertTrue(meta.supportsCatalogsInProcedureCalls());
+    assertTrue(meta.supportsCatalogsInTableDefinitions());
+    assertTrue(meta.supportsCatalogsInIndexDefinitions());
+    assertTrue(meta.supportsCatalogsInPrivilegeDefinitions());
+    assertFalse(meta.supportsPositionedDelete());
+    assertFalse(meta.supportsPositionedUpdate());
+    assertTrue(meta.supportsSelectForUpdate());
+    assertTrue(meta.supportsStoredProcedures());
+    assertTrue(meta.supportsSubqueriesInComparisons());
+    assertTrue(meta.supportsSubqueriesInIns());
+    assertTrue(meta.supportsSubqueriesInComparisons());
+    assertTrue(meta.supportsSubqueriesInQuantifieds());
+    assertTrue(meta.supportsCorrelatedSubqueries());
+    assertTrue(meta.supportsUnion());
+    assertTrue(meta.supportsUnionAll());
+    assertTrue(meta.supportsOpenCursorsAcrossCommit());
+    assertTrue(meta.supportsOpenCursorsAcrossRollback());
+    assertTrue(meta.supportsOpenStatementsAcrossCommit());
+    assertTrue(meta.supportsOpenStatementsAcrossRollback());
+    assertEquals(Integer.MAX_VALUE, meta.getMaxBinaryLiteralLength());
+    assertEquals(Integer.MAX_VALUE, meta.getMaxCharLiteralLength());
+    assertEquals(64, meta.getMaxColumnNameLength());
+    assertEquals(64, meta.getMaxColumnsInGroupBy());
+    assertEquals(16, meta.getMaxColumnsInIndex());
+    assertEquals(64, meta.getMaxColumnsInOrderBy());
+    assertEquals(Short.MAX_VALUE, meta.getMaxColumnsInSelect());
+    assertEquals(0, meta.getMaxColumnsInTable());
+    assertEquals(0, meta.getMaxConnections());
+    assertEquals(0, meta.getMaxCursorNameLength());
+    assertEquals(256, meta.getMaxIndexLength());
+    assertEquals(0, meta.getMaxSchemaNameLength());
+    assertEquals(64, meta.getMaxProcedureNameLength());
+    assertEquals(0, meta.getMaxCatalogNameLength());
+    assertEquals(0, meta.getMaxRowSize());
+    assertFalse(meta.doesMaxRowSizeIncludeBlobs());
+    assertEquals(0, meta.getMaxStatementLength());
+    assertEquals(0, meta.getMaxStatements());
+    assertEquals(64, meta.getMaxTableNameLength());
+    assertEquals(256, meta.getMaxTablesInSelect());
+    assertEquals(0, meta.getMaxUserNameLength());
+    assertEquals(Connection.TRANSACTION_REPEATABLE_READ, meta.getDefaultTransactionIsolation());
+    assertTrue(meta.supportsTransactions());
+    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
+    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED));
+    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ));
+    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE));
+    assertTrue(meta.supportsDataDefinitionAndDataManipulationTransactions());
+    assertFalse(meta.supportsDataManipulationTransactionsOnly());
+    assertTrue(meta.dataDefinitionCausesTransactionCommit());
+    assertFalse(meta.dataDefinitionIgnoredInTransactions());
+  }
+
+  @Test
+  public void testMetaCatalog() throws Exception {
+    DatabaseMetaData meta = sharedConn.getMetaData();
+    ResultSet rs = meta.getProcedures(sharedConn.getCatalog(), null, "testMetaCatalog");
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString(1));
+    assertNull(rs.getString(2));
+    assertEquals("testMetaCatalog", rs.getString(3));
+    assertNull(rs.getString(4));
+    assertNull(rs.getString(5));
+    assertNull(rs.getString(6));
+    assertEquals("comments", rs.getString(7));
+    assertEquals(DatabaseMetaData.procedureNoResult, rs.getInt(8));
+    assertEquals("testMetaCatalog", rs.getString(9));
+    assertFalse(rs.next());
+
+    // test with bad catalog
+    rs = meta.getProcedures("yahoooo", null, "testMetaCatalog");
+    assertFalse(rs.next());
+
+    // test without catalog
+    rs = meta.getProcedures(null, null, "testMetaCatalog");
+    assertTrue(rs.next());
+    assertTrue("testMetaCatalog".equals(rs.getString(3)));
+    assertFalse(rs.next());
   }
 }

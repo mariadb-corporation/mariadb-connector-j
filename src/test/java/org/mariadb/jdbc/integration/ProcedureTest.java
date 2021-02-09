@@ -91,7 +91,7 @@ public class ProcedureTest extends Common {
         "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT, OUT t5 VARCHAR(20), OUT t6 TIMESTAMP, OUT t7 blob) BEGIN \n"
             + "set t3 = t1 * t4;\n"
             + "set t2 = t2 * t1;\n"
-            + "set t5 = 'test';\n"
+            + "set t5 = 'http://test';\n"
             + "set t6 = TIMESTAMP('2003-12-31 12:00:00');\n"
             + "set t7 = 'test';\n"
             + "END");
@@ -220,17 +220,25 @@ public class ProcedureTest extends Common {
     assertEquals(6L, callableStatement.getObject(2, (Map<String, Class<?>>) null));
     assertEquals(6L, callableStatement.getObject(2, new HashMap<>()));
     assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBlob(7).getBytes(1, 4));
-    assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBytes(5));
-    assertEquals("test", callableStatement.getClob(5).toString());
-    assertEquals("test", callableStatement.getNClob(5).toString());
+    assertArrayEquals(
+        new byte[] {104, 116, 116, 112, 58, 47, 47, 116, 101, 115, 116},
+        callableStatement.getBytes(5));
+    assertEquals("http://test", callableStatement.getClob(5).toString());
+    assertEquals("http://test", callableStatement.getNClob(5).toString());
+    assertEquals("http://test", callableStatement.getURL(5).toString());
+
     assertEquals("2003-12-31 12:00:00.0", callableStatement.getTimestamp(6).toString());
+    assertEquals(
+        "2003-12-31 12:00:00.0",
+        callableStatement.getTimestamp(6, Calendar.getInstance()).toString());
     assertEquals("12:00:00", callableStatement.getTime(6).toString());
+    assertEquals("12:00:00", callableStatement.getTime(6, Calendar.getInstance()).toString());
     assertEquals("2003-12-31", callableStatement.getDate(6).toString());
     char[] res = new char[4];
     callableStatement.getCharacterStream(5).read(res);
-    assertEquals("test", new String(res));
+    assertEquals("http", new String(res));
     callableStatement.getNCharacterStream(5).read(res);
-    assertEquals("test", new String(res));
+    assertEquals("http", new String(res));
 
     assertThrowsContains(
         SQLException.class,
@@ -324,17 +332,23 @@ public class ProcedureTest extends Common {
     assertEquals(6L, callableStatement.getObject("t2", new HashMap<>()));
     assertArrayEquals(
         new byte[] {116, 101, 115, 116}, callableStatement.getBlob("t7").getBytes(1, 4));
-    assertArrayEquals(new byte[] {116, 101, 115, 116}, callableStatement.getBytes("t5"));
-    assertEquals("test", callableStatement.getClob("t5").toString());
-    assertEquals("test", callableStatement.getNClob("t5").toString());
-
+    assertArrayEquals(
+        new byte[] {104, 116, 116, 112, 58, 47, 47, 116, 101, 115, 116},
+        callableStatement.getBytes("t5"));
+    assertEquals("http://test", callableStatement.getClob("t5").toString());
+    assertEquals("http://test", callableStatement.getNClob("t5").toString());
+    assertEquals("http://test", callableStatement.getURL("t5").toString());
     callableStatement.getCharacterStream("t5").read(res);
-    assertEquals("test", new String(res));
+    assertEquals("http", new String(res));
     callableStatement.getNCharacterStream("t5").read(res);
-    assertEquals("test", new String(res));
+    assertEquals("http", new String(res));
 
     assertEquals("2003-12-31 12:00:00.0", callableStatement.getTimestamp("t6").toString());
+    assertEquals(
+        "2003-12-31 12:00:00.0",
+        callableStatement.getTimestamp("t6", Calendar.getInstance()).toString());
     assertEquals("12:00:00", callableStatement.getTime("t6").toString());
+    assertEquals("12:00:00", callableStatement.getTime("t6", Calendar.getInstance()).toString());
     assertEquals("2003-12-31", callableStatement.getDate("t6").toString());
     assertThrowsContains(
         SQLException.class,
