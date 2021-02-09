@@ -104,6 +104,15 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
       differentParameterType(con);
     }
+    try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
+      differentParameterType(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
+      differentParameterType(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
+      differentParameterType(con);
+    }
   }
 
   public void differentParameterType(Connection con) throws SQLException {
@@ -142,6 +151,15 @@ public class BatchTest extends Common {
       largeBatch(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
+      largeBatch(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
+      largeBatch(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
+      largeBatch(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
       largeBatch(con);
     }
   }
@@ -262,6 +280,20 @@ public class BatchTest extends Common {
       batchWithError(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true")) {
+      batchWithError(con);
+    }
+    try (Connection con =
+        createCon("&useServerPrepStmts=false&useBulkStmts=false&allowLocalInfile")) {
+      batchWithError(con);
+    }
+    try (Connection con =
+        createCon("&useServerPrepStmts=false&useBulkStmts=true&allowLocalInfile")) {
+      batchWithError(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
+      batchWithError(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true&allowLocalInfile")) {
       batchWithError(con);
     }
   }

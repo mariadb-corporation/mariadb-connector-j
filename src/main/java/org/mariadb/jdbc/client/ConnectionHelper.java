@@ -175,6 +175,10 @@ public class ConnectionHelper {
       capabilities |= Capabilities.MULTI_STATEMENTS;
     }
 
+    if (configuration.allowLocalInfile()) {
+      capabilities |= Capabilities.LOCAL_FILES;
+    }
+
     if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }

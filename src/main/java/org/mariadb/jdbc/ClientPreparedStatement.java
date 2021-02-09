@@ -93,8 +93,11 @@ public class ClientPreparedStatement extends BasePreparedStatement {
         && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0
         && con.getContext().getConf().useBulkStmts()) {
       return executeBatchBulk();
-    } else {
+    } else if (!con.getContext().getConf().allowLocalInfile()
+        || (serverCapabilities & Capabilities.LOCAL_FILES) == 0) {
       return executeBatchPipeline();
+    } else {
+      return executeBatchStd();
     }
   }
 
@@ -155,6 +158,36 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     } catch (SQLException bue) {
       results = null;
       throw bue;
+    }
+  }
+
+  /**
+   * Send n * (COM_QUERY + read answer)
+   *
+   * @throws SQLException if IOException / Command error
+   */
+  private List<Completion> executeBatchStd() throws SQLException {
+    int i = 0;
+    try {
+      results = new ArrayList<>();
+      for (; i < batchParameters.size(); i++) {
+        results.addAll(
+            con.getClient()
+                .execute(
+                    new QueryWithParametersPacket(preSqlCmd(), parser, batchParameters.get(i)),
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion));
+      }
+      return results;
+    } catch (SQLException bue) {
+      BatchUpdateException exception =
+          exceptionFactory().createBatchUpdate(results, batchParameters.size(), bue);
+      results = null;
+      throw exception;
     }
   }
 

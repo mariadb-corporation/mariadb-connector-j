@@ -101,6 +101,7 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
       int resultSetType,
       boolean closeOnCompletion,
       PacketReader reader,
+      PacketWriter writer,
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,

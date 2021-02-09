@@ -33,6 +33,7 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
+import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -685,7 +686,12 @@ public class Statement implements java.sql.Statement {
     if (batchQueries == null || batchQueries.isEmpty()) return new int[0];
     lock.lock();
     try {
-      List<Completion> res = executeInternalBatch();
+      long serverCapabilities = con.getContext().getServerCapabilities();
+      List<Completion> res =
+          (!con.getContext().getConf().allowLocalInfile()
+                  || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)
+              ? executeInternalBatchPipeline()
+              : executeInternalBatchStandard();
       results = res;
 
       int[] updates = new int[res.size()];
@@ -1404,7 +1410,12 @@ public class Statement implements java.sql.Statement {
 
     lock.lock();
     try {
-      List<Completion> res = executeInternalBatch();
+      long serverCapabilities = con.getContext().getServerCapabilities();
+      List<Completion> res =
+          (!con.getContext().getConf().allowLocalInfile()
+                  || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)
+              ? executeInternalBatchPipeline()
+              : executeInternalBatchStandard();
       results = res;
       long[] updates = new long[res.size()];
       for (int i = 0; i < res.size(); i++) {
@@ -1419,8 +1430,7 @@ public class Statement implements java.sql.Statement {
     }
   }
 
-  public List<Completion> executeInternalBatch() throws SQLException {
-
+  public List<Completion> executeInternalBatchPipeline() throws SQLException {
     QueryPacket[] packets = new QueryPacket[batchQueries.size()];
     for (int i = 0; i < batchQueries.size(); i++) {
       String sql = batchQueries.get(i);
@@ -1435,5 +1445,22 @@ public class Statement implements java.sql.Statement {
             ResultSet.CONCUR_READ_ONLY,
             ResultSet.TYPE_FORWARD_ONLY,
             closeOnCompletion);
+  }
+
+  public List<Completion> executeInternalBatchStandard() throws SQLException {
+    List<Completion> results = new ArrayList<>();
+    for (int i = 0; i < batchQueries.size(); i++) {
+      results.addAll(
+          con.getClient()
+              .execute(
+                  new QueryPacket(batchQueries.get(i)),
+                  this,
+                  0,
+                  0L,
+                  ResultSet.CONCUR_READ_ONLY,
+                  ResultSet.TYPE_FORWARD_ONLY,
+                  closeOnCompletion));
+    }
+    return results;
   }
 }

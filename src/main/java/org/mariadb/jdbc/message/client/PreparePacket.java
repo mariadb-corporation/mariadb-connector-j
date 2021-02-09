@@ -65,6 +65,7 @@ public final class PreparePacket implements ClientMessage {
       int resultSetType,
       boolean closeOnCompletion,
       PacketReader reader,
+      PacketWriter writer,
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,

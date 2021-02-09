@@ -54,7 +54,7 @@ public class ExceptionFactory {
     String deadLockException = null;
     String threadName = null;
 
-    if (threadId != -1L) {
+    if (threadId != 0L) {
       msg.append("(conn=").append(threadId).append(") ");
     }
     msg.append(initialMessage);

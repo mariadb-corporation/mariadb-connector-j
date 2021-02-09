@@ -654,6 +654,7 @@ public class ClientImpl implements Client, AutoCloseable {
               resultSetType,
               closeOnCompletion,
               reader,
+              writer,
               context,
               exceptionFactory,
               lock,

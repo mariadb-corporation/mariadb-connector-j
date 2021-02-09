@@ -21,7 +21,11 @@
 
 package org.mariadb.jdbc.message.client;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -62,6 +66,7 @@ public interface ClientMessage {
       int resultSetType,
       boolean closeOnCompletion,
       PacketReader reader,
+      PacketWriter writer,
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
@@ -89,6 +94,87 @@ public interface ClientMessage {
             .withSql(this.description())
             .create(
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+      case 0xfb:
+        if (!context.getConf().allowLocalInfile()) {
+          writer.writeEmptyPacket();
+          readPacket(
+              stmt,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion,
+              reader,
+              writer,
+              context,
+              exceptionFactory,
+              lock,
+              traceEnable);
+          throw exceptionFactory
+              .withSql(this.description())
+              .create(
+                  "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true");
+        }
+        buf.skip(1); // skip header
+        String fileName = buf.readStringNullEnd();
+        InputStream is;
+        try {
+          URL url = new URL(fileName);
+          is = url.openStream();
+        } catch (IOException ioe) {
+          try {
+            is = new FileInputStream(fileName);
+          } catch (FileNotFoundException f) {
+            writer.writeEmptyPacket();
+            readPacket(
+                stmt,
+                fetchSize,
+                maxRows,
+                resultSetConcurrency,
+                resultSetType,
+                closeOnCompletion,
+                reader,
+                writer,
+                context,
+                exceptionFactory,
+                lock,
+                traceEnable);
+            throw exceptionFactory
+                .withSql(this.description())
+                .create("Could not send file : " + f.getMessage(), "HY000", f);
+          }
+        }
+
+        try {
+
+          byte[] fileBuf = new byte[8192];
+          int len;
+          while ((len = is.read(fileBuf)) > 0) {
+            writer.writeBytes(fileBuf, 0, len);
+            writer.flush();
+          }
+          writer.writeEmptyPacket();
+          return readPacket(
+              stmt,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion,
+              reader,
+              writer,
+              context,
+              exceptionFactory,
+              lock,
+              traceEnable);
+
+        } catch (IOException ioe) {
+          throw exceptionFactory
+              .withSql(this.description())
+              .create("Could not send file : " + ioe.getMessage(), "22000", ioe);
+        } finally {
+          is.close();
+        }
 
         // *********************************************************************************************************
         // * ResultSet

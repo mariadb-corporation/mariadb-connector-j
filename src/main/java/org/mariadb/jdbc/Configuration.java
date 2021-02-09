@@ -104,6 +104,7 @@ public class Configuration implements Cloneable {
 
   // protocol
   private final boolean allowMultiQueries;
+  private final boolean allowLocalInfile;
   private final boolean rewriteBatchedStatements;
   private final boolean useCompression;
   private final boolean useAffectedRows;
@@ -168,6 +169,7 @@ public class Configuration implements Cloneable {
       String localSocketAddress,
       Integer socketTimeout,
       Boolean allowMultiQueries,
+      Boolean allowLocalInfile,
       Boolean rewriteBatchedStatements,
       Boolean useCompression,
       Boolean blankTableNameMeta,
@@ -237,6 +239,7 @@ public class Configuration implements Cloneable {
     this.localSocketAddress = localSocketAddress;
     this.socketTimeout = socketTimeout != null ? socketTimeout : 0;
     this.allowMultiQueries = allowMultiQueries != null ? allowMultiQueries : false;
+    this.allowLocalInfile = allowLocalInfile != null ? allowLocalInfile : false;
     this.rewriteBatchedStatements =
         rewriteBatchedStatements != null ? rewriteBatchedStatements : false;
     this.useCompression = useCompression != null ? useCompression : false;
@@ -606,6 +609,10 @@ public class Configuration implements Cloneable {
     return allowMultiQueries;
   }
 
+  public boolean allowLocalInfile() {
+    return allowLocalInfile;
+  }
+
   public boolean rewriteBatchedStatements() {
     return rewriteBatchedStatements;
   }
@@ -837,6 +844,7 @@ public class Configuration implements Cloneable {
 
     // protocol
     private Boolean allowMultiQueries;
+    private Boolean allowLocalInfile;
     private Boolean rewriteBatchedStatements;
     private Boolean useCompression;
     private Boolean useAffectedRows;
@@ -1038,6 +1046,18 @@ public class Configuration implements Cloneable {
      */
     public Builder allowMultiQueries(Boolean allowMultiQueries) {
       this.allowMultiQueries = allowMultiQueries;
+      return this;
+    }
+
+    /**
+     * Indicate if LOAD DATA LOCAL INFILE are permitted. This will disable all pipelining
+     * implementation.
+     *
+     * @param allowLocalInfile indicate if permit LOAD DATA LOCAL INFILE commands
+     * @return this {@link Builder}
+     */
+    public Builder allowLocalInfile(Boolean allowLocalInfile) {
+      this.allowLocalInfile = allowLocalInfile;
       return this;
     }
 
@@ -1295,6 +1315,7 @@ public class Configuration implements Cloneable {
               this.localSocketAddress,
               this.socketTimeout,
               this.allowMultiQueries,
+              this.allowLocalInfile,
               this.rewriteBatchedStatements,
               this.useCompression,
               this.blankTableNameMeta,
