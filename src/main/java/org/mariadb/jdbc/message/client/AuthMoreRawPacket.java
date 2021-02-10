@@ -39,8 +39,4 @@ public final class AuthMoreRawPacket implements ClientMessage {
     writer.flush();
     return 0;
   }
-
-  public String description() {
-    return "-AuthMoreRawPacket-";
-  }
 }

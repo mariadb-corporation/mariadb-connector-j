@@ -147,11 +147,8 @@ public final class HandshakeResponse implements ClientMessage {
         throw new IllegalStateException(
             "Server cannot required to send password in clear if SSL is not enabled.");
       }
-      if (password == null) {
-        authData = new byte[0];
-      } else {
-        authData = password.toString().getBytes(StandardCharsets.UTF_8);
-      }
+      authData =
+          (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
     } else {
       authenticationPluginType = "mysql_native_password";
       authData = NativePasswordPacket.encrypt(password, seed);
@@ -198,9 +195,5 @@ public final class HandshakeResponse implements ClientMessage {
     }
     writer.flush();
     return 1;
-  }
-
-  public String description() {
-    return "-HandshakeResponse-";
   }
 }

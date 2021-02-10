@@ -140,10 +140,6 @@ else
   # run test suite
   ###################################################################################################################
 
-  if [ -n "$COMPRESSION" ] ; then
-    export TEST_DB_OTHER=$TEST_DB_OTHER$'&useCompression'
-  fi
-
   echo "Running tests for JDK version: $TRAVIS_JDK_VERSION"
   mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}
 

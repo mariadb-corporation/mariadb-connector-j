@@ -49,8 +49,6 @@ matrix:
       jdk: oraclejdk11
     - env: DB=mariadb:10.5 BENCH=true
       jdk: oraclejdk11
-    - env: DB=mariadb:10.5 COMPRESSION=true
-      jdk: oraclejdk11
     - env: DB=mariadb:10.5 PACKET=20M
       jdk: openjdk11
     - env: DB=mariadb:10.5 PACKET=40M

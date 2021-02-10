@@ -834,4 +834,8 @@ public class Connection implements java.sql.Connection, PooledConnection {
       return name;
     }
   }
+
+  public long getThreadId() {
+    return client.getContext().getThreadId();
+  }
 }

@@ -41,8 +41,4 @@ public final class ChangeDbPacket implements RedoableClientMessage {
     writer.flush();
     return 1;
   }
-
-  public String description() {
-    return "ChangeDbPacket{database='" + database + "'}";
-  }
 }

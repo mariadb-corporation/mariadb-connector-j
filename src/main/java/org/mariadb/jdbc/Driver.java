@@ -64,9 +64,7 @@ public final class Driver implements java.sql.Driver {
         break;
 
       default:
-        if (configuration.addresses().size() > 0) {
-          hostAddress = configuration.addresses().get(0);
-        }
+        hostAddress = configuration.addresses().get(0);
         client = new ClientImpl(configuration, hostAddress, false, lock, false);
         break;
     }

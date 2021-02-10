@@ -35,9 +35,4 @@ public final class QuitPacket implements ClientMessage {
     writer.flush();
     return 0;
   }
-
-  @Override
-  public String description() {
-    return "QuitPacket{}";
-  }
 }

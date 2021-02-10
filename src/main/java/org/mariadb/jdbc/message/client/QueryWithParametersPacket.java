@@ -69,6 +69,6 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   @Override
   public String description() {
-    return "QueryWithParametersPacket{sql=" + parser.getSql() + "}";
+    return parser.getSql();
   }
 }

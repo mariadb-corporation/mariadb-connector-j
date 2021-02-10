@@ -50,14 +50,4 @@ public final class SslRequestPacket implements ClientMessage {
     writer.flush();
     return 0;
   }
-
-  @Override
-  public String description() {
-    return "SslRequestPacket{"
-        + "clientCapabilities="
-        + clientCapabilities
-        + ", exchangeCharset="
-        + exchangeCharset
-        + '}';
-  }
 }

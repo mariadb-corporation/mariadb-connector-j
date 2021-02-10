@@ -120,8 +120,4 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
   }
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {}
-
-  public String description() {
-    return "Long data";
-  }
 }

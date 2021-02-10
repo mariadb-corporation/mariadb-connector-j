@@ -45,8 +45,4 @@ public final class ClosePreparePacket implements ClientMessage {
     writer.flush();
     return 0;
   }
-
-  public String description() {
-    return "-ClosePreparePacket-";
-  }
 }

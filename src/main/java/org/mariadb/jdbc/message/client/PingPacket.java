@@ -36,8 +36,4 @@ public final class PingPacket implements ClientMessage {
     writer.flush();
     return 0;
   }
-
-  public String description() {
-    return "-PingPacket-";
-  }
 }

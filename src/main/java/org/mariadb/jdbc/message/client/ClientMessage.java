@@ -52,7 +52,9 @@ public interface ClientMessage {
     return 0;
   }
 
-  String description();
+  default String description() {
+    return null;
+  }
 
   default boolean binaryProtocol() {
     return false;

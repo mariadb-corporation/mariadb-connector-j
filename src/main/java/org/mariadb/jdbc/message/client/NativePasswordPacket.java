@@ -74,8 +74,4 @@ public final class NativePasswordPacket implements ClientMessage {
     writer.flush();
     return 1;
   }
-
-  public String description() {
-    return "-NativePasswordPacket-";
-  }
 }
