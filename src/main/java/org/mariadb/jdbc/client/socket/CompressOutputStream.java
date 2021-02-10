@@ -5,33 +5,72 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 import org.mariadb.jdbc.util.MutableInt;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.LoggerHelper;
+import org.mariadb.jdbc.util.log.Loggers;
 
 public class CompressOutputStream extends OutputStream {
+  private static final Logger logger = Loggers.getLogger(CompressOutputStream.class);
+
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
   private static final float MIN_COMPRESSION_RATIO = 0.9f;
-  private static final int MAX_PACKET_LENGTH = 0x00ffffff;
 
+  private static final int SMALL_BUFFER_SIZE = 8192;
+  private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
+  private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
+  private static final int MAX_PACKET_LENGTH = 0x00ffffff + 7;
+  private int maxPacketLength = MAX_PACKET_LENGTH;
   private final OutputStream out;
   private final MutableInt sequence;
-  private final byte[] header = new byte[7];
+  private byte[] buf = new byte[SMALL_BUFFER_SIZE];
+  private int pos = 7;
 
   public CompressOutputStream(OutputStream out, MutableInt compressionSequence) {
     this.out = out;
     this.sequence = compressionSequence;
   }
 
+  public void setMaxAllowedPacket(int maxAllowedPacket) {
+    maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 7);
+  }
+
   /**
-   * Writes <code>b.length</code> bytes from the specified byte array to this output stream. The
-   * general contract for <code>write(b)</code> is that it should have exactly the same effect as
-   * the call <code>write(b, 0, b.length)</code>.
+   * buf growing use 4 size only to avoid creating/copying that are expensive operations. possible
+   * size
    *
-   * @param b the data.
-   * @throws IOException if an I/O error occurs.
-   * @see OutputStream#write(byte[], int, int)
+   * <ol>
+   *   <li>SMALL_buf_SIZE = 8k (default)
+   *   <li>MEDIUM_buf_SIZE = 128k
+   *   <li>LARGE_buf_SIZE = 1M
+   *   <li>getMaxPacketLength = 16M (+ 4 if using no compression)
+   * </ol>
+   *
+   * @param len length to add
    */
-  @Override
-  public void write(byte[] b) throws IOException {
-    write(b, 0, b.length);
+  private void growBuffer(int len) {
+    int bufLength = buf.length;
+    int newCapacity;
+    if (bufLength == SMALL_BUFFER_SIZE) {
+      if (len + pos < MEDIUM_BUFFER_SIZE) {
+        newCapacity = MEDIUM_BUFFER_SIZE;
+      } else if (len + pos < LARGE_BUFFER_SIZE) {
+        newCapacity = LARGE_BUFFER_SIZE;
+      } else {
+        newCapacity = maxPacketLength;
+      }
+    } else if (bufLength == MEDIUM_BUFFER_SIZE) {
+      if (len + pos < LARGE_BUFFER_SIZE) {
+        newCapacity = LARGE_BUFFER_SIZE;
+      } else {
+        newCapacity = maxPacketLength;
+      }
+    } else {
+      newCapacity = maxPacketLength;
+    }
+
+    byte[] newBuf = new byte[newCapacity];
+    System.arraycopy(buf, 0, newBuf, 0, pos);
+    buf = newBuf;
   }
 
   /**
@@ -59,68 +98,85 @@ public class CompressOutputStream extends OutputStream {
    */
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
-    if (len < MIN_COMPRESSION_SIZE) {
-      // *******************************************************************************
-      // small packet, no compression
-      // *******************************************************************************
+    if (pos + len >= buf.length) growBuffer(len);
+    if (pos + len >= buf.length) {
+      // fill buffer, then flush
+      while (len > buf.length - pos) {
+        int writeLen = buf.length - pos;
+        System.arraycopy(b, off, buf, pos, writeLen);
+        pos += writeLen;
+        writeSocket(false);
+        off += writeLen;
+        len -= writeLen;
+      }
+    }
+    // enough place in buffer.
+    System.arraycopy(b, off, buf, pos, len);
+    pos += len;
+  }
 
-      header[0] = (byte) len;
-      header[1] = (byte) (len >>> 8);
-      header[2] = (byte) (len >>> 16);
-      header[3] = sequence.incrementAndGet();
-      header[4] = 0;
-      header[5] = 0;
-      header[6] = 0;
+  private void writeSocket(boolean end) throws IOException {
+    if (pos > 7) {
+      if (pos < MIN_COMPRESSION_SIZE) {
+        // *******************************************************************************
+        // small packet, no compression
+        // *******************************************************************************
 
-      out.write(header, 0, 7);
-      out.write(b, off, len);
+        buf[0] = (byte) (pos - 7);
+        buf[1] = (byte) ((pos - 7) >>> 8);
+        buf[2] = (byte) ((pos - 7) >>> 16);
+        buf[3] = sequence.incrementAndGet();
+        buf[4] = 0;
+        buf[5] = 0;
+        buf[6] = 0;
 
-    } else {
-      // *******************************************************************************
-      // compressing packet
-      // *******************************************************************************
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-        try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
-          deflater.write(b, off, len);
-          deflater.finish();
+        if (logger.isTraceEnabled()) {
+          logger.trace("send compress: \n{}", LoggerHelper.hex(buf, 0, pos, 1000));
         }
+        out.write(buf, 0, pos);
 
-        byte[] compressedBytes = baos.toByteArray();
+      } else {
 
-        int compressOffset = 0;
-        int compressLen = compressedBytes.length;
-        do {
-          // send by bunch of 16M max
-          int partLen = Math.min(MAX_PACKET_LENGTH, compressedBytes.length);
-
-          header[0] = (byte) partLen;
-          header[1] = (byte) (partLen >>> 8);
-          header[2] = (byte) (partLen >>> 16);
-          header[3] = sequence.incrementAndGet();
-          header[4] = (byte) len;
-          header[5] = (byte) (len >>> 8);
-          header[6] = (byte) (len >>> 16);
-
-          out.write(header, 0, 7);
-          out.write(compressedBytes, compressOffset, partLen);
-
-          compressOffset += partLen;
-          compressLen -= partLen;
-
-          if (partLen == MAX_PACKET_LENGTH) {
-            // send empty packet
-            header[0] = 0;
-            header[1] = 0;
-            header[2] = 0;
-            header[3] = sequence.incrementAndGet();
-            header[4] = 0;
-            header[5] = 0;
-            header[6] = 0;
-            out.write(header, 0, 7);
+        // *******************************************************************************
+        // compressing packet
+        // *******************************************************************************
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+          try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
+            deflater.write(buf, 7, pos - 7);
+            deflater.finish();
           }
 
-        } while (compressLen > 0);
+          byte[] compressedBytes = baos.toByteArray();
+
+          int compressLen = compressedBytes.length;
+
+          byte[] header = new byte[7];
+          header[0] = (byte) compressLen;
+          header[1] = (byte) (compressLen >>> 8);
+          header[2] = (byte) (compressLen >>> 16);
+          header[3] = sequence.incrementAndGet();
+          header[4] = (byte) (pos - 7);
+          header[5] = (byte) ((pos - 7) >>> 8);
+          header[6] = (byte) ((pos - 7) >>> 16);
+
+          out.write(header, 0, 7);
+          out.write(compressedBytes, 0, compressLen);
+          if (logger.isTraceEnabled()) {
+            logger.trace(
+                "send compress: \n{}",
+                LoggerHelper.hex(header, compressedBytes, 0, compressLen, 1000));
+          }
+        }
       }
+
+      if (end) {
+        // if buf is big, and last query doesn't use at least half of it, resize buf to default
+        // value
+        if (buf.length > SMALL_BUFFER_SIZE && pos * 2 < buf.length) {
+          buf = new byte[SMALL_BUFFER_SIZE];
+        }
+      }
+      pos = 7;
     }
   }
 
@@ -141,7 +197,9 @@ public class CompressOutputStream extends OutputStream {
    */
   @Override
   public void flush() throws IOException {
+    writeSocket(true);
     out.flush();
+    sequence.set((byte) -1);
   }
 
   /**

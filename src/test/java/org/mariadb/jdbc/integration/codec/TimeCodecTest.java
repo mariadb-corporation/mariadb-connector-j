@@ -32,7 +32,7 @@ public class TimeCodecTest extends CommonCodecTest {
         "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(3))");
     stmt.execute(
         "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), "
-                + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00')");
+            + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00')");
   }
 
   private ResultSet get() throws SQLException {
@@ -146,7 +146,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertTrue("-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
+    assertTrue(
+        "-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
     assertFalse(rs.wasNull());
     assertEquals("838:59:58.999999", rs.getString(2));
     assertEquals("838:59:58.999999", rs.getString("t2alias"));

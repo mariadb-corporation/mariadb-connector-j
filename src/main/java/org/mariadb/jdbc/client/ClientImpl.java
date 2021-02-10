@@ -92,17 +92,15 @@ public class ClientImpl implements Client, AutoCloseable {
     this.hostAddress = hostAddress;
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
 
-    List<String> galeraAllowedStates =
-        conf.galeraAllowedState() == null
-            ? Collections.emptyList()
-            : Arrays.asList(conf.galeraAllowedState().split(","));
     String host = hostAddress != null ? hostAddress.host : null;
     int port = hostAddress != null ? hostAddress.port : 3306;
-
     this.socketTimeout = conf.socketTimeout();
     this.socket = ConnectionHelper.createSocket(host, port, conf);
 
     try {
+      // **********************************************************************
+      // creating socket
+      // **********************************************************************
       OutputStream out = socket.getOutputStream();
       InputStream in =
           conf.useReadAheadInput()
@@ -113,6 +111,7 @@ public class ClientImpl implements Client, AutoCloseable {
 
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
+      // read server handshake
       final InitialHandshakePacket handshake =
           InitialHandshakePacket.decode(reader.readReadablePacket(true));
       this.exceptionFactory.setThreadId(handshake.getThreadId());
@@ -135,6 +134,9 @@ public class ClientImpl implements Client, AutoCloseable {
           ConnectionHelper.initializeClientCapabilities(conf, this.context.getServerCapabilities());
       byte exchangeCharset = ConnectionHelper.decideLanguage(handshake);
 
+      // **********************************************************************
+      // changing to SSL socket if needed
+      // **********************************************************************
       SSLSocket sslSocket =
           ConnectionHelper.sslWrapper(
               host, socket, clientCapabilities, exchangeCharset, context, writer);
@@ -148,6 +150,9 @@ public class ClientImpl implements Client, AutoCloseable {
         assignStream(out, in, conf, handshake.getThreadId(), hostAddress);
       }
 
+      // **********************************************************************
+      // handling authentication
+      // **********************************************************************
       String authenticationPluginType = handshake.getAuthenticationPluginType();
       CredentialPlugin credentialPlugin = conf.credentialPlugin();
       if (credentialPlugin != null && credentialPlugin.defaultAuthenticationPluginType() != null) {
@@ -167,7 +172,9 @@ public class ClientImpl implements Client, AutoCloseable {
 
       ConnectionHelper.authenticationHandler(credential, writer, reader, context);
 
+      // **********************************************************************
       // activate compression if required
+      // **********************************************************************
       if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
         assignStream(
             new CompressOutputStream(out, compressionSequence),
@@ -177,8 +184,15 @@ public class ClientImpl implements Client, AutoCloseable {
             hostAddress);
       }
 
+      // **********************************************************************
+      // post queries
+      // **********************************************************************
       if (!skipPostCommands) {
         postConnectionQueries();
+        List<String> galeraAllowedStates =
+            conf.galeraAllowedState() == null
+                ? Collections.emptyList()
+                : Arrays.asList(conf.galeraAllowedState().split(","));
         galeraStateValidation(galeraAllowedStates);
       }
 

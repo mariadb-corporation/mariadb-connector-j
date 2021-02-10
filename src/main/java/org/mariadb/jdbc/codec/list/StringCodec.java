@@ -209,8 +209,8 @@ public class StringCodec implements Codec<String> {
         if (length == 0) {
           String zeroValue = "00:00:00";
           if (column.getDecimals() > 0) {
-            zeroValue+=".";
-            for (int i = 0; i < column.getDecimals(); i++) zeroValue +="0";
+            zeroValue += ".";
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue += "0";
           }
           return zeroValue;
         }
@@ -256,8 +256,8 @@ public class StringCodec implements Codec<String> {
         if (length == 0) {
           String zeroValue = "0000-00-00 00:00:00";
           if (column.getDecimals() > 0) {
-            zeroValue+=".";
-            for (int i = 0; i < column.getDecimals(); i++) zeroValue +="0";
+            zeroValue += ".";
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue += "0";
           }
           return zeroValue;
         }
@@ -284,8 +284,8 @@ public class StringCodec implements Codec<String> {
 
         String microSecPattern = "";
         if (column.getDecimals() > 0) {
-          microSecPattern+=".";
-          for (int i = 0; i < column.getDecimals(); i++) microSecPattern +="S";
+          microSecPattern += ".";
+          for (int i = 0; i < column.getDecimals(); i++) microSecPattern += "S";
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss" + microSecPattern);
         return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().format(formatter);

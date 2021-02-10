@@ -150,9 +150,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals("0000-00-00 00:00:00",rs.getString(1));
-    assertEquals("0000-00-00 00:00:00.000000",rs.getString(2));
-    assertEquals("9999-12-31 00:00:00.000000",rs.getString(3));
+    assertEquals("0000-00-00 00:00:00", rs.getString(1));
+    assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
+    assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
   }
 
   @Test
@@ -479,7 +479,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertNull(rs.getTimestamp(1));
     assertNull(rs.getTimestamp(2));
     assertEquals(
-            Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
+        Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
   }
 
   @Test

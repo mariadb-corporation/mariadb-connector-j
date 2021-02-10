@@ -804,4 +804,17 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("drop user testPam@'%'");
   }
+
+  @Nested
+  @DisplayName("Compression Test")
+  class Compression {
+
+    @Test
+    public void testConnection() throws Exception {
+      try (Connection connection = createCon("useCompression")) {
+        // must have succeed
+        connection.getCatalog();
+      }
+    }
+  }
 }

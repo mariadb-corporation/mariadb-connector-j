@@ -1000,7 +1000,7 @@ public class VarcharCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals("f🌟14", rs.getString(2));
-    assertEquals("f🌟14", rs.getObject(2, (Class)null));
+    assertEquals("f🌟14", rs.getObject(2, (Class<String>) null));
 
     assertTrue(rs.next());
     assertEquals("f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));

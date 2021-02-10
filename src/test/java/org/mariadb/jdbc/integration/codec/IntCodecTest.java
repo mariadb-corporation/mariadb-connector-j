@@ -97,7 +97,10 @@ public class IntCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
-    assertThrowsContains(SQLException.class, () -> rs.getObject(4, int.class), "Cannot return null for primitive int");
+    assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(4, int.class),
+        "Cannot return null for primitive int");
   }
 
   @Test

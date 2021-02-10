@@ -21,6 +21,8 @@
 
 package org.mariadb.jdbc.integration;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -33,8 +35,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 public class ResultSetTest extends Common {
 
@@ -238,7 +238,8 @@ public class ResultSetTest extends Common {
   @Test
   public void testAliases() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias");
+    ResultSet rs =
+        stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias");
     rs.next();
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t1alias"));
@@ -255,7 +256,6 @@ public class ResultSetTest extends Common {
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t2alias"));
     assertEquals(1, rs.getInt("resultsettest.t2alias"));
-
 
     rs = stmt.executeQuery("SELECT t1, t2 FROM resultsettest");
     rs.next();

@@ -6,9 +6,12 @@ import java.io.InputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import org.mariadb.jdbc.util.MutableInt;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.LoggerHelper;
+import org.mariadb.jdbc.util.log.Loggers;
 
 public class CompressInputStream extends InputStream {
-
+  private static final Logger logger = Loggers.getLogger(CompressInputStream.class);
   private final InputStream in;
   private final MutableInt sequence;
 
@@ -170,6 +173,12 @@ public class CompressInputStream extends InputStream {
       remaining -= count;
       readOffset += count;
     } while (remaining > 0);
+
+    if (logger.isTraceEnabled()) {
+      logger.trace(
+          "read compress: \n{}",
+          LoggerHelper.hex(header, intermediaryBuf, 0, intermediaryBuf.length, 1000));
+    }
 
     if (compressed) {
       buf = new byte[packetLength];
