@@ -726,6 +726,12 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   private void sendParam(Connection con) throws SQLException {
+    StringBuilder longDataSb = new StringBuilder(20000);
+
+    for (int i = 0; i < 20000; i++) {
+      longDataSb.append('0' + i % 16);
+    }
+    Clob longData = new MariaDbClob(longDataSb.toString().getBytes(StandardCharsets.UTF_8));
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
     try (PreparedStatement prep =
@@ -746,10 +752,13 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
       prep.execute();
+      prep.setObject(1, longData);
 
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.addBatch();
+      prep.setClob(1, longData);
       prep.addBatch();
       prep.setClob(1, (Clob) null);
       prep.addBatch();
@@ -853,6 +862,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e🌟7", rs.getString(2));
 
     assertTrue(rs.next());
+    assertEquals(longDataSb.toString(), rs.getString(2));
+
+    assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e🌟5", rs.getString(2));
@@ -928,6 +940,8 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e🌟7", rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e🌟7", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());

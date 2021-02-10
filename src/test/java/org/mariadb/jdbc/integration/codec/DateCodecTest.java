@@ -28,7 +28,9 @@ public class DateCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE DateCodec (t1 DATE, t2 DATE, t3 DATE, t4 DATE)");
-    stmt.execute("INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null)");
+    stmt.execute(
+        "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null),"
+            + "('0000-00-00', '1000-01-01', '9999-12-31', null)");
     stmt.execute("CREATE TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
     stmt.execute("FLUSH TABLES");
   }
@@ -45,18 +47,6 @@ public class DateCodecTest extends CommonCodecTest {
   private ResultSet getPrepare(Connection con) throws SQLException {
     PreparedStatement stmt =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateCodec"
-                + " WHERE 1 > ?");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
-    assertTrue(rs.next());
-    return rs;
-  }
-
-  private ResultSet getPrepareBinary() throws SQLException {
-    PreparedStatement stmt =
-        sharedConn.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateCodec"
                 + " WHERE 1 > ?");
     stmt.closeOnCompletion();
@@ -152,6 +142,8 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertTrue("0000-00-00".equals(rs.getString(1)));
   }
 
   @Test
@@ -337,6 +329,8 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getDate(1));
   }
 
   @Test
@@ -412,6 +406,8 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalDate.class));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getObject(1, LocalDate.class));
   }
 
   @Test
@@ -450,6 +446,29 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("9999-12-31 00:00:00"), rs.getTimestamp(3));
     assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTimestamp(1));
+  }
+
+  @Test
+  public void getLocalDateTime() throws SQLException {
+    getLocalDateTime(get());
+  }
+
+  @Test
+  public void getLocalDateTimePrepare() throws SQLException {
+    getLocalDateTime(getPrepare(sharedConn));
+    getLocalDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalDateTime(ResultSet rs) throws SQLException {
+    assertEquals(LocalDateTime.parse("2010-01-12T00:00:00"), rs.getObject(1, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T00:00:00"), rs.getObject("t1alias", LocalDateTime.class));
+    assertNull(rs.getObject(4, LocalDateTime.class));
+    assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getObject(1, LocalDateTime.class));
   }
 
   @Test
@@ -648,6 +667,8 @@ public class DateCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, LocalDate.parse("9999-12-31"), Types.DATE);
       prep.execute();
+      prep.setDate(1, Date.valueOf("2010-01-12"), Calendar.getInstance());
+      prep.execute();
     }
 
     ResultSet rs =
@@ -685,6 +706,8 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
 
     rs = stmt.executeQuery("SELECT * FROM DateCodec2");
     assertTrue(rs.next());
@@ -701,5 +724,7 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
   }
 }

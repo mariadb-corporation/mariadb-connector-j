@@ -120,7 +120,7 @@ public abstract class Result implements ResultSet, Completion {
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
-        if ((context.isEofDeprecated() && buf.length < 0xffffff)
+        if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
           ReadableByteBuf readBuf = new ReadableByteBuf(null, buf, buf.length);
           readBuf.skip(); // skip header

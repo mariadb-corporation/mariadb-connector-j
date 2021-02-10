@@ -32,7 +32,7 @@ public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
 
   private final Configuration conf;
-  protected ReadableByteBuf readBuf = new ReadableByteBuf(null, new byte[0], 0);
+  protected ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
   protected ColumnDefinitionPacket[] columns;
 
   protected int length;

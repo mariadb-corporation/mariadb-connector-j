@@ -190,6 +190,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         buf.skip(4); // skip year, month and day
         if (length > 4) {
           hour = buf.readByte();

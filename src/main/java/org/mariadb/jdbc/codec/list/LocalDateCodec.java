@@ -143,6 +143,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           int year = Integer.parseInt(stDatePart[0]);
           int month = Integer.parseInt(stDatePart[1]);
           int dayOfMonth = Integer.parseInt(stDatePart[2]);
+          if (year == 0 && month == 0 && dayOfMonth == 0) return null;
           return LocalDate.of(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
@@ -171,6 +172,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         year = buf.readUnsignedShort();
         month = buf.readByte();
         dayOfMonth = buf.readByte();
@@ -206,6 +208,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
           year = Integer.parseInt(stDatePart[0]);
           month = Integer.parseInt(stDatePart[1]);
           dayOfMonth = Integer.parseInt(stDatePart[2]);
+          if (year == 0 && month == 0 && dayOfMonth == 0) return null;
           return LocalDate.of(year, month, dayOfMonth);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(
@@ -214,6 +217,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case DATE:
       case YEAR:
+        if (length == 0) return null;
         year = buf.readUnsignedShort();
 
         if (column.getLength() == 2) {

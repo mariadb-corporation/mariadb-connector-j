@@ -162,6 +162,29 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getStringUnsigned() throws SQLException {
+    getStringUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getStringUnsignedPrepared() throws SQLException {
+    getStringUnsigned(getUnsignedPrepared(sharedConn));
+    getStringUnsigned(getUnsignedPrepared(sharedConnBinary));
+  }
+
+  private void getStringUnsigned(ResultSet rs) throws SQLException {
+    assertEquals("0", rs.getString(1));
+    assertFalse(rs.wasNull());
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("16777215", rs.getString(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getString(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
   public void getNString() throws SQLException {
     getNString(getSigned());
   }

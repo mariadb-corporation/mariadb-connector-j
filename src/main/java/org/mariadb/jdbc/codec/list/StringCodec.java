@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -205,19 +206,23 @@ public class StringCodec implements Codec<String> {
         int tMinutes = 0;
         int tSeconds = 0;
         long tMicroseconds = 0;
-        boolean negate = false;
-
-        if (length > 0) {
-          negate = buf.readByte() == 0x01;
-          if (length > 4) {
-            tDays = buf.readUnsignedInt();
-            if (length > 7) {
-              tHours = buf.readByte();
-              tMinutes = buf.readByte();
-              tSeconds = buf.readByte();
-              if (length > 8) {
-                tMicroseconds = buf.readInt();
-              }
+        if (length == 0) {
+          String zeroValue = "00:00:00";
+          if (column.getDecimals() > 0) {
+            zeroValue+=".";
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue +="0";
+          }
+          return zeroValue;
+        }
+        boolean negate = buf.readByte() == 0x01;
+        if (length > 4) {
+          tDays = buf.readUnsignedInt();
+          if (length > 7) {
+            tHours = buf.readByte();
+            tMinutes = buf.readByte();
+            tSeconds = buf.readByte();
+            if (length > 8) {
+              tMicroseconds = buf.readInt();
             }
           }
         }
@@ -240,16 +245,22 @@ public class StringCodec implements Codec<String> {
         return stTime + "." + stMicro;
 
       case DATE:
+        if (length == 0) return "0000-00-00";
         int dateYear = buf.readUnsignedShort();
         int dateMonth = buf.readByte();
         int dateDay = buf.readByte();
-        if (length > 4) {
-          buf.skip(length - 4);
-        }
         return LocalDate.of(dateYear, dateMonth, dateDay).toString();
 
       case DATETIME:
       case TIMESTAMP:
+        if (length == 0) {
+          String zeroValue = "0000-00-00 00:00:00";
+          if (column.getDecimals() > 0) {
+            zeroValue+=".";
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue +="0";
+          }
+          return zeroValue;
+        }
         int year = buf.readUnsignedShort();
         int month = buf.readByte();
         int day = buf.readByte();
@@ -270,7 +281,14 @@ public class StringCodec implements Codec<String> {
         LocalDateTime dateTime =
             LocalDateTime.of(year, month, day, hour, minutes, seconds)
                 .plusNanos(microseconds * 1000);
-        return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().toString();
+
+        String microSecPattern = "";
+        if (column.getDecimals() > 0) {
+          microSecPattern+=".";
+          for (int i = 0; i < column.getDecimals(); i++) microSecPattern +="S";
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss" + microSecPattern);
+        return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().format(formatter);
 
       case BLOB:
       case TINYBLOB:

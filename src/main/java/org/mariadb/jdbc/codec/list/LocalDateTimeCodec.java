@@ -239,6 +239,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       case DATE:
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         year = buf.readUnsignedShort();
         month = buf.readByte();
         dayOfMonth = buf.readByte();

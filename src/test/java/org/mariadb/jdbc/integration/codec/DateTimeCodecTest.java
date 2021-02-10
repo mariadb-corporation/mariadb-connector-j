@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class DateTimeCodecTest extends CommonCodecTest {
   @AfterAll
@@ -30,7 +31,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
     stmt.execute(
-        "INSERT INTO DateTimeCodec VALUES ('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null)");
+        "INSERT INTO DateTimeCodec VALUES "
+            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null),"
+            + "('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)");
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
     stmt.execute("FLUSH TABLES");
@@ -139,16 +142,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getString(ResultSet rs) throws SQLException {
     assertEquals("2010-01-12 01:55:12", rs.getString(1));
     assertFalse(rs.wasNull());
-    String s = rs.getString(2);
-    assertTrue(s.equals("1000-01-01 01:55:13.200") || s.equals("1000-01-01 01:55:13.200000"));
-    s = rs.getString("t2alias");
-    assertTrue(s.equals("1000-01-01 01:55:13.200") || s.equals("1000-01-01 01:55:13.200000"));
+    assertEquals("1000-01-01 01:55:13.200000", rs.getString(2));
+    assertEquals("1000-01-01 01:55:13.200000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    s = rs.getString(3);
-    assertTrue(s.equals("9999-12-31 18:30:12.550000") || s.equals("9999-12-31 18:30:12.550"));
+    assertEquals("9999-12-31 18:30:12.550000", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals("0000-00-00 00:00:00",rs.getString(1));
+    assertEquals("0000-00-00 00:00:00.000000",rs.getString(2));
+    assertEquals("9999-12-31 00:00:00.000000",rs.getString(3));
   }
 
   @Test
@@ -344,6 +348,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTime(1));
+    assertNull(rs.getTime(2));
   }
 
   @Test
@@ -374,6 +381,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTime(1));
   }
 
   @Test
@@ -389,6 +398,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getDuration(ResultSet rs) throws SQLException {
     assertEquals(Duration.parse("PT265H55M12S"), rs.getObject(1, Duration.class));
+    assertEquals(Duration.parse("PT1H55M13.2S"), rs.getObject(2, Duration.class));
+    assertNull(rs.getObject(4, Duration.class));
+    rs.next();
+    assertNull(rs.getObject(1, Duration.class));
   }
 
   @Test
@@ -411,6 +424,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTime(1));
   }
 
   @Test
@@ -433,6 +448,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalTime.class));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getObject(1, LocalDate.class));
   }
 
   @Test
@@ -458,6 +475,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTimestamp(1));
+    assertNull(rs.getTimestamp(2));
+    assertEquals(
+            Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
   }
 
   @Test
@@ -581,6 +603,25 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getBlob(ResultSet rs) throws SQLException {
     assertThrowsContains(
         SQLException.class, () -> rs.getBlob(1), "Data type DATETIME cannot be decoded as Blob");
+  }
+
+  @Test
+  public void getBigInteger() throws SQLException {
+    getBigInteger(get());
+  }
+
+  @Test
+  public void getBigIntegerPrepared() throws SQLException {
+    getBigInteger(getPrepare(sharedConn));
+    getBigInteger(getPrepare(sharedConnBinary));
+  }
+
+  private void getBigInteger(ResultSet res) throws SQLException {
+    CompleteResult rs = (CompleteResult) res;
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getBigInteger(1),
+        "Data type DATETIME cannot be decoded as BigInteger");
   }
 
   @Test

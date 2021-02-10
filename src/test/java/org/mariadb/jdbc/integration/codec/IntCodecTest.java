@@ -97,6 +97,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
+    assertThrowsContains(SQLException.class, () -> rs.getObject(4, int.class), "Cannot return null for primitive int");
   }
 
   @Test
@@ -156,6 +157,29 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals("-1", rs.getString(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getString(4));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getStringUnsigned() throws SQLException {
+    getStringUnsigned(getUnsigned());
+  }
+
+  @Test
+  public void getStringUnsignedPrepared() throws SQLException {
+    getStringUnsigned(getPreparedUnsigned(sharedConn));
+    getStringUnsigned(getPreparedUnsigned(sharedConnBinary));
+  }
+
+  private void getStringUnsigned(ResultSet rs) throws SQLException {
+    assertEquals("0", rs.getString(1));
+    assertFalse(rs.wasNull());
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("4294967295", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -549,6 +573,24 @@ public class IntCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getBigInteger(4));
     assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getDuration() throws SQLException {
+    getDuration(getSigned());
+  }
+
+  @Test
+  public void getDurationPrepare() throws SQLException {
+    getDuration(getPreparedSigned(sharedConn));
+    getDuration(getPreparedSigned(sharedConnBinary));
+  }
+
+  public void getDuration(ResultSet rs) throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, Duration.class),
+        "Type class java.time.Duration not supported type for INTEGER type");
   }
 
   @Test

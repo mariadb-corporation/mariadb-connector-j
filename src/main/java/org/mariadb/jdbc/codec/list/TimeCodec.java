@@ -102,6 +102,7 @@ public class TimeCodec implements Codec<Time> {
       case TIMESTAMP:
       case DATETIME:
         LocalDateTime lt = LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, cal);
+        if (lt == null) return null;
         Calendar cc = cal == null ? Calendar.getInstance() : cal;
         ZonedDateTime d = EPOCH_DATE.atTime(lt.toLocalTime()).atZone(cc.getTimeZone().toZoneId());
         return new Time(d.toEpochSecond() * 1000 + d.getNano() / 1_000_000);
@@ -186,6 +187,7 @@ public class TimeCodec implements Codec<Time> {
 
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         buf.skip(3); // year + month
         buf.readByte(); // day of month
 

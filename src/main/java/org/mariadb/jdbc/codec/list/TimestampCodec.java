@@ -116,7 +116,9 @@ public class TimestampCodec implements Codec<Timestamp> {
 
       case DATE:
         if (calParam == null || calParam.getTimeZone().equals(TimeZone.getDefault())) {
-          return new Timestamp(Date.valueOf(buf.readAscii(length)).getTime());
+          String s = buf.readAscii(length);
+          if ("0000-00-00".equals(s)) return null;
+          return new Timestamp(Date.valueOf(s).getTime());
         }
 
         String[] datePart = buf.readAscii(length).split("-");
@@ -294,6 +296,7 @@ public class TimestampCodec implements Codec<Timestamp> {
       case DATE:
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         year = buf.readUnsignedShort();
         month = buf.readByte();
         dayOfMonth = buf.readByte();

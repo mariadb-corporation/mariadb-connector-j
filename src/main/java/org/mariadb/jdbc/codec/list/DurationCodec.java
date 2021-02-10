@@ -155,6 +155,7 @@ public class DurationCodec implements Codec<Duration> {
 
       case TIMESTAMP:
       case DATETIME:
+        if (length == 0) return null;
         buf.readUnsignedShort(); // skip year
         buf.readByte(); // skip month
         days = buf.readByte();

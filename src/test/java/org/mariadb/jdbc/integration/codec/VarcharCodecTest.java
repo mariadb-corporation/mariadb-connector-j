@@ -38,7 +38,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), "
             + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null), "
-            + "('aaaa-bb-cc', '2010-12-31 23:59:59.152', '23:54:51.840010', null)");
+            + "('aaaa-bb-cc', '0000-00-00 00:00:00', '23:54:51.840010', null),"
+            + "('', '', '', null)");
     stmt.execute(
         "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -230,6 +231,13 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    rs.next();
+    rs.next();
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getByte(1),
+        "value '' (VARSTRING) cannot be decoded as Byte");
   }
 
   @Test
@@ -570,6 +578,35 @@ public class VarcharCodecTest extends CommonCodecTest {
         SQLDataException.class,
         () -> rs.getObject(1, LocalDateTime.class),
         "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as LocalDateTime");
+    assertNull(rs.getObject(2, LocalDateTime.class));
+  }
+
+  @Test
+  public void getLocalDate() throws SQLException {
+    getLocalDate(get());
+  }
+
+  @Test
+  public void getLocalDatePrepare() throws SQLException {
+    getLocalDate(getPrepare(sharedConn));
+    getLocalDate(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalDate(ResultSet rs) throws SQLException {
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getObject(1, LocalDate.class),
+        "value '0' (VARSTRING) cannot be decoded as Date");
+    rs.next();
+    assertEquals(LocalDate.parse("2011-01-01"), rs.getObject(1, LocalDate.class));
+    assertFalse(rs.wasNull());
+    assertEquals(LocalDate.parse("2010-12-31"), rs.getObject(2, LocalDate.class));
+    rs.next();
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getObject(1, LocalDate.class),
+        "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
+    assertNull(rs.getObject(2, LocalDate.class));
   }
 
   @Test
@@ -963,6 +1000,7 @@ public class VarcharCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals("f🌟14", rs.getString(2));
+    assertEquals("f🌟14", rs.getObject(2, (Class)null));
 
     assertTrue(rs.next());
     assertEquals("f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));

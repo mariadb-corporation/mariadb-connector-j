@@ -27,12 +27,12 @@ public class TimeCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE TimeCodec (t1 TIME(3), t2 TIME(6), t3 TIME(6), t4 TIME(6))");
+    stmt.execute("CREATE TABLE TimeCodec (t1 TIME(3), t2 TIME(6), t3 TIME(6), t4 TIME)");
     stmt.execute(
         "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(3))");
     stmt.execute(
-        "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), ('-838:59:58.999', "
-            + "'838:59:58.999999', null, '23:54:51.84001')");
+        "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), "
+                + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00')");
   }
 
   private ResultSet get() throws SQLException {
@@ -145,6 +145,15 @@ public class TimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertTrue("-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
+    assertFalse(rs.wasNull());
+    assertEquals("838:59:58.999999", rs.getString(2));
+    assertEquals("838:59:58.999999", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("00:00:00.000000", rs.getString(3));
+    assertEquals("00:00:00", rs.getString(4));
+    assertFalse(rs.wasNull());
   }
 
   @Test
@@ -373,9 +382,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
     assertFalse(rs.wasNull());
-    assertNull(rs.getObject(3, Duration.class));
-    assertTrue(rs.wasNull());
-    assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject(4, Duration.class));
+    assertEquals(Duration.parse("PT0S"), rs.getObject(3, Duration.class));
+    assertEquals(Duration.parse("PT0S"), rs.getObject(4, Duration.class));
     assertFalse(rs.wasNull());
   }
 
@@ -408,9 +416,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
     assertFalse(rs.wasNull());
-    assertNull(rs.getObject(3, Duration.class));
-    assertTrue(rs.wasNull());
-    assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject(4, Duration.class));
+    assertEquals(Duration.parse("PT0S"), rs.getObject(3, Duration.class));
+    assertEquals(Duration.parse("PT0S"), rs.getObject(4, Duration.class));
     assertFalse(rs.wasNull());
   }
 

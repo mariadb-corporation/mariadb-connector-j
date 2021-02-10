@@ -24,6 +24,8 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.Random;
+
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
@@ -36,6 +38,7 @@ public class PreparedStatementTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepare1");
     stmt.execute("DROP TABLE IF EXISTS prepare2");
+    stmt.execute("DROP TABLE IF EXISTS prepare3");
   }
 
   @BeforeAll
@@ -44,6 +47,7 @@ public class PreparedStatementTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE prepare1 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE prepare2 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("CREATE TABLE prepare3 (t1 LONGTEXT, t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT)");
   }
 
   @Test
@@ -717,4 +721,65 @@ public class PreparedStatementTest extends Common {
           "Prepared statement contains too many placeholders");
     }
   }
+
+  private String generateLongText(int len) {
+    int leftLimit = 97; // letter 'a'
+    int rightLimit = 122; // letter 'z'
+    Random random = new Random();
+    return random.ints(leftLimit, rightLimit + 1)
+            .limit(len)
+            .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+            .toString();
+  }
+
+  private int getMaxAllowedPacket() throws SQLException {
+    java.sql.Statement st = sharedConn.createStatement();
+    ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+    assertTrue(rs.next());
+    return rs.getInt(1);
+  }
+  @Test
+  public void skippingRes() throws SQLException {
+    Assumptions.assumeTrue(getMaxAllowedPacket() > 35_000_000);
+    String longText = generateLongText(20_000_000);
+    String mediumText = generateLongText(10_000_000);
+    String smallIntText = generateLongText(60_000);
+    try (PreparedStatement prep = sharedConnBinary.prepareStatement("INSERT INTO prepare3 values (?,?,?,?)")) {
+      prep.setString(1, longText);
+      prep.setString(2, mediumText);
+      prep.setString(3, smallIntText);
+      prep.setString(4, "expected");
+      prep.execute();
+    }
+    skippingRes(sharedConn);
+    skippingRes(sharedConnBinary);
+  }
+
+  private void skippingRes(java.sql.Connection con) throws SQLException {
+    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM prepare3")) {
+      ResultSet rs = prep.executeQuery();
+      rs.next();
+      assertEquals("expected", rs.getString(4));
+    }
+  }
+
+  @Test
+  public void wrongPosition() throws SQLException {
+    try (PreparedStatement prep = sharedConn.prepareStatement("SELECT 1 FROM DUAL WHERE 0=1")) {
+      ResultSet rs = prep.executeQuery();
+      assertThrowsContains(SQLException.class, () -> rs.getString(1), "wrong row position");
+      assertThrowsContains(SQLException.class, () -> rs.getString("1"), "wrong row position");
+      assertThrowsContains(SQLException.class, () -> rs.getObject(1, String.class), "wrong row position");
+
+    }
+    try (PreparedStatement prep = sharedConn.prepareStatement("SELECT 1 FROM DUAL")) {
+      ResultSet rs = prep.executeQuery();
+      rs.next();
+      assertThrowsContains(SQLException.class, () -> rs.getString(-1), "Wrong index position. Is -1 but must be in 1-1 range");
+      assertThrowsContains(SQLException.class, () -> rs.getString(10), "Wrong index position. Is 10 but must be in 1-1 range");
+      assertThrowsContains(SQLException.class, () -> rs.getObject(-1, String.class), "Wrong index position. Is -1 but must be in 1-1 range");
+      assertThrowsContains(SQLException.class, () -> rs.getObject(10, String.class), "Wrong index position. Is 10 but must be in 1-1 range");
+    }
+  }
+
 }

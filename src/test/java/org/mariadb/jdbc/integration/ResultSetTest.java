@@ -21,9 +21,6 @@
 
 package org.mariadb.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -37,6 +34,8 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 public class ResultSetTest extends Common {
 
   private final String NOT_SUPPORTED = "Not supported when using CONCUR_READ_ONLY concurrency";
@@ -44,21 +43,21 @@ public class ResultSetTest extends Common {
 
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE ResultSetTest");
+    sharedConn.createStatement().execute("DROP TABLE resultsettest");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS ResultSetTest");
-    stmt.execute("CREATE TABLE ResultSetTest (t1 int not null primary key auto_increment, t2 int)");
-    stmt.execute("INSERT INTO ResultSetTest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
+    stmt.execute("DROP TABLE IF EXISTS resultsettest");
+    stmt.execute("CREATE TABLE resultsettest (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("INSERT INTO resultsettest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
   }
 
   @Test
   public void nonUpdatableFields() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     Assertions.assertNull(rs.getWarnings());
     rs.next();
     assertThrowsContains(ns, () -> rs.updateArray(1, null), "Array are not supported");
@@ -171,7 +170,7 @@ public class ResultSetTest extends Common {
   @Test
   public void notSupported() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     assertThrowsContains(ns, () -> rs.getRowId(1), "RowId are not supported");
     assertThrowsContains(ns, () -> rs.getRowId("t1"), "RowId are not supported");
     Map<String, Class<?>> map = new HashMap<>();
@@ -190,7 +189,7 @@ public class ResultSetTest extends Common {
   @Test
   public void staticMethod() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     Assertions.assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, rs.getHoldability());
     rs.unwrap(java.sql.ResultSet.class);
 
@@ -203,7 +202,7 @@ public class ResultSetTest extends Common {
   @Test
   public void wrongIndex() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     rs.next();
     assertThrowsContains(
         SQLException.class,
@@ -225,7 +224,7 @@ public class ResultSetTest extends Common {
   public void isBeforeFirstFetchTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(1);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     assertTrue(rs.isBeforeFirst());
     while (rs.next()) {
       assertFalse(rs.isBeforeFirst());
@@ -234,5 +233,37 @@ public class ResultSetTest extends Common {
     rs.close();
     assertThrowsContains(
         SQLException.class, () -> rs.isBeforeFirst(), "Operation not permit on a closed resultSet");
+  }
+
+  @Test
+  public void testAliases() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias");
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t1alias"));
+    assertEquals(1, rs.getInt("tablealias.t1alias"));
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t2alias"));
+    assertEquals(1, rs.getInt("tablealias.t2alias"));
+
+    rs = stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest");
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t1alias"));
+    assertEquals(1, rs.getInt("resultsettest.t1alias"));
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t2alias"));
+    assertEquals(1, rs.getInt("resultsettest.t2alias"));
+
+
+    rs = stmt.executeQuery("SELECT t1, t2 FROM resultsettest");
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t1"));
+    assertEquals(1, rs.getInt("resultsettest.t1"));
+    assertEquals(1, rs.getInt(1));
+    assertEquals(1, rs.getInt("t2"));
+    assertEquals(1, rs.getInt("resultsettest.t2"));
   }
 }

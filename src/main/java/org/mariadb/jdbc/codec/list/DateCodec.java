@@ -102,6 +102,7 @@ public class DateCodec implements Codec<Date> {
       case STRING:
       case DATE:
         String val = buf.readString(length);
+        if ("0000-00-00".equals(val)) return null;
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
@@ -188,6 +189,7 @@ public class DateCodec implements Codec<Date> {
         return getDate(column, cal, val, stDatePart);
 
       case DATE:
+        if (length == 0) return null;
         Calendar c = cal == null ? Calendar.getInstance() : cal;
         synchronized (c) {
           c.clear();
@@ -200,6 +202,7 @@ public class DateCodec implements Codec<Date> {
       case TIMESTAMP:
       case DATETIME:
         Timestamp lt = TimestampCodec.INSTANCE.decodeBinary(buf, length, column, cal);
+        if (lt == null) return null;
         return new Date(lt.getTime());
 
       default:

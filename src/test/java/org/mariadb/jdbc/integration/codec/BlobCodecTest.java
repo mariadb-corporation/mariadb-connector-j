@@ -33,8 +33,9 @@ public class BlobCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB)");
     stmt.execute(
-        "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null), "
+            + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null),"
+            + "('', '2010-12-31 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute("CREATE TABLE BlobCodec2 (id int not null primary key auto_increment, t1 BLOB)");
     stmt.execute("FLUSH TABLES");
 
@@ -232,6 +233,12 @@ public class BlobCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    rs.next();
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getByte(1),
+        "empty String value cannot be decoded as Byte");
   }
 
   @Test
@@ -352,6 +359,24 @@ public class BlobCodecTest extends CommonCodecTest {
         () -> rs.getBigInteger(1),
         "Data type BLOB cannot be decoded as BigInteger");
     assertFalse(rs.wasNull());
+  }
+
+  @Test
+  public void getDuration() throws SQLException {
+    getDuration(get());
+  }
+
+  @Test
+  public void getDurationPrepare() throws SQLException {
+    getDuration(getPrepare(sharedConn));
+    getDuration(getPrepare(sharedConnBinary));
+  }
+
+  public void getDuration(ResultSet rs) throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, Duration.class),
+        "Data type BLOB cannot be decoded as Duration");
   }
 
   @Test
