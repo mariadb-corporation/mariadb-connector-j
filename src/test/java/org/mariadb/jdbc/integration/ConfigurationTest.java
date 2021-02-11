@@ -64,6 +64,7 @@ public class ConfigurationTest extends Common {
       assertEquals(5, rs.getInt(1));
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
+      rs.clearWarnings();
     }
 
     try (Connection connection =

@@ -349,12 +349,6 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   }
 
   @Override
-  public void reset(ExceptionFactory exceptionFactory) {
-    reconnectIfNeeded();
-    super.reset(exceptionFactory);
-  }
-
-  @Override
   public HostAddress getHostAddress() {
     reconnectIfNeeded();
     return super.getHostAddress();

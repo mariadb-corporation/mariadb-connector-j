@@ -112,16 +112,11 @@ public class CompleteResult extends Result {
           int len = bb.length;
           if (len < 251) {
             baos.write((byte) len);
-          } else if (len < 65536) {
+          } else {
+            // assume length cannot be > 65536
             baos.write((byte) 0xfc);
             baos.write((byte) len);
             baos.write((byte) (len >>> 8));
-          } else {
-            // assumption : len < 16777216
-            baos.write((byte) 0xfd);
-            baos.write((byte) len);
-            baos.write((byte) (len >>> 8));
-            baos.write((byte) (len >>> 16));
           }
           baos.write(bb, 0, bb.length);
         } else {

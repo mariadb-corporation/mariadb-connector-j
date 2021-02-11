@@ -317,7 +317,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
 
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+    if (conf.timezone() == null || !"disable".equalsIgnoreCase(conf.timezone())) {
       String timeZone =
           (conf.timezone() != null) ? conf.timezone() : ZoneId.systemDefault().getId();
       sb.append(",time_zone='").append(timeZone).append("'");
@@ -807,11 +807,6 @@ public class ClientImpl implements Client, AutoCloseable {
 
   public ExceptionFactory getExceptionFactory() {
     return exceptionFactory;
-  }
-
-  public void reset(ExceptionFactory exceptionFactory) {
-    this.exceptionFactory = exceptionFactory;
-    this.context.resetPrepareCache(new PrepareCache(conf.prepStmtCacheSize(), this));
   }
 
   public HostAddress getHostAddress() {

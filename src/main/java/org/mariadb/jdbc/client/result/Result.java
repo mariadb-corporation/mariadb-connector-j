@@ -148,7 +148,7 @@ public abstract class Result implements ResultSet, Completion {
         // continue reading rows
 
       default:
-        if (dataSize + 1 >= data.length) {
+        if (dataSize + 1 > data.length) {
           growDataArray();
         }
         data[dataSize++] = buf;
@@ -233,9 +233,6 @@ public abstract class Result implements ResultSet, Completion {
 
   public void abort() throws SQLException {
     this.closed = true;
-    if (closeOnCompletion) {
-      statement.close();
-    }
   }
 
   protected byte[] getCurrentRowData() {
@@ -243,7 +240,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   protected void addRowData(byte[] buf) {
-    if (dataSize + 1 >= data.length) {
+    if (dataSize + 1 > data.length) {
       growDataArray();
     }
     data[dataSize++] = buf;

@@ -741,13 +741,16 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void skippingRes() throws SQLException {
-    Assumptions.assumeTrue(getMaxAllowedPacket() > 35_000_000);
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowedPacket > 35_000_000);
     skippingRes(sharedConn);
     skippingRes(sharedConnBinary);
-    try (Connection compressText = createCon("useCompression")) {
+    try (Connection compressText =
+        createCon("useCompression&maxAllowedPacket=" + maxAllowedPacket)) {
       skippingRes(compressText);
     }
-    try (Connection compressBinary = createCon("useCompression&useServerPrepStmts")) {
+    try (Connection compressBinary =
+        createCon("useCompression&useServerPrepStmts&maxAllowedPacket=" + maxAllowedPacket)) {
       skippingRes(compressBinary);
     }
   }

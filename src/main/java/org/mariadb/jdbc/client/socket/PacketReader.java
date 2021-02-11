@@ -243,7 +243,7 @@ public class PacketReader {
 
         if (traceEnable) {
           logger.trace(
-              "read: {}{}",
+              "read: {}\n{}",
               serverThreadLog,
               LoggerHelper.hex(
                   header, rawBytes, currentbufLength, packetLength, maxQuerySizeToLog));
@@ -359,7 +359,7 @@ public class PacketReader {
 
         if (traceEnable) {
           logger.trace(
-              "read: {}{}",
+              "read: {}\n{}",
               serverThreadLog,
               LoggerHelper.hex(
                   header, rawBytes, currentbufLength, packetLength, maxQuerySizeToLog));

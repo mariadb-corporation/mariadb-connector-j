@@ -472,11 +472,6 @@ public class MultiPrimaryClient implements Client {
   }
 
   @Override
-  public void reset(ExceptionFactory exceptionFactory) {
-    currentClient.reset(exceptionFactory);
-  }
-
-  @Override
   public HostAddress getHostAddress() {
     return currentClient.getHostAddress();
   }

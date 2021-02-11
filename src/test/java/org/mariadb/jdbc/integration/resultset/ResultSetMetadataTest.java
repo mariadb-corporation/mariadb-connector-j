@@ -67,7 +67,8 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rs.next());
     ResultSetMetaData rsmd = rs.getMetaData();
 
-    assertEquals(true, rsmd.isAutoIncrement(1));
+    assertTrue(rsmd.isAutoIncrement(1));
+    assertFalse(rsmd.isAutoIncrement(2));
     assertEquals(5, rsmd.getColumnCount());
     assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
     assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
@@ -81,6 +82,7 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(Types.CHAR, rsmd.getColumnType(4));
     assertEquals(Types.INTEGER, rsmd.getColumnType(5));
     assertFalse(rsmd.isReadOnly(1));
+    assertFalse(rsmd.isReadOnly(2));
     assertTrue(rsmd.isWritable(1));
     assertTrue(rsmd.isDefinitelyWritable(1));
     assertTrue(rsmd.isCaseSensitive(1));
@@ -89,10 +91,11 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rsmd.isSigned(3));
     assertFalse(rsmd.isSigned(5));
 
-    assertThrowsContains(sqle, () -> rsmd.isAutoIncrement(6), "No such column");
-    assertThrowsContains(sqle, () -> rsmd.isReadOnly(6), "no column with index 6");
-    assertThrowsContains(sqle, () -> rsmd.isWritable(6), "no column with index 6");
-    assertThrowsContains(sqle, () -> rsmd.isDefinitelyWritable(6), "no column with index 6");
+    assertThrowsContains(sqle, () -> rsmd.isAutoIncrement(6), "wrong column index 6");
+    assertThrowsContains(sqle, () -> rsmd.isReadOnly(6), "wrong column index 6");
+    assertThrowsContains(sqle, () -> rsmd.isReadOnly(-6), "wrong column index -6");
+    assertThrowsContains(sqle, () -> rsmd.isWritable(6), "wrong column index 6");
+    assertThrowsContains(sqle, () -> rsmd.isDefinitelyWritable(6), "wrong column index 6");
 
     DatabaseMetaData md = sharedConn.getMetaData();
     ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);
@@ -107,6 +110,12 @@ public class ResultSetMetadataTest extends Common {
     cols.next(); /* us */ // CONJ-96: SMALLINT UNSIGNED gives Types.SMALLINT
     assertEquals("us", cols.getString("COLUMN_NAME"));
     assertEquals(Types.SMALLINT, cols.getInt("DATA_TYPE"));
+
+    rs = stmt.executeQuery("select 1 from test_rsmd");
+    ResultSetMetaData rsmd2 = rs.getMetaData();
+    assertTrue(rsmd2.isReadOnly(1));
+    assertFalse(rsmd2.isWritable(1));
+    assertFalse(rsmd2.isDefinitelyWritable(1));
   }
 
   @Test

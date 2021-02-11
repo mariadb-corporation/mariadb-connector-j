@@ -959,9 +959,9 @@ public class VarcharCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals("e🌟12", rs.getString(2));
-    rs.updateNString("t1", "f🌟15");
+    rs.updateNString("t1", "http://f🌟15");
     rs.updateRow();
-    assertEquals("f🌟15", rs.getString(2));
+    assertEquals("http://f🌟15", rs.getString(2));
 
     rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
     assertTrue(rs.next());
@@ -1003,6 +1003,10 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("f🌟14", rs.getObject(2, (Class<String>) null));
 
     assertTrue(rs.next());
-    assertEquals("f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));
+    assertEquals("http://f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));
+    assertEquals("http://f🌟15", rs.getObject("t1", (Map<String, Class<?>>) null));
+    assertEquals("http://f🌟15", rs.getURL(2).toString());
+    assertEquals("http://f🌟15", rs.getURL("t1").toString());
+
   }
 }

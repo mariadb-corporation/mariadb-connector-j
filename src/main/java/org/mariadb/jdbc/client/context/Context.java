@@ -62,11 +62,7 @@ public interface Context {
 
   PrepareCache getPrepareCache();
 
-  void resetPrepareCache(PrepareCache prepareCache);
-
   int getStateFlag();
-
-  void setStateFlag(int stateFlag);
 
   void addStateFlag(int state);
 
@@ -74,5 +70,7 @@ public interface Context {
 
   void saveRedo(ClientMessage[] msgs);
 
-  TransactionSaver getTransactionSaver();
+  default TransactionSaver getTransactionSaver() {
+    return null;
+  }
 }

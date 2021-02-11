@@ -267,12 +267,9 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs or in case of wrong index
    */
   public boolean isReadOnly(final int column) throws SQLException {
-    if (column >= 1 && column <= fieldPackets.length) {
-      ColumnDefinitionPacket ci = getColumn(column);
-      return (ci.getTable() == null || ci.getTable().isEmpty())
-          && (ci.getColumn() == null || ci.getColumn().isEmpty());
-    }
-    throw exceptionFactory.create(String.format("no column with index %s", column));
+    ColumnDefinitionPacket ci = getColumn(column);
+    return (ci.getTable() == null || ci.getTable().isEmpty())
+        && (ci.getColumn() == null || ci.getColumn().isEmpty());
   }
 
   /**
@@ -316,7 +313,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }
-    throw exceptionFactory.create("No such column");
+    throw exceptionFactory.create(String.format("wrong column index %s", column));
   }
 
   /**

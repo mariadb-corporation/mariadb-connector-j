@@ -127,16 +127,8 @@ public class BaseContext implements Context {
     return prepareCache;
   }
 
-  public void resetPrepareCache(PrepareCache prepareCache) {
-    this.prepareCache = prepareCache;
-  }
-
   public int getStateFlag() {
     return stateFlag;
-  }
-
-  public void setStateFlag(int stateFlag) {
-    this.stateFlag = stateFlag;
   }
 
   public void addStateFlag(int state) {
@@ -147,12 +139,4 @@ public class BaseContext implements Context {
 
   public void saveRedo(ClientMessage[] msgs) {}
 
-  public TransactionSaver getTransactionSaver() {
-    return null;
-  }
-
-  @Override
-  public String toString() {
-    return "ConnectionContext{" + "threadId=" + threadId + ", version=" + version + '}';
-  }
 }

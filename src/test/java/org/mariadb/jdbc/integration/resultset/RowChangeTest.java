@@ -262,6 +262,7 @@ public class RowChangeTest extends Common {
       assertEquals(i, rs.getInt(1));
     }
     assertFalse(rs.previous());
+    assertFalse(rs.previous());
   }
 
   @Test

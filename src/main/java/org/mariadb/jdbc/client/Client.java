@@ -89,7 +89,5 @@ public interface Client extends AutoCloseable {
 
   ExceptionFactory getExceptionFactory();
 
-  void reset(ExceptionFactory exceptionFactory);
-
   HostAddress getHostAddress();
 }

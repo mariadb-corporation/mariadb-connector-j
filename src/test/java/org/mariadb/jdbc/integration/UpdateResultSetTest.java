@@ -32,6 +32,53 @@ import org.mariadb.jdbc.Common;
 
 public class UpdateResultSetTest extends Common {
 
+  @AfterAll
+  public static void drop() throws SQLException {
+    org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS testnoprimarykey");
+    stmt.execute("DROP TABLE IF EXISTS testMultipleTable1");
+    stmt.execute("DROP TABLE IF EXISTS testMultipleTable2");
+    stmt.execute("DROP TABLE IF EXISTS testOneNoTable");
+    stmt.execute("DROP TABLE IF EXISTS UpdateWithoutPrimary");
+    stmt.execute("DROP DATABASE IF EXISTS testConnectorJ");
+    stmt.execute("DROP TABLE IF EXISTS testUpdateWhenFetch");
+    stmt.execute("DROP TABLE IF EXISTS testExpError");
+    stmt.execute("DROP TABLE IF EXISTS `testDefaultUUID`");
+    stmt.execute("DROP TABLE IF EXISTS `test_update_max`");
+
+  }
+
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    drop();
+    org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
+    stmt.execute(
+            "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+    stmt.execute(
+            "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+    stmt.execute(
+            "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+    stmt.execute(
+            "CREATE TABLE testUpdateWhenFetch("
+                    + "`id` INT NOT NULL AUTO_INCREMENT,"
+                    + "`t1` VARCHAR(50) NOT NULL,"
+                    + "`t2` VARCHAR(50) NULL default 'default-value',"
+                    + "PRIMARY KEY (`id`))"
+                    + "DEFAULT CHARSET=utf8");
+    stmt.execute(
+            "CREATE TABLE testExpError ("
+                    + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+                    + "`t1` varchar(100) DEFAULT NULL,"
+                    + "`t2` varchar(100) DEFAULT NULL)");
+    stmt.execute(
+            "CREATE TABLE `testDefaultUUID` ("
+                    + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
+                    + "`column2` varchar(100) DEFAULT NULL,"
+                    + " PRIMARY KEY (`column1`))");
+    stmt.execute("CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
+  }
+
   /**
    * Test error message when no primary key.
    *
@@ -40,8 +87,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testNoPrimaryKey() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testnoprimarykey");
-    stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
     stmt.execute("INSERT INTO testnoprimarykey VALUES (1, 't1'), (2, 't2')");
 
     try (PreparedStatement preparedStatement =
@@ -75,13 +120,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testMultipleTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testMultipleTable1");
-    stmt.execute("DROP TABLE IF EXISTS testMultipleTable2");
-    stmt.execute(
-        "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
-    stmt.execute(
-        "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
-
     stmt.executeQuery("INSERT INTO testMultipleTable1(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testMultipleTable2(t1) values ('2')");
 
@@ -102,9 +140,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testOneNoTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testOneNoTable");
-    stmt.execute(
-        "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.executeQuery("INSERT INTO testOneNoTable(t1) values ('1')");
 
     try (PreparedStatement preparedStatement =
@@ -153,17 +188,11 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateString("t1", "new value"),
           "The result-set contains more than one database");
     }
-    try {
-      stmt.execute("DROP DATABASE testConnectorJ");
-    } catch (SQLException sqle) {
-      // eat
-    }
   }
 
   @Test
   public void testMeta() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS UpdateWithoutPrimary");
     stmt.execute(
         "CREATE TABLE UpdateWithoutPrimary(`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL,"
@@ -198,10 +227,10 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rsmd.isDefinitelyWritable(1));
       assertTrue(rsmd.isDefinitelyWritable(2));
 
-      assertThrowsContains(SQLException.class, () -> rsmd.isReadOnly(3), "no column with index 3");
-      assertThrowsContains(SQLException.class, () -> rsmd.isWritable(3), "no column with index 3");
+      assertThrowsContains(SQLException.class, () -> rsmd.isReadOnly(3), "wrong column index 3");
+      assertThrowsContains(SQLException.class, () -> rsmd.isWritable(3), "wrong column index 3");
       assertThrowsContains(
-          SQLException.class, () -> rsmd.isDefinitelyWritable(3), "no column with index 3");
+          SQLException.class, () -> rsmd.isDefinitelyWritable(3), "wrong column index 3");
     }
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM UpdateWithoutPrimary");
     assertTrue(rs.next());
@@ -215,15 +244,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testUpdateWhenFetch() throws Exception {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testUpdateWhenFetch");
-    stmt.execute(
-        "CREATE TABLE testUpdateWhenFetch("
-            + "`id` INT NOT NULL AUTO_INCREMENT,"
-            + "`t1` VARCHAR(50) NOT NULL,"
-            + "`t2` VARCHAR(50) NULL default 'default-value',"
-            + "PRIMARY KEY (`id`))"
-            + "DEFAULT CHARSET=utf8");
-
     PreparedStatement pstmt =
         sharedConn.prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
     for (int i = 1; i < 100; i++) {
@@ -903,12 +923,6 @@ public class UpdateResultSetTest extends Common {
   public void updatableDefaultPrimaryField() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
     Statement stmt = sharedConn.createStatement();
-    stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
-    stmt.execute(
-        "CREATE TABLE `testDefaultUUID` ("
-            + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
-            + "`column2` varchar(100) DEFAULT NULL,"
-            + " PRIMARY KEY (`column1`))");
     String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -947,13 +961,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void expectedErrorField() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
-    Statement stmt = sharedConn.createStatement();
-    stmt.executeQuery("DROP TABLE IF EXISTS testExpError");
-    stmt.execute(
-        "CREATE TABLE testExpError ("
-            + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
-            + "`t1` varchar(100) DEFAULT NULL,"
-            + "`t2` varchar(100) DEFAULT NULL)");
     String sql = "SELECT * FROM testExpError t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -977,5 +984,24 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateRow(),
           "Cannot call updateRow() when inserting a new row");
     }
+  }
+
+  @Test
+  public void addAfterDataFull() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'), ('8'), ('9'), ('10')");
+    try (PreparedStatement preparedStatement =
+                 sharedConn.prepareStatement(
+                         "SELECT t1, id FROM test_update_max",
+                         ResultSet.TYPE_FORWARD_ONLY,
+                         ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = preparedStatement.executeQuery();
+      rs.moveToInsertRow();
+      rs.updateString("t1", "11");
+      rs.insertRow();
+      for (int i = 0; i < 11; i++) rs.next();
+      assertEquals("11", rs.getString("t1"));
+    }
+
   }
 }

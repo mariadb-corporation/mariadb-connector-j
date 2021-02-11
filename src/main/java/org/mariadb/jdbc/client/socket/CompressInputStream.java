@@ -174,11 +174,11 @@ public class CompressInputStream extends InputStream {
       readOffset += count;
     } while (remaining > 0);
 
-    if (logger.isTraceEnabled()) {
-      logger.trace(
-          "read compress: \n{}",
-          LoggerHelper.hex(header, intermediaryBuf, 0, intermediaryBuf.length, 1000));
-    }
+//    if (logger.isTraceEnabled()) {
+//      logger.trace(
+//          "read compress: \n{}",
+//          LoggerHelper.hex(header, intermediaryBuf, 0, intermediaryBuf.length, 1000));
+//    }
 
     if (compressed) {
       buf = new byte[packetLength];

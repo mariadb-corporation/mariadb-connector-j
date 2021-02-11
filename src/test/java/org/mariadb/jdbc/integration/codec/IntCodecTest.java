@@ -231,6 +231,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertTrue(rs.getBoolean(3));
     assertFalse(rs.wasNull());
     assertFalse(rs.getBoolean(4));
+    assertFalse(rs.getBoolean("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -254,6 +255,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals((byte) -1, rs.getByte(3));
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
+    assertEquals((byte) 0, rs.getByte("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -298,6 +300,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(-1, rs.getShort(3));
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
+    assertEquals(0, rs.getShort("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -366,6 +369,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(-1L, rs.getLong(3));
     assertFalse(rs.wasNull());
     assertEquals(0L, rs.getLong(4));
+    assertEquals(0L, rs.getLong("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -412,6 +416,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(-1F, rs.getFloat(3));
     assertFalse(rs.wasNull());
     assertEquals(0F, rs.getFloat(4));
+    assertEquals(0F, rs.getFloat("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -458,6 +463,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(-1D, rs.getDouble(3));
     assertFalse(rs.wasNull());
     assertEquals(0D, rs.getDouble(4));
+    assertEquals(0D, rs.getDouble("t4alias"));
     assertTrue(rs.wasNull());
   }
 
@@ -504,6 +510,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(BigDecimal.valueOf(-1), rs.getBigDecimal(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
+    assertNull(rs.getBigDecimal("t4alias"));
     assertTrue(rs.wasNull());
   }
 
