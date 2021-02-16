@@ -71,11 +71,13 @@ public class UpdateResultSetTest extends Common {
                     + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
                     + "`t1` varchar(100) DEFAULT NULL,"
                     + "`t2` varchar(100) DEFAULT NULL)");
-    stmt.execute(
-            "CREATE TABLE `testDefaultUUID` ("
-                    + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
-                    + "`column2` varchar(100) DEFAULT NULL,"
-                    + " PRIMARY KEY (`column1`))");
+    if (isMariaDBServer()) {
+      stmt.execute(
+              "CREATE TABLE `testDefaultUUID` ("
+                      + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
+                      + "`column2` varchar(100) DEFAULT NULL,"
+                      + " PRIMARY KEY (`column1`))");
+    }
     stmt.execute("CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
   }
 
