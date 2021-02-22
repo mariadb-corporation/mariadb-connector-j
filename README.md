@@ -12,7 +12,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 
 ## Status
 [![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://travis-ci.com/mariadb-corporation/mariadb-connector-j)
-[![Windows Build](https://ci.appveyor.com/api/projects/status/icmwu47dyj05htid/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j-8yinp/branch/master)
+[![Windows Build](https://ci.appveyor.com/api/projects/status/9o4hjqouaq2vp2v4/branch/master?svg=true)](https://ci.appveyor.com/project/mariadb/mariadb-connector-j/branch/master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MariaDB/mariadb-connector-j&amp;utm_campaign=Badge_Grade)
