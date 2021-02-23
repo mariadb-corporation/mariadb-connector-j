@@ -1,7 +1,7 @@
-#dist: trusty
-sudo: false
+dist: xenial
 language: java
 services: docker
+os: linux
 addons:
   hosts:
     - mariadb.example.com
@@ -22,7 +22,7 @@ cache:
   directories:
     - $HOME/.m2
 
-matrix:
+jobs:
   allow_failures:
     - env: DB=build:10.6
       jdk: openjdk11

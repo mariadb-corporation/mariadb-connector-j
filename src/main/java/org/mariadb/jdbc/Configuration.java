@@ -438,19 +438,19 @@ public class Configuration implements Cloneable {
       // loop on properties,
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
-      for (String key : properties.stringPropertyNames()) {
-        String realKey = OptionAliases.OPTIONS_ALIASES.get(key);
-        if (realKey == null) realKey = key;
-        final String propertyValue = properties.getProperty(realKey);
+      for (final Object keyObj : properties.keySet()) {
+        String realKey = OptionAliases.OPTIONS_ALIASES.get(keyObj);
+        if (realKey == null) realKey = keyObj.toString();
+        final Object propertyValue = properties.get(realKey);
 
-        if (propertyValue != null && !key.isEmpty()) {
+        if (propertyValue != null && realKey != null) {
           try {
             final Field field = Builder.class.getDeclaredField(realKey);
             field.setAccessible(true);
             if (field.getGenericType().equals(String.class)) {
               field.set(builder, propertyValue);
             } else if (field.getGenericType().equals(Boolean.class)) {
-              switch (propertyValue.toLowerCase()) {
+              switch (propertyValue.toString().toLowerCase()) {
                 case "":
                 case "1":
                 case "true":
@@ -466,22 +466,22 @@ public class Configuration implements Cloneable {
                   throw new IllegalArgumentException(
                       String.format(
                           "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
-                          key, propertyValue));
+                              keyObj, propertyValue));
               }
             } else if (field.getGenericType().equals(Integer.class)) {
               try {
-                final Integer value = Integer.parseInt(propertyValue);
+                final Integer value = Integer.parseInt(propertyValue.toString());
                 field.set(builder, value);
               } catch (NumberFormatException n) {
                 throw new IllegalArgumentException(
                     String.format(
-                        "Optional parameter %s must be Integer, was '%s'", key, propertyValue));
+                        "Optional parameter %s must be Integer, was '%s'", keyObj, propertyValue));
               }
             }
           } catch (NoSuchFieldException nfe) {
             // keep unknown option:
             // those might be used in authentication or identity plugin
-            nonMappedOptions.put(key, properties.getProperty(key));
+            nonMappedOptions.put(keyObj, propertyValue);
           }
         }
       }

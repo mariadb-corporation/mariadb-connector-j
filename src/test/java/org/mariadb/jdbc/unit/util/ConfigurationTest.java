@@ -342,15 +342,33 @@ public class ConfigurationTest extends Common {
     Properties prop = new Properties();
     prop.setProperty("user", "greg");
     prop.setProperty("password", "pass");
+    prop.setProperty("allowMultiQueries", "true");
 
     Configuration conf = org.mariadb.jdbc.Configuration.parse(url, prop);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
     assertEquals("pass", conf.password());
+    assertTrue(conf.allowMultiQueries());
     assertEquals(3, conf.addresses().size());
     assertEquals(HostAddress.from("master", 3306, true), conf.addresses().get(0));
     assertEquals(HostAddress.from("slave1", 3307, true), conf.addresses().get(1));
     assertEquals(HostAddress.from("slave2", 3308, true), conf.addresses().get(2));
+
+    prop = new Properties();
+    prop.put("user", "greg");
+    prop.put("password", "pass");
+    prop.put("allowMultiQueries", true);
+
+    conf = org.mariadb.jdbc.Configuration.parse(url, prop);
+    assertEquals("database", conf.database());
+    assertEquals("greg", conf.user());
+    assertEquals("pass", conf.password());
+    assertTrue(conf.allowMultiQueries());
+    assertEquals(3, conf.addresses().size());
+    assertEquals(HostAddress.from("master", 3306, true), conf.addresses().get(0));
+    assertEquals(HostAddress.from("slave1", 3307, true), conf.addresses().get(1));
+    assertEquals(HostAddress.from("slave2", 3308, true), conf.addresses().get(2));
+
   }
 
   @Test
