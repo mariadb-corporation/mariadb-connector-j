@@ -33,15 +33,15 @@ public class Select_1000_params extends Common {
 
   static {
     StringBuilder sb = new StringBuilder("select ?");
-    for (int i = 1; i < 100000; i++) {
+    for (int i = 1; i < 1000; i++) {
       sb.append(",?");
     }
     sql = sb.toString();
   }
 
   private static int[] randParams() {
-    int[] rnds = new int[100000];
-    for (int i = 0; i < 100000; i++) {
+    int[] rnds = new int[1000];
+    for (int i = 0; i < 1000; i++) {
       rnds[i] = (int) (Math.random() * 1000);
     }
     return rnds;
@@ -60,12 +60,12 @@ public class Select_1000_params extends Common {
   private Integer run(Connection con) throws Throwable {
     int[] rnds = randParams();
     try (PreparedStatement st = con.prepareStatement(sql)) {
-      for (int i = 1; i <= 100000; i++) {
+      for (int i = 1; i <= 1000; i++) {
         st.setInt(i, rnds[i - 1]);
       }
       ResultSet rs = st.executeQuery();
       rs.next();
-      for (int i = 1; i <= 100000; i++) {
+      for (int i = 1; i <= 1000; i++) {
         if (rnds[i - 1] != rs.getInt(i)) throw new IllegalStateException("ERROR");
       }
       return rs.getInt(1);
