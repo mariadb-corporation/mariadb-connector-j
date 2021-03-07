@@ -52,6 +52,11 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.Options;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -61,10 +66,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnDefinition;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.util.Options;
 
 public class BinaryRowProtocol extends RowProtocol {
 
@@ -452,42 +453,37 @@ public class BinaryRowProtocol extends RowProtocol {
         value = getInternalMediumInt(columnInfo);
         break;
       case BIGINT:
-        value =
-            ((buf[pos] & 0xff)
-                + ((long) (buf[pos + 1] & 0xff) << 8)
-                + ((long) (buf[pos + 2] & 0xff) << 16)
-                + ((long) (buf[pos + 3] & 0xff) << 24)
-                + ((long) (buf[pos + 4] & 0xff) << 32)
-                + ((long) (buf[pos + 5] & 0xff) << 40)
-                + ((long) (buf[pos + 6] & 0xff) << 48)
-                + ((long) (buf[pos + 7] & 0xff) << 56));
-        if (columnInfo.isSigned()) {
-          return value;
+        if (columnInfo.isSigned() || (buf[pos + 7] & 0x80) == 0) {
+          return (buf[pos] & 0xff)
+              | ((long) (buf[pos + 1] & 0xff) << 8)
+              | ((long) (buf[pos + 2] & 0xff) << 16)
+              | ((long) (buf[pos + 3] & 0xff) << 24)
+              | ((long) (buf[pos + 4] & 0xff) << 32)
+              | ((long) (buf[pos + 5] & 0xff) << 40)
+              | ((long) (buf[pos + 6] & 0xff) << 48)
+              | ((long) (buf[pos + 7] & 0xff) << 56);
         }
         BigInteger unsignedValue =
             new BigInteger(
-                1,
                 new byte[] {
-                  (byte) (value >> 56),
-                  (byte) (value >> 48),
-                  (byte) (value >> 40),
-                  (byte) (value >> 32),
-                  (byte) (value >> 24),
-                  (byte) (value >> 16),
-                  (byte) (value >> 8),
-                  (byte) value
+                  0, // to indicate sign
+                  buf[pos + 7],
+                  buf[pos + 6],
+                  buf[pos + 5],
+                  buf[pos + 4],
+                  buf[pos + 3],
+                  buf[pos + 2],
+                  buf[pos + 1],
+                  buf[pos]
                 });
-        if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
-          throw new SQLException(
-              "Out of range value for column '"
-                  + columnInfo.getName()
-                  + "' : value "
-                  + unsignedValue
-                  + " is not in Long range",
-              "22003",
-              1264);
-        }
-        return unsignedValue.longValue();
+        throw new SQLException(
+            "Out of range value for column '"
+                + columnInfo.getName()
+                + "' : value "
+                + unsignedValue
+                + " is not in Long range",
+            "22003",
+            1264);
       case FLOAT:
         Float floatValue = getInternalFloat(columnInfo);
         if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
@@ -560,30 +556,28 @@ public class BinaryRowProtocol extends RowProtocol {
         value = getInternalMediumInt(columnInfo);
         break;
       case BIGINT:
-        value =
-            ((buf[pos] & 0xff)
-                + ((long) (buf[pos + 1] & 0xff) << 8)
-                + ((long) (buf[pos + 2] & 0xff) << 16)
-                + ((long) (buf[pos + 3] & 0xff) << 24)
-                + ((long) (buf[pos + 4] & 0xff) << 32)
-                + ((long) (buf[pos + 5] & 0xff) << 40)
-                + ((long) (buf[pos + 6] & 0xff) << 48)
-                + ((long) (buf[pos + 7] & 0xff) << 56));
-        if (columnInfo.isSigned()) {
-          return value;
+        if (columnInfo.isSigned() || (buf[pos + 7] & 0x80) == 0) {
+          return (buf[pos] & 0xff)
+              | ((long) (buf[pos + 1] & 0xff) << 8)
+              | ((long) (buf[pos + 2] & 0xff) << 16)
+              | ((long) (buf[pos + 3] & 0xff) << 24)
+              | ((long) (buf[pos + 4] & 0xff) << 32)
+              | ((long) (buf[pos + 5] & 0xff) << 40)
+              | ((long) (buf[pos + 6] & 0xff) << 48)
+              | ((long) (buf[pos + 7] & 0xff) << 56);
         }
         BigInteger unsignedValue =
             new BigInteger(
-                1,
                 new byte[] {
-                  (byte) (value >> 56),
-                  (byte) (value >> 48),
-                  (byte) (value >> 40),
-                  (byte) (value >> 32),
-                  (byte) (value >> 24),
-                  (byte) (value >> 16),
-                  (byte) (value >> 8),
-                  (byte) value
+                  0, // to indicate sign
+                  buf[pos + 7],
+                  buf[pos + 6],
+                  buf[pos + 5],
+                  buf[pos + 4],
+                  buf[pos + 3],
+                  buf[pos + 2],
+                  buf[pos + 1],
+                  buf[pos]
                 });
         return unsignedValue.floatValue();
       case FLOAT:
@@ -654,32 +648,30 @@ public class BinaryRowProtocol extends RowProtocol {
       case MEDIUMINT:
         return getInternalMediumInt(columnInfo);
       case BIGINT:
-        long valueLong =
-            ((buf[pos] & 0xff)
-                + ((long) (buf[pos + 1] & 0xff) << 8)
-                + ((long) (buf[pos + 2] & 0xff) << 16)
-                + ((long) (buf[pos + 3] & 0xff) << 24)
-                + ((long) (buf[pos + 4] & 0xff) << 32)
-                + ((long) (buf[pos + 5] & 0xff) << 40)
-                + ((long) (buf[pos + 6] & 0xff) << 48)
-                + ((long) (buf[pos + 7] & 0xff) << 56));
-        if (columnInfo.isSigned()) {
-          return valueLong;
-        } else {
-          return new BigInteger(
-                  1,
-                  new byte[] {
-                    (byte) (valueLong >> 56),
-                    (byte) (valueLong >> 48),
-                    (byte) (valueLong >> 40),
-                    (byte) (valueLong >> 32),
-                    (byte) (valueLong >> 24),
-                    (byte) (valueLong >> 16),
-                    (byte) (valueLong >> 8),
-                    (byte) valueLong
-                  })
-              .doubleValue();
+        if (columnInfo.isSigned() || (buf[pos + 7] & 0x80) == 0) {
+          return (buf[pos] & 0xff)
+              | ((long) (buf[pos + 1] & 0xff) << 8)
+              | ((long) (buf[pos + 2] & 0xff) << 16)
+              | ((long) (buf[pos + 3] & 0xff) << 24)
+              | ((long) (buf[pos + 4] & 0xff) << 32)
+              | ((long) (buf[pos + 5] & 0xff) << 40)
+              | ((long) (buf[pos + 6] & 0xff) << 48)
+              | ((long) (buf[pos + 7] & 0xff) << 56);
         }
+        BigInteger unsignedValue =
+            new BigInteger(
+                new byte[] {
+                  0, // to indicate sign
+                  buf[pos + 7],
+                  buf[pos + 6],
+                  buf[pos + 5],
+                  buf[pos + 4],
+                  buf[pos + 3],
+                  buf[pos + 2],
+                  buf[pos + 1],
+                  buf[pos]
+                });
+        return unsignedValue.doubleValue();
       case FLOAT:
         return getInternalFloat(columnInfo);
       case DOUBLE:
@@ -742,35 +734,32 @@ public class BinaryRowProtocol extends RowProtocol {
       case MEDIUMINT:
         return BigDecimal.valueOf(getInternalMediumInt(columnInfo));
       case BIGINT:
-        long value =
-            ((buf[pos] & 0xff)
-                + ((long) (buf[pos + 1] & 0xff) << 8)
-                + ((long) (buf[pos + 2] & 0xff) << 16)
-                + ((long) (buf[pos + 3] & 0xff) << 24)
-                + ((long) (buf[pos + 4] & 0xff) << 32)
-                + ((long) (buf[pos + 5] & 0xff) << 40)
-                + ((long) (buf[pos + 6] & 0xff) << 48)
-                + ((long) (buf[pos + 7] & 0xff) << 56));
-        if (columnInfo.isSigned()) {
-          return new BigDecimal(String.valueOf(BigInteger.valueOf(value)))
-              .setScale(columnInfo.getDecimals());
-        } else {
-          return new BigDecimal(
-                  String.valueOf(
-                      new BigInteger(
-                          1,
-                          new byte[] {
-                            (byte) (value >> 56),
-                            (byte) (value >> 48),
-                            (byte) (value >> 40),
-                            (byte) (value >> 32),
-                            (byte) (value >> 24),
-                            (byte) (value >> 16),
-                            (byte) (value >> 8),
-                            (byte) value
-                          })))
-              .setScale(columnInfo.getDecimals());
+        if (columnInfo.isSigned() || (buf[pos + 7] & 0x80) == 0) {
+          long value =
+              (buf[pos] & 0xff)
+                  | ((long) (buf[pos + 1] & 0xff) << 8)
+                  | ((long) (buf[pos + 2] & 0xff) << 16)
+                  | ((long) (buf[pos + 3] & 0xff) << 24)
+                  | ((long) (buf[pos + 4] & 0xff) << 32)
+                  | ((long) (buf[pos + 5] & 0xff) << 40)
+                  | ((long) (buf[pos + 6] & 0xff) << 48)
+                  | ((long) (buf[pos + 7] & 0xff) << 56);
+          return BigDecimal.valueOf(value).setScale(columnInfo.getDecimals());
         }
+        BigInteger unsignedValue =
+            new BigInteger(
+                new byte[] {
+                  0, // to indicate sign
+                  buf[pos + 7],
+                  buf[pos + 6],
+                  buf[pos + 5],
+                  buf[pos + 4],
+                  buf[pos + 3],
+                  buf[pos + 2],
+                  buf[pos + 1],
+                  buf[pos]
+                });
+        return new BigDecimal(unsignedValue).setScale(columnInfo.getDecimals());
       case FLOAT:
         return BigDecimal.valueOf(getInternalFloat(columnInfo));
       case DOUBLE:
