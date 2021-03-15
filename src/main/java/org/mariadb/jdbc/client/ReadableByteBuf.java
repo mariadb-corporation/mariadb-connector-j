@@ -223,6 +223,13 @@ public final class ReadableByteBuf {
         + ((buf[pos++] & 0xff) << 24));
   }
 
+  public int readIntBE() {
+    return (((buf[pos++] & 0xff) << 24)
+        + ((buf[pos++] & 0xff) << 16)
+        + ((buf[pos++] & 0xff) << 8)
+        + (buf[pos++] & 0xff));
+  }
+
   public long readUnsignedInt() {
     return ((buf[pos++] & 0xff)
             + ((buf[pos++] & 0xff) << 8)
@@ -240,6 +247,17 @@ public final class ReadableByteBuf {
         + ((buf[pos++] & 0xffL) << 40)
         + ((buf[pos++] & 0xffL) << 48)
         + ((buf[pos++] & 0xffL) << 56));
+  }
+
+  public long readLongBE() {
+    return (((buf[pos++] & 0xffL) << 56)
+        + ((buf[pos++] & 0xffL) << 48)
+        + ((buf[pos++] & 0xffL) << 40)
+        + ((buf[pos++] & 0xffL) << 32)
+        + ((buf[pos++] & 0xffL) << 24)
+        + ((buf[pos++] & 0xffL) << 16)
+        + ((buf[pos++] & 0xffL) << 8)
+        + (buf[pos++] & 0xffL));
   }
 
   public ReadableByteBuf readBytes(byte[] dst) {
@@ -297,5 +315,9 @@ public final class ReadableByteBuf {
 
   public double readDouble() {
     return Double.longBitsToDouble(readLong());
+  }
+
+  public double readDoubleBE() {
+    return Double.longBitsToDouble(readLongBE());
   }
 }

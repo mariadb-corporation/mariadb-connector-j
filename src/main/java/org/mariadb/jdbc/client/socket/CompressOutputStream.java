@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 import org.mariadb.jdbc.util.MutableInt;
 import org.mariadb.jdbc.util.log.Logger;
-import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
 
 public class CompressOutputStream extends OutputStream {
@@ -130,9 +129,9 @@ public class CompressOutputStream extends OutputStream {
         buf[5] = 0;
         buf[6] = 0;
 
-//        if (logger.isTraceEnabled()) {
-//          logger.trace("send compress: \n{}", LoggerHelper.hex(buf, 0, pos, 1000));
-//        }
+        //        if (logger.isTraceEnabled()) {
+        //          logger.trace("send compress: \n{}", LoggerHelper.hex(buf, 0, pos, 1000));
+        //        }
         out.write(buf, 0, pos);
 
       } else {
@@ -161,11 +160,11 @@ public class CompressOutputStream extends OutputStream {
 
           out.write(header, 0, 7);
           out.write(compressedBytes, 0, compressLen);
-//          if (logger.isTraceEnabled()) {
-//            logger.trace(
-//                "send compress: \n{}",
-//                LoggerHelper.hex(header, compressedBytes, 0, compressLen, 1000));
-//          }
+          //          if (logger.isTraceEnabled()) {
+          //            logger.trace(
+          //                "send compress: \n{}",
+          //                LoggerHelper.hex(header, compressedBytes, 0, compressLen, 1000));
+          //          }
         }
       }
 

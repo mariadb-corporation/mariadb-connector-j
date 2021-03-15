@@ -27,6 +27,7 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -48,7 +49,11 @@ public class PrepareResultPacket implements Completion {
     this.columns = new ColumnDefinitionPacket[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, trace));
+        parameters[i] =
+            new ColumnDefinitionPacket(
+                reader.readReadablePacket(false, trace),
+                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
+                    > 0);
       }
       if (!context.isEofDeprecated()) {
         reader.readReadablePacket(true, trace);
@@ -56,7 +61,11 @@ public class PrepareResultPacket implements Completion {
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
-        columns[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, trace));
+        columns[i] =
+            new ColumnDefinitionPacket(
+                reader.readReadablePacket(false, trace),
+                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
+                    > 0);
       }
       if (!context.isEofDeprecated()) {
         reader.readReadablePacket(true, trace);

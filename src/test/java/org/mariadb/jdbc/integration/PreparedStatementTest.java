@@ -179,11 +179,12 @@ public class PreparedStatementTest extends Common {
       assertEquals(1, preparedStatement.executeUpdate());
 
       // verification that query without resultset return an empty resultset
-      preparedStatement.setInt(2, 11);
+      preparedStatement.clearParameters();
       assertThrowsContains(
           SQLException.class,
           () -> preparedStatement.executeQuery(),
           "Parameter at position 1 is not set");
+      preparedStatement.setInt(2, 11);
       preparedStatement.setInt(1, 6);
       ResultSet rs0 = preparedStatement.executeQuery();
       assertFalse(rs0.next());

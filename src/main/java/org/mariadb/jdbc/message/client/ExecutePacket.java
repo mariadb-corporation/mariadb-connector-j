@@ -32,7 +32,7 @@ import org.mariadb.jdbc.util.ParameterList;
 
 /** See https://mariadb.com/kb/en/com_stmt_execute/ for documentation */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private final ParameterList parameters;
+  private ParameterList parameters;
   private final String command;
   private final ServerPreparedStatement prep;
   private PrepareResultPacket prepareResult;
@@ -46,6 +46,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     this.prepareResult = prepareResult;
     this.command = command;
     this.prep = prep;
+  }
+
+  public void saveParameters() {
+    this.parameters = this.parameters.clone();
   }
 
   public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)

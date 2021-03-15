@@ -1007,6 +1007,5 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("http://f🌟15", rs.getObject("t1", (Map<String, Class<?>>) null));
     assertEquals("http://f🌟15", rs.getURL(2).toString());
     assertEquals("http://f🌟15", rs.getURL("t1").toString());
-
   }
 }

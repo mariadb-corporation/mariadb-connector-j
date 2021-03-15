@@ -263,10 +263,52 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  private void postConnectionQueries() throws SQLException {
+  /**
+   * load server timezone and ensure this correspond to client timezone
+   *
+   * @throws SQLException if any socket error.
+   */
+  private String handleTimezone() throws SQLException {
+    if (!"disable".equalsIgnoreCase(conf.timezone())) {
+      String timeZone = null;
+      try {
+        Result res =
+            (Result) execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone")).get(0);
+        res.next();
+        timeZone = res.getString(1);
+        if ("SYSTEM".equals(timeZone)) {
+          timeZone = res.getString(2);
+        }
+      } catch (SQLException sqle) {
+        Result res =
+            (Result)
+                execute(
+                        new QueryPacket(
+                            "SHOW VARIABLES WHERE Variable_name in ("
+                                + "'system_time_zone',"
+                                + "'time_zone')"))
+                    .get(0);
+        String systemTimeZone = null;
+        while (res.next()) {
+          if ("system_time_zone".equals(res.getString(1))) {
+            systemTimeZone = res.getString(2);
+          } else {
+            timeZone = res.getString(2);
+          }
+        }
+        if ("SYSTEM".equals(timeZone)) {
+          timeZone = systemTimeZone;
+        }
+      }
+      return timeZone;
+    }
+    return null;
+  }
 
+  private void postConnectionQueries() throws SQLException {
+    String serverTz = conf.timezone() != null ? handleTimezone() : null;
     try {
-      execute(createSessionVariableQuery());
+      execute(createSessionVariableQuery(serverTz));
     } catch (SQLException sqlException) {
       // timezone is not valid
       if (conf.timezone() != null) {
@@ -294,7 +336,7 @@ public class ClientImpl implements Client, AutoCloseable {
             : getMaxAllowedPacketInstance(this));
   }
 
-  public QueryPacket createSessionVariableQuery() {
+  public QueryPacket createSessionVariableQuery(String serverTz) {
     // In JDBC, connection must start in autocommit mode
     // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
     // avoid this command.
@@ -317,11 +359,21 @@ public class ClientImpl implements Client, AutoCloseable {
     }
 
     // force client timezone to connection to ensure result of now(), ...
-    if (conf.timezone() == null || !"disable".equalsIgnoreCase(conf.timezone())) {
-      String timeZone =
-          (conf.timezone() != null) ? conf.timezone() : ZoneId.systemDefault().getId();
-      sb.append(",time_zone='").append(timeZone).append("'");
+    if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+      ZoneId serverZoneId = ZoneId.of(serverTz).normalized();
+      ZoneId clientZoneId =
+          conf.timezone() == null
+              ? ZoneId.systemDefault().normalized()
+              : ZoneId.of(conf.timezone()).normalized();
+
+      if (!serverZoneId.equals(clientZoneId)) {
+        serverZoneId = ZoneId.of(serverTz, ZoneId.SHORT_IDS);
+        if (!serverZoneId.equals(clientZoneId)) {
+          sb.append(",time_zone='").append(conf.timezone()).append("'");
+        }
+      }
     }
+
     return new QueryPacket("set " + sb.toString());
   }
 

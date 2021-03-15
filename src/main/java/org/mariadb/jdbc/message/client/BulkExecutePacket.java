@@ -23,6 +23,7 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.mariadb.jdbc.ServerPreparedStatement;
@@ -33,7 +34,7 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
-  private final List<ParameterList> batchParameterList;
+  private List<ParameterList> batchParameterList;
   private final String command;
   private final ServerPreparedStatement prep;
   private PrepareResultPacket prepareResult;
@@ -47,6 +48,14 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     this.prepareResult = prepareResult;
     this.command = command;
     this.prep = prep;
+  }
+
+  public void saveParameters() {
+    List<ParameterList> savedList = new ArrayList<>(batchParameterList.size());
+    for (int i = 0; i < batchParameterList.size(); i++) {
+      savedList.add(batchParameterList.get(i).clone());
+    }
+    this.batchParameterList = savedList;
   }
 
   public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)

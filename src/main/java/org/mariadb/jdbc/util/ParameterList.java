@@ -3,7 +3,7 @@ package org.mariadb.jdbc.util;
 import java.util.Arrays;
 import org.mariadb.jdbc.codec.Parameter;
 
-public class ParameterList {
+public class ParameterList implements Cloneable {
   Parameter<?>[] elementData;
   int length;
 
@@ -49,5 +49,15 @@ public class ParameterList {
     int currLength = elementData.length;
     int newLength = Math.max(currLength + (currLength >> 1), minLength);
     elementData = Arrays.copyOf(elementData, newLength);
+  }
+
+  @Override
+  public ParameterList clone() {
+    ParameterList param = new ParameterList(length);
+    for (int i = 0; i < length; i++) {
+      param.elementData[i] = elementData[i];
+    }
+    param.length = length;
+    return param;
   }
 }

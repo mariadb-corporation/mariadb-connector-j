@@ -130,8 +130,9 @@ public class StreamingRowChangeTest extends Common {
   @Test
   public void isFirst() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    Statement stmt2 = sharedConn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    isFirst(false,stmt, stmt2);
+    Statement stmt2 =
+        sharedConn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    isFirst(false, stmt, stmt2);
     stmt.setFetchSize(3);
     stmt2.setFetchSize(3);
     isFirst(true, stmt, stmt2);

@@ -81,7 +81,6 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   resultSetType,
                   closeOnCompletion);
     } finally {
-      parameters = new ParameterList(parser.getParamCount());
       lock.unlock();
     }
   }
@@ -347,7 +346,13 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
     try {
       return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-          exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
+          exceptionFactory(),
+          prepareResult.getColumns(),
+          con.getContext().getConf(),
+          false,
+          (con.getContext().getServerCapabilities()
+                  & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
+              > 0);
     } finally {
       prepareResult.close(con.getClient());
     }
@@ -394,7 +399,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
     } finally {
-      batchParameters = new ArrayList<>();
+      batchParameters.clear();
       lock.unlock();
     }
   }
@@ -415,7 +420,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       return updates;
 
     } finally {
-      batchParameters = new ArrayList<>();
+      batchParameters.clear();
       lock.unlock();
     }
   }

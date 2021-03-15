@@ -83,22 +83,19 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     lock.lock();
     String cmd = escapeTimeout(sql);
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-    if (prepareResult == null) {
-      try {
-        long serverCapabilities = con.getContext().getServerCapabilities();
-        if ((serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
-          executePipeline(cmd);
-        } else {
-          executeStandard(cmd);
+    try {
+      if (prepareResult == null) {
+        try {
+          long serverCapabilities = con.getContext().getServerCapabilities();
+          if ((serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
+            executePipeline(cmd);
+          } else {
+            executeStandard(cmd);
+          }
+        } catch (BatchUpdateException b) {
+          throw (SQLException) b.getCause();
         }
-      } catch (BatchUpdateException b) {
-        throw (SQLException) b.getCause();
-      } finally {
-        parameters = new ParameterList();
-        lock.unlock();
-      }
-    } else {
-      try {
+      } else {
         ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);
         results =
             con.getClient()
@@ -110,10 +107,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                     resultSetConcurrency,
                     resultSetType,
                     closeOnCompletion);
-      } finally {
-        parameters = new ParameterList();
-        lock.unlock();
       }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -549,7 +545,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-        exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
+        exceptionFactory(),
+        prepareResult.getColumns(),
+        con.getContext().getConf(),
+        false,
+        (con.getContext().getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
+            > 0);
   }
 
   /**
@@ -599,7 +600,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       return updates;
 
     } finally {
-      batchParameters = new ArrayList<>();
+      batchParameters.clear();
       lock.unlock();
     }
   }
@@ -628,7 +629,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       return updates;
 
     } finally {
-      batchParameters = new ArrayList<>();
+      batchParameters.clear();
       lock.unlock();
     }
   }

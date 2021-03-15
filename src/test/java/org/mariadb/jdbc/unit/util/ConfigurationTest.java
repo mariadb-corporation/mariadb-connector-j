@@ -368,7 +368,6 @@ public class ConfigurationTest extends Common {
     assertEquals(HostAddress.from("master", 3306, true), conf.addresses().get(0));
     assertEquals(HostAddress.from("slave1", 3307, true), conf.addresses().get(1));
     assertEquals(HostAddress.from("slave2", 3308, true), conf.addresses().get(2));
-
   }
 
   @Test

@@ -466,7 +466,7 @@ public class Configuration implements Cloneable {
                   throw new IllegalArgumentException(
                       String.format(
                           "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
-                              keyObj, propertyValue));
+                          keyObj, propertyValue));
               }
             } else if (field.getGenericType().equals(Integer.class)) {
               try {

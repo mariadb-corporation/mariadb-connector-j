@@ -8,6 +8,8 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 public interface RedoableClientMessage extends ClientMessage {
 
+  default void saveParameters() {};
+
   default int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context);

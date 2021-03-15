@@ -165,7 +165,8 @@ public class ConnectionHelper {
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
             | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
+            | Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS
+            | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
 
     if (!configuration.useAffectedRows()) {
       capabilities |= Capabilities.FOUND_ROWS;

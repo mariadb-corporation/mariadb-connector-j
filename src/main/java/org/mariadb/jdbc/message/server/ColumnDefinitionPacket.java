@@ -40,22 +40,70 @@ public class ColumnDefinitionPacket implements ServerMessage {
   private final DataType dataType;
   private final byte decimals;
   private final int flags;
+  private final int[] stringPos;
+  private final String extTypeName;
+  private final String extTypeFormat;
   private boolean useAliasAsName;
 
   private ColumnDefinitionPacket(
-      ReadableByteBuf buf, int charset, long length, DataType dataType, byte decimals, int flags) {
+      ReadableByteBuf buf,
+      int charset,
+      long length,
+      DataType dataType,
+      byte decimals,
+      int flags,
+      int[] stringPos) {
     this.buf = buf;
     this.charset = charset;
     this.length = length;
     this.dataType = dataType;
     this.decimals = decimals;
     this.flags = flags;
+    this.stringPos = stringPos;
+    this.extTypeName = null;
+    this.extTypeFormat = null;
   }
 
-  public ColumnDefinitionPacket(ReadableByteBuf buf) {
-    // read from end, avoiding to parse string meta that are usually not needed.
-    buf.pos(buf.readableBytes() - 12);
+  public ColumnDefinitionPacket(ReadableByteBuf buf, boolean extendedInfo) {
+    // skip first strings
+    stringPos = new int[6];
+    stringPos[0] = 0; // catalog pos
+    stringPos[1] = buf.skip(buf.readLength()).pos(); // schema pos
+    stringPos[2] = buf.skip(buf.readLength()).pos(); // table alias pos
+    stringPos[3] = buf.skip(buf.readLength()).pos(); // table pos
+    stringPos[4] = buf.skip(buf.readLength()).pos(); // column alias pos
+    stringPos[5] = buf.skip(buf.readLength()).pos(); // column pos
+    buf.skip(buf.readLength());
+
+    if (extendedInfo) {
+      String tmpTypeName = null;
+      String tmpTypeFormat = null;
+      ReadableByteBuf subPacket = buf.readLengthBuffer();
+      while (subPacket.readableBytes() > 0) {
+        switch (subPacket.readByte()) {
+          case 0:
+            tmpTypeName = subPacket.readAscii(subPacket.readLength());
+            break;
+
+          case 1:
+            tmpTypeFormat = subPacket.readAscii(subPacket.readLength());
+            break;
+
+          default:
+            // skip data
+            subPacket.skip(subPacket.readLength());
+            break;
+        }
+      }
+      extTypeName = tmpTypeName;
+      extTypeFormat = tmpTypeFormat;
+    } else {
+      extTypeName = null;
+      extTypeFormat = null;
+    }
+
     this.buf = buf;
+    buf.skip(); // skip length always 0x0c
     this.charset = buf.readShort();
     this.length = buf.readInt();
     this.dataType = DataType.of(buf.readUnsignedByte());
@@ -70,6 +118,9 @@ public class ColumnDefinitionPacket implements ServerMessage {
     this.dataType = col.dataType;
     this.decimals = col.decimals;
     this.flags = col.flags;
+    this.stringPos = col.stringPos;
+    this.extTypeName = col.extTypeName;
+    this.extTypeFormat = col.extTypeFormat;
   }
 
   public static ColumnDefinitionPacket create(String name, DataType type) {
@@ -80,15 +131,21 @@ public class ColumnDefinitionPacket implements ServerMessage {
     arr[2] = 'E';
     arr[3] = 'F';
 
+    int[] stringPos = new int[6];
+    stringPos[0] = 0; // catalog pos
+    stringPos[1] = 4; // schema pos
+    stringPos[2] = 5; // table alias pos
+    stringPos[3] = 6; // table pos
+
     // lenenc_str     name
     // lenenc_str     org_name
     int pos = 7;
     for (int i = 0; i < 2; i++) {
+      stringPos[i + 4] = pos;
       arr[pos++] = (byte) nameBytes.length;
       System.arraycopy(nameBytes, 0, arr, pos, nameBytes.length);
       pos += nameBytes.length;
     }
-
     int len;
 
     /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
@@ -114,35 +171,33 @@ public class ColumnDefinitionPacket implements ServerMessage {
         len,
         type,
         (byte) 0,
-        ColumnFlags.PRIMARY_KEY);
-  }
-
-  private String getString(int idx) {
-    buf.pos(4);
-    for (int i = 0; i < idx; i++) {
-      buf.skip(buf.readLengthNotNull());
-    }
-    return buf.readString(buf.readLengthNotNull());
+        ColumnFlags.PRIMARY_KEY,
+        stringPos);
   }
 
   public String getSchema() {
-    return getString(0);
+    buf.pos(stringPos[1]);
+    return buf.readString(buf.readLength());
   }
 
   public String getTableAlias() {
-    return getString(1);
+    buf.pos(stringPos[2]);
+    return buf.readString(buf.readLength());
   }
 
   public String getTable() {
-    return getString(useAliasAsName ? 1 : 2);
+    buf.pos(stringPos[useAliasAsName ? 2 : 3]);
+    return buf.readString(buf.readLength());
   }
 
   public String getColumnAlias() {
-    return getString(3);
+    buf.pos(stringPos[4]);
+    return buf.readString(buf.readLength());
   }
 
   public String getColumn() {
-    return getString(4);
+    buf.pos(stringPos[5]);
+    return buf.readString(buf.readLength());
   }
 
   public int getCharset() {
@@ -227,6 +282,14 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return flags;
   }
 
+  public String getExtTypeName() {
+    return extTypeName;
+  }
+
+  public String getExtTypeFormat() {
+    return extTypeFormat;
+  }
+
   /**
    * Return metadata precision.
    *
@@ -304,8 +367,9 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case VARSTRING:
       case TINYBLOB:
       case BLOB:
-      case GEOMETRY:
         return isBinary() ? Types.VARBINARY : Types.VARCHAR;
+      case GEOMETRY:
+        return Types.VARBINARY;
       case STRING:
         return isBinary() ? Types.BINARY : Types.CHAR;
       case OLDDECIMAL:
@@ -351,6 +415,24 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case DECIMAL:
         return BigDecimalCodec.INSTANCE;
       case GEOMETRY:
+        if (extTypeName != null) {
+          switch (extTypeName) {
+            case "point":
+              return PointCodec.INSTANCE;
+            case "linestring":
+              return LineStringCodec.INSTANCE;
+            case "polygon":
+              return PolygonCodec.INSTANCE;
+            case "multipoint":
+              return MultiPointCodec.INSTANCE;
+            case "multilinestring":
+              return MultiLinestringCodec.INSTANCE;
+            case "multipolygon":
+              return MultiPolygonCodec.INSTANCE;
+            case "geometrycollection":
+              return GeometryCollectionCodec.INSTANCE;
+          }
+        }
         return ByteArrayCodec.INSTANCE;
       case TINYBLOB:
       case MEDIUMBLOB:

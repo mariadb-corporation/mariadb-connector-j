@@ -50,6 +50,13 @@ public class Codecs {
         DateCodec.INSTANCE,
         ShortCodec.INSTANCE,
         StreamCodec.INSTANCE,
-        StringCodec.INSTANCE
+        StringCodec.INSTANCE,
+        PointCodec.INSTANCE,
+        LineStringCodec.INSTANCE,
+        PolygonCodec.INSTANCE,
+        MultiPointCodec.INSTANCE,
+        MultiLinestringCodec.INSTANCE,
+        MultiPolygonCodec.INSTANCE,
+        GeometryCollectionCodec.INSTANCE
       };
 }

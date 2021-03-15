@@ -24,7 +24,9 @@ package org.mariadb.jdbc.client.result;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
@@ -35,6 +37,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   private final ColumnDefinitionPacket[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
+  private final boolean extendedInfo;
 
   /**
    * Constructor.
@@ -48,11 +51,13 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
       final ExceptionFactory exceptionFactory,
       final ColumnDefinitionPacket[] fieldPackets,
       final Configuration conf,
-      final boolean forceAlias) {
+      final boolean forceAlias,
+      final boolean extendedInfo) {
     this.exceptionFactory = exceptionFactory;
     this.fieldPackets = fieldPackets;
     this.conf = conf;
     this.forceAlias = forceAlias;
+    this.extendedInfo = extendedInfo;
   }
 
   /**
@@ -250,13 +255,18 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   /**
    * Retrieves the designated column's database-specific type name.
    *
-   * @param column the first column is 1, the second is 2, ...
+   * @param index the first column is 1, the second is 2, ...
    * @return type name used by the database. If the column type is a user-defined type, then a
    *     fully-qualified type name is returned.
    * @throws SQLException if a database access error occurs
    */
-  public String getColumnTypeName(final int column) throws SQLException {
-    return getColumn(column).getType().name();
+  public String getColumnTypeName(final int index) throws SQLException {
+    ColumnDefinitionPacket column = getColumn(index);
+    DataType dataType = column.getType();
+    if (dataType == DataType.GEOMETRY && extendedInfo) {
+      return column.getExtTypeName().toUpperCase(Locale.ROOT);
+    }
+    return dataType.name();
   }
 
   /**

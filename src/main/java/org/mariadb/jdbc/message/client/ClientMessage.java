@@ -41,6 +41,7 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -187,7 +188,11 @@ public interface ClientMessage {
         // read columns information's
         ColumnDefinitionPacket[] ci = new ColumnDefinitionPacket[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
-          ci[i] = new ColumnDefinitionPacket(reader.readReadablePacket(false, traceEnable));
+          ci[i] =
+              new ColumnDefinitionPacket(
+                  reader.readReadablePacket(false, traceEnable),
+                  (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
+                      > 0);
         }
 
         if (!context.isEofDeprecated()) {

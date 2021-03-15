@@ -85,6 +85,7 @@ public class PreparedStatementParametersTest extends Common {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
       prep.setInt(1, 1);
       prep.execute();
+      prep.clearParameters();
       assertThrowsContains(
           SQLTransientConnectionException.class,
           () -> prep.execute(),

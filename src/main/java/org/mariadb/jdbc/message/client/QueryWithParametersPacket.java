@@ -32,13 +32,17 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   private final String preSqlCmd;
   private final ClientParser parser;
-  private final ParameterList parameters;
+  private ParameterList parameters;
 
   public QueryWithParametersPacket(
       String preSqlCmd, ClientParser parser, ParameterList parameters) {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;
     this.parameters = parameters;
+  }
+
+  public void saveParameters() {
+    this.parameters = this.parameters.clone();
   }
 
   @Override

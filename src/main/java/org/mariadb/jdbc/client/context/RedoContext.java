@@ -50,7 +50,9 @@ public class RedoContext extends BaseContext {
 
   public void saveRedo(ClientMessage msg) {
     if (msg instanceof RedoableClientMessage) {
-      transactionSaver.add((RedoableClientMessage) msg);
+      RedoableClientMessage redoMsg = (RedoableClientMessage) msg;
+      redoMsg.saveParameters();
+      transactionSaver.add(redoMsg);
     }
   }
 

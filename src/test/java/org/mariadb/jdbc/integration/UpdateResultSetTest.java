@@ -45,7 +45,6 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS testExpError");
     stmt.execute("DROP TABLE IF EXISTS `testDefaultUUID`");
     stmt.execute("DROP TABLE IF EXISTS `test_update_max`");
-
   }
 
   @BeforeAll
@@ -54,31 +53,32 @@ public class UpdateResultSetTest extends Common {
     org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
     stmt.execute(
-            "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-            "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+        "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
     stmt.execute(
-            "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-            "CREATE TABLE testUpdateWhenFetch("
-                    + "`id` INT NOT NULL AUTO_INCREMENT,"
-                    + "`t1` VARCHAR(50) NOT NULL,"
-                    + "`t2` VARCHAR(50) NULL default 'default-value',"
-                    + "PRIMARY KEY (`id`))"
-                    + "DEFAULT CHARSET=utf8");
+        "CREATE TABLE testUpdateWhenFetch("
+            + "`id` INT NOT NULL AUTO_INCREMENT,"
+            + "`t1` VARCHAR(50) NOT NULL,"
+            + "`t2` VARCHAR(50) NULL default 'default-value',"
+            + "PRIMARY KEY (`id`))"
+            + "DEFAULT CHARSET=utf8");
     stmt.execute(
-            "CREATE TABLE testExpError ("
-                    + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
-                    + "`t1` varchar(100) DEFAULT NULL,"
-                    + "`t2` varchar(100) DEFAULT NULL)");
+        "CREATE TABLE testExpError ("
+            + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
+            + "`t1` varchar(100) DEFAULT NULL,"
+            + "`t2` varchar(100) DEFAULT NULL)");
     if (isMariaDBServer()) {
       stmt.execute(
-              "CREATE TABLE `testDefaultUUID` ("
-                      + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
-                      + "`column2` varchar(100) DEFAULT NULL,"
-                      + " PRIMARY KEY (`column1`))");
+          "CREATE TABLE `testDefaultUUID` ("
+              + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
+              + "`column2` varchar(100) DEFAULT NULL,"
+              + " PRIMARY KEY (`column1`))");
     }
-    stmt.execute("CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
+    stmt.execute(
+        "CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
   }
 
   /**
@@ -991,12 +991,13 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void addAfterDataFull() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'), ('8'), ('9'), ('10')");
+    stmt.execute(
+        "INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'), ('8'), ('9'), ('10')");
     try (PreparedStatement preparedStatement =
-                 sharedConn.prepareStatement(
-                         "SELECT t1, id FROM test_update_max",
-                         ResultSet.TYPE_FORWARD_ONLY,
-                         ResultSet.CONCUR_UPDATABLE)) {
+        sharedConn.prepareStatement(
+            "SELECT t1, id FROM test_update_max",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       rs.moveToInsertRow();
       rs.updateString("t1", "11");
@@ -1004,6 +1005,5 @@ public class UpdateResultSetTest extends Common {
       for (int i = 0; i < 11; i++) rs.next();
       assertEquals("11", rs.getString("t1"));
     }
-
   }
 }
