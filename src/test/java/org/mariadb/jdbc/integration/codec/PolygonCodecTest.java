@@ -17,6 +17,7 @@ import org.mariadb.jdbc.type.Point;
 import org.mariadb.jdbc.type.Polygon;
 
 public class PolygonCodecTest extends CommonCodecTest {
+  public static org.mariadb.jdbc.Connection geoConn;
   private Polygon ls1 =
       new Polygon(
           new LineString[] {
@@ -74,6 +75,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS PolygonCodec");
     stmt.execute("DROP TABLE IF EXISTS PolygonCodec2");
+    if (geoConn != null) geoConn.close();
   }
 
   @BeforeAll
@@ -89,6 +91,10 @@ public class PolygonCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");
+
+    String binUrl =
+        mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";
+    geoConn = (org.mariadb.jdbc.Connection) DriverManager.getConnection(binUrl);
   }
 
   private ResultSet get() throws SQLException {
@@ -114,17 +120,18 @@ public class PolygonCodecTest extends CommonCodecTest {
 
   @Test
   public void getObject() throws Exception {
-    getObject(get());
+    getObject(get(), false);
   }
 
   @Test
   public void getObjectPrepare() throws Exception {
-    getObject(getPrepare(sharedConn));
-    getObject(getPrepare(sharedConnBinary));
+    getObject(getPrepare(sharedConn), false);
+    getObject(getPrepare(sharedConnBinary), false);
+    getObject(getPrepare(geoConn), true);
   }
 
-  public void getObject(ResultSet rs) throws SQLException {
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+  public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));

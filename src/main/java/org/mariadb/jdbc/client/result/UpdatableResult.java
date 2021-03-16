@@ -10,16 +10,13 @@ import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.codec.BinaryRowDecoder;
-import org.mariadb.jdbc.codec.Codec;
-import org.mariadb.jdbc.codec.Codecs;
-import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class UpdatableResult extends CompleteResult {
-
+  private static final CodecList codecList = CodecLoader.get();
   private static final int STATE_STANDARD = 0;
   private static final int STATE_UPDATE = 1;
   private static final int STATE_UPDATED = 2;
@@ -968,7 +965,7 @@ public class UpdatableResult extends CompleteResult {
       return;
     }
 
-    for (Codec<?> codec : Codecs.LIST) {
+    for (Codec<?> codec : codecList.getCodecs()) {
       if (codec.canEncode(x)) {
         Parameter p = new Parameter(codec, x, scaleOrLength);
         parameters.set(columnIndex - 1, p);

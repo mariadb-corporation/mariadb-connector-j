@@ -30,7 +30,7 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
-
+  private static final CodecList codecList = CodecLoader.get();
   private final Configuration conf;
   protected ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
   protected ColumnDefinitionPacket[] columns;
@@ -83,7 +83,7 @@ public abstract class RowDecoder {
       return decode(defaultCodec, calendar);
     }
 
-    for (Codec<?> codec : Codecs.LIST) {
+    for (Codec<?> codec : codecList.getCodecs()) {
       if (codec.canDecode(column, type)) {
         return decode((Codec<T>) codec, calendar);
       }

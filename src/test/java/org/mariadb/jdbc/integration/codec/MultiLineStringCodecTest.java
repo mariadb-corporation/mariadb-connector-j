@@ -17,6 +17,7 @@ import org.mariadb.jdbc.type.MultiLineString;
 import org.mariadb.jdbc.type.Point;
 
 public class MultiLineStringCodecTest extends CommonCodecTest {
+  public static org.mariadb.jdbc.Connection geoConn;
   private MultiLineString ls1 =
       new MultiLineString(
           new LineString[] {
@@ -61,6 +62,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS MultiLineStringCodec");
     stmt.execute("DROP TABLE IF EXISTS MultiLineStringCodec2");
+    if (geoConn != null) geoConn.close();
   }
 
   @BeforeAll
@@ -77,6 +79,10 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
     stmt.execute("FLUSH TABLES");
+
+    String binUrl =
+        mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";
+    geoConn = (org.mariadb.jdbc.Connection) DriverManager.getConnection(binUrl);
   }
 
   private ResultSet get() throws SQLException {
@@ -102,17 +108,18 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
 
   @Test
   public void getObject() throws Exception {
-    getObject(get());
+    getObject(get(), false);
   }
 
   @Test
   public void getObjectPrepare() throws Exception {
-    getObject(getPrepare(sharedConn));
-    getObject(getPrepare(sharedConnBinary));
+    getObject(getPrepare(sharedConn), false);
+    getObject(getPrepare(sharedConnBinary), false);
+    getObject(getPrepare(geoConn), true);
   }
 
-  public void getObject(ResultSet rs) throws SQLException {
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+  public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));

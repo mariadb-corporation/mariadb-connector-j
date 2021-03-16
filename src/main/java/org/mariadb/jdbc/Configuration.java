@@ -83,6 +83,7 @@ public class Configuration implements Cloneable {
   private final int defaultFetchSize;
   private final int maxQuerySizeToLog;
   private final boolean pinGlobalTxToPhysicalConnection;
+  private final String geometryDefaultType;
 
   // socket
   private final String socketFactory;
@@ -213,6 +214,7 @@ public class Configuration implements Cloneable {
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
+      String geometryDefaultType,
       Properties nonMappedOptions)
       throws SQLException {
     this.database = database;
@@ -308,6 +310,7 @@ public class Configuration implements Cloneable {
     this.useReadAheadInput = useReadAheadInput != null ? useReadAheadInput : true;
     this.cachePrepStmts = cachePrepStmts != null ? cachePrepStmts : true;
     this.transactionReplay = transactionReplay != null ? transactionReplay : false;
+    this.geometryDefaultType = geometryDefaultType;
     this.serverSslCert = serverSslCert;
 
     // *************************************************************
@@ -781,6 +784,10 @@ public class Configuration implements Cloneable {
     return transactionReplay;
   }
 
+  public String getGeometryDefaultType() {
+    return geometryDefaultType;
+  }
+
   /**
    * ToString implementation.
    *
@@ -823,6 +830,7 @@ public class Configuration implements Cloneable {
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Boolean pinGlobalTxToPhysicalConnection;
+    private String geometryDefaultType;
 
     // socket
     private String socketFactory;
@@ -1004,6 +1012,24 @@ public class Configuration implements Cloneable {
      */
     public Builder tcpAbortiveClose(Boolean tcpAbortiveClose) {
       this.tcpAbortiveClose = tcpAbortiveClose;
+      return this;
+    }
+
+    /**
+     * Indicate what default Object type Geometry a resultset.getObject must return. possibility :
+     *
+     * <ul>
+     *   <li>null or empty is WKB byte array
+     *   <li>'default' will return org.mariadb.mariadb.jdbc.type Object
+     * </ul>
+     *
+     * In the future JTS might be implemented
+     *
+     * @param geometryDefault value
+     * @return this {@link Builder}
+     */
+    public Builder geometryDefaultType(String geometryDefault) {
+      this.geometryDefaultType = geometryDefault;
       return this;
     }
 
@@ -1359,6 +1385,7 @@ public class Configuration implements Cloneable {
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,
+              this.geometryDefaultType,
               this._nonMappedOptions);
       conf.initialUrl = this.buildUrl(conf);
       return conf;

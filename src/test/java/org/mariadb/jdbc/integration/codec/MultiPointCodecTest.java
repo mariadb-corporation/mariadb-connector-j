@@ -16,12 +16,14 @@ import org.mariadb.jdbc.type.MultiPoint;
 import org.mariadb.jdbc.type.Point;
 
 public class MultiPointCodecTest extends CommonCodecTest {
+  public static org.mariadb.jdbc.Connection geoConn;
 
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS MultiPointCodec");
     stmt.execute("DROP TABLE IF EXISTS MultiPointCodec2");
+    if (geoConn != null) geoConn.close();
   }
 
   @BeforeAll
@@ -36,6 +38,10 @@ public class MultiPointCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
     stmt.execute("FLUSH TABLES");
+
+    String binUrl =
+        mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";
+    geoConn = (org.mariadb.jdbc.Connection) DriverManager.getConnection(binUrl);
   }
 
   private ResultSet get() throws SQLException {
@@ -61,17 +67,18 @@ public class MultiPointCodecTest extends CommonCodecTest {
 
   @Test
   public void getObject() throws Exception {
-    getObject(get());
+    getObject(get(), false);
   }
 
   @Test
   public void getObjectPrepare() throws Exception {
-    getObject(getPrepare(sharedConn));
-    getObject(getPrepare(sharedConnBinary));
+    getObject(getPrepare(sharedConn), false);
+    getObject(getPrepare(sharedConnBinary), false);
+    getObject(getPrepare(geoConn), true);
   }
 
-  public void getObject(ResultSet rs) throws SQLException {
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+  public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
       assertEquals(
           new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}),
           rs.getObject(1));
@@ -110,7 +117,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
           rs.getObject(2, MultiPoint.class));
       assertFalse(rs.wasNull());
       assertEquals(
-          new MultiPoint(new Point[] {new Point(-0, 0.55), new Point(3, 5), new Point(1, 1)}),
+          new MultiPoint(new Point[] {new Point(-1, 0.55), new Point(3, 5), new Point(1, 1)}),
           rs.getObject(3, MultiPoint.class));
       assertFalse(rs.wasNull());
       assertNull(rs.getObject(4));

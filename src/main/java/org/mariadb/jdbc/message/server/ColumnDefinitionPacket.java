@@ -415,23 +415,27 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case DECIMAL:
         return BigDecimalCodec.INSTANCE;
       case GEOMETRY:
-        if (extTypeName != null) {
-          switch (extTypeName) {
-            case "point":
-              return PointCodec.INSTANCE;
-            case "linestring":
-              return LineStringCodec.INSTANCE;
-            case "polygon":
-              return PolygonCodec.INSTANCE;
-            case "multipoint":
-              return MultiPointCodec.INSTANCE;
-            case "multilinestring":
-              return MultiLinestringCodec.INSTANCE;
-            case "multipolygon":
-              return MultiPolygonCodec.INSTANCE;
-            case "geometrycollection":
-              return GeometryCollectionCodec.INSTANCE;
+        if (conf.getGeometryDefaultType() != null
+            && "default".equals(conf.getGeometryDefaultType())) {
+          if (extTypeName != null) {
+            switch (extTypeName) {
+              case "point":
+                return PointCodec.INSTANCE;
+              case "linestring":
+                return LineStringCodec.INSTANCE;
+              case "polygon":
+                return PolygonCodec.INSTANCE;
+              case "multipoint":
+                return MultiPointCodec.INSTANCE;
+              case "multilinestring":
+                return MultiLinestringCodec.INSTANCE;
+              case "multipolygon":
+                return MultiPolygonCodec.INSTANCE;
+              case "geometrycollection":
+                return GeometryCollectionCodec.INSTANCE;
+            }
           }
+          return GeometryCollectionCodec.INSTANCE;
         }
         return ByteArrayCodec.INSTANCE;
       case TINYBLOB:

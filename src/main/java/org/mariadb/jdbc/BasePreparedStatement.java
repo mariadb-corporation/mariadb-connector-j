@@ -30,14 +30,12 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.codec.Codec;
-import org.mariadb.jdbc.codec.Codecs;
-import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.util.ParameterList;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
-
+  private static final CodecList codecList = CodecLoader.get();
   protected ParameterList parameters;
   protected List<ParameterList> batchParameters;
   protected String sql;
@@ -1025,7 +1023,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return;
     }
 
-    for (Codec<?> codec : Codecs.LIST) {
+    for (Codec<?> codec : codecList.getCodecs()) {
       if (codec.canEncode(x)) {
         Parameter p = new Parameter(codec, x, scaleOrLength);
         parameters.set(parameterIndex - 1, p);
