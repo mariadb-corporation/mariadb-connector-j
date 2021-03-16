@@ -78,7 +78,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("MPointFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_MPointFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

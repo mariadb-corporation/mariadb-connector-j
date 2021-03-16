@@ -76,7 +76,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("MPolyFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_MPolyFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

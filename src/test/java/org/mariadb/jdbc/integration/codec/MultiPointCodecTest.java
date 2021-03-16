@@ -34,7 +34,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
         "CREATE TABLE MultiPointCodec (t1 MultiPoint, t2 MultiPoint, t3 MultiPoint, t4 MultiPoint)");
     stmt.execute(
         "INSERT INTO MultiPointCodec VALUES "
-            + "(MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null)");
+            + "(ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null)");
     stmt.execute(
         "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
     stmt.execute("FLUSH TABLES");
@@ -78,7 +78,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(
           new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}),
           rs.getObject(1));
@@ -240,7 +240,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("MULTIPOINT", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

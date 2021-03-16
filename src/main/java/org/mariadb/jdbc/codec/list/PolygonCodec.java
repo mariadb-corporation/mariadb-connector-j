@@ -79,7 +79,7 @@ public class PolygonCodec implements Codec<Polygon> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("PolyFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_PolyFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

@@ -123,9 +123,9 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
         "CREATE TABLE GeometryCollectionCodec (t1 GeometryCollection, t2 GeometryCollection, t3 GeometryCollection, t4 GeometryCollection)");
     stmt.execute(
         "INSERT INTO GeometryCollectionCodec VALUES "
-            + "(GeometryCollectionFromText('GeometryCollection(POINT (0 0), LINESTRING(10 10,20 10,20 20,10 20,10 10))'), "
-            + "GeometryCollectionFromText('GeometryCollection(POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)), MULTIPOINT(0 0,0 10,10 0))'), "
-            + "GeometryCollectionFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), "
+            + "(ST_GeomFromText('GeometryCollection(POINT (0 0), LINESTRING(10 10,20 10,20 20,10 20,10 10))'), "
+            + "ST_GeomFromText('GeometryCollection(POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)), MULTIPOINT(0 0,0 10,10 0))'), "
+            + "ST_GeomFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), "
             + "null)");
     stmt.execute(
         "CREATE TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1 GeometryCollection)");
@@ -177,7 +177,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_VERSION") == null) {
       assertEquals(geo1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(geo2, rs.getObject(2));
@@ -236,7 +236,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("GEOMETRYCOLLECTION", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

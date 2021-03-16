@@ -116,9 +116,9 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
         "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4 MultiPolygon)");
     stmt.execute(
         "INSERT INTO MultiPolygonCodec VALUES "
-            + "(MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), "
-            + "MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
-            + "MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null)");
+            + "(ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), "
+            + "ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
+            + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null)");
     stmt.execute(
         "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
     stmt.execute("FLUSH TABLES");
@@ -162,7 +162,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -246,7 +246,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("MULTIPOLYGON", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

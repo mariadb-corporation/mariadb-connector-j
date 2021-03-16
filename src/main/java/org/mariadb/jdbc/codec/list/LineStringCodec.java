@@ -76,7 +76,7 @@ public class LineStringCodec implements Codec<LineString> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("LineFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_LineFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

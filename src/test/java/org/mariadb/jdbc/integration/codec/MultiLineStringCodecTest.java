@@ -73,9 +73,9 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
         "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3 MultiLineString, t4 MultiLineString)");
     stmt.execute(
         "INSERT INTO MultiLineStringCodec VALUES "
-            + "(MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6 9,9 3,7 2))'), "
-            + "MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20))'), "
-            + "MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'), null)");
+            + "(ST_MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6 9,9 3,7 2))'), "
+            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20))'), "
+            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'), null)");
     stmt.execute(
         "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
     stmt.execute("FLUSH TABLES");
@@ -119,7 +119,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -298,7 +298,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("MULTILINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

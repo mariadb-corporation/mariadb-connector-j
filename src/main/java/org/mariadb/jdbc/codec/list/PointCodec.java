@@ -75,7 +75,7 @@ public class PointCodec implements Codec<Point> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("PointFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_PointFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

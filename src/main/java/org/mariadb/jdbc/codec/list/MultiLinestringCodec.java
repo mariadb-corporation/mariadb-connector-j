@@ -79,7 +79,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("MLineFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_MLineFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

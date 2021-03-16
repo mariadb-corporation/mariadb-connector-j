@@ -77,7 +77,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("GeomCollFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("ST_GeomCollFromText('" + value.toString() + "')").getBytes());
   }
 
   @Override

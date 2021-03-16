@@ -34,7 +34,7 @@ public class LineStringCodecTest extends CommonCodecTest {
         "CREATE TABLE LineStringCodec (t1 LineString, t2 LineString, t3 LineString, t4 LineString)");
     stmt.execute(
         "INSERT INTO LineStringCodec VALUES "
-            + "(LineStringFromText('LINESTRING(0 0,0 10,10 0)'), LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null)");
+            + "( ST_LineStringFromText('LINESTRING(0 0,0 10,10 0)'), ST_LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), ST_LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null)");
     stmt.execute(
         "CREATE TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 LineString)");
     stmt.execute("FLUSH TABLES");
@@ -77,7 +77,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(
           new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
           rs.getObject(1));
@@ -226,7 +226,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("LINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

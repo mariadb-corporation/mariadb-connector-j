@@ -31,7 +31,7 @@ public class PointCodecTest extends CommonCodecTest {
     stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
     stmt.execute(
         "INSERT INTO PointCodec VALUES "
-            + "(PointFromText('POINT(10 1)'), PointFromText('POINT(1.5 18)'), PointFromText('POINT(-1 0.55)'), null)");
+            + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
     stmt.execute("CREATE TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
     stmt.execute("FLUSH TABLES");
 
@@ -74,7 +74,7 @@ public class PointCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(new Point(10, 1), rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(new Point(1.5, 18), rs.getObject(2));
@@ -158,7 +158,7 @@ public class PointCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("POINT", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

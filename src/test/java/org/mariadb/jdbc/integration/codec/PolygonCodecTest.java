@@ -85,9 +85,9 @@ public class PolygonCodecTest extends CommonCodecTest {
     stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon)");
     stmt.execute(
         "INSERT INTO PolygonCodec VALUES "
-            + "(PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
-            + "PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
-            + "PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
+            + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
+            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
+            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
     stmt.execute(
         "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");
@@ -131,7 +131,7 @@ public class PolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -321,7 +321,7 @@ public class PolygonCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1)) {
+    if (isMariaDBServer() && minVersion(10, 5, 1) && System.getenv("MAXSCALE_TEST_DISABLE") == null) {
       assertEquals("POLYGON", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
