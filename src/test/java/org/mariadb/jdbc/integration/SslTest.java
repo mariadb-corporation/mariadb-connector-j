@@ -109,14 +109,61 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    if (!"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv"))) {
-      try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
-        assertNotNull(getSslVersion(con));
-      }
-      assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
-      assertThrows(
-          SQLInvalidAuthorizationSpecException.class,
-          () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
+  }
+
+  @Test
+  public void mutualAuthSsl() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
+
+    // without password
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () ->
+            createCon(
+                baseMutualOptions
+                    + "&sslMode=trust&keyStore="
+                    + System.getenv("TEST_DB_CLIENT_PKCS"),
+                sslPort));
+    // with password
+    try (Connection con =
+        createCon(
+            baseMutualOptions
+                + "&sslMode=trust&keyStore="
+                + System.getenv("TEST_DB_CLIENT_PKCS")
+                + "&keyStorePassword=kspass",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
+    // wrong keystore type
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () ->
+            createCon(
+                baseMutualOptions
+                    + "&sslMode=trust&keyStoreType=JKS&keyStore="
+                    + System.getenv("TEST_DB_CLIENT_PKCS"),
+                sslPort));
+    // good keystore type
+    try (Connection con =
+        createCon(
+            baseMutualOptions
+                + "&sslMode=trust&keyStoreType=pkcs12&keyStore="
+                + System.getenv("TEST_DB_CLIENT_PKCS")
+                + "&keyStorePassword=kspass",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
     }
   }
 
@@ -128,23 +175,21 @@ public class SslTest extends Common {
 
     // certificate path, like  /path/certificate.crt
     try (Connection con =
-        createCon(
-            baseOptions + "&sslMode=VERIFY_CA" + "&serverSslCert=" + serverCertPath, sslPort)) {
+        createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
 
     String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
     // file certificate path, like  file:/path/certificate.crt
     try (Connection con =
-        createCon(baseOptions + "&sslMode=VERIFY_CA" + "&serverSslCert=" + urlPath, sslPort)) {
+        createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + urlPath, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
 
     String certificateString = getServerCertificate(serverCertPath);
     // file certificate, like  -----BEGIN CERTIFICATE-----...
     try (Connection con =
-        createCon(
-            baseOptions + "&sslMode=VERIFY_CA" + "&serverSslCert=" + certificateString, sslPort)) {
+        createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
 
@@ -155,8 +200,7 @@ public class SslTest extends Common {
         SQLInvalidAuthorizationSpecException.class,
         () ->
             createCon(
-                baseMutualOptions + "&sslMode=VERIFY_CA" + "&serverSslCert=" + serverCertPath,
-                sslPort));
+                baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {

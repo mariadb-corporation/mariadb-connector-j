@@ -67,17 +67,4 @@ public final class ErrorPacket implements ServerMessage {
   public String getSqlState() {
     return sqlState;
   }
-
-  @Override
-  public String toString() {
-    return "ErrorPacket{"
-        + "errorCode="
-        + errorCode
-        + ", message='"
-        + message
-        + '\''
-        + ", sqlState='"
-        + sqlState
-        + "'}";
-  }
 }

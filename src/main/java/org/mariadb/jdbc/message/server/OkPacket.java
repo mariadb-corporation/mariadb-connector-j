@@ -84,15 +84,4 @@ public class OkPacket implements Completion {
   public long getLastInsertId() {
     return lastInsertId;
   }
-
-  @Override
-  public String toString() {
-    return "OkPacket{"
-        + ", affectedRows="
-        + affectedRows
-        + ", lastInsertId="
-        + lastInsertId
-        + ", serverStatus="
-        + '}';
-  }
 }

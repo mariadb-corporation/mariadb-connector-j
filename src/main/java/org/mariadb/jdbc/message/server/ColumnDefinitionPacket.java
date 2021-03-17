@@ -471,22 +471,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return Objects.hash(charset, length, dataType, decimals, flags);
   }
 
-  @Override
-  public String toString() {
-    return "ColumnDefinitionPacket{"
-        + "charset="
-        + charset
-        + ", length="
-        + length
-        + ", dataType="
-        + dataType
-        + ", decimals="
-        + decimals
-        + ", flags="
-        + flags
-        + '}';
-  }
-
   public void useAliasAsName() {
     useAliasAsName = true;
   }

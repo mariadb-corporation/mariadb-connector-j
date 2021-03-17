@@ -78,8 +78,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     for (int i = 0; i < parameterCount; i++) {
       Parameter<?> p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        new LongDataPacket(statementId, p, i, command, prep)
-            .encode(writer, context, newPrepareResult);
+        new LongDataPacket(statementId, p, i, command, prep).encode(writer, context);
       }
     }
 
@@ -148,16 +147,5 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {
     this.prepareResult = prepareResult;
-  }
-
-  @Override
-  public String toString() {
-    return "ExecutePacket{"
-        + "prepareResult="
-        + prepareResult
-        + ", command='"
-        + command
-        + '\''
-        + '}';
   }
 }

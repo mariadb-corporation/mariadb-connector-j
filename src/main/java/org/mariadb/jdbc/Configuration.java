@@ -100,6 +100,9 @@ public class Configuration implements Cloneable {
   // SSL
   private final SslMode sslMode;
   private final String serverSslCert;
+  private final String keyStore;
+  private final String keyStorePassword;
+  private final String keyStoreType;
   private final String enabledSslCipherSuites;
   private final String enabledSslProtocolSuites;
 
@@ -211,6 +214,9 @@ public class Configuration implements Cloneable {
       String serverRsaPublicKeyFile,
       Boolean allowPublicKeyRetrieval,
       String serverSslCert,
+      String keyStore,
+      String keyStorePassword,
+      String keyStoreType,
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
@@ -312,6 +318,9 @@ public class Configuration implements Cloneable {
     this.transactionReplay = transactionReplay != null ? transactionReplay : false;
     this.geometryDefaultType = geometryDefaultType;
     this.serverSslCert = serverSslCert;
+    this.keyStore = keyStore;
+    this.keyStorePassword = keyStorePassword;
+    this.keyStoreType = keyStoreType;
 
     // *************************************************************
     // option value verification
@@ -561,6 +570,18 @@ public class Configuration implements Cloneable {
 
   public String serverSslCert() {
     return serverSslCert;
+  }
+
+  public String keyStore() {
+    return keyStore;
+  }
+
+  public String keyStorePassword() {
+    return keyStorePassword;
+  }
+
+  public String keyStoreType() {
+    return keyStoreType;
   }
 
   public String enabledSslProtocolSuites() {
@@ -847,6 +868,9 @@ public class Configuration implements Cloneable {
     // SSL
     private String sslMode;
     private String serverSslCert;
+    private String keyStore;
+    private String keyStorePassword;
+    private String keyStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
 
@@ -907,6 +931,35 @@ public class Configuration implements Cloneable {
 
     public Builder serverSslCert(String serverSslCert) {
       this.serverSslCert = serverSslCert;
+      return this;
+    }
+
+    /**
+     * File path of the keyStore file that contain client private key store and associate
+     * certificates (similar to java System property \"javax.net.ssl.keyStore\", but ensure that
+     * only the private key's entries are used)
+     *
+     * @param keyStore client store certificates
+     * @return this {@link Builder}
+     */
+    public Builder keyStore(String keyStore) {
+      this.keyStore = keyStore;
+      return this;
+    }
+
+    /**
+     * Client keystore password
+     *
+     * @param keyStorePassword client store password
+     * @return this {@link Builder}
+     */
+    public Builder keyStorePassword(String keyStorePassword) {
+      this.keyStorePassword = keyStorePassword;
+      return this;
+    }
+
+    public Builder keyStoreType(String keyStoreType) {
+      this.keyStoreType = keyStoreType;
       return this;
     }
 
@@ -1382,6 +1435,9 @@ public class Configuration implements Cloneable {
               this.serverRsaPublicKeyFile,
               this.allowPublicKeyRetrieval,
               this.serverSslCert,
+              this.keyStore,
+              this.keyStorePassword,
+              this.keyStoreType,
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,

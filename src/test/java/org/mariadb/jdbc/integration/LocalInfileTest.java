@@ -56,6 +56,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.sql.*;
+import java.util.Locale;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -125,6 +127,30 @@ public class LocalInfileTest extends Common {
               stmt.execute(
                   "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
           "Could not send file : someFile");
+    }
+  }
+
+  @Test
+  public void unReadableFile() throws Exception {
+    Assumptions.assumeTrue(
+        (isMariaDBServer() || !minVersion(8, 0, 3))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+
+    try (Connection con = createCon("allowLocalInfile")) {
+      File tempFile = File.createTempFile("hello", ".tmp");
+      tempFile.deleteOnExit();
+      tempFile.setReadable(false);
+      Statement stmt = con.createStatement();
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () ->
+              stmt.execute(
+                  "LOAD DATA LOCAL INFILE '"
+                      + tempFile.getCanonicalPath().replace("\\", "/")
+                      + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
+          "Could not send file");
     }
   }
 

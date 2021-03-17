@@ -530,6 +530,10 @@ public class PreparedStatementTest extends Common {
       assertThrowsContains(
           SQLException.class, () -> prep.execute(), "Duplicate entry '1' for key 'PRIMARY'");
     }
+    try (PreparedStatement prep = con.prepareStatement("Wrong command")) {
+      assertThrowsContains(
+          SQLException.class, () -> prep.execute(), "You have an error in your SQL syntax");
+    }
   }
 
   @Test

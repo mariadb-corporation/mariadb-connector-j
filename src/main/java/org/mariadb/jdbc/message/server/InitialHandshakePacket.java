@@ -218,32 +218,4 @@ public final class InitialHandshakePacket implements ServerMessage {
   public int getMinorServerVersion() {
     return minorVersion;
   }
-
-  @Override
-  public String toString() {
-    return "InitialHandshakePacket{"
-        + "serverVersion='"
-        + serverVersion
-        + '\''
-        + ", threadId="
-        + threadId
-        + ", capabilities="
-        + capabilities
-        + ", defaultCollation="
-        + defaultCollation
-        + ", serverStatus="
-        + serverStatus
-        + ", mariaDBServer="
-        + mariaDBServer
-        + ", authenticationPluginType='"
-        + authenticationPluginType
-        + '\''
-        + ", majorVersion="
-        + majorVersion
-        + ", minorVersion="
-        + minorVersion
-        + ", patchVersion="
-        + patchVersion
-        + '}';
-  }
 }

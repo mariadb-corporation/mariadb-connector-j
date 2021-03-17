@@ -93,9 +93,4 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
       stmt.reset();
     }
   }
-
-  @Override
-  public String toString() {
-    return "CachedPrepareResultPacket{statementId=" + statementId + '}';
-  }
 }

@@ -97,9 +97,4 @@ public class PrepareResultPacket implements Completion {
   public ColumnDefinitionPacket[] getColumns() {
     return columns;
   }
-
-  @Override
-  public String toString() {
-    return "PrepareResultPacket{statementId=" + statementId + '}';
-  }
 }

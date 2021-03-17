@@ -23,16 +23,10 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.message.server.Completion;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 /**
  * COM_STMT_SEND_LONG_DATA
@@ -42,7 +36,7 @@ import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
  *
  * <p>https://mariadb.com/kb/en/com_stmt_send_long_data/
  */
-public final class LongDataPacket implements RedoableWithPrepareClientMessage {
+public final class LongDataPacket implements ClientMessage {
 
   private final int statementId;
   private final Parameter<?> parameter;
@@ -63,44 +57,14 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
     this.prep = prep;
   }
 
-  public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
-      throws IOException, SQLException {
+  @Override
+  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
     writer.initPacket();
     writer.writeByte(0x18);
     writer.writeInt(statementId);
     writer.writeShort((short) index);
     parameter.encodeLongData(writer, context);
-
     writer.flush();
-    return 1;
+    return 0;
   }
-
-  @Override
-  public Completion readPacket(
-      Statement stmt,
-      int fetchSize,
-      long maxRows,
-      int resultSetConcurrency,
-      int resultSetType,
-      boolean closeOnCompletion,
-      PacketReader reader,
-      PacketWriter writer,
-      Context context,
-      ExceptionFactory exceptionFactory,
-      ReentrantLock lock,
-      boolean traceEnable)
-      throws IOException, SQLException {
-    return null;
-  }
-
-  @Override
-  public ServerPreparedStatement prep() {
-    return prep;
-  }
-
-  public String getCommand() {
-    return command;
-  }
-
-  public void setPrepareResult(PrepareResultPacket prepareResult) {}
 }

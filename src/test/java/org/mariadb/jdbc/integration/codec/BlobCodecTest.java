@@ -659,6 +659,8 @@ public class BlobCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2(t1) VALUES (?)")) {
+      prep.setBlob(1, (Blob) null);
+      prep.execute();
       prep.setBlob(1, new MariaDbBlob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setBlob(1, (Blob) null);
@@ -741,6 +743,9 @@ public class BlobCodecTest extends CommonCodecTest {
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM BlobCodec2");
+    assertTrue(rs.next());
+    assertNull(rs.getBlob(2));
+
     assertTrue(rs.next());
     assertArrayEquals(
         "e🌟1".getBytes(StandardCharsets.UTF_8),
@@ -881,6 +886,7 @@ public class BlobCodecTest extends CommonCodecTest {
     assertArrayEquals("2g🌟4".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
 
     rs = stmt.executeQuery("SELECT * FROM BlobCodec2");
+    assertTrue(rs.next());
     assertTrue(rs.next());
     assertNull(rs.getBlob(2));
 

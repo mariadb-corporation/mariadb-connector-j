@@ -47,7 +47,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static KeyManager loadClientCerts(
       String keyStoreUrl,
       String keyStorePassword,
-      String keyPassword,
       String storeType,
       ExceptionFactory exceptionFactory)
       throws SQLException {
@@ -66,9 +65,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
       KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
       ks.load(inStream, keyStorePasswordChars);
-      char[] keyStoreChars =
-          (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
-      return new MariaDbX509KeyManager(ks, keyStoreChars);
+      return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
     } catch (GeneralSecurityException generalSecurityEx) {
       throw exceptionFactory.create(
           "Failed to create keyStore instance", "08000", generalSecurityEx);
@@ -120,36 +117,28 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         }
     }
 
-    //    if (conf.keyStore != null) {
-    //      keyManager =
-    //          new KeyManager[] {
-    //              loadClientCerts(
-    //                  options.keyStore,
-    //                  options.keyStorePassword,
-    //                  options.keyPassword,
-    //                  options.keyStoreType,
-    //                  exceptionFactory)
-    //          };
-    //    } else {
-    //      String keyStore = System.getProperty("javax.net.ssl.keyStore");
-    //      String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
-    //      if (keyStore != null) {
-    //        try {
-    //          keyManager =
-    //              new KeyManager[] {
-    //                  loadClientCerts(
-    //                      keyStore,
-    //                      keyStorePassword,
-    //                      keyStorePassword,
-    //                      options.keyStoreType,
-    //                      exceptionFactory)
-    //              };
-    //        } catch (SQLException queryException) {
-    //          keyManager = null;
-    //          logger.error("Error loading keymanager from system properties", queryException);
-    //        }
-    //      }
-    //    }
+    if (conf.keyStore() != null) {
+      keyManager =
+          new KeyManager[] {
+            loadClientCerts(
+                conf.keyStore(), conf.keyStorePassword(), conf.keyStoreType(), exceptionFactory)
+          };
+    } else {
+      String keyStore = System.getProperty("javax.net.ssl.keyStore");
+      String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+      String keyStoreType = System.getProperty("javax.net.ssl.keyStoreType");
+      if (keyStore != null) {
+        try {
+          keyManager =
+              new KeyManager[] {
+                loadClientCerts(keyStore, keyStorePassword, keyStoreType, exceptionFactory)
+              };
+        } catch (SQLException queryException) {
+          keyManager = null;
+          logger.error("Error loading keymanager from system properties", queryException);
+        }
+      }
+    }
 
     try {
       SSLContext sslContext = SSLContext.getInstance("TLS");

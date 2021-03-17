@@ -161,12 +161,8 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeBytes(0x00, 19); // 19
     writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
-    if (username != null && !username.isEmpty()) {
-      writer.writeString(username);
-    } else {
-      // to permit SSO
-      writer.writeString(System.getProperty("user.name"));
-    }
+    writer.writeString(
+        (username != null && !username.isEmpty()) ? username : System.getProperty("user.name"));
     writer.writeByte(0x00);
 
     if ((context.getServerCapabilities() & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
