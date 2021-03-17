@@ -191,25 +191,22 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, InputStream value, Long length) throws IOException {
+  public byte[] encodeData(Context context, InputStream value, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     byte[] array = new byte[4096];
     int len;
-    if (length == null) {
+    if (maxLength == null) {
       while ((len = value.read(array)) > 0) {
         bb.write(array, 0, len);
       }
     } else {
-      long maxLen = length;
+      long maxLen = maxLength;
       while ((len = value.read(array)) > 0 && maxLen > 0) {
         bb.write(array, 0, Math.min(len, (int) maxLen));
         maxLen -= len;
       }
     }
-    byte[] val = bb.toByteArray();
-    encoder.writeBytes(val);
-    return val;
+    return bb.toByteArray();
   }
 
   public int getBinaryEncodeType() {

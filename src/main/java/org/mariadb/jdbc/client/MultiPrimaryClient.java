@@ -86,7 +86,9 @@ public class MultiPrimaryClient implements Client {
     while ((host = conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly))
         .isPresent()) {
       try {
-        return new ClientImpl(conf, host.get(), true, lock, false);
+        return conf.transactionReplay()
+            ? new ClientReplayImpl(conf, host.get(), lock, false)
+            : new ClientImpl(conf, host.get(), lock, false);
       } catch (SQLNonTransientConnectionException sqle) {
         lastSqle = sqle;
         denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
@@ -109,7 +111,10 @@ public class MultiPrimaryClient implements Client {
                 .findFirst()
                 .map(Map.Entry::getKey);
         if (host.isPresent()) {
-          Client client = new ClientImpl(conf, host.get(), true, lock, false);
+          Client client =
+              conf.transactionReplay()
+                  ? new ClientReplayImpl(conf, host.get(), lock, false)
+                  : new ClientImpl(conf, host.get(), lock, false);
           denyList.remove(host.get());
           return client;
         }

@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.codec.list.ByteArrayCodec;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
 
@@ -39,6 +41,17 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;
     this.parameters = parameters;
+  }
+
+  @Override
+  public void ensureReplayable(Context context) throws IOException, SQLException {
+    int parameterCount = parameters.size();
+    for (int i = 0; i < parameterCount; i++) {
+      Parameter<?> p = parameters.get(i);
+      if (!p.isNull() && p.canEncodeLongData()) {
+        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData(context)));
+      }
+    }
   }
 
   public void saveParameters() {

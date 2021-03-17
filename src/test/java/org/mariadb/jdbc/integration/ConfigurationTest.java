@@ -80,7 +80,7 @@ public class ConfigurationTest extends Common {
   public void connectionAttributes() throws SQLException {
 
     try (org.mariadb.jdbc.Connection conn =
-        createCon("&connectionAttributes=test:test1,test2:test2Val")) {
+        createCon("&connectionAttributes=test:test1,test2:test2Val,test3")) {
       Statement stmt = conn.createStatement();
       ResultSet rs1 = stmt.executeQuery("SELECT @@performance_schema");
       rs1.next();
@@ -94,6 +94,8 @@ public class ConfigurationTest extends Common {
         assertEquals("test1", rs.getString("ATTR_VALUE"));
         assertTrue(rs.next());
         assertEquals("test2Val", rs.getString("ATTR_VALUE"));
+        assertTrue(rs.next());
+        assertNull(rs.getString("ATTR_VALUE"));
       }
     }
   }

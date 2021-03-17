@@ -171,8 +171,7 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Reader reader, Long maxLength) throws IOException {
+  public byte[] encodeData(Context context, Reader reader, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     char[] buf = new char[4096];
     int len;
@@ -183,9 +182,7 @@ public class ReaderCodec implements Codec<Reader> {
       bb.write(data, 0, data.length);
       maxLen -= len;
     }
-    byte[] val = bb.toByteArray();
-    encoder.writeBytes(val);
-    return val;
+    return bb.toByteArray();
   }
 
   public int getBinaryEncodeType() {

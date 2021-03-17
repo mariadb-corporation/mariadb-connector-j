@@ -40,7 +40,6 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.*;
@@ -65,7 +64,6 @@ public class ClientImpl implements Client, AutoCloseable {
   private static Integer MAX_ALLOWED_PACKET = 0;
 
   private final Socket socket;
-  private final Context context;
   private final MutableInt sequence = new MutableInt();
   private final MutableInt compressionSequence = new MutableInt();
   private final ReentrantLock lock;
@@ -73,18 +71,15 @@ public class ClientImpl implements Client, AutoCloseable {
   private final HostAddress hostAddress;
   private boolean closed = false;
   private ExceptionFactory exceptionFactory;
-  private PacketWriter writer;
+  protected PacketWriter writer;
   private PacketReader reader;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
+  protected Context context;
 
   public ClientImpl(
-      Configuration conf,
-      HostAddress hostAddress,
-      boolean saveTransaction,
-      ReentrantLock lock,
-      boolean skipPostCommands)
+      Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
 
     this.conf = conf;
@@ -116,17 +111,11 @@ public class ClientImpl implements Client, AutoCloseable {
           InitialHandshakePacket.decode(reader.readReadablePacket(true));
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       this.context =
-          conf.transactionReplay()
-              ? new RedoContext(
-                  handshake,
-                  conf,
-                  this.exceptionFactory,
-                  new PrepareCache(conf.prepStmtCacheSize(), this))
-              : new BaseContext(
-                  handshake,
-                  conf,
-                  this.exceptionFactory,
-                  new PrepareCache(conf.prepStmtCacheSize(), this));
+          new BaseContext(
+              handshake,
+              conf,
+              this.exceptionFactory,
+              new PrepareCache(conf.prepStmtCacheSize(), this));
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
 
@@ -227,7 +216,7 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   /** Closing socket in case of Connection error after socket creation. */
-  private void destroySocket() {
+  protected void destroySocket() {
     closed = true;
     try {
       this.reader.close();
@@ -470,7 +459,6 @@ public class ClientImpl implements Client, AutoCloseable {
                   closeOnCompletion));
         }
       }
-      context.saveRedo(messages);
       return results;
     } catch (SQLException sqlException) {
 
@@ -523,17 +511,8 @@ public class ClientImpl implements Client, AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException {
     sendQuery(message);
-    List<Completion> completions =
-        readResponse(
-            stmt,
-            message,
-            fetchSize,
-            maxRows,
-            resultSetConcurrency,
-            resultSetType,
-            closeOnCompletion);
-    context.saveRedo(message);
-    return completions;
+    return readResponse(
+        stmt, message, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
   }
 
   public List<Completion> readResponse(
@@ -738,7 +717,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  private void checkNotClosed() throws SQLException {
+  protected void checkNotClosed() throws SQLException {
     if (closed) {
       throw exceptionFactory.create("Connection is closed", "08000", 1220);
     }
@@ -799,7 +778,7 @@ public class ClientImpl implements Client, AutoCloseable {
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection
-        try (ClientImpl cli = new ClientImpl(conf, hostAddress, false, new ReentrantLock(), true)) {
+        try (ClientImpl cli = new ClientImpl(conf, hostAddress, new ReentrantLock(), true)) {
           cli.execute(new QueryPacket("KILL " + context.getThreadId()));
         } catch (SQLException e) {
           // eat

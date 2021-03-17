@@ -25,7 +25,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -98,57 +97,11 @@ public interface ClientMessage {
             .create(
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
       case 0xfb:
-        if (!context.getConf().allowLocalInfile()) {
-          writer.writeEmptyPacket();
-          readPacket(
-              stmt,
-              fetchSize,
-              maxRows,
-              resultSetConcurrency,
-              resultSetType,
-              closeOnCompletion,
-              reader,
-              writer,
-              context,
-              exceptionFactory,
-              lock,
-              traceEnable);
-          throw exceptionFactory
-              .withSql(this.description())
-              .create(
-                  "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true");
-        }
         buf.skip(1); // skip header
         String fileName = buf.readStringNullEnd();
-        InputStream is;
+        InputStream is = null;
         try {
-          URL url = new URL(fileName);
-          is = url.openStream();
-        } catch (IOException ioe) {
-          try {
-            is = new FileInputStream(fileName);
-          } catch (FileNotFoundException f) {
-            writer.writeEmptyPacket();
-            readPacket(
-                stmt,
-                fetchSize,
-                maxRows,
-                resultSetConcurrency,
-                resultSetType,
-                closeOnCompletion,
-                reader,
-                writer,
-                context,
-                exceptionFactory,
-                lock,
-                traceEnable);
-            throw exceptionFactory
-                .withSql(this.description())
-                .create("Could not send file : " + f.getMessage(), "HY000", f);
-          }
-        }
-
-        try {
+          is = new FileInputStream(fileName);
 
           byte[] fileBuf = new byte[8192];
           int len;
@@ -171,12 +124,30 @@ public interface ClientMessage {
               lock,
               traceEnable);
 
+        } catch (FileNotFoundException f) {
+          writer.writeEmptyPacket();
+          readPacket(
+              stmt,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion,
+              reader,
+              writer,
+              context,
+              exceptionFactory,
+              lock,
+              traceEnable);
+          throw exceptionFactory
+              .withSql(this.description())
+              .create("Could not send file : " + f.getMessage(), "HY000", f);
         } catch (IOException ioe) {
           throw exceptionFactory
               .withSql(this.description())
               .create("Could not send file : " + ioe.getMessage(), "22000", ioe);
         } finally {
-          is.close();
+          if (is != null) is.close();
         }
 
         // *********************************************************************************************************

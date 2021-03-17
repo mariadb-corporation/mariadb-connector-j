@@ -81,9 +81,8 @@ public class Parameter<T> {
     codec.encodeLongData(encoder, context, this.value, length);
   }
 
-  public byte[] encodeLongDataReturning(PacketWriter encoder, Context context)
-      throws IOException, SQLException {
-    return codec.encodeLongDataReturning(encoder, context, this.value, length);
+  public byte[] encodeData(Context context) throws IOException, SQLException {
+    return codec.encodeData(context, this.value, length);
   }
 
   public boolean canEncodeLongData() {

@@ -119,8 +119,11 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo && isMariaDBServer() && minVersion(10, 5, 1) && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo
+        && isMariaDBServer()
+        && minVersion(10, 5, 1)
+        && !"maxscale".equals(System.getenv("srv"))
+        && !"skysql-ha".equals(System.getenv("srv"))) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -299,8 +302,10 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer() && minVersion(10, 5, 1) && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (isMariaDBServer()
+        && minVersion(10, 5, 1)
+        && !"maxscale".equals(System.getenv("srv"))
+        && !"skysql-ha".equals(System.getenv("srv"))) {
       assertEquals("MULTILINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));

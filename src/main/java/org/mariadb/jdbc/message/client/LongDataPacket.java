@@ -32,7 +32,6 @@ import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 /**
@@ -50,7 +49,6 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
   private final int index;
   private final String command;
   private final ServerPreparedStatement prep;
-  private byte[] savedBuf = null;
 
   public LongDataPacket(
       int statementId,
@@ -71,23 +69,8 @@ public final class LongDataPacket implements RedoableWithPrepareClientMessage {
     writer.writeByte(0x18);
     writer.writeInt(statementId);
     writer.writeShort((short) index);
+    parameter.encodeLongData(writer, context);
 
-    if (context.getConf().haMode() != HaMode.NONE) {
-      // failover can redo execution, so in case of streaming param, we need to save it.
-      savedBuf = parameter.encodeLongDataReturning(writer, context);
-    } else parameter.encodeLongData(writer, context);
-    writer.flush();
-    return 1;
-  }
-
-  @Override
-  public int reEncode(PacketWriter writer, Context context, PrepareResultPacket prepareResult)
-      throws IOException {
-    writer.initPacket();
-    writer.writeByte(0x18);
-    writer.writeInt(prepareResult.getStatementId());
-    writer.writeShort((short) index);
-    writer.writeBytes(savedBuf);
     writer.flush();
     return 1;
   }

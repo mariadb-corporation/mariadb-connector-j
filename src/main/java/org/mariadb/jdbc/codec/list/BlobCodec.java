@@ -233,8 +233,7 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   @Override
-  public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Blob value, Long maxLength)
+  public byte[] encodeData(Context context, Blob value, Long maxLength)
       throws IOException, SQLException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     byte[] array = new byte[4096];
@@ -253,9 +252,7 @@ public class BlobCodec implements Codec<Blob> {
         maxLen -= len;
       }
     }
-    byte[] val = bb.toByteArray();
-    encoder.writeBytes(val);
-    return val;
+    return bb.toByteArray();
   }
 
   public int getBinaryEncodeType() {

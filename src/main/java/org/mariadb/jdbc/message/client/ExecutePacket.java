@@ -27,6 +27,7 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.codec.list.ByteArrayCodec;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
@@ -50,6 +51,17 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
   public void saveParameters() {
     this.parameters = this.parameters.clone();
+  }
+
+  @Override
+  public void ensureReplayable(Context context) throws IOException, SQLException {
+    int parameterCount = parameters.size();
+    for (int i = 0; i < parameterCount; i++) {
+      Parameter<?> p = parameters.get(i);
+      if (!p.isNull() && p.canEncodeLongData()) {
+        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData(context)));
+      }
+    }
   }
 
   public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)

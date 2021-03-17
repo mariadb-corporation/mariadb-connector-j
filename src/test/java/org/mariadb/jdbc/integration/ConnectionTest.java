@@ -57,7 +57,8 @@ public class ConnectionTest extends Common {
 
   @Test
   void socketTimeout() throws SQLException {
-    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -737,7 +738,7 @@ public class ConnectionTest extends Common {
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
     Assumptions.assumeTrue(
-             !"maxscale".equals(System.getenv("srv"))
+        !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv"))
             && isMariaDBServer()
@@ -784,8 +785,8 @@ public class ConnectionTest extends Common {
         isMariaDBServer()
             && System.getenv("TEST_PAM_USER") != null
             && !"maxscale".equals(System.getenv("srv"))
-                && !"skysql".equals(System.getenv("srv"))
-                && !"skysql-ha".equals(System.getenv("srv")));
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
 
     Statement stmt = sharedConn.createStatement();
     try {

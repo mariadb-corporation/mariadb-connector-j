@@ -45,6 +45,27 @@ public class BaseContext implements Context {
   private PrepareCache prepareCache;
   private int stateFlag = 0;
 
+  protected BaseContext(
+      long threadId,
+      byte[] seed,
+      long serverCapabilities,
+      Configuration conf,
+      int serverStatus,
+      ServerVersion version,
+      ExceptionFactory exceptionFactory,
+      PrepareCache prepareCache) {
+    this.threadId = threadId;
+    this.seed = seed;
+    this.serverCapabilities = serverCapabilities;
+    this.serverStatus = serverStatus;
+    this.version = version;
+    this.eofDeprecated = (serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
+    this.conf = conf;
+    this.database = conf.database();
+    this.exceptionFactory = exceptionFactory;
+    this.prepareCache = prepareCache;
+  }
+
   public BaseContext(
       InitialHandshakePacket handshake,
       Configuration conf,

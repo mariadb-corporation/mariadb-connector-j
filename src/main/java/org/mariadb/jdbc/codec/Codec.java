@@ -67,8 +67,7 @@ public interface Codec<T> {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }
 
-  default byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, T value, Long length)
+  default byte[] encodeData(Context context, T value, Long length)
       throws IOException, SQLException {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }

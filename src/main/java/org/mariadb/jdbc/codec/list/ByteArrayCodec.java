@@ -125,34 +125,6 @@ public class ByteArrayCodec implements Codec<byte[]> {
     encoder.writeBytes(((byte[]) value), 0, length);
   }
 
-  @Override
-  public void encodeLongData(PacketWriter encoder, Context context, byte[] value, Long length)
-      throws IOException {
-    if (length == null) {
-      encoder.writeBytes(value);
-    } else {
-      encoder.writeBytes(value, 0, length.intValue());
-    }
-  }
-
-  @Override
-  public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, byte[] value, Long length) throws IOException {
-    if (length == null || length.intValue() >= value.length) {
-      encoder.writeBytes(value);
-      return value;
-    } else {
-      encoder.writeBytes(value, 0, length.intValue());
-      byte[] bb = new byte[length.intValue()];
-      System.arraycopy(value, 0, bb, 0, length.intValue());
-      return bb;
-    }
-  }
-
-  public boolean canEncodeLongData() {
-    return true;
-  }
-
   public int getBinaryEncodeType() {
     return DataType.BLOB.get();
   }

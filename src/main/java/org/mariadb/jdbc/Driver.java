@@ -32,10 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.Client;
-import org.mariadb.jdbc.client.ClientImpl;
-import org.mariadb.jdbc.client.MultiPrimaryClient;
-import org.mariadb.jdbc.client.MultiPrimaryReplicaClient;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.util.Version;
 
 public final class Driver implements java.sql.Driver {
@@ -65,7 +62,10 @@ public final class Driver implements java.sql.Driver {
 
       default:
         hostAddress = configuration.addresses().get(0);
-        client = new ClientImpl(configuration, hostAddress, false, lock, false);
+        client =
+            configuration.transactionReplay()
+                ? new ClientReplayImpl(configuration, hostAddress, lock, false)
+                : new ClientImpl(configuration, hostAddress, lock, false);
         break;
     }
     return new Connection(configuration, lock, client);

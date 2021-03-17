@@ -10,6 +10,8 @@ public interface RedoableClientMessage extends ClientMessage {
 
   default void saveParameters() {};
 
+  default void ensureReplayable(Context context) throws IOException, SQLException {}
+
   default int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context);

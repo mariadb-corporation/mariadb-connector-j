@@ -68,7 +68,7 @@ public class Common {
               get("DB_DATABASE", prop),
               get("DB_USER", prop),
               get("DB_PASSWORD", prop),
-                  defaultOther);
+              defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();

@@ -25,10 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.sql.Clob;
-import java.sql.NClob;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.MariaDbClob;
@@ -173,8 +170,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public byte[] encodeLongDataReturning(
-      PacketWriter encoder, Context context, Clob value, Long maxLength)
+  public byte[] encodeData(Context context, Clob value, Long maxLength)
       throws IOException, SQLException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     Reader reader = value.getCharacterStream();
@@ -187,9 +183,7 @@ public class ClobCodec implements Codec<Clob> {
       bb.write(data, 0, data.length);
       remainingLen -= len;
     }
-    byte[] val = bb.toByteArray();
-    encoder.writeBytes(val);
-    return val;
+    return bb.toByteArray();
   }
 
   public boolean canEncodeLongData() {

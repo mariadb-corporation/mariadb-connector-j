@@ -23,10 +23,10 @@ package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.TransactionSaver;
 import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.message.client.RedoableClientMessage;
-import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -34,13 +34,37 @@ public class RedoContext extends BaseContext {
 
   private final TransactionSaver transactionSaver;
 
-  public RedoContext(
-      InitialHandshakePacket handshake,
+  private RedoContext(
+      long threadId,
+      byte[] seed,
+      long serverCapabilities,
       Configuration conf,
+      int serverStatus,
+      ServerVersion version,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
-    super(handshake, conf, exceptionFactory, prepareCache);
+    super(
+        threadId,
+        seed,
+        serverCapabilities,
+        conf,
+        serverStatus,
+        version,
+        exceptionFactory,
+        prepareCache);
     this.transactionSaver = new TransactionSaver();
+  }
+
+  public static RedoContext from(BaseContext baseContext) {
+    return new RedoContext(
+        baseContext.getThreadId(),
+        baseContext.getSeed(),
+        baseContext.getServerCapabilities(),
+        baseContext.getConf(),
+        baseContext.getServerStatus(),
+        baseContext.getVersion(),
+        baseContext.getExceptionFactory(),
+        baseContext.getPrepareCache());
   }
 
   public void setServerStatus(int serverStatus) {

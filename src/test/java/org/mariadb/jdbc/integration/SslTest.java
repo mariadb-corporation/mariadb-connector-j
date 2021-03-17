@@ -53,7 +53,8 @@ public class SslTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("FLUSH PRIVILEGES");
     sslPort =
-        System.getenv("TEST_MAXSCALE_TLS_PORT") == null || System.getenv("TEST_MAXSCALE_TLS_PORT").isEmpty()
+        System.getenv("TEST_MAXSCALE_TLS_PORT") == null
+                || System.getenv("TEST_MAXSCALE_TLS_PORT").isEmpty()
             ? null
             : Integer.valueOf(System.getenv("TEST_MAXSCALE_TLS_PORT"));
   }
@@ -108,8 +109,7 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    if (!"maxscale".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (!"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv"))) {
       try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
         assertNotNull(getSslVersion(con));
       }

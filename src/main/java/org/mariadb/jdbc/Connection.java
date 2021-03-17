@@ -85,8 +85,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli =
-        new ClientImpl(conf, client.getHostAddress(), false, new ReentrantLock(), true)) {
+    try (Client cli = new ClientImpl(conf, client.getHostAddress(), new ReentrantLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()));
     }
   }
