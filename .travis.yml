@@ -1,67 +1,55 @@
-dist: xenial
+os: linux
 language: java
 services: docker
-os: linux
+jdk: openjdk11
 addons:
   hosts:
     - mariadb.example.com
 
 before_install:
-  - chmod +x .travis/script.sh
-  - chmod +x .travis/build/build.sh
-  - chmod +x .travis/build/docker-entrypoint.sh
-  - chmod 777 .travis/build/
-  - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
+  - git clone https://github.com/mariadb-corporation/connector-test-machine.git
 
 install:
-  - mkdir tmp
-  - .travis/gen-ssl.sh mariadb.example.com tmp
-  - export PACKET=8M
-
-cache:
-  directories:
-    - $HOME/.m2
-
+  - |-
+    case $TRAVIS_OS_NAME in
+      windows)
+        choco install openjdk11 maven
+        export PATH=$(cmd.exe //c "refreshenv > nul & C:\Progra~1\Git\bin\bash -c 'echo \$PATH' ")
+        connector-test-machine/launch.bat -t "$srv" -v "$v" -d testj
+        ;;
+      linux)
+        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj
+        ;;
+    esac
 jobs:
+  fast_finish: true
   allow_failures:
-    - env: DB=build:10.6
-      jdk: openjdk11
+    - env: srv=skysql
+    - env: srv=skysql-ha
+    - env: srv=mariadb-es v=10.5
   include:
-    - env: DB=build:10.6
-      jdk: openjdk11
-    - env: SKYSQL=true
-      jdk: openjdk11
-    - env: SKYSQL_HA=true MAXSCALE_TEST_DISABLE=true
-      jdk: openjdk11
-    - env: DB=mysql:5.7
-      jdk: openjdk11
-    - env: DB=mysql:8.0 ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
-      jdk: openjdk11
-    - env: DB=mariadb:10.2
-      jdk: openjdk11
-    - env: DB=mariadb:10.3
-      jdk: openjdk11
-    - env: DB=mariadb:10.4
-      jdk: openjdk11
-    - env: DB=mariadb:10.5
-      jdk: openjdk11
-    - env: DB=mariadb:10.5
-      jdk: oraclejdk11
-    - env: DB=mariadb:10.5 BENCH=true
-      jdk: oraclejdk11
-    - env: DB=mariadb:10.5 PACKET=20M
-      jdk: openjdk11
-    - env: DB=mariadb:10.5 PACKET=40M
-      jdk: openjdk11
-    - env: DB=mariadb:10.5
-      jdk: openjdk12
-    - env: DB=mariadb:10.5 MAXSCALE_VERSION=2.5.3 MAXSCALE_TEST_DISABLE=true SSLPORT=4009
-      jdk: openjdk11
+    - env: srv=mariadb v=10.5
+      os: windows
+      language: shell
+    - env: srv=mariadb v=10.2
+    - env: srv=mariadb v=10.3
+    - env: srv=mariadb v=10.4
+    - env: srv=mariadb v=10.5
+    - env: srv=mariadb v=10.5 NO_BACKSLASH_ESCAPES=true
+    - env: srv=mariadb v=10.5 BENCH=1
+    - env: srv=maxscale
+    - env: srv=skysql
+    - env: srv=skysql-ha
+    - env: srv=build v=10.6
+    - env: srv=mysql v=5.7
+    - env: srv=mysql v=8.0
 
 script:
-  - if [[ "$DB" == build* ]] ; then .travis/build/build.sh; fi
-  - if [[ "$DB" == build* ]] ; then docker build -t build:10.6 --label build .travis/build/; fi
-  - .travis/script.sh
+  - mvn clean -Dmaven.test.skip > /dev/null
+  - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip; fi
+  - if [ -n "$BENCH" ] ; then java -Duser.country=US -Duser.language=en -DTEST_PORT=$TEST_DB_PORT -DTEST_HOST=$TEST_DB_HOST -DTEST_USERNAME=$TEST_DB_USER -DTEST_PASSWORD=$TEST_DB_PASSWORD -jar target/benchmarks.jar; fi
+  - if [ -z "$BENCH" ] ; then MAVEN_SKIP_RC=true MAVEN_OPTS="-Xmx2g -XX:MaxPermSize=512m" mvn test -DjobId=${TRAVIS_JOB_ID}; fi
+
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

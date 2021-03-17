@@ -28,8 +28,8 @@ public class Sha256AuthenticationTest extends Common {
       ResultSet rs = stmt.executeQuery("SELECT @@caching_sha2_password_public_key_path");
       rs.next();
       rsaPublicKey = checkFileExists(rs.getString(1));
-      if (rsaPublicKey == null && rs.getString(1) != null && System.getenv("SSLCERT") != null) {
-        rsaPublicKey = checkFileExists(System.getenv("SSLCERT") + "/" + rs.getString(1));
+      if (rsaPublicKey == null && rs.getString(1) != null && System.getenv("TEST_DB_RSA_PUBLIC_KEY") != null) {
+        rsaPublicKey = checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY") + "/" + rs.getString(1));
       }
     }
     if (rsaPublicKey == null) {

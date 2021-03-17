@@ -36,7 +36,7 @@ public class FailoverTest extends Common {
 
   @Test
   public void simpleFailoverTransactionReplay() throws SQLException {
-    Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
@@ -54,7 +54,7 @@ public class FailoverTest extends Common {
   }
 
   private void transactionReplay(boolean transactionReplay) throws SQLException {
-    Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement st = sharedConn.createStatement();
     st.execute("DROP TABLE IF EXISTS transaction_failover");
     st.execute(
@@ -99,7 +99,7 @@ public class FailoverTest extends Common {
 
   @Test
   public void transactionReplayPreparedStatement() throws Exception {
-    Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     transactionReplayPreparedStatement(true, true);
     transactionReplayPreparedStatement(false, true);
     transactionReplayPreparedStatement(true, false);
@@ -158,7 +158,7 @@ public class FailoverTest extends Common {
 
   @Test
   public void transactionReplayPreparedStatementBatch() throws Exception {
-    Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     for (int i = 0; i < 8; i++) {
       transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
     }

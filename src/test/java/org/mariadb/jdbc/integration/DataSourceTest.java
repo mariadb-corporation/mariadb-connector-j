@@ -53,7 +53,8 @@ public class DataSourceTest extends Common {
 
   @Test
   public void switchUser() throws SQLException {
-    Assumptions.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
+    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer()) {

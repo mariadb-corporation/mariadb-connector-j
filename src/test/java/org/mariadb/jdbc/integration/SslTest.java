@@ -53,9 +53,9 @@ public class SslTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("FLUSH PRIVILEGES");
     sslPort =
-        System.getenv("TEST_DB_SSL_PORT") == null || System.getenv("TEST_DB_SSL_PORT").isEmpty()
+        System.getenv("TEST_MAXSCALE_TLS_PORT") == null || System.getenv("TEST_MAXSCALE_TLS_PORT").isEmpty()
             ? null
-            : Integer.valueOf(System.getenv("TEST_DB_SSL_PORT"));
+            : Integer.valueOf(System.getenv("TEST_MAXSCALE_TLS_PORT"));
   }
 
   private static void createSslUser(String user, String requirement) throws SQLException {
@@ -108,10 +108,11 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-    if (System.getenv("MAXSCALE_VERSION") == null) {
+    if (!"maxscale".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))) {
+      try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
       assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
       assertThrows(
           SQLInvalidAuthorizationSpecException.class,
@@ -178,8 +179,8 @@ public class SslTest extends Common {
 
     // try local server
     if (serverCertificatePath == null
-        && System.getenv("SKYSQL") == null
-        && System.getenv("SKYSQL_HA") == null) {
+        && !"skysql".equals(System.getenv("srv"))
+        && !"skysql-ha".equals(System.getenv("srv"))) {
 
       try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());

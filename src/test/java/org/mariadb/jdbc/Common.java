@@ -52,6 +52,14 @@ public class Common {
         Common.class.getClassLoader().getResourceAsStream("conf.properties")) {
       Properties prop = new Properties();
       prop.load(inputStream);
+      String defaultOther;
+      String val = System.getenv("TEST_REQUIRE_TLS");
+      if ("1".equals(val)) {
+        String cert = System.getenv("TEST_DB_SERVER_CERT");
+        defaultOther = "sslMode=verify-full&serverSslCert=" + cert;
+      } else {
+        defaultOther = get("DB_OTHER", prop);
+      }
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
@@ -60,7 +68,8 @@ public class Common {
               get("DB_DATABASE", prop),
               get("DB_USER", prop),
               get("DB_PASSWORD", prop),
-              get("DB_OTHER", prop));
+                  defaultOther);
+
     } catch (IOException io) {
       io.printStackTrace();
     }

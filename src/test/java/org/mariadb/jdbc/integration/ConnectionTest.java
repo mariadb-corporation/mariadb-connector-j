@@ -57,7 +57,7 @@ public class ConnectionTest extends Common {
 
   @Test
   void socketTimeout() throws SQLException {
-    Assumptions.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -737,9 +737,9 @@ public class ConnectionTest extends Common {
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
     Assumptions.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null
-            && System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null
+             !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
             && isMariaDBServer()
             && minVersion(10, 2, 0));
     Statement stmt = sharedConn.createStatement();
@@ -782,10 +782,10 @@ public class ConnectionTest extends Common {
 
     Assumptions.assumeTrue(
         isMariaDBServer()
-            && System.getenv("TRAVIS") != null
-            && System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null
-            && System.getenv("MAXSCALE_VERSION") == null);
+            && System.getenv("TEST_PAM_USER") != null
+            && !"maxscale".equals(System.getenv("srv"))
+                && !"skysql".equals(System.getenv("srv"))
+                && !"skysql-ha".equals(System.getenv("srv")));
 
     Statement stmt = sharedConn.createStatement();
     try {
