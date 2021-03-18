@@ -103,7 +103,7 @@ public class Common {
     return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
   }
 
-  public Connection createCon() throws SQLException {
+  public static Connection createCon() throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl);
   }
 
@@ -141,11 +141,11 @@ public class Common {
 
   //  @RegisterExtension public Extension watcher = new Follow();
 
-  public Connection createCon(String option) throws SQLException {
+  public static Connection createCon(String option) throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl + "&" + option);
   }
 
-  public Connection createCon(String option, Integer sslPort) throws SQLException {
+  public static Connection createCon(String option, Integer sslPort) throws SQLException {
     Configuration conf = Configuration.parse(mDefUrl + "&" + option);
     if (sslPort != null) {
       for (HostAddress hostAddress : conf.addresses()) {

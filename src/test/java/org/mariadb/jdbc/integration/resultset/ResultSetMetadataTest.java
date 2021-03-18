@@ -35,7 +35,7 @@ public class ResultSetMetadataTest extends Common {
   private static final Class<? extends java.lang.Exception> sqle = SQLException.class;
 
   @AfterAll
-  public static void afterAll2() throws SQLException {
+  public static void dropAll() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS ResultSetTest");
     stmt.execute("DROP TABLE IF EXISTS test_rsmd");
@@ -46,12 +46,13 @@ public class ResultSetMetadataTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    dropAll();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE ResultSetTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO ResultSetTest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
     stmt.execute(
         "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, "
-            + "nullable_col varchar(20),unikey_col int unique, char_col char(10), us  smallint unsigned)");
+            + "nullable_col varchar(20), unikey_col int unique, char_col char(10), us smallint unsigned)");
     stmt.execute("CREATE TABLE resultsetmetadatatest1(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest2(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest3(id int, name varchar(20))");

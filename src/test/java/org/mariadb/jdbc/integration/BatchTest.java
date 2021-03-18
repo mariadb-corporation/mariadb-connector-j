@@ -144,23 +144,19 @@ public class BatchTest extends Common {
 
   @Test
   public void largeBatch() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
-      largeBatch(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
-      largeBatch(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      largeBatch(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      largeBatch(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
-      largeBatch(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
-      largeBatch(con);
+    for (int i = 0; i < 32; i++) {
+      boolean useServerPrepStmts = (i & 2) > 0;
+      boolean useBulkStmts = (i & 4) > 0;
+      boolean allowLocalInfile = (i & 8) > 0;
+      boolean useCompression = (i & 16) > 0;
+
+      try (Connection con =
+          createCon(
+              String.format(
+                  "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s",
+                  useServerPrepStmts, useBulkStmts, allowLocalInfile, useCompression))) {
+        largeBatch(con);
+      }
     }
   }
 

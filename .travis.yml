@@ -8,6 +8,13 @@ addons:
 
 before_install:
   - git clone https://github.com/mariadb-corporation/connector-test-machine.git
+  # Load cached docker images
+  - if [[ -d $HOME/docker ]]; then ls $HOME/docker/*.tar.gz | xargs -I {file} sh -c "zcat {file} | docker load"; fi
+
+cache:
+  bundler: true
+  directories:
+    - $HOME/docker
 
 install:
   - |-
@@ -18,7 +25,7 @@ install:
         connector-test-machine/launch.bat -t "$srv" -v "$v" -d testj
         ;;
       linux)
-        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj
+        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0
         ;;
     esac
 jobs:

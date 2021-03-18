@@ -142,10 +142,6 @@ public interface ClientMessage {
           throw exceptionFactory
               .withSql(this.description())
               .create("Could not send file : " + f.getMessage(), "HY000", f);
-        } catch (IOException ioe) {
-          throw exceptionFactory
-              .withSql(this.description())
-              .create("Could not send file : " + ioe.getMessage(), "22000", ioe);
         } finally {
           if (is != null) is.close();
         }

@@ -82,10 +82,6 @@ public class PrepareResultPacket implements Completion {
     close(con);
   }
 
-  public boolean incrementUse(ServerPreparedStatement preparedStatement) {
-    return true;
-  }
-
   public int getStatementId() {
     return statementId;
   }

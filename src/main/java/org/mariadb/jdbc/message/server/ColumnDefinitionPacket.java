@@ -42,7 +42,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
   private final int flags;
   private final int[] stringPos;
   private final String extTypeName;
-  private final String extTypeFormat;
   private boolean useAliasAsName;
 
   private ColumnDefinitionPacket(
@@ -61,7 +60,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
     this.flags = flags;
     this.stringPos = stringPos;
     this.extTypeName = null;
-    this.extTypeFormat = null;
   }
 
   public ColumnDefinitionPacket(ReadableByteBuf buf, boolean extendedInfo) {
@@ -77,16 +75,12 @@ public class ColumnDefinitionPacket implements ServerMessage {
 
     if (extendedInfo) {
       String tmpTypeName = null;
-      String tmpTypeFormat = null;
+      //      String tmpTypeFormat = null;
       ReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
         switch (subPacket.readByte()) {
           case 0:
             tmpTypeName = subPacket.readAscii(subPacket.readLength());
-            break;
-
-          case 1:
-            tmpTypeFormat = subPacket.readAscii(subPacket.readLength());
             break;
 
           default:
@@ -96,10 +90,8 @@ public class ColumnDefinitionPacket implements ServerMessage {
         }
       }
       extTypeName = tmpTypeName;
-      extTypeFormat = tmpTypeFormat;
     } else {
       extTypeName = null;
-      extTypeFormat = null;
     }
 
     this.buf = buf;
@@ -109,18 +101,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
     this.dataType = DataType.of(buf.readUnsignedByte());
     this.flags = buf.readUnsignedShort();
     this.decimals = buf.readByte();
-  }
-
-  public ColumnDefinitionPacket(ColumnDefinitionPacket col) {
-    this.buf = col.buf;
-    this.charset = col.charset;
-    this.length = col.length;
-    this.dataType = col.dataType;
-    this.decimals = col.decimals;
-    this.flags = col.flags;
-    this.stringPos = col.stringPos;
-    this.extTypeName = col.extTypeName;
-    this.extTypeFormat = col.extTypeFormat;
   }
 
   public static ColumnDefinitionPacket create(String name, DataType type) {
@@ -284,10 +264,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
 
   public String getExtTypeName() {
     return extTypeName;
-  }
-
-  public String getExtTypeFormat() {
-    return extTypeFormat;
   }
 
   /**

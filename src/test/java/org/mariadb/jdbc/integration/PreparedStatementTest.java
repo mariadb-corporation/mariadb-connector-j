@@ -669,6 +669,34 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
+  public void decrementCache() throws SQLException {
+    decrementCache("&useServerPrepStmts=true&prepStmtCacheSize=5");
+    decrementCache("&useServerPrepStmts=true&useServerPrepStmts=false");
+  }
+
+  public void decrementCache(String connString) throws SQLException {
+    try (Connection con = createCon(connString)) {
+      PreparedStatement prep = con.prepareStatement("SELECT 1");
+      prep.execute();
+      PreparedStatement prep2 = con.prepareStatement("SELECT 1");
+      prep2.execute();
+
+      for (int i = 1; i < 10; i++) {
+        try (PreparedStatement prep1 = con.prepareStatement("SELECT " + i)) {
+          prep1.execute();
+          prep1.setQueryTimeout(1);
+        }
+      }
+
+      prep.setQueryTimeout(1); // will close prepare
+      prep.setQueryTimeout(2); // will close prepare
+      prep.execute();
+      prep.close();
+      prep2.close();
+    }
+  }
+
+  @Test
   public void prepareStatementConcur() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       prepareStatementConcur(con);

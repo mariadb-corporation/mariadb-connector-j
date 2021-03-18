@@ -45,6 +45,7 @@ import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.*;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.Completion;
+import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.credential.Credential;
@@ -107,8 +108,14 @@ public class ClientImpl implements Client, AutoCloseable {
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       // read server handshake
-      final InitialHandshakePacket handshake =
-          InitialHandshakePacket.decode(reader.readReadablePacket(true));
+      ReadableByteBuf buf = reader.readReadablePacket(true);
+      if (buf.getByte() == -1) {
+        ErrorPacket errorPacket = new ErrorPacket(buf, null);
+        throw this.exceptionFactory.create(
+            errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+      }
+      final InitialHandshakePacket handshake = InitialHandshakePacket.decode(buf);
+
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       this.context =
           new BaseContext(

@@ -33,6 +33,15 @@ public final class ErrorPacket implements ServerMessage {
   private final String message;
   private final String sqlState;
 
+  /**
+   * +--------------------------------------------------+ | 0 1 2 3 4 5 6 7 8 9 a b c d e f |
+   * +--------------------------------------------------+------------------+ | 17 00 00 01 FF 10 04
+   * 54 6F 6F 20 6D 61 6E 79 20 | .......Too many | | 63 6F 6E 6E 65 63 74 69 6F 6E 73 | connections
+   * | +--------------------------------------------------+------------------+
+   *
+   * @param buf
+   * @param context
+   */
   public ErrorPacket(ReadableByteBuf buf, Context context) {
     buf.skip();
     this.errorCode = buf.readShort();
@@ -42,6 +51,7 @@ public final class ErrorPacket implements ServerMessage {
       this.sqlState = buf.readAscii(5);
       this.message = buf.readStringEof();
     } else {
+      // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
       this.message = buf.readStringEof();
       this.sqlState = "HY000";
     }
@@ -51,9 +61,11 @@ public final class ErrorPacket implements ServerMessage {
 
     // force current status to in transaction to ensure rollback/commit, since command may have
     // issue a transaction
-    int serverStatus = context.getServerStatus();
-    serverStatus |= ServerStatus.IN_TRANSACTION;
-    context.setServerStatus(serverStatus);
+    if (context != null) {
+      int serverStatus = context.getServerStatus();
+      serverStatus |= ServerStatus.IN_TRANSACTION;
+      context.setServerStatus(serverStatus);
+    }
   }
 
   public short getErrorCode() {

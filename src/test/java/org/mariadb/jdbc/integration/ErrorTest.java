@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
@@ -62,6 +63,36 @@ public class ErrorTest extends Common {
           () -> stmt.execute("SELECT 'long value' FROM wrongTable"),
           "Query is: SELECT 'lo...");
     }
+  }
+
+  @Test
+  public void testPre41ErrorFormat() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    SQLException exception = null;
+    int max_connections;
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT @@max_connections");
+    rs.next();
+    max_connections = rs.getInt(1);
+    Assumptions.assumeTrue(max_connections < 1000);
+    Connection[] cons = new Connection[max_connections];
+    for (int i = 0; i < max_connections; i++) {
+      try {
+        cons[i] = createCon();
+      } catch (SQLException sqle) {
+        exception = sqle;
+      }
+    }
+
+    for (int i = 0; i < max_connections; i++) {
+      try {
+        if (cons[i] != null) cons[i].close();
+      } catch (SQLException sqle) {
+      }
+    }
+    assertNotNull(exception);
+    assertTrue(exception.getMessage().contains("Too many"));
   }
 
   @Test

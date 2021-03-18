@@ -43,10 +43,6 @@ public final class PreparePacket implements ClientMessage {
     this.sql = sql;
   }
 
-  public String getSql() {
-    return sql;
-  }
-
   @Override
   public int encode(PacketWriter writer, Context context) throws IOException {
     writer.initPacket();

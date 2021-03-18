@@ -646,11 +646,10 @@ public class BlobCodecTest extends CommonCodecTest {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
 
-    String urlWithHaMode =
-        mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:")
-            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
-            + "useServerPrepStmts=true";
-    try (Connection con = DriverManager.getConnection(urlWithHaMode)) {
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=false")) {
+      sendParam(con);
+    }
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
       sendParam(con);
     }
   }

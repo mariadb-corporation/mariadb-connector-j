@@ -60,6 +60,22 @@ public class Sha256AuthenticationTest extends Common {
   }
 
   @Test
+  public void nativePassword() throws Exception {
+    Assumptions.assumeTrue(
+        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP USER IF EXISTS tmpUser@'%'");
+    stmt.execute(
+        "CREATE USER tmpUser@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works'");
+    stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser@'%'");
+    stmt.execute("FLUSH PRIVILEGES"); // reset cache
+    try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
+      con.isValid(1);
+    }
+    stmt.execute("DROP USER IF EXISTS tmpUser@'%' ");
+  }
+
+  @Test
   public void cachingSha256Empty() throws Exception {
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));

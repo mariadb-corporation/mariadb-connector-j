@@ -723,6 +723,13 @@ public class BinaryCodecTest extends CommonCodecTest {
   public void sendParam() throws SQLException {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
+
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=false")) {
+      sendParam(con);
+    }
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws SQLException {

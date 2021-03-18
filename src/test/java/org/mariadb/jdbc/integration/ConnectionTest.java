@@ -818,4 +818,18 @@ public class ConnectionTest extends Common {
       }
     }
   }
+
+  @Test
+  public void useNoDatabase() throws SQLException {
+    try (Connection con = createCon()) {
+      String db = con.getCatalog();
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE DATABASE someDb");
+      con.setCatalog("someDb");
+      stmt.execute("DROP DATABASE someDb");
+      if (minVersion(10, 4, 0)) {
+        assertNull(con.getCatalog());
+      }
+    }
+  }
 }
