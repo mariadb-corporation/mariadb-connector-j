@@ -59,68 +59,6 @@ public class PacketReader {
   }
 
   /**
-   * Constructor for single Data (using text format).
-   *
-   * @param value value
-   * @return buf
-   */
-  public static byte[] create(byte[] value) {
-    if (value == null) {
-      return new byte[] {(byte) 251};
-    }
-
-    int length = value.length;
-    if (length < 251) {
-
-      byte[] buf = new byte[length + 1];
-      buf[0] = (byte) length;
-      System.arraycopy(value, 0, buf, 1, length);
-      return buf;
-
-    } else if (length < 65536) {
-
-      byte[] buf = new byte[length + 3];
-      buf[0] = (byte) 0xfc;
-      buf[1] = (byte) length;
-      buf[2] = (byte) (length >>> 8);
-      System.arraycopy(value, 0, buf, 3, length);
-      return buf;
-
-    } else if (length < 16777216) {
-
-      byte[] buf = new byte[length + 4];
-      buf[0] = (byte) 0xfd;
-      buf[1] = (byte) length;
-      buf[2] = (byte) (length >>> 8);
-      buf[3] = (byte) (length >>> 16);
-      System.arraycopy(value, 0, buf, 4, length);
-      return buf;
-
-    } else {
-
-      byte[] buf = new byte[length + 9];
-      buf[0] = (byte) 0xfe;
-      buf[1] = (byte) length;
-      buf[2] = (byte) (length >>> 8);
-      buf[3] = (byte) (length >>> 16);
-      buf[4] = (byte) (length >>> 24);
-      // byte[] cannot have a more than 4 byte length size, so buf[5] -> buf[8] = 0x00;
-      System.arraycopy(value, 0, buf, 9, length);
-      return buf;
-    }
-  }
-
-  /**
-   * Get current input stream for creating compress input stream, to avoid losing already read bytes
-   * in case of pipelining.
-   *
-   * @return input stream.
-   */
-  public InputStream getInputStream() {
-    return inputStream;
-  }
-
-  /**
    * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
    * MySQL packet. (first that has not length = 16Mb)
    *

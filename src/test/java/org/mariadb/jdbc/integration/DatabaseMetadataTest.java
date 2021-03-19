@@ -39,6 +39,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision");
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision2");
     stmt.execute("DROP PROCEDURE IF EXISTS testMetaCatalog");
+    stmt.execute("DROP TABLE IF EXISTS json_test");
     stmt.execute("DROP TABLE IF EXISTS dbpk_test");
     stmt.execute("DROP TABLE IF EXISTS datetime_test");
     stmt.execute("DROP TABLE IF EXISTS manycols");
@@ -70,6 +71,7 @@ public class DatabaseMetadataTest extends Common {
             + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
             + "t5 time(0),"
             + "t6 time(6))");
+    stmt.execute("CREATE TABLE json_test(t1 JSON)");
     stmt.execute(
         "CREATE PROCEDURE testMetaCatalog(x int, out y int) COMMENT 'comments' \nBEGIN\nSELECT 1;end\n");
     stmt.execute(
@@ -1922,5 +1924,20 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(rs.next());
     assertTrue("testMetaCatalog".equals(rs.getString(3)));
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void getMetaData() throws SQLException {
+    ResultSet rs = sharedConn.createStatement().executeQuery("SELECT * FROM json_test");
+    ResultSetMetaData meta = rs.getMetaData();
+    if (isMariaDBServer()) {
+      assertEquals("BLOB", meta.getColumnTypeName(1));
+      assertEquals("java.sql.Clob", meta.getColumnClassName(1));
+      assertEquals(Types.VARCHAR, meta.getColumnType(1));
+    } else {
+      assertEquals("JSON", meta.getColumnTypeName(1));
+      assertEquals("java.lang.String", meta.getColumnClassName(1));
+      assertEquals(Types.VARBINARY, meta.getColumnType(1));
+    }
   }
 }

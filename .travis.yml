@@ -1,6 +1,8 @@
 os: linux
 language: java
-services: docker
+services:
+  - docker
+  - mysql
 jdk: openjdk11
 addons:
   hosts:
@@ -15,6 +17,7 @@ cache:
   bundler: true
   directories:
     - $HOME/docker
+env: LOCAL=0
 
 install:
   - |-
@@ -25,7 +28,7 @@ install:
         connector-test-machine/launch.bat -t "$srv" -v "$v" -d testj
         ;;
       linux)
-        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0
+        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0 -l "$LOCAL"
         ;;
     esac
 jobs:
@@ -42,6 +45,7 @@ jobs:
     - env: srv=mariadb v=10.3
     - env: srv=mariadb v=10.4
     - env: srv=mariadb v=10.5
+    - env: srv=mariadb v=10.5 LOCAL=1
     - env: srv=mariadb v=10.5 NO_BACKSLASH_ESCAPES=true
     - env: srv=mariadb v=10.5 BENCH=1
     - env: srv=maxscale
@@ -50,6 +54,7 @@ jobs:
     - env: srv=build v=10.6
     - env: srv=mysql v=5.7
     - env: srv=mysql v=8.0
+
 
 script:
   - mvn clean -Dmaven.test.skip > /dev/null

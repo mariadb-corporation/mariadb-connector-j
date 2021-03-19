@@ -72,12 +72,12 @@ public class VarbinaryCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws Exception {
-    assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
+    assertEquals("0", rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
-    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertEquals("1", rs.getObject(2));
+    assertEquals("1", rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertEquals("some🌟", rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBlob(4));
     assertTrue(rs.wasNull());
@@ -702,7 +702,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("VARSTRING", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("[B", meta.getColumnClassName(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARBINARY, meta.getColumnType(1));

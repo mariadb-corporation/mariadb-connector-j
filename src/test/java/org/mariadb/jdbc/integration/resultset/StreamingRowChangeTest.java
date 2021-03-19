@@ -146,7 +146,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void isFirst(Statement stmt, Statement stmt2) throws SQLException {
-    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     assertFalse(rs.isFirst());
     assertTrue(rs.next());
     assertTrue(rs.isFirst());
@@ -155,14 +155,24 @@ public class StreamingRowChangeTest extends Common {
     }
     assertFalse(rs.isFirst());
 
-    ResultSet rs2 = stmt2.executeQuery("SELECT * FROM ResultSetTest");
-    assertFalse(rs2.isFirst());
-    assertTrue(rs2.next());
-    assertTrue(rs2.isFirst());
-    while (rs2.next()) {
-      assertFalse(rs2.isFirst());
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    assertFalse(rs.isFirst());
+    assertFalse(rs.next());
+    assertFalse(rs.isFirst());
+
+    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest");
+    assertFalse(rs.isFirst());
+    assertTrue(rs.next());
+    assertTrue(rs.isFirst());
+    while (rs.next()) {
+      assertFalse(rs.isFirst());
     }
-    assertFalse(rs2.isFirst());
+    assertFalse(rs.isFirst());
+
+    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    assertFalse(rs.isFirst());
+    assertFalse(rs.next());
+    assertFalse(rs.isFirst());
   }
 
   @Test
@@ -189,6 +199,11 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.next());
     assertFalse(rs.isLast());
 
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    assertFalse(rs.isLast());
+    assertFalse(rs.next());
+    assertFalse(rs.isLast());
+
     stmt = sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
     rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
@@ -201,6 +216,11 @@ public class StreamingRowChangeTest extends Common {
     assertTrue(rs.next());
     assertEquals(8, rs.getInt(1));
     assertTrue(rs.isLast());
+    assertFalse(rs.next());
+    assertFalse(rs.isLast());
+
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    assertFalse(rs.isLast());
     assertFalse(rs.next());
     assertFalse(rs.isLast());
   }

@@ -67,7 +67,7 @@ public class UpdatableResult extends CompleteResult {
     database = null;
     table = null;
     for (ColumnDefinitionPacket columnDefinition : metadataList) {
-      if (columnDefinition.getSchema().isEmpty() || columnDefinition.getTable().isEmpty()) {
+      if (columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
         return;
@@ -552,9 +552,7 @@ public class UpdatableResult extends CompleteResult {
       for (int pos = 0; pos < metadataList.length; pos++) {
         ColumnDefinitionPacket colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
-          if ((state != STATE_STANDARD && state != STATE_INSERTED && state != STATE_UPDATED)
-              && parameters.size() > pos
-              && parameters.get(pos) != null) {
+          if ((state != STATE_STANDARD) && parameters.size() > pos && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
             Parameter<?> value = parameters.get(pos);

@@ -32,6 +32,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
@@ -46,6 +47,7 @@ public class PreparedStatementParametersTest extends Common {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE bigTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
     stmt.execute("CREATE TABLE prepareParam (t1 BLOB(20))");
     stmt.execute("CREATE TABLE prepareParam2 (t1 BIGINT)");
     stmt.execute("CREATE TABLE prepareParam3 (t1 DOUBLE)");
@@ -60,6 +62,7 @@ public class PreparedStatementParametersTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS bigTest");
     stmt.execute("DROP TABLE IF EXISTS prepareParam");
     stmt.execute("DROP TABLE IF EXISTS prepareParam2");
     stmt.execute("DROP TABLE IF EXISTS prepareParam3");
@@ -416,6 +419,38 @@ public class PreparedStatementParametersTest extends Common {
     assertTrue(rs.next());
     con.rollback();
     check.accept(rs);
+  }
+
+  @Test
+  public void bigSend() throws SQLException {
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowedPacket > 21 * 1024 * 1024);
+    char[] arr = new char[20 * 1024 * 1024];
+    for (int pos = 0; pos < arr.length; pos++) {
+      arr[pos] = (char) ('A' + (pos % 60));
+    }
+    String st = new String(arr);
+    bigSend(sharedConn, st);
+    bigSend(sharedConnBinary, st);
+    try (Connection con = createCon("useEof=false")) {
+      bigSend(con, st);
+    }
+  }
+
+  public void bigSend(Connection con, String st) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE bigTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, st);
+      prep.execute();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT t2 from bigTest WHERE t1 = 1");
+    assertTrue(rs.next());
+    assertEquals(st, rs.getString(1));
+    stmt.execute("COMMIT");
   }
 
   @FunctionalInterface

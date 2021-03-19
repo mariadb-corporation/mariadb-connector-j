@@ -347,7 +347,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case GEOMETRY:
         return Types.VARBINARY;
       case STRING:
-        return isBinary() ? Types.BINARY : Types.CHAR;
+        return isBinary() ? Types.VARBINARY : Types.CHAR;
       case OLDDECIMAL:
       case DECIMAL:
         return Types.DECIMAL;
@@ -360,13 +360,13 @@ public class ColumnDefinitionPacket implements ServerMessage {
 
   public Codec<?> getDefaultCodec(Configuration conf) {
     switch (dataType) {
-      case VARCHAR:
       case JSON:
+      case VARCHAR:
       case ENUM:
       case SET:
       case VARSTRING:
       case STRING:
-        return isBinary() ? ByteArrayCodec.INSTANCE : StringCodec.INSTANCE;
+        return StringCodec.INSTANCE;
       case TINYINT:
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
       case SMALLINT:

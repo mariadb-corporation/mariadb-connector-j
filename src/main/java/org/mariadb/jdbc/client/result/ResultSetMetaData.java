@@ -275,7 +275,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public boolean isReadOnly(final int column) throws SQLException {
     ColumnDefinitionPacket ci = getColumn(column);
-    return ci.getTable().isEmpty() && ci.getColumn().isEmpty();
+    return ci.getColumn().isEmpty();
   }
 
   /**

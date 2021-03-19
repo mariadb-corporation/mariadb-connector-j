@@ -161,6 +161,13 @@ public class Common {
     sharedConnBinary.isValid(2000);
   }
 
+  public static int getMaxAllowedPacket() throws SQLException {
+    java.sql.Statement st = sharedConn.createStatement();
+    ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+    assertTrue(rs.next());
+    return rs.getInt(1);
+  }
+
   public void assertThrowsContains(
       Class<? extends Exception> expectedType, Executable executable, String expected) {
     Exception e = Assertions.assertThrows(expectedType, executable);

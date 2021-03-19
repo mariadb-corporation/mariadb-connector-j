@@ -37,7 +37,8 @@ public class CompressTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS compressTest");
     stmt.execute(
-        "CREATE TABLE compressTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
+        "CREATE TABLE compressTest (t1 int not null primary key auto_increment, "
+            + "t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT, t5 LONGTEXT, t6 LONGTEXT)");
     shareCompressCon = createCon("useCompression=true");
   }
 
@@ -49,30 +50,52 @@ public class CompressTest extends Common {
 
   @Test
   public void bigSend() throws SQLException {
-    char[] arr = new char[Math.min(16 * 1024 * 1024, getMaxAllowedPacket() / 2)];
-    for (int pos = 0; pos < arr.length; pos++) {
-      arr[pos] = (char) ('A' + (pos % 60));
-    }
-    Statement stmt = shareCompressCon.createStatement();
-    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    String st = new String(arr);
-    try (PreparedStatement prep =
-        shareCompressCon.prepareStatement("INSERT INTO compressTest VALUES (?, ?)")) {
-      prep.setInt(1, 1);
-      prep.setString(2, st);
-      prep.execute();
-    }
-
-    ResultSet rs = stmt.executeQuery("SELECT t2 from compressTest WHERE t1 = 1");
-    assertTrue(rs.next());
-    assertEquals(st, rs.getString(1));
-    stmt.execute("COMMIT");
+    bigSend(sharedConn);
+    bigSend(sharedConnBinary);
+    bigSend(shareCompressCon);
   }
 
-  private int getMaxAllowedPacket() throws SQLException {
-    java.sql.Statement st = sharedConn.createStatement();
-    ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+  public void bigSend(Connection con) throws SQLException {
+    char[] arr2 = new char[Math.min(16 * 1024 * 1024, getMaxAllowedPacket() / 2)];
+    for (int pos = 0; pos < arr2.length; pos++) {
+      arr2[pos] = (char) ('A' + (pos % 60));
+    }
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE compressTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    String st2 = new String(arr2, 0, 5000);
+    String st3 = new String(arr2, 0, 150000);
+    String st4 = new String(arr2, 0, 1100000);
+    String st5 = new String(arr2, 0, 1100000);
+    String st6 = new String(arr2);
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO compressTest VALUES (?, ?, ?, ?, ?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, st2);
+      prep.setString(3, st3);
+      prep.setString(4, st4);
+      prep.setString(5, st5);
+      prep.setString(6, st6);
+      prep.execute();
+
+      prep.setInt(1, 2);
+      prep.setString(2, st2);
+      prep.setString(3, st3);
+      prep.setString(4, st4);
+      prep.setString(5, st5);
+      prep.setString(6, st6);
+      prep.execute();
+    }
+    stmt.setFetchSize(1);
+    ResultSet rs = stmt.executeQuery("SELECT * from compressTest");
     assertTrue(rs.next());
-    return rs.getInt(1);
+
+    assertEquals(st2, rs.getString(2));
+    assertEquals(st3, rs.getString(3));
+    assertEquals(st4, rs.getString(4));
+    assertEquals(st5, rs.getString(5));
+    assertEquals(st6, rs.getString(6));
+    rs.close();
+    stmt.execute("COMMIT");
   }
 }

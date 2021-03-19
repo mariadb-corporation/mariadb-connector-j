@@ -219,7 +219,13 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public void close() throws SQLException {
-    this.fetchRemaining();
+    if (!loaded) {
+      try {
+        skipRemaining();
+      } catch (IOException ioe) {
+        throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
+      }
+    }
     this.closed = true;
     if (closeOnCompletion) {
       statement.close();

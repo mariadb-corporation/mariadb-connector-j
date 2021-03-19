@@ -46,6 +46,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS testExpError");
     stmt.execute("DROP TABLE IF EXISTS `testDefaultUUID`");
     stmt.execute("DROP TABLE IF EXISTS `test_update_max`");
+    stmt.execute("DROP TABLE IF EXISTS `testAutoIncrement`");
   }
 
   @BeforeAll
@@ -62,6 +63,9 @@ public class UpdateResultSetTest extends Common {
     stmt.execute(
         "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
+        "CREATE TABLE testAutoIncrement(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+
+    stmt.execute(
         "CREATE TABLE testUpdateWhenFetch("
             + "`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL,"
@@ -73,7 +77,7 @@ public class UpdateResultSetTest extends Common {
             + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
             + "`t1` varchar(100) DEFAULT NULL,"
             + "`t2` varchar(100) DEFAULT NULL)");
-    if (isMariaDBServer()) {
+    if (isMariaDBServer() && minVersion(10, 2, 0)) {
       stmt.execute(
           "CREATE TABLE `testDefaultUUID` ("
               + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
@@ -179,6 +183,36 @@ public class UpdateResultSetTest extends Common {
           "ResultSet cannot be updated. "
               + "The result-set contains fields without without any database/table information");
     }
+  }
+
+  @Test
+  public void testAutoIncrement() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    PreparedStatement pstmt =
+        sharedConn.prepareStatement("INSERT INTO testAutoIncrement(t1) values (?)");
+    pstmt.setString(1, "1");
+    pstmt.execute();
+
+    try (PreparedStatement preparedStatement =
+        sharedConn.prepareStatement(
+            "SELECT id1, t1 FROM testAutoIncrement",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = preparedStatement.executeQuery();
+
+      rs.moveToInsertRow();
+      rs.updateString(2, "0-1");
+      rs.insertRow();
+    }
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testAutoIncrement");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertEquals("1", rs.getString(2));
+    rs.next();
+    assertEquals(2, rs.getInt(1));
+    assertEquals("0-1", rs.getString(2));
+    assertFalse(rs.next());
   }
 
   @Test
@@ -293,6 +327,8 @@ public class UpdateResultSetTest extends Common {
       rs.updateString(3, "0-2");
       assertThrowsContains(
           SQLSyntaxErrorException.class, () -> rs.updateObject(10, "val"), "No such column: 10");
+      assertThrowsContains(
+          SQLSyntaxErrorException.class, () -> rs.updateObject(-10, "val"), "No such column: -10");
       rs.insertRow();
       assertTrue(rs.rowInserted());
 
@@ -955,7 +991,6 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void updatableDefaultPrimaryField() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
-    Statement stmt = sharedConn.createStatement();
     String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {

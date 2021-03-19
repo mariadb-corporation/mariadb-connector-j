@@ -765,13 +765,6 @@ public class PreparedStatementTest extends Common {
         .toString();
   }
 
-  private int getMaxAllowedPacket() throws SQLException {
-    java.sql.Statement st = sharedConn.createStatement();
-    ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-    assertTrue(rs.next());
-    return rs.getInt(1);
-  }
-
   @Test
   public void skippingRes() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();

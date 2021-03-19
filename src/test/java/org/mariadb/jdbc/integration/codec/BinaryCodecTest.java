@@ -76,12 +76,12 @@ public class BinaryCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertArrayEquals("0".getBytes(), (byte[]) rs.getObject(1));
+    assertEquals("0", rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertArrayEquals("1".getBytes(), (byte[]) rs.getObject(2));
-    assertArrayEquals("1".getBytes(), (byte[]) rs.getObject("t2alias"));
+    assertEquals("1", rs.getObject(2));
+    assertEquals("1", rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), (byte[]) rs.getObject(3));
+    assertEquals("some🌟", rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -707,7 +707,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("VARSTRING", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("[B", meta.getColumnClassName(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARBINARY, meta.getColumnType(1));
@@ -716,7 +716,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
-    assertEquals(Types.BINARY, meta.getColumnType(4));
+    assertEquals(Types.VARBINARY, meta.getColumnType(4));
   }
 
   @Test
