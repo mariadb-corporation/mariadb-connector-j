@@ -31,6 +31,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.message.client.ChangeDbPacket;
 import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.message.client.QueryPacket;
@@ -186,8 +187,9 @@ public class MultiPrimaryClient implements Client {
   protected boolean executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
     if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      if (!oldCli.getContext().getTransactionSaver().isCleanState()) return true;
-      currentClient.transactionReplay(oldCli.getContext().getTransactionSaver());
+      RedoContext ctx = (RedoContext) oldCli.getContext();
+      if (!ctx.getTransactionSaver().isCleanState()) return true;
+      currentClient.transactionReplay(ctx.getTransactionSaver());
     }
     return false;
   }

@@ -117,17 +117,18 @@ public class ClientImpl implements Client, AutoCloseable {
       final InitialHandshakePacket handshake = InitialHandshakePacket.decode(buf);
 
       this.exceptionFactory.setThreadId(handshake.getThreadId());
+      long clientCapabilities =
+          ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
       this.context =
           new BaseContext(
               handshake,
+              clientCapabilities,
               conf,
               this.exceptionFactory,
               new PrepareCache(conf.prepStmtCacheSize(), this));
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
 
-      long clientCapabilities =
-          ConnectionHelper.initializeClientCapabilities(conf, this.context.getServerCapabilities());
       byte exchangeCharset = ConnectionHelper.decideLanguage(handshake);
 
       // **********************************************************************

@@ -24,7 +24,6 @@ package org.mariadb.jdbc.client.context;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.ServerVersion;
-import org.mariadb.jdbc.client.TransactionSaver;
 import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -69,8 +68,4 @@ public interface Context {
   void saveRedo(ClientMessage msg);
 
   void saveRedo(ClientMessage[] msgs);
-
-  default TransactionSaver getTransactionSaver() {
-    return null;
-  }
 }

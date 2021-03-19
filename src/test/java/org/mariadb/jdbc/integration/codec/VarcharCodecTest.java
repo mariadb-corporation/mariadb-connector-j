@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.*;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
@@ -1005,6 +1006,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals("http://f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));
     assertEquals("http://f🌟15", rs.getObject("t1", (Map<String, Class<?>>) null));
+    Map<String, Class<?>> empty = new HashMap<>();
+    assertEquals("http://f🌟15", rs.getObject("t1", empty));
     assertEquals("http://f🌟15", rs.getURL(2).toString());
     assertEquals("http://f🌟15", rs.getURL("t1").toString());
   }

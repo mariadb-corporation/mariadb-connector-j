@@ -108,6 +108,11 @@ public class RowChangeTest extends Common {
       assertFalse(rs.isFirst());
     }
     assertFalse(rs.isFirst());
+
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest where t1 = -1");
+    assertFalse(rs.isFirst());
+    assertFalse(rs.next());
+    assertFalse(rs.isFirst());
   }
 
   @Test
@@ -123,6 +128,11 @@ public class RowChangeTest extends Common {
     assertTrue(rs.next());
     assertEquals(8, rs.getInt(1));
     assertTrue(rs.isLast());
+    assertFalse(rs.next());
+    assertFalse(rs.isLast());
+
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest where t1 = -1");
+    assertFalse(rs.isLast());
     assertFalse(rs.next());
     assertFalse(rs.isLast());
   }
@@ -143,6 +153,7 @@ public class RowChangeTest extends Common {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    assertTrue(rs.isBeforeFirst());
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -153,6 +164,9 @@ public class RowChangeTest extends Common {
     assertTrue(rs.isBeforeFirst());
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
+
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest where t1 = -1");
+    assertFalse(rs.isBeforeFirst());
   }
 
   @Test

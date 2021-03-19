@@ -180,7 +180,10 @@ public class ConnectionHelper {
       capabilities |= Capabilities.LOCAL_FILES;
     }
 
-    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0) {
+    // useEof is a technical option
+    boolean useEof =
+        Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("useEof", "true"));
+    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0 && useEof) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }
 

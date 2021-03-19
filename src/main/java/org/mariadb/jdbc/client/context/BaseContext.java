@@ -49,6 +49,7 @@ public class BaseContext implements Context {
       long threadId,
       byte[] seed,
       long serverCapabilities,
+      boolean eofDeprecated,
       Configuration conf,
       int serverStatus,
       ServerVersion version,
@@ -59,7 +60,7 @@ public class BaseContext implements Context {
     this.serverCapabilities = serverCapabilities;
     this.serverStatus = serverStatus;
     this.version = version;
-    this.eofDeprecated = (serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
+    this.eofDeprecated = eofDeprecated;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
@@ -68,6 +69,7 @@ public class BaseContext implements Context {
 
   public BaseContext(
       InitialHandshakePacket handshake,
+      long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
@@ -76,7 +78,7 @@ public class BaseContext implements Context {
     this.serverCapabilities = handshake.getCapabilities();
     this.serverStatus = handshake.getServerStatus();
     this.version = new ServerVersion(handshake.getServerVersion(), handshake.isMariaDBServer());
-    this.eofDeprecated = (serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
+    this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;

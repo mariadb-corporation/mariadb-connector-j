@@ -102,7 +102,6 @@ public class CompleteResult extends Result {
 
     List<byte[]> rows = new ArrayList<>();
     for (String[] rowData : data) {
-      assert rowData.length == columnNameLength;
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
       for (int i = 0; i < rowData.length; i++) {
@@ -217,7 +216,7 @@ public class CompleteResult extends Result {
       return false;
     }
     row.setRow(data[rowPointer]);
-    return dataSize > 0;
+    return true;
   }
 
   @Override
