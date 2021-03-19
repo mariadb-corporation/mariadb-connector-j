@@ -108,6 +108,8 @@ public class StreamingRowChangeTest extends Common {
     isAfterLast(stmt);
     stmt.setFetchSize(3);
     isAfterLast(stmt);
+    stmt.setFetchSize(4);
+    isAfterLast(stmt);
   }
 
   public void isAfterLast(Statement stmt) throws SQLException {
@@ -132,19 +134,26 @@ public class StreamingRowChangeTest extends Common {
     Statement stmt = sharedConn.createStatement();
     Statement stmt2 =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    isFirst(false, stmt, stmt2);
+    isFirst(stmt, stmt2);
+
     stmt.setFetchSize(3);
     stmt2.setFetchSize(3);
-    isFirst(true, stmt, stmt2);
+    isFirst(stmt, stmt2);
+
+    stmt.setFetchSize(4);
+    stmt2.setFetchSize(4);
+    isFirst(stmt, stmt2);
   }
 
-  private void isFirst(boolean streaming, Statement stmt, Statement stmt2) throws SQLException {
+  private void isFirst(Statement stmt, Statement stmt2) throws SQLException {
     final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    if (streaming) {
-      assertThrowsContains(sqle, () -> rs.isFirst(), NOT_FORWARD);
-    } else {
+    assertFalse(rs.isFirst());
+    assertTrue(rs.next());
+    assertTrue(rs.isFirst());
+    while (rs.next()) {
       assertFalse(rs.isFirst());
     }
+    assertFalse(rs.isFirst());
 
     ResultSet rs2 = stmt2.executeQuery("SELECT * FROM ResultSetTest");
     assertFalse(rs2.isFirst());
@@ -161,6 +170,8 @@ public class StreamingRowChangeTest extends Common {
     Statement stmt = sharedConn.createStatement();
     isLast(stmt);
     stmt.setFetchSize(3);
+    isLast(stmt);
+    stmt.setFetchSize(4);
     isLast(stmt);
   }
 
@@ -407,6 +418,7 @@ public class StreamingRowChangeTest extends Common {
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    assertFalse(rs.previous());
     rs.afterLast();
     for (int i = 8; i > 0; i--) {
       assertTrue(rs.previous());

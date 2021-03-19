@@ -43,7 +43,6 @@ import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
-import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -469,12 +468,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public ResultSetMetaData getMetaData() {
-    return new ResultSetMetaData(
-        exceptionFactory,
-        metadataList,
-        context.getConf(),
-        forceAlias,
-        (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0);
+    return new ResultSetMetaData(exceptionFactory, metadataList, context.getConf(), forceAlias);
   }
 
   @Override

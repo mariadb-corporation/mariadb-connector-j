@@ -21,6 +21,7 @@ public class UpdatableResult extends CompleteResult {
   private static final int STATE_UPDATE = 1;
   private static final int STATE_UPDATED = 2;
   private static final int STATE_INSERT = 3;
+  private static final int STATE_INSERTED = 4;
 
   private String database;
   private String table;
@@ -66,10 +67,7 @@ public class UpdatableResult extends CompleteResult {
     database = null;
     table = null;
     for (ColumnDefinitionPacket columnDefinition : metadataList) {
-      if (columnDefinition.getSchema() == null
-          || columnDefinition.getSchema().isEmpty()
-          || columnDefinition.getTable() == null
-          || columnDefinition.getTable().isEmpty()) {
+      if (columnDefinition.getSchema().isEmpty() || columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
         return;
@@ -136,7 +134,7 @@ public class UpdatableResult extends CompleteResult {
       throw exceptionFactory.create("No such column: " + position, "22023");
     }
 
-    if (state == STATE_STANDARD) {
+    if (state == STATE_STANDARD || state == STATE_UPDATED) {
       state = STATE_UPDATE;
     }
     if (state == STATE_UPDATE) {
@@ -153,18 +151,18 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public boolean rowUpdated() throws SQLException {
-    return super.rowUpdated();
+  public boolean rowUpdated() {
+    return state == STATE_UPDATED;
   }
 
   @Override
-  public boolean rowInserted() throws SQLException {
-    return super.rowInserted();
+  public boolean rowInserted() {
+    return state == STATE_INSERTED;
   }
 
   @Override
-  public boolean rowDeleted() throws SQLException {
-    return super.rowDeleted();
+  public boolean rowDeleted() {
+    return false;
   }
 
   @Override
@@ -378,7 +376,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void insertRow() throws SQLException {
-    if (state == STATE_INSERT) {
+    if (state == STATE_INSERT || state == STATE_INSERTED) {
 
       // Create query will all field with WHERE clause contain primary field.
       // if field are not updated, value DEFAULT will be set
@@ -431,6 +429,7 @@ public class UpdatableResult extends CompleteResult {
         }
       }
       parameters = new ParameterList(parameters.size());
+      state = STATE_INSERTED;
     }
   }
 
@@ -553,7 +552,9 @@ public class UpdatableResult extends CompleteResult {
       for (int pos = 0; pos < metadataList.length; pos++) {
         ColumnDefinitionPacket colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
-          if (state != STATE_STANDARD && parameters.size() > pos && parameters.get(pos) != null) {
+          if ((state != STATE_STANDARD && state != STATE_INSERTED && state != STATE_UPDATED)
+              && parameters.size() > pos
+              && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
             Parameter<?> value = parameters.get(pos);
@@ -615,7 +616,7 @@ public class UpdatableResult extends CompleteResult {
       throw exceptionFactory.create("Current position is after the last row", "22023");
     }
 
-    if (state == STATE_UPDATE) {
+    if (state == STATE_UPDATE || state == STATE_UPDATED) {
 
       // state is STATE_UPDATE, meaning that at least one field is modified, update query can be
       // run.
@@ -650,11 +651,10 @@ public class UpdatableResult extends CompleteResult {
 
           preparedStatement.execute();
         }
-        state = STATE_UPDATED;
         refreshRow();
       }
       parameters = new ParameterList(parameters.size());
-      state = STATE_STANDARD;
+      state = STATE_UPDATED;
     }
   }
 
@@ -718,7 +718,7 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void refreshRow() throws SQLException {
     if (state == STATE_INSERT) {
-      throw exceptionFactory.create("Cannot call deleteRow() when inserting a new row");
+      throw exceptionFactory.create("Cannot call refreshRow() when inserting a new row");
     }
     if (rowPointer < 0) {
       throw exceptionFactory.create("Current position is before the first row", "22023");
@@ -1012,72 +1012,72 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void beforeFirst() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     super.beforeFirst();
   }
 
   @Override
   public boolean first() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.first();
   }
 
   @Override
   public boolean last() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.last();
   }
 
   @Override
   public void afterLast() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     super.afterLast();
   }
 
   @Override
   public boolean absolute(int row) throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.absolute(row);
   }
 
   @Override
   public boolean relative(int rows) throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.relative(rows);
   }
 
   @Override
   public boolean next() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.next();
   }
 
   @Override
   public boolean previous() throws SQLException {
     if (state == STATE_INSERT) {
-      state = STATE_UPDATE;
       resetToRowPointer();
     }
+    state = STATE_STANDARD;
     return super.previous();
   }
 }

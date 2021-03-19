@@ -40,6 +40,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.*;
@@ -120,12 +121,20 @@ public class ClientImpl implements Client, AutoCloseable {
       long clientCapabilities =
           ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
       this.context =
-          new BaseContext(
-              handshake,
-              clientCapabilities,
-              conf,
-              this.exceptionFactory,
-              new PrepareCache(conf.prepStmtCacheSize(), this));
+          conf.transactionReplay()
+              ? new RedoContext(
+                  handshake,
+                  clientCapabilities,
+                  conf,
+                  this.exceptionFactory,
+                  new PrepareCache(conf.prepStmtCacheSize(), this))
+              : new BaseContext(
+                  handshake,
+                  clientCapabilities,
+                  conf,
+                  this.exceptionFactory,
+                  new PrepareCache(conf.prepStmtCacheSize(), this));
+
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
 

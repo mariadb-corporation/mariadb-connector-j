@@ -42,8 +42,8 @@ public class CompressTest extends Common {
   }
 
   @AfterAll
-  public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE compressTest");
+  public static void drop() throws SQLException {
+    sharedConn.createStatement().execute("DROP TABLE IF EXISTS compressTest");
     shareCompressCon.close();
   }
 
@@ -53,6 +53,8 @@ public class CompressTest extends Common {
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
+    Statement stmt = shareCompressCon.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     String st = new String(arr);
     try (PreparedStatement prep =
         shareCompressCon.prepareStatement("INSERT INTO compressTest VALUES (?, ?)")) {
@@ -61,10 +63,10 @@ public class CompressTest extends Common {
       prep.execute();
     }
 
-    Statement stmt = shareCompressCon.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT t2 from compressTest WHERE t1 = 1");
     assertTrue(rs.next());
     assertEquals(st, rs.getString(1));
+    stmt.execute("COMMIT");
   }
 
   private int getMaxAllowedPacket() throws SQLException {

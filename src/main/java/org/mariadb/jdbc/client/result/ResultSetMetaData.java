@@ -37,7 +37,6 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   private final ColumnDefinitionPacket[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
-  private final boolean extendedInfo;
 
   /**
    * Constructor.
@@ -51,13 +50,11 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
       final ExceptionFactory exceptionFactory,
       final ColumnDefinitionPacket[] fieldPackets,
       final Configuration conf,
-      final boolean forceAlias,
-      final boolean extendedInfo) {
+      final boolean forceAlias) {
     this.exceptionFactory = exceptionFactory;
     this.fieldPackets = fieldPackets;
     this.conf = conf;
     this.forceAlias = forceAlias;
-    this.extendedInfo = extendedInfo;
   }
 
   /**
@@ -263,7 +260,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   public String getColumnTypeName(final int index) throws SQLException {
     ColumnDefinitionPacket column = getColumn(index);
     DataType dataType = column.getType();
-    if (dataType == DataType.GEOMETRY && extendedInfo) {
+    if (dataType == DataType.GEOMETRY && column.getExtTypeName() != null) {
       return column.getExtTypeName().toUpperCase(Locale.ROOT);
     }
     return dataType.name();
@@ -278,8 +275,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public boolean isReadOnly(final int column) throws SQLException {
     ColumnDefinitionPacket ci = getColumn(column);
-    return (ci.getTable() == null || ci.getTable().isEmpty())
-        && (ci.getColumn() == null || ci.getColumn().isEmpty());
+    return ci.getTable().isEmpty() && ci.getColumn().isEmpty();
   }
 
   /**

@@ -185,8 +185,11 @@ public class StreamingResult extends Result {
   @Override
   public boolean isFirst() throws SQLException {
     checkClose();
-    checkNotForwardOnly();
-    return rowPointer == 0 && dataSize > 0;
+    if (resultSetType == TYPE_FORWARD_ONLY) {
+      return rowPointer == 0 && dataSize > 0 && dataFetchTime == 1;
+    } else {
+      return rowPointer == 0 && dataSize > 0;
+    }
   }
 
   @Override

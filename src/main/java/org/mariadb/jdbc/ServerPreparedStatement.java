@@ -545,12 +545,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-        exceptionFactory(),
-        prepareResult.getColumns(),
-        con.getContext().getConf(),
-        false,
-        (con.getContext().getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-            > 0);
+        exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
   }
 
   /**

@@ -40,6 +40,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS testMultipleTable2");
     stmt.execute("DROP TABLE IF EXISTS testOneNoTable");
     stmt.execute("DROP TABLE IF EXISTS UpdateWithoutPrimary");
+    stmt.execute("DROP TABLE IF EXISTS testbasicprimarykey");
     stmt.execute("DROP DATABASE IF EXISTS testConnectorJ");
     stmt.execute("DROP TABLE IF EXISTS testUpdateWhenFetch");
     stmt.execute("DROP TABLE IF EXISTS testExpError");
@@ -52,6 +53,8 @@ public class UpdateResultSetTest extends Common {
     drop();
     org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
+    stmt.execute(
+        "CREATE TABLE testbasicprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL, CONSTRAINT pk PRIMARY KEY (id))");
     stmt.execute(
         "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
@@ -102,6 +105,25 @@ public class UpdateResultSetTest extends Common {
           SQLException.class,
           () -> rs.updateString(1, "1"),
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
+    }
+  }
+
+  @Test
+  public void testBasicPrimaryKey() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("INSERT INTO testbasicprimarykey VALUES (1, 't1'), (2, 't2')");
+
+    try (PreparedStatement preparedStatement =
+        sharedConn.prepareStatement(
+            "SELECT t1 FROM testbasicprimarykey",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
+      ResultSet rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateString(1, "val"),
+          "ResultSet cannot be updated. primary field `id` is not present in query");
     }
   }
 
@@ -239,7 +261,6 @@ public class UpdateResultSetTest extends Common {
     assertEquals(1, rs.getInt(1));
     assertEquals("1-1", rs.getString(2));
     assertEquals("1-2", rs.getString(3));
-
     assertFalse(rs.next());
   }
 
@@ -263,17 +284,27 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       preparedStatement.setFetchSize(2);
       ResultSet rs = preparedStatement.executeQuery();
+      assertFalse(rs.rowInserted());
+      assertFalse(rs.rowUpdated());
 
       rs.moveToInsertRow();
       rs.updateInt(1, -1);
       rs.updateString(2, "0-1");
       rs.updateString(3, "0-2");
+      assertThrowsContains(
+          SQLSyntaxErrorException.class, () -> rs.updateObject(10, "val"), "No such column: 10");
       rs.insertRow();
+      assertTrue(rs.rowInserted());
 
       rs.next();
+      assertFalse(rs.rowInserted());
       rs.next();
       rs.updateString(2, utf8escapeQuote);
+      assertFalse(rs.rowUpdated());
+      assertFalse(rs.rowDeleted());
+      assertFalse(rs.rowInserted());
       rs.updateRow();
+      assertTrue(rs.rowUpdated());
     }
 
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWhenFetch");
@@ -723,13 +754,13 @@ public class UpdateResultSetTest extends Common {
       rs.moveToInsertRow();
       rs.updateInt("id", 3);
       rs.updateString("t1", "other-t1-value");
-
-      rs.insertRow();
-      assertEquals(0, rs.getRow());
       assertThrowsContains(
           SQLException.class,
           () -> rs.refreshRow(),
-          "Cannot call deleteRow() when inserting a new row");
+          "Cannot call refreshRow() when inserting a new row");
+
+      rs.insertRow();
+      assertEquals(0, rs.getRow());
       rs.next();
       assertEquals(3, rs.getInt("id"));
       assertEquals("other-t1-value", rs.getString("t1"));

@@ -24,7 +24,6 @@ package org.mariadb.jdbc.client.context;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.ServerVersion;
-import org.mariadb.jdbc.message.client.ClientMessage;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
@@ -156,8 +155,4 @@ public class BaseContext implements Context {
   public void addStateFlag(int state) {
     stateFlag |= state;
   }
-
-  public void saveRedo(ClientMessage msg) {}
-
-  public void saveRedo(ClientMessage[] msgs) {}
 }

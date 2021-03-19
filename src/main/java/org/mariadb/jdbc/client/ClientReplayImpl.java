@@ -27,23 +27,17 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.context.BaseContext;
 import org.mariadb.jdbc.client.context.RedoContext;
-import org.mariadb.jdbc.client.socket.*;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.log.Logger;
-import org.mariadb.jdbc.util.log.Loggers;
 
 public class ClientReplayImpl extends ClientImpl {
-  private static final Logger logger = Loggers.getLogger(ClientReplayImpl.class);
 
   public ClientReplayImpl(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
     super(conf, hostAddress, lock, skipPostCommands);
-    this.context = RedoContext.from((BaseContext) this.context);
   }
 
   @Override
@@ -81,7 +75,7 @@ public class ClientReplayImpl extends ClientImpl {
             resultSetConcurrency,
             resultSetType,
             closeOnCompletion);
-    context.saveRedo(messages);
+    ((RedoContext) context).saveRedo(messages);
     return res;
   }
 
@@ -104,7 +98,7 @@ public class ClientReplayImpl extends ClientImpl {
             resultSetConcurrency,
             resultSetType,
             closeOnCompletion);
-    context.saveRedo(message);
+    ((RedoContext) context).saveRedo(message);
     return completions;
   }
 
