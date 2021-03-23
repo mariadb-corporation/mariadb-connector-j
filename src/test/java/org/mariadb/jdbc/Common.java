@@ -43,6 +43,7 @@ public class Common {
 
   public static Connection sharedConn;
   public static Connection sharedConnBinary;
+  public static String hostname;
   public static TcpProxy proxy;
   public static String mDefUrl;
   private static Instant initialTest;
@@ -60,10 +61,11 @@ public class Common {
       } else {
         defaultOther = get("DB_OTHER", prop);
       }
+      hostname = get("DB_HOST", prop);
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-              get("DB_HOST", prop),
+              hostname,
               get("DB_PORT", prop),
               get("DB_DATABASE", prop),
               get("DB_USER", prop),

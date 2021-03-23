@@ -90,9 +90,8 @@ public class ClientImpl implements Client, AutoCloseable {
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
 
     String host = hostAddress != null ? hostAddress.host : null;
-    int port = hostAddress != null ? hostAddress.port : 3306;
     this.socketTimeout = conf.socketTimeout();
-    this.socket = ConnectionHelper.createSocket(host, port, conf);
+    this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
 
     try {
       // **********************************************************************
@@ -145,7 +144,7 @@ public class ClientImpl implements Client, AutoCloseable {
       // **********************************************************************
       SSLSocket sslSocket =
           ConnectionHelper.sslWrapper(
-              host, socket, clientCapabilities, exchangeCharset, context, writer);
+              hostAddress, socket, clientCapabilities, exchangeCharset, context, writer);
 
       if (sslSocket != null) {
         out = sslSocket.getOutputStream();

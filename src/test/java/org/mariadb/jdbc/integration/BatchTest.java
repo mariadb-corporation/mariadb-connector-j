@@ -163,6 +163,7 @@ public class BatchTest extends Common {
   public void largeBatch(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
       prep.setInt(1, 1);
@@ -185,6 +186,7 @@ public class BatchTest extends Common {
     assertEquals(2, rs.getInt(1));
     assertEquals("2", rs.getString(2));
     assertFalse(rs.next());
+    con.commit();
   }
 
   @Test

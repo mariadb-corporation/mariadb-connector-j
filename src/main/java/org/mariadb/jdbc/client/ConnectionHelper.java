@@ -73,26 +73,31 @@ public class ConnectionHelper {
    * Create socket accordingly to options.
    *
    * @param conf Url options
-   * @param host hostName ( mandatory only for named pipe)
+   * @param hostAddress host ( mandatory but for named pipe / unix socket)
    * @return a nex socket
    * @throws IOException if connection error occur
+   * @throws SQLException in case of configuration error
    */
-  public static Socket createSocket(Configuration conf, String host) throws IOException {
-    return socketHandler.apply(conf, host);
+  public static Socket createSocket(Configuration conf, HostAddress hostAddress)
+      throws IOException, SQLException {
+    return socketHandler.apply(conf, hostAddress);
   }
 
   /**
    * Use standard socket implementation.
    *
    * @param conf url options
-   * @param host host to connect
+   * @param hostAddress host to connect
    * @return socket
    * @throws IOException in case of error establishing socket.
+   * @throws SQLException in case host is null
    */
-  public static Socket standardSocket(Configuration conf, String host) throws IOException {
+  public static Socket standardSocket(Configuration conf, HostAddress hostAddress)
+      throws IOException, SQLException {
     SocketFactory socketFactory;
     String socketFactoryName = conf.socketFactory();
     if (socketFactoryName != null) {
+      if (hostAddress == null) throw new SQLException("hostname must be set to connect socket");
       try {
         @SuppressWarnings("unchecked")
         Class<? extends SocketFactory> socketFactoryClass =
@@ -100,7 +105,7 @@ public class ConnectionHelper {
         Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
         socketFactory = constructor.newInstance();
         if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
-          ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, host);
+          ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, hostAddress.host);
         }
         return socketFactory.createSocket();
       } catch (Exception exp) {
@@ -115,11 +120,11 @@ public class ConnectionHelper {
     return socketFactory.createSocket();
   }
 
-  public static Socket createSocket(final String host, final int port, final Configuration conf)
+  public static Socket connectSocket(final Configuration conf, final HostAddress hostAddress)
       throws SQLException {
     Socket socket;
     try {
-      socket = createSocket(conf, host);
+      socket = createSocket(conf, hostAddress);
       socket.setTcpNoDelay(true);
 
       socket.setSoTimeout(conf.socketTimeout());
@@ -138,15 +143,17 @@ public class ConnectionHelper {
       }
 
       if (!socket.isConnected()) {
-        InetSocketAddress sockAddr = conf.pipe() == null ? new InetSocketAddress(host, port) : null;
+        InetSocketAddress sockAddr =
+            conf.pipe() == null && conf.localSocket() == null
+                ? new InetSocketAddress(hostAddress.host, hostAddress.port)
+                : null;
         socket.connect(sockAddr, conf.connectTimeout());
       }
       return socket;
 
     } catch (IOException ioe) {
       throw new SQLNonTransientConnectionException(
-          String.format(
-              "Socket fail to connect to host:%s, port:%s. %s", host, port, ioe.getMessage()),
+          String.format("Socket fail to connect to host:%s. %s", hostAddress, ioe.getMessage()),
           "08000",
           ioe);
     }
@@ -288,7 +295,7 @@ public class ConnectionHelper {
   }
 
   public static SSLSocket sslWrapper(
-      final String host,
+      final HostAddress hostAddress,
       final Socket socket,
       long clientCapabilities,
       final byte exchangeCharset,
@@ -322,10 +329,11 @@ public class ConnectionHelper {
       // perform hostname verification
       // (rfc2818 indicate that if "client has external information as to the expected identity of
       // the server, the hostname check MAY be omitted")
-      if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      if (conf.sslMode() == SslMode.VERIFY_FULL && hostAddress != null) {
+
         SSLSession session = sslSocket.getSession();
         try {
-          socketPlugin.verify(host, session, conf, context.getThreadId());
+          socketPlugin.verify(hostAddress.host, session, conf, context.getThreadId());
         } catch (SSLException ex) {
           throw context
               .getExceptionFactory()

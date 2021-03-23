@@ -23,7 +23,10 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -833,5 +836,90 @@ public class ConnectionTest extends Common {
         assertNull(con.getCatalog());
       }
     }
+  }
+
+  @Test
+  public void windowsNamedPipe() throws SQLException {
+    Assumptions.assumeTrue(
+        isMariaDBServer()
+            && System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket")) {
+      assertTrue(rs.next());
+      if (rs.getBoolean(1)) {
+        String namedPipeName = rs.getString(2);
+        // skip test if no namedPipeName was obtained because then we do not use a socket connection
+        Assumptions.assumeTrue(namedPipeName != null);
+        try (Connection connection = createCon("pipe=" + namedPipeName)) {
+          java.sql.Statement stmt = connection.createStatement();
+          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+            assertTrue(rs2.next());
+          }
+        }
+        // connection without host name
+        try (java.sql.Connection connection =
+            DriverManager.getConnection(
+                "jdbc:mariadb:///"
+                    + sharedConn.getCatalog()
+                    + mDefUrl.substring(mDefUrl.indexOf("?user="))
+                    + "&pipe="
+                    + namedPipeName)) {
+          java.sql.Statement stmt = connection.createStatement();
+          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+            assertTrue(rs2.next());
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void localSocket() throws Exception {
+    Assumptions.assumeTrue(System.getenv("LOCAL") != null);
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
+    if (!rs.next()) {
+      return;
+    }
+    System.out.println("os:" + rs.getString(1) + " path:" + rs.getString(2));
+    String os = rs.getString(1);
+    if (os.toLowerCase().startsWith("win")) {
+      return;
+    }
+
+    String path = rs.getString(2);
+    stmt.execute("DROP USER IF EXISTS testSocket@'localhost'");
+    stmt.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    stmt.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    stmt.execute("FLUSH PRIVILEGES");
+
+    try (java.sql.Connection connection =
+        DriverManager.getConnection(
+            "jdbc:mariadb:///"
+                + sharedConn.getCatalog()
+                + "?user=testSocket&password=MySup5%rPassw@ord&localSocket="
+                + path)) {
+      rs = connection.createStatement().executeQuery("select 1");
+      assertTrue(rs.next());
+    }
+    stmt.execute("DROP USER testSocket@'localhost'");
+  }
+
+  public boolean isLocalConnection(String testName) {
+    boolean isLocal = false;
+    try {
+      if (InetAddress.getByName(hostname).isAnyLocalAddress()
+          || InetAddress.getByName(hostname).isLoopbackAddress()) {
+        isLocal = true;
+      }
+    } catch (UnknownHostException e) {
+      // for some reason it wasn't possible to parse the hostname
+      // do nothing
+    }
+
+    if (!isLocal) {
+      System.out.println("test '" + testName + "' skipped because connection is not local");
+    }
+
+    return isLocal;
   }
 }

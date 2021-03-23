@@ -39,9 +39,9 @@ public class SocketUtility {
       // forcing use of JNA to ensure AOT compilation
       Platform.getOSType();
 
-      return (conf, host) -> {
+      return (conf, hostAddress) -> {
         if (conf.pipe() != null) {
-          return new NamedPipeSocket(host, conf.pipe());
+          return new NamedPipeSocket(hostAddress != null ? hostAddress.host : null, conf.pipe());
         } else if (conf.localSocket() != null) {
           try {
             return new UnixDomainSocket(conf.localSocket());
@@ -49,7 +49,7 @@ public class SocketUtility {
             throw new IOException(re.getMessage(), re.getCause());
           }
         } else {
-          return ConnectionHelper.standardSocket(conf, host);
+          return ConnectionHelper.standardSocket(conf, hostAddress);
         }
       };
     } catch (Throwable cle) {

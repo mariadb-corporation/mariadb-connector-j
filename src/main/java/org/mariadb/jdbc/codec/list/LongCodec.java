@@ -208,10 +208,10 @@ public class LongCodec implements Codec<Long> {
         return (long) buf.readInt();
 
       case BIGINT:
-        if (column.isSigned()) {
+        if (column.isSigned() || (buf.getByte(buf.pos() + 7) & 0x80) == 0) {
           return buf.readLong();
         } else {
-          // need BIG ENDIAN, so reverse order
+          // error too big to return a long
           byte[] bb = new byte[8];
           for (int i = 7; i >= 0; i--) {
             bb[i] = buf.readByte();

@@ -23,10 +23,12 @@ package org.mariadb.jdbc.client.socket;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 
 @FunctionalInterface
 public interface SocketHandlerFunction {
 
-  Socket apply(Configuration conf, String host) throws IOException;
+  Socket apply(Configuration conf, HostAddress hostAddress) throws IOException, SQLException;
 }

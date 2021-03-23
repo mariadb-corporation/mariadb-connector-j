@@ -61,7 +61,7 @@ public final class Driver implements java.sql.Driver {
         break;
 
       default:
-        hostAddress = configuration.addresses().get(0);
+        hostAddress = configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
         client =
             configuration.transactionReplay()
                 ? new ClientReplayImpl(configuration, hostAddress, lock, false)

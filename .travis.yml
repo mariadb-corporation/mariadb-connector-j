@@ -1,4 +1,5 @@
 os: linux
+dist: focal
 language: java
 services:
   - docker
@@ -41,13 +42,11 @@ jobs:
     - env: srv=mariadb v=10.5
       os: windows
       language: shell
-    - env: srv=mariadb v=10.2
-    - env: srv=mariadb v=10.3
-    - env: srv=mariadb v=10.4
-    - env: srv=mariadb v=10.5
+    - env: srv=mariadb v=10.2 LOCAL=1
+    - env: srv=mariadb v=10.3 LOCAL=1
+    - env: srv=mariadb v=10.4 LOCAL=1
     - env: srv=mariadb v=10.5 LOCAL=1
-    - env: srv=mariadb v=10.5 NO_BACKSLASH_ESCAPES=true
-    - env: srv=mariadb v=10.5 BENCH=1
+    - env: srv=mariadb v=10.5 LOCAL=1 BENCH=1
     - env: srv=maxscale
     - env: srv=skysql
     - env: srv=skysql-ha
