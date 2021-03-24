@@ -31,8 +31,7 @@ public class Sha256AuthenticationTest extends Common {
       if (rsaPublicKey == null
           && rs.getString(1) != null
           && System.getenv("TEST_DB_RSA_PUBLIC_KEY") != null) {
-        rsaPublicKey =
-            checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY") + "/" + rs.getString(1));
+        rsaPublicKey = checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY"));
       }
     }
     if (rsaPublicKey == null) {
@@ -40,7 +39,7 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     stmt.execute(
-        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY 'password'");
+        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY 'MySup8%rPassw@ord'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     stmt.execute(
         "CREATE USER 'cachingSha256User2'@'%' IDENTIFIED WITH caching_sha2_password BY ''");
@@ -80,7 +79,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
-    try (Connection con = createCon("user=cachingSha256User2")) {
+    try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval")) {
       con.isValid(1);
     }
   }
@@ -92,7 +91,8 @@ public class Sha256AuthenticationTest extends Common {
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon(
-            "user=cachingSha256User&password=password&serverRsaPublicKeyFile=" + rsaPublicKey)) {
+            "user=cachingSha256User&password=MySup8%rPassw@ord&serverRsaPublicKeyFile="
+                + rsaPublicKey)) {
       con.isValid(1);
     }
   }
@@ -102,7 +102,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isWindows && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
-        createCon("user=cachingSha256User&password=password&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=MySup8%rPassw@ord&allowPublicKeyRetrieval")) {
       con.isValid(1);
     }
   }
@@ -114,7 +114,7 @@ public class Sha256AuthenticationTest extends Common {
 
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=cachingSha256User&password=password"),
+        () -> createCon("user=cachingSha256User&password=MySup8%rPassw@ord"),
         "RSA public key is not available client side");
   }
 
@@ -124,7 +124,7 @@ public class Sha256AuthenticationTest extends Common {
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     Assumptions.assumeTrue(haveSsl());
-    try (Connection con = createCon("user=cachingSha256User&password=password&sslMode=trust")) {
+    try (Connection con = createCon("user=cachingSha256User&password=MySup8%rPassw@ord&sslMode=trust")) {
       con.isValid(1);
     }
   }

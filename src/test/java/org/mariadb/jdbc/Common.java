@@ -30,11 +30,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.function.Executable;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 import org.mariadb.jdbc.util.constants.HaMode;
@@ -141,8 +140,6 @@ public class Common {
     Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
   }
 
-  //  @RegisterExtension public Extension watcher = new Follow();
-
   public static Connection createCon(String option) throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl + "&" + option);
   }
@@ -176,16 +173,38 @@ public class Common {
     Assertions.assertTrue(e.getMessage().contains(expected), "real message:" + e.getMessage());
   }
 
-  private class Follow implements BeforeEachCallback, AfterEachCallback {
+  @RegisterExtension public Extension watcher = new Follow();
+
+  private class Follow implements TestWatcher, BeforeEachCallback {
     @Override
-    public void afterEach(ExtensionContext extensionContext) throws Exception {
-      System.out.println(Duration.between(initialTest, Instant.now()).toString());
+    public void testDisabled(ExtensionContext context, Optional<String> reason) {
+      System.out.println(
+          String.format(
+              "  - Disabled %s: with reason :- %s",
+              context.getDisplayName(), reason.orElse("No reason")));
+    }
+
+    @Override
+    public void testAborted(ExtensionContext context, Throwable cause) {
+      System.out.println(String.format("  - Aborted %s: ", context.getDisplayName()));
+    }
+
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+      System.out.println(String.format("  \u2717 Failed %s: ", context.getDisplayName()));
+    }
+
+    @Override
+    public void testSuccessful(ExtensionContext context) {
+      System.out.println(
+          String.format(
+              "  ✓ %s: %sms",
+              context.getDisplayName(), Duration.between(initialTest, Instant.now()).toMillis()));
     }
 
     @Override
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
       initialTest = Instant.now();
-      System.out.print("       test : " + extensionContext.getTestMethod().get() + " ");
     }
   }
 }
