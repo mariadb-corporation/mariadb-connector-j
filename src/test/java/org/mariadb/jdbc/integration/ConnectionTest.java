@@ -876,7 +876,8 @@ public class ConnectionTest extends Common {
 
   @Test
   public void localSocket() throws Exception {
-    Assumptions.assumeTrue(System.getenv("local") != null
+    Assumptions.assumeTrue(
+        System.getenv("local") != null
             && "1".equals(System.getenv("local"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
     Statement stmt = sharedConn.createStatement();

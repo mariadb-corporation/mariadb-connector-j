@@ -34,12 +34,12 @@ import org.mariadb.jdbc.util.log.Loggers;
 
 public class PacketReader {
 
-  private static final int REUSABLE_buf_LENGTH = 1024;
+  private static final int REUSABLE_BUFFER_LENGTH = 1024;
   private static final int MAX_PACKET_SIZE = 0xffffff;
   private static final Logger logger = Loggers.getLogger(PacketReader.class);
 
   private final byte[] header = new byte[4];
-  private final byte[] reusableArray = new byte[REUSABLE_buf_LENGTH];
+  private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
 
@@ -104,7 +104,7 @@ public class PacketReader {
 
     // prepare array
     byte[] rawBytes;
-    if (reUsable && lastPacketLength < REUSABLE_buf_LENGTH) {
+    if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
       rawBytes = reusableArray;
     } else {
       rawBytes = new byte[lastPacketLength];
@@ -220,7 +220,7 @@ public class PacketReader {
 
     // prepare array
     byte[] rawBytes;
-    if (reUsable && lastPacketLength < REUSABLE_buf_LENGTH) {
+    if (reUsable && lastPacketLength < REUSABLE_BUFFER_LENGTH) {
       rawBytes = reusableArray;
     } else {
       rawBytes = new byte[lastPacketLength];

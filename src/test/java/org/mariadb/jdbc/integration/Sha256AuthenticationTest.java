@@ -124,7 +124,8 @@ public class Sha256AuthenticationTest extends Common {
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     Assumptions.assumeTrue(haveSsl());
-    try (Connection con = createCon("user=cachingSha256User&password=MySup8%rPassw@ord&sslMode=trust")) {
+    try (Connection con =
+        createCon("user=cachingSha256User&password=MySup8%rPassw@ord&sslMode=trust")) {
       con.isValid(1);
     }
   }
