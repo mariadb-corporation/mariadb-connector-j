@@ -36,14 +36,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class UnixDomainSocket extends Socket {
 
   private static final int AF_UNIX = 1;
-  private static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
+  private static final int SOCK_STREAM = 1;
   private static final int PROTOCOL = 0;
 
   static {
-    if (Platform.isSolaris()) {
-      System.loadLibrary("nsl");
-      System.loadLibrary("socket");
-    }
     if (!Platform.isWindows() && !Platform.isWindowsCE()) {
       Native.register("c");
     }
@@ -57,7 +53,7 @@ public class UnixDomainSocket extends Socket {
   private boolean connected;
 
   public UnixDomainSocket(String path) throws IOException {
-    if (Platform.isWindows() || Platform.isWindowsCE()) {
+    if (Platform.isWindows()) {
       throw new IOException("Unix domain sockets are not supported on Windows");
     }
     sockaddr = new SockAddr(path);
@@ -197,24 +193,7 @@ public class UnixDomainSocket extends Socket {
     @Override
     public int read(byte[] bytesEntry, int off, int len) throws IOException {
       try {
-        if (off > 0) {
-          int bytes = 0;
-          int remainingLength = len;
-          int size;
-          byte[] data = new byte[Math.min(len, 10240)];
-          do {
-            size = recv(fd, data, Math.min(remainingLength, 10240), 0);
-            if (size > 0) {
-              System.arraycopy(data, 0, bytesEntry, off, size);
-              bytes += size;
-              off += size;
-              remainingLength -= size;
-            }
-          } while ((remainingLength > 0) && (size > 0));
-          return bytes;
-        } else {
-          return recv(fd, bytesEntry, len, 0);
-        }
+        return recv(fd, bytesEntry, len, 0);
       } catch (LastErrorException lee) {
         throw new IOException("native read() failed : " + formatError(lee));
       }
@@ -242,22 +221,7 @@ public class UnixDomainSocket extends Socket {
     public void write(byte[] bytesEntry, int off, int len) throws IOException {
       int bytes;
       try {
-        if (off > 0) {
-          int size;
-          int remainingLength = len;
-          byte[] data = new byte[Math.min(len, 10240)];
-          do {
-            size = Math.min(remainingLength, 10240);
-            System.arraycopy(bytesEntry, off, data, 0, size);
-            bytes = send(fd, data, size, 0);
-            if (bytes > 0) {
-              off += bytes;
-              remainingLength -= bytes;
-            }
-          } while ((remainingLength > 0) && (bytes > 0));
-        } else {
-          bytes = send(fd, bytesEntry, len, 0);
-        }
+        bytes = send(fd, bytesEntry, len, 0);
 
         if (bytes != len) {
           throw new IOException("can't write " + len + "bytes");

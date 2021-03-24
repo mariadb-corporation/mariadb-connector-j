@@ -847,6 +847,8 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
       if (rs.getBoolean(1)) {
         String namedPipeName = rs.getString(2);
+        System.out.println("namedPipeName:" + namedPipeName);
+
         // skip test if no namedPipeName was obtained because then we do not use a socket connection
         Assumptions.assumeTrue(namedPipeName != null);
         try (Connection connection = createCon("pipe=" + namedPipeName)) {
