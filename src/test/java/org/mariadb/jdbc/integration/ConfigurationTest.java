@@ -72,7 +72,6 @@ public class ConfigurationTest extends Common {
       Statement stmt = connection.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
       assertTrue(rs.next());
-      System.out.println(rs.getString(1));
     }
   }
 

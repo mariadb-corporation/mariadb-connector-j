@@ -220,6 +220,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute(
         "CREATE FUNCTION hello (s CHAR(20), i int) RETURNS CHAR(50) DETERMINISTIC  "
             + "RETURN CONCAT('Hello, ',s,'!')");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = meta.getFunctionColumns(null, null, "hello", null);
 
     assertTrue(rs.next());

@@ -79,7 +79,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
-    try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval")) {
+    try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
     }
   }

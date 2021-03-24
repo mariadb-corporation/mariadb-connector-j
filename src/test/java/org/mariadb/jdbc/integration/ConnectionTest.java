@@ -876,7 +876,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void localSocket() throws Exception {
-    System.out.println("local:" + System.getenv("local"));
     Assumptions.assumeTrue(System.getenv("local") != null
             && "1".equals(System.getenv("local"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
@@ -885,7 +884,6 @@ public class ConnectionTest extends Common {
     if (!rs.next()) {
       return;
     }
-    System.out.println("os:" + rs.getString(1) + " path:" + rs.getString(2));
     String path = rs.getString(2);
     stmt.execute("DROP USER IF EXISTS testSocket@'localhost'");
     stmt.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
