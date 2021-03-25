@@ -22,7 +22,7 @@
 package org.mariadb.jdbc.util.constants;
 
 @SuppressWarnings("unused")
-public class Capabilities {
+public final class Capabilities {
 
   public static final int CLIENT_MYSQL = 1;
   public static final int FOUND_ROWS = 2; /* Found instead of affected rows */

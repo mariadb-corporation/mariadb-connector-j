@@ -21,7 +21,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
-public class StateChange {
+public final class StateChange {
 
   public static final short SESSION_TRACK_SYSTEM_VARIABLES = 0;
   public static final short SESSION_TRACK_SCHEMA = 1;

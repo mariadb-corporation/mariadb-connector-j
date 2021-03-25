@@ -6,9 +6,18 @@ import java.util.concurrent.ConcurrentMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.util.constants.HaMode;
+import org.mariadb.jdbc.util.constants.*;
 
 public class HaModeTest {
+  @Test
+  public void instantiateStaticOnlyClass() {
+    Capabilities capabilities = new Capabilities();
+    ColumnFlags columnFlags = new ColumnFlags();
+    ConnectionState connectionState = new ConnectionState();
+    ServerStatus serverStatus = new ServerStatus();
+    StateChange stateChange = new StateChange();
+  }
+
   @Test
   public void replicationEndOfBlacklistTest() {
     HostAddress host1 = HostAddress.from("1", 3306, true);

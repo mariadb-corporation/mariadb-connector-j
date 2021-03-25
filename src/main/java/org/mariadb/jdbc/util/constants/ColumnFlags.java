@@ -21,7 +21,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
-public class ColumnFlags {
+public final class ColumnFlags {
   public static final short NOT_NULL = 1;
   public static final short PRIMARY_KEY = 2;
   public static final short UNIQUE_KEY = 4;

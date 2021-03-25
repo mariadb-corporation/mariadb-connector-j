@@ -22,7 +22,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
-public class ConnectionState {
+public final class ConnectionState {
 
   public static final int STATE_NETWORK_TIMEOUT = 1;
   public static final int STATE_DATABASE = 2;
