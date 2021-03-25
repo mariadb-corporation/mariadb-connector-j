@@ -131,7 +131,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       out.flush();
     }
 
-    ReadableByteBuf buf = in.readReadablePacket(true);
+    ReadableByteBuf buf = in.readPacket(true);
 
     switch (buf.getByte()) {
 
@@ -146,7 +146,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
         buf.readBytes(authResult);
         switch (authResult[0]) {
           case 3:
-            return in.readReadablePacket(true);
+            return in.readPacket(true);
           case 4:
             if (conf.sslMode() != SslMode.DISABLE) {
               // send clear password
@@ -187,7 +187,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               }
             }
 
-            return in.readReadablePacket(true);
+            return in.readPacket(true);
 
           default:
             throw new SQLException(
@@ -230,7 +230,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    */
   public static PublicKey readPublicKeyFromSocket(PacketReader reader, Context context)
       throws SQLException, IOException {
-    ReadableByteBuf buf = reader.readReadablePacket(true);
+    ReadableByteBuf buf = reader.readPacket(true);
 
     switch (buf.getByte(0)) {
       case (byte) 0xFF:

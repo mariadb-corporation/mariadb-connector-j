@@ -108,7 +108,7 @@ public class ClientImpl implements Client, AutoCloseable {
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       // read server handshake
-      ReadableByteBuf buf = reader.readReadablePacket(true);
+      ReadableByteBuf buf = reader.readPacket(true);
       if (buf.getByte() == -1) {
         ErrorPacket errorPacket = new ErrorPacket(buf, null);
         throw this.exceptionFactory.create(

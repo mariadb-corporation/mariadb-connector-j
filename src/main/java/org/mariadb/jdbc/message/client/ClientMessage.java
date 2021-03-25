@@ -75,7 +75,7 @@ public interface ClientMessage {
       boolean traceEnable)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readReadablePacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
 
     switch (buf.getUnsignedByte()) {
 
@@ -157,14 +157,14 @@ public interface ClientMessage {
         for (int i = 0; i < fieldCount; i++) {
           ci[i] =
               new ColumnDefinitionPacket(
-                  reader.readReadablePacket(false, traceEnable),
+                  reader.readPacket(false, traceEnable),
                   (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
                       > 0);
         }
 
         if (!context.isEofDeprecated()) {
           // skip intermediate EOF
-          reader.readReadablePacket(true, traceEnable);
+          reader.readPacket(true, traceEnable);
         }
 
         // read resultSet

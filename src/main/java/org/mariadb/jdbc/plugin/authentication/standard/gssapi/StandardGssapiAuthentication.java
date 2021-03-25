@@ -110,7 +110,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
                       out.flush();
                     }
                     if (!context.isEstablished()) {
-                      ReadableByteBuf buf = in.readReadablePacket(true);
+                      ReadableByteBuf buf = in.readPacket(true);
                       inToken = new byte[buf.readableBytes()];
                       buf.readBytes(inToken);
                     }

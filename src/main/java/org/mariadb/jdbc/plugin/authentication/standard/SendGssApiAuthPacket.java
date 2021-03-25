@@ -100,6 +100,6 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
     gssapiAuth.authenticate(out, in, servicePrincipalName, mechanisms);
 
-    return in.readReadablePacket(true);
+    return in.readPacket(true);
   }
 }

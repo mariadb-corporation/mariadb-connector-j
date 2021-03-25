@@ -232,7 +232,7 @@ public class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readReadablePacket(false);
+    ReadableByteBuf buf = reader.readPacket(false);
 
     authentication_loop:
     while (true) {

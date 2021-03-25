@@ -110,7 +110,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @SuppressWarnings("fallthrough")
   protected boolean readNext() throws SQLException, IOException {
-    byte[] buf = reader.readPacket(false, traceEnable);
+    byte[] buf = reader.readPacket(false, traceEnable).buf();
     switch (buf[0]) {
       case (byte) 0xFF:
         loaded = true;
@@ -159,7 +159,7 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("fallthrough")
   protected void skipRemaining() throws SQLException, IOException {
     while (true) {
-      ReadableByteBuf buf = reader.readReadablePacket(true, traceEnable);
+      ReadableByteBuf buf = reader.readPacket(true, traceEnable);
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;

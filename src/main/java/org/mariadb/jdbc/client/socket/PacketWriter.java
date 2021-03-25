@@ -111,10 +111,7 @@ public class PacketWriter {
   public void writeShort(short value) throws IOException {
     if (2 > buf.length - pos) {
       // not enough space remaining
-      byte[] arr = new byte[2];
-      arr[0] = (byte) value;
-      arr[1] = (byte) (value >> 8);
-      writeBytes(arr, 0, 2);
+      writeBytes(new byte[] {(byte) value, (byte) (value >> 8)}, 0, 2);
       return;
     }
 

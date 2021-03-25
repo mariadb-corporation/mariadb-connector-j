@@ -51,24 +51,24 @@ public class PrepareResultPacket implements Completion {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
             new ColumnDefinitionPacket(
-                reader.readReadablePacket(false, trace),
+                reader.readPacket(false, trace),
                 (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
                     > 0);
       }
       if (!context.isEofDeprecated()) {
-        reader.readReadablePacket(true, trace);
+        reader.readPacket(true, trace);
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
             new ColumnDefinitionPacket(
-                reader.readReadablePacket(false, trace),
+                reader.readPacket(false, trace),
                 (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
                     > 0);
       }
       if (!context.isEofDeprecated()) {
-        reader.readReadablePacket(true, trace);
+        reader.readPacket(true, trace);
       }
     }
   }

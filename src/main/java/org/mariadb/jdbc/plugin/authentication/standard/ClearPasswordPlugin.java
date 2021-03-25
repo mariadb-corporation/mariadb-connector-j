@@ -75,6 +75,6 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
       out.flush();
     }
 
-    return in.readReadablePacket(true);
+    return in.readPacket(true);
   }
 }

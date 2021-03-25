@@ -135,6 +135,6 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
       }
     }
 
-    return in.readReadablePacket(true);
+    return in.readPacket(true);
   }
 }
