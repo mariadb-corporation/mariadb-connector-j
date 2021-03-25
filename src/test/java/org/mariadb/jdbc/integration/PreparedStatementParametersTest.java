@@ -40,6 +40,7 @@ import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
 
 public class PreparedStatementParametersTest extends Common {
 
@@ -450,7 +451,33 @@ public class PreparedStatementParametersTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT t2 from bigTest WHERE t1 = 1");
     assertTrue(rs.next());
     assertEquals(st, rs.getString(1));
-    stmt.execute("COMMIT");
+    con.commit();
+  }
+
+  @Test
+  public void bigSendError() throws SQLException {
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowedPacket < 10 * 1024 * 1024);
+    char[] arr = new char[10 * 1024 * 1024];
+    for (int pos = 0; pos < arr.length; pos++) {
+      arr[pos] = (char) ('A' + (pos % 60));
+    }
+    String st = new String(arr);
+    bigSendError(sharedConn, st);
+    bigSendError(sharedConnBinary, st);
+  }
+
+
+  public void bigSendError(Connection con, String st) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE bigTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, st);
+      assertThrowsContains(SQLException.class, () -> prep.execute(), "Packet too big for current server max_allowed_packet value");
+    }
+    con.commit();
   }
 
   @FunctionalInterface

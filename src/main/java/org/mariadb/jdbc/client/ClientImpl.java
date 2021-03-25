@@ -57,6 +57,7 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -427,6 +428,11 @@ public class ClientImpl implements Client, AutoCloseable {
     try {
       return message.encode(writer, context);
     } catch (IOException ioException) {
+      if (ioException instanceof MaxAllowedPacketException) {
+        throw exceptionFactory
+                .withSql(message.description())
+                .create("Packet too big for current server max_allowed_packet value", "HZ000", ioException);
+      }
       destroySocket();
       throw exceptionFactory
           .withSql(message.description())
@@ -462,12 +468,13 @@ public class ClientImpl implements Client, AutoCloseable {
       for (int i = 0; i < messages.length; i++) {
         responseMsg[i] = sendQuery(messages[i]);
       }
-      for (; readCounter < messages.length; readCounter++) {
-        for (int j = 0; j < responseMsg[readCounter]; j++) {
+      for (; readCounter < messages.length; ) {
+        readCounter++;
+        for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
           results.addAll(
               readResponse(
                   stmt,
-                  messages[readCounter],
+                  messages[readCounter - 1],
                   fetchSize,
                   maxRows,
                   resultSetConcurrency,
@@ -479,13 +486,13 @@ public class ClientImpl implements Client, AutoCloseable {
     } catch (SQLException sqlException) {
 
       // read remaining results
-      for (int i = ++readCounter; i < messages.length; i++) {
-        for (int j = 0; j < responseMsg[readCounter]; j++) {
+      for (int i = readCounter; i < messages.length; i++) {
+        for (int j = 0; j < responseMsg[i]; j++) {
           try {
             results.addAll(
                 readResponse(
                     stmt,
-                    messages[readCounter],
+                    messages[i],
                     fetchSize,
                     maxRows,
                     resultSetConcurrency,

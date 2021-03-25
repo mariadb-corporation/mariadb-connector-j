@@ -29,7 +29,7 @@ install:
         connector-test-machine/launch.bat -t "$srv" -v "$v" -d testj
         ;;
       linux)
-        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0 -l "$local"
+        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0 -l "$local" -p "$packet"
         ;;
     esac
 jobs:
@@ -47,6 +47,7 @@ jobs:
     - env: srv=mariadb v=10.3 local=1
     - env: srv=mariadb v=10.4 local=1
     - env: srv=mariadb v=10.5
+    - env: srv=mariadb v=10.5 packet=8
     - env: srv=mariadb v=10.5 local=1 BENCH=1
     - env: srv=maxscale
     - env: srv=skysql
