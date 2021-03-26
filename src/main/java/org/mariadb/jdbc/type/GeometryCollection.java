@@ -52,9 +52,8 @@ public class GeometryCollection implements Geometry {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    GeometryCollection that = (GeometryCollection) o;
-    return Arrays.equals(geometries, that.geometries);
+    if (o == null || !(o instanceof GeometryCollection)) return false;
+    return toString().equals(o.toString());
   }
 
   @Override

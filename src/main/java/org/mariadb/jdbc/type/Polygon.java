@@ -60,9 +60,8 @@ public class Polygon implements Geometry {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Polygon polygon = (Polygon) o;
-    return Arrays.equals(lines, polygon.lines);
+    if (o == null || !(o instanceof Polygon)) return false;
+    return toString().equals(o.toString());
   }
 
   @Override

@@ -59,9 +59,8 @@ public class LineString implements Geometry {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof LineString)) return false;
-    LineString that = (LineString) o;
-    return open == that.open && Arrays.equals(points, that.points);
+    if (o == null || !(o instanceof LineString)) return false;
+    return toString().equals(o.toString());
   }
 
   @Override

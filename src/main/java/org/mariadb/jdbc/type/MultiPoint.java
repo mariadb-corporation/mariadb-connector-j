@@ -52,9 +52,8 @@ public class MultiPoint implements Geometry {
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    MultiPoint that = (MultiPoint) o;
-    return Arrays.equals(points, that.points);
+    if (o == null || !(o instanceof MultiPoint)) return false;
+    return toString().equals(o.toString());
   }
 
   @Override
