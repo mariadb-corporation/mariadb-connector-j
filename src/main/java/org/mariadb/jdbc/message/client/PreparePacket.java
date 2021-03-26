@@ -100,4 +100,9 @@ public final class PreparePacket implements ClientMessage {
         return new PrepareResultPacket(buf, reader, context);
     }
   }
+
+  @Override
+  public String description() {
+    return sql;
+  }
 }

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.constants.*;
 
 public class HaModeTest {
@@ -16,6 +17,7 @@ public class HaModeTest {
     ConnectionState connectionState = new ConnectionState();
     ServerStatus serverStatus = new ServerStatus();
     StateChange stateChange = new StateChange();
+    CharsetEncodingLength c = new CharsetEncodingLength();
   }
 
   @Test

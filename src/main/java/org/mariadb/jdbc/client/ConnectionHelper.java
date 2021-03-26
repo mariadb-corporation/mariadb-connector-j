@@ -179,7 +179,7 @@ public class ConnectionHelper {
       capabilities |= Capabilities.FOUND_ROWS;
     }
 
-    if (configuration.allowMultiQueries() || (configuration.rewriteBatchedStatements())) {
+    if (configuration.allowMultiQueries()) {
       capabilities |= Capabilities.MULTI_STATEMENTS;
     }
 

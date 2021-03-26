@@ -60,16 +60,14 @@ public class ExceptionFactory {
     msg.append(initialMessage);
 
     if (conf.dumpQueriesOnException() && sql != null) {
-      if (conf != null
-          && conf.maxQuerySizeToLog() != 0
-          && sql.length() > conf.maxQuerySizeToLog() - 3) {
+      if (conf.maxQuerySizeToLog() != 0 && sql.length() > conf.maxQuerySizeToLog() - 3) {
         msg.append("\nQuery is: ").append(sql, 0, conf.maxQuerySizeToLog() - 3).append("...");
       } else {
         msg.append("\nQuery is: ").append(sql);
       }
     }
 
-    if (conf != null && conf.includeInnodbStatusInDeadlockExceptions()) {
+    if (conf.includeInnodbStatusInDeadlockExceptions()) {
       if (LOCK_DEADLOCK_ERROR_CODES.contains(errorCode) && connection != null) {
         Statement stmt = connection.createStatement();
         try {
@@ -83,7 +81,7 @@ public class ExceptionFactory {
       }
     }
 
-    if (conf != null && conf.includeThreadDumpInDeadlockExceptions()) {
+    if (conf.includeThreadDumpInDeadlockExceptions()) {
       if (threadName != null) {
         msg.append("\nthread name: ").append(threadName);
       }

@@ -109,7 +109,6 @@ public class Configuration implements Cloneable {
   // protocol
   private final boolean allowMultiQueries;
   private final boolean allowLocalInfile;
-  private final boolean rewriteBatchedStatements;
   private final boolean useCompression;
   private final boolean useAffectedRows;
   private final boolean useBulkStmts;
@@ -174,7 +173,6 @@ public class Configuration implements Cloneable {
       Integer socketTimeout,
       Boolean allowMultiQueries,
       Boolean allowLocalInfile,
-      Boolean rewriteBatchedStatements,
       Boolean useCompression,
       Boolean blankTableNameMeta,
       String credentialType,
@@ -248,8 +246,6 @@ public class Configuration implements Cloneable {
     this.socketTimeout = socketTimeout != null ? socketTimeout : 0;
     this.allowMultiQueries = allowMultiQueries != null ? allowMultiQueries : false;
     this.allowLocalInfile = allowLocalInfile != null ? allowLocalInfile : false;
-    this.rewriteBatchedStatements =
-        rewriteBatchedStatements != null ? rewriteBatchedStatements : false;
     this.useCompression = useCompression != null ? useCompression : false;
     this.blankTableNameMeta = blankTableNameMeta != null ? blankTableNameMeta : false;
     if (this.credentialType != null
@@ -271,12 +267,7 @@ public class Configuration implements Cloneable {
     this.dumpQueriesOnException = dumpQueriesOnException != null ? dumpQueriesOnException : false;
     this.prepStmtCacheSize = prepStmtCacheSize != null ? prepStmtCacheSize : 250;
     this.useAffectedRows = useAffectedRows != null ? useAffectedRows : false;
-    // disable use server prepare id using client rewrite
-    if (this.rewriteBatchedStatements) {
-      this.useServerPrepStmts = false;
-    } else {
-      this.useServerPrepStmts = useServerPrepStmts != null ? useServerPrepStmts : false;
-    }
+    this.useServerPrepStmts = useServerPrepStmts != null ? useServerPrepStmts : false;
     this.connectionAttributes = connectionAttributes;
     this.useBulkStmts = useBulkStmts != null ? useBulkStmts : true;
     this.autocommit = autocommit != null ? autocommit : true;
@@ -637,10 +628,6 @@ public class Configuration implements Cloneable {
     return allowLocalInfile;
   }
 
-  public boolean rewriteBatchedStatements() {
-    return rewriteBatchedStatements;
-  }
-
   public boolean useCompression() {
     return useCompression;
   }
@@ -877,7 +864,6 @@ public class Configuration implements Cloneable {
     // protocol
     private Boolean allowMultiQueries;
     private Boolean allowLocalInfile;
-    private Boolean rewriteBatchedStatements;
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
@@ -1141,27 +1127,6 @@ public class Configuration implements Cloneable {
     }
 
     /**
-     * For insert queries, rewrite batchedStatement to execute in a single executeQuery.
-     *
-     * <p>example: "insert into ab (i) values (?)" with first batch values = 1, second = 2 will be
-     * rewritten "insert into ab (i) values (1), (2)".
-     *
-     * <p>If query cannot be rewriten in "multi-values", rewrite will use multi-queries : "INSERT
-     * INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?" with values [1,2] and [2,3] will
-     * be rewritten "INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO
-     * TABLE(col1) VALUES (3) ON DUPLICATE KEY UPDATE col2=4"
-     *
-     * <p>when active, the useServerPrepStmts option is set to false
-     *
-     * @param rewriteBatchedStatements to enable/disable rewrite
-     * @return this {@link Builder}
-     */
-    public Builder rewriteBatchedStatements(Boolean rewriteBatchedStatements) {
-      this.rewriteBatchedStatements = rewriteBatchedStatements;
-      return this;
-    }
-
-    /**
      * Indicate to compresses exchanges with the database through gzip. This permits better
      * performance when the database is not in the same location.
      *
@@ -1395,7 +1360,6 @@ public class Configuration implements Cloneable {
               this.socketTimeout,
               this.allowMultiQueries,
               this.allowLocalInfile,
-              this.rewriteBatchedStatements,
               this.useCompression,
               this.blankTableNameMeta,
               this.credentialType,

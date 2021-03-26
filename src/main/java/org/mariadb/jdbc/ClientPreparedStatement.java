@@ -46,13 +46,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
     boolean noBackslashEscapes =
         (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
-    if (con.getContext().getConf().rewriteBatchedStatements()) {
-      parser =
-          ClientParser.rewritableParts(NativeSql.parse(sql, con.getContext()), noBackslashEscapes);
-    } else {
-      parser =
-          ClientParser.parameterParts(NativeSql.parse(sql, con.getContext()), noBackslashEscapes);
-    }
+    parser =
+        ClientParser.parameterParts(NativeSql.parse(sql, con.getContext()), noBackslashEscapes);
     parameters = new ParameterList(parser.getParamCount());
   }
 
@@ -423,5 +418,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public void close() throws SQLException {
     con.fireStatementClosed(new StatementEvent(con, this));
     super.close();
+  }
+
+  public ClientParser test_getParser() {
+    return parser;
   }
 }

@@ -24,7 +24,7 @@ package org.mariadb.jdbc.util;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CharsetEncodingLength {
+public final class CharsetEncodingLength {
 
   // This array stored character length for every collation
   // query to generate:
