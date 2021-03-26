@@ -429,9 +429,19 @@ public class ClientImpl implements Client, AutoCloseable {
       return message.encode(writer, context);
     } catch (IOException ioException) {
       if (ioException instanceof MaxAllowedPacketException) {
+        if (((MaxAllowedPacketException) ioException).isMustReconnect()) {
+          destroySocket();
+          throw exceptionFactory
+              .withSql(message.description())
+              .create(
+                  "Packet too big for current server max_allowed_packet value",
+                  "08000",
+                  ioException);
+        }
         throw exceptionFactory
-                .withSql(message.description())
-                .create("Packet too big for current server max_allowed_packet value", "HZ000", ioException);
+            .withSql(message.description())
+            .create(
+                "Packet too big for current server max_allowed_packet value", "HZ000", ioException);
       }
       destroySocket();
       throw exceptionFactory

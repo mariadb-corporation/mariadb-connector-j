@@ -40,7 +40,6 @@ import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
 
 public class PreparedStatementParametersTest extends Common {
 
@@ -467,7 +466,6 @@ public class PreparedStatementParametersTest extends Common {
     bigSendError(sharedConnBinary, st);
   }
 
-
   public void bigSendError(Connection con, String st) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE bigTest");
@@ -475,9 +473,51 @@ public class PreparedStatementParametersTest extends Common {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setString(2, st);
-      assertThrowsContains(SQLException.class, () -> prep.execute(), "Packet too big for current server max_allowed_packet value");
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.execute(),
+          "Packet too big for current server max_allowed_packet value");
+      assertFalse(con.isClosed());
     }
     con.commit();
+  }
+
+  @Test
+  public void bigSendErrorMax() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
+
+    int maxAllowedPacket = getMaxAllowedPacket();
+    Assumptions.assumeTrue(
+        maxAllowedPacket > 16 * 1024 * 1024 && maxAllowedPacket < 100 * 1024 * 1024);
+    char[] arr = new char[maxAllowedPacket + 100];
+    for (int pos = 0; pos < arr.length; pos++) {
+      arr[pos] = (char) ('A' + (pos % 60));
+    }
+    String st = new String(arr);
+    try (Connection con = createCon()) {
+      bigSendErrorMax(con, st);
+    }
+    try (Connection con = createCon("useServerPrepStmts=true")) {
+      bigSendErrorMax(con, st);
+    }
+  }
+
+  public void bigSendErrorMax(Connection con, String st) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE bigTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, st);
+      assertThrowsContains(
+          SQLNonTransientConnectionException.class,
+          () -> prep.execute(),
+          "Packet too big for current server max_allowed_packet value");
+      assertTrue(con.isClosed());
+    }
   }
 
   @FunctionalInterface

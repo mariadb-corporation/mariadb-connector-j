@@ -701,6 +701,7 @@ public class PacketWriter {
     if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
       buf = new byte[SMALL_BUFFER_SIZE];
     }
+
     pos = 4;
     cmdLength = 0;
     mark = -1;
@@ -714,7 +715,7 @@ public class PacketWriter {
    * @throws MaxAllowedPacketException if query has not to be send.
    */
   public void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
-    if (cmdLength + length >= maxAllowedPacket && cmdLength == 0) {
+    if (cmdLength + length >= maxAllowedPacket) {
       // launch exception only if no packet has been send.
       throw new MaxAllowedPacketException(
           "query size ("
@@ -722,7 +723,7 @@ public class PacketWriter {
               + ") is >= to max_allowed_packet ("
               + maxAllowedPacket
               + ")",
-          false);
+          cmdLength != 0);
     }
   }
 
