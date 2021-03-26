@@ -36,6 +36,7 @@ import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 
 @DisplayName("Connection Test")
 public class ConnectionTest extends Common {
@@ -106,17 +107,19 @@ public class ConnectionTest extends Common {
   public void nativeSQL() throws SQLException {
     String[] inputs =
         new String[] {
-          "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}",
+          "select {fn TIMESTAMPDIFF ( SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}, {fn TIMESTAMPDIFF (HOUR, {fn convert  ('sQL_'   , SQL_INTEGER)})}",
           "{call foo({fn now()})}",
-          "{ call foo({fn now()})}",
-          "{\r\n call foo({fn now()})}",
+          "{  call foo({fn now()})}",
+          "{\r\ncall foo({fn now()})}",
+          "{\r\n  call foo({fn now()})}",
           "{call foo(/*{fn now()}*/)}",
-          "{call foo({fn now() /* -- * */ -- test \n })}",
+          "{CALL foo({fn now() /* -- * */ -- test \n })}",
           "{?=call foo({fn now()})}",
           "SELECT 'David_' LIKE 'David|_' {escape '|'}",
           "select {fn dayname ({fn abs({fn now()})})}",
           "{d '1997-05-24'}",
           "{d'1997-05-24'}",
+          "{\nt'10:30:29'}",
           "{t '10:30:29'}",
           "{t'10:30:29'}",
           "{ts '1997-05-24 10:30:29.123'}",
@@ -128,17 +131,19 @@ public class ConnectionTest extends Common {
         };
     String[] outputs =
         new String[] {
-          "select timestampdiff(HOUR, convert('SQL_', INTEGER))",
+          "select TIMESTAMPDIFF ( HOUR, convert('SQL_', INTEGER)), TIMESTAMPDIFF (HOUR, convert  ('sQL_'   , INTEGER))",
+          "call foo(now())",
           "call foo(now())",
           "call foo(now())",
           "call foo(now())",
           "call foo(/*{fn now()}*/)",
-          "call foo(now() /* -- * */ -- test \n )",
+          "CALL foo(now() /* -- * */ -- test \n )",
           "?=call foo(now())",
           "SELECT 'David_' LIKE 'David|_' escape '|'",
           "select dayname (abs(now()))",
           "'1997-05-24'",
           "'1997-05-24'",
+          "'10:30:29'",
           "'10:30:29'",
           "'10:30:29'",
           "'1997-05-24 10:30:29.123'",
@@ -920,5 +925,12 @@ public class ConnectionTest extends Common {
     }
 
     return isLocal;
+  }
+
+  @Test
+  public void socketFactoryTest() throws SQLException {
+    try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
+      conn.isValid(1);
+    }
   }
 }

@@ -104,7 +104,7 @@ public class ConnectionHelper {
             (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
         Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
         socketFactory = constructor.newInstance();
-        if (socketFactoryClass.isInstance(ConfigurableSocketFactory.class)) {
+        if (socketFactory instanceof ConfigurableSocketFactory) {
           ((ConfigurableSocketFactory) socketFactory).setConfiguration(conf, hostAddress.host);
         }
         return socketFactory.createSocket();

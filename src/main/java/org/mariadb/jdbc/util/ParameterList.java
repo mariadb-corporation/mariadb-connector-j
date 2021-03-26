@@ -36,11 +36,6 @@ public class ParameterList implements Cloneable {
     if (index + 1 > length) length = index + 1;
   }
 
-  public void clear() {
-    length = 0;
-    Arrays.fill(elementData, null);
-  }
-
   public int size() {
     return length;
   }

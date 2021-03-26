@@ -33,28 +33,19 @@ public final class Version {
   public static final String qualifier;
 
   static {
-    InputStream inputStream = null;
     String tmpVersion = "5.5.0";
-    try {
-      Properties prop = new Properties();
-      inputStream = Version.class.getClassLoader().getResourceAsStream("mariadb.properties");
-      if (inputStream != null) {
-        prop.load(inputStream);
-      } else {
+    try (InputStream inputStream =
+        Version.class.getClassLoader().getResourceAsStream("mariadb.properties")) {
+      if (inputStream == null) {
         System.out.println("property file 'mariadb.properties' not found in the classpath");
       }
-
-      // get the property value and print it out
+      Properties prop = new Properties();
+      prop.load(inputStream);
       tmpVersion = prop.getProperty("version");
-    } catch (Exception e) {
-      // eat
-    } finally {
-      try {
-        inputStream.close();
-      } catch (IOException ioe) {
-        // eat
-      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+
     version = tmpVersion;
     int major = 0;
     int minor = 0;

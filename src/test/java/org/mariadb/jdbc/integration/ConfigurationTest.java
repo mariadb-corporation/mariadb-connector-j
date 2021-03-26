@@ -68,7 +68,13 @@ public class ConfigurationTest extends Common {
     }
 
     try (Connection connection =
-        createCon("sessionVariables=session_track_system_variables='some\\';f,ff'")) {
+        createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
+      Statement stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+      assertTrue(rs.next());
+    }
+    try (Connection connection =
+        createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
       Statement stmt = connection.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
       assertTrue(rs.next());

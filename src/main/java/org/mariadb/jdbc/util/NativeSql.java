@@ -26,7 +26,7 @@ import java.util.Locale;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
-public class NativeSql {
+public final class NativeSql {
 
   public static String parse(String sql, Context context) throws SQLException {
     if (!sql.contains("{")) {

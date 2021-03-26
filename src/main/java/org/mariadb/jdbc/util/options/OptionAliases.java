@@ -19,7 +19,7 @@ package org.mariadb.jdbc.util.options;
 import java.util.HashMap;
 import java.util.Map;
 
-public class OptionAliases {
+public final class OptionAliases {
 
   public static final Map<String, String> OPTIONS_ALIASES;
 

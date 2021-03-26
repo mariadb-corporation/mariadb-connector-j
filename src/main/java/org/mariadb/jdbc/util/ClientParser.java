@@ -228,18 +228,6 @@ public final class ClientParser implements PrepareResult {
     return queryParts;
   }
 
-  public boolean isQueryMultiValuesRewritable() {
-    return isQueryMultiValuesRewritable;
-  }
-
-  public boolean isQueryMultipleRewritable() {
-    return isQueryMultipleRewritable;
-  }
-
-  public boolean isRewriteType() {
-    return rewriteType;
-  }
-
   public int getParamCount() {
     return paramCount;
   }

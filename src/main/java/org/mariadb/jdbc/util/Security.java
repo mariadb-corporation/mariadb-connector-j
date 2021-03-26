@@ -21,7 +21,7 @@
 
 package org.mariadb.jdbc.util;
 
-public class Security {
+public final class Security {
 
   /**
    * Parse the option "sessionVariable" to ensure having no injection. semi-column not in string

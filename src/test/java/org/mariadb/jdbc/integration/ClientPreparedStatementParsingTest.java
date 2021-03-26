@@ -310,4 +310,14 @@ public class ClientPreparedStatementParsingTest extends Common {
               + "(PARTITION test_p201605 VALUES LESS THAN ('2016-06-01'))"
         });
   }
+
+  @Test
+  public void testParse() throws Exception {
+    checkParsing(
+        "INSERT INTO `myTable` VALUES ('\\n\"\\'', \"'\\\n\\\"\")  \n // comment\n , ('a', 'b') # EOL comment",
+        0,
+        new String[] {
+          "INSERT INTO `myTable` VALUES ('\\n\"\\'', \"'\\\n\\\"\")  \n // comment\n , ('a', 'b') # EOL comment"
+        });
+  }
 }
