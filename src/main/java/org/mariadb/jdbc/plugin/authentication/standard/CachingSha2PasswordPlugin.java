@@ -123,7 +123,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       throws IOException, SQLException {
     byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
     new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
-    out.flush();
 
     ReadableByteBuf buf = in.readPacket(true);
 
