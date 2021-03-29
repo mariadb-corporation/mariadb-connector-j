@@ -18,6 +18,12 @@ public class Sha256AuthenticationTest extends Common {
       stmt.execute("DROP USER IF EXISTS 'cachingSha256User'@'%'");
       stmt.execute("DROP USER IF EXISTS 'cachingSha256User2'@'%'");
     }
+    // reason is that after nativePassword test, it sometime always return wrong authentication id
+    // not cached
+    // !? strange, but mysql server error.
+    if (haveSsl()) {
+      try (Connection con = createCon("sslMode=trust")) {}
+    }
   }
 
   @BeforeAll
@@ -62,6 +68,7 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void nativePassword() throws Exception {
+    Assumptions.assumeTrue(haveSsl());
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
@@ -104,7 +111,7 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     try (Connection con =
-                 createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
       con.isValid(1);
     } catch (SQLException sqle) {
       // mysql authentication might fail !?
@@ -112,19 +119,19 @@ public class Sha256AuthenticationTest extends Common {
 
     Assumptions.assumeTrue(haveSsl());
     try (Connection con =
-                 createCon("user=cachingSha256User&password=MySup8rPassw@ord&sslMode=trust")) {
+        createCon("user=cachingSha256User&password=MySup8rPassw@ord&sslMode=trust")) {
       con.isValid(1);
     }
 
     try (Connection con =
-                 createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
       con.isValid(1);
     }
 
     try (Connection con =
-                 createCon(
-                         "user=cachingSha256User&password=MySup8rPassw@ord&serverRsaPublicKeyFile="
-                                 + rsaPublicKey)) {
+        createCon(
+            "user=cachingSha256User&password=MySup8rPassw@ord&serverRsaPublicKeyFile="
+                + rsaPublicKey)) {
       con.isValid(1);
     }
   }
@@ -151,5 +158,4 @@ public class Sha256AuthenticationTest extends Common {
         () -> createCon("user=cachingSha256User&password=MySup8rPassw@ord"),
         "RSA public key is not available client side");
   }
-
 }

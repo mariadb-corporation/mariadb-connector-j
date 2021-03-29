@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.Security;
@@ -30,6 +31,7 @@ public class HaModeTest {
     OptionAliases oa = new OptionAliases();
     CredentialPluginLoader cp = new CredentialPluginLoader();
     AuthenticationPluginLoader ap = new AuthenticationPluginLoader();
+    TlsSocketPluginLoader tp = new TlsSocketPluginLoader();
   }
 
   @Test

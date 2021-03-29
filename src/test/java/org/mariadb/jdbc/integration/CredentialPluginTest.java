@@ -43,6 +43,7 @@ public class CredentialPluginTest extends Common {
    */
   @BeforeAll
   public static void beforeTest() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
     drop();
     boolean useOldNotation = true;
     if ((isMariaDBServer() && minVersion(10, 2, 0))
@@ -139,9 +140,7 @@ public class CredentialPluginTest extends Common {
     setEnv(tmpEnv);
 
     assertThrowsContains(
-            SQLException.class,
-            () -> createCon("credentialType=ENV&pwdKey=myPwdKey"),
-            "Access denied");
+        SQLException.class, () -> createCon("credentialType=ENV&pwdKey=myPwdKey"), "Access denied");
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
     setEnv(tmpEnv);
 

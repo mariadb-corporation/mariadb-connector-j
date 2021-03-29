@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.client.tls.DefaultTlsSocketPlugin;
 
-public class TlsSocketPluginLoader {
+public final class TlsSocketPluginLoader {
 
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added
