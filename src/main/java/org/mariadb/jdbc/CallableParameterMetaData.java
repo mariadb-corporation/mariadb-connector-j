@@ -207,8 +207,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterClassName(int index) throws SQLException {
     setIndex(index);
-    String str = rs.getString("DATA_TYPE");
-    switch (str.toUpperCase(Locale.ROOT)) {
+    String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    switch (str) {
       case "BIT":
         return BitSet.class.getName();
       case "TINYINT":

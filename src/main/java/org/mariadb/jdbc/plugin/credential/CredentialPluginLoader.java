@@ -29,7 +29,7 @@ import org.mariadb.jdbc.Driver;
  * Provider to handle plugin authentication. This can allow library users to override our default
  * Authentication provider.
  */
-public class CredentialPluginLoader {
+public final class CredentialPluginLoader {
 
   private static final ServiceLoader<CredentialPlugin> loader =
       ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());

@@ -46,11 +46,6 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
     return TYPE;
   }
 
-  @Override
-  public boolean mustUseSsl() {
-    return true;
-  }
-
   public void initialize(String authenticationData, byte[] authData, Configuration conf) {
     this.authenticationData = authenticationData;
   }

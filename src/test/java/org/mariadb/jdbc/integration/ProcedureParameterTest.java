@@ -37,45 +37,51 @@ public class ProcedureParameterTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), IN t4 SMALLINT) BEGIN \n"
-            + "set t3 = t1 * t4;\n"
+        "CREATE PROCEDURE basic_proc (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
+            + "set t3 = t1 * t5;\n"
             + "set t1 = t2 * t1;\n"
+            + "set t4 = 'return data';\n"
             + "END");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{call basic_proc(?,?,?,?)}")) {
       ParameterMetaData meta = callableStatement.getParameterMetaData();
-      assertEquals(4, meta.getParameterCount());
+      assertEquals(5, meta.getParameterCount());
       assertEquals("int", meta.getParameterClassName(1));
       assertEquals("int", meta.getParameterClassName(2));
       assertEquals("java.math.BigDecimal", meta.getParameterClassName(3));
-      assertEquals("short", meta.getParameterClassName(4));
+      assertEquals("java.lang.String", meta.getParameterClassName(4));
+      assertEquals("short", meta.getParameterClassName(5));
       assertThrowsContains(
-          SQLException.class, () -> meta.getParameterClassName(5), "invalid parameter index 5");
+          SQLException.class, () -> meta.getParameterClassName(6), "invalid parameter index 6");
 
       assertEquals("INT", meta.getParameterTypeName(1));
       assertEquals("MEDIUMINT", meta.getParameterTypeName(2));
       assertEquals("DECIMAL", meta.getParameterTypeName(3));
-      assertEquals("SMALLINT", meta.getParameterTypeName(4));
+      assertEquals("VARCHAR", meta.getParameterTypeName(4));
+      assertEquals("SMALLINT", meta.getParameterTypeName(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getParameterTypeName(0), "invalid parameter index 0");
 
       assertEquals(Types.INTEGER, meta.getParameterType(1));
       assertEquals(Types.INTEGER, meta.getParameterType(2));
       assertEquals(Types.DECIMAL, meta.getParameterType(3));
-      assertEquals(Types.SMALLINT, meta.getParameterType(4));
+      assertEquals(Types.VARCHAR, meta.getParameterType(4));
+      assertEquals(Types.SMALLINT, meta.getParameterType(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getParameterType(0), "invalid parameter index 0");
 
       assertEquals(ParameterMetaData.parameterModeInOut, meta.getParameterMode(1));
       assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(2));
       assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(3));
-      assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(4));
+      assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(4));
+      assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getParameterMode(10), "invalid parameter index 10");
 
       assertEquals(10, meta.getPrecision(1));
       assertEquals(8, meta.getPrecision(3));
-      assertEquals(5, meta.getPrecision(4));
+      assertEquals(20, meta.getPrecision(4));
+      assertEquals(5, meta.getPrecision(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getPrecision(10), "invalid parameter index 10");
 
@@ -83,6 +89,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals(0, meta.getScale(2));
       assertEquals(3, meta.getScale(3));
       assertEquals(0, meta.getScale(4));
+      assertEquals(0, meta.getScale(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getScale(10), "invalid parameter index 10");
 

@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Driver;
 
-public class AuthenticationPluginLoader {
+public final class AuthenticationPluginLoader {
 
   /**
    * Get authentication plugin from type String. Customs authentication plugin can be added
@@ -37,9 +37,6 @@ public class AuthenticationPluginLoader {
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */
   public static AuthenticationPlugin get(String type) throws SQLException {
-    if (type == null || type.isEmpty()) {
-      return null;
-    }
 
     ServiceLoader<AuthenticationPlugin> loader =
         ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());

@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
+import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.Security;
@@ -26,6 +28,8 @@ public class HaModeTest {
     Security s = new Security();
     Version v = new Version();
     OptionAliases oa = new OptionAliases();
+    CredentialPluginLoader cp = new CredentialPluginLoader();
+    AuthenticationPluginLoader ap = new AuthenticationPluginLoader();
   }
 
   @Test

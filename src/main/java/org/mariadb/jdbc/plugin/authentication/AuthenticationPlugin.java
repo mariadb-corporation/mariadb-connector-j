@@ -46,15 +46,6 @@ public interface AuthenticationPlugin {
   String type();
 
   /**
-   * Indicate if use of this plugins need SSL enabled.
-   *
-   * @return true if SSL is mandatory
-   */
-  default boolean mustUseSsl() {
-    return false;
-  }
-
-  /**
    * Plugin initialization.
    *
    * @param authenticationData authentication data (password/token)

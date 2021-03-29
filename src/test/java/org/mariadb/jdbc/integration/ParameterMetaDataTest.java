@@ -105,7 +105,11 @@ public class ParameterMetaDataTest extends Common {
     // Parameter type are not sent by server.
     // See https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
     // so only basic info like parameter number are retrieved.
-    try (PreparedStatement prepStmt = sharedConn.prepareStatement(query)) {
+    try (PreparedStatement prepStmt = sharedConnBinary.prepareStatement(query)) {
+      prepStmt.setString(1, "");
+      prepStmt.setInt(2, 1);
+      prepStmt.setInt(3, 1);
+      prepStmt.executeQuery();
       ParameterMetaData meta = prepStmt.getParameterMetaData();
       assertEquals(3, meta.getParameterCount());
       if (!isMariaDBServer() & minVersion(8, 0, 22)) {
@@ -115,6 +119,7 @@ public class ParameterMetaDataTest extends Common {
         assertEquals(0, meta.getPrecision(1));
         assertEquals(0, meta.getScale(1));
       }
+
       assertTrue(meta.isSigned(1));
       assertEquals(ParameterMetaData.parameterNullable, meta.isNullable(1));
       assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(1));
