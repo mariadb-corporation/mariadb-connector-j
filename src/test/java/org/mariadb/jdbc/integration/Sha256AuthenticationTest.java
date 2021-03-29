@@ -13,9 +13,11 @@ public class Sha256AuthenticationTest extends Common {
 
   @AfterAll
   public static void drop() throws SQLException {
-    org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'cachingSha256User'@'%'");
-    stmt.execute("DROP USER IF EXISTS 'cachingSha256User2'@'%'");
+    if (sharedConn != null) {
+      org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
+      stmt.execute("DROP USER IF EXISTS 'cachingSha256User'@'%'");
+      stmt.execute("DROP USER IF EXISTS 'cachingSha256User2'@'%'");
+    }
   }
 
   @BeforeAll

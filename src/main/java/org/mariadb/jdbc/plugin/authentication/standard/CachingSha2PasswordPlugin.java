@@ -62,6 +62,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @return encrypted pwd
    */
   public static byte[] sha256encryptPassword(final CharSequence password, final byte[] seed) {
+    if (password == null || password.toString().isEmpty()) {
+      return new byte[0];
+    }
     byte[] truncatedSeed = new byte[seed.length - 1];
     System.arraycopy(seed, 0, truncatedSeed, 0, seed.length - 1);
     try {
@@ -86,11 +89,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("Could not use SHA-256, failing", e);
     }
-  }
-
-  @Override
-  public String name() {
-    return "caching sha2 password";
   }
 
   @Override
@@ -123,13 +121,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    */
   public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
       throws IOException, SQLException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
-      out.writeEmptyPacket();
-    } else {
-      byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
-      new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
-      out.flush();
-    }
+    byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
+    new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
+    out.flush();
 
     ReadableByteBuf buf = in.readPacket(true);
 

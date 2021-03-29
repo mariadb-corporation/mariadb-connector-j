@@ -37,11 +37,6 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
   private String authenticationData;
 
   @Override
-  public String name() {
-    return "mysql clear password";
-  }
-
-  @Override
   public String type() {
     return TYPE;
   }

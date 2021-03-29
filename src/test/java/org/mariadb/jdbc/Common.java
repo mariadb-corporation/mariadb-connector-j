@@ -92,8 +92,10 @@ public class Common {
 
   @AfterAll
   public static void afterEAll() throws SQLException {
-    sharedConn.close();
-    sharedConnBinary.close();
+    if (sharedConn != null) {
+      sharedConn.close();
+      sharedConnBinary.close();
+    }
   }
 
   public static boolean isMariaDBServer() {

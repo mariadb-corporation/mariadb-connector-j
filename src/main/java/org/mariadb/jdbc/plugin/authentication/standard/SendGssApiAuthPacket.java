@@ -51,11 +51,6 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   private String optionServicePrincipalName;
 
   @Override
-  public String name() {
-    return "GSSAPI client authentication";
-  }
-
-  @Override
   public String type() {
     return "auth_gssapi_client";
   }

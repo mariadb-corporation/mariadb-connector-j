@@ -43,6 +43,7 @@ public class CredentialPluginTest extends Common {
    */
   @BeforeAll
   public static void beforeTest() throws SQLException {
+    drop();
     boolean useOldNotation = true;
     if ((isMariaDBServer() && minVersion(10, 2, 0))
         || (!isMariaDBServer() && minVersion(8, 0, 0))) {
@@ -76,15 +77,28 @@ public class CredentialPluginTest extends Common {
    * @throws SQLException if any
    */
   @AfterAll
-  public static void afterTest() throws SQLException {
+  public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER 'identityUser'@'%'");
-    stmt.execute("DROP USER 'identityUser'@'localhost'");
+    stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
+    stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");
   }
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
     System.setProperty("mariadb.user", "identityUser");
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("credentialType=PROPERTY&pwdKey=myPwdKey"),
+        "Access denied");
+
+    System.setProperty("myPwdKey", "!Passw0rd3Works");
+    try (Connection conn = createCon("credentialType=PROPERTY&pwdKey=myPwdKey")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '5'");
+      assertTrue(rs.next());
+      assertEquals("5", rs.getString(1));
+    }
+
     System.setProperty("mariadb.pwd", "!Passw0rd3Works");
 
     try (Connection conn = createCon("credentialType=PROPERTY")) {
@@ -122,6 +136,22 @@ public class CredentialPluginTest extends Common {
   public void envsIdentityTest() throws Exception {
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("MARIADB_USER", "identityUser");
+    setEnv(tmpEnv);
+
+    assertThrowsContains(
+            SQLException.class,
+            () -> createCon("credentialType=ENV&pwdKey=myPwdKey"),
+            "Access denied");
+    tmpEnv.put("myPwdKey", "!Passw0rd3Works");
+    setEnv(tmpEnv);
+
+    try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '5'");
+      assertTrue(rs.next());
+      assertEquals("5", rs.getString(1));
+    }
+
     tmpEnv.put("MARIADB_PWD", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
@@ -141,7 +171,7 @@ public class CredentialPluginTest extends Common {
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
-    try (Connection conn = createCon("credentialType=ENV&userKey=myPwdKey&pwdKey=myPwdKey")) {
+    try (Connection conn = createCon("credentialType=ENV&userKey=myUserKey&pwdKey=myPwdKey")) {
       Statement stmt = conn.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT '5'");
       assertTrue(rs.next());
@@ -152,6 +182,8 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("MARIADB_USER", "identityUser");

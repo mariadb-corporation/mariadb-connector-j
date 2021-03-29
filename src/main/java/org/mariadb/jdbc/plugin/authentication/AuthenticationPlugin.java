@@ -31,12 +31,6 @@ import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 
 public interface AuthenticationPlugin {
-  /**
-   * Authentication plugin name.
-   *
-   * @return authentication plugin name. ex: Mysql native password
-   */
-  String name();
 
   /**
    * Authentication plugin type.

@@ -53,38 +53,35 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
    * @param password the password to encrypt
    * @param seed the seed to use
    * @return a scrambled password
-   * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
    */
-  public static byte[] encryptPassword(final String password, final byte[] seed)
-      throws NoSuchAlgorithmException {
+  public static byte[] encryptPassword(final CharSequence password, final byte[] seed) {
+    try {
+      if (password == null || password.toString().isEmpty()) {
+        return new byte[0];
+      }
 
-    if (password == null || password.isEmpty()) {
-      return new byte[0];
+      final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+      byte[] bytePwd = password.toString().getBytes(StandardCharsets.UTF_8);
+
+      final byte[] stage1 = messageDigest.digest(bytePwd);
+      messageDigest.reset();
+
+      final byte[] stage2 = messageDigest.digest(stage1);
+      messageDigest.reset();
+
+      messageDigest.update(seed);
+      messageDigest.update(stage2);
+
+      final byte[] digest = messageDigest.digest();
+      final byte[] returnBytes = new byte[digest.length];
+      for (int i = 0; i < digest.length; i++) {
+        returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
+      }
+      return returnBytes;
+
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("Could not use SHA-1, failing", e);
     }
-
-    final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
-    byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
-
-    final byte[] stage1 = messageDigest.digest(bytePwd);
-    messageDigest.reset();
-
-    final byte[] stage2 = messageDigest.digest(stage1);
-    messageDigest.reset();
-
-    messageDigest.update(seed);
-    messageDigest.update(stage2);
-
-    final byte[] digest = messageDigest.digest();
-    final byte[] returnBytes = new byte[digest.length];
-    for (int i = 0; i < digest.length; i++) {
-      returnBytes[i] = (byte) (stage1[i] ^ digest[i]);
-    }
-    return returnBytes;
-  }
-
-  @Override
-  public String name() {
-    return "mysql native password";
   }
 
   @Override
@@ -119,20 +116,15 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
     if (authenticationData == null || authenticationData.isEmpty()) {
       out.writeEmptyPacket();
     } else {
-      try {
-
-        byte[] truncatedSeed;
-        if (seed.length > 0) {
-          // Seed is ended with a null byte value.
-          truncatedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
-        } else {
-          truncatedSeed = new byte[0];
-        }
-        out.writeBytes(encryptPassword(authenticationData, truncatedSeed));
-        out.flush();
-      } catch (NoSuchAlgorithmException e) {
-        throw new RuntimeException("Could not use SHA-1, failing", e);
+      byte[] truncatedSeed;
+      if (seed.length > 0) {
+        // Seed is ended with a null byte value.
+        truncatedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
+      } else {
+        truncatedSeed = new byte[0];
       }
+      out.writeBytes(encryptPassword(authenticationData, truncatedSeed));
+      out.flush();
     }
 
     return in.readPacket(true);

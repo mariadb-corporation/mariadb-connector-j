@@ -35,8 +35,12 @@ public final class AuthMoreRawPacket implements ClientMessage {
 
   @Override
   public int encode(PacketWriter writer, Context context) throws IOException {
-    writer.writeBytes(raw);
-    writer.flush();
+    if (raw.length == 0) {
+      writer.writeEmptyPacket();
+    } else {
+      writer.writeBytes(raw);
+      writer.flush();
+    }
     return 0;
   }
 }

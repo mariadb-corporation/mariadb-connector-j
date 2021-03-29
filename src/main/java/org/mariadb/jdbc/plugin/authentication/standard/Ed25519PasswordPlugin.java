@@ -93,11 +93,6 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
   }
 
   @Override
-  public String name() {
-    return "Ed25519 authentication plugin";
-  }
-
-  @Override
   public String type() {
     return "client_ed25519";
   }

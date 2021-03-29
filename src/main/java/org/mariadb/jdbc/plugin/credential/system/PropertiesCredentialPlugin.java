@@ -73,6 +73,7 @@ public class PropertiesCredentialPlugin implements CredentialPlugin {
     String userKey = this.conf.nonMappedOptions().getProperty("userKey");
     String pwdKey = this.conf.nonMappedOptions().getProperty("pwdKey");
     String propUser = System.getProperty(userKey != null ? userKey : "mariadb.user");
+
     return new Credential(
         propUser == null ? userName : propUser,
         System.getProperty(pwdKey != null ? pwdKey : "mariadb.pwd"));

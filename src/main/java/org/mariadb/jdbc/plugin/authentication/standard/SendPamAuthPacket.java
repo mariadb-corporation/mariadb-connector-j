@@ -38,11 +38,6 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
   private int counter = 0;
 
   @Override
-  public String name() {
-    return "PAM client authentication";
-  }
-
-  @Override
   public String type() {
     return "dialog";
   }

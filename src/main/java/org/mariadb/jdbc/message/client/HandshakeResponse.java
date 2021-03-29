@@ -27,6 +27,8 @@ import java.util.StringTokenizer;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
+import org.mariadb.jdbc.plugin.credential.Credential;
 import org.mariadb.jdbc.util.Version;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
@@ -52,17 +54,17 @@ public final class HandshakeResponse implements ClientMessage {
   private String authenticationPluginType;
 
   public HandshakeResponse(
+      Credential credential,
       String authenticationPluginType,
       byte[] seed,
       Configuration conf,
       String host,
       long clientCapabilities,
       byte exchangeCharset) {
-
     this.authenticationPluginType = authenticationPluginType;
     this.seed = seed;
-    this.username = conf.user();
-    this.password = conf.password();
+    this.username = credential.getUser();
+    this.password = credential.getPassword();
     this.database = conf.database();
     this.connectionAttributes = conf.connectionAttributes();
     this.host = host;
@@ -142,16 +144,18 @@ public final class HandshakeResponse implements ClientMessage {
   public int encode(PacketWriter writer, Context context) throws IOException {
 
     final byte[] authData;
-    if ("mysql_clear_password".equals(authenticationPluginType)) {
-      if ((clientCapabilities & Capabilities.SSL) == 0) {
-        throw new IllegalStateException(
-            "Server cannot required to send password in clear if SSL is not enabled.");
-      }
-      authData =
-          (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
-    } else {
-      authenticationPluginType = "mysql_native_password";
-      authData = NativePasswordPacket.encrypt(password, seed);
+    switch (authenticationPluginType) {
+      case "mysql_clear_password":
+        if ((clientCapabilities & Capabilities.SSL) == 0) {
+          throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
+        }
+        authData =
+            (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
+        break;
+
+      default:
+        authenticationPluginType = "mysql_native_password";
+        authData = NativePasswordPlugin.encryptPassword(password, seed);
     }
 
     writer.writeInt((int) clientCapabilities);

@@ -167,6 +167,7 @@ public class ClientImpl implements Client, AutoCloseable {
       Credential credential = ConnectionHelper.loadCredential(credentialPlugin, conf, hostAddress);
 
       new HandshakeResponse(
+              credential,
               authenticationPluginType,
               context.getSeed(),
               conf,
