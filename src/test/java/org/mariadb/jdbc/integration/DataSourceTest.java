@@ -69,7 +69,6 @@ public class DataSourceTest extends Common {
       stmt.execute("CREATE USER 'dsUser'@'%'");
       stmt.execute("GRANT SELECT ON *.* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
-    stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl);
     try (Connection con1 = ds.getConnection()) {
@@ -86,6 +85,13 @@ public class DataSourceTest extends Common {
       }
     } finally {
       stmt.execute("DROP USER 'dsUser'");
+    }
+
+    // mysql has issue when creating new user with native password
+    if (haveSsl() && !isMariaDBServer() && minVersion(8, 0, 0)) {
+      try (Connection con = createCon("sslMode=trust")) {
+        con.createStatement().execute("DO 1");
+      }
     }
   }
 

@@ -21,7 +21,7 @@ public class Sha256AuthenticationTest extends Common {
     // reason is that after nativePassword test, it sometime always return wrong authentication id
     // not cached
     // !? strange, but mysql server error.
-    if (haveSsl()) {
+    if (haveSsl() && !isMariaDBServer() && minVersion(8, 0, 0)) {
       try (Connection con = createCon("sslMode=trust")) {
         con.createStatement().execute("DO 1");
       }
