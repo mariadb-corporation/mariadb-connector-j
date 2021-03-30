@@ -23,7 +23,6 @@
 package org.mariadb.jdbc.client.tls;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -54,27 +53,21 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     InputStream inStream = null;
     try {
 
-      char[] keyStorePasswordChars =
-          keyStorePassword == null ? null : keyStorePassword.toCharArray();
-
       try {
         inStream = new URL(keyStoreUrl).openStream();
       } catch (IOException ioexception) {
         inStream = new FileInputStream(keyStoreUrl);
       }
 
+      char[] keyStorePasswordChars =
+          keyStorePassword == null ? null : keyStorePassword.toCharArray();
+
       KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
       ks.load(inStream, keyStorePasswordChars);
       return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
-    } catch (GeneralSecurityException generalSecurityEx) {
+    } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
-          "Failed to create keyStore instance", "08000", generalSecurityEx);
-    } catch (FileNotFoundException fileNotFoundEx) {
-      throw exceptionFactory.create(
-          "Failed to find keyStore file. Option keyStore=" + keyStoreUrl, "08000", fileNotFoundEx);
-    } catch (IOException ioEx) {
-      throw exceptionFactory.create(
-          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, "08000", ioEx);
+          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, "08000", ex);
     } finally {
       try {
         if (inStream != null) {
@@ -84,11 +77,6 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         // ignore error
       }
     }
-  }
-
-  @Override
-  public String name() {
-    return "Default TLS socket factory";
   }
 
   @Override

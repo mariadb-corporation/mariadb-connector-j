@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.*;
 import java.nio.file.Paths;
 import java.sql.*;
+import java.util.Locale;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
@@ -146,6 +147,20 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
+    // with URL
+    boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
+    try (Connection con =
+        createCon(
+            baseMutualOptions
+                + "&sslMode=trust&keyStore="
+                + "file://"
+                + (isWin ? "/" : "")
+                + System.getenv("TEST_DB_CLIENT_PKCS")
+                + "&keyStorePassword=kspass",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
     // wrong keystore type
     assertThrows(
         SQLInvalidAuthorizationSpecException.class,
@@ -163,6 +178,13 @@ public class SslTest extends Common {
                 + System.getenv("TEST_DB_CLIENT_PKCS")
                 + "&keyStorePassword=kspass",
             sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
+    // with system
+    System.setProperty("javax.net.ssl.keyStore", System.getenv("TEST_DB_CLIENT_PKCS"));
+    System.setProperty("javax.net.ssl.keyStorePassword", "kspass");
+    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
   }

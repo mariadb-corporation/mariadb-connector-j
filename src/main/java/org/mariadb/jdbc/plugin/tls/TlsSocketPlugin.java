@@ -35,13 +35,6 @@ import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 public interface TlsSocketPlugin {
 
   /**
-   * plugin name.
-   *
-   * @return plugin name. ex: Mysql native password
-   */
-  String name();
-
-  /**
    * plugin type.
    *
    * @return plugin type

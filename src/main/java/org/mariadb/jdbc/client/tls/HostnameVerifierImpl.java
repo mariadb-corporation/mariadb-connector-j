@@ -388,10 +388,6 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     @Override
     public String toString() {
-      if (isEmpty()) {
-        return "SAN[-empty-]";
-      }
-
       StringBuilder sb = new StringBuilder("SAN[");
       boolean first = true;
 

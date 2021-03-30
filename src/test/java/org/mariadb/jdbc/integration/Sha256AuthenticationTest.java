@@ -22,7 +22,9 @@ public class Sha256AuthenticationTest extends Common {
     // not cached
     // !? strange, but mysql server error.
     if (haveSsl()) {
-      try (Connection con = createCon("sslMode=trust")) {}
+      try (Connection con = createCon("sslMode=trust")) {
+        con.createStatement().execute("DO 1");
+      }
     }
   }
 
