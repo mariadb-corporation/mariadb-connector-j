@@ -35,7 +35,7 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class PrepareResultPacket implements Completion {
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final ColumnDefinitionPacket[] parameters;
-  private final ColumnDefinitionPacket[] columns;
+  private ColumnDefinitionPacket[] columns;
   protected int statementId;
 
   public PrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
@@ -92,5 +92,9 @@ public class PrepareResultPacket implements Completion {
 
   public ColumnDefinitionPacket[] getColumns() {
     return columns;
+  }
+
+  public void setColumns(ColumnDefinitionPacket[] columns) {
+    this.columns = columns;
   }
 }

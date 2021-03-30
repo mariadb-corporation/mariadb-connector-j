@@ -175,6 +175,11 @@ public class ConnectionHelper {
             | Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS
             | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
 
+    if (Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
+      capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
+    }
+
     if (!configuration.useAffectedRows()) {
       capabilities |= Capabilities.FOUND_ROWS;
     }

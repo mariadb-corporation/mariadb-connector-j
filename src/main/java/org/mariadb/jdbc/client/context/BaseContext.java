@@ -35,6 +35,8 @@ public class BaseContext implements Context {
   private final byte[] seed;
   private final ServerVersion version;
   private final boolean eofDeprecated;
+  private final boolean skipMeta;
+  private final boolean extendedInfo;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
   protected int serverStatus;
@@ -56,6 +58,8 @@ public class BaseContext implements Context {
     this.serverStatus = handshake.getServerStatus();
     this.version = new ServerVersion(handshake.getServerVersion(), handshake.isMariaDBServer());
     this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
+    this.skipMeta = (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
+    this.extendedInfo = (serverCapabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
@@ -96,6 +100,14 @@ public class BaseContext implements Context {
 
   public boolean isEofDeprecated() {
     return eofDeprecated;
+  }
+
+  public boolean isExtendedInfo() {
+    return extendedInfo;
+  }
+
+  public boolean canSkipMeta() {
+    return skipMeta;
   }
 
   public int getWarning() {

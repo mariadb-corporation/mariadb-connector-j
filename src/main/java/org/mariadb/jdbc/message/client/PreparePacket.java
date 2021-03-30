@@ -24,6 +24,7 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
@@ -95,9 +96,17 @@ public final class PreparePacket implements ClientMessage {
                       stmt instanceof ServerPreparedStatement
                           ? (ServerPreparedStatement) stmt
                           : null);
+          if (stmt != null) {
+            ((BasePreparedStatement) stmt)
+                .setPrepareResult(previousCached != null ? previousCached : prepare);
+          }
           return previousCached != null ? previousCached : prepare;
         }
-        return new PrepareResultPacket(buf, reader, context);
+        PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
+        if (stmt != null) {
+          ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+        }
+        return prepareResult;
     }
   }
 

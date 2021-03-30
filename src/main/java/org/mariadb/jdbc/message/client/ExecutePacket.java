@@ -125,6 +125,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     return 1;
   }
 
+  public boolean canSkipMeta() {
+    return true;
+  }
+
   public int batchUpdateLength() {
     return 1;
   }

@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.context.Context;
@@ -40,7 +41,6 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
-import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -57,6 +57,10 @@ public interface ClientMessage {
   }
 
   default boolean binaryProtocol() {
+    return false;
+  }
+
+  default boolean canSkipMeta() {
     return false;
   }
 
@@ -152,19 +156,37 @@ public interface ClientMessage {
       default:
         int fieldCount = buf.readLengthNotNull();
 
-        // read columns information's
-        ColumnDefinitionPacket[] ci = new ColumnDefinitionPacket[fieldCount];
-        for (int i = 0; i < fieldCount; i++) {
-          ci[i] =
-              new ColumnDefinitionPacket(
-                  reader.readPacket(false, traceEnable),
-                  (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-                      > 0);
-        }
-
-        if (!context.isEofDeprecated()) {
-          // skip intermediate EOF
-          reader.readPacket(true, traceEnable);
+        ColumnDefinitionPacket[] ci;
+        if (context.canSkipMeta() && this.canSkipMeta()) {
+          boolean skipMeta = buf.readByte() == 0;
+          if (skipMeta) {
+            ci = ((BasePreparedStatement) stmt).getMeta();
+          } else {
+            // read columns information's
+            ci = new ColumnDefinitionPacket[fieldCount];
+            for (int i = 0; i < fieldCount; i++) {
+              ci[i] =
+                  new ColumnDefinitionPacket(
+                      reader.readPacket(false, traceEnable), context.isExtendedInfo());
+            }
+            ((BasePreparedStatement) stmt).updateMeta(ci);
+            if (!context.isEofDeprecated()) {
+              // skip intermediate EOF
+              reader.readPacket(true, traceEnable);
+            }
+          }
+        } else {
+          // read columns information's
+          ci = new ColumnDefinitionPacket[fieldCount];
+          for (int i = 0; i < fieldCount; i++) {
+            ci[i] =
+                new ColumnDefinitionPacket(
+                    reader.readPacket(false, traceEnable), context.isExtendedInfo());
+          }
+          if (!context.isEofDeprecated()) {
+            // skip intermediate EOF
+            reader.readPacket(true, traceEnable);
+          }
         }
 
         // read resultSet

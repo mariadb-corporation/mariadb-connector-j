@@ -40,8 +40,6 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class ServerPreparedStatement extends BasePreparedStatement {
 
-  protected PrepareResultPacket prepareResult;
-
   public ServerPreparedStatement(
       String sql,
       Connection con,
@@ -71,8 +69,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null) {
       prepareResult = con.getContext().getPrepareCache().get(cmd, this);
       if (prepareResult == null) {
-        prepareResult =
-            (PrepareResultPacket) con.getClient().execute(new PreparePacket(cmd), this).get(0);
+        con.getClient().execute(new PreparePacket(cmd), this);
       }
     }
   }
@@ -135,7 +132,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                   resultSetConcurrency,
                   resultSetType,
                   closeOnCompletion);
-      prepareResult = (PrepareResultPacket) res.get(0);
       results = res.subList(1, res.size());
     } catch (SQLException ex) {
       results = null;
@@ -207,8 +203,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                   ResultSet.TYPE_FORWARD_ONLY,
                   closeOnCompletion);
       // in case of failover, prepare is done in failover, skipping prepare result
-      if (prepareResult == null && res.get(0) instanceof PrepareResultPacket) {
-        prepareResult = (PrepareResultPacket) res.get(0);
+      if (res.get(0) instanceof PrepareResultPacket) {
         results = res.subList(1, res.size());
       } else {
         results = res;
@@ -290,7 +285,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                 closeOnCompletion);
     // in case of failover, prepare is done in failover, skipping prepare result
     if (res.get(0) instanceof PrepareResultPacket) {
-      prepareResult = (PrepareResultPacket) res.get(0);
       return res.subList(1, res.size());
     } else {
       return res;
@@ -313,8 +307,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       if (prepareResult == null) {
         prepareResult = con.getContext().getPrepareCache().get(cmd, this);
         if (prepareResult == null) {
-          prepareResult =
-              (PrepareResultPacket) con.getClient().execute(new PreparePacket(cmd), this).get(0);
+          con.getClient().execute(new PreparePacket(cmd), this);
         }
       }
       try {
@@ -387,7 +380,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   @Override
   public void setQueryTimeout(int seconds) throws SQLException {
     super.setQueryTimeout(seconds);
-    if (prepareResult != null) {
+    if (canUseServerTimeout && prepareResult != null) {
       prepareResult.decrementUse(con.getClient(), this);
       prepareResult = null;
     }
@@ -539,9 +532,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      prepareResult =
-          (PrepareResultPacket)
-              con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this).get(0);
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
@@ -564,9 +555,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      prepareResult =
-          (PrepareResultPacket)
-              con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this).get(0);
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
     }
 
     return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());

@@ -32,6 +32,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.codec.list.*;
+import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
@@ -39,6 +41,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   protected ParameterList parameters;
   protected List<ParameterList> batchParameters;
   protected String sql;
+  protected PrepareResultPacket prepareResult = null;
 
   public BasePreparedStatement(
       String sql,
@@ -60,6 +63,19 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
         resultSetConcurrency,
         defaultFetchSize);
     this.sql = sql;
+  }
+
+  public void setPrepareResult(PrepareResultPacket prepareResult) {
+    this.prepareResult = prepareResult;
+  }
+
+  public ColumnDefinitionPacket[] getMeta() {
+    assert this.prepareResult != null;
+    return this.prepareResult.getColumns();
+  }
+
+  public void updateMeta(ColumnDefinitionPacket[] ci) {
+    this.prepareResult.setColumns(ci);
   }
 
   public abstract boolean execute() throws SQLException;

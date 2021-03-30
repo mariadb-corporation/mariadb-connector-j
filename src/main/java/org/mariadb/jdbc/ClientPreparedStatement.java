@@ -12,7 +12,6 @@ import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.ParameterList;
@@ -102,23 +101,35 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    */
   private List<Completion> executeBatchBulk() throws SQLException {
     String cmd = escapeTimeout(sql);
-    ClientMessage[] packets =
-        new ClientMessage[] {
-          new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, null)
-        };
     try {
-      List<Completion> res =
-          con.getClient()
-              .executePipeline(
-                  packets,
-                  this,
-                  0,
-                  maxRows,
-                  ResultSet.CONCUR_READ_ONLY,
-                  ResultSet.TYPE_FORWARD_ONLY,
-                  closeOnCompletion);
-      ((PrepareResultPacket) res.get(0)).close(con.getClient());
-      results = res.subList(1, res.size());
+      if (prepareResult == null) {
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, null)
+            };
+        List<Completion> res =
+            con.getClient()
+                .executePipeline(
+                    packets,
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion);
+        results = res.subList(1, res.size());
+      } else {
+        results =
+            con.getClient()
+                .execute(
+                    new BulkExecutePacket(prepareResult, batchParameters, cmd, null),
+                    this,
+                    fetchSize,
+                    maxRows,
+                    resultSetConcurrency,
+                    resultSetType,
+                    closeOnCompletion);
+      }
       return results;
     } catch (SQLException bue) {
       results = null;
@@ -310,6 +321,33 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     }
   }
 
+  @Override
+  public void setQueryTimeout(int seconds) throws SQLException {
+    super.setQueryTimeout(seconds);
+    if (canUseServerTimeout && prepareResult != null) {
+      prepareResult.close(con.getClient());
+      prepareResult = null;
+    }
+  }
+
+  @Override
+  public void setMaxRows(int max) throws SQLException {
+    super.setMaxRows(max);
+    if (canUseServerMaxRows && prepareResult != null) {
+      prepareResult.close(con.getClient());
+      prepareResult = null;
+    }
+  }
+
+  @Override
+  public void setLargeMaxRows(long max) throws SQLException {
+    super.setLargeMaxRows(max);
+    if (canUseServerMaxRows && prepareResult != null) {
+      prepareResult.close(con.getClient());
+      prepareResult = null;
+    }
+  }
+
   /**
    * Retrieves a <code>ResultSetMetaData</code> object that contains information about the columns
    * of the <code>ResultSet</code> object that will be returned when this <code>PreparedStatement
@@ -335,16 +373,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public ResultSetMetaData getMetaData() throws SQLException {
 
     // send COM_STMT_PREPARE
-    PreparePacket prepare = new PreparePacket(escapeTimeout(sql));
-    PrepareResultPacket prepareResult =
-        (PrepareResultPacket) con.getClient().execute(prepare).get(0);
-
-    try {
-      return new org.mariadb.jdbc.client.result.ResultSetMetaData(
-          exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
-    } finally {
-      prepareResult.close(con.getClient());
-    }
+    if (prepareResult == null) con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+    return new org.mariadb.jdbc.client.result.ResultSetMetaData(
+        exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
   }
 
   /**
@@ -362,15 +393,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   @Override
   public ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
-    PreparePacket prepare = new PreparePacket(escapeTimeout(sql));
-    PrepareResultPacket prepareResult =
-        (PrepareResultPacket) con.getClient().execute(prepare).get(0);
-
-    try {
-      return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());
-    } finally {
-      prepareResult.close(con.getClient());
+    if (prepareResult == null) {
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
     }
+    return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());
   }
 
   @Override
@@ -417,6 +443,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   @Override
   public void close() throws SQLException {
     con.fireStatementClosed(new StatementEvent(con, this));
+    if (prepareResult != null) {
+      prepareResult.close(this.con.getClient());
+    }
     super.close();
   }
 

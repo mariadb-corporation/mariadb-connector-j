@@ -46,6 +46,10 @@ public interface Context {
 
   boolean isEofDeprecated();
 
+  boolean canSkipMeta();
+
+  boolean isExtendedInfo();
+
   int getWarning();
 
   void setWarning(int warning);

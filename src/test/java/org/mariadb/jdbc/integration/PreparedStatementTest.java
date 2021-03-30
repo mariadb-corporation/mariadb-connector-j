@@ -211,11 +211,20 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeQuery() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("TRUNCATE prepare1");
-    stmt.execute("INSERT INTO prepare1(t1, t2) VALUES (5,10), (40,20), (127,45)");
+    executeQuery(sharedConn);
+    executeQuery(sharedConnBinary);
+    try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=false")) {
+      executeQuery(con);
+    }
+  }
+
+  private void executeQuery(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute(
+        "CREATE TEMPORARY TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("INSERT INTO prepare10(t1, t2) VALUES (5,10), (40,20), (127,45)");
     try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+        con.prepareStatement("SELECT * FROM prepare10 WHERE t1 > ?")) {
       preparedStatement.setInt(1, 20);
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
@@ -227,6 +236,28 @@ public class PreparedStatementTest extends Common {
       assertFalse(rs.next());
       assertThrowsContains(
           SQLException.class, () -> preparedStatement.setInt(-20, 2), "wrong parameter index -20");
+
+      preparedStatement.setInt(1, 50);
+      rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(127, rs.getInt(1));
+      assertEquals(45, rs.getInt(2));
+      assertFalse(rs.next());
+      assertThrowsContains(
+          SQLException.class, () -> preparedStatement.setInt(-20, 2), "wrong parameter index -20");
+      stmt.execute("ALTER TABLE prepare10 ADD COLUMN t3 varchar(20) default 'tt'");
+      preparedStatement.setInt(1, 20);
+      rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(40, rs.getInt(1));
+      assertEquals(20, rs.getInt(2));
+      assertEquals("tt", rs.getString(3));
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("SELECT * FROM prepare10 WHERE t1 > ?")) {
+      preparedStatement.setInt(1, 20);
+      preparedStatement.executeQuery();
     }
   }
 
