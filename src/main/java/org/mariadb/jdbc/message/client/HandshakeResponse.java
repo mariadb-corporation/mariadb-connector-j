@@ -29,7 +29,7 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.util.Version;
+import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
 public final class HandshakeResponse implements ClientMessage {
@@ -95,7 +95,7 @@ public final class HandshakeResponse implements ClientMessage {
     writeStringLength(writer, "MariaDB Connector/J");
 
     writeStringLengthAscii(writer, _CLIENT_VERSION);
-    writeStringLength(writer, Version.version);
+    writeStringLength(writer, VersionFactory.getInstance().getVersion());
 
     writeStringLengthAscii(writer, _SERVER_HOST);
     writeStringLength(writer, (host != null) ? host : "");
@@ -162,7 +162,7 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeInt(1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1
 
-    writer.writeBytes(0x00, 19); // 19
+    writer.writeBytes(new byte[19]); // 19
     writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
     writer.writeString(

@@ -21,73 +21,39 @@
 
 package org.mariadb.jdbc.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 public final class Version {
-  public static final String version;
-  public static final int majorVersion;
-  public static final int minorVersion;
-  public static final int patchVersion;
-  public static final String qualifier;
+  private final String version;
+  private final int majorVersion;
+  private final int minorVersion;
+  private final int patchVersion;
+  private final String qualifier;
 
-  static {
-    String tmpVersion = "5.5.0";
-    try (InputStream inputStream =
-        Version.class.getClassLoader().getResourceAsStream("mariadb.properties")) {
-      if (inputStream == null) {
-        System.out.println("property file 'mariadb.properties' not found in the classpath");
-      }
-      Properties prop = new Properties();
-      prop.load(inputStream);
-      tmpVersion = prop.getProperty("version");
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  public Version(
+      String version, int majorVersion, int minorVersion, int patchVersion, String qualifier) {
+    this.version = version;
+    this.majorVersion = majorVersion;
+    this.minorVersion = minorVersion;
+    this.patchVersion = patchVersion;
+    this.qualifier = qualifier;
+  }
 
-    version = tmpVersion;
-    int major = 0;
-    int minor = 0;
-    int patch = 0;
-    String qualif = "";
+  public String getVersion() {
+    return version;
+  }
 
-    int length = version.length();
-    char car;
-    int offset = 0;
-    int type = 0;
-    int val = 0;
-    for (; offset < length; offset++) {
-      car = version.charAt(offset);
-      if (car < '0' || car > '9') {
-        switch (type) {
-          case 0:
-            major = val;
-            break;
-          case 1:
-            minor = val;
-            break;
-          case 2:
-            patch = val;
-            qualif = version.substring(offset);
-            offset = length;
-            break;
-          default:
-            break;
-        }
-        type++;
-        val = 0;
-      } else {
-        val = val * 10 + car - 48;
-      }
-    }
+  public int getMajorVersion() {
+    return majorVersion;
+  }
 
-    if (type == 2) {
-      patch = val;
-    }
-    majorVersion = major;
-    minorVersion = minor;
-    patchVersion = patch;
-    qualifier = qualif;
+  public int getMinorVersion() {
+    return minorVersion;
+  }
+
+  public int getPatchVersion() {
+    return patchVersion;
+  }
+
+  public String getQualifier() {
+    return qualifier;
   }
 }

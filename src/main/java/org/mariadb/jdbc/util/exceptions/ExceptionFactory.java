@@ -51,8 +51,6 @@ public class ExceptionFactory {
       Connection connection) {
 
     StringBuilder msg = new StringBuilder();
-    String deadLockException = null;
-    String threadName = null;
 
     if (threadId != 0L) {
       msg.append("(conn=").append(threadId).append(") ");
@@ -82,9 +80,7 @@ public class ExceptionFactory {
     }
 
     if (conf.includeThreadDumpInDeadlockExceptions()) {
-      if (threadName != null) {
-        msg.append("\nthread name: ").append(threadName);
-      }
+      msg.append("\nthread name: ").append(Thread.currentThread().getName());
       msg.append("\ncurrent threads: ");
       Thread.getAllStackTraces()
           .forEach(
@@ -227,17 +223,6 @@ public class ExceptionFactory {
 
     return returnEx;
   }
-  //
-  //  public SQLException create(SQLException cause) {
-  //
-  //    return createException(
-  //        cause.getMessage().contains("\n")
-  //            ? cause.getMessage().substring(0, cause.getMessage().indexOf("\n"))
-  //            : cause.getMessage(),
-  //        cause.getSQLState(),
-  //        cause.getErrorCode(),
-  //        cause);
-  //  }
 
   public SQLException notSupported(String message) {
     return createException(message, "0A000", -1, null);
@@ -245,10 +230,6 @@ public class ExceptionFactory {
 
   public SQLException create(String message) {
     return createException(message, "42000", -1, null);
-  }
-
-  public SQLException create(String message, Exception cause) {
-    return createException(message, "42000", -1, cause);
   }
 
   public SQLException create(String message, String sqlState) {
@@ -265,11 +246,6 @@ public class ExceptionFactory {
 
   public String getSql() {
     return null;
-  }
-
-  @Override
-  public String toString() {
-    return "ExceptionFactory{threadId=" + threadId + '}';
   }
 
   public class SqlExceptionFactory extends ExceptionFactory {

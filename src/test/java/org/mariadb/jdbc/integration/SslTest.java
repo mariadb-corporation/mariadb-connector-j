@@ -200,6 +200,13 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
+    if (!"localhost".equals(hostname)) {
+      try (Connection con =
+          createCon(
+              baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath, sslPort)) {
+        assertNotNull(getSslVersion(con));
+      }
+    }
 
     String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();
     // file certificate path, like  file:/path/certificate.crt

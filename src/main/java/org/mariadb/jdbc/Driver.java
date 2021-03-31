@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.util.Version;
+import org.mariadb.jdbc.util.VersionFactory;
 
 public final class Driver implements java.sql.Driver {
 
@@ -46,7 +46,6 @@ public final class Driver implements java.sql.Driver {
   }
 
   protected static Connection connect(Configuration configuration) throws SQLException {
-    HostAddress hostAddress = null;
     ReentrantLock lock = new ReentrantLock();
     Client client;
     switch (configuration.haMode()) {
@@ -61,7 +60,8 @@ public final class Driver implements java.sql.Driver {
         break;
 
       default:
-        hostAddress = configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
+        HostAddress hostAddress =
+            configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
         client =
             configuration.transactionReplay()
                 ? new ClientReplayImpl(configuration, hostAddress, lock, false)
@@ -145,7 +145,7 @@ public final class Driver implements java.sql.Driver {
    * @return the major versions
    */
   public int getMajorVersion() {
-    return Version.majorVersion;
+    return VersionFactory.getInstance().getMajorVersion();
   }
 
   /**
@@ -154,7 +154,7 @@ public final class Driver implements java.sql.Driver {
    * @return the minor version
    */
   public int getMinorVersion() {
-    return Version.minorVersion;
+    return VersionFactory.getInstance().getMinorVersion();
   }
 
   /**

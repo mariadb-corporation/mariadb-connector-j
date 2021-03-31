@@ -1,6 +1,6 @@
 package org.mariadb.jdbc.util.log;
 
-public class LoggerHelper {
+public final class LoggerHelper {
 
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 

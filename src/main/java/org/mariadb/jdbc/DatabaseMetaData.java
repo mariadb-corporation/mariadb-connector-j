@@ -31,7 +31,7 @@ import java.util.Locale;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.DataType;
-import org.mariadb.jdbc.util.Version;
+import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class DatabaseMetaData implements java.sql.DatabaseMetaData {
@@ -1181,15 +1181,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public String getDriverVersion() {
-    return Version.version;
+    return VersionFactory.getInstance().getVersion();
   }
 
   public int getDriverMajorVersion() {
-    return Version.majorVersion;
+    return VersionFactory.getInstance().getMajorVersion();
   }
 
   public int getDriverMinorVersion() {
-    return Version.minorVersion;
+    return VersionFactory.getInstance().getMinorVersion();
   }
 
   public boolean usesLocalFiles() {

@@ -723,6 +723,13 @@ public class ClobCodecTest extends CommonCodecTest {
     try (Connection con = DriverManager.getConnection(urlWithHaMode)) {
       sendParam(con);
     }
+
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=false")) {
+      sendParam(con);
+    }
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws SQLException {
@@ -770,7 +777,7 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
       prep.execute();
-      prep.setObject(1, new StringReader("e🌟568"), Types.CLOB);
+      prep.setObject(1, new StringReader(longDataSb.toString()), Types.CLOB);
       prep.execute();
       prep.setObject(1, new StringReader("e🌟568"), Types.CLOB, 4);
       prep.execute();
@@ -874,7 +881,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals("e🌟8", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟568", rs.getString(2));
+    assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e🌟5", rs.getString(2));
     assertTrue(rs.next());
@@ -951,7 +958,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals("e🌟8", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟568", rs.getString(2));
+    assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e🌟5", rs.getString(2));
     assertTrue(rs.next());

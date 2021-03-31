@@ -123,6 +123,7 @@ public class BlobCodecTest extends CommonCodecTest {
     testErrObject(rs, Reader.class);
     rs.next();
     testErrObject(rs, LocalDate.class);
+    testErrObject(rs, LocalTime.class);
     testErrObject(rs, LocalDateTime.class);
     testErrObject(rs, Time.class);
     testErrObject(rs, Date.class);
@@ -652,6 +653,11 @@ public class BlobCodecTest extends CommonCodecTest {
     try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
       sendParam(con);
     }
+    try (Connection con = createCon()) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws Exception {
@@ -712,14 +718,14 @@ public class BlobCodecTest extends CommonCodecTest {
         prep.executeBatch();
       }
 
-      prep.setObject(1, "e🌟6".getBytes(StandardCharsets.UTF_8));
+      prep.setObject(1, "e🌟6''".getBytes(StandardCharsets.UTF_8));
       prep.addBatch();
       prep.setObject(1, "e🌟76".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
       prep.addBatch();
       prep.executeBatch();
       prep.setObject(1, "e🌟85".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
       prep.execute();
-      prep.setBytes(1, "e🌟9".getBytes(StandardCharsets.UTF_8));
+      prep.setBytes(1, "e🌟9''\\n".getBytes(StandardCharsets.UTF_8));
       prep.execute();
       prep.setBinaryStream(1, new ByteArrayInputStream("e🌟9".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
@@ -824,7 +830,7 @@ public class BlobCodecTest extends CommonCodecTest {
         rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-        "e🌟6".getBytes(StandardCharsets.UTF_8),
+        "e🌟6''".getBytes(StandardCharsets.UTF_8),
         rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
     assertTrue(rs.next());
     assertArrayEquals("e🌟7".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
@@ -836,7 +842,7 @@ public class BlobCodecTest extends CommonCodecTest {
         "2g🌟12".getBytes(StandardCharsets.UTF_8),
         rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
     assertTrue(rs.next());
-    assertArrayEquals("e🌟9".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
+    assertArrayEquals("e🌟9''\\n".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
     rs.updateBytes(2, "2g🌟15".getBytes(StandardCharsets.UTF_8));
     rs.updateRow();
     assertArrayEquals(
@@ -944,7 +950,7 @@ public class BlobCodecTest extends CommonCodecTest {
         rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
     assertTrue(rs.next());
     assertArrayEquals(
-        "e🌟6".getBytes(StandardCharsets.UTF_8),
+        "e🌟6''".getBytes(StandardCharsets.UTF_8),
         rs.getBlob(2).getBytes(1, (int) rs.getBlob(2).length()));
     assertTrue(rs.next());
     assertArrayEquals("e🌟7".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));

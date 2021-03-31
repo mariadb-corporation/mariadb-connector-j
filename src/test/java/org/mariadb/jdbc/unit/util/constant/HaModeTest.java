@@ -12,8 +12,8 @@ import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.Security;
-import org.mariadb.jdbc.util.Version;
 import org.mariadb.jdbc.util.constants.*;
+import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 public class HaModeTest {
@@ -27,11 +27,11 @@ public class HaModeTest {
     CharsetEncodingLength c = new CharsetEncodingLength();
     NativeSql n = new NativeSql();
     Security s = new Security();
-    Version v = new Version();
     OptionAliases oa = new OptionAliases();
     CredentialPluginLoader cp = new CredentialPluginLoader();
     AuthenticationPluginLoader ap = new AuthenticationPluginLoader();
     TlsSocketPluginLoader tp = new TlsSocketPluginLoader();
+    LoggerHelper lh = new LoggerHelper();
   }
 
   @Test

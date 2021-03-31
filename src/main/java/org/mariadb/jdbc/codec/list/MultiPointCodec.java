@@ -39,7 +39,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   public static final MultiPointCodec INSTANCE = new MultiPointCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return MultiPoint.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

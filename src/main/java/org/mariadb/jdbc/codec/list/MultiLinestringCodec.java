@@ -40,7 +40,7 @@ public class MultiLinestringCodec implements Codec<MultiLineString> {
   public static final MultiLinestringCodec INSTANCE = new MultiLinestringCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return MultiLineString.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

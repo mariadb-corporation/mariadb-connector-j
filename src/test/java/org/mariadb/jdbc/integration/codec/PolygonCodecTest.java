@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.Point;
 import org.mariadb.jdbc.type.Polygon;
@@ -323,7 +324,15 @@ public class PolygonCodecTest extends CommonCodecTest {
 
   @Test
   public void getMetaData() throws SQLException {
-    ResultSet rs = get();
+    getMetaData(sharedConn, false);
+    try (org.mariadb.jdbc.Connection con = createCon("geometryDefaultType=default")) {
+      getMetaData(con, true);
+    }
+  }
+
+  private void getMetaData(org.mariadb.jdbc.Connection con, boolean geoDefault)
+      throws SQLException {
+    ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
     if (isMariaDBServer()
         && minVersion(10, 5, 1)
@@ -334,7 +343,17 @@ public class PolygonCodecTest extends CommonCodecTest {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
     }
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals(byte[].class.getName(), meta.getColumnClassName(1));
+    assertEquals(
+        (geoDefault
+                ? ((isMariaDBServer()
+                        && minVersion(10, 5, 1)
+                        && !"maxscale".equals(System.getenv("srv"))
+                        && !"skysql-ha".equals(System.getenv("srv")))
+                    ? Polygon.class
+                    : GeometryCollection.class)
+                : byte[].class)
+            .getName(),
+        meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARBINARY, meta.getColumnType(1));

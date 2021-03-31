@@ -37,7 +37,7 @@ public class PointCodec implements Codec<Point> {
   public static final PointCodec INSTANCE = new PointCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return Point.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

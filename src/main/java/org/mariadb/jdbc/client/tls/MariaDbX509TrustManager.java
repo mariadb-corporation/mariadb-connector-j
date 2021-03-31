@@ -22,7 +22,7 @@
 package org.mariadb.jdbc.client.tls;
 
 import java.io.*;
-import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -30,7 +30,6 @@ import java.security.cert.*;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
-import java.util.zip.GZIPInputStream;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -90,43 +89,20 @@ public class MariaDbX509TrustManager implements X509TrustManager {
   }
 
   private static InputStream getInputStreamFromPath(String path) throws IOException {
-    InputStream is;
-    String protocol = path.replaceFirst("^(\\w+):.+$", "$1").toLowerCase();
-    switch (protocol) {
-      case "http":
-      case "https":
-        HttpURLConnection connection = (HttpURLConnection) new URL(path).openConnection();
-        int code = connection.getResponseCode();
-        if (code >= 400) throw new IOException("Server returned error code #" + code);
-        is = connection.getInputStream();
-        String contentEncoding = connection.getContentEncoding();
-        if (contentEncoding != null && contentEncoding.equalsIgnoreCase("gzip"))
-          is = new GZIPInputStream(is);
-        break;
-      case "file":
-        is = new URL(path).openStream();
-        break;
-      case "classpath":
-        is =
-            Thread.currentThread()
-                .getContextClassLoader()
-                .getResourceAsStream(path.replaceFirst("^\\w+:", ""));
-        break;
-      default:
-        if (path.startsWith("-----")) {
-          is = new ByteArrayInputStream(path.getBytes());
-          break;
-        } else {
-          File f = new File(path);
-          if (f.exists() && !f.isDirectory()) {
-            is = f.toURI().toURL().openStream();
-            break;
-          }
+    try {
+      return new URL(path).openStream();
+    } catch (MalformedURLException e) {
+      if (path.startsWith("-----")) {
+        return new ByteArrayInputStream(path.getBytes());
+      } else {
+        File f = new File(path);
+        if (f.exists() && !f.isDirectory()) {
+          return f.toURI().toURL().openStream();
         }
-        throw new IOException(
-            String.format("Wrong value for option `serverSslCert` (value: '%s')", path));
+      }
+      throw new IOException(
+          String.format("Wrong value for option `serverSslCert` (value: '%s')", path));
     }
-    return is;
   }
 
   /**

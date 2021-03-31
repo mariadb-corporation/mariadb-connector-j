@@ -37,7 +37,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   public static final GeometryCollectionCodec INSTANCE = new GeometryCollectionCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return GeometryCollection.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

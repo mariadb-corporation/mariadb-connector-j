@@ -172,12 +172,16 @@ public class ConnectionHelper {
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
             | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS
             | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
 
     if (Boolean.parseBoolean(
         configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
+    }
+
+    if ((serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) != 0
+        && configuration.useBulkStmts()) {
+      capabilities |= Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
     }
 
     if (!configuration.useAffectedRows()) {

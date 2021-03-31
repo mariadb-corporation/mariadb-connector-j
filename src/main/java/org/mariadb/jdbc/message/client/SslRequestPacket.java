@@ -45,7 +45,7 @@ public final class SslRequestPacket implements ClientMessage {
     writer.writeInt((int) clientCapabilities);
     writer.writeInt(1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1 byte
-    writer.writeBytes(0x00, 19); // 19  bytes
+    writer.writeBytes(new byte[19]); // 19  bytes
     writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
     writer.flush();
     return 0;

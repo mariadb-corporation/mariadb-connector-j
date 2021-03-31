@@ -135,6 +135,10 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void envsIdentityTest() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("MARIADB_USER", "identityUser");
     setEnv(tmpEnv);
@@ -165,6 +169,10 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void envsIdentityWithPropertiesTest() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("myUserKey", "identityUser");
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
@@ -182,7 +190,9 @@ public class CredentialPluginTest extends Common {
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
     Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("MARIADB_USER", "identityUser");

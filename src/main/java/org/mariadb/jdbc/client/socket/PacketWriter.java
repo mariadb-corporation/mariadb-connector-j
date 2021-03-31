@@ -186,28 +186,6 @@ public class PacketWriter {
     writeInt(Float.floatToIntBits(value));
   }
 
-  /**
-   * Write byte value, len times into buf. flush buf if too small.
-   *
-   * @param value byte value
-   * @param len number of time to write value.
-   * @throws IOException if socket error occur.
-   */
-  public void writeBytes(int value, int len) throws IOException {
-    if (len > buf.length - pos) {
-      // not enough space remaining
-      byte[] arr = new byte[len];
-      Arrays.fill(arr, (byte) value);
-      writeBytes(arr, 0, len);
-      return;
-    }
-
-    for (int i = pos; i < pos + len; i++) {
-      buf[i] = (byte) value;
-    }
-    pos += len;
-  }
-
   public void writeBytes(byte[] arr) throws IOException {
     writeBytes(arr, 0, arr.length);
   }
@@ -725,10 +703,6 @@ public class PacketWriter {
               + ")",
           cmdLength != 0);
     }
-  }
-
-  public OutputStream getOutputStream() {
-    return out;
   }
 
   public void setMaxAllowedPacket(int maxAllowedPacket) {

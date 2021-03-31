@@ -107,6 +107,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     testErrObject(rs, Timestamp.class);
     testErrObject(rs, java.util.Date.class);
     testErrObject(rs, LocalDate.class);
+    testErrObject(rs, LocalTime.class);
     testErrObject(rs, ZonedDateTime.class);
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, LocalDateTime.class);

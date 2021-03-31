@@ -496,6 +496,10 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   public void getDuration(ResultSet rs) throws SQLException {
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getObject(1, Duration.class),
+        "VARSTRING value '0' cannot be decoded as Time");
     rs.next();
     assertThrowsContains(
         SQLDataException.class,
@@ -838,6 +842,11 @@ public class VarcharCodecTest extends CommonCodecTest {
   public void sendParam() throws SQLException {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
+    try (Connection con = createCon()) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
+      sendParam(con);
+    }
   }
 
   private void sendParam(Connection con) throws SQLException {
@@ -845,7 +854,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE StringParamCodec");
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO StringParamCodec(t1) VALUES (?)")) {
-      prep.setString(1, "e🌟1");
+      prep.setString(1, "e'\\n🌟'\\'1Ã");
       prep.execute();
       prep.setString(1, null);
       prep.execute();
@@ -883,7 +892,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM StringParamCodec");
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(2));
+    assertEquals("e'\\n🌟'\\'1Ã", rs.getString(2));
     rs.updateString("t1", "f🌟12");
     rs.updateRow();
     assertEquals("f🌟12", rs.getString(2));

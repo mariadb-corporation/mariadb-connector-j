@@ -40,7 +40,7 @@ public class PolygonCodec implements Codec<Polygon> {
   public static final PolygonCodec INSTANCE = new PolygonCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return Polygon.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

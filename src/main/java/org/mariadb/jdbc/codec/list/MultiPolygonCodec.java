@@ -37,7 +37,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   public static final MultiPolygonCodec INSTANCE = new MultiPolygonCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return MultiPolygon.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

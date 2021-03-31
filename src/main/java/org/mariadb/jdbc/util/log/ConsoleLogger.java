@@ -10,7 +10,7 @@ public class ConsoleLogger implements Logger {
   private final PrintStream log;
   private final boolean logDebugLvl;
 
-  ConsoleLogger(String name, PrintStream log, PrintStream err, boolean logDebugLvl) {
+  public ConsoleLogger(String name, PrintStream log, PrintStream err, boolean logDebugLvl) {
     this.name = name;
     this.log = log;
     this.err = err;

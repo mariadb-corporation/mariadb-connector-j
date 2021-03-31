@@ -844,7 +844,7 @@ public class ClientImpl implements Client, AutoCloseable {
       socketTimeout = milliseconds;
       socket.setSoTimeout(milliseconds);
     } catch (SocketException se) {
-      throw exceptionFactory.create("Cannot set the network timeout", se);
+      throw exceptionFactory.create("Cannot set the network timeout", "42000", se);
     }
   }
 

@@ -37,7 +37,7 @@ public class LineStringCodec implements Codec<LineString> {
   public static final LineStringCodec INSTANCE = new LineStringCodec();
 
   public String className() {
-    return byte[].class.getName();
+    return LineString.class.getName();
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {

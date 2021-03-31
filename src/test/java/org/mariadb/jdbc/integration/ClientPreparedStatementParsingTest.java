@@ -272,6 +272,7 @@ public class ClientPreparedStatementParsingTest extends Common {
   }
 
   private void ensureErrorException(Connection connection) throws SQLException {
+    connection.createStatement().execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement pstmt =
         connection.prepareStatement("UPDATE unknownTable SET col1 = ?, col2 = 0 WHERE col3 = ?");
     pstmt.setInt(1, 10);
@@ -283,7 +284,10 @@ public class ClientPreparedStatementParsingTest extends Common {
       pstmt.executeBatch();
       fail("Must have thrown error");
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage().contains("doesn't exist"), sqle.getMessage());
+      assertTrue(
+          sqle.getMessage().contains("doesn't exist")
+              || sqle.getMessage().contains("Unknown prepared statement handler"),
+          sqle.getMessage());
       assertTrue(
           sqle.getMessage()
               .contains("Query is: UPDATE unknownTable SET col1 = ?, col2 = 0 WHERE col3 = ?"),
