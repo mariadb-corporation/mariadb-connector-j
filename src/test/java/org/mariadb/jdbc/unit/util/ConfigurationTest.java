@@ -205,7 +205,7 @@ public class ConfigurationTest extends Common {
   public void testOptionTakeDefault() throws Throwable {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test");
     assertEquals(30_000, conf.connectTimeout());
-    assertEquals(0, conf.validConnectionTimeout());
+    assertEquals(250, conf.prepStmtCacheSize());
     assertNull(conf.user());
     assertEquals(0, conf.socketTimeout());
   }
@@ -215,10 +215,10 @@ public class ConfigurationTest extends Common {
     Configuration conf =
         Configuration.parse(
             "jdbc:mariadb://localhost/test?user=root&password=toto&createDB=true"
-                + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5&socketTimeout=20");
+                + "&autoReconnect=true&prepStmtCacheSize=2&connectTimeout=5&socketTimeout=20");
     assertEquals(5, conf.connectTimeout());
     assertEquals(20, conf.socketTimeout());
-    assertEquals(2, conf.validConnectionTimeout());
+    assertEquals(2, conf.prepStmtCacheSize());
     assertEquals("true", conf.nonMappedOptions().get("createDB"));
     assertEquals("true", conf.nonMappedOptions().get("autoReconnect"));
     assertEquals("root", conf.user());
@@ -249,9 +249,9 @@ public class ConfigurationTest extends Common {
     Configuration jdbc =
         Configuration.parse(
             "jdbc:mariadb://localhost/test?user=root&autoReconnect=true"
-                + "&validConnectionTimeout=0&connectTimeout=5");
+                + "&prepStmtCacheSize=240&connectTimeout=5");
     assertEquals(5, jdbc.connectTimeout());
-    assertEquals(0, jdbc.validConnectionTimeout());
+    assertEquals(240, jdbc.prepStmtCacheSize());
   }
 
   @Test
@@ -273,7 +273,7 @@ public class ConfigurationTest extends Common {
         SQLException.class,
         () ->
             Configuration.parse(
-                "jdbc:mariadb://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
+                "jdbc:mariadb://localhost/test?user=root&autoReconnect=true&prepStmtCacheSize=-2"
                     + "&connectTimeout=5"));
   }
 
@@ -649,10 +649,9 @@ public class ConfigurationTest extends Common {
             .maxAllowedPacket(40000)
             .retriesAllDown(10)
             .assureReadOnly(true)
-            .validConnectionTimeout(100)
             .galeraAllowedState("A,B")
             .enabledSslProtocolSuites("TLSv1.2")
-            .pinGlobalTxToPhysicalConnection(false)
+            .pinGlobalTxToPhysicalConnection(true)
             .transactionReplay(true)
             .pool(true)
             .poolName("myPool")
@@ -660,6 +659,10 @@ public class ConfigurationTest extends Common {
             .minPoolSize(12)
             .maxIdleTime(25000)
             .staticGlobal(true)
+            .keyStore("/tmp")
+            .keyStorePassword("MyPWD")
+            .keyStoreType("JKS")
+            .geometryDefaultType("default")
             .registerJmxPool(true)
             .poolValidMinDelay(260)
             .useResetConnection(true)
@@ -670,7 +673,7 @@ public class ConfigurationTest extends Common {
             .allowPublicKeyRetrieval(true)
             .build();
     assertEquals(
-        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&pinGlobalTxToPhysicalConnection=false&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=REQUIRED&serverSslCert=mycertPath&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&maxAllowedPacket=40000&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&assureReadOnly=true&validConnectionTimeout=100&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&staticGlobal=true&registerJmxPool=true&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
+        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&pinGlobalTxToPhysicalConnection=true&geometryDefaultType=default&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&maxAllowedPacket=40000&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&assureReadOnly=true&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&staticGlobal=true&registerJmxPool=true&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
   }
 }

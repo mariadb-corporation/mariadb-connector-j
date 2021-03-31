@@ -77,7 +77,6 @@ public class DataSourceTest extends Common {
 
     DataSource ds = new MariaDbDataSource(mDefUrl);
     try (Connection con1 = ds.getConnection()) {
-
       try (Connection con2 = ds.getConnection("dsUser", "MySup8%rPassw@ord")) {
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
         ResultSet rs2 = con2.createStatement().executeQuery("SELECT 2");

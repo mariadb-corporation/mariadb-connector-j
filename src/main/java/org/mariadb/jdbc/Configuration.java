@@ -68,92 +68,94 @@ public class Configuration implements Cloneable {
       Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
 
   // standard options
-  private String user;
-  private String password;
-  private final String database;
-  private final List<HostAddress> addresses;
-  private final HaMode haMode;
+  private String user = null;
+  private String password = null;
+  private String database = null;
+  private List<HostAddress> addresses = null;
+  private HaMode haMode = HaMode.NONE;
 
-  private String initialUrl;
-  private final Properties nonMappedOptions;
+  private String initialUrl = null;
+  private Properties nonMappedOptions = null;
 
   // various
-  private final String timezone;
-  private final boolean autocommit;
-  private final int defaultFetchSize;
-  private final int maxQuerySizeToLog;
-  private final boolean pinGlobalTxToPhysicalConnection;
-  private final String geometryDefaultType;
+  private String timezone = null;
+  private boolean autocommit = true;
+  private int defaultFetchSize = 0;
+  private int maxQuerySizeToLog = 1024;
+  private boolean pinGlobalTxToPhysicalConnection = false;
+  private String geometryDefaultType = null;
 
   // socket
-  private final String socketFactory;
-  private Integer connectTimeout;
-  private final String pipe;
-  private final String localSocket;
-  private final boolean tcpKeepAlive;
-  private final boolean tcpAbortiveClose;
-  private final String localSocketAddress;
-  private final int socketTimeout;
-  private final boolean useReadAheadInput;
-  private final String tlsSocketType;
+  private String socketFactory = null;
+  private Integer connectTimeout =
+      DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
+  private String pipe = null;
+  private String localSocket = null;
+  private boolean tcpKeepAlive = false;
+  private boolean tcpAbortiveClose = false;
+  private String localSocketAddress = null;
+  private int socketTimeout = 0;
+  private boolean useReadAheadInput = true;
+  private String tlsSocketType = null;
 
   // SSL
-  private final SslMode sslMode;
-  private final String serverSslCert;
-  private final String keyStore;
-  private final String keyStorePassword;
-  private final String keyStoreType;
-  private final String enabledSslCipherSuites;
-  private final String enabledSslProtocolSuites;
+  private SslMode sslMode = SslMode.DISABLE;
+  private String serverSslCert = null;
+  private String keyStore = null;
+  private String keyStorePassword = null;
+  private String keyStoreType = null;
+  private String enabledSslCipherSuites = null;
+  private String enabledSslProtocolSuites = null;
 
   // protocol
-  private final boolean allowMultiQueries;
-  private final boolean allowLocalInfile;
-  private final boolean useCompression;
-  private final boolean useAffectedRows;
-  private final boolean useBulkStmts;
-  private final Integer maxAllowedPacket;
+  private boolean allowMultiQueries = false;
+  private boolean allowLocalInfile = false;
+  private boolean useCompression = false;
+  private boolean useAffectedRows = false;
+  private boolean useBulkStmts = true;
+  private Integer maxAllowedPacket = null;
 
   // prepare
-  private final boolean cachePrepStmts;
-  private final int prepStmtCacheSize;
-  private final boolean useServerPrepStmts;
+  private boolean cachePrepStmts = true;
+  private int prepStmtCacheSize = 250;
+  private boolean useServerPrepStmts = false;
 
   // authentication
-  private final CredentialPlugin credentialType;
-  private final String sessionVariables;
-  private final String connectionAttributes;
-  private final String servicePrincipalName;
+  private CredentialPlugin credentialType = null;
+  private String sessionVariables = null;
+  private String connectionAttributes = null;
+  private String servicePrincipalName = null;
 
   // meta
-  private final boolean blankTableNameMeta;
-  private final boolean tinyInt1isBit;
-  private final boolean yearIsDateType;
-  private final boolean dumpQueriesOnException;
-  private final boolean includeInnodbStatusInDeadlockExceptions;
-  private final boolean includeThreadDumpInDeadlockExceptions;
+  private boolean blankTableNameMeta = false;
+  private boolean tinyInt1isBit = true;
+  private boolean yearIsDateType = true;
+  private boolean dumpQueriesOnException = false;
+  private boolean includeInnodbStatusInDeadlockExceptions = false;
+  private boolean includeThreadDumpInDeadlockExceptions = false;
 
   // HA options
-  private final int retriesAllDown;
-  private final boolean assureReadOnly;
-  private final int validConnectionTimeout;
-  private final String galeraAllowedState;
-  private final boolean transactionReplay;
+  private int retriesAllDown = 120;
+  private boolean assureReadOnly = false;
+  private String galeraAllowedState = null;
+  private boolean transactionReplay = false;
 
   // Pool options
-  private final boolean pool;
-  private final String poolName;
-  private final int maxPoolSize;
-  private final Integer minPoolSize;
-  private final int maxIdleTime;
-  private final boolean staticGlobal;
-  private final boolean registerJmxPool;
-  private final int poolValidMinDelay;
-  private final boolean useResetConnection;
+  private boolean pool = false;
+  private String poolName = null;
+  private int maxPoolSize = 8;
+  private int minPoolSize = 8;
+  private int maxIdleTime = 600;
+  private boolean staticGlobal = false;
+  private boolean registerJmxPool = false;
+  private int poolValidMinDelay = 1000;
+  private boolean useResetConnection = false;
 
   // MySQL sha authentication
-  private final String serverRsaPublicKeyFile;
-  private final Boolean allowPublicKeyRetrieval;
+  private String serverRsaPublicKeyFile = null;
+  private boolean allowPublicKeyRetrieval = false;
+
+  private Configuration() {}
 
   private Configuration(
       String database,
@@ -198,7 +200,6 @@ public class Configuration implements Cloneable {
       Integer maxAllowedPacket,
       Boolean assureReadOnly,
       Integer retriesAllDown,
-      Integer validConnectionTimeout,
       String galeraAllowedState,
       Boolean pool,
       String poolName,
@@ -224,30 +225,25 @@ public class Configuration implements Cloneable {
     this.database = database;
     this.addresses = addresses;
     this.nonMappedOptions = nonMappedOptions;
-    this.haMode = haMode != null ? haMode : HaMode.NONE;
+    if (haMode != null) this.haMode = haMode;
     this.credentialType = CredentialPluginLoader.get(credentialType);
     this.user = user;
     this.password = password;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
-    this.pinGlobalTxToPhysicalConnection =
-        pinGlobalTxToPhysicalConnection != null ? pinGlobalTxToPhysicalConnection : false;
+    if (pinGlobalTxToPhysicalConnection != null)
+      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     this.socketFactory = socketFactory;
-    this.connectTimeout =
-        connectTimeout != null
-            ? connectTimeout
-            : (DriverManager.getLoginTimeout() > 0
-                ? DriverManager.getLoginTimeout() * 1000
-                : 30_000);
+    if (connectTimeout != null) this.connectTimeout = connectTimeout;
     this.pipe = pipe;
     this.localSocket = localSocket;
-    this.tcpKeepAlive = tcpKeepAlive != null ? tcpKeepAlive : false;
-    this.tcpAbortiveClose = tcpAbortiveClose != null ? tcpAbortiveClose : false;
+    if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
+    if (tcpAbortiveClose != null) this.tcpAbortiveClose = tcpAbortiveClose;
     this.localSocketAddress = localSocketAddress;
-    this.socketTimeout = socketTimeout != null ? socketTimeout : 0;
-    this.allowMultiQueries = allowMultiQueries != null ? allowMultiQueries : false;
-    this.allowLocalInfile = allowLocalInfile != null ? allowLocalInfile : false;
-    this.useCompression = useCompression != null ? useCompression : false;
-    this.blankTableNameMeta = blankTableNameMeta != null ? blankTableNameMeta : false;
+    if (socketTimeout != null) this.socketTimeout = socketTimeout;
+    if (allowMultiQueries != null) this.allowMultiQueries = allowMultiQueries;
+    if (allowLocalInfile != null) this.allowLocalInfile = allowLocalInfile;
+    if (useCompression != null) this.useCompression = useCompression;
+    if (blankTableNameMeta != null) this.blankTableNameMeta = blankTableNameMeta;
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
         && (sslMode == null || SslMode.from(sslMode) == SslMode.DISABLE)) {
@@ -261,57 +257,53 @@ public class Configuration implements Cloneable {
 
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
-    this.tinyInt1isBit = tinyInt1isBit != null ? tinyInt1isBit : true;
-    this.yearIsDateType = yearIsDateType != null ? yearIsDateType : true;
+    if (tinyInt1isBit != null) this.tinyInt1isBit = tinyInt1isBit;
+    if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     this.timezone = timezone;
-    this.dumpQueriesOnException = dumpQueriesOnException != null ? dumpQueriesOnException : false;
-    this.prepStmtCacheSize = prepStmtCacheSize != null ? prepStmtCacheSize : 250;
-    this.useAffectedRows = useAffectedRows != null ? useAffectedRows : false;
-    this.useServerPrepStmts = useServerPrepStmts != null ? useServerPrepStmts : false;
+    if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
+    if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
+    if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
+    if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
-    this.useBulkStmts = useBulkStmts != null ? useBulkStmts : true;
-    this.autocommit = autocommit != null ? autocommit : true;
-    this.includeInnodbStatusInDeadlockExceptions =
-        includeInnodbStatusInDeadlockExceptions != null
-            ? includeInnodbStatusInDeadlockExceptions
-            : false;
-    this.includeThreadDumpInDeadlockExceptions =
-        includeThreadDumpInDeadlockExceptions != null
-            ? includeThreadDumpInDeadlockExceptions
-            : false;
-    this.servicePrincipalName = servicePrincipalName;
-    this.defaultFetchSize =
-        defaultFetchSize != null ? (defaultFetchSize < 0 ? 0 : defaultFetchSize) : 0;
-    this.tlsSocketType = tlsSocketType;
-    this.maxQuerySizeToLog = maxQuerySizeToLog != null ? maxQuerySizeToLog : 1024;
-    this.maxAllowedPacket = maxAllowedPacket;
-    this.assureReadOnly = assureReadOnly != null ? assureReadOnly : false;
-    this.retriesAllDown = retriesAllDown != null ? retriesAllDown : 120;
-    this.validConnectionTimeout = validConnectionTimeout != null ? validConnectionTimeout : 0;
-    this.galeraAllowedState = galeraAllowedState;
-    this.pool = pool != null ? pool : false;
-    this.poolName = poolName;
-    this.maxPoolSize = maxPoolSize != null ? maxPoolSize : 8;
+    if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (autocommit != null) this.autocommit = autocommit;
+    if (includeInnodbStatusInDeadlockExceptions != null)
+      this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
+    if (includeThreadDumpInDeadlockExceptions != null)
+      this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
+    if (servicePrincipalName != null) this.servicePrincipalName = servicePrincipalName;
+    if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
+    if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
+    if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
+    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
+    if (assureReadOnly != null) this.assureReadOnly = assureReadOnly;
+    if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
+    if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
+    if (pool != null) this.pool = pool;
+    if (poolName != null) this.poolName = poolName;
+    if (maxPoolSize != null) this.maxPoolSize = maxPoolSize;
     // if min pool size default to maximum pool size if not set
-    this.minPoolSize =
-        minPoolSize == null ? this.maxPoolSize : Math.min(minPoolSize, this.maxPoolSize);
+    if (minPoolSize != null) {
+      this.minPoolSize = minPoolSize;
+    } else {
+      this.minPoolSize = this.maxPoolSize;
+    }
 
-    this.maxIdleTime = maxIdleTime != null ? maxIdleTime : 600;
-    this.staticGlobal = staticGlobal != null ? staticGlobal : false;
-    this.registerJmxPool = registerJmxPool != null ? registerJmxPool : true;
-    this.poolValidMinDelay = poolValidMinDelay != null ? poolValidMinDelay : 1000;
-    this.useResetConnection = useResetConnection != null ? useResetConnection : false;
-    this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
-    this.allowPublicKeyRetrieval =
-        allowPublicKeyRetrieval != null ? allowPublicKeyRetrieval : false;
-    this.useReadAheadInput = useReadAheadInput != null ? useReadAheadInput : true;
-    this.cachePrepStmts = cachePrepStmts != null ? cachePrepStmts : true;
-    this.transactionReplay = transactionReplay != null ? transactionReplay : false;
-    this.geometryDefaultType = geometryDefaultType;
-    this.serverSslCert = serverSslCert;
-    this.keyStore = keyStore;
-    this.keyStorePassword = keyStorePassword;
-    this.keyStoreType = keyStoreType;
+    if (maxIdleTime != null) this.maxIdleTime = maxIdleTime;
+    if (staticGlobal != null) this.staticGlobal = staticGlobal;
+    if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
+    if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
+    if (useResetConnection != null) this.useResetConnection = useResetConnection;
+    if (serverRsaPublicKeyFile != null) this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
+    if (allowPublicKeyRetrieval != null) this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
+    if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
+    if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
+    if (transactionReplay != null) this.transactionReplay = transactionReplay;
+    if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
+    if (serverSslCert != null) this.serverSslCert = serverSslCert;
+    if (keyStore != null) this.keyStore = keyStore;
+    if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
+    if (keyStoreType != null) this.keyStoreType = keyStoreType;
 
     // *************************************************************
     // option value verification
@@ -332,6 +324,12 @@ public class Configuration implements Cloneable {
     } catch (IllegalArgumentException | IllegalAccessException ie) {
       // eat
     }
+  }
+
+  public void updateAuth(String user, String password) {
+    this.user = user;
+    this.password = password;
+    buildUrl(this);
   }
 
   /**
@@ -526,8 +524,7 @@ public class Configuration implements Cloneable {
   protected Configuration clone(String username, String password)
       throws CloneNotSupportedException {
     Configuration conf = (Configuration) super.clone();
-    conf.user = username;
-    conf.password = password;
+    conf.updateAuth(username, password);
     return conf;
   }
 
@@ -728,10 +725,6 @@ public class Configuration implements Cloneable {
     return retriesAllDown;
   }
 
-  public int validConnectionTimeout() {
-    return validConnectionTimeout;
-  }
-
   public String galeraAllowedState() {
     return galeraAllowedState;
   }
@@ -815,6 +808,122 @@ public class Configuration implements Cloneable {
     return initialUrl.equals(that.initialUrl);
   }
 
+  protected static String buildUrl(Configuration conf) {
+    Configuration defaultConf = new Configuration();
+    StringBuilder sb = new StringBuilder();
+    sb.append("jdbc:mariadb:");
+    if (conf.haMode != null && conf.haMode != HaMode.NONE) {
+      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
+    }
+    sb.append("//");
+
+    for (int i = 0; i < conf.addresses.size(); i++) {
+      HostAddress hostAddress = conf.addresses.get(i);
+      if (i > 0) {
+        sb.append(",");
+      }
+      sb.append("address=(host=")
+          .append(hostAddress.host)
+          .append(")")
+          .append("(port=")
+          .append(hostAddress.port)
+          .append(")");
+      sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+    }
+
+    sb.append("/");
+    if (conf.database != null) {
+      sb.append(conf.database);
+    }
+
+    try {
+      // Option object is already initialized to default values.
+      // loop on properties,
+      // - check DefaultOption to check that property value correspond to type (and range)
+      // - set values
+      boolean first = true;
+
+      Field[] fields = Configuration.class.getDeclaredFields();
+      for (Field field : fields) {
+        if ("database".equals(field.getName())
+            || "haMode".equals(field.getName())
+            || "$jacocoData".equals(field.getName())
+            || "addresses".equals(field.getName())) {
+          continue;
+        }
+        Object obj = field.get(conf);
+
+        if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
+
+          if (field.getType().equals(String.class)) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(field.getName()).append('=');
+            sb.append((String) obj);
+          } else if (field.getType().equals(Boolean.class)
+              || field.getType().equals(boolean.class)) {
+            Object defaultValue = field.get(defaultConf);
+            if (obj != null && !obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(((Boolean) obj).toString());
+            }
+          } else if (field.getType().equals(Integer.class) || field.getType().equals(int.class)) {
+            try {
+              Object defaultValue = field.get(defaultConf);
+              if (obj != null && !obj.equals(defaultValue)) {
+                sb.append(first ? '?' : '&');
+                sb.append(field.getName()).append('=').append(obj.toString());
+                first = false;
+              }
+            } catch (IllegalAccessException n) {
+              // eat
+            }
+          } else if (field.getType().equals(Properties.class)) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            boolean firstProp = true;
+            Properties properties = (Properties) obj;
+            for (Object key : properties.keySet()) {
+              if (firstProp) {
+                firstProp = false;
+              } else {
+                sb.append('&');
+              }
+              sb.append(key).append('=');
+              sb.append(properties.get(key));
+            }
+          } else if (field.getType().equals(CredentialPlugin.class)) {
+            Object defaultValue = field.get(defaultConf);
+            if (obj != null && !obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(((CredentialPlugin) obj).type());
+            }
+          } else {
+            Object defaultValue = field.get(defaultConf);
+            if (obj != null && !obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(obj.toString());
+            }
+          }
+        }
+      }
+
+    } catch (IllegalAccessException n) {
+      n.printStackTrace();
+    } catch (SecurityException s) {
+      // only for jws, so never thrown
+      throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
+    }
+
+    return sb.toString();
+  }
+
   @Override
   public int hashCode() {
     return initialUrl.hashCode();
@@ -891,7 +1000,6 @@ public class Configuration implements Cloneable {
     // HA options
     private Integer retriesAllDown;
     private Boolean assureReadOnly;
-    private Integer validConnectionTimeout;
     private String galeraAllowedState;
     private Boolean transactionReplay;
 
@@ -1255,11 +1363,6 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder validConnectionTimeout(Integer validConnectionTimeout) {
-      this.validConnectionTimeout = validConnectionTimeout;
-      return this;
-    }
-
     public Builder galeraAllowedState(String galeraAllowedState) {
       this.galeraAllowedState = galeraAllowedState;
       return this;
@@ -1385,7 +1488,6 @@ public class Configuration implements Cloneable {
               this.maxAllowedPacket,
               this.assureReadOnly,
               this.retriesAllDown,
-              this.validConnectionTimeout,
               this.galeraAllowedState,
               this.pool,
               this.poolName,
@@ -1407,106 +1509,8 @@ public class Configuration implements Cloneable {
               this.transactionReplay,
               this.geometryDefaultType,
               this._nonMappedOptions);
-      conf.initialUrl = this.buildUrl(conf);
+      conf.initialUrl = buildUrl(conf);
       return conf;
-    }
-
-    private String buildUrl(Configuration conf) {
-      Builder defaultBuilder = new Builder();
-      StringBuilder sb = new StringBuilder();
-      sb.append("jdbc:mariadb:");
-      if (_haMode != null && _haMode != HaMode.NONE) {
-        sb.append(_haMode.toString().toLowerCase(Locale.ROOT)).append(":");
-      }
-      sb.append("//");
-
-      for (int i = 0; i < _addresses.size(); i++) {
-        HostAddress hostAddress = _addresses.get(i);
-        if (i > 0) {
-          sb.append(",");
-        }
-        sb.append("address=(host=")
-            .append(hostAddress.host)
-            .append(")")
-            .append("(port=")
-            .append(hostAddress.port)
-            .append(")");
-        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
-      }
-
-      sb.append("/");
-      if (database != null) {
-        sb.append(database);
-      }
-
-      try {
-        // Option object is already initialized to default values.
-        // loop on properties,
-        // - check DefaultOption to check that property value correspond to type (and range)
-        // - set values
-        boolean first = true;
-
-        Field[] fields = Builder.class.getDeclaredFields();
-        for (Field field : fields) {
-          if ("database".equals(field.getName())
-              || "_haMode".equals(field.getName())
-              || "$jacocoData".equals(field.getName())
-              || "_addresses".equals(field.getName())) {
-            continue;
-          }
-          Object obj = field.get(this);
-          if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
-
-            if (field.getType().equals(String.class)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append((String) field.get(this));
-            } else if (field.getType().equals(Boolean.class)) {
-              Object defaultValue = field.get(defaultBuilder);
-              if (obj != null && !obj.equals(defaultValue)) {
-                sb.append(first ? '?' : '&');
-                first = false;
-                sb.append(field.getName()).append('=');
-                sb.append(((Boolean) obj).toString());
-              }
-            } else if (field.getType().equals(Integer.class)) {
-              try {
-                Object defaultValue = field.get(defaultBuilder);
-                if (obj != null && !obj.equals(defaultValue)) {
-                  sb.append(first ? '?' : '&');
-                  sb.append(field.getName()).append('=').append(obj.toString());
-                  first = false;
-                }
-              } catch (IllegalAccessException n) {
-                // eat
-              }
-            } else if (field.getType().equals(Properties.class)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              boolean firstProp = true;
-              Properties properties = (Properties) obj;
-              for (Object key : properties.keySet()) {
-                if (firstProp) {
-                  firstProp = false;
-                } else {
-                  sb.append('&');
-                }
-                sb.append(key).append('=');
-                sb.append(properties.get(key));
-              }
-            }
-          }
-        }
-
-      } catch (IllegalAccessException n) {
-        n.printStackTrace();
-      } catch (SecurityException s) {
-        // only for jws, so never thrown
-        throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
-      }
-
-      return sb.toString();
     }
   }
 }
