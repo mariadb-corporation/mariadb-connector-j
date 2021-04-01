@@ -55,7 +55,7 @@ public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
-  protected static final long DENY_TIMEOUT = 60_000L;
+  protected long deniedListTimeout;
   protected final Configuration conf;
   protected boolean closed = false;
   protected final ReentrantLock lock;
@@ -64,6 +64,8 @@ public class MultiPrimaryClient implements Client {
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
+    deniedListTimeout =
+        Long.parseLong(conf.nonMappedOptions().getProperty("deniedListTimeout", "60000"));
     currentClient = connectHost(false, false);
   }
 
@@ -92,12 +94,16 @@ public class MultiPrimaryClient implements Client {
             : new ClientImpl(conf, host.get(), lock, false);
       } catch (SQLNonTransientConnectionException sqle) {
         lastSqle = sqle;
-        denyList.putIfAbsent(host.get(), System.currentTimeMillis() + DENY_TIMEOUT);
+        denyList.putIfAbsent(host.get(), System.currentTimeMillis() + deniedListTimeout);
         maxRetries--;
       }
     }
 
-    if (failFast) throw lastSqle;
+    if (failFast) {
+      throw (lastSqle != null)
+          ? lastSqle
+          : new SQLNonTransientConnectionException("No host not blacklisted");
+    }
 
     // All server corresponding to type are in deny list
     // return the one with lower denylist timeout
@@ -123,7 +129,7 @@ public class MultiPrimaryClient implements Client {
         lastSqle = sqle;
         host.ifPresent(
             hostAddress ->
-                denyList.putIfAbsent(hostAddress, System.currentTimeMillis() + DENY_TIMEOUT));
+                denyList.putIfAbsent(hostAddress, System.currentTimeMillis() + deniedListTimeout));
         maxRetries--;
         if (maxRetries > 0) {
           try {
@@ -141,7 +147,8 @@ public class MultiPrimaryClient implements Client {
 
   protected void reConnect() throws SQLException {
 
-    denyList.putIfAbsent(currentClient.getHostAddress(), System.currentTimeMillis() + DENY_TIMEOUT);
+    denyList.putIfAbsent(
+        currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
     logger.info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;

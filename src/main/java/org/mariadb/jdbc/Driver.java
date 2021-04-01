@@ -103,40 +103,37 @@ public final class Driver implements java.sql.Driver {
    * @throws SQLException if there is a problem getting the property info
    */
   public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) throws SQLException {
-    if (url != null && !url.isEmpty()) {
-      Configuration conf = Configuration.parse(url, info);
-      if (conf == null) {
-        return new DriverPropertyInfo[0];
-      }
+    Configuration conf = Configuration.parse(url, info);
+    if (conf == null) {
+      return new DriverPropertyInfo[0];
+    }
 
-      Properties propDesc = new Properties();
-      try (InputStream inputStream =
-          Driver.class.getClassLoader().getResourceAsStream("driver.properties")) {
-        propDesc.load(inputStream);
-      } catch (IOException io) {
-        // eat
-      }
+    Properties propDesc = new Properties();
+    try (InputStream inputStream =
+        Driver.class.getClassLoader().getResourceAsStream("driver.properties")) {
+      propDesc.load(inputStream);
+    } catch (IOException io) {
+      // eat
+    }
 
-      List<DriverPropertyInfo> props = new ArrayList<>();
-      for (Field field : Configuration.Builder.class.getDeclaredFields()) {
-        if (!field.getName().startsWith("_")) {
-          try {
-            Field fieldConf = Configuration.class.getDeclaredField(field.getName());
-            fieldConf.setAccessible(true);
-            Object obj = fieldConf.get(conf);
-            String value = obj == null ? null : obj.toString();
-            DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(), value);
-            propertyInfo.description = value == null ? "" : (String) propDesc.get(field.getName());
-            propertyInfo.required = false;
-            props.add(propertyInfo);
-          } catch (IllegalAccessException | NoSuchFieldException e) {
-            // eat error
-          }
+    List<DriverPropertyInfo> props = new ArrayList<>();
+    for (Field field : Configuration.Builder.class.getDeclaredFields()) {
+      if (!field.getName().startsWith("_")) {
+        try {
+          Field fieldConf = Configuration.class.getDeclaredField(field.getName());
+          fieldConf.setAccessible(true);
+          Object obj = fieldConf.get(conf);
+          String value = obj == null ? null : obj.toString();
+          DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(), value);
+          propertyInfo.description = value == null ? "" : (String) propDesc.get(field.getName());
+          propertyInfo.required = false;
+          props.add(propertyInfo);
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+          // eat error
         }
       }
-      return props.toArray(new DriverPropertyInfo[0]);
     }
-    return new DriverPropertyInfo[0];
+    return props.toArray(new DriverPropertyInfo[0]);
   }
 
   /**

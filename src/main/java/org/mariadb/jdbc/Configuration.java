@@ -356,7 +356,7 @@ public class Configuration implements Cloneable {
    * @throws SQLException if parsing exception occur
    */
   public static Configuration parse(final String url, Properties prop) throws SQLException {
-    if (url != null && url.startsWith("jdbc:mariadb:")) {
+    if (acceptsUrl(url)) {
       return parseInternal(url, (prop == null) ? new Properties() : prop);
     }
     return null;
@@ -487,11 +487,8 @@ public class Configuration implements Cloneable {
         }
       }
 
-    } catch (IllegalAccessException n) {
-      n.printStackTrace();
-    } catch (SecurityException s) {
-      // only for jws, so never thrown
-      throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
+    } catch (IllegalAccessException | SecurityException s) {
+      throw new IllegalArgumentException("Unexpected error", s);
     }
     builder._nonMappedOptions = nonMappedOptions;
   }

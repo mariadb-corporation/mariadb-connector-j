@@ -1,12 +1,35 @@
+/*
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ */
+
 package org.mariadb.jdbc;
 
 import java.io.PrintWriter;
 import java.sql.*;
 import java.sql.Connection;
 import java.util.logging.Logger;
+import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
+import javax.sql.PooledConnection;
 
-public class MariaDbDataSource implements DataSource {
+public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
 
   private final Configuration conf;
 
@@ -157,5 +180,21 @@ public class MariaDbDataSource implements DataSource {
   @Override
   public Logger getParentLogger() {
     return null;
+  }
+
+  @Override
+  public PooledConnection getPooledConnection() throws SQLException {
+    return Driver.connect(conf);
+  }
+
+  @Override
+  public PooledConnection getPooledConnection(String username, String password)
+      throws SQLException {
+    try {
+      Configuration conf = this.conf.clone(username, password);
+      return Driver.connect(conf);
+    } catch (CloneNotSupportedException cloneNotSupportedException) {
+      throw new SQLException(cloneNotSupportedException);
+    }
   }
 }

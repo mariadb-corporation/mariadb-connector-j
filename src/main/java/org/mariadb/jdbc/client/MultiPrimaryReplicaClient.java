@@ -48,7 +48,7 @@ import org.mariadb.jdbc.util.log.Loggers;
  */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryReplicaClient.class);
-  protected static final long NEXT_TRY_TIMEOUT = 30_000L;
+  protected long waitTimeout;
   private Client replicaClient;
   private Client primaryClient;
   private boolean requestReadOnly;
@@ -58,12 +58,13 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   public MultiPrimaryReplicaClient(Configuration conf, ReentrantLock lock) throws SQLException {
     super(conf, lock);
     primaryClient = currentClient;
-
+    waitTimeout =
+        Long.parseLong(conf.nonMappedOptions().getProperty("waitReconnectTimeout", "30000"));
     try {
       replicaClient = connectHost(true, false);
     } catch (SQLException e) {
       replicaClient = null;
-      nextTryReplica = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+      nextTryReplica = System.currentTimeMillis() + waitTimeout;
     }
   }
 
@@ -76,7 +77,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
           primaryClient = connectHost(false, true);
           nextTryPrimary = -1;
         } catch (SQLException e) {
-          nextTryPrimary = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+          nextTryPrimary = System.currentTimeMillis() + waitTimeout;
         }
       }
 
@@ -90,7 +91,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
             currentClient = replicaClient;
           }
         } catch (SQLException e) {
-          nextTryReplica = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+          nextTryReplica = System.currentTimeMillis() + waitTimeout;
         }
       }
     }
@@ -107,7 +108,8 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    */
   @Override
   protected void reConnect() throws SQLException {
-    denyList.putIfAbsent(currentClient.getHostAddress(), System.currentTimeMillis() + DENY_TIMEOUT);
+    denyList.putIfAbsent(
+        currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
     logger.info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;
@@ -132,7 +134,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
       } catch (SQLNonTransientConnectionException e) {
         if (requestReadOnly) {
-          nextTryReplica = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+          nextTryReplica = System.currentTimeMillis() + waitTimeout;
           if (primaryClient != null) {
             // connector will use primary client until some replica is up
             currentClient = primaryClient;
@@ -270,12 +272,12 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
     }
     closed = true;
     try {
-      primaryClient.close();
+      if (primaryClient != null) primaryClient.close();
     } catch (SQLException e) {
       // eat
     }
     try {
-      replicaClient.close();
+      if (replicaClient != null) replicaClient.close();
     } catch (SQLException e) {
       // eat
     }
@@ -299,7 +301,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
             currentClient = replicaClient;
             syncNewState(primaryClient);
           } catch (SQLException e) {
-            nextTryReplica = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+            nextTryReplica = System.currentTimeMillis() + waitTimeout;
           }
         }
       }
@@ -314,7 +316,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
             primaryClient = connectHost(false, false);
             nextTryPrimary = -1;
           } catch (SQLException e) {
-            nextTryPrimary = System.currentTimeMillis() + NEXT_TRY_TIMEOUT;
+            nextTryPrimary = System.currentTimeMillis() + waitTimeout;
             throw new SQLNonTransientConnectionException(
                 "Driver has failed to reconnect a primary connection", "08000");
           }

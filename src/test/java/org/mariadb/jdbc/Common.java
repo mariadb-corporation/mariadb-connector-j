@@ -30,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
@@ -121,7 +122,9 @@ public class Common {
 
     String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
     if (mode != HaMode.NONE) {
-      url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+      url =
+          url.replaceAll(
+              "jdbc:mariadb:", "jdbc:mariadb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
     }
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");

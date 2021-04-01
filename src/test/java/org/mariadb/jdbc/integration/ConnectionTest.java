@@ -302,6 +302,7 @@ public class ConnectionTest extends Common {
     stmt.execute("INSERT INTO testReadOnly values (1)");
     sharedConn.commit();
     assertTrue(sharedConn.isReadOnly());
+    sharedConn.setReadOnly(false);
     try (Connection con = createCon("assureReadOnly=true")) {
       final Statement stmt2 = con.createStatement();
       assertFalse(con.isReadOnly());
@@ -545,6 +546,11 @@ public class ConnectionTest extends Common {
       Savepoint savepoint = con.setSavepoint("ye`\\\\`p");
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
+      assertEquals("ye``\\\\``p", savepoint.getSavepointName());
+      assertThrowsContains(
+          SQLException.class,
+          () -> savepoint.getSavepointId(),
+          "Cannot retrieve savepoint id of a named savepoint");
       con.rollback(savepoint);
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
       stmt.executeUpdate("INSERT INTO spt values('hej6')");
@@ -563,6 +569,20 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void netWorkTimeout() throws SQLException {
+    Connection con = createCon();
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.setNetworkTimeout(Runnable::run, -200),
+        "Connection.setNetworkTimeout cannot be called with a negative timeout");
+    con.close();
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.setNetworkTimeout(Runnable::run, 200),
+        "Connection.setNetworkTimeout cannot be called on a closed connection");
+  }
+
+  @Test
   public void savepointUnname() throws SQLException {
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
@@ -573,7 +593,14 @@ public class ConnectionTest extends Common {
       Savepoint savepoint = con.setSavepoint();
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
+      assertTrue(savepoint.getSavepointId() > 0);
+      assertThrowsContains(
+          SQLException.class,
+          () -> savepoint.getSavepointName(),
+          "Cannot retrieve savepoint name of an unnamed savepoint");
       con.rollback(savepoint);
+      assertThrowsContains(
+          SQLException.class, () -> con.rollback(new MySavepoint()), "Unknown savepoint type");
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
       stmt.executeUpdate("INSERT INTO spt values('hej6')");
       con.commit();
@@ -602,6 +629,10 @@ public class ConnectionTest extends Common {
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
       con.releaseSavepoint(savepoint);
+      assertThrowsContains(
+          SQLException.class,
+          () -> con.releaseSavepoint(new MySavepoint()),
+          "Unknown savepoint type");
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
       stmt.executeUpdate("INSERT INTO spt values('hej6')");
       con.commit();
@@ -611,6 +642,18 @@ public class ConnectionTest extends Common {
         assertEquals("hej" + i, rs.getString(1));
       }
       assertFalse(rs.next());
+    }
+  }
+
+  class MySavepoint implements Savepoint {
+    @Override
+    public int getSavepointId() throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public String getSavepointName() throws SQLException {
+      return null;
     }
   }
 
@@ -741,6 +784,7 @@ public class ConnectionTest extends Common {
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
     sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
+    assertNotNull(sharedConn.getHostAddress());
   }
 
   @Test

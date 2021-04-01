@@ -1,3 +1,24 @@
+/*
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2020 MariaDB Corporation Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ */
+
 package org.mariadb.jdbc.integration;
 
 import java.io.File;
@@ -49,11 +70,14 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     stmt.execute(
-        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY 'MySup8rPassw@ord'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
+        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
     stmt.execute(
         "CREATE USER 'cachingSha256User2'@'%' IDENTIFIED WITH caching_sha2_password BY ''");
+    stmt.execute(
+        "CREATE USER 'cachingSha256User3'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
   }
 
@@ -98,6 +122,17 @@ public class Sha256AuthenticationTest extends Common {
   }
 
   @Test
+  public void cachingSha256Allow() throws Exception {
+    Assumptions.assumeTrue(
+        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+    sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
+    try (Connection con =
+        createCon("user=cachingSha256User3&allowPublicKeyRetrieval&password=!Passw0rd3Works")) {
+      con.isValid(1);
+    }
+  }
+
+  @Test
   public void cachingSha256PluginTest() throws Exception {
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
@@ -105,7 +140,7 @@ public class Sha256AuthenticationTest extends Common {
 
     try (Connection con =
         createCon(
-            "user=cachingSha256User&password=MySup8rPassw@ord&serverRsaPublicKeyFile="
+            "user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile="
                 + rsaPublicKey)) {
       con.isValid(1);
     } catch (SQLException sqle) {
@@ -113,7 +148,7 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     try (Connection con =
-        createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
       con.isValid(1);
     } catch (SQLException sqle) {
       // mysql authentication might fail !?
@@ -121,18 +156,18 @@ public class Sha256AuthenticationTest extends Common {
 
     Assumptions.assumeTrue(haveSsl());
     try (Connection con =
-        createCon("user=cachingSha256User&password=MySup8rPassw@ord&sslMode=trust")) {
+        createCon("user=cachingSha256User&password=!Passw0rd3Works&sslMode=trust")) {
       con.isValid(1);
     }
 
     try (Connection con =
-        createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
       con.isValid(1);
     }
 
     try (Connection con =
         createCon(
-            "user=cachingSha256User&password=MySup8rPassw@ord&serverRsaPublicKeyFile="
+            "user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile="
                 + rsaPublicKey)) {
       con.isValid(1);
     }
@@ -143,7 +178,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isWindows && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
-        createCon("user=cachingSha256User&password=MySup8rPassw@ord&allowPublicKeyRetrieval")) {
+        createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
       con.isValid(1);
     } catch (SQLException sqle) {
       // mysql authentication might fail !?
@@ -157,7 +192,7 @@ public class Sha256AuthenticationTest extends Common {
 
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=cachingSha256User&password=MySup8rPassw@ord"),
+        () -> createCon("user=cachingSha256User&password=!Passw0rd3Works"),
         "RSA public key is not available client side");
   }
 }

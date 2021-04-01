@@ -1813,9 +1813,22 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.supportsAlterTableWithAddColumn());
     assertTrue(meta.supportsAlterTableWithDropColumn());
     assertTrue(meta.supportsColumnAliasing());
+    assertTrue(meta.nullPlusNonNullIsNull());
     assertTrue(meta.supportsConvert());
     assertTrue(meta.supportsAlterTableWithAddColumn());
     assertTrue(meta.supportsConvert(Types.INTEGER, Types.REAL));
+    assertFalse(meta.supportsConvert(Types.INTEGER, Types.BLOB));
+    assertTrue(meta.supportsConvert(Types.BLOB, Types.TINYINT));
+    assertFalse(meta.supportsConvert(Types.BLOB, Types.ARRAY));
+    assertTrue(meta.supportsConvert(Types.CLOB, Types.NUMERIC));
+    assertFalse(meta.supportsConvert(Types.CLOB, Types.ARRAY));
+    assertTrue(meta.supportsConvert(Types.DATE, Types.VARCHAR));
+    assertFalse(meta.supportsConvert(Types.DATE, Types.ARRAY));
+    assertTrue(meta.supportsConvert(Types.TIME, Types.VARCHAR));
+    assertFalse(meta.supportsConvert(Types.TIME, Types.ARRAY));
+    assertTrue(meta.supportsConvert(Types.TIMESTAMP, Types.VARCHAR));
+    assertFalse(meta.supportsConvert(Types.TIMESTAMP, Types.ARRAY));
+    assertFalse(meta.supportsConvert(Types.ARRAY, Types.TIMESTAMP));
     assertTrue(meta.supportsTableCorrelationNames());
     assertTrue(meta.supportsDifferentTableCorrelationNames());
     assertTrue(meta.supportsExpressionsInOrderBy());
@@ -1831,6 +1844,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.supportsCoreSQLGrammar());
     assertTrue(meta.supportsExtendedSQLGrammar());
     assertTrue(meta.supportsANSI92EntryLevelSQL());
+    assertTrue(meta.supportsANSI92IntermediateSQL());
     assertTrue(meta.supportsANSI92FullSQL());
     assertTrue(meta.supportsIntegrityEnhancementFacility());
     assertTrue(meta.supportsOuterJoins());
@@ -1856,6 +1870,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.supportsSelectForUpdate());
     assertTrue(meta.supportsStoredProcedures());
     assertTrue(meta.supportsSubqueriesInComparisons());
+    assertTrue(meta.supportsSubqueriesInExists());
     assertTrue(meta.supportsSubqueriesInIns());
     assertTrue(meta.supportsSubqueriesInComparisons());
     assertTrue(meta.supportsSubqueriesInQuantifieds());
