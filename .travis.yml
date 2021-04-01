@@ -49,7 +49,6 @@ jobs:
     - env: srv=mariadb v=10.5
     - env: srv=mariadb v=10.5 packet=8
     - env: srv=mariadb v=10.5 BENCH=1
-    - env: srv=build v=10.6 BENCH=1
     - env: srv=maxscale
     - env: srv=skysql
     - env: srv=skysql-ha

@@ -84,6 +84,19 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void replicaNotSet() throws Exception {
+    String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    try (java.sql.Connection con = DriverManager.getConnection(url + "&waitReconnectTimeout=20")) {
+      con.isValid(1);
+      con.setReadOnly(true);
+      con.isValid(1);
+      // force reconnection try
+      Thread.sleep(50);
+      con.isValid(1);
+    }
+  }
+
+  @Test
   public void masterFailover() throws Exception {
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -157,6 +170,61 @@ public class MultiHostTest extends Common {
       assertEquals(5, rs.getInt(1));
       assertFalse(rs.next());
       stmt.execute("DROP TABLE IF EXISTS testReplay");
+    }
+  }
+
+  @Test
+  public void masterReplicationFailover() throws Exception {
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try {
+      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+    } catch (IOException i) {
+      throw new SQLException("proxy error", i);
+    }
+
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//localhost:%s,%s:%s/", proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("SET @con=1");
+      con.setReadOnly(true);
+      con.isValid(1);
+      proxy.restart(50);
+      Thread.sleep(20);
+      con.setReadOnly(false);
+
+      ResultSet rs = stmt.executeQuery("SELECT @con");
+      rs.next();
+      assertNull(rs.getString(1));
+    }
+
+    // never reconnect
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("SET @con=1");
+      con.setReadOnly(true);
+      con.isValid(1);
+      proxy.stop();
+      Thread.sleep(20);
+      con.setReadOnly(false);
+      assertFalse(con.isValid(1));
     }
   }
 

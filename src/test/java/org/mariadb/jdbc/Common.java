@@ -97,6 +97,9 @@ public class Common {
       sharedConn.close();
       sharedConnBinary.close();
     }
+    if (proxy != null) {
+      proxy.forceClose();
+    }
   }
 
   public static boolean isMariaDBServer() {

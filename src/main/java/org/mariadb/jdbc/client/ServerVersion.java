@@ -21,9 +21,7 @@
 
 package org.mariadb.jdbc.client;
 
-import java.util.Objects;
-
-public class ServerVersion {
+public final class ServerVersion {
 
   private final String serverVersion;
   private final int majorVersion;
@@ -130,35 +128,5 @@ public class ServerVersion {
       patchVersion = val;
     }
     return new int[] {majorVersion, minorVersion, patchVersion};
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    ServerVersion that = (ServerVersion) o;
-    return mariaDBServer == that.mariaDBServer && serverVersion.equals(that.serverVersion);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(serverVersion, mariaDBServer);
-  }
-
-  @Override
-  public String toString() {
-    return "ServerVersion{"
-        + "serverVersion='"
-        + serverVersion
-        + '\''
-        + ", majorVersion="
-        + majorVersion
-        + ", minorVersion="
-        + minorVersion
-        + ", patchVersion="
-        + patchVersion
-        + ", mariaDBServer="
-        + mariaDBServer
-        + '}';
   }
 }

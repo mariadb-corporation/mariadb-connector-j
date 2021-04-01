@@ -26,16 +26,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.Connection;
-import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 
 @DisplayName("Connection Test")
@@ -994,5 +993,14 @@ public class ConnectionTest extends Common {
     Assumptions.assumeFalse(haveSsl());
     assertThrowsContains(
         SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
+  }
+
+  @Test
+  public void localSocketAddress() throws SQLException {
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {
+      con.isValid(1);
+    }
   }
 }

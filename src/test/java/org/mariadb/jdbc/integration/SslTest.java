@@ -136,6 +136,12 @@ public class SslTest extends Common {
         () ->
             createCon(baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=SSLv3", sslPort),
         "No appropriate protocol");
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=unknown", sslPort),
+        "Unsupported SSL protocol 'unknown'");
   }
 
   @Test

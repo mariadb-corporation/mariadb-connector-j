@@ -256,22 +256,21 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
   @Override
   public void close() throws SQLException {
-    if (closed) {
-      throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
+    if (!closed) {
+      closed = true;
+      try {
+        if (primaryClient != null) primaryClient.close();
+      } catch (SQLException e) {
+        // eat
+      }
+      try {
+        if (replicaClient != null) replicaClient.close();
+      } catch (SQLException e) {
+        // eat
+      }
+      primaryClient = null;
+      replicaClient = null;
     }
-    closed = true;
-    try {
-      if (primaryClient != null) primaryClient.close();
-    } catch (SQLException e) {
-      // eat
-    }
-    try {
-      if (replicaClient != null) replicaClient.close();
-    } catch (SQLException e) {
-      // eat
-    }
-    primaryClient = null;
-    replicaClient = null;
   }
 
   @Override

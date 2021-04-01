@@ -105,62 +105,9 @@ public final class ReadableByteBuf {
     return (short) (buf[pos] & 0xff);
   }
 
-  public short getUnsignedByte(int index) {
-    return (short) (buf[index] & 0xff);
-  }
-
-  public short getShort(int index) {
-    return (short) ((buf[index] & 0xff) | (buf[index + 1] << 8));
-  }
-
-  public int getUnsignedShort(int index) {
-    return getShort(index) & 0xffff;
-  }
-
-  public int getMedium(int index) {
-    int value = getUnsignedMedium(index);
-    if ((value & 0x800000) != 0) {
-      value |= 0xff000000;
-    }
-    return value;
-  }
-
-  public int getUnsignedMedium(int index) {
-    return (buf[index] & 0xff) + ((buf[index + 1] & 0xff) << 8) | (buf[index + 2] << 16);
-  }
-
-  public int getInt(int index) {
-    return ((buf[index] & 0xff)
-        + ((buf[index + 1] & 0xff) << 8)
-        + ((buf[index + 2] & 0xff) << 16)
-        + ((buf[index + 3] & 0xff) << 24));
-  }
-
-  public long getUnsignedInt(int index) {
-    return getInt(index) & 0xffffffff;
-  }
-
-  public long getLong(int index) {
-    return ((buf[index] & 0xff)
-        + ((buf[index + 1] & 0xff) << 8)
-        + ((buf[index + 2] & 0xff) << 16)
-        + ((buf[index + 3] & 0xff) << 24)
-        + ((buf[index + 4] & 0xff) << 32)
-        + ((buf[index + 5] & 0xff) << 40)
-        + ((buf[index + 6] & 0xff) << 48)
-        + ((buf[index + 7] & 0xff) << 56));
-  }
-
-  public ReadableByteBuf getBytes(int index, byte[] dst) {
-    System.arraycopy(buf, index, dst, 0, dst.length);
-    return this;
-  }
-
   public int readLengthNotNull() {
     int type = (buf[pos++] & 0xff);
     switch (type) {
-      case 251:
-        throw new IllegalStateException("Must not have null length");
       case 252:
         return readUnsignedShort();
       case 253:

@@ -54,7 +54,6 @@ import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
 import org.mariadb.jdbc.util.MutableInt;
 import org.mariadb.jdbc.util.Security;
 import org.mariadb.jdbc.util.constants.Capabilities;
-import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
@@ -418,7 +417,7 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
-    if (conf.haMode() == HaMode.NONE) {
+    if (conf.assureReadOnly() && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
       execute(
           new QueryPacket("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
     }

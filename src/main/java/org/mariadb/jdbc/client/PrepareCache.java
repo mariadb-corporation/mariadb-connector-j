@@ -6,7 +6,7 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
-public class PrepareCache extends LinkedHashMap<String, CachedPrepareResultPacket> {
+public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResultPacket> {
 
   private static final long serialVersionUID = -8922905563713952695L;
   private final int maxSize;

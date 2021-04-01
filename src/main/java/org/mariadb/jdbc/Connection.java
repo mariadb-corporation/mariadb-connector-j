@@ -250,9 +250,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
 
     lock.lock();
     try {
-      if (conf.assureReadOnly()
-          && this.readOnly != readOnly
-          && client.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      if (this.readOnly != readOnly) {
         client.setReadOnly(readOnly);
       }
       this.readOnly = readOnly;
