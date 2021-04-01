@@ -288,6 +288,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
     try {
       getContext().addStateFlag(ConnectionState.STATE_DATABASE);
       client.execute(new ChangeDbPacket(catalog));
+      client.getContext().setDatabase(catalog);
     } finally {
       lock.unlock();
     }

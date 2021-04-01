@@ -55,7 +55,7 @@ import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
-public class ConnectionHelper {
+public final class ConnectionHelper {
 
   private static final SocketHandlerFunction socketHandler;
 
@@ -349,7 +349,7 @@ public class ConnectionHelper {
               .create(
                   "SSL hostname verification failed : "
                       + ex.getMessage()
-                      + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
+                      + "\nThis verification can be disabled using the sslMode to VERIFY_CA "
                       + "but won't prevent man-in-the-middle attacks anymore",
                   "08006");
         }

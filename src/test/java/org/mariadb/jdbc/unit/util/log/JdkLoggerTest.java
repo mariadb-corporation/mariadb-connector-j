@@ -97,18 +97,18 @@ public class JdkLoggerTest {
     logger.trace("trace msg2", new SQLException("test"));
 
     String outSt = new String(out.toByteArray());
-    assertTrue(
-        outSt.contains(
-            "[FINEST ] error msg \n"
-                + "[FINEST ] error msg3 1 t \n"
-                + "[FINEST ] error msg4 null \n"
-                + "[FINEST ] null \n"
-                + "[FINEST ] error msg2 \n"
-                + "[FINEST ] info msg \n"
-                + "[FINEST ] info msg3 1 t \n"
-                + "[FINEST ] info msg2 \n"
-                + "[FINEST ] warn msg \n"
-                + "[FINEST ] warn msg3 1 t \n"
-                + "[FINEST ] warn msg2 "));
+    String expected =
+        "[FINEST ] error msg \n"
+            + "[FINEST ] error msg3 1 t \n"
+            + "[FINEST ] error msg4 null \n"
+            + "[FINEST ] null \n"
+            + "[FINEST ] error msg2 \n"
+            + "[FINEST ] info msg \n"
+            + "[FINEST ] info msg3 1 t \n"
+            + "[FINEST ] info msg2 \n"
+            + "[FINEST ] warn msg \n"
+            + "[FINEST ] warn msg3 1 t \n"
+            + "[FINEST ] warn msg2 ";
+    assertTrue(outSt.contains(expected) || outSt.replace("\r\n", "\n").contains(expected));
   }
 }

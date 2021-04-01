@@ -173,18 +173,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       // if reconnect primary, then replay transaction / throw exception if was in transaction.
       if (!requestReadOnly) {
         if (conf.transactionReplay()) {
-          if (executeTransactionReplay(oldClient)) {
-            // transaction cannot be replayed, but connection is now up again.
-            // changing exception to SQLTransientConnectionException
-            throw new SQLTransientConnectionException(
-                String.format(
-                    "Driver has reconnect connection after a "
-                        + "communications "
-                        + "link "
-                        + "failure with %s, but wasn't able to replay transaction",
-                    oldClient.getHostAddress()),
-                "25S03");
-          }
+          executeTransactionReplay(oldClient);
         } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
           // transaction is lost, but connection is now up again.
           // changing exception to SQLTransientConnectionException
@@ -295,6 +284,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       if (!requestReadOnly) {
         if (replicaClient != null) {
           currentClient = replicaClient;
+          syncNewState(primaryClient);
         } else if (nextTryReplica < System.currentTimeMillis()) {
           try {
             replicaClient = connectHost(true, true);
@@ -315,6 +305,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
           try {
             primaryClient = connectHost(false, false);
             nextTryPrimary = -1;
+            syncNewState(replicaClient);
           } catch (SQLException e) {
             nextTryPrimary = System.currentTimeMillis() + waitTimeout;
             throw new SQLNonTransientConnectionException(

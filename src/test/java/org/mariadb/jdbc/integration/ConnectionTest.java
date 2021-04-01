@@ -976,5 +976,23 @@ public class ConnectionTest extends Common {
     try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
       conn.isValid(1);
     }
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> createCon("socketFactory=wrongClass"),
+        "Socket factory failed to initialized with option \"socketFactory\" set to \"wrongClass\"");
+  }
+
+  @Test
+  public void socketOption() throws SQLException {
+    try (Connection con = createCon("tcpKeepAlive=true&tcpAbortiveClose=true")) {
+      con.isValid(1);
+    }
+  }
+
+  @Test
+  public void sslNotSet() throws SQLException {
+    Assumptions.assumeFalse(haveSsl());
+    assertThrowsContains(
+        SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
   }
 }

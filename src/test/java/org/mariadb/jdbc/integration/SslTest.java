@@ -28,9 +28,10 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.Locale;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
@@ -122,6 +123,42 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void enabledSslProtocolSuites() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con =
+        createCon(
+            baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () ->
+            createCon(baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=SSLv3", sslPort),
+        "No appropriate protocol");
+  }
+
+  @Test
+  public void enabledSslCipherSuites() throws SQLException {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                baseMutualOptions + "&sslMode=trust&enabledSslCipherSuites=UNKNOWN_CIPHER",
+                sslPort),
+        "Unsupported SSL cipher");
+  }
+
+  @Test
   public void mutualAuthSsl() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -206,6 +243,22 @@ public class SslTest extends Common {
               baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath, sslPort)) {
         assertNotNull(getSslVersion(con));
       }
+
+      Configuration conf = Configuration.parse(mDefUrl);
+      HostAddress hostAddress = conf.addresses().get(0);
+      try {
+        proxy = new TcpProxy(hostAddress.host, sslPort == null ? hostAddress.port : sslPort);
+      } catch (IOException i) {
+        throw new SQLException("proxy error", i);
+      }
+
+      String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+      assertThrowsContains(
+          SQLException.class,
+          () ->
+              DriverManager.getConnection(
+                  url + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath),
+          "DNS host \"localhost\" doesn't correspond to certificate");
     }
 
     String urlPath = Paths.get(serverCertPath).toUri().toURL().toString();

@@ -56,6 +56,34 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void syncState() throws Exception {
+
+    try (Connection con = createProxyConKeep("assureReadOnly=true")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
+      con.setCatalog("sync");
+      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_SERIALIZABLE);
+      con.setReadOnly(true);
+      assertEquals("sync", con.getCatalog());
+      assertEquals(java.sql.Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
+      con.setReadOnly(true);
+      con.setReadOnly(false);
+      assertEquals(java.sql.Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
+      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_READ_COMMITTED);
+      con.setReadOnly(true);
+      assertEquals(java.sql.Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
+      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
+      con.setReadOnly(false);
+      assertEquals(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
+      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
+      con.setReadOnly(true);
+      assertEquals(java.sql.Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+    } finally {
+      sharedConn.createStatement().execute("DROP DATABASE IF EXISTS sync");
+    }
+  }
+
+  @Test
   public void masterFailover() throws Exception {
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -69,7 +97,7 @@ public class MultiHostTest extends Common {
         mDefUrl.replaceAll(
             "//([^/]*)/",
             String.format(
-                "//address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {

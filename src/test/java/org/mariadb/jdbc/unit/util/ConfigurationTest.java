@@ -19,7 +19,6 @@
  *
  */
 
-
 package org.mariadb.jdbc.unit.util;
 
 import static org.junit.jupiter.api.Assertions.*;

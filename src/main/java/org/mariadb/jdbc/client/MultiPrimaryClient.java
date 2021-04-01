@@ -159,18 +159,7 @@ public class MultiPrimaryClient implements Client {
       syncNewState(oldClient);
 
       if (conf.transactionReplay()) {
-        if (executeTransactionReplay(oldClient)) {
-          // transaction cannot be replayed, but connection is now up again.
-          // changing exception to SQLTransientConnectionException
-          throw new SQLTransientConnectionException(
-              String.format(
-                  "Driver has reconnect connection after a "
-                      + "communications "
-                      + "link "
-                      + "failure with %s, but wasn't able to replay transaction",
-                  oldClient.getHostAddress()),
-              "25S03");
-        }
+        executeTransactionReplay(oldClient);
       } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         // transaction is lost, but connection is now up again.
         // changing exception to SQLTransientConnectionException
@@ -191,14 +180,12 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
-  protected boolean executeTransactionReplay(Client oldCli) throws SQLException {
+  protected void executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
     if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
       RedoContext ctx = (RedoContext) oldCli.getContext();
-      if (!ctx.getTransactionSaver().isCleanState()) return true;
       currentClient.transactionReplay(ctx.getTransactionSaver());
     }
-    return false;
   }
 
   public void syncNewState(Client oldCli) throws SQLException {

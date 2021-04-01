@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.client.ConnectionHelper;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
@@ -32,6 +33,7 @@ public class HaModeTest {
     AuthenticationPluginLoader ap = new AuthenticationPluginLoader();
     TlsSocketPluginLoader tp = new TlsSocketPluginLoader();
     LoggerHelper lh = new LoggerHelper();
+    ConnectionHelper ch = new ConnectionHelper();
   }
 
   @Test
