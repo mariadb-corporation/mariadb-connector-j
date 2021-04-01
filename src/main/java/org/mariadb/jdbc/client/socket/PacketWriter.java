@@ -601,9 +601,9 @@ public class PacketWriter {
     int bufLength = buf.length;
     int newCapacity;
     if (bufLength == SMALL_BUFFER_SIZE) {
-      if (len + pos < MEDIUM_BUFFER_SIZE) {
+      if (len + pos <= MEDIUM_BUFFER_SIZE) {
         newCapacity = MEDIUM_BUFFER_SIZE;
-      } else if (len + pos < LARGE_BUFFER_SIZE) {
+      } else if (len + pos <= LARGE_BUFFER_SIZE) {
         newCapacity = LARGE_BUFFER_SIZE;
       } else {
         newCapacity = maxPacketLength;

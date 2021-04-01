@@ -44,7 +44,7 @@ public class MultiPacketTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    Assumptions.assumeTrue(getMaxAllowedPacket() > 32 * 1024 * 1024);
+    Assumptions.assumeTrue(getMaxAllowedPacket() > 19 * 1024 * 1024);
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS multiPacketTest");
     stmt.execute("CREATE TABLE multiPacketTest (t1 MEDIUMTEXT, t2 LONGTEXT)");
@@ -53,6 +53,38 @@ public class MultiPacketTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     sharedConn.createStatement().execute("DROP TABLE IF EXISTS multiPacketTest");
+  }
+
+  @Test
+  public void bigByteSend() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE multiPacketTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep =
+                 sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
+      prep.setString(1, new String(arr2, 0, 128 * 1024 - 24));
+      prep.setByte(2, (byte) 2);
+      prep.execute();
+    }
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    rs.next();
+    assertEquals("2", rs.getString(1));
+  }
+
+  @Test
+  public void bigByte2Send() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("TRUNCATE multiPacketTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep =
+                 sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
+      prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
+      prep.setByte(2, (byte) 2);
+      prep.execute();
+    }
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    rs.next();
+    assertEquals("2", rs.getString(1));
   }
 
   @Test
@@ -117,10 +149,11 @@ public class MultiPacketTest extends Common {
       prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
       prep.setString(2, new String(arr2, 0, 70_000));
       prep.execute();
-
-      prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
-      prep.setString(2, new String(arr2, 0, 17 * 1024 * 1024));
-      prep.execute();
+      if (getMaxAllowedPacket() > 34 * 1024 * 1024) {
+        prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
+        prep.setString(2, new String(arr2, 0, 17 * 1024 * 1024));
+        prep.execute();
+      }
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
     rs.next();
@@ -128,6 +161,8 @@ public class MultiPacketTest extends Common {
     rs.next();
     assertEquals(new String(arr2, 0, 70_000), rs.getString(1));
     rs.next();
-    assertEquals(new String(arr2, 0, 17 * 1024 * 1024), rs.getString(1));
+    if (getMaxAllowedPacket() > 34 * 1024 * 1024) {
+      assertEquals(new String(arr2, 0, 17 * 1024 * 1024), rs.getString(1));
+    }
   }
 }
