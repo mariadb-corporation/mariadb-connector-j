@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.VersionFactory;
 
 public final class Driver implements java.sql.Driver {
@@ -45,7 +46,7 @@ public final class Driver implements java.sql.Driver {
     }
   }
 
-  protected static Connection connect(Configuration configuration) throws SQLException {
+  public static Connection connect(Configuration configuration) throws SQLException {
     ReentrantLock lock = new ReentrantLock();
     Client client;
     switch (configuration.haMode()) {
@@ -80,6 +81,9 @@ public final class Driver implements java.sql.Driver {
    */
   public Connection connect(final String url, final Properties props) throws SQLException {
     Configuration configuration = Configuration.parse(url, props);
+    if (configuration.pool()) {
+      return Pools.retrievePool(configuration).getConnection();
+    }
     return connect(configuration);
   }
 

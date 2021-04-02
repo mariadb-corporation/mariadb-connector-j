@@ -32,6 +32,8 @@ public class HostAddress {
   public String host;
   public int port;
   public Boolean primary;
+  public int cacheMaxAllowedPacket;
+  public int waitTimeout;
 
   /**
    * Constructor.
@@ -116,6 +118,19 @@ public class HostAddress {
     } catch (NumberFormatException nfe) {
       throw new SQLException("Incorrect port value : " + portString);
     }
+  }
+
+  public int getCacheMaxAllowedPacket() {
+    return cacheMaxAllowedPacket;
+  }
+
+  public int getWaitTimeout() {
+    return waitTimeout;
+  }
+
+  public void setCache(int cacheMaxAllowedPacket, int waitTimeout) {
+    this.cacheMaxAllowedPacket = cacheMaxAllowedPacket;
+    this.waitTimeout = waitTimeout;
   }
 
   private static HostAddress parseParameterHostAddress(String str, HaMode haMode, boolean first)

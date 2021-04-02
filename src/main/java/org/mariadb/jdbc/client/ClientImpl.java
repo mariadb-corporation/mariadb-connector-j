@@ -103,7 +103,7 @@ public class ClientImpl implements Client, AutoCloseable {
               ? new ReadAheadBufferedStream(socket.getInputStream())
               : new BufferedInputStream(socket.getInputStream(), 16384);
 
-      assignStream(out, in, conf, null, hostAddress);
+      assignStream(out, in, conf, null);
 
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
@@ -152,7 +152,7 @@ public class ClientImpl implements Client, AutoCloseable {
             conf.useReadAheadInput()
                 ? new ReadAheadBufferedStream(sslSocket.getInputStream())
                 : new BufferedInputStream(sslSocket.getInputStream(), 16384);
-        assignStream(out, in, conf, handshake.getThreadId(), hostAddress);
+        assignStream(out, in, conf, handshake.getThreadId());
       }
 
       // **********************************************************************
@@ -186,8 +186,7 @@ public class ClientImpl implements Client, AutoCloseable {
             new CompressOutputStream(out, compressionSequence),
             new CompressInputStream(in, compressionSequence),
             conf,
-            handshake.getThreadId(),
-            hostAddress);
+            handshake.getThreadId());
       }
 
       // **********************************************************************
@@ -219,12 +218,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  private void assignStream(
-      OutputStream out,
-      InputStream in,
-      Configuration conf,
-      Long threadId,
-      HostAddress hostAddress) {
+  private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
     this.writer = new PacketWriter(out, conf.maxQuerySizeToLog(), sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
 
@@ -330,16 +324,16 @@ public class ClientImpl implements Client, AutoCloseable {
       }
     }
 
-    if (conf.assureReadOnly()
-        && !this.hostAddress.primary
-        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"));
+    if ((conf.maxAllowedPacket() == null || conf.maxIdleTime() == null)
+        && hostAddress.getCacheMaxAllowedPacket() == 0
+        && !Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("disableConfCache", "false"))) {
+      retrieveMaxAllowedPacketInstance(this, hostAddress);
     }
-
     writer.setMaxAllowedPacket(
-        conf.maxAllowedPacket() != null
-            ? conf.maxAllowedPacket()
-            : getMaxAllowedPacketInstance(this));
+        conf.maxAllowedPacket() == null
+            ? hostAddress.getCacheMaxAllowedPacket()
+            : conf.maxAllowedPacket());
   }
 
   public QueryPacket createSessionVariableQuery(String serverTz) {
@@ -380,40 +374,68 @@ public class ClientImpl implements Client, AutoCloseable {
       }
     }
 
+    if (conf.assureReadOnly()
+        && !this.hostAddress.primary
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      sb.append(",read_only=1");
+    }
+
+    sb.append(",");
+    int major = context.getVersion().getMajorVersion();
+    if (!context.getVersion().isMariaDBServer()
+        && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
+            || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
+      sb.append("transaction_isolation");
+    } else {
+      sb.append("tx_isolation");
+    }
+    sb.append("='").append(conf.transactionIsolation().getValue()).append("'");
+
     return new QueryPacket("set " + sb.toString());
   }
 
-  public static Integer getMaxAllowedPacketInstance(ClientImpl clientImpl) throws SQLException {
-    if (MAX_ALLOWED_PACKET == 0) {
-      synchronized (MAX_ALLOWED_PACKET) {
-        if (MAX_ALLOWED_PACKET == 0) {
+  public static void retrieveMaxAllowedPacketInstance(
+      ClientImpl clientImpl, HostAddress hostAddress) throws SQLException {
+    if (hostAddress.getCacheMaxAllowedPacket() == 0) {
+      synchronized (hostAddress) {
+        if (hostAddress.getCacheMaxAllowedPacket() == 0) {
           try {
-            QueryPacket requestSessionVariables = new QueryPacket("SELECT @@max_allowed_packet");
+            QueryPacket requestSessionVariables =
+                new QueryPacket("SELECT @@max_allowed_packet, @@wait_timeout");
             List<Completion> completion = clientImpl.execute(requestSessionVariables);
             Result result = (Result) completion.get(0);
             result.next();
-            MAX_ALLOWED_PACKET = Integer.parseInt(result.getString(1));
+            hostAddress.setCache(
+                Integer.parseInt(result.getString(1)), Integer.parseInt(result.getString(2)));
           } catch (SQLException sqlException) {
             // fallback in case of galera non primary nodes that permit only show / set command,
             // not SELECT when not part of quorum
             List<Completion> res =
                 clientImpl.execute(
-                    new QueryPacket("SHOW VARIABLES WHERE Variable_name = 'max_allowed_packet'"));
+                    new QueryPacket(
+                        "SHOW VARIABLES WHERE Variable_name = 'max_allowed_packet' OR Variable_name = 'wait_timeout'"));
             if (res.isEmpty()) {
               throw new SQLException("fail to readAdditionalData");
             }
+            int maxAllowedPacket = 0;
+            int waitTimeout = 0;
             ResultSet rs = (ResultSet) res.get(0);
-            rs.next();
-            if (logger.isDebugEnabled()) {
-              logger.debug("server data {} = {}", rs.getString(1), rs.getString(2));
+            for (int i = 0; i < 2; i++) {
+              rs.next();
+              if (logger.isDebugEnabled()) {
+                logger.debug("server data {} = {}", rs.getString(1), rs.getString(2));
+              }
+              if ("wait_timeout".equals(rs.getString(1))) {
+                waitTimeout = Integer.parseInt(rs.getString(2));
+              } else {
+                maxAllowedPacket = Integer.parseInt(rs.getString(2));
+              }
             }
-            // max_allowed_packet
-            MAX_ALLOWED_PACKET = Integer.parseInt(rs.getString(2));
+            hostAddress.setCache(maxAllowedPacket, waitTimeout);
           }
         }
       }
     }
-    return MAX_ALLOWED_PACKET;
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
@@ -875,5 +897,10 @@ public class ClientImpl implements Client, AutoCloseable {
 
   public HostAddress getHostAddress() {
     return hostAddress;
+  }
+
+  public void reset() {
+    context.resetStateFlag();
+    context.getPrepareCache().reset();
   }
 }

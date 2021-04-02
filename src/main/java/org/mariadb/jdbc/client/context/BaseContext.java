@@ -142,6 +142,10 @@ public class BaseContext implements Context {
     return stateFlag;
   }
 
+  public void resetStateFlag() {
+    stateFlag = 0;
+  }
+
   public void addStateFlag(int state) {
     stateFlag |= state;
   }

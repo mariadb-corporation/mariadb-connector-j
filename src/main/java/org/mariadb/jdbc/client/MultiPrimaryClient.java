@@ -487,4 +487,10 @@ public class MultiPrimaryClient implements Client {
   public boolean isPrimary() {
     return getHostAddress().primary;
   }
+
+  @Override
+  public void reset() {
+    currentClient.getContext().resetStateFlag();
+    currentClient.getContext().getPrepareCache().reset();
+  }
 }

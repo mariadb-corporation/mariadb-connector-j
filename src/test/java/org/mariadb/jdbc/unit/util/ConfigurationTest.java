@@ -129,6 +129,35 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
+  public void testConfigurationIsolation() throws Throwable {
+    Configuration conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=REPEATABLE-READ");
+    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
+
+    conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=repeatable-read");
+    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=readCommitted");
+    assertTrue(TransactionIsolation.READ_COMMITTED == conf.transactionIsolation());
+
+    conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=READ-UNCOMMITTED");
+    assertTrue(TransactionIsolation.READ_UNCOMMITTED == conf.transactionIsolation());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=SERIALIZABLE");
+    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
+
+    try {
+      Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=wrong_val");
+      Assertions.fail();
+    } catch (SQLException e) {
+      assertTrue(
+          e.getMessage().contains("Wrong argument value 'wrong_val' for TransactionIsolation"));
+    }
+  }
+
+  @Test
   public void testSslAlias() throws Throwable {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify-full");
     assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
@@ -628,7 +657,7 @@ public class ConfigurationTest extends Common {
             .maxPoolSize(16)
             .minPoolSize(12)
             .maxIdleTime(25000)
-            .staticGlobal(true)
+            .transactionIsolation("REPEATABLE-READ")
             .keyStore("/tmp")
             .keyStorePassword("MyPWD")
             .keyStoreType("JKS")

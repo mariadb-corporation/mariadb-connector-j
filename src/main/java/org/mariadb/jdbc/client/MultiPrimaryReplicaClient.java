@@ -349,4 +349,16 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   public boolean isPrimary() {
     return getHostAddress().primary;
   }
+
+  @Override
+  public void reset() {
+    if (replicaClient != null) {
+      replicaClient.getContext().resetStateFlag();
+      replicaClient.getContext().getPrepareCache().reset();
+    }
+    if (primaryClient != null) {
+      primaryClient.getContext().resetStateFlag();
+      primaryClient.getContext().getPrepareCache().reset();
+    }
+  }
 }

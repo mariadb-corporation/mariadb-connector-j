@@ -42,7 +42,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void isValid() throws SQLException {
-    Connection sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
+    Connection sharedConn = DriverManager.getConnection(mDefUrl);
     assertTrue(sharedConn.isValid(2000));
     sharedConn.close();
     assertFalse(sharedConn.isValid(2000));
@@ -86,7 +86,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void autoCommit() throws SQLException {
-    Connection con = (Connection) DriverManager.getConnection(mDefUrl);
+    Connection con = DriverManager.getConnection(mDefUrl);
     assertTrue(con.getAutoCommit());
     con.setAutoCommit(false);
     assertFalse(con.getAutoCommit());
@@ -175,7 +175,7 @@ public class ConnectionTest extends Common {
   @Test
   public void nativeSqlTest() throws SQLException {
     String exp;
-    if (sharedConn.isMariaDbServer() || minVersion(8, 0, 17)) {
+    if (isMariaDBServer() || minVersion(8, 0, 17)) {
       exp =
           "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
               + ", convert(convert(?, CHAR), SIGNED INTEGER)"
@@ -991,7 +991,7 @@ public class ConnectionTest extends Common {
   @Test
   public void sslNotSet() throws SQLException {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeFalse(haveSsl());
     assertThrowsContains(
         SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
@@ -1000,7 +1000,7 @@ public class ConnectionTest extends Common {
   @Test
   public void localSocketAddress() throws SQLException {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {

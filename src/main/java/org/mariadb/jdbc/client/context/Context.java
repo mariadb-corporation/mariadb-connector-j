@@ -66,5 +66,7 @@ public interface Context {
 
   int getStateFlag();
 
+  void resetStateFlag();
+
   void addStateFlag(int state);
 }

@@ -1014,7 +1014,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
     boolean hasIsGeneratedCol =
-        (connection.isMariaDbServer()
+        (connection.getContext().getVersion().isMariaDBServer()
             && connection.getContext().getVersion().versionGreaterOrEqual(10, 2, 0));
 
     String sql =

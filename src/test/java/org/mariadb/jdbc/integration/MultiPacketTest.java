@@ -61,7 +61,7 @@ public class MultiPacketTest extends Common {
     stmt.execute("TRUNCATE multiPacketTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
-                 sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
+        sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
       prep.setString(1, new String(arr2, 0, 128 * 1024 - 24));
       prep.setByte(2, (byte) 2);
       prep.execute();
@@ -77,7 +77,7 @@ public class MultiPacketTest extends Common {
     stmt.execute("TRUNCATE multiPacketTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
-                 sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
+        sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
       prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
       prep.setByte(2, (byte) 2);
       prep.execute();

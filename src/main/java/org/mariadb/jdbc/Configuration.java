@@ -80,6 +80,7 @@ public class Configuration implements Cloneable {
   // various
   private String timezone = null;
   private boolean autocommit = true;
+  private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
   private boolean pinGlobalTxToPhysicalConnection = false;
@@ -145,9 +146,8 @@ public class Configuration implements Cloneable {
   private String poolName = null;
   private int maxPoolSize = 8;
   private int minPoolSize = 8;
-  private int maxIdleTime = 600;
-  private boolean staticGlobal = false;
-  private boolean registerJmxPool = false;
+  private Integer maxIdleTime = null;
+  private boolean registerJmxPool = true;
   private int poolValidMinDelay = 1000;
   private boolean useResetConnection = false;
 
@@ -179,6 +179,7 @@ public class Configuration implements Cloneable {
       Boolean blankTableNameMeta,
       String credentialType,
       String sslMode,
+      String transactionIsolation,
       String enabledSslCipherSuites,
       String sessionVariables,
       Boolean tinyInt1isBit,
@@ -206,7 +207,6 @@ public class Configuration implements Cloneable {
       Integer maxPoolSize,
       Integer minPoolSize,
       Integer maxIdleTime,
-      Boolean staticGlobal,
       Boolean registerJmxPool,
       Integer poolValidMinDelay,
       Boolean useResetConnection,
@@ -254,7 +254,8 @@ public class Configuration implements Cloneable {
               ? (sslMode.isEmpty() ? SslMode.VERIFY_FULL : SslMode.from(sslMode))
               : SslMode.DISABLE;
     }
-
+    if (transactionIsolation != null)
+      this.transactionIsolation = TransactionIsolation.from(transactionIsolation);
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
     if (tinyInt1isBit != null) this.tinyInt1isBit = tinyInt1isBit;
@@ -290,7 +291,6 @@ public class Configuration implements Cloneable {
     }
 
     if (maxIdleTime != null) this.maxIdleTime = maxIdleTime;
-    if (staticGlobal != null) this.staticGlobal = staticGlobal;
     if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
     if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
     if (useResetConnection != null) this.useResetConnection = useResetConnection;
@@ -518,8 +518,7 @@ public class Configuration implements Cloneable {
     }
   }
 
-  protected Configuration clone(String username, String password)
-      throws CloneNotSupportedException {
+  public Configuration clone(String username, String password) throws CloneNotSupportedException {
     Configuration conf = (Configuration) super.clone();
     conf.updateAuth(username, password);
     return conf;
@@ -634,6 +633,10 @@ public class Configuration implements Cloneable {
     return sslMode;
   }
 
+  public TransactionIsolation transactionIsolation() {
+    return transactionIsolation;
+  }
+
   public String enabledSslCipherSuites() {
     return enabledSslCipherSuites;
   }
@@ -742,12 +745,8 @@ public class Configuration implements Cloneable {
     return minPoolSize;
   }
 
-  public int maxIdleTime() {
+  public Integer maxIdleTime() {
     return maxIdleTime;
-  }
-
-  public boolean staticGlobal() {
-    return staticGlobal;
   }
 
   public boolean registerJmxPool() {
@@ -945,6 +944,7 @@ public class Configuration implements Cloneable {
     private Integer maxQuerySizeToLog;
     private Boolean pinGlobalTxToPhysicalConnection;
     private String geometryDefaultType;
+    private String transactionIsolation;
 
     // socket
     private String socketFactory;
@@ -1006,7 +1006,6 @@ public class Configuration implements Cloneable {
     private Integer maxPoolSize;
     private Integer minPoolSize;
     private Integer maxIdleTime;
-    private Boolean staticGlobal;
     private Boolean registerJmxPool;
     private Integer poolValidMinDelay;
     private Boolean useResetConnection;
@@ -1258,6 +1257,11 @@ public class Configuration implements Cloneable {
       return this;
     }
 
+    public Builder transactionIsolation(String transactionIsolation) {
+      this.transactionIsolation = transactionIsolation;
+      return this;
+    }
+
     public Builder enabledSslCipherSuites(String enabledSslCipherSuites) {
       this.enabledSslCipherSuites = enabledSslCipherSuites;
       return this;
@@ -1390,11 +1394,6 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder staticGlobal(Boolean staticGlobal) {
-      this.staticGlobal = staticGlobal;
-      return this;
-    }
-
     public Builder registerJmxPool(Boolean registerJmxPool) {
       this.registerJmxPool = registerJmxPool;
       return this;
@@ -1464,6 +1463,7 @@ public class Configuration implements Cloneable {
               this.blankTableNameMeta,
               this.credentialType,
               this.sslMode,
+              this.transactionIsolation,
               this.enabledSslCipherSuites,
               this.sessionVariables,
               this.tinyInt1isBit,
@@ -1491,7 +1491,6 @@ public class Configuration implements Cloneable {
               this.maxPoolSize,
               this.minPoolSize,
               this.maxIdleTime,
-              this.staticGlobal,
               this.registerJmxPool,
               this.poolValidMinDelay,
               this.useResetConnection,

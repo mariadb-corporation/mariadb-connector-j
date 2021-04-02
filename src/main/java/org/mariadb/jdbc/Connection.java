@@ -35,6 +35,7 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.message.client.ChangeDbPacket;
 import org.mariadb.jdbc.message.client.PingPacket;
 import org.mariadb.jdbc.message.client.QueryPacket;
+import org.mariadb.jdbc.message.client.ResetPacket;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ConnectionState;
@@ -66,6 +67,8 @@ public class Connection implements java.sql.Connection, PooledConnection {
   private final boolean canUseServerTimeout;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
+  private long lastUsed;
+  private boolean pooled;
 
   public Connection(Configuration conf, ReentrantLock lock, Client client) throws SQLException {
     this.conf = conf;
@@ -200,7 +203,12 @@ public class Connection implements java.sql.Connection, PooledConnection {
 
   @Override
   public void close() throws SQLException {
-    fireConnectionClosed(new ConnectionEvent(this));
+    if (pooled) {
+      rollback();
+      pooled = false;
+      fireConnectionClosed(new ConnectionEvent(this));
+      return;
+    }
     client.close();
   }
 
@@ -772,10 +780,6 @@ public class Connection implements java.sql.Connection, PooledConnection {
     }
   }
 
-  public boolean isMariaDbServer() {
-    return client.getContext().getVersion().isMariaDBServer();
-  }
-
   public HostAddress getHostAddress() {
     return client.getHostAddress();
   }
@@ -833,7 +837,84 @@ public class Connection implements java.sql.Connection, PooledConnection {
     }
   }
 
+  /**
+   * Reset connection set has it was after creating a "fresh" new connection.
+   * defaultTransactionIsolation must have been initialized.
+   *
+   * <p>BUT : - session variable state are reset only if option useResetConnection is set and - if
+   * using the option "useServerPrepStmts", PREPARE statement are still prepared
+   *
+   * @throws SQLException if resetting operation failed
+   */
+  public void reset() throws SQLException {
+    // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
+    // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
+    // correction.
+    // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
+    boolean useComReset =
+        conf.useResetConnection()
+            && getContext().getVersion().isMariaDBServer()
+            && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
+                || (getContext().getVersion().getMajorVersion() == 10
+                    && getContext().getVersion().getMinorVersion() == 2
+                    && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
+
+    if (useComReset) {
+      client.execute(ResetPacket.INSTANCE);
+    }
+
+    int stateFlag = getContext().getStateFlag();
+    if (stateFlag != 0) {
+
+      try {
+
+        if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
+          setNetworkTimeout(null, conf.socketTimeout());
+        }
+
+        if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
+          setAutoCommit(conf.autocommit());
+        }
+
+        if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
+          setCatalog(conf.database());
+        }
+
+        if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
+          setReadOnly(false); // default to master connection
+        }
+
+        if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
+          setTransactionIsolation(conf.transactionIsolation().getLevel());
+        }
+
+      } catch (SQLException sqle) {
+        throw exceptionFactory.create("error resetting connection");
+      }
+    }
+
+    client.reset();
+
+    clearWarnings();
+  }
+
+  public long getLastUsed() {
+    return lastUsed;
+  }
+
+  public void lastUsedToNow() {
+    lastUsed = System.nanoTime();
+  }
+
   public long getThreadId() {
     return client.getContext().getThreadId();
+  }
+
+  public void pooled() {
+    pooled = true;
+  }
+
+  public void unPooled() {
+    pooled = false;
   }
 }

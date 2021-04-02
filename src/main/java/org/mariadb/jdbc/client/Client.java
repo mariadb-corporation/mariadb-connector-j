@@ -83,6 +83,8 @@ public interface Client extends AutoCloseable {
 
   boolean isClosed();
 
+  void reset();
+
   boolean isPrimary();
 
   Context getContext();

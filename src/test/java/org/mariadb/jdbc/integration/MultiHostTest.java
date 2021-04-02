@@ -28,7 +28,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
@@ -39,7 +38,7 @@ public class MultiHostTest extends Common {
   @Test
   public void failoverReadonlyToMaster() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con =
         createProxyConKeep("assureReadOnly=true&waitReconnectTimeout=300&deniedListTimeout=300")) {
       Statement stmt = con.createStatement();
@@ -62,7 +61,7 @@ public class MultiHostTest extends Common {
   @Test
   public void syncState() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("assureReadOnly=true")) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
@@ -91,7 +90,7 @@ public class MultiHostTest extends Common {
   @Test
   public void replicaNotSet() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
     try (java.sql.Connection con = DriverManager.getConnection(url + "&waitReconnectTimeout=20")) {
@@ -107,7 +106,7 @@ public class MultiHostTest extends Common {
   @Test
   public void masterFailover() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -187,7 +186,7 @@ public class MultiHostTest extends Common {
   @Test
   public void masterReplicationFailover() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -239,6 +238,7 @@ public class MultiHostTest extends Common {
       Thread.sleep(20);
       con.setReadOnly(false);
       assertFalse(con.isValid(1));
+      assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
     }
   }
 
