@@ -54,7 +54,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private final AtomicInteger pendingRequestNumber = new AtomicInteger();
   private final AtomicInteger totalConnection = new AtomicInteger();
 
-  private final LinkedBlockingDeque<Connection> idleConnections;
+  private final LinkedBlockingDeque<InternalPoolConnection> idleConnections;
   private final ThreadPoolExecutor connectionAppender;
   private final BlockingQueue<Runnable> connectionAppenderQueue;
 
@@ -148,22 +148,22 @@ public class Pool implements AutoCloseable, PoolMBean {
   private void removeIdleTimeoutConnection() {
 
     // descending iterator since first from queue are the first to be used
-    Iterator<Connection> iterator = idleConnections.descendingIterator();
+    Iterator<InternalPoolConnection> iterator = idleConnections.descendingIterator();
 
-    Connection item;
+    InternalPoolConnection item;
 
     while (iterator.hasNext()) {
       item = iterator.next();
 
-      long idleTime = System.nanoTime() - item.getLastUsed();
+      long idleTime = System.nanoTime() - item.getLastUsed().get();
       boolean timedOut = idleTime > TimeUnit.SECONDS.toNanos(maxIdleTime);
 
       boolean shouldBeReleased = false;
-
-      if (item.getHostAddress().getWaitTimeout() > 0) {
+      Connection con = item.getConnection();
+      if (con.getHostAddress().getWaitTimeout() > 0) {
 
         // idle time is reaching server @@wait_timeout
-        if (idleTime > TimeUnit.SECONDS.toNanos(item.getHostAddress().getWaitTimeout() - 45)) {
+        if (idleTime > TimeUnit.SECONDS.toNanos(con.getHostAddress().getWaitTimeout() - 45)) {
           shouldBeReleased = true;
         }
 
@@ -179,7 +179,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       if (shouldBeReleased && idleConnections.remove(item)) {
 
         totalConnection.decrementAndGet();
-        silentCloseConnection(item);
+        silentCloseConnection(con);
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
@@ -202,31 +202,30 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     // create new connection
     Connection connection = Driver.connect(conf);
-    connection.pooled();
-    connection.addConnectionEventListener(
+    InternalPoolConnection item = new InternalPoolConnection(connection);
+    item.addConnectionEventListener(
         new ConnectionEventListener() {
 
           @Override
           public void connectionClosed(ConnectionEvent event) {
-            Connection item = (Connection) event.getSource();
+            InternalPoolConnection item = (InternalPoolConnection) event.getSource();
             if (poolState.get() == POOL_STATE_OK) {
               try {
                 if (!idleConnections.contains(item)) {
-                  item.reset();
+                  item.getConnection().reset();
                   idleConnections.addFirst(item);
                 }
               } catch (SQLException sqle) {
 
                 // sql exception during reset, removing connection from pool
                 totalConnection.decrementAndGet();
-                silentCloseConnection(item);
+                silentCloseConnection(item.getConnection());
                 logger.debug("connection removed from pool {} due to error during reset", poolTag);
               }
             } else {
               // pool is closed, should then not be render to pool, but closed.
               try {
-                item.unPooled();
-                item.close();
+                item.getConnection().close();
               } catch (SQLException sqle) {
                 // eat
               }
@@ -237,15 +236,15 @@ public class Pool implements AutoCloseable, PoolMBean {
           @Override
           public void connectionErrorOccurred(ConnectionEvent event) {
 
-            Connection item = ((Connection) event.getSource());
+            InternalPoolConnection item = ((InternalPoolConnection) event.getSource());
             if (idleConnections.remove(item)) {
               totalConnection.decrementAndGet();
             }
-            silentCloseConnection(item);
+            silentCloseConnection(item.getConnection());
             addConnectionRequest();
             logger.debug(
                 "connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",
-                item.getThreadId(),
+                item.getConnection().getThreadId(),
                 poolTag,
                 totalConnection.get(),
                 getActiveConnections(),
@@ -254,7 +253,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         });
     if (poolState.get() == POOL_STATE_OK
         && totalConnection.incrementAndGet() <= conf.maxPoolSize()) {
-      idleConnections.addFirst(connection);
+      idleConnections.addFirst(item);
 
       if (logger.isDebugEnabled()) {
         logger.debug(
@@ -270,7 +269,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     silentCloseConnection(connection);
   }
 
-  private Connection getIdleConnection() throws InterruptedException {
+  private InternalPoolConnection getIdleConnection() throws InterruptedException {
     return getIdleConnection(0, TimeUnit.NANOSECONDS);
   }
 
@@ -279,33 +278,31 @@ public class Pool implements AutoCloseable, PoolMBean {
    *
    * @return an IDLE connection.
    */
-  private Connection getIdleConnection(long timeout, TimeUnit timeUnit)
+  private InternalPoolConnection getIdleConnection(long timeout, TimeUnit timeUnit)
       throws InterruptedException {
 
     while (true) {
-      Connection connection =
+      InternalPoolConnection item =
           (timeout == 0)
               ? idleConnections.pollFirst()
               : idleConnections.pollFirst(timeout, timeUnit);
 
-      if (connection != null) {
+      if (item != null) {
         try {
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - connection.getLastUsed())
+          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
               > conf.poolValidMinDelay()) {
 
             // validate connection
-            if (connection.isValid(10)) { // 10 seconds timeout
-              connection.lastUsedToNow();
-              connection.pooled();
-              return connection;
+            if (item.getConnection().isValid(10)) { // 10 seconds timeout
+              item.lastUsedToNow();
+              return item;
             }
 
           } else {
 
             // connection has been retrieved recently -> skip connection validation
-            connection.lastUsedToNow();
-            connection.pooled();
-            return connection;
+            item.lastUsedToNow();
+            return item;
           }
 
         } catch (SQLException sqle) {
@@ -315,7 +312,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         totalConnection.decrementAndGet();
 
         // validation failed
-        silentAbortConnection(connection);
+        silentAbortConnection(item.getConnection());
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
@@ -332,18 +329,19 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
   }
 
-  private void silentCloseConnection(Connection item) {
+  private void silentCloseConnection(Connection con) {
+    con.setPoolConnection(null);
     try {
-      item.unPooled();
-      item.close();
+      con.close();
     } catch (SQLException ex) {
       // eat exception
     }
   }
 
-  private void silentAbortConnection(Connection item) {
+  private void silentAbortConnection(Connection con) {
+    con.setPoolConnection(null);
     try {
-      item.abort(poolExecutor);
+      con.abort(poolExecutor);
     } catch (SQLException ex) {
       // eat exception
     }
@@ -357,30 +355,26 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @return a connection object
    * @throws SQLException if no connection is created when reaching timeout (connectTimeout option)
    */
-  public Connection getConnection() throws SQLException {
-
+  public InternalPoolConnection getPoolConnection() throws SQLException {
     pendingRequestNumber.incrementAndGet();
-
-    Connection connection;
-
+    InternalPoolConnection poolConnection;
     try {
-
       // try to get Idle connection if any (with a very small timeout)
-      if ((connection =
+      if ((poolConnection =
               getIdleConnection(totalConnection.get() > 4 ? 0 : 50, TimeUnit.MICROSECONDS))
           != null) {
-        return connection;
+        return poolConnection;
       }
 
       // ask for new connection creation if max is not reached
       addConnectionRequest();
 
       // try to create new connection if semaphore permit it
-      if ((connection =
+      if ((poolConnection =
               getIdleConnection(
                   TimeUnit.MILLISECONDS.toNanos(conf.connectTimeout()), TimeUnit.NANOSECONDS))
           != null) {
-        return connection;
+        return poolConnection;
       }
 
       throw new SQLException(
@@ -404,17 +398,18 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @return connection
    * @throws SQLException if any error occur during connection
    */
-  public Connection getConnection(String username, String password) throws SQLException {
+  public InternalPoolConnection getPoolConnection(String username, String password)
+      throws SQLException {
 
     try {
 
       if ((conf.user() != null ? conf.user().equals(username) : username == null)
           && (conf.password() != null ? conf.password().equals(password) : password == null)) {
-        return getConnection();
+        return getPoolConnection();
       }
 
       Configuration tmpConf = conf.clone(username, password);
-      return Driver.connect(tmpConf);
+      return new InternalPoolConnection(Driver.connect(tmpConf));
 
     } catch (CloneNotSupportedException cloneException) {
       // cannot occur
@@ -439,7 +434,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    *
    * @throws Exception if interrupted
    */
-  public void close() throws InterruptedException {
+  public void close() throws Exception {
     synchronized (this) {
       Pools.remove(this);
       poolState.set(POOL_STATE_CLOSING);
@@ -497,16 +492,13 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
   }
 
-  private void closeAll(ExecutorService connectionRemover, Collection<Connection> collection) {
+  private void closeAll(
+      ExecutorService connectionRemover, Collection<InternalPoolConnection> collection) {
     synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
-      for (Connection item : collection) {
+      for (InternalPoolConnection item : collection) {
         collection.remove(item);
         totalConnection.decrementAndGet();
-        try {
-          item.abort(connectionRemover);
-        } catch (SQLException ex) {
-          // eat exception
-        }
+        silentCloseConnection(item.getConnection());
       }
     }
   }
@@ -580,8 +572,8 @@ public class Pool implements AutoCloseable, PoolMBean {
    */
   public List<Long> testGetConnectionIdleThreadIds() {
     List<Long> threadIds = new ArrayList<>();
-    for (Connection pooledConnection : idleConnections) {
-      threadIds.add(pooledConnection.getThreadId());
+    for (InternalPoolConnection pooledConnection : idleConnections) {
+      threadIds.add(pooledConnection.getConnection().getThreadId());
     }
     return threadIds;
   }

@@ -220,7 +220,6 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
-        && conf.assureReadOnly()
         && !currentClient.getHostAddress().primary
         && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
       currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"));
@@ -435,13 +434,6 @@ public class MultiPrimaryClient implements Client {
   public void setReadOnly(boolean readOnly) throws SQLException {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
-    }
-
-    try {
-      currentClient.setReadOnly(readOnly);
-    } catch (SQLNonTransientConnectionException e) {
-      reConnect();
-      currentClient.setReadOnly(readOnly);
     }
   }
 

@@ -30,6 +30,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   public FunctionStatement(
       Connection con,
+      MariaDbPoolConnection poolConnection,
       String databaseName,
       String procedureName,
       String arguments,

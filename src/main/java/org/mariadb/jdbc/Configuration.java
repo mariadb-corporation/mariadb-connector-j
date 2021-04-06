@@ -114,7 +114,6 @@ public class Configuration implements Cloneable {
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;
-  private Integer maxAllowedPacket = null;
 
   // prepare
   private boolean cachePrepStmts = true;
@@ -137,7 +136,6 @@ public class Configuration implements Cloneable {
 
   // HA options
   private int retriesAllDown = 120;
-  private boolean assureReadOnly = false;
   private String galeraAllowedState = null;
   private boolean transactionReplay = false;
 
@@ -198,8 +196,6 @@ public class Configuration implements Cloneable {
       Integer defaultFetchSize,
       String tlsSocketType,
       Integer maxQuerySizeToLog,
-      Integer maxAllowedPacket,
-      Boolean assureReadOnly,
       Integer retriesAllDown,
       String galeraAllowedState,
       Boolean pool,
@@ -276,8 +272,6 @@ public class Configuration implements Cloneable {
     if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
     if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
     if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
-    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
-    if (assureReadOnly != null) this.assureReadOnly = assureReadOnly;
     if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
     if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
     if (pool != null) this.pool = pool;
@@ -713,14 +707,6 @@ public class Configuration implements Cloneable {
     return maxQuerySizeToLog;
   }
 
-  public Integer maxAllowedPacket() {
-    return maxAllowedPacket;
-  }
-
-  public boolean assureReadOnly() {
-    return assureReadOnly;
-  }
-
   public int retriesAllDown() {
     return retriesAllDown;
   }
@@ -973,7 +959,6 @@ public class Configuration implements Cloneable {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
-    private Integer maxAllowedPacket;
 
     // prepare
     private Boolean cachePrepStmts;
@@ -996,7 +981,6 @@ public class Configuration implements Cloneable {
 
     // HA options
     private Integer retriesAllDown;
-    private Boolean assureReadOnly;
     private String galeraAllowedState;
     private Boolean transactionReplay;
 
@@ -1354,11 +1338,6 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder maxAllowedPacket(Integer maxAllowedPacket) {
-      this.maxAllowedPacket = maxAllowedPacket;
-      return this;
-    }
-
     public Builder retriesAllDown(Integer retriesAllDown) {
       this.retriesAllDown = retriesAllDown;
       return this;
@@ -1434,11 +1413,6 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder assureReadOnly(Boolean assureReadOnly) {
-      this.assureReadOnly = assureReadOnly;
-      return this;
-    }
-
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1482,8 +1456,6 @@ public class Configuration implements Cloneable {
               this.defaultFetchSize,
               this.tlsSocketType,
               this.maxQuerySizeToLog,
-              this.maxAllowedPacket,
-              this.assureReadOnly,
               this.retriesAllDown,
               this.galeraAllowedState,
               this.pool,

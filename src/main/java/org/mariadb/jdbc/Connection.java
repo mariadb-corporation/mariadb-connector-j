@@ -44,7 +44,7 @@ import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
-public class Connection implements java.sql.Connection, PooledConnection {
+public class Connection implements java.sql.Connection {
 
   private static final Logger logger = Loggers.getLogger(Connection.class);
   private static final Pattern CALLABLE_STATEMENT_PATTERN =
@@ -58,7 +58,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   private final List<ConnectionEventListener> connectionEventListeners = new ArrayList<>();
   private final List<StatementEventListener> statementEventListeners = new ArrayList<>();
   private final Configuration conf;
-  private final ExceptionFactory exceptionFactory;
+  private ExceptionFactory exceptionFactory;
   private final Client client;
   private final Properties clientInfo = new Properties();
   private int lowercaseTableNames = -1;
@@ -67,8 +67,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
   private final boolean canUseServerTimeout;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
-  private long lastUsed;
-  private boolean pooled;
+  private MariaDbPoolConnection poolConnection;
 
   public Connection(Configuration conf, ReentrantLock lock, Client client) throws SQLException {
     this.conf = conf;
@@ -79,6 +78,11 @@ public class Connection implements java.sql.Connection, PooledConnection {
     this.canUseServerTimeout = context.getVersion().versionGreaterOrEqual(10, 1, 2);
     this.canUseServerMaxRows = context.getVersion().versionGreaterOrEqual(10, 3, 0);
     this.defaultFetchSize = context.getConf().defaultFetchSize();
+  }
+
+  public void setPoolConnection(MariaDbPoolConnection poolConnection) {
+    this.poolConnection = poolConnection;
+    this.exceptionFactory = exceptionFactory.setPoolConnection(poolConnection);
   }
 
   /**
@@ -203,10 +207,9 @@ public class Connection implements java.sql.Connection, PooledConnection {
 
   @Override
   public void close() throws SQLException {
-    if (pooled) {
-      rollback();
-      pooled = false;
-      fireConnectionClosed(new ConnectionEvent(this));
+    if (poolConnection != null) {
+      MariaDbPoolConnection poolConnection = this.poolConnection;
+      poolConnection.close();
       return;
     }
     client.close();
@@ -255,7 +258,6 @@ public class Connection implements java.sql.Connection, PooledConnection {
 
   @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
-
     lock.lock();
     try {
       if (this.readOnly != readOnly) {
@@ -454,6 +456,7 @@ public class Connection implements java.sql.Connection, PooledConnection {
     if (isFunction) {
       return new FunctionStatement(
           this,
+          poolConnection,
           database,
           databaseAndProcedure,
           (arguments == null) ? "()" : arguments,
@@ -731,55 +734,6 @@ public class Connection implements java.sql.Connection, PooledConnection {
     return iface.isInstance(this);
   }
 
-  @Override
-  public java.sql.Connection getConnection() throws SQLException {
-    return this;
-  }
-
-  @Override
-  public void addConnectionEventListener(ConnectionEventListener listener) {
-    connectionEventListeners.add(listener);
-  }
-
-  @Override
-  public void removeConnectionEventListener(ConnectionEventListener listener) {
-    connectionEventListeners.remove(listener);
-  }
-
-  @Override
-  public void addStatementEventListener(StatementEventListener listener) {
-    statementEventListeners.add(listener);
-  }
-
-  @Override
-  public void removeStatementEventListener(StatementEventListener listener) {
-    statementEventListeners.remove(listener);
-  }
-
-  public void fireStatementClosed(StatementEvent event) {
-    for (StatementEventListener listener : statementEventListeners) {
-      listener.statementClosed(event);
-    }
-  }
-
-  public void fireStatementErrorOccurred(StatementEvent event) {
-    for (StatementEventListener listener : statementEventListeners) {
-      listener.statementErrorOccurred(event);
-    }
-  }
-
-  public void fireConnectionClosed(ConnectionEvent event) {
-    for (ConnectionEventListener listener : connectionEventListeners) {
-      listener.connectionClosed(event);
-    }
-  }
-
-  public void fireConnectionErrorOccurred(ConnectionEvent event) {
-    for (ConnectionEventListener listener : connectionEventListeners) {
-      listener.connectionErrorOccurred(event);
-    }
-  }
-
   public HostAddress getHostAddress() {
     return client.getHostAddress();
   }
@@ -863,31 +817,29 @@ public class Connection implements java.sql.Connection, PooledConnection {
       client.execute(ResetPacket.INSTANCE);
     }
 
+    // in transaction => rollback
+    if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+      client.execute(new QueryPacket("ROLLBACK"));
+    }
+
     int stateFlag = getContext().getStateFlag();
     if (stateFlag != 0) {
-
       try {
-
         if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
           setNetworkTimeout(null, conf.socketTimeout());
         }
-
         if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
           setAutoCommit(conf.autocommit());
         }
-
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());
         }
-
         if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
           setReadOnly(false); // default to master connection
         }
-
         if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
           setTransactionIsolation(conf.transactionIsolation().getLevel());
         }
-
       } catch (SQLException sqle) {
         throw exceptionFactory.create("error resetting connection");
       }
@@ -898,23 +850,17 @@ public class Connection implements java.sql.Connection, PooledConnection {
     clearWarnings();
   }
 
-  public long getLastUsed() {
-    return lastUsed;
-  }
-
-  public void lastUsedToNow() {
-    lastUsed = System.nanoTime();
-  }
-
   public long getThreadId() {
     return client.getContext().getThreadId();
   }
 
-  public void pooled() {
-    pooled = true;
+  public void fireStatementClosed(PreparedStatement prep) {
+    if (poolConnection != null) {
+      poolConnection.fireStatementClosed(prep);
+    }
   }
 
-  public void unPooled() {
-    pooled = false;
+  protected ExceptionFactory getExceptionFactory() {
+    return exceptionFactory;
   }
 }

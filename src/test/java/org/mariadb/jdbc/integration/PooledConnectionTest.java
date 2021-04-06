@@ -85,6 +85,7 @@ public class PooledConnectionTest extends Common {
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
+
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer()) {
         stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");

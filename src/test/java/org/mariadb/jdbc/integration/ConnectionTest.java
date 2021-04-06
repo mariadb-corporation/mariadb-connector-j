@@ -292,32 +292,6 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void readOnly() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testReadOnly");
-    stmt.execute("CREATE TABLE testReadOnly(id int)");
-    sharedConn.setAutoCommit(false);
-    sharedConn.setReadOnly(true);
-    stmt.execute("INSERT INTO testReadOnly values (1)");
-    sharedConn.commit();
-    assertTrue(sharedConn.isReadOnly());
-    sharedConn.setReadOnly(false);
-    try (Connection con = createCon("assureReadOnly=true")) {
-      final Statement stmt2 = con.createStatement();
-      assertFalse(con.isReadOnly());
-      con.setAutoCommit(false);
-      con.setReadOnly(true);
-      assertTrue(con.isReadOnly());
-      assertThrowsContains(
-          SQLException.class,
-          () -> stmt2.execute("INSERT INTO testReadOnly values (2)"),
-          "Cannot execute statement in a READ ONLY transaction");
-      con.setReadOnly(false);
-      stmt2.execute("DROP TABLE testReadOnly");
-    }
-  }
-
-  @Test
   public void databaseStateChange() throws SQLException {
     Assumptions.assumeTrue(
         (isMariaDBServer() && minVersion(10, 2, 0)) || (!isMariaDBServer() && minVersion(5, 7, 0)));
@@ -365,7 +339,6 @@ public class ConnectionTest extends Common {
         SQLException.class,
         () -> sharedConn.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");
-    assertEquals(sharedConn, sharedConn.getConnection());
     assertTrue(sharedConn.createBlob() instanceof Blob);
     assertTrue(sharedConn.createClob() instanceof Clob);
     assertTrue(sharedConn.createNClob() instanceof NClob);

@@ -38,7 +38,7 @@ public class BaseContext implements Context {
   private final boolean skipMeta;
   private final boolean extendedInfo;
   private final Configuration conf;
-  private final ExceptionFactory exceptionFactory;
+  private ExceptionFactory exceptionFactory;
   protected int serverStatus;
   private String database;
   private int transactionIsolationLevel;

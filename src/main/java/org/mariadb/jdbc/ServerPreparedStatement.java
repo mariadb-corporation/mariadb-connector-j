@@ -24,7 +24,6 @@ package org.mariadb.jdbc;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.sql.StatementEvent;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.message.client.BulkExecutePacket;
@@ -624,7 +623,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       prepareResult.decrementUse(con.getClient(), this);
       prepareResult = null;
     }
-    con.fireStatementClosed(new StatementEvent(con, this));
+    con.fireStatementClosed(this);
     super.close();
   }
 

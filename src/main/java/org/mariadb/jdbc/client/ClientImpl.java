@@ -29,6 +29,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLPermission;
 import java.time.ZoneId;
 import java.util.*;
@@ -118,7 +119,8 @@ public class ClientImpl implements Client, AutoCloseable {
 
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       long clientCapabilities =
-          ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
+          ConnectionHelper.initializeClientCapabilities(
+              conf, handshake.getCapabilities(), skipPostCommands);
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
@@ -194,11 +196,11 @@ public class ClientImpl implements Client, AutoCloseable {
       // **********************************************************************
       if (!skipPostCommands) {
         postConnectionQueries();
-        List<String> galeraAllowedStates =
-            conf.galeraAllowedState() == null
-                ? Collections.emptyList()
-                : Arrays.asList(conf.galeraAllowedState().split(","));
-        galeraStateValidation(galeraAllowedStates);
+
+        // disable multi-queries
+        if (!conf.allowMultiQueries()) {
+          execute(SetOptionPacket.INSTANCE);
+        }
       }
 
     } catch (IOException ioException) {
@@ -306,37 +308,67 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   private void postConnectionQueries() throws SQLException {
+    String command;
     String serverTz = conf.timezone() != null ? handleTimezone() : null;
+    command = createSessionVariableQuery(serverTz);
+    command += ";SELECT @@max_allowed_packet, @@wait_timeout";
+
+    List<String> galeraAllowedStates =
+        conf.galeraAllowedState() == null
+            ? Collections.emptyList()
+            : Arrays.asList(conf.galeraAllowedState().split(","));
+
+    if (hostAddress != null
+        && Boolean.TRUE.equals(hostAddress.primary)
+        && !galeraAllowedStates.isEmpty()) {
+      command += ";show status like 'wsrep_local_state'";
+    }
+
+    if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      command +=
+          ";SET SESSION TRANSACTION "
+              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE");
+    }
+
     try {
-      execute(createSessionVariableQuery(serverTz));
+      List<Completion> res = execute(new QueryPacket(command));
+
+      // read max allowed packet
+      Result result = (Result) res.get(1);
+      result.next();
+      if (hostAddress != null) {
+        hostAddress.setCache(
+            Integer.parseInt(result.getString(1)), Integer.parseInt(result.getString(2)));
+      }
+      writer.setMaxAllowedPacket(Integer.parseInt(result.getString(1)));
+
+      if (hostAddress != null
+          && Boolean.TRUE.equals(hostAddress.primary)
+          && !galeraAllowedStates.isEmpty()) {
+        ResultSet rs = (ResultSet) res.get(2);
+        rs.next();
+        if (!galeraAllowedStates.contains(rs.getString(2))) {
+          throw exceptionFactory.create(
+              String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
+        }
+      }
+
     } catch (SQLException sqlException) {
-      // timezone is not valid
-      if (conf.timezone() != null) {
+
+      if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+        // timezone is not valid
         throw exceptionFactory.create(
             String.format(
                 "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
                 conf.timezone()));
-      } else {
-        throw exceptionFactory.create(
-            String.format(
-                "Setting configured client timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
-                ZoneId.systemDefault().getId()));
       }
+      throw exceptionFactory
+          .withSql(command)
+          .create("Initialization command fail", "08000", sqlException);
     }
-
-    if ((conf.maxAllowedPacket() == null || conf.maxIdleTime() == null)
-        && hostAddress.getCacheMaxAllowedPacket() == 0
-        && !Boolean.parseBoolean(
-            conf.nonMappedOptions().getProperty("disableConfCache", "false"))) {
-      retrieveMaxAllowedPacketInstance(this, hostAddress);
-    }
-    writer.setMaxAllowedPacket(
-        conf.maxAllowedPacket() == null
-            ? hostAddress.getCacheMaxAllowedPacket()
-            : conf.maxAllowedPacket());
   }
 
-  public QueryPacket createSessionVariableQuery(String serverTz) {
+  public String createSessionVariableQuery(String serverTz) {
     // In JDBC, connection must start in autocommit mode
     // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
     // avoid this command.
@@ -374,12 +406,6 @@ public class ClientImpl implements Client, AutoCloseable {
       }
     }
 
-    if (conf.assureReadOnly()
-        && !this.hostAddress.primary
-        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      sb.append(",read_only=1");
-    }
-
     sb.append(",");
     int major = context.getVersion().getMajorVersion();
     if (!context.getVersion().isMariaDBServer()
@@ -391,57 +417,12 @@ public class ClientImpl implements Client, AutoCloseable {
     }
     sb.append("='").append(conf.transactionIsolation().getValue()).append("'");
 
-    return new QueryPacket("set " + sb.toString());
-  }
-
-  public static void retrieveMaxAllowedPacketInstance(
-      ClientImpl clientImpl, HostAddress hostAddress) throws SQLException {
-    if (hostAddress.getCacheMaxAllowedPacket() == 0) {
-      synchronized (hostAddress) {
-        if (hostAddress.getCacheMaxAllowedPacket() == 0) {
-          try {
-            QueryPacket requestSessionVariables =
-                new QueryPacket("SELECT @@max_allowed_packet, @@wait_timeout");
-            List<Completion> completion = clientImpl.execute(requestSessionVariables);
-            Result result = (Result) completion.get(0);
-            result.next();
-            hostAddress.setCache(
-                Integer.parseInt(result.getString(1)), Integer.parseInt(result.getString(2)));
-          } catch (SQLException sqlException) {
-            // fallback in case of galera non primary nodes that permit only show / set command,
-            // not SELECT when not part of quorum
-            List<Completion> res =
-                clientImpl.execute(
-                    new QueryPacket(
-                        "SHOW VARIABLES WHERE Variable_name = 'max_allowed_packet' OR Variable_name = 'wait_timeout'"));
-            if (res.isEmpty()) {
-              throw new SQLException("fail to readAdditionalData");
-            }
-            int maxAllowedPacket = 0;
-            int waitTimeout = 0;
-            ResultSet rs = (ResultSet) res.get(0);
-            for (int i = 0; i < 2; i++) {
-              rs.next();
-              if (logger.isDebugEnabled()) {
-                logger.debug("server data {} = {}", rs.getString(1), rs.getString(2));
-              }
-              if ("wait_timeout".equals(rs.getString(1))) {
-                waitTimeout = Integer.parseInt(rs.getString(2));
-              } else {
-                maxAllowedPacket = Integer.parseInt(rs.getString(2));
-              }
-            }
-            hostAddress.setCache(maxAllowedPacket, waitTimeout);
-          }
-        }
-      }
-    }
+    return "set " + sb.toString();
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
-    if (conf.assureReadOnly() && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      execute(
-          new QueryPacket("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE")));
+    if (closed) {
+      throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
   }
 

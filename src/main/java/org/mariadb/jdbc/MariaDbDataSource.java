@@ -184,7 +184,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    return Driver.connect(conf);
+    org.mariadb.jdbc.Connection connection = Driver.connect(conf);
+    return new MariaDbPoolConnection(connection);
   }
 
   @Override
@@ -192,7 +193,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
       throws SQLException {
     try {
       Configuration conf = this.conf.clone(username, password);
-      return Driver.connect(conf);
+      org.mariadb.jdbc.Connection connection = Driver.connect(conf);
+      return new MariaDbPoolConnection(connection);
     } catch (CloneNotSupportedException cloneNotSupportedException) {
       throw new SQLException(cloneNotSupportedException);
     }

@@ -76,7 +76,7 @@ public class Statement implements java.sql.Statement {
   }
 
   protected ExceptionFactory exceptionFactory() {
-    return con.getContext().getExceptionFactory().of(this);
+    return con.getExceptionFactory().of(this);
   }
 
   /**

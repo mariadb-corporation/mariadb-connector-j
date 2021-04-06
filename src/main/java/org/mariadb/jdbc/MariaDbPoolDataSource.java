@@ -60,7 +60,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection() throws SQLException {
-    return pool.getConnection();
+    return pool.getPoolConnection().getConnection();
   }
 
   /**
@@ -77,7 +77,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    return pool.getConnection(username, password);
+    return pool.getPoolConnection(username, password).getConnection();
   }
 
   /**
@@ -186,13 +186,13 @@ public class MariaDbPoolDataSource
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    return pool.getConnection();
+    return pool.getPoolConnection();
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
-    return pool.getConnection(username, password);
+    return pool.getPoolConnection(username, password);
   }
 
   /** Close datasource. */

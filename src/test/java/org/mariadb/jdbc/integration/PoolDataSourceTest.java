@@ -58,15 +58,20 @@ public class PoolDataSourceTest extends Common {
       useOldNotation = false;
     }
     Statement stmt = sharedConn.createStatement();
+    String host = "localhost".equals(hostname) ? "localhost" : "%";
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
+      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'" + host + "'");
       stmt.execute(
           "GRANT SELECT ON "
               + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+              + ".* TO 'poolUser'@'"
+              + host
+              + "' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
+      stmt.execute(
+          "CREATE USER IF NOT EXISTS 'poolUser'@'" + host + "' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute(
+          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'" + host + "'");
     }
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
@@ -370,7 +375,6 @@ public class PoolDataSourceTest extends Common {
 
       // must still have 3 connections, but must be other ones
       checkJmxInfo(server, name, 0, 3, 3, 0);
-
     }
   }
 
@@ -380,7 +384,8 @@ public class PoolDataSourceTest extends Common {
     ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testMinConnection-*");
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
-            mDefUrl + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection&testMinRemovalDelay=30&maxIdleTime=100")) {
+            mDefUrl
+                + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection&testMinRemovalDelay=30&maxIdleTime=100")) {
       try (Connection connection = pool.getConnection()) {
         connection.isValid(1);
         Set<ObjectName> objectNames = server.queryNames(filter, null);
@@ -572,6 +577,7 @@ public class PoolDataSourceTest extends Common {
       }
     }
   }
+
   /**
    * List current connections to server.
    *

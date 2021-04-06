@@ -1752,7 +1752,6 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(meta.deletesAreDetected(ResultSet.TYPE_FORWARD_ONLY));
     assertFalse(meta.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY));
     assertTrue(meta.supportsBatchUpdates());
-    assertEquals(sharedConn, sharedConn.getConnection());
 
     assertTrue(meta.supportsSavepoints());
     assertFalse(meta.supportsNamedParameters());

@@ -39,22 +39,39 @@ public class MultiHostTest extends Common {
   public void failoverReadonlyToMaster() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con =
-        createProxyConKeep("assureReadOnly=true&waitReconnectTimeout=300&deniedListTimeout=300")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("START TRANSACTION");
-      stmt.execute("SET @con=1");
+    try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
+      long primaryThreadId = con.getThreadId();
       con.setReadOnly(true);
-      final Statement stmt2 = con.createStatement();
-      stmt2.execute("SET @con=2");
+      long replicaThreadId = con.getThreadId();
+      assertTrue(primaryThreadId != replicaThreadId);
+
+      con.setReadOnly(false);
+      assertEquals(primaryThreadId, con.getThreadId());
+      con.setReadOnly(true);
+      assertEquals(replicaThreadId, con.getThreadId());
       proxy.restart(250);
-      ResultSet rs = stmt2.executeQuery("SELECT @con");
-      rs.next();
-      assertEquals("1", rs.getString(1));
-      Thread.sleep(500);
-      rs = con.createStatement().executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+
+      con.isValid(1);
+      assertEquals(primaryThreadId, con.getThreadId());
+    }
+  }
+
+  @Test
+  public void readOnly() throws SQLException {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("DROP TABLE IF EXISTS testReadOnly");
+      stmt.execute("CREATE TABLE testReadOnly(id int)");
+      con.setAutoCommit(false);
+      con.setReadOnly(true);
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
+          "Cannot execute statement in a READ ONLY transaction");
+      con.setReadOnly(false);
+      stmt.execute("DROP TABLE testReadOnly");
     }
   }
 
@@ -62,7 +79,7 @@ public class MultiHostTest extends Common {
   public void syncState() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con = createProxyConKeep("assureReadOnly=true")) {
+    try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
       con.setCatalog("sync");

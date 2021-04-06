@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.sql.StatementEvent;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.message.client.*;
@@ -442,10 +441,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
   @Override
   public void close() throws SQLException {
-    con.fireStatementClosed(new StatementEvent(con, this));
     if (prepareResult != null) {
       prepareResult.close(this.con.getClient());
     }
+    con.fireStatementClosed(this);
     super.close();
   }
 

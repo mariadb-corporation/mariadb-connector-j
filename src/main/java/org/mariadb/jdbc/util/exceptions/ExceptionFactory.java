@@ -5,11 +5,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.sql.ConnectionEvent;
-import javax.sql.StatementEvent;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbPoolConnection;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
 
@@ -20,6 +19,7 @@ public class ExceptionFactory {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private Connection connection;
+  private MariaDbPoolConnection poolConnection;
   private long threadId;
   private Statement statement;
 
@@ -30,11 +30,13 @@ public class ExceptionFactory {
 
   private ExceptionFactory(
       Connection connection,
+      MariaDbPoolConnection poolConnection,
       Configuration conf,
       HostAddress hostAddress,
       long threadId,
       Statement statement) {
     this.connection = connection;
+    this.poolConnection = poolConnection;
     this.conf = conf;
     this.hostAddress = hostAddress;
     this.threadId = threadId;
@@ -110,6 +112,11 @@ public class ExceptionFactory {
     return this;
   }
 
+  public ExceptionFactory setPoolConnection(MariaDbPoolConnection internalPoolConnection) {
+    this.poolConnection = internalPoolConnection;
+    return this;
+  }
+
   public void setThreadId(long threadId) {
     this.threadId = threadId;
   }
@@ -157,12 +164,23 @@ public class ExceptionFactory {
 
   public ExceptionFactory of(Statement statement) {
     return new ExceptionFactory(
-        this.connection, this.conf, this.hostAddress, this.threadId, statement);
+        this.connection,
+        this.poolConnection,
+        this.conf,
+        this.hostAddress,
+        this.threadId,
+        statement);
   }
 
   public ExceptionFactory withSql(String sql) {
     return new SqlExceptionFactory(
-        this.connection, this.conf, this.hostAddress, this.threadId, statement, sql);
+        this.connection,
+        this.poolConnection,
+        this.conf,
+        this.hostAddress,
+        this.threadId,
+        statement,
+        sql);
   }
 
   private SQLException createException(
@@ -208,17 +226,14 @@ public class ExceptionFactory {
         break;
     }
 
-    if (statement != null && statement instanceof PreparedStatement) {
-      StatementEvent event =
-          new StatementEvent(connection, (PreparedStatement) statement, returnEx);
-      connection.fireStatementErrorOccurred(event);
+    if (poolConnection != null && statement != null && statement instanceof PreparedStatement) {
+      poolConnection.fireStatementErrorOccurred((PreparedStatement) statement, returnEx);
     }
 
-    if (connection != null
+    if (poolConnection != null
         && (returnEx instanceof SQLNonTransientConnectionException
             || returnEx instanceof SQLTransientConnectionException)) {
-      ConnectionEvent event = new ConnectionEvent(connection, returnEx);
-      connection.fireConnectionErrorOccurred(event);
+      poolConnection.fireConnectionErrorOccurred(returnEx);
     }
 
     return returnEx;
@@ -253,12 +268,13 @@ public class ExceptionFactory {
 
     public SqlExceptionFactory(
         Connection connection,
+        MariaDbPoolConnection poolConnection,
         Configuration conf,
         HostAddress hostAddress,
         long threadId,
         Statement statement,
         String sql) {
-      super(connection, conf, hostAddress, threadId, statement);
+      super(connection, poolConnection, conf, hostAddress, threadId, statement);
       this.sql = sql;
     }
 

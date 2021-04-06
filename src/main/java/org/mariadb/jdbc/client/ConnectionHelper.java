@@ -160,7 +160,7 @@ public final class ConnectionHelper {
   }
 
   public static long initializeClientCapabilities(
-      final Configuration configuration, final long serverCapabilities) {
+      final Configuration configuration, final long serverCapabilities, boolean skipPostCommands) {
     long capabilities =
         Capabilities.IGNORE_SPACE
             | Capabilities.CLIENT_PROTOCOL_41
@@ -188,7 +188,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.FOUND_ROWS;
     }
 
-    if (configuration.allowMultiQueries()) {
+    if (configuration.allowMultiQueries() || !skipPostCommands) {
       capabilities |= Capabilities.MULTI_STATEMENTS;
     }
 

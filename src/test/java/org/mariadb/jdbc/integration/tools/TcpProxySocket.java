@@ -131,7 +131,6 @@ public class TcpProxySocket implements Runnable {
       }
     } catch (IOException e) {
       // eat Exception
-      e.printStackTrace();
     }
     try {
       if (server != null) {
