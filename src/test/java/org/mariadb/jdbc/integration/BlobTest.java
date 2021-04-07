@@ -150,7 +150,13 @@ public class BlobTest extends Common {
     final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
-    MariaDbBlob blob = new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5});
+    MariaDbBlob blob = new MariaDbBlob(new byte[0]);
+    blob.setBytes(1, new byte[0]);
+    assertEquals(0, blob.length());
+    blob.setBytes(1, new byte[0], 0, 0);
+    assertEquals(0, blob.length());
+
+    blob = new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5});
     blob.setBytes(2, otherBytes);
     assertArrayEquals(new byte[] {0, 10, 11, 12, 13, 5}, blob.getBytes(1, 6));
 
@@ -283,6 +289,8 @@ public class BlobTest extends Common {
     MariaDbBlob blob = new MariaDbBlob(bytes);
     blob.truncate(20);
     assertArrayEquals(bytes, blob.getBytes(1, 6));
+    blob.truncate(-5);
+    assertArrayEquals(bytes, blob.getBytes(1, 6));
     blob.truncate(5);
     assertArrayEquals(new byte[] {0, 1, 2, 3, 4, 0, 0}, blob.getBytes(1, 7));
     blob.truncate(0);
@@ -311,5 +319,22 @@ public class BlobTest extends Common {
         IllegalArgumentException.class, () -> new MariaDbBlob(null), "byte array is null");
     assertThrowsContains(
         IllegalArgumentException.class, () -> new MariaDbBlob(null, 0, 2), "byte array is null");
+  }
+
+  @Test
+  public void equal() {
+    MariaDbBlob blob = new MariaDbBlob(bytes);
+    assertEquals(blob, blob);
+    assertEquals(new MariaDbBlob(bytes), blob);
+    assertNotEquals("", blob);
+    byte[] bytes = new byte[] {5, 1, 2, 3, 4, 5};
+    assertNotEquals(new MariaDbBlob(bytes), blob);
+    assertNotEquals(new MariaDbBlob(new byte[] {5, 1}), blob);
+  }
+
+  @Test
+  public void hashCodeTest() {
+    MariaDbBlob blob = new MariaDbBlob(bytes);
+    assertEquals(-859797942, blob.hashCode());
   }
 }

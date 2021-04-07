@@ -38,6 +38,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS prepare1");
     stmt.execute("DROP TABLE IF EXISTS prepare2");
     stmt.execute("DROP TABLE IF EXISTS prepare3");
+    stmt.execute("DROP TABLE IF EXISTS prepare4");
   }
 
   @BeforeAll
@@ -47,6 +48,8 @@ public class PreparedStatementTest extends Common {
     stmt.execute("CREATE TABLE prepare1 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE prepare2 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE prepare3 (t1 LONGTEXT, t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT)");
+    stmt.execute("CREATE TABLE prepare4 (t1 int)");
+    stmt.execute("INSERT INTO prepare4 VALUES (1),(2),(3),(4),(5)");
   }
 
   @Test
@@ -100,6 +103,10 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       assertFalse(preparedStatement.execute());
 
+
+      ParameterMetaData paramMeta = preparedStatement.getParameterMetaData();
+      paramMeta.getParameterTypeName(1);
+
       // verification
       ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
       assertTrue(rs.next());
@@ -148,10 +155,15 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeWithoutAllParameters() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    executeWithoutAllParameters(sharedConn);
+    executeWithoutAllParameters(sharedConnBinary);
+  }
+
+  public void executeWithoutAllParameters(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
     try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+                 con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(2, 10);
       assertThrowsContains(
           SQLException.class,
@@ -302,11 +314,155 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatch() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+//    executeBatch(sharedConn);
+    executeBatch(sharedConnBinary);
+//    try (Connection con = createCon("allowLocalInfile=true")) {
+//      executeBatch(con);
+//    }
+//    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
+//      executeBatch(con);
+//    }
+  }
+
+  private void executeBatch(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
-    stmt.execute("INSERT INTO prepare1(t1, t2) VALUES (5,10), (40,20), (127,45)");
     try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+
+      try (PreparedStatement preparedStatement2 =
+                   con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+        preparedStatement2.setInt(1, 15);
+        preparedStatement2.setInt(2, 110);
+        preparedStatement2.addBatch();
+        preparedStatement2.executeBatch();
+      }
+
+      int[] res = preparedStatement.executeBatch();
+      assertEquals(0, res.length);
+      preparedStatement.setInt(1, 5);
+      preparedStatement.setInt(2, 10);
+      preparedStatement.addBatch();
+      res = preparedStatement.executeBatch();
+      assertEquals(1, res.length);
+      res = preparedStatement.executeBatch();
+      assertEquals(0, res.length);
+    }
+
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+      preparedStatement.setInt(1, 40);
+      preparedStatement.setInt(2, 20);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 127);
+      preparedStatement.setInt(2, 45);
+      preparedStatement.addBatch();
+      int[] res = preparedStatement.executeBatch();
+      assertEquals(2, res.length);
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      preparedStatement.setInt(1, 20);
+      ResultSet rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(40, rs.getInt(1));
+      assertEquals(20, rs.getInt(2));
+      assertTrue(rs.next());
+      assertEquals(127, rs.getInt(1));
+      assertEquals(45, rs.getInt(2));
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  public void executeBatchMultiple() throws SQLException {
+    try (Connection con = createCon("allowMultiQueries&useBulkStmts=false")) {
+      executeBatchMultiple(con);
+    }
+  }
+
+  private void executeBatchMultiple(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE prepare1");
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);DO 1")) {
+      int[] res = preparedStatement.executeBatch();
+      assertEquals(0, res.length);
+      preparedStatement.setInt(1, 5);
+      preparedStatement.setInt(2, 10);
+      preparedStatement.addBatch();
+      res = preparedStatement.executeBatch();
+      assertEquals(1, res.length);
+      res = preparedStatement.executeBatch();
+      assertEquals(0, res.length);
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);DO 1")) {
+      preparedStatement.setInt(1, 40);
+      preparedStatement.setInt(2, 20);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 127);
+      preparedStatement.setInt(2, 45);
+      preparedStatement.addBatch();
+      int[] res = preparedStatement.executeBatch();
+      assertEquals(2, res.length);
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+      preparedStatement.setInt(1, 20);
+      ResultSet rs = preparedStatement.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(40, rs.getInt(1));
+      assertEquals(20, rs.getInt(2));
+      assertTrue(rs.next());
+      assertEquals(127, rs.getInt(1));
+      assertEquals(45, rs.getInt(2));
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  public void executeLargeBatch() throws SQLException {
+    executeLargeBatch(sharedConn);
+    executeLargeBatch(sharedConnBinary);
+    try (Connection con = createCon("allowLocalInfile=true")) {
+      executeLargeBatch(con);
+    }
+    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
+      executeLargeBatch(con);
+    }
+  }
+
+  private void executeLargeBatch(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE prepare1");
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+      preparedStatement.executeLargeBatch();
+      preparedStatement.setInt(1, 5);
+      preparedStatement.setInt(2, 10);
+      preparedStatement.addBatch();
+      preparedStatement.executeLargeBatch();
+      preparedStatement.executeLargeBatch();
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+      preparedStatement.setInt(1, 40);
+      preparedStatement.setInt(2, 20);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 127);
+      preparedStatement.setInt(2, 45);
+      preparedStatement.addBatch();
+      preparedStatement.executeLargeBatch();
+    }
+
+    try (PreparedStatement preparedStatement =
+        con.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
       preparedStatement.setInt(1, 20);
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
@@ -485,13 +641,12 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreRowLimitedResults(Connection con) throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.setMaxRows(5);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from seq_1_to_10; SELECT * FROM seq_1_to_1000;SELECT 2; END");
+        "CREATE PROCEDURE multi() BEGIN SELECT * from prepare4; SELECT * FROM prepare4;SELECT 2; END");
     stmt.execute("CALL multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
@@ -502,6 +657,7 @@ public class PreparedStatementTest extends Common {
     Assertions.assertEquals(6, i);
     stmt.setFetchSize(3);
     PreparedStatement prep = con.prepareStatement("CALL multi()");
+    prep.setMaxRows(20);
     rs = prep.executeQuery();
     Assertions.assertFalse(rs.isClosed());
     prep.setFetchSize(0); // force more result to load all remaining result-set
@@ -696,6 +852,8 @@ public class PreparedStatementTest extends Common {
         assertEquals(i, rs.getInt(1));
       }
       assertEquals(50, i);
+      prep.setQueryTimeout(0);
+      prep.setQueryTimeout(0);
     }
   }
 

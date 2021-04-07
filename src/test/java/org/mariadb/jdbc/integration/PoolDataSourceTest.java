@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -96,6 +98,13 @@ public class PoolDataSourceTest extends Common {
       try (Connection connection = ds.getConnection("poolUser", "!Passw0rd3Works")) {
         assertEquals(connection.isValid(0), true);
       }
+
+      PooledConnection poolCon = ds.getPooledConnection();
+      assertEquals(poolCon.getConnection().isValid(0), true);
+      poolCon.close();
+      poolCon = ds.getPooledConnection("poolUser", "!Passw0rd3Works");
+      assertEquals(poolCon.getConnection().isValid(0), true);
+      poolCon.close();
     }
   }
 
@@ -536,8 +545,6 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void wrongUrlHandling() throws SQLException {
-
-    int initialConnection = getCurrentConnections();
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
             "jdbc:mariadb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
@@ -548,7 +555,7 @@ public class PoolDataSourceTest extends Common {
       } catch (SQLException sqle) {
         assertTrue(
             (System.currentTimeMillis() - start) >= 500
-                && (System.currentTimeMillis() - start) < 700,
+                && (System.currentTimeMillis() - start) < 800,
             "timeout does not correspond to option. Elapsed time:"
                 + (System.currentTimeMillis() - start));
         assertTrue(
@@ -595,5 +602,63 @@ public class PoolDataSourceTest extends Common {
     } catch (SQLException e) {
       return -1;
     }
+  }
+
+  @Test
+  public void poolWithUser() throws SQLException {
+    try (MariaDbPoolDataSource pool =
+        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool")) {
+      long threadId = 0;
+      try (Connection conn = pool.getConnection()) {
+        conn.isValid(1);
+        threadId = ((org.mariadb.jdbc.Connection) conn).getThreadId();
+      }
+
+      try (Connection conn = pool.getConnection(user, password)) {
+        conn.isValid(1);
+        assertEquals(threadId, ((org.mariadb.jdbc.Connection) conn).getThreadId());
+      }
+      try (Connection conn = pool.getConnection("poolUser", "!Passw0rd3Works")) {
+        conn.isValid(1);
+        assertNotEquals(threadId, ((org.mariadb.jdbc.Connection) conn).getThreadId());
+      }
+    }
+  }
+
+  @Test
+  public void various() throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> new MariaDbPoolDataSource("jdbc:notMariadb"),
+        "Wrong mariaDB url");
+    try (MariaDbPoolDataSource pool =
+        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
+      assertNotNull(pool.unwrap(org.mariadb.jdbc.MariaDbPoolDataSource.class));
+      assertNotNull(pool.unwrap(ConnectionPoolDataSource.class));
+      assertThrowsContains(
+          SQLException.class,
+          () -> pool.unwrap(String.class),
+          "Datasource is not a wrapper for java.lang.String");
+      assertTrue(pool.isWrapperFor(org.mariadb.jdbc.MariaDbPoolDataSource.class));
+      assertTrue(pool.isWrapperFor(ConnectionPoolDataSource.class));
+      assertFalse(pool.isWrapperFor(String.class));
+      pool.setLogWriter(null);
+      assertNull(pool.getLogWriter());
+      assertNull(pool.getParentLogger());
+      assertEquals(2, pool.getLoginTimeout());
+      pool.setLoginTimeout(4);
+      assertEquals(4, pool.getLoginTimeout());
+    }
+  }
+
+  @Test
+  public void pools() throws SQLException {
+    // ensure all are closed
+    Pools.close();
+    Pools.close(null);
+    new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
+    Pools.close("myPool");
+    new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
+    Pools.close();
   }
 }

@@ -93,11 +93,34 @@ public class MultiQueriesTest extends Common {
           assertTrue(resultSet.next());
           assertEquals("a", resultSet.getString(2));
         } while (stmt.getMoreResults());
+
+        stmt.executeQuery(
+            "SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        rs.next();
+        assertEquals(1, rs.getInt(1));
       }
       try (Statement statement = connection.createStatement()) {
         statement.execute("SELECT 1");
       }
     }
+  }
+
+  @Test
+  public void quitWhileStreaming() throws SQLException {
+    Connection connection = createCon("&allowMultiQueries=true");
+    Statement stmt = connection.createStatement();
+    stmt.setFetchSize(1);
+    stmt.executeQuery(
+        "DO 2;SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest; DO 1; SELECT 2");
+    connection.abort(Runnable::run);
+
+    connection = createCon("&allowMultiQueries=true");
+    stmt = connection.createStatement();
+    stmt.setFetchSize(1);
+    stmt.executeQuery(
+            "DO 2;DO 1;SELECT * from AllowMultiQueriesTest");
+    connection.abort(Runnable::run);
   }
 
   @Test

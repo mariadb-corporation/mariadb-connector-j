@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.mariadb.jdbc.Configuration;
 
-public class Pools {
+public final class Pools {
 
   private static final AtomicInteger poolIndex = new AtomicInteger();
   private static final Map<Configuration, Pool> poolMap = new ConcurrentHashMap<>();
@@ -117,12 +117,14 @@ public class Pools {
   }
 
   private static void shutdownExecutor() {
-    poolExecutor.shutdown();
-    try {
-      poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
-    } catch (InterruptedException interrupted) {
-      // eat
+    if (poolExecutor != null) {
+      poolExecutor.shutdown();
+      try {
+        poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
+      } catch (InterruptedException interrupted) {
+        // eat
+      }
+      poolExecutor = null;
     }
-    poolExecutor = null;
   }
 }

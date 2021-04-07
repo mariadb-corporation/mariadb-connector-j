@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
+import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
 public class FunctionTest extends Common {
@@ -51,6 +52,37 @@ public class FunctionTest extends Common {
       callableStatement.setInt(3, 3);
       callableStatement.execute();
       assertEquals(6, callableStatement.getInt(1));
+    }
+  }
+
+  @Test
+  public void functionWithoutArg() throws SQLException {
+    functionWithoutArg(sharedConn);
+    functionWithoutArg(sharedConnBinary);
+  }
+
+  private void functionWithoutArg(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
+    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
+    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
+      callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
+      callableStatement.execute();
+      callableStatement.getDouble(1);
+      assertThrowsContains(
+          SQLException.class,
+          () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
+          " wrong parameter index 2");
+    }
+
+    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
+      callableStatement.execute();
+      callableStatement.getDouble(1);
+    }
+
+    try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function}")) {
+      callableStatement.execute();
+      callableStatement.getDouble(1);
     }
   }
 }

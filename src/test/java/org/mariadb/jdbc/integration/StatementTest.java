@@ -106,6 +106,7 @@ public class StatementTest extends Common {
     stmt.close();
   }
 
+
   @Test
   public void executeGenerated() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -452,6 +453,19 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void smallQueryTimeout() throws Exception {
+    Statement stmt = sharedConn.createStatement();
+    stmt.setQueryTimeout(1);
+    stmt.execute("SELECT 1");
+
+    stmt.setMaxRows(1);
+    stmt.execute("SELECT 1");
+
+    stmt.setQueryTimeout(0);
+    stmt.execute("SELECT 1");
+  }
+
+  @Test
   public void escaping() throws Exception {
     try (Connection con =
         (Connection) DriverManager.getConnection(mDefUrl + "&dumpQueriesOnException=true")) {
@@ -604,6 +618,20 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void fetchUnfinished() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
+    Statement stmt = sharedConn.createStatement();
+    stmt.setFetchSize(1);
+    stmt.executeQuery("select * FROM seq_1_to_20");
+    assertFalse(stmt.getMoreResults());
+
+    Statement stmt2 = sharedConn.createStatement();
+    ResultSet rs = stmt2.executeQuery("SELECT 1");
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+  }
+
+  @Test
   public void fetchClose() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
@@ -617,6 +645,7 @@ public class StatementTest extends Common {
     }
     stmt.close();
     assertTrue(rs.isClosed());
+    stmt.close();
 
     Statement stmt2 = sharedConn.createStatement();
     ResultSet rs2 = stmt2.executeQuery("select * FROM seq_1_to_1000");
@@ -629,7 +658,16 @@ public class StatementTest extends Common {
 
   @Test
   public void executeBatchBasic() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    executeBatchBasic(sharedConn);
+    try (Connection con = createCon("allowLocalInfile=true")) {
+      executeBatchBasic(con);
+    }
+  }
+
+  private void executeBatchBasic(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    assertArrayEquals(new int[0], stmt.executeBatch());
+    stmt.clearBatch();
     stmt.execute("DROP TABLE IF EXISTS executeBatchBasic");
     stmt.execute(
         "CREATE TABLE executeBatchBasic (t1 int not null primary key auto_increment, t2 int)");
@@ -652,7 +690,8 @@ public class StatementTest extends Common {
     stmt.clearBatch();
     ret = stmt.executeBatch();
     Assertions.assertArrayEquals(new int[0], ret);
-
+    assertArrayEquals(new int[0], stmt.executeBatch());
+    stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
     assertThrowsContains(
         BatchUpdateException.class,
@@ -662,7 +701,16 @@ public class StatementTest extends Common {
 
   @Test
   public void executeLargeBatchBasic() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    executeLargeBatchBasic(sharedConn);
+    try (Connection con = createCon("allowLocalInfile=true")) {
+      executeLargeBatchBasic(con);
+    }
+  }
+
+  private void executeLargeBatchBasic(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    assertArrayEquals(new long[0], stmt.executeLargeBatch());
+    stmt.clearBatch();
     stmt.execute("DROP TABLE IF EXISTS executeLargeBatchBasic");
     stmt.execute(
         "CREATE TABLE executeLargeBatchBasic (t1 int not null primary key auto_increment, t2 int)");
@@ -678,7 +726,9 @@ public class StatementTest extends Common {
     stmt.clearBatch();
     ret = stmt.executeLargeBatch();
     Assertions.assertArrayEquals(new long[0], ret);
-
+    ret = stmt.executeLargeBatch();
+    Assertions.assertArrayEquals(new long[0], ret);
+    stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
     assertThrowsContains(
         BatchUpdateException.class,

@@ -743,7 +743,7 @@ public class ClobCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO ClobParamCodec(t1) VALUES (?)")) {
-      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setClob(1, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setClob(1, (Clob) null);
       prep.execute();
@@ -808,7 +808,7 @@ public class ClobCodecTest extends CommonCodecTest {
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM ClobParamCodec");
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(2));
+    assertEquals("e🌟£1", rs.getString(2));
     rs.updateClob(2, new MariaDbClob("f🌟10".getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
     assertEquals("f🌟10", rs.getString(2));

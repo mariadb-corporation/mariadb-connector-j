@@ -160,10 +160,10 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       boolean shouldBeReleased = false;
       Connection con = item.getConnection();
-      if (con.getHostAddress().getWaitTimeout() > 0) {
+      if (con.getWaitTimeout() > 0) {
 
         // idle time is reaching server @@wait_timeout
-        if (idleTime > TimeUnit.SECONDS.toNanos(con.getHostAddress().getWaitTimeout() - 45)) {
+        if (idleTime > TimeUnit.SECONDS.toNanos(con.getWaitTimeout() - 45)) {
           shouldBeReleased = true;
         }
 
@@ -396,22 +396,16 @@ public class Pool implements AutoCloseable, PoolMBean {
    */
   public InternalPoolConnection getPoolConnection(String username, String password)
       throws SQLException {
-
-    try {
-
-      if ((conf.user() != null ? conf.user().equals(username) : username == null)
-          && (conf.password() != null ? conf.password().equals(password) : password == null)) {
-        return getPoolConnection();
-      }
-
-      Configuration tmpConf = conf.clone(username, password);
-      return new InternalPoolConnection(Driver.connect(tmpConf));
-
-    } catch (CloneNotSupportedException cloneException) {
-      // cannot occur
-      throw new SQLException(
-          "Error getting connection, parameters cannot be cloned", cloneException);
+    if (username == null
+        ? conf.user() == null
+        : username.equals(conf.user()) && password == null
+            ? conf.password() == null
+            : password.equals(conf.password())) {
+      return getPoolConnection();
     }
+
+    Configuration tmpConf = conf.clone(username, password);
+    return new InternalPoolConnection(Driver.connect(tmpConf));
   }
 
   private String generatePoolTag(int poolIndex) {
@@ -501,25 +495,6 @@ public class Pool implements AutoCloseable, PoolMBean {
 
   public String getPoolTag() {
     return poolTag;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-
-    Pool pool = (Pool) obj;
-
-    return poolTag.equals(pool.poolTag);
-  }
-
-  @Override
-  public int hashCode() {
-    return poolTag.hashCode();
   }
 
   @Override

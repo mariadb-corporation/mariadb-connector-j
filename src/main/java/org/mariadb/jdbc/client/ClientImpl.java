@@ -79,6 +79,7 @@ public class ClientImpl implements Client, AutoCloseable {
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
+  private int waitTimeout;
   protected Context context;
 
   public ClientImpl(
@@ -336,10 +337,8 @@ public class ClientImpl implements Client, AutoCloseable {
       // read max allowed packet
       Result result = (Result) res.get(1);
       result.next();
-      if (hostAddress != null) {
-        hostAddress.setCache(
-            Integer.parseInt(result.getString(1)), Integer.parseInt(result.getString(2)));
-      }
+
+      waitTimeout = Integer.parseInt(result.getString(2));
       writer.setMaxAllowedPacket(Integer.parseInt(result.getString(1)));
 
       if (hostAddress != null
@@ -784,6 +783,11 @@ public class ClientImpl implements Client, AutoCloseable {
         // socket closed, if any error, so not throwing error
       }
     }
+  }
+
+  @Override
+  public int getWaitTimeout() {
+    return waitTimeout;
   }
 
   public boolean isClosed() {

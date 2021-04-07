@@ -62,7 +62,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
  * <br>
  */
-public class Configuration implements Cloneable {
+public class Configuration {
 
   private static final Pattern URL_PARAMETER =
       Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
@@ -154,6 +154,132 @@ public class Configuration implements Cloneable {
   private boolean allowPublicKeyRetrieval = false;
 
   private Configuration() {}
+
+  private Configuration(
+      String user,
+      String password,
+      String database,
+      List<HostAddress> addresses,
+      HaMode haMode,
+      Properties nonMappedOptions,
+      String timezone,
+      boolean autocommit,
+      TransactionIsolation transactionIsolation,
+      int defaultFetchSize,
+      int maxQuerySizeToLog,
+      boolean pinGlobalTxToPhysicalConnection,
+      String geometryDefaultType,
+      String socketFactory,
+      Integer connectTimeout,
+      String pipe,
+      String localSocket,
+      boolean tcpKeepAlive,
+      boolean tcpAbortiveClose,
+      String localSocketAddress,
+      int socketTimeout,
+      boolean useReadAheadInput,
+      String tlsSocketType,
+      SslMode sslMode,
+      String serverSslCert,
+      String keyStore,
+      String keyStorePassword,
+      String keyStoreType,
+      String enabledSslCipherSuites,
+      String enabledSslProtocolSuites,
+      boolean allowMultiQueries,
+      boolean allowLocalInfile,
+      boolean useCompression,
+      boolean useAffectedRows,
+      boolean useBulkStmts,
+      boolean cachePrepStmts,
+      int prepStmtCacheSize,
+      boolean useServerPrepStmts,
+      CredentialPlugin credentialType,
+      String sessionVariables,
+      String connectionAttributes,
+      String servicePrincipalName,
+      boolean blankTableNameMeta,
+      boolean tinyInt1isBit,
+      boolean yearIsDateType,
+      boolean dumpQueriesOnException,
+      boolean includeInnodbStatusInDeadlockExceptions,
+      boolean includeThreadDumpInDeadlockExceptions,
+      int retriesAllDown,
+      String galeraAllowedState,
+      boolean transactionReplay,
+      boolean pool,
+      String poolName,
+      int maxPoolSize,
+      int minPoolSize,
+      Integer maxIdleTime,
+      boolean registerJmxPool,
+      int poolValidMinDelay,
+      boolean useResetConnection,
+      String serverRsaPublicKeyFile,
+      boolean allowPublicKeyRetrieval) {
+    this.user = user;
+    this.password = password;
+    this.database = database;
+    this.addresses = addresses;
+    this.haMode = haMode;
+    this.nonMappedOptions = nonMappedOptions;
+    this.timezone = timezone;
+    this.autocommit = autocommit;
+    this.transactionIsolation = transactionIsolation;
+    this.defaultFetchSize = defaultFetchSize;
+    this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
+    this.geometryDefaultType = geometryDefaultType;
+    this.socketFactory = socketFactory;
+    this.connectTimeout = connectTimeout;
+    this.pipe = pipe;
+    this.localSocket = localSocket;
+    this.tcpKeepAlive = tcpKeepAlive;
+    this.tcpAbortiveClose = tcpAbortiveClose;
+    this.localSocketAddress = localSocketAddress;
+    this.socketTimeout = socketTimeout;
+    this.useReadAheadInput = useReadAheadInput;
+    this.tlsSocketType = tlsSocketType;
+    this.sslMode = sslMode;
+    this.serverSslCert = serverSslCert;
+    this.keyStore = keyStore;
+    this.keyStorePassword = keyStorePassword;
+    this.keyStoreType = keyStoreType;
+    this.enabledSslCipherSuites = enabledSslCipherSuites;
+    this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+    this.allowMultiQueries = allowMultiQueries;
+    this.allowLocalInfile = allowLocalInfile;
+    this.useCompression = useCompression;
+    this.useAffectedRows = useAffectedRows;
+    this.useBulkStmts = useBulkStmts;
+    this.cachePrepStmts = cachePrepStmts;
+    this.prepStmtCacheSize = prepStmtCacheSize;
+    this.useServerPrepStmts = useServerPrepStmts;
+    this.credentialType = credentialType;
+    this.sessionVariables = sessionVariables;
+    this.connectionAttributes = connectionAttributes;
+    this.servicePrincipalName = servicePrincipalName;
+    this.blankTableNameMeta = blankTableNameMeta;
+    this.tinyInt1isBit = tinyInt1isBit;
+    this.yearIsDateType = yearIsDateType;
+    this.dumpQueriesOnException = dumpQueriesOnException;
+    this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
+    this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
+    this.retriesAllDown = retriesAllDown;
+    this.galeraAllowedState = galeraAllowedState;
+    this.transactionReplay = transactionReplay;
+    this.pool = pool;
+    this.poolName = poolName;
+    this.maxPoolSize = maxPoolSize;
+    this.minPoolSize = minPoolSize;
+    this.maxIdleTime = maxIdleTime;
+    this.registerJmxPool = registerJmxPool;
+    this.poolValidMinDelay = poolValidMinDelay;
+    this.useResetConnection = useResetConnection;
+    this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
+    this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
+    this.initialUrl = buildUrl(this);
+  }
 
   private Configuration(
       String database,
@@ -300,6 +426,18 @@ public class Configuration implements Cloneable {
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
 
     // *************************************************************
+    // host primary check
+    // *************************************************************
+    boolean first = true;
+    for (HostAddress host : addresses) {
+      boolean primary = haMode != HaMode.REPLICATION || first;
+      if (host.primary == null) {
+        host.primary = primary;
+      }
+      first = false;
+    }
+
+    // *************************************************************
     // option value verification
     // *************************************************************
 
@@ -318,12 +456,6 @@ public class Configuration implements Cloneable {
     } catch (IllegalArgumentException | IllegalAccessException ie) {
       // eat
     }
-  }
-
-  public void updateAuth(String user, String password) {
-    this.user = user;
-    this.password = password;
-    buildUrl(this);
   }
 
   /**
@@ -512,10 +644,69 @@ public class Configuration implements Cloneable {
     }
   }
 
-  public Configuration clone(String username, String password) throws CloneNotSupportedException {
-    Configuration conf = (Configuration) super.clone();
-    conf.updateAuth(username, password);
-    return conf;
+  public Configuration clone(String username, String password) {
+    return new Configuration(
+        username,
+        password,
+        this.database,
+        this.addresses,
+        this.haMode,
+        this.nonMappedOptions,
+        this.timezone,
+        this.autocommit,
+        this.transactionIsolation,
+        this.defaultFetchSize,
+        this.maxQuerySizeToLog,
+        this.pinGlobalTxToPhysicalConnection,
+        this.geometryDefaultType,
+        this.socketFactory,
+        this.connectTimeout,
+        this.pipe,
+        this.localSocket,
+        this.tcpKeepAlive,
+        this.tcpAbortiveClose,
+        this.localSocketAddress,
+        this.socketTimeout,
+        this.useReadAheadInput,
+        this.tlsSocketType,
+        this.sslMode,
+        this.serverSslCert,
+        this.keyStore,
+        this.keyStorePassword,
+        this.keyStoreType,
+        this.enabledSslCipherSuites,
+        this.enabledSslProtocolSuites,
+        this.allowMultiQueries,
+        this.allowLocalInfile,
+        this.useCompression,
+        this.useAffectedRows,
+        this.useBulkStmts,
+        this.cachePrepStmts,
+        this.prepStmtCacheSize,
+        this.useServerPrepStmts,
+        this.credentialType,
+        this.sessionVariables,
+        this.connectionAttributes,
+        this.servicePrincipalName,
+        this.blankTableNameMeta,
+        this.tinyInt1isBit,
+        this.yearIsDateType,
+        this.dumpQueriesOnException,
+        this.includeInnodbStatusInDeadlockExceptions,
+        this.includeThreadDumpInDeadlockExceptions,
+        this.retriesAllDown,
+        this.galeraAllowedState,
+        this.transactionReplay,
+        this.pool,
+        this.poolName,
+        this.maxPoolSize,
+        this.minPoolSize,
+        this.maxIdleTime,
+        this.registerJmxPool,
+        this.poolValidMinDelay,
+        this.useResetConnection,
+        this.serverRsaPublicKeyFile,
+        this.allowPublicKeyRetrieval);
   }
 
   public String database() {
@@ -1062,14 +1253,12 @@ public class Configuration implements Cloneable {
       return this;
     }
 
-    public Builder addresses(String host, int port) {
-      this._addresses = new ArrayList<>();
+    public Builder addHost(String host, int port) {
       this._addresses.add(HostAddress.from(host, port));
       return this;
     }
 
-    public Builder addresses(String host, int port, boolean master) {
-      this._addresses = new ArrayList<>();
+    public Builder addHost(String host, int port, boolean master) {
       this._addresses.add(HostAddress.from(host, port, master));
       return this;
     }

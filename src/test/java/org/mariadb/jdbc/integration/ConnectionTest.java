@@ -756,7 +756,7 @@ public class ConnectionTest extends Common {
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
     sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
-    assertNotNull(sharedConn.getHostAddress());
+    assertNotEquals(0, sharedConn.getWaitTimeout());
   }
 
   @Test

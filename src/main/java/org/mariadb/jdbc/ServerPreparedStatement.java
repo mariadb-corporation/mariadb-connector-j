@@ -80,29 +80,15 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     String cmd = escapeTimeout(sql);
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
-      if (prepareResult == null) {
+      long serverCapabilities = con.getContext().getServerCapabilities();
+      if (prepareResult == null && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
         try {
-          long serverCapabilities = con.getContext().getServerCapabilities();
-          if ((serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
-            executePipeline(cmd);
-          } else {
-            executeStandard(cmd);
-          }
+          executePipeline(cmd);
         } catch (BatchUpdateException b) {
           throw (SQLException) b.getCause();
         }
       } else {
-        ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);
-        results =
-            con.getClient()
-                .execute(
-                    execute,
-                    this,
-                    fetchSize,
-                    maxRows,
-                    resultSetConcurrency,
-                    resultSetType,
-                    closeOnCompletion);
+        executeStandard(cmd);
       }
     } finally {
       lock.unlock();
@@ -159,10 +145,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private List<Completion> executeInternalPreparedBatch() throws SQLException {
     checkNotClosed();
     String cmd = escapeTimeout(sql);
-    if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-
     long serverCapabilities = con.getContext().getServerCapabilities();
-    if ((serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0
+    if (batchParameters.size() > 1
+        && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0
         && (!con.getContext().getConf().allowLocalInfile()
             || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)) {
       return con.getContext().getConf().useBulkStmts()
@@ -182,13 +167,15 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    */
   private List<Completion> executeBatchBulk(String cmd) throws SQLException {
     ClientMessage[] packets;
+    if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     if (prepareResult == null) {
       packets =
           new ClientMessage[] {
             new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
           };
     } else {
-      packets = new ClientMessage[] {new BulkExecutePacket(null, batchParameters, cmd, this)};
+      packets =
+          new ClientMessage[] {new BulkExecutePacket(prepareResult, batchParameters, cmd, this)};
     }
     try {
       List<Completion> res =
@@ -222,6 +209,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @throws SQLException if Command error
    */
   private List<Completion> executeBatchPipeline(String cmd) throws SQLException {
+    if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
     int maxCmd = 250;
@@ -575,7 +563,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < res.size(); i++) {
+        for (int i = 0; i < Math.min(res.size(), batchParameters.size()); i++) {
           updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
         }
       }
@@ -627,16 +615,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     super.close();
   }
 
-  protected void resetPrepare() {
+  public void reset() {
     lock.lock();
     try {
       prepareResult = null;
     } finally {
       lock.unlock();
     }
-  }
-
-  public void reset() {
-    prepareResult = null;
   }
 }

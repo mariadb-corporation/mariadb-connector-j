@@ -107,7 +107,9 @@ public class PooledConnectionTest extends Common {
   @Test
   public void testPoolKillConnection() throws Exception {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       InternalPoolConnection pc = ds.getPooledConnection();
       org.mariadb.jdbc.Connection conn = pc.getConnection();

@@ -75,8 +75,12 @@ public class Connection implements java.sql.Connection {
     this.exceptionFactory = client.getExceptionFactory().setConnection(this);
     this.client = client;
     Context context = this.client.getContext();
-    this.canUseServerTimeout = context.getVersion().versionGreaterOrEqual(10, 1, 2);
-    this.canUseServerMaxRows = context.getVersion().versionGreaterOrEqual(10, 3, 0);
+    this.canUseServerTimeout =
+        context.getVersion().isMariaDBServer()
+            && context.getVersion().versionGreaterOrEqual(10, 1, 2);
+    this.canUseServerMaxRows =
+        context.getVersion().isMariaDBServer()
+            && context.getVersion().versionGreaterOrEqual(10, 3, 0);
     this.defaultFetchSize = context.getConf().defaultFetchSize();
   }
 
@@ -456,7 +460,6 @@ public class Connection implements java.sql.Connection {
     if (isFunction) {
       return new FunctionStatement(
           this,
-          poolConnection,
           database,
           databaseAndProcedure,
           (arguments == null) ? "()" : arguments,
@@ -734,8 +737,8 @@ public class Connection implements java.sql.Connection {
     return iface.isInstance(this);
   }
 
-  public HostAddress getHostAddress() {
-    return client.getHostAddress();
+  public int getWaitTimeout() {
+    return client.getWaitTimeout();
   }
 
   public Client getClient() {

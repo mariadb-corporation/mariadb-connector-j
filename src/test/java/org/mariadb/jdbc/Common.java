@@ -44,6 +44,8 @@ public class Common {
   public static Connection sharedConn;
   public static Connection sharedConnBinary;
   public static String hostname;
+  public static String user;
+  public static String password;
   public static TcpProxy proxy;
   public static String mDefUrl;
   private static Instant initialTest;
@@ -62,14 +64,16 @@ public class Common {
         defaultOther = get("DB_OTHER", prop);
       }
       hostname = get("DB_HOST", prop);
+      user = get("DB_USER", prop);
+      password = get("DB_PASSWORD", prop);
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
               hostname,
               get("DB_PORT", prop),
               get("DB_DATABASE", prop),
-              get("DB_USER", prop),
-              get("DB_PASSWORD", prop),
+              user,
+              password,
               defaultOther);
 
     } catch (IOException io) {

@@ -457,6 +457,11 @@ public class MultiPrimaryClient implements Client {
   }
 
   @Override
+  public int getWaitTimeout() {
+    return currentClient.getWaitTimeout();
+  }
+
+  @Override
   public boolean isClosed() {
     return closed;
   }

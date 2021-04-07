@@ -1026,7 +1026,7 @@ public class Statement implements java.sql.Statement {
   protected String escapeTimeout(final String sql) throws SQLException {
     String escapedSql = escape ? NativeSql.parse(sql, con.getContext()) : sql;
     if (queryTimeout != 0 && canUseServerTimeout) {
-      if (canUseServerMaxRows && maxRows > 0 && con.getContext().getVersion().isMariaDBServer()) {
+      if (canUseServerMaxRows && maxRows > 0) {
         return "SET STATEMENT max_statement_time="
             + queryTimeout
             + ", SQL_SELECT_LIMIT="
@@ -1036,7 +1036,7 @@ public class Statement implements java.sql.Statement {
       }
       return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + escapedSql;
     }
-    if (canUseServerMaxRows && maxRows > 0 && con.getContext().getVersion().isMariaDBServer()) {
+    if (canUseServerMaxRows && maxRows > 0) {
       return "SET STATEMENT SQL_SELECT_LIMIT=" + maxRows + " FOR " + escapedSql;
     }
     return escapedSql;
@@ -1449,18 +1449,28 @@ public class Statement implements java.sql.Statement {
 
   public List<Completion> executeInternalBatchStandard() throws SQLException {
     List<Completion> results = new ArrayList<>();
-    for (int i = 0; i < batchQueries.size(); i++) {
-      results.addAll(
-          con.getClient()
-              .execute(
-                  new QueryPacket(batchQueries.get(i)),
-                  this,
-                  0,
-                  0L,
-                  ResultSet.CONCUR_READ_ONLY,
-                  ResultSet.TYPE_FORWARD_ONLY,
-                  closeOnCompletion));
+    try {
+      for (int i = 0; i < batchQueries.size(); i++) {
+        results.addAll(
+            con.getClient()
+                .execute(
+                    new QueryPacket(batchQueries.get(i)),
+                    this,
+                    0,
+                    0L,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion));
+      }
+      return results;
+    } catch (SQLException sqle) {
+      int[] updateCounts = new int[batchQueries.size()];
+      for (int i = 0; i < Math.min(results.size(), updateCounts.length); i++) {
+        Completion completion = results.get(i);
+        updateCounts[i] =
+            completion instanceof OkPacket ? (int) ((OkPacket) completion).getAffectedRows() : 0;
+      }
+      throw new BatchUpdateException(sqle.getMessage(), updateCounts, sqle);
     }
-    return results;
   }
 }

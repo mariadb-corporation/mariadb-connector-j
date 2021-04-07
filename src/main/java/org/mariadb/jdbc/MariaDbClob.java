@@ -153,7 +153,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
         pos += 2;
       } else if (byteValue < 0xF0) {
         pos += 3;
-      } else if (byteValue < 0xF8) {
+      } else {
         pos += 4;
       }
     }
@@ -207,7 +207,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     int pos = offset;
 
     // set ASCII (<= 127 chars)
-    while (len < length && data[pos] >= 0) {
+    while (len < length && data[pos] > 0) {
       len++;
       pos++;
     }
@@ -216,6 +216,10 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     while (pos < offset + length) {
       byte firstByte = data[pos++];
       if (firstByte < 0) {
+        System.out.println(firstByte);
+        System.out.println(firstByte >> 4);
+        System.out.println(firstByte >> 5);
+        System.out.println(firstByte & 30);
         if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
           if (firstByte >> 4 == -2) {
             if (pos + 1 < offset + length) {
@@ -265,6 +269,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
       byte firstByte = data[pos++];
       if (firstByte < 0) {
         if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
+          System.out.println(firstByte >> 4 );
           if (firstByte >> 4 == -2) {
             if (pos + 1 < offset + length) {
               pos += 2;

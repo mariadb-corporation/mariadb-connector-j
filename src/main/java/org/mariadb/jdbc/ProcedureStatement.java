@@ -62,13 +62,13 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
   protected void handleParameterOutput() throws SQLException {
     // output result-set is the last result-set
     // or in case finishing with an OK_PACKET, just the one before
-    for (int i = 1; i <= 2; i++) {
+    for (int i = 1; i <= Math.min(this.results.size(), 2); i++) {
       Completion compl = this.results.get(this.results.size() - i);
       if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
         this.outputResult = (Result) compl;
+        this.outputResult.next();
         this.results.remove(this.results.size() - i);
       }
     }
-    this.outputResult.next();
   }
 }

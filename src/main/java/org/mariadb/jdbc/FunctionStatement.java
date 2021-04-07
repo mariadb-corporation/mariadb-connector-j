@@ -30,7 +30,6 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   public FunctionStatement(
       Connection con,
-      MariaDbPoolConnection poolConnection,
       String databaseName,
       String procedureName,
       String arguments,
@@ -41,7 +40,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
       int resultSetConcurrency)
       throws SQLException {
     super(
-        "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
+        "SELECT " + procedureName + arguments,
         con,
         lock,
         databaseName,

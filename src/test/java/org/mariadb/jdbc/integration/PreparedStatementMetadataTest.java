@@ -48,6 +48,8 @@ public class PreparedStatementMetadataTest extends Common {
     try (PreparedStatement prep = conn.prepareStatement("SELECT * FROM prepareMeta")) {
       ResultSetMetaData meta = prep.getMetaData();
       assertEquals(2, meta.getColumnCount());
+      meta = prep.getMetaData();
+      assertEquals(2, meta.getColumnCount());
     }
   }
 }

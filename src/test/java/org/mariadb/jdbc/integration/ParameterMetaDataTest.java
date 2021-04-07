@@ -64,12 +64,14 @@ public class ParameterMetaDataTest extends Common {
     try (PreparedStatement prepStmt = con.prepareStatement(query)) {
       ParameterMetaData parameterMetaData = prepStmt.getParameterMetaData();
       assertEquals(2, parameterMetaData.getParameterCount());
-      try {
-        parameterMetaData.getParameterType(1);
-        fail("must have thrown an error");
-      } catch (SQLException sqle) {
-        assertTrue(sqle instanceof SQLFeatureNotSupportedException);
-      }
+      assertThrowsContains(
+          SQLException.class,
+          () -> parameterMetaData.getParameterType(1),
+          "Getting parameter type metadata are not supported");
+      assertThrowsContains(
+          SQLException.class, () -> parameterMetaData.isNullable(-1), "Wrong index position");
+      assertThrowsContains(
+          SQLException.class, () -> parameterMetaData.isNullable(3), "Wrong index position");
     }
   }
 

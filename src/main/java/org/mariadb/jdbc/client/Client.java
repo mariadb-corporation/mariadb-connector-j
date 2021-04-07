@@ -77,6 +77,8 @@ public interface Client extends AutoCloseable {
 
   void setReadOnly(boolean readOnly) throws SQLException;
 
+  int getWaitTimeout();
+
   int getSocketTimeout();
 
   void setSocketTimeout(int milliseconds) throws SQLException;

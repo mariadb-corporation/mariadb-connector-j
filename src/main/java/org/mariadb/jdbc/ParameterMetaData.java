@@ -44,11 +44,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int isNullable(int idx) throws SQLException {
     checkIndex(idx);
-    if (params[idx - 1].isNullable()) {
-      return java.sql.ParameterMetaData.parameterNullable;
-    } else {
-      return java.sql.ParameterMetaData.parameterNoNulls;
-    }
+    return java.sql.ParameterMetaData.parameterNullable;
   }
 
   /**

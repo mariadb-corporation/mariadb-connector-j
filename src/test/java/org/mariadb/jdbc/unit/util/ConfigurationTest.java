@@ -71,7 +71,7 @@ public class ConfigurationTest extends Common {
     Configuration conf =
         new Configuration.Builder()
             .database("DB")
-            .addresses("local", 3306, true)
+            .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .build();
     assertEquals(
@@ -100,7 +100,7 @@ public class ConfigurationTest extends Common {
     conf =
         new Configuration.Builder()
             .database("DB")
-            .addresses("local", 3306, true)
+            .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .socketTimeout(50)
             .build();
@@ -111,7 +111,33 @@ public class ConfigurationTest extends Common {
     conf =
         new Configuration.Builder()
             .database("DB")
-            .addresses("local", 3306, true)
+            .addHost("local", 3306)
+            .addHost("local", 3307)
+            .addHost("local", 3308)
+            .haMode(HaMode.REPLICATION)
+            .socketTimeout(50)
+            .build();
+    assertEquals(
+        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary),address=(host=local)(port=3307)(type=replica),address=(host=local)(port=3308)(type=replica)/DB?socketTimeout=50",
+        conf.initialUrl());
+
+    conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addHost("local", 3306)
+            .addHost("local", 3307)
+            .addHost("local", 3308)
+            .haMode(HaMode.LOADBALANCE)
+            .socketTimeout(50)
+            .build();
+    assertEquals(
+        "jdbc:mariadb:loadbalance://address=(host=local)(port=3306)(type=primary),address=(host=local)(port=3307)(type=primary),address=(host=local)(port=3308)(type=primary)/DB?socketTimeout=50",
+        conf.initialUrl());
+
+    conf =
+        new Configuration.Builder()
+            .database("DB")
+            .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .autocommit(false)
             .build();
@@ -429,6 +455,52 @@ public class ConfigurationTest extends Common {
     assertEquals(HostAddress.from("master1", 3306, true), conf.addresses().get(0));
     assertEquals(HostAddress.from("master2", 3307, true), conf.addresses().get(1));
     assertEquals(HostAddress.from("slave1", 3308, false), conf.addresses().get(2));
+
+    url =
+        "jdbc:mariadb://address=(port=3306)(host=master1),address=(port=3307)"
+            + "(host=master2),address=(host=master3)(port=3308)/database?user=greg&password=pass";
+    conf = org.mariadb.jdbc.Configuration.parse(url);
+    assertEquals("database", conf.database());
+    assertEquals("greg", conf.user());
+    assertEquals("pass", conf.password());
+    assertEquals(3, conf.addresses().size());
+    assertEquals(HostAddress.from("master1", 3306, true), conf.addresses().get(0));
+    assertEquals(HostAddress.from("master2", 3307, true), conf.addresses().get(1));
+    assertEquals(HostAddress.from("master3", 3308, true), conf.addresses().get(2));
+
+    url =
+        "jdbc:mariadb:replication://address=(port=3306)(host=master1),address=(port=3307)"
+            + "(host=slave1),address=(host=slave2)(port=3308)/database?user=greg&password=pass";
+    conf = org.mariadb.jdbc.Configuration.parse(url);
+    assertEquals("database", conf.database());
+    assertEquals("greg", conf.user());
+    assertEquals("pass", conf.password());
+    assertEquals(3, conf.addresses().size());
+    assertEquals(HostAddress.from("master1", 3306, true), conf.addresses().get(0));
+    assertEquals(HostAddress.from("slave1", 3307, false), conf.addresses().get(1));
+    assertEquals(HostAddress.from("slave2", 3308, false), conf.addresses().get(2));
+  }
+
+  @Test
+  public void address() {
+    assertEquals("address=(host=test)(port=3306)", HostAddress.from("test", 3306).toString());
+    assertEquals(
+        "address=(host=test)(port=3306)(type=replica)",
+        HostAddress.from("test", 3306, false).toString());
+    assertEquals(
+        "address=(host=test)(port=3306)(type=primary)",
+        HostAddress.from("test", 3306, true).toString());
+  }
+
+  @Test
+  public void equal() {
+    HostAddress host = HostAddress.from("test", 3306);
+    assertEquals(host, host);
+    assertEquals(HostAddress.from("test", 3306), host);
+    assertNotEquals("", host);
+
+    assertNotEquals(HostAddress.from("test", 3306, true), host);
+    assertNotEquals(HostAddress.from("test", 3306, false), host);
   }
 
   @Test

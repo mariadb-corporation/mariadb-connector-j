@@ -32,6 +32,9 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbBlob;
@@ -40,10 +43,35 @@ import org.mariadb.jdbc.Statement;
 
 public class ProcedureTest extends Common {
 
+  @AfterAll
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS procedure_test");
+  }
+
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    drop();
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE procedure_test (t0 int)");
+  }
+
   @Test
   public void wrongCall() throws SQLException {
     assertThrowsContains(
         SQLException.class, () -> sharedConn.prepareCall("SELECT ?"), "invalid callable syntax");
+  }
+
+  @Test
+  public void prepInsert() throws SQLException {
+    Statement st = sharedConn.createStatement();
+    st.execute("DROP PROCEDURE IF EXISTS prep_proc2");
+    st.execute("CREATE PROCEDURE prep_proc2 (IN t1 INT) BEGIN \n" + "INSERT INTO procedure_test(t0) VALUE (t1);\n" + "END");
+
+    try (PreparedStatement stmt = sharedConn.prepareCall("CALL prep_proc2(?)")) {
+      stmt.setInt(1, 1);
+      stmt.execute();
+    }
   }
 
   @Test
@@ -89,6 +117,7 @@ public class ProcedureTest extends Common {
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
         "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT, OUT t5 VARCHAR(20), OUT t6 TIMESTAMP, OUT t7 blob) BEGIN \n"
+            + "SELECT 1;\n"
             + "set t3 = t1 * t4;\n"
             + "set t2 = t2 * t1;\n"
             + "set t5 = 'http://test';\n"
@@ -111,6 +140,10 @@ public class ProcedureTest extends Common {
       callableStatement.registerOutParameter(6, JDBCType.TIMESTAMP);
       callableStatement.registerOutParameter(7, JDBCType.TIMESTAMP);
       checkResults(callableStatement);
+      ParameterMetaData meta = callableStatement.getParameterMetaData();
+
+      assertEquals("INT", meta.getParameterTypeName(1));
+      assertEquals("VARCHAR", meta.getParameterTypeName(5));
 
       callableStatement.registerOutParameter(2, Types.INTEGER);
       callableStatement.registerOutParameter(3, Types.INTEGER);

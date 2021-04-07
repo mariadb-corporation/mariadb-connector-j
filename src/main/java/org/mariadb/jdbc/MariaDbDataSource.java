@@ -70,12 +70,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
-    try {
-      Configuration conf = this.conf.clone(username, password);
-      return Driver.connect(conf);
-    } catch (CloneNotSupportedException cloneNotSupportedException) {
-      throw new SQLException(cloneNotSupportedException);
-    }
+    Configuration conf = this.conf.clone(username, password);
+    return Driver.connect(conf);
   }
 
   /**
@@ -191,12 +187,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
-    try {
-      Configuration conf = this.conf.clone(username, password);
-      org.mariadb.jdbc.Connection connection = Driver.connect(conf);
-      return new MariaDbPoolConnection(connection);
-    } catch (CloneNotSupportedException cloneNotSupportedException) {
-      throw new SQLException(cloneNotSupportedException);
-    }
+    Configuration conf = this.conf.clone(username, password);
+    org.mariadb.jdbc.Connection connection = Driver.connect(conf);
+    return new MariaDbPoolConnection(connection);
   }
 }
