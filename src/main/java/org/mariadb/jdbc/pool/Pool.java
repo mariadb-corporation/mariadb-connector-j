@@ -269,10 +269,6 @@ public class Pool implements AutoCloseable, PoolMBean {
     silentCloseConnection(connection);
   }
 
-  private InternalPoolConnection getIdleConnection() throws InterruptedException {
-    return getIdleConnection(0, TimeUnit.NANOSECONDS);
-  }
-
   /**
    * Get an existing idle connection in pool.
    *

@@ -39,10 +39,13 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
+import javax.sql.PooledConnection;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.tls.HostnameVerifierImpl;
 import org.slf4j.LoggerFactory;
@@ -51,6 +54,7 @@ public class LoggingTest extends Common {
 
   @Test
   void basicLogging() throws Exception {
+    Assumptions.assumeTrue(isMariaDBServer());
     File tempFile = File.createTempFile("log", ".tmp");
 
     Logger logger = (Logger) LoggerFactory.getLogger("org.mariadb.jdbc");
@@ -84,9 +88,17 @@ public class LoggingTest extends Common {
       Statement stmt = conn.createStatement();
       stmt.execute("SELECT 1");
     }
+
+    MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(
+            mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMinRemovalDelay=2");
+    Thread.sleep(4000);
+    PooledConnection pc = ds.getPooledConnection();
+    pc.getConnection().isValid(1);
+    pc.close();
+    ds.close();
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      System.out.println(contents);
       String defaultRequest =
           "+--------------------------------------------------+\n"
               + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
@@ -109,7 +121,8 @@ public class LoggingTest extends Common {
       if (!"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv"))) {
         Assertions.assertTrue(
             contents.contains(defaultRequest)
-                || contents.contains(defaultRequest.replace("\r\n", "\n")));
+                || contents.contains(defaultRequest.replace("\r\n", "\n")),
+            contents);
       }
       String selectOne =
           "+--------------------------------------------------+\n"
@@ -118,7 +131,8 @@ public class LoggingTest extends Common {
               + "| 09 00 00 00 03 53 45 4C  45 43 54 20 31          | .....SELECT 1    |\n"
               + "+--------------------------------------------------+------------------+\n";
       Assertions.assertTrue(
-          contents.contains(selectOne) || contents.contains(selectOne.replace("\r\n", "\n")));
+          contents.contains(selectOne) || contents.contains(selectOne.replace("\r\n", "\n")),
+          contents);
       String rowResult =
           "+--------------------------------------------------+\n"
               + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
@@ -134,11 +148,21 @@ public class LoggingTest extends Common {
       if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
         Assertions.assertTrue(
             contents.contains(rowResultWithEof)
-                || contents.contains(rowResultWithEof.replace("\r\n", "\n")));
+                || contents.contains(rowResultWithEof.replace("\r\n", "\n")),
+            contents);
       } else {
         Assertions.assertTrue(
-            contents.contains(rowResult) || contents.contains(rowResult.replace("\r\n", "\n")));
+            contents.contains(rowResult) || contents.contains(rowResult.replace("\r\n", "\n")),
+            contents);
       }
+
+      Assertions.assertTrue(
+          contents.contains(
+              "pool MariaDB-pool new physical connection created (total:1, active:0, pending:0)"),
+          contents);
+      Assertions.assertTrue(
+          contents.contains("pool MariaDB-pool connection removed due to inactivity"), contents);
+
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
     } catch (IOException e) {

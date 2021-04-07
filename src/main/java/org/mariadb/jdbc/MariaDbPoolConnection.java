@@ -11,6 +11,7 @@ public class MariaDbPoolConnection implements PooledConnection {
   private final Connection connection;
   private final List<ConnectionEventListener> connectionEventListeners;
   private final List<StatementEventListener> statementEventListeners;
+
   /**
    * Constructor.
    *

@@ -179,7 +179,9 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void testResetUserVariable() throws SQLException {
     testResetUserVariable(false);
+    testResetUserVariable(false);
     if (isMariaDBServer() && minVersion(10, 2, 0)) {
+      testResetUserVariable(true);
       testResetUserVariable(true);
     }
   }
@@ -188,7 +190,6 @@ public class PoolDataSourceTest extends Common {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
             mDefUrl + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
-      long nowMillis;
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         assertNull(getUserVariableStr(statement));

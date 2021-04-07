@@ -1,7 +1,6 @@
 package org.mariadb.jdbc.pool;
 
 import java.sql.SQLException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.sql.*;
 import org.mariadb.jdbc.Connection;
@@ -21,16 +20,6 @@ public class InternalPoolConnection extends MariaDbPoolConnection {
   }
 
   public void close() throws SQLException {
-    fireConnectionClosed(new ConnectionEvent(this));
-  }
-
-  /**
-   * Abort connection.
-   *
-   * @param executor executor
-   * @throws SQLException if a database access error occurs
-   */
-  public void abort(Executor executor) throws SQLException {
     fireConnectionClosed(new ConnectionEvent(this));
   }
 

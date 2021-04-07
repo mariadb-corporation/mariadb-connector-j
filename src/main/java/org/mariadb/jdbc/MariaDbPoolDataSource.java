@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.logging.Logger;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
-import javax.sql.PooledConnection;
+import org.mariadb.jdbc.pool.InternalPoolConnection;
 import org.mariadb.jdbc.pool.Pool;
 import org.mariadb.jdbc.pool.Pools;
 
@@ -185,12 +185,12 @@ public class MariaDbPoolDataSource
   }
 
   @Override
-  public PooledConnection getPooledConnection() throws SQLException {
+  public InternalPoolConnection getPooledConnection() throws SQLException {
     return pool.getPoolConnection();
   }
 
   @Override
-  public PooledConnection getPooledConnection(String username, String password)
+  public InternalPoolConnection getPooledConnection(String username, String password)
       throws SQLException {
     return pool.getPoolConnection(username, password);
   }
@@ -202,6 +202,7 @@ public class MariaDbPoolDataSource
     } catch (Exception interrupted) {
       // eat
     }
+    Pools.remove(pool);
   }
 
   public String getPoolName() {
