@@ -65,6 +65,14 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
   }
 
   @Override
+  public void registerOutParameter(int index, int sqlType) throws SQLException {
+    if (index <= 0 || index > 1) {
+      throw exceptionFactory().create(String.format("wrong parameter index %s", index));
+    }
+    super.registerOutParameter(index, sqlType);
+  }
+
+  @Override
   protected void validParameters() throws SQLException {
     // remove first parameter, as it's an output param only
     ParameterList newParameters = new ParameterList(parameters.size() - 1);

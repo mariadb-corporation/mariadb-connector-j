@@ -55,7 +55,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
 
   @Override
   public boolean isFunction() {
-    return true;
+    return false;
   }
 
   @Override

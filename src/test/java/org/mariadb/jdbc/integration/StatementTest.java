@@ -106,7 +106,6 @@ public class StatementTest extends Common {
     stmt.close();
   }
 
-
   @Test
   public void executeGenerated() throws SQLException {
     Statement stmt = sharedConn.createStatement();

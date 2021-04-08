@@ -227,15 +227,16 @@ public class ClobTest extends Common {
         new byte[] {0x07, (byte) 0x0a, (byte) 0xff, (byte) 0x6F, (byte) 0x6F};
     final byte[] utf8Wrong4bytes =
         new byte[] {0x10, (byte) 0x20, (byte) 0x0a, (byte) 0xff, (byte) 0x6F, (byte) 0x6F};
+    final byte[] utf8Wrong4bytes2 = new byte[] {-16, (byte) -97, (byte) -103};
 
     assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong2bytes).length(),
         "invalid UTF8");
     assertThrowsContains(
-            UncheckedIOException.class,
-            () -> new MariaDbClob(new byte[] {(byte)225}).length(),
-            "invalid UTF8");
+        UncheckedIOException.class,
+        () -> new MariaDbClob(new byte[] {(byte) 225}).length(),
+        "invalid UTF8");
 
     assertThrowsContains(
         UncheckedIOException.class,
@@ -246,9 +247,9 @@ public class ClobTest extends Common {
         () -> new MariaDbClob(utf8Wrong4bytes).length(),
         "invalid UTF8");
     assertThrowsContains(
-            UncheckedIOException.class,
-            () -> new MariaDbClob(new byte[] {(byte)225}).truncate(2),
-            "invalid UTF8");
+        UncheckedIOException.class,
+        () -> new MariaDbClob(new byte[] {(byte) 225}).truncate(2),
+        "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong2bytes).truncate(2),
@@ -259,7 +260,7 @@ public class ClobTest extends Common {
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong4bytes).truncate(4),
+        () -> new MariaDbClob(utf8Wrong4bytes2).truncate(4),
         "invalid UTF8");
   }
 
@@ -415,6 +416,7 @@ public class ClobTest extends Common {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(clob, clob);
     assertEquals(new MariaDbClob(bytes), clob);
+    assertNotEquals(null, clob);
     assertNotEquals("", clob);
     byte[] bytes = "Abc£de🙏fgh".getBytes(StandardCharsets.UTF_8);
     assertNotEquals(new MariaDbClob(bytes), clob);

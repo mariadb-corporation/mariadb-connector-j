@@ -60,20 +60,15 @@ public class PoolDataSourceTest extends Common {
       useOldNotation = false;
     }
     Statement stmt = sharedConn.createStatement();
-    String host = "localhost".equals(hostname) ? "localhost" : "%";
     if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'" + host + "'");
+      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
       stmt.execute(
           "GRANT SELECT ON "
               + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'"
-              + host
-              + "' IDENTIFIED BY '!Passw0rd3Works'");
+              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
     } else {
-      stmt.execute(
-          "CREATE USER IF NOT EXISTS 'poolUser'@'" + host + "' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute(
-          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'" + host + "'");
+      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
     }
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");

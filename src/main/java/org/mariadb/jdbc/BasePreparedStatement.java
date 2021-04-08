@@ -70,7 +70,6 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   public ColumnDefinitionPacket[] getMeta() {
-    assert this.prepareResult != null;
     return this.prepareResult.getColumns();
   }
 

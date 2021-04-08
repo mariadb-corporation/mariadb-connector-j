@@ -124,7 +124,7 @@ public class HostAddress {
     int port = 3306;
     Boolean primary = null;
 
-    String[] array = str.split("(?=\\()|(?<=\\))");
+    String[] array = str.replace(" ", "").split("(?=\\()|(?<=\\))");
     for (int i = 1; i < array.length; i++) {
       String[] token = array[i].replace("(", "").replace(")", "").trim().split("=");
       if (token.length != 2) {

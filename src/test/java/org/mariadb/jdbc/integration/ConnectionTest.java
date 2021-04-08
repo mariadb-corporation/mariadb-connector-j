@@ -576,6 +576,7 @@ public class ConnectionTest extends Common {
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
       stmt.executeUpdate("INSERT INTO spt values('hej6')");
       con.commit();
+      con.commit();
       ResultSet rs = stmt.executeQuery("SELECT * FROM spt");
       assertTrue(rs.next());
       assertEquals("hej1", rs.getString(1));

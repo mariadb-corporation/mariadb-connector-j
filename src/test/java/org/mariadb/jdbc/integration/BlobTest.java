@@ -325,6 +325,7 @@ public class BlobTest extends Common {
   public void equal() {
     MariaDbBlob blob = new MariaDbBlob(bytes);
     assertEquals(blob, blob);
+    assertNotEquals(null, blob);
     assertEquals(new MariaDbBlob(bytes), blob);
     assertNotEquals("", blob);
     byte[] bytes = new byte[] {5, 1, 2, 3, 4, 5};

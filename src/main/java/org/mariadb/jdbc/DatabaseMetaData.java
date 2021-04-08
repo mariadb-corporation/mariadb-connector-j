@@ -163,16 +163,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @return escaped string.
    */
   public static String escapeString(String value, boolean noBackslashEscapes) {
-    if (!value.contains("'")) {
-      if (noBackslashEscapes) {
-        return value;
-      }
-      if (!value.contains("\\")) {
-        return value;
-      }
+    if (noBackslashEscapes) {
+      return value.replace("'", "''");
     }
-    String escaped = value.replace("'", "''");
-    return (noBackslashEscapes) ? escaped : escaped.replace("\\", "\\\\");
+    return value
+        .replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace("\0", "\\0")
+        .replace("\"", "\\\"");
   }
 
   private int parseIdentifierList(char[] part, int startPos, List<Identifier> list)
@@ -254,9 +252,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       pos = parseIdentifier(partChar, pos, pkTable);
       List<Identifier> primaryKeyCols = new ArrayList<>();
       parseIdentifierList(partChar, pos, primaryKeyCols);
-      if (primaryKeyCols.size() != foreignKeyCols.size()) {
-        throw new ParseException(tableDef, 0);
-      }
+
       int onUpdateReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
       int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
 
@@ -530,7 +526,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     }
     String predicate =
         (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1) ? "=" : "LIKE";
-    return " AND " + columnName + " " + predicate + " '" + escapeString(tableName, true) + "' ";
+    return " AND "
+        + columnName
+        + " "
+        + predicate
+        + " '"
+        + escapeString(
+            tableName,
+            (connection.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0)
+        + "' ";
   }
 
   /**
@@ -632,19 +636,21 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + patternCond("TABLE_NAME", tableNamePattern));
 
     if (types != null && types.length > 0) {
-      sql.append(" AND TABLE_TYPE IN (");
+      boolean mustAddType = false;
+      StringBuilder sqlType = new StringBuilder(" AND TABLE_TYPE IN (");
       for (int i = 0; i < types.length; i++) {
+        if (mustAddType == true) sqlType.append(",");
+        mustAddType = true;
         if (types[i] == null) {
+          mustAddType = false;
           continue;
         }
         String type =
             "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(types[i]);
-        if (i == types.length - 1) {
-          sql.append(type).append(")");
-        } else {
-          sql.append(type).append(",");
-        }
+        sqlType.append(type);
       }
+      sqlType.append(")");
+      if (mustAddType) sql.append(sqlType);
     }
 
     sql.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
@@ -904,7 +910,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
             + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
             + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-            + " CASE update_rule "
+            + " CASE UPDATE_RULE "
             + "   WHEN 'RESTRICT' THEN 1"
             + "   WHEN 'NO ACTION' THEN 3"
             + "   WHEN 'CASCADE' THEN 0"
@@ -951,11 +957,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             .createStatement()
             .executeQuery(
                 "SHOW CREATE TABLE " + quoteIdentifier(catalog) + "." + quoteIdentifier(table));
-    if (rs.next()) {
-      String tableDef = rs.getString(2);
-      return getImportedKeys(tableDef, table, catalog, connection);
-    }
-    throw new SQLException("Fail to retrieve table information using SHOW CREATE TABLE");
+    rs.next();
+    String tableDef = rs.getString(2);
+    return getImportedKeys(tableDef, table, catalog, connection);
   }
 
   /**
@@ -1148,7 +1152,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean nullsAreSortedLow() {
-    return !nullsAreSortedHigh();
+    return true;
   }
 
   public boolean nullsAreSortedAtStart() {
@@ -1156,7 +1160,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean nullsAreSortedAtEnd() {
-    return !nullsAreSortedAtStart();
+    return true;
   }
 
   /**

@@ -62,8 +62,6 @@ public class Pool implements AutoCloseable, PoolMBean {
   private final ScheduledThreadPoolExecutor poolExecutor;
   private final ScheduledFuture<?> scheduledFuture;
 
-  private int maxIdleTime;
-
   /**
    * Create pool from configuration.
    *
@@ -74,7 +72,6 @@ public class Pool implements AutoCloseable, PoolMBean {
   public Pool(Configuration conf, int poolIndex, ScheduledThreadPoolExecutor poolExecutor) {
 
     this.conf = conf;
-    this.maxIdleTime = conf.maxIdleTime() == null ? 600 : conf.maxIdleTime().intValue();
     poolTag = generatePoolTag(poolIndex);
 
     // one thread to add new connection to pool.
@@ -94,7 +91,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     idleConnections = new LinkedBlockingDeque<>();
     int minDelay =
         Integer.parseInt(conf.nonMappedOptions().getProperty("testMinRemovalDelay", "30"));
-    int scheduleDelay = Math.min(minDelay, maxIdleTime / 2);
+    int scheduleDelay = Math.min(minDelay, conf.maxIdleTime() / 2);
     this.poolExecutor = poolExecutor;
     scheduledFuture =
         poolExecutor.scheduleAtFixedRate(
@@ -156,7 +153,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       item = iterator.next();
 
       long idleTime = System.nanoTime() - item.getLastUsed().get();
-      boolean timedOut = idleTime > TimeUnit.SECONDS.toNanos(maxIdleTime);
+      boolean timedOut = idleTime > TimeUnit.SECONDS.toNanos(conf.maxIdleTime());
 
       boolean shouldBeReleased = false;
       Connection con = item.getConnection();
@@ -488,7 +485,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       for (InternalPoolConnection item : collection) {
         collection.remove(item);
         totalConnection.decrementAndGet();
-        silentCloseConnection(item.getConnection());
+        silentAbortConnection(item.getConnection());
       }
     }
   }

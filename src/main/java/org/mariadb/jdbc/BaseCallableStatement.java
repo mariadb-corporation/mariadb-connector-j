@@ -2592,9 +2592,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    */
   @Override
   public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
-    checkIndex(parameterIndex);
-    outputParameters.add(parameterIndex);
-    parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
+    registerOutParameter(parameterIndex, 0);
   }
 
   /**
@@ -2788,7 +2786,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     prep.setString(1, procedureName);
     prep.setString(2, databaseName);
     ResultSet rs = prep.executeQuery();
-    parameterMetaData = new CallableParameterMetaData(rs);
+    parameterMetaData = new CallableParameterMetaData(rs, isFunction());
     return parameterMetaData;
   }
 }

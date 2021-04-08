@@ -202,7 +202,6 @@ public class MariaDbPoolDataSource
     } catch (Exception interrupted) {
       // eat
     }
-    Pools.remove(pool);
   }
 
   public String getPoolName() {

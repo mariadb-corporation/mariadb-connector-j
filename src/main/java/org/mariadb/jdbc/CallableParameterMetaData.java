@@ -8,12 +8,14 @@ import java.util.Locale;
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   private final ResultSet rs;
   private final int parameterCount;
+  private final boolean isFunction;
 
-  public CallableParameterMetaData(ResultSet rs) throws SQLException {
+  public CallableParameterMetaData(ResultSet rs, boolean isFunction) throws SQLException {
     this.rs = rs;
     int count = 0;
     while (rs.next()) count++;
     this.parameterCount = count;
+    this.isFunction = isFunction;
   }
 
   /**
@@ -274,10 +276,8 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getParameterMode(int index) throws SQLException {
     setIndex(index);
+    if (isFunction) return ParameterMetaData.parameterModeOut;
     String str = rs.getString("PARAMETER_MODE");
-    if (str == null) {
-      return ParameterMetaData.parameterModeUnknown;
-    }
     switch (str) {
       case "IN":
         return ParameterMetaData.parameterModeIn;

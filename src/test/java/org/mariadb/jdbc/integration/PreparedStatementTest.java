@@ -53,16 +53,6 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
-  public void execute() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
-      execute(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts")) {
-      execute(con);
-    }
-  }
-
-  @Test
   public void prep() throws SQLException {
     try (PreparedStatement stmt = sharedConn.prepareStatement("SELECT ?")) {
       assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
@@ -94,6 +84,16 @@ public class PreparedStatementTest extends Common {
     }
   }
 
+  @Test
+  public void execute() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts=false")) {
+      execute(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts")) {
+      execute(con);
+    }
+  }
+
   private void execute(Connection conn) throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("TRUNCATE prepare1");
@@ -103,8 +103,9 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       assertFalse(preparedStatement.execute());
 
-
       ParameterMetaData paramMeta = preparedStatement.getParameterMetaData();
+      paramMeta.getParameterTypeName(1);
+      paramMeta = preparedStatement.getParameterMetaData();
       paramMeta.getParameterTypeName(1);
 
       // verification
@@ -163,7 +164,7 @@ public class PreparedStatementTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
     try (PreparedStatement preparedStatement =
-                 con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(2, 10);
       assertThrowsContains(
           SQLException.class,
@@ -314,14 +315,14 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatch() throws SQLException {
-//    executeBatch(sharedConn);
+    //    executeBatch(sharedConn);
     executeBatch(sharedConnBinary);
-//    try (Connection con = createCon("allowLocalInfile=true")) {
-//      executeBatch(con);
-//    }
-//    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
-//      executeBatch(con);
-//    }
+    //    try (Connection con = createCon("allowLocalInfile=true")) {
+    //      executeBatch(con);
+    //    }
+    //    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
+    //      executeBatch(con);
+    //    }
   }
 
   private void executeBatch(Connection con) throws SQLException {
@@ -331,7 +332,7 @@ public class PreparedStatementTest extends Common {
         con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
 
       try (PreparedStatement preparedStatement2 =
-                   con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+          con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
         preparedStatement2.setInt(1, 15);
         preparedStatement2.setInt(2, 110);
         preparedStatement2.addBatch();
@@ -348,7 +349,6 @@ public class PreparedStatementTest extends Common {
       res = preparedStatement.executeBatch();
       assertEquals(0, res.length);
     }
-
 
     try (PreparedStatement preparedStatement =
         con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
@@ -855,6 +855,53 @@ public class PreparedStatementTest extends Common {
       prep.setQueryTimeout(0);
       prep.setQueryTimeout(0);
     }
+  }
+
+  @Test
+  public void largeMaxRowsBatch() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts=false")) {
+      largeMaxRowsBatch(con);
+    }
+    try (Connection con = createCon("&useServerPrepStmts")) {
+      largeMaxRowsBatch(con);
+    }
+  }
+
+  private void prepareInsert(PreparedStatement prep) throws SQLException {
+    prep.setInt(1, 0);
+    prep.addBatch();
+    prep.setInt(1, 1);
+    prep.addBatch();
+    prep.executeBatch();
+  }
+
+  private void largeMaxRowsBatch(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS large_max_rows_batch");
+    stmt.setFetchSize(3);
+    stmt.execute("CREATE TABLE large_max_rows_batch(id int)");
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO large_max_rows_batch(id) VALUE (?)")) {
+      prepareInsert(prep);
+
+      prep.setMaxRows(1);
+      prepareInsert(prep);
+
+      prep.setQueryTimeout(1);
+      prepareInsert(prep);
+
+      prep.setMaxRows(0);
+      prepareInsert(prep);
+
+      prep.setLargeMaxRows(2);
+      prepareInsert(prep);
+
+      prep.setQueryTimeout(0);
+      prepareInsert(prep);
+    }
+    ResultSet rs = stmt.executeQuery("SELECT count(*) FROM large_max_rows_batch");
+    rs.next();
+    assertEquals(12, rs.getInt(1));
   }
 
   @Test

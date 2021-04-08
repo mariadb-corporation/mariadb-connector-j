@@ -256,6 +256,7 @@ public class BatchTest extends Common {
         assertEquals(nb + 1, updateCounts.length);
       }
       con.rollback();
+      con.rollback();
     }
   }
 

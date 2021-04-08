@@ -43,6 +43,17 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
+  public void testParseProps() throws SQLException {
+    Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test", null);
+    assertEquals(0, conf.socketTimeout());
+
+    Properties props = new Properties();
+    props.setProperty("socketTimeout", "50");
+    conf = Configuration.parse("jdbc:mariadb://localhost/test", props);
+    assertEquals(50, conf.socketTimeout());
+  }
+
+  @Test
   public void testWrongHostFormat() {
     assertThrowsContains(
         SQLException.class,
@@ -53,11 +64,26 @@ public class ConfigurationTest extends Common {
   @Test
   public void testNoAdditionalPart() throws SQLException {
     assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/").database());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/").user());
+    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/?socketTimeout=50").user());
     assertEquals(null, Configuration.parse("jdbc:mariadb://localhost").database());
     assertEquals(null, Configuration.parse("jdbc:mariadb://localhost").user());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost?").database());
+    assertEquals(
+        50,
+        Configuration.parse("jdbc:mariadb://localhost?socketTimeout=50&file=/tmp/test")
+            .socketTimeout());
     assertEquals(null, Configuration.parse("jdbc:mariadb://localhost?").user());
+  }
+
+  @Test
+  public void testAliases() throws SQLException {
+    assertEquals(
+        "someCipher",
+        Configuration.parse("jdbc:mariadb://localhost/?enabledSSLCipherSuites=someCipher")
+            .enabledSslCipherSuites());
+    assertEquals(
+        "/tmp/path",
+        Configuration.parse("jdbc:mariadb://localhost/?serverRSAPublicKeyFile=/tmp/path")
+            .serverRsaPublicKeyFile());
   }
 
   @Test
@@ -233,6 +259,11 @@ public class ConfigurationTest extends Common {
     assertEquals(250, conf.prepStmtCacheSize());
     assertNull(conf.user());
     assertEquals(0, conf.socketTimeout());
+    int initialLoginTimeout = DriverManager.getLoginTimeout();
+    DriverManager.setLoginTimeout(60);
+    conf = Configuration.parse("jdbc:mariadb://localhost/test");
+    assertEquals(60_000, conf.connectTimeout());
+    DriverManager.setLoginTimeout(initialLoginTimeout);
   }
 
   @Test
@@ -428,32 +459,34 @@ public class ConfigurationTest extends Common {
   @Test
   public void testJdbcParserSimpleIpv6() throws SQLException {
     String url =
-        "jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306,[2001:660:7401:200::edf:bdd7]:3307"
+        "jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7],[2001:660:7401:200::edf:bdd7]:3307,[2001:660:7401:200::edf:bdd7]-test"
             + "/database?user=greg&password=pass";
     Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
     assertEquals("pass", conf.password());
-    assertEquals(2, conf.addresses().size());
+    assertEquals(3, conf.addresses().size());
     assertEquals(
         HostAddress.from("2001:0660:7401:0200:0000:0000:0edf:bdd7", 3306, true),
         conf.addresses().get(0));
     assertEquals(
         HostAddress.from("2001:660:7401:200::edf:bdd7", 3307, true), conf.addresses().get(1));
+    assertEquals(
+        HostAddress.from("2001:660:7401:200::edf:bdd7", 3306, true), conf.addresses().get(2));
   }
 
   @Test
   public void testJdbcParserParameter() throws SQLException {
     String url =
         "jdbc:mariadb://address=(type=primary)(port=3306)(host=master1),address=(port=3307)(type=primary)"
-            + "(host=master2),address=(type=replica)(host=slave1)(port=3308)/database?user=greg&password=pass";
+            + "(host=master2)(type=replica),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
     Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
     assertEquals("pass", conf.password());
     assertEquals(3, conf.addresses().size());
     assertEquals(HostAddress.from("master1", 3306, true), conf.addresses().get(0));
-    assertEquals(HostAddress.from("master2", 3307, true), conf.addresses().get(1));
+    assertEquals(HostAddress.from("master2", 3307, false), conf.addresses().get(1));
     assertEquals(HostAddress.from("slave1", 3308, false), conf.addresses().get(2));
 
     url =
@@ -470,7 +503,7 @@ public class ConfigurationTest extends Common {
 
     url =
         "jdbc:mariadb:replication://address=(port=3306)(host=master1),address=(port=3307)"
-            + "(host=slave1),address=(host=slave2)(port=3308)/database?user=greg&password=pass";
+            + "(host=slave1) ,address=(host=slave2)(port=3308)(other=5/database?user=greg&password=pass";
     conf = org.mariadb.jdbc.Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
@@ -493,18 +526,29 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void equal() {
+  public void hostAddressEqual() {
     HostAddress host = HostAddress.from("test", 3306);
     assertEquals(host, host);
+    assertNotEquals(null, host);
     assertEquals(HostAddress.from("test", 3306), host);
     assertNotEquals("", host);
-
+    assertNotEquals(HostAddress.from("test2", 3306, true), host);
     assertNotEquals(HostAddress.from("test", 3306, true), host);
     assertNotEquals(HostAddress.from("test", 3306, false), host);
   }
 
   @Test
-  public void testJdbcParserParameterErrorEqual() throws SQLException {
+  public void testJdbcParserParameterErrorEqual() {
+    String wrongIntVal = "jdbc:mariadb://localhost?socketTimeout=blabla";
+    assertThrowsContains(
+        SQLException.class,
+        () -> Configuration.parse(wrongIntVal),
+        "Optional parameter socketTimeout must be Integer, was 'blabla'");
+    String wrongBoolVal = "jdbc:mariadb://localhost?pinGlobalTxToPhysicalConnection=blabla";
+    assertThrowsContains(
+        SQLException.class,
+        () -> Configuration.parse(wrongBoolVal),
+        "Optional parameter pinGlobalTxToPhysicalConnection must be boolean (true/false or 0/1)");
     String url =
         "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=primary)"
             + "(host=master2),address=(type=replica)(host=slave1)(port=3308)/database?user=greg&password=pass";
@@ -540,11 +584,16 @@ public class ConfigurationTest extends Common {
     String url =
         "jdbc:mariadb:replication://address=(type=primary)(port=3306)(host=master1),address=(port=3307)"
             + "(type=primary)(host=master2),address=(type=replica)(host=slave1)(port=3308)/database"
-            + "?user=greg&password=pass";
+            + "?user=greg&password=pass&pinGlobalTxToPhysicalConnection&servicePrincipalName=BLA"
+            + "&allowPublicKeyRetrieval&serverRSAPublicKeyFile=/tmp/path";
     Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
     assertEquals("pass", conf.password());
+    assertEquals("BLA", conf.servicePrincipalName());
+    assertTrue(conf.pinGlobalTxToPhysicalConnection());
+    assertTrue(conf.allowPublicKeyRetrieval());
+    assertEquals("/tmp/path", conf.serverRsaPublicKeyFile());
     assertEquals(3, conf.addresses().size());
     assertEquals(HostAddress.from("master1", 3306, true), conf.addresses().get(0));
     assertEquals(HostAddress.from("master2", 3307, true), conf.addresses().get(1));
@@ -744,5 +793,15 @@ public class ConfigurationTest extends Common {
     assertEquals(
         "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&pinGlobalTxToPhysicalConnection=true&geometryDefaultType=default&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
+  }
+
+  @Test
+  public void equal() throws SQLException {
+    Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test");
+    assertEquals(conf, conf);
+    assertEquals(Configuration.parse("jdbc:mariadb://localhost/test"), conf);
+    assertNotEquals(null, conf);
+    assertNotEquals("", conf);
+    assertNotEquals(Configuration.parse("jdbc:mariadb://localhost/test2"), conf);
   }
 }

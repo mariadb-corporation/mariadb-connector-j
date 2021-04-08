@@ -123,6 +123,7 @@ public class PooledConnectionTest extends Common {
       pc = ds.getPooledConnection();
       conn = pc.getConnection();
       assertNotEquals(threadId, conn.getThreadId());
+      pc.close();
     }
   }
 

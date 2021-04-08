@@ -32,7 +32,6 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,7 +65,10 @@ public class ProcedureTest extends Common {
   public void prepInsert() throws SQLException {
     Statement st = sharedConn.createStatement();
     st.execute("DROP PROCEDURE IF EXISTS prep_proc2");
-    st.execute("CREATE PROCEDURE prep_proc2 (IN t1 INT) BEGIN \n" + "INSERT INTO procedure_test(t0) VALUE (t1);\n" + "END");
+    st.execute(
+        "CREATE PROCEDURE prep_proc2 (IN t1 INT) BEGIN \n"
+            + "INSERT INTO procedure_test(t0) VALUE (t1);\n"
+            + "END");
 
     try (PreparedStatement stmt = sharedConn.prepareCall("CALL prep_proc2(?)")) {
       stmt.setInt(1, 1);

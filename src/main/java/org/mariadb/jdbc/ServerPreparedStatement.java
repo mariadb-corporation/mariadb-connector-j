@@ -81,7 +81,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
       long serverCapabilities = con.getContext().getServerCapabilities();
-      if (prepareResult == null && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
+      if (prepareResult == null
+          && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
         try {
           executePipeline(cmd);
         } catch (BatchUpdateException b) {

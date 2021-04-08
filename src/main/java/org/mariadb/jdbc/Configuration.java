@@ -88,7 +88,7 @@ public class Configuration {
 
   // socket
   private String socketFactory = null;
-  private Integer connectTimeout =
+  private int connectTimeout =
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
@@ -144,7 +144,7 @@ public class Configuration {
   private String poolName = null;
   private int maxPoolSize = 8;
   private int minPoolSize = 8;
-  private Integer maxIdleTime = null;
+  private int maxIdleTime = 600_000;
   private boolean registerJmxPool = true;
   private int poolValidMinDelay = 1000;
   private boolean useResetConnection = false;
@@ -170,7 +170,7 @@ public class Configuration {
       boolean pinGlobalTxToPhysicalConnection,
       String geometryDefaultType,
       String socketFactory,
-      Integer connectTimeout,
+      int connectTimeout,
       String pipe,
       String localSocket,
       boolean tcpKeepAlive,
@@ -211,7 +211,7 @@ public class Configuration {
       String poolName,
       int maxPoolSize,
       int minPoolSize,
-      Integer maxIdleTime,
+      int maxIdleTime,
       boolean registerJmxPool,
       int poolValidMinDelay,
       boolean useResetConnection,
@@ -445,9 +445,9 @@ public class Configuration {
     Field[] fields = Configuration.class.getDeclaredFields();
     try {
       for (Field field : fields) {
-        if (field.getType().equals(Integer.class) || field.getType().equals(int.class)) {
-          Integer val = (Integer) field.get(this);
-          if (val != null && val < 0) {
+        if (field.getType().equals(int.class)) {
+          int val = field.getInt(this);
+          if (val < 0) {
             throw new SQLException(
                 String.format("Value for %s must be >= 1 (value is %s)", field.getName(), val));
           }
@@ -568,7 +568,7 @@ public class Configuration {
       for (final Object keyObj : properties.keySet()) {
         String realKey = OptionAliases.OPTIONS_ALIASES.get(keyObj);
         if (realKey == null) realKey = keyObj.toString();
-        final Object propertyValue = properties.get(realKey);
+        final Object propertyValue = properties.get(keyObj);
 
         if (propertyValue != null && realKey != null) {
           try {
@@ -918,11 +918,11 @@ public class Configuration {
     return maxPoolSize;
   }
 
-  public Integer minPoolSize() {
+  public int minPoolSize() {
     return minPoolSize;
   }
 
-  public Integer maxIdleTime() {
+  public int maxIdleTime() {
     return maxIdleTime;
   }
 
@@ -985,7 +985,7 @@ public class Configuration {
     Configuration defaultConf = new Configuration();
     StringBuilder sb = new StringBuilder();
     sb.append("jdbc:mariadb:");
-    if (conf.haMode != null && conf.haMode != HaMode.NONE) {
+    if (conf.haMode != HaMode.NONE) {
       sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }
     sb.append("//");
@@ -1033,21 +1033,20 @@ public class Configuration {
             first = false;
             sb.append(field.getName()).append('=');
             sb.append((String) obj);
-          } else if (field.getType().equals(Boolean.class)
-              || field.getType().equals(boolean.class)) {
-            Object defaultValue = field.get(defaultConf);
-            if (obj != null && !obj.equals(defaultValue)) {
+          } else if (field.getType().equals(boolean.class)) {
+            boolean defaultValue = field.getBoolean(defaultConf);
+            if (!obj.equals(defaultValue)) {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
               sb.append(((Boolean) obj).toString());
             }
-          } else if (field.getType().equals(Integer.class) || field.getType().equals(int.class)) {
+          } else if (field.getType().equals(int.class)) {
             try {
-              Object defaultValue = field.get(defaultConf);
-              if (obj != null && !obj.equals(defaultValue)) {
+              int defaultValue = field.getInt(defaultConf);
+              if (!obj.equals(defaultValue)) {
                 sb.append(first ? '?' : '&');
-                sb.append(field.getName()).append('=').append(obj.toString());
+                sb.append(field.getName()).append('=').append(obj);
                 first = false;
               }
             } catch (IllegalAccessException n) {
@@ -1069,7 +1068,7 @@ public class Configuration {
             }
           } else if (field.getType().equals(CredentialPlugin.class)) {
             Object defaultValue = field.get(defaultConf);
-            if (obj != null && !obj.equals(defaultValue)) {
+            if (!obj.equals(defaultValue)) {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
@@ -1077,7 +1076,7 @@ public class Configuration {
             }
           } else {
             Object defaultValue = field.get(defaultConf);
-            if (obj != null && !obj.equals(defaultValue)) {
+            if (!obj.equals(defaultValue)) {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
