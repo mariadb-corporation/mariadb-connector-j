@@ -391,8 +391,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case DECIMAL:
         return BigDecimalCodec.INSTANCE;
       case GEOMETRY:
-        if (conf.getGeometryDefaultType() != null
-            && "default".equals(conf.getGeometryDefaultType())) {
+        if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
           if (extTypeName != null) {
             switch (extTypeName) {
               case "point":

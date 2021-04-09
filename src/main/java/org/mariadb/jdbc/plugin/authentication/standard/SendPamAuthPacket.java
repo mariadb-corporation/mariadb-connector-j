@@ -42,6 +42,11 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
     return "dialog";
   }
 
+  @Override
+  public boolean activeByDefault() {
+    return false;
+  }
+
   /**
    * Initialization.
    *

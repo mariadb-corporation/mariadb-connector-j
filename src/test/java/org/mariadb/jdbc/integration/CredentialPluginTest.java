@@ -139,13 +139,22 @@ public class CredentialPluginTest extends Common {
         !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
+
     Map<String, String> tmpEnv = new HashMap<>();
-    tmpEnv.put("MARIADB_USER", "identityUser");
-    setEnv(tmpEnv);
 
     assertThrowsContains(
         SQLException.class, () -> createCon("credentialType=ENV&pwdKey=myPwdKey"), "Access denied");
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
+    setEnv(tmpEnv);
+
+    try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {
+      Statement stmt = conn.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT '5'");
+      assertTrue(rs.next());
+      assertEquals("5", rs.getString(1));
+    }
+
+    tmpEnv.put("MARIADB_USER", "identityUser");
     setEnv(tmpEnv);
 
     try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {

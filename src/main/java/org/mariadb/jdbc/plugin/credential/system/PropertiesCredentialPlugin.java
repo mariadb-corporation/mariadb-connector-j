@@ -56,11 +56,6 @@ public class PropertiesCredentialPlugin implements CredentialPlugin {
   }
 
   @Override
-  public String name() {
-    return "Environment password";
-  }
-
-  @Override
   public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress) {
     this.conf = conf;
     this.userName = userName;

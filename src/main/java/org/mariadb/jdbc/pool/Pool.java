@@ -421,6 +421,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    *
    * @throws Exception if interrupted
    */
+  @Override
   public void close() throws Exception {
     synchronized (this) {
       Pools.remove(this);

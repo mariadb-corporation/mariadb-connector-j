@@ -62,11 +62,6 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
   }
 
   @Override
-  public String name() {
-    return "AWS IAM Authentication plugin";
-  }
-
-  @Override
   public boolean mustUseSsl() {
     return true;
   }

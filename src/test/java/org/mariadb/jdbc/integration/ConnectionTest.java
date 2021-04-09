@@ -824,10 +824,15 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT ON *.* TO 'testPam'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
 
-    try (Connection connection = createCon("user=testPam&password=myPwd")) {
+    try (Connection connection = createCon("user=testPam&password=myPwd&restrictedAuth=false")) {
       // must have succeed
       connection.getCatalog();
     }
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("user=testPam&password=myPwd"),
+        "Client restrict authentication plugin to a limited set of authentication");
+
     stmt.execute("drop user testPam@'%'");
   }
 

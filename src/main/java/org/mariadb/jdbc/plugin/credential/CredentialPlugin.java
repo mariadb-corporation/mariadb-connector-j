@@ -28,8 +28,6 @@ import org.mariadb.jdbc.HostAddress;
 
 public interface CredentialPlugin extends Supplier<Credential> {
 
-  String name();
-
   String type();
 
   default boolean mustUseSsl() {

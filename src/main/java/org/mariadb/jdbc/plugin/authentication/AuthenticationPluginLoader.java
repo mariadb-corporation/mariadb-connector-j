@@ -24,6 +24,7 @@ package org.mariadb.jdbc.plugin.authentication;
 
 import java.sql.SQLException;
 import java.util.ServiceLoader;
+import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Driver;
 
 public final class AuthenticationPluginLoader {
@@ -36,14 +37,24 @@ public final class AuthenticationPluginLoader {
    * @return Authentication plugin corresponding to type
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */
-  public static AuthenticationPlugin get(String type) throws SQLException {
+  public static AuthenticationPlugin get(String type, Configuration conf) throws SQLException {
 
     ServiceLoader<AuthenticationPlugin> loader =
         ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
 
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
-        return implClass;
+        if (implClass.activeByDefault() || !conf.restrictedAuth()) {
+          return implClass;
+        } else {
+          throw new SQLException(
+              String.format(
+                  "Client restrict authentication plugin to a limited set of authentication plugin and doesn't permit requested plugin ('%s'). "
+                      + "This can be disabled using option `restrictedAuth=false`",
+                  type),
+              "08004",
+              1251);
+        }
       }
     }
     throw new SQLException(

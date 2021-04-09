@@ -253,7 +253,7 @@ public final class ConnectionHelper {
           // *************************************************************************************
           AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf, context);
           AuthenticationPlugin authenticationPlugin =
-              AuthenticationPluginLoader.get(authSwitchPacket.getPlugin());
+              AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
 
           authenticationPlugin.initialize(
               credential.getPassword(), authSwitchPacket.getSeed(), conf);

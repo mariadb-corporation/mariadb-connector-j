@@ -46,11 +46,6 @@ public class Env2CredentialPlugin implements CredentialPlugin {
   }
 
   @Override
-  public String name() {
-    return "Environment password";
-  }
-
-  @Override
   public boolean mustUseSsl() {
     return true;
   }

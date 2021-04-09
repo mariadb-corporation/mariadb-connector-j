@@ -85,6 +85,7 @@ public class Configuration {
   private int maxQuerySizeToLog = 1024;
   private boolean pinGlobalTxToPhysicalConnection = false;
   private String geometryDefaultType = null;
+  private boolean restrictedAuth = true;
 
   // socket
   private String socketFactory = null;
@@ -169,6 +170,7 @@ public class Configuration {
       int maxQuerySizeToLog,
       boolean pinGlobalTxToPhysicalConnection,
       String geometryDefaultType,
+      boolean restrictedAuth,
       String socketFactory,
       int connectTimeout,
       String pipe,
@@ -230,6 +232,7 @@ public class Configuration {
     this.maxQuerySizeToLog = maxQuerySizeToLog;
     this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     this.geometryDefaultType = geometryDefaultType;
+    this.restrictedAuth = restrictedAuth;
     this.socketFactory = socketFactory;
     this.connectTimeout = connectTimeout;
     this.pipe = pipe;
@@ -342,6 +345,7 @@ public class Configuration {
       Boolean cachePrepStmts,
       Boolean transactionReplay,
       String geometryDefaultType,
+      Boolean restrictedAuth,
       Properties nonMappedOptions)
       throws SQLException {
     this.database = database;
@@ -420,6 +424,7 @@ public class Configuration {
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
     if (transactionReplay != null) this.transactionReplay = transactionReplay;
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
+    if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
@@ -659,6 +664,7 @@ public class Configuration {
         this.maxQuerySizeToLog,
         this.pinGlobalTxToPhysicalConnection,
         this.geometryDefaultType,
+        this.restrictedAuth,
         this.socketFactory,
         this.connectTimeout,
         this.pipe,
@@ -958,8 +964,12 @@ public class Configuration {
     return transactionReplay;
   }
 
-  public String getGeometryDefaultType() {
+  public String geometryDefaultType() {
     return geometryDefaultType;
+  }
+
+  public boolean restrictedAuth() {
+    return restrictedAuth;
   }
 
   /**
@@ -1120,6 +1130,7 @@ public class Configuration {
     private Integer maxQuerySizeToLog;
     private Boolean pinGlobalTxToPhysicalConnection;
     private String geometryDefaultType;
+    private Boolean restrictedAuth;
     private String transactionIsolation;
 
     // socket
@@ -1345,6 +1356,17 @@ public class Configuration {
      */
     public Builder geometryDefaultType(String geometryDefault) {
       this.geometryDefaultType = geometryDefault;
+      return this;
+    }
+
+    /**
+     * restrict authentication method to secure list. Default true.
+     *
+     * @param restrictedAuth use restricted authentication plugin list
+     * @return this {@link Builder}
+     */
+    public Builder restrictedAuth(Boolean restrictedAuth) {
+      this.restrictedAuth = restrictedAuth;
       return this;
     }
 
@@ -1664,6 +1686,7 @@ public class Configuration {
               this.cachePrepStmts,
               this.transactionReplay,
               this.geometryDefaultType,
+              this.restrictedAuth,
               this._nonMappedOptions);
       conf.initialUrl = buildUrl(conf);
       return conf;
