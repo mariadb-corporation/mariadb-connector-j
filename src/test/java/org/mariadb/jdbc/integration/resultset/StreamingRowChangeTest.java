@@ -200,6 +200,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.isLast());
 
     rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    rs.isLast();
     assertFalse(rs.isLast());
     assertFalse(rs.next());
     assertFalse(rs.isLast());

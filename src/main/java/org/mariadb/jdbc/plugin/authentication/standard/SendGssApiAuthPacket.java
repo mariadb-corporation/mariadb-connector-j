@@ -90,9 +90,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     final String serverSpn = buf.readStringNullEnd();
     // using provided connection string SPN if set, or if not, using to server information
     final String servicePrincipalName =
-        (optionServicePrincipalName != null && !optionServicePrincipalName.isEmpty())
-            ? optionServicePrincipalName
-            : serverSpn;
+        (optionServicePrincipalName != null) ? optionServicePrincipalName : serverSpn;
     String mechanisms = buf.readStringNullEnd();
     if (mechanisms.isEmpty()) {
       mechanisms = "Kerberos";

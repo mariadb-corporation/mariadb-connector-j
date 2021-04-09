@@ -278,9 +278,7 @@ public class Connection implements java.sql.Connection {
   public String getCatalog() throws SQLException {
 
     if ((client.getContext().getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0) {
-      // client session track return empty value, not null value. Java require sending null if empty
-      String db = client.getContext().getDatabase();
-      return (db != null && db.isEmpty()) ? null : db;
+      return client.getContext().getDatabase();
     }
 
     Statement stmt = createStatement();

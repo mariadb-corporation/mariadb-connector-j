@@ -85,7 +85,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testDataSource() throws SQLException {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl)) {
+    try (MariaDbPoolDataSource ds =
+        new MariaDbPoolDataSource(mDefUrl + "&allowPublicKeyRetrieval")) {
       try (Connection connection = ds.getConnection()) {
         assertEquals(connection.isValid(0), true);
       }
@@ -193,7 +194,10 @@ public class PoolDataSourceTest extends Common {
   private void testResetUserVariable(boolean useResetConnection) throws SQLException {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
-            mDefUrl + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
+            mDefUrl
+                + "&maxPoolSize=1&useResetConnection="
+                + useResetConnection
+                + "&allowPublicKeyRetrieval")) {
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         assertNull(getUserVariableStr(statement));
@@ -602,7 +606,8 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void poolWithUser() throws SQLException {
     try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool")) {
+        new MariaDbPoolDataSource(
+            mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
       long threadId = 0;
       try (Connection conn = pool.getConnection()) {
         conn.isValid(1);

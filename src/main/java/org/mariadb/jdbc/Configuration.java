@@ -375,10 +375,7 @@ public class Configuration {
         && (sslMode == null || SslMode.from(sslMode) == SslMode.DISABLE)) {
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
-      this.sslMode =
-          sslMode != null
-              ? (sslMode.isEmpty() ? SslMode.VERIFY_FULL : SslMode.from(sslMode))
-              : SslMode.DISABLE;
+      this.sslMode = sslMode != null ? SslMode.from(sslMode) : SslMode.DISABLE;
     }
     if (transactionIsolation != null)
       this.transactionIsolation = TransactionIsolation.from(transactionIsolation);
@@ -579,7 +576,8 @@ public class Configuration {
           try {
             final Field field = Builder.class.getDeclaredField(realKey);
             field.setAccessible(true);
-            if (field.getGenericType().equals(String.class)) {
+            if (field.getGenericType().equals(String.class)
+                && !propertyValue.toString().isEmpty()) {
               field.set(builder, propertyValue);
             } else if (field.getGenericType().equals(Boolean.class)) {
               switch (propertyValue.toString().toLowerCase()) {
@@ -1200,12 +1198,12 @@ public class Configuration {
     private Boolean allowPublicKeyRetrieval;
 
     public Builder user(String user) {
-      this.user = user;
+      this.user = nullOrEmpty(user);
       return this;
     }
 
     public Builder serverSslCert(String serverSslCert) {
-      this.serverSslCert = serverSslCert;
+      this.serverSslCert = nullOrEmpty(serverSslCert);
       return this;
     }
 
@@ -1218,7 +1216,7 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder keyStore(String keyStore) {
-      this.keyStore = keyStore;
+      this.keyStore = nullOrEmpty(keyStore);
       return this;
     }
 
@@ -1229,22 +1227,22 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder keyStorePassword(String keyStorePassword) {
-      this.keyStorePassword = keyStorePassword;
+      this.keyStorePassword = nullOrEmpty(keyStorePassword);
       return this;
     }
 
     public Builder keyStoreType(String keyStoreType) {
-      this.keyStoreType = keyStoreType;
+      this.keyStoreType = nullOrEmpty(keyStoreType);
       return this;
     }
 
     public Builder password(String password) {
-      this.password = password;
+      this.password = nullOrEmpty(password);
       return this;
     }
 
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
-      this.enabledSslProtocolSuites = enabledSslProtocolSuites;
+      this.enabledSslProtocolSuites = nullOrEmpty(enabledSslProtocolSuites);
       return this;
     }
 
@@ -1264,12 +1262,12 @@ public class Configuration {
     }
 
     public Builder addHost(String host, int port) {
-      this._addresses.add(HostAddress.from(host, port));
+      this._addresses.add(HostAddress.from(nullOrEmpty(host), port));
       return this;
     }
 
     public Builder addHost(String host, int port, boolean master) {
-      this._addresses.add(HostAddress.from(host, port, master));
+      this._addresses.add(HostAddress.from(nullOrEmpty(host), port, master));
       return this;
     }
 
@@ -1302,7 +1300,7 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder pipe(String pipe) {
-      this.pipe = pipe;
+      this.pipe = nullOrEmpty(pipe);
       return this;
     }
 
@@ -1315,7 +1313,7 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder localSocket(String localSocket) {
-      this.localSocket = localSocket;
+      this.localSocket = nullOrEmpty(localSocket);
       return this;
     }
 
@@ -1355,7 +1353,7 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder geometryDefaultType(String geometryDefault) {
-      this.geometryDefaultType = geometryDefault;
+      this.geometryDefaultType = nullOrEmpty(geometryDefault);
       return this;
     }
 
@@ -1378,7 +1376,7 @@ public class Configuration {
      * @return this {@link Builder}
      */
     public Builder localSocketAddress(String localSocketAddress) {
-      this.localSocketAddress = localSocketAddress;
+      this.localSocketAddress = nullOrEmpty(localSocketAddress);
       return this;
     }
 
@@ -1442,7 +1440,7 @@ public class Configuration {
     }
 
     public Builder credentialType(String credentialType) {
-      this.credentialType = credentialType;
+      this.credentialType = nullOrEmpty(credentialType);
       return this;
     }
 
@@ -1452,17 +1450,17 @@ public class Configuration {
     }
 
     public Builder transactionIsolation(String transactionIsolation) {
-      this.transactionIsolation = transactionIsolation;
+      this.transactionIsolation = nullOrEmpty(transactionIsolation);
       return this;
     }
 
     public Builder enabledSslCipherSuites(String enabledSslCipherSuites) {
-      this.enabledSslCipherSuites = enabledSslCipherSuites;
+      this.enabledSslCipherSuites = nullOrEmpty(enabledSslCipherSuites);
       return this;
     }
 
     public Builder sessionVariables(String sessionVariables) {
-      this.sessionVariables = sessionVariables;
+      this.sessionVariables = nullOrEmpty(sessionVariables);
       return this;
     }
 
@@ -1477,7 +1475,7 @@ public class Configuration {
     }
 
     public Builder timezone(String timezone) {
-      this.timezone = timezone;
+      this.timezone = nullOrEmpty(timezone);
       return this;
     }
 
@@ -1502,7 +1500,7 @@ public class Configuration {
     }
 
     public Builder connectionAttributes(String connectionAttributes) {
-      this.connectionAttributes = connectionAttributes;
+      this.connectionAttributes = nullOrEmpty(connectionAttributes);
       return this;
     }
 
@@ -1529,7 +1527,7 @@ public class Configuration {
     }
 
     public Builder servicePrincipalName(String servicePrincipalName) {
-      this.servicePrincipalName = servicePrincipalName;
+      this.servicePrincipalName = nullOrEmpty(servicePrincipalName);
       return this;
     }
 
@@ -1539,7 +1537,7 @@ public class Configuration {
     }
 
     public Builder tlsSocketType(String tlsSocketType) {
-      this.tlsSocketType = tlsSocketType;
+      this.tlsSocketType = nullOrEmpty(tlsSocketType);
       return this;
     }
 
@@ -1554,7 +1552,7 @@ public class Configuration {
     }
 
     public Builder galeraAllowedState(String galeraAllowedState) {
-      this.galeraAllowedState = galeraAllowedState;
+      this.galeraAllowedState = nullOrEmpty(galeraAllowedState);
       return this;
     }
 
@@ -1564,7 +1562,7 @@ public class Configuration {
     }
 
     public Builder poolName(String poolName) {
-      this.poolName = poolName;
+      this.poolName = nullOrEmpty(poolName);
       return this;
     }
 
@@ -1599,7 +1597,7 @@ public class Configuration {
     }
 
     public Builder serverRsaPublicKeyFile(String serverRsaPublicKeyFile) {
-      this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
+      this.serverRsaPublicKeyFile = nullOrEmpty(serverRsaPublicKeyFile);
       return this;
     }
 
@@ -1691,5 +1689,9 @@ public class Configuration {
       conf.initialUrl = buildUrl(conf);
       return conf;
     }
+  }
+
+  private static String nullOrEmpty(String val) {
+    return (val == null || val.isEmpty()) ? null : val;
   }
 }

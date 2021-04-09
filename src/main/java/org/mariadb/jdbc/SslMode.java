@@ -23,31 +23,34 @@ package org.mariadb.jdbc;
 
 public enum SslMode {
   // NO SSL
-  DISABLE("disable", "DISABLED"),
+  DISABLE("disable", new String[] {"DISABLED", "0", "false"}),
 
   // Encryption only (no certificate and hostname validation) (DEVELOPMENT ONLY)
-  TRUST("trust", "REQUIRED"),
+  TRUST("trust", new String[] {"REQUIRED"}),
 
   // Encryption, certificates validation, BUT no hostname verification
-  VERIFY_CA("verify-ca", "VERIFY_CA"),
+  VERIFY_CA("verify-ca", new String[] {"VERIFY_CA"}),
 
   // Standard SSL use: Encryption, certificate validation and hostname validation
-  VERIFY_FULL("verify-full", "VERIFY_IDENTITY");
+  VERIFY_FULL("verify-full", new String[] {"VERIFY_IDENTITY", "1", "true"});
 
   private final String value;
-  private final String alias;
+  private final String[] aliases;
 
-  SslMode(String value, String alias) {
+  SslMode(String value, String[] aliases) {
     this.value = value;
-    this.alias = alias;
+    this.aliases = aliases;
   }
 
   public static SslMode from(String value) {
     for (SslMode sslMode : values()) {
-      if (sslMode.value.equalsIgnoreCase(value)
-          || sslMode.name().equalsIgnoreCase(value)
-          || sslMode.alias.equalsIgnoreCase(value)) {
+      if (sslMode.value.equalsIgnoreCase(value) || sslMode.name().equalsIgnoreCase(value)) {
         return sslMode;
+      }
+      for (String alias : sslMode.aliases) {
+        if (alias.equalsIgnoreCase(value)) {
+          return sslMode;
+        }
       }
     }
     throw new IllegalArgumentException(

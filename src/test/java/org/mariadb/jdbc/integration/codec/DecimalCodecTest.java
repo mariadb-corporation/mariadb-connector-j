@@ -337,15 +337,18 @@ public class DecimalCodecTest extends CommonCodecTest {
     getBigDecimal(getPrepare(sharedConnBinary));
   }
 
+  @SuppressWarnings("deprecation")
   public void getBigDecimal(ResultSet rs) throws SQLException {
     assertEquals(BigDecimal.ZERO, rs.getBigDecimal(1));
     assertFalse(rs.wasNull());
     assertEquals(new BigDecimal("105.210000"), rs.getBigDecimal(2));
+    assertEquals(new BigDecimal("105.2"), rs.getBigDecimal(2, BigDecimal.ROUND_DOWN));
     assertEquals(new BigDecimal("105.210000"), rs.getBigDecimal("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals(new BigDecimal("-1.600"), rs.getBigDecimal(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
+    assertNull(rs.getBigDecimal(4, BigDecimal.ROUND_CEILING));
     assertTrue(rs.wasNull());
   }
 

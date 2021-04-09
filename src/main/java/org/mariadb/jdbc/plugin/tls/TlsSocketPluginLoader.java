@@ -37,9 +37,8 @@ public final class TlsSocketPluginLoader {
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */
   public static TlsSocketPlugin get(String type) throws SQLException {
-    if (type == null || type.isEmpty()) {
-      return new DefaultTlsSocketPlugin();
-    }
+    if (type == null) return new DefaultTlsSocketPlugin();
+
     ServiceLoader<TlsSocketPlugin> loader = ServiceLoader.load(TlsSocketPlugin.class);
     for (TlsSocketPlugin implClass : loader) {
       if (type.equals(implClass.type())) {

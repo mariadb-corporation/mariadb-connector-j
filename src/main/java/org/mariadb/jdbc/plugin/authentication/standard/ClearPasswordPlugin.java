@@ -61,7 +61,7 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
    */
   public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
       throws IOException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
+    if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {
       byte[] bytePwd = authenticationData.getBytes(StandardCharsets.UTF_8);

@@ -433,7 +433,10 @@ public class StatementTest extends Common {
   @Test
   @Timeout(20)
   public void queryTimeout() throws Exception {
-    Assumptions.assumeTrue(isMariaDBServer());
+    Assumptions.assumeTrue(isMariaDBServer()
+            && !"maxscale".equals(System.getenv("srv"))
+                    && !"skysql".equals(System.getenv("srv"))
+                    && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
 
     assertThrowsContains(

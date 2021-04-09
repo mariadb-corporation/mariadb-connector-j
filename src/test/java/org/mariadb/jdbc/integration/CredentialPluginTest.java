@@ -86,6 +86,11 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("credentialType=PROPERTY&user=identityUser"),
+        "Access denied");
+
     System.setProperty("mariadb.user", "identityUser");
     assertThrowsContains(
         SQLException.class,
@@ -143,11 +148,19 @@ public class CredentialPluginTest extends Common {
     Map<String, String> tmpEnv = new HashMap<>();
 
     assertThrowsContains(
-        SQLException.class, () -> createCon("credentialType=ENV&pwdKey=myPwdKey"), "Access denied");
+        SQLException.class,
+        () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
+        "Access denied");
+
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
-    try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
+        "Access denied");
+
+    try (Connection conn = createCon("user=identityUser&credentialType=ENV&pwdKey=myPwdKey")) {
       Statement stmt = conn.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT '5'");
       assertTrue(rs.next());
@@ -173,16 +186,8 @@ public class CredentialPluginTest extends Common {
       assertTrue(rs.next());
       assertEquals("5", rs.getString(1));
     }
-  }
 
-  @Test
-  @SuppressWarnings("unchecked")
-  public void envsIdentityWithPropertiesTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-    Map<String, String> tmpEnv = new HashMap<>();
+    tmpEnv = new HashMap<>();
     tmpEnv.put("myUserKey", "identityUser");
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
     setEnv(tmpEnv);
@@ -204,14 +209,14 @@ public class CredentialPluginTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     Map<String, String> tmpEnv = new HashMap<>();
-    tmpEnv.put("MARIADB_USER", "identityUser");
-    tmpEnv.put("MARIADB_PWD", "!Passw0rd3Works");
+    tmpEnv.put("MARIADB2_USER", "identityUser");
+    tmpEnv.put("MARIADB2_PWD", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
     assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST&sslMode=DISABLE"));
     assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST"));
 
-    try (Connection conn = createCon("credentialType=ENV&sslMode=TRUST")) {
+    try (Connection conn = createCon("credentialType=ENVTEST&sslMode=TRUST")) {
       Statement stmt = conn.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT '5'");
       assertTrue(rs.next());

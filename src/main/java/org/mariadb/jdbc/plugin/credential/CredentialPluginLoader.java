@@ -42,9 +42,7 @@ public final class CredentialPluginLoader {
    * @throws SQLException if no identity plugin found with this type is in classpath
    */
   public static CredentialPlugin get(String type) throws SQLException {
-    if (type == null || type.isEmpty()) {
-      return null;
-    }
+    if (type == null) return null;
 
     for (CredentialPlugin implClass : loader) {
       if (type.equals(implClass.type())) {

@@ -38,6 +38,8 @@ public class Sha256AuthenticationTest extends Common {
       org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
       stmt.execute("DROP USER IF EXISTS 'cachingSha256User'@'%'");
       stmt.execute("DROP USER IF EXISTS 'cachingSha256User2'@'%'");
+      stmt.execute("DROP USER IF EXISTS 'cachingSha256User3'@'%'");
+      stmt.execute("DROP USER IF EXISTS 'cachingSha256User4'@'%'");
     }
     // reason is that after nativePassword test, it sometime always return wrong authentication id
     // not cached
@@ -75,9 +77,12 @@ public class Sha256AuthenticationTest extends Common {
         "CREATE USER 'cachingSha256User2'@'%' IDENTIFIED WITH caching_sha2_password BY ''");
     stmt.execute(
         "CREATE USER 'cachingSha256User3'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
+    stmt.execute(
+        "CREATE USER 'cachingSha256User4'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User4'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
   }
 
@@ -105,8 +110,6 @@ public class Sha256AuthenticationTest extends Common {
     stmt.execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
       con.isValid(1);
-    } catch (SQLException sqle) {
-      // mysql authentication might fail !?
     }
     stmt.execute("DROP USER IF EXISTS tmpUser@'%' ");
   }
@@ -119,6 +122,22 @@ public class Sha256AuthenticationTest extends Common {
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
     }
+  }
+
+  @Test
+  public void wrongRsaPath() throws Exception {
+    Assumptions.assumeTrue(
+        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+    sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
+    File tempFile = File.createTempFile("log", ".tmp");
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            createCon(
+                "user=cachingSha256User4&serverRsaPublicKeyFile="
+                    + tempFile.getPath()
+                    + "2&password=!Passw0rd3Works"),
+        "Could not read server RSA public key from file");
   }
 
   @Test
@@ -143,15 +162,11 @@ public class Sha256AuthenticationTest extends Common {
             "user=cachingSha256User&password=!Passw0rd3Works&serverRsaPublicKeyFile="
                 + rsaPublicKey)) {
       con.isValid(1);
-    } catch (SQLException sqle) {
-      // mysql authentication might fail !?
     }
 
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
       con.isValid(1);
-    } catch (SQLException sqle) {
-      // mysql authentication might fail !?
     }
 
     Assumptions.assumeTrue(haveSsl());
@@ -180,8 +195,6 @@ public class Sha256AuthenticationTest extends Common {
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
       con.isValid(1);
-    } catch (SQLException sqle) {
-      // mysql authentication might fail !?
     }
   }
 

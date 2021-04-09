@@ -860,7 +860,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-    super.updateClob(row.getIndex(columnLabel), reader, length);
+    updateClob(row.getIndex(columnLabel), reader, length);
   }
 
   @Override

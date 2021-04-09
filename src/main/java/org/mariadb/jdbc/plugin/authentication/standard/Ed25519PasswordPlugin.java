@@ -126,7 +126,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
    */
   public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
       throws SQLException, IOException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
+    if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {
       out.writeBytes(ed25519SignWithPassword(authenticationData, seed));

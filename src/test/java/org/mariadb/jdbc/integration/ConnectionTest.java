@@ -830,7 +830,7 @@ public class ConnectionTest extends Common {
     }
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=testPam&password=myPwd"),
+        () -> createCon("user=testPam&password=myPwd&restrictedAuth=true"),
         "Client restrict authentication plugin to a limited set of authentication");
 
     stmt.execute("drop user testPam@'%'");

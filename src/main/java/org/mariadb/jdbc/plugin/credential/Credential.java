@@ -34,10 +34,6 @@ public class Credential {
     return user;
   }
 
-  public void setUser(String user) {
-    this.user = user;
-  }
-
   public String getPassword() {
     return password;
   }

@@ -207,7 +207,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.COMPRESS;
     }
 
-    if (!configuration.database().isEmpty()) {
+    if (configuration.database() != null) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
     return capabilities;

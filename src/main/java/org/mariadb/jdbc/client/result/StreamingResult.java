@@ -206,7 +206,7 @@ public class StreamingResult extends Result {
 
       if (loaded) {
         // now driver is sure when data ends.
-        return rowPointer == dataSize - 1 && dataSize > 0;
+        return rowPointer == dataSize - 1;
       }
 
       // There is data remaining

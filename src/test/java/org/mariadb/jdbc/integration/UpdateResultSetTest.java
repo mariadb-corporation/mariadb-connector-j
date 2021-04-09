@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Common;
@@ -328,6 +330,23 @@ public class UpdateResultSetTest extends Common {
       assertThrowsContains(
           SQLSyntaxErrorException.class, () -> rs.updateObject(10, "val"), "No such column: 10");
       assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateObject(2, new SQLException("dd")),
+          "not supported type");
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateObject(2, new SQLException("dd"), null, 20),
+          "not supported type");
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateObject("t2", new SQLException("dd"), null),
+          "not supported type");
+      assertThrowsContains(
+          SQLException.class,
+          () -> rs.updateObject("t2", new SQLException("dd"), null, 20),
+          "not supported type");
+
+      assertThrowsContains(
           SQLSyntaxErrorException.class, () -> rs.updateObject(-10, "val"), "No such column: -10");
       rs.insertRow();
       assertTrue(rs.rowInserted());
@@ -449,6 +468,33 @@ public class UpdateResultSetTest extends Common {
 
       rs.moveToInsertRow();
       rs.insertRow();
+
+      rs.first();
+      rs.moveToInsertRow();
+      rs.first();
+
+      rs.last();
+      rs.moveToInsertRow();
+      rs.last();
+
+      rs.afterLast();
+      rs.moveToInsertRow();
+      rs.afterLast();
+
+      rs.relative(-1);
+      rs.moveToInsertRow();
+      rs.relative(-1);
+
+      rs.next();
+      rs.moveToInsertRow();
+      rs.next();
+
+      rs.previous();
+      rs.moveToInsertRow();
+      rs.previous();
+
+      rs.beforeFirst();
+      rs.moveToInsertRow();
       rs.beforeFirst();
 
       assertTrue(rs.next());
@@ -573,7 +619,7 @@ public class UpdateResultSetTest extends Common {
   }
 
   @Test
-  public void updateBlob() throws SQLException, IOException {
+  public void updateBlobClob() throws SQLException, IOException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS updateBlob");
     stmt.execute("CREATE TABLE updateBlob(id int not null primary key, strm blob)");
@@ -586,7 +632,7 @@ public class UpdateResultSetTest extends Common {
     prep.setBlob(2, stream);
     prep.execute();
 
-    byte[] updatedBlob = {1, 3, 6, 9, 15, 21};
+    byte[] updatedBlob = "abcdef".getBytes(StandardCharsets.UTF_8);
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -595,9 +641,52 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.next());
       InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
 
-      rs.updateBlob(2, updatedStream);
+      rs.updateBlob(2, new ByteArrayInputStream(updatedBlob));
       rs.updateRow();
+      checkResult(rs, updatedBlob);
 
+      rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob));
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateBlob(2, new ByteArrayInputStream(updatedBlob), 20L);
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob), 20L);
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateClob(2, new StringReader("abcdef"));
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateClob("strm", new StringReader("abcdef"));
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateClob(2, new StringReader("abcdef"), 20L);
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateClob("strm", new StringReader("abcdef"), 20L);
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateNClob(2, new StringReader("abcdef"));
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateNClob("strm", new StringReader("abcdef"));
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateNClob(2, new StringReader("abcdef"), 20L);
+      rs.updateRow();
+      checkResult(rs, updatedBlob);
+
+      rs.updateNClob("strm", new StringReader("abcdef"), 20L);
+      rs.updateRow();
       checkResult(rs, updatedBlob);
     }
 

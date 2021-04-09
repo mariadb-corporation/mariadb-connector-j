@@ -448,18 +448,6 @@ public class DatabaseMetadataTest extends Common {
       if (isMariaDBServer()) {
         for (int j = 0; j < 2; j++) {
           assertTrue(rs.next());
-          System.out.println(
-              i
-                  + " "
-                  + rs.getString("FK_NAME")
-                  + "|"
-                  + rs.getString("PKTABLE_CAT")
-                  + " | "
-                  + rs.getString("PKTABLE_SCHEM")
-                  + " | "
-                  + rs.getString("PKTABLE_NAME")
-                  + " | "
-                  + rs.getString("KEY_SEQ"));
           if ("fk1".equals(rs.getString("FK_NAME"))) {
             assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
             assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));

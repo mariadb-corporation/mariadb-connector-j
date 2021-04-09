@@ -21,8 +21,6 @@
 
 package org.mariadb.jdbc.integration.util;
 
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.plugin.credential.Credential;
 import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
 
@@ -36,9 +34,6 @@ import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
  * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
  */
 public class Env2CredentialPlugin implements CredentialPlugin {
-
-  private Configuration conf;
-  private String userName;
 
   @Override
   public String type() {
@@ -56,14 +51,7 @@ public class Env2CredentialPlugin implements CredentialPlugin {
   }
 
   @Override
-  public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress) {
-    this.conf = conf;
-    this.userName = userName;
-    return this;
-  }
-
-  @Override
   public Credential get() {
-    return new Credential(System.getenv("MARIADB_USER"), System.getenv("MARIADB_PWD"));
+    return new Credential(System.getenv("MARIADB2_USER"), System.getenv("MARIADB2_PWD"));
   }
 }

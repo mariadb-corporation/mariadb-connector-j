@@ -56,9 +56,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
    */
   public static byte[] encryptPassword(final CharSequence password, final byte[] seed) {
     try {
-      if (password == null || password.toString().isEmpty()) {
-        return new byte[0];
-      }
+      if (password == null) return new byte[0];
 
       final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
       byte[] bytePwd = password.toString().getBytes(StandardCharsets.UTF_8);
@@ -118,7 +116,7 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
    */
   public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
       throws SQLException, IOException {
-    if (authenticationData == null || authenticationData.isEmpty()) {
+    if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {
       byte[] truncatedSeed;

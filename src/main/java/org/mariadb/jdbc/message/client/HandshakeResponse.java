@@ -112,7 +112,7 @@ public final class HandshakeResponse implements ClientMessage {
     writeStringLengthAscii(writer, _JAVA_VERSION);
     writeStringLength(writer, System.getProperty("java.version"));
 
-    if (connectionAttributes != null && !connectionAttributes.isEmpty()) {
+    if (connectionAttributes != null) {
       StringTokenizer tokenizer = new StringTokenizer(connectionAttributes, ",");
       while (tokenizer.hasMoreTokens()) {
         String token = tokenizer.nextToken();
@@ -165,8 +165,7 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeBytes(new byte[19]); // 19
     writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
-    writer.writeString(
-        (username != null && !username.isEmpty()) ? username : System.getProperty("user.name"));
+    writer.writeString(username != null ? username : System.getProperty("user.name"));
     writer.writeByte(0x00);
 
     if ((context.getServerCapabilities() & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {

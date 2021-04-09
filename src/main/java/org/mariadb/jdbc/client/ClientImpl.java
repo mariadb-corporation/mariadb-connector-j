@@ -249,23 +249,6 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  private void galeraStateValidation(List<String> galeraAllowedStates) throws SQLException {
-    if (hostAddress != null
-        && Boolean.TRUE.equals(hostAddress.primary)
-        && !galeraAllowedStates.isEmpty()) {
-      List<Completion> res = execute(new QueryPacket("show status like 'wsrep_local_state'"));
-      if (res.isEmpty()) {
-        throw exceptionFactory.create("fail to validate Galera state");
-      }
-      ResultSet rs = (ResultSet) res.get(0);
-      rs.next();
-      if (!galeraAllowedStates.contains(rs.getString(2))) {
-        throw exceptionFactory.create(
-            String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
-      }
-    }
-  }
-
   /**
    * load server timezone and ensure this correspond to client timezone
    *
@@ -385,7 +368,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
 
     // add configured session variable if configured
-    if (conf.sessionVariables() != null && !conf.sessionVariables().isEmpty()) {
+    if (conf.sessionVariables() != null) {
       sb.append(",").append(Security.parseSessionVariables(conf.sessionVariables()));
     }
 

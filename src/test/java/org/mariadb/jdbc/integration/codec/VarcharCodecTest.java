@@ -27,6 +27,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS StringCodec");
     stmt.execute("DROP TABLE IF EXISTS StringParamCodec");
+    stmt.execute("DROP TABLE IF EXISTS StringCodecWrong");
   }
 
   @BeforeAll
@@ -44,6 +45,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    stmt.execute(
+            "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -899,6 +902,7 @@ public class VarcharCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
+    assertNull(rs.getURL(2));
     rs.updateString(2, "f🌟125");
     rs.updateRow();
     assertEquals("f🌟125", rs.getString(2));
@@ -1019,5 +1023,22 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("http://f🌟15", rs.getObject("t1", empty));
     assertEquals("http://f🌟15", rs.getURL(2).toString());
     assertEquals("http://f🌟15", rs.getURL("t1").toString());
+  }
+
+  @Test
+  public void wrongUtf8String() throws SQLException {
+    final byte[] utf8WrongBytes = new byte[] {(byte)0xc2, (byte)0f, (byte)0xDB, (byte)00, (byte)0xE1, (byte)00};
+    String st = new String(utf8WrongBytes);
+
+    wrongUtf8(sharedConn, st);
+    wrongUtf8(sharedConnBinary, st);
+  }
+
+  private void wrongUtf8(Connection con, String wrong) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("INSERT INTO StringCodecWrong VALUES ('" + wrong + "')");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM StringCodecWrong");
+    rs.next();
+    assertEquals(wrong, rs.getString(1));
   }
 }

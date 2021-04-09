@@ -216,10 +216,6 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     while (pos < offset + length) {
       byte firstByte = data[pos++];
       if (firstByte < 0) {
-        System.out.println(firstByte);
-        System.out.println(firstByte >> 4);
-        System.out.println(firstByte >> 5);
-        System.out.println(firstByte & 30);
         if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
           if (firstByte >> 4 == -2) {
             if (pos + 1 < offset + length) {

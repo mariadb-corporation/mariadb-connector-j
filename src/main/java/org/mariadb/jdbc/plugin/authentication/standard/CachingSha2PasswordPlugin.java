@@ -42,7 +42,6 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
-import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
@@ -62,9 +61,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @return encrypted pwd
    */
   public static byte[] sha256encryptPassword(final CharSequence password, final byte[] seed) {
-    if (password == null || password.toString().isEmpty()) {
-      return new byte[0];
-    }
+    if (password == null) return new byte[0];
+
     byte[] truncatedSeed = new byte[seed.length - 1];
     System.arraycopy(seed, 0, truncatedSeed, 0, seed.length - 1);
     try {
@@ -158,10 +156,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
             } else {
               // retrieve public key from configuration or from server
               PublicKey publicKey;
-              if (conf.serverRsaPublicKeyFile() != null
-                  && !conf.serverRsaPublicKeyFile().isEmpty()) {
+              if (conf.serverRsaPublicKeyFile() != null) {
                 publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
               } else {
+                /**
+                 * ******************************************* read public key from socket
+                 * *******************************************
+                 */
                 if (!conf.allowPublicKeyRetrieval()) {
                   throw new SQLException(
                       "RSA public key is not available client side (option serverRsaPublicKeyFile not set)",
@@ -172,7 +173,19 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 out.writeByte(2);
                 out.flush();
 
-                publicKey = readPublicKeyFromSocket(in, context);
+                buf = in.readPacket(true);
+                switch (buf.getByte(0)) {
+                  case (byte) 0xFF:
+                  case (byte) 0xFE:
+                    return buf;
+
+                  default:
+                    // AuthMoreData packet
+                    buf.skip();
+                    byte[] authMoreData = new byte[buf.readableBytes()];
+                    buf.readBytes(authMoreData);
+                    publicKey = generatePublicKey(authMoreData);
+                }
               }
 
               try {
@@ -218,40 +231,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   }
 
   /**
-   * Read public Key from socket.
-   *
-   * @param reader input stream reader
-   * @param context connection context
-   * @return public key
-   * @throws SQLException if server return an Error packet or public key cannot be parsed.
-   * @throws IOException if error reading socket
-   */
-  public static PublicKey readPublicKeyFromSocket(PacketReader reader, Context context)
-      throws SQLException, IOException {
-    ReadableByteBuf buf = reader.readPacket(true);
-
-    switch (buf.getByte(0)) {
-      case (byte) 0xFF:
-        ErrorPacket ep = new ErrorPacket(buf, context);
-        String message = ep.getMessage();
-        throw new SQLException(
-            "Could not connect: " + message, ep.getSqlState(), ep.getErrorCode());
-
-      case (byte) 0xFE:
-        // Erroneous AuthSwitchRequest packet when security exception
-        throw new SQLException(
-            "Could not connect: receive AuthSwitchRequest in place of RSA public key. "
-                + "Did user has the rights to connect to database ?");
-      default:
-        // AuthMoreData packet
-        buf.skip();
-        byte[] authMoreData = new byte[buf.readableBytes()];
-        buf.readBytes(authMoreData);
-        return generatePublicKey(authMoreData);
-    }
-  }
-
-  /**
    * Read public pem key from String.
    *
    * @param publicKeyBytes public key bytes value
@@ -285,14 +264,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed)
       throws SQLException {
 
-    byte[] correctedSeed;
-    if (seed.length > 0) {
-      // Seed is ended with a null byte value.
-      correctedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
-    } else {
-      correctedSeed = new byte[0];
-    }
-
+    byte[] correctedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
     byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
 
     byte[] nullFinishedPwd = Arrays.copyOf(bytePwd, bytePwd.length + 1);
@@ -309,7 +281,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       return cipher.doFinal(xorBytes);
     } catch (Exception ex) {
       throw new SQLException(
-          "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
+          "Error encoding password with public key : " + ex.getMessage(), "S1009", ex);
     }
   }
 }

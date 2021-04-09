@@ -395,7 +395,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       throws SQLException {
     if (username == null
         ? conf.user() == null
-        : username.equals(conf.user()) && password == null
+        : username.equals(conf.user()) && (password == null || password.isEmpty())
             ? conf.password() == null
             : password.equals(conf.password())) {
       return getPoolConnection();

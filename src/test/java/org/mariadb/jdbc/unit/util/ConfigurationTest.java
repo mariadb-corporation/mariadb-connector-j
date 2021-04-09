@@ -54,6 +54,12 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
+  public void testCredentialType() throws SQLException {
+    Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test?credentialType=");
+    assertNull(conf.credentialPlugin());
+  }
+
+  @Test
   public void testWrongHostFormat() {
     assertThrowsContains(
         SQLException.class,
@@ -234,6 +240,15 @@ public class ConfigurationTest extends Common {
     assertTrue(SslMode.DISABLE == conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode");
+    assertTrue(SslMode.DISABLE == conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=0");
+    assertTrue(SslMode.DISABLE == conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=1");
+    assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=true");
     assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
   }
 
@@ -719,7 +734,7 @@ public class ConfigurationTest extends Common {
             + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
             + "-----END CERTIFICATE-----",
         jdbc.serverSslCert());
-    assertEquals(SslMode.VERIFY_FULL, jdbc.sslMode());
+    assertEquals(SslMode.DISABLE, jdbc.sslMode());
     assertEquals("pwd2", jdbc.password());
   }
 
@@ -736,7 +751,7 @@ public class ConfigurationTest extends Common {
             .database("db")
             .socketFactory("someSocketFactory")
             .connectTimeout(22)
-                .restrictedAuth(false)
+            .restrictedAuth(false)
             .pipe("pipeName")
             .localSocket("localSocket")
             .tcpKeepAlive(true)
