@@ -323,4 +323,32 @@ public class LineStringCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, LineString.class));
   }
+
+  @Test
+  public void equal() {
+    LineString ls =
+        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true);
+    assertTrue(ls.isOpen());
+    assertEquals(ls, ls);
+    assertEquals(
+        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
+        ls);
+    assertEquals(
+        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true)
+            .hashCode(),
+        ls.hashCode());
+    assertFalse(ls.equals(null));
+    assertFalse(ls.equals(""));
+    assertNotEquals(
+        new LineString(new Point[] {new Point(0, 0), new Point(0, 20), new Point(20, 0)}, true),
+        ls);
+    assertNotEquals(
+        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, false),
+        ls);
+    assertNotEquals(
+        new LineString(
+            new Point[] {new Point(0, 0), new Point(0, 20), new Point(20, 10), new Point(10, 0)},
+            true),
+        ls);
+  }
 }

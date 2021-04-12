@@ -240,4 +240,16 @@ public class PointCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(new Point(2, 3), rs.getObject(2, Point.class));
   }
+
+  @Test
+  public void equal() {
+    Point pt = new Point(0, 10);
+    assertEquals(pt, pt);
+    assertEquals(new Point(0, 10), pt);
+    assertEquals(new Point(0, 10).hashCode(), pt.hashCode());
+    assertFalse(pt.equals(null));
+    assertFalse(pt.equals(""));
+    assertNotEquals(new Point(0, 20), pt);
+    assertNotEquals(new Point(10, 10), pt);
+  }
 }

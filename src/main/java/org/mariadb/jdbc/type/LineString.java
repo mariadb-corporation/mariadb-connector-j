@@ -60,7 +60,7 @@ public class LineString implements Geometry {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || !(o instanceof LineString)) return false;
-    return toString().equals(o.toString());
+    return open == ((LineString) o).isOpen() && toString().equals(o.toString());
   }
 
   @Override

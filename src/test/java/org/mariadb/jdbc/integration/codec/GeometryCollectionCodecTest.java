@@ -318,4 +318,57 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(geo3, rs.getObject(2, GeometryCollection.class));
   }
+
+  @Test
+  public void equal() {
+    assertEquals(geo1, geo1);
+    assertEquals(
+        new GeometryCollection(
+            new Geometry[] {
+              new Point(0, 0),
+              new LineString(
+                  new Point[] {
+                    new Point(10, 10),
+                    new Point(20, 10),
+                    new Point(20, 20),
+                    new Point(10, 20),
+                    new Point(10, 10)
+                  },
+                  true)
+            }),
+        geo1);
+    assertEquals(
+        new GeometryCollection(
+                new Geometry[] {
+                  new Point(0, 0),
+                  new LineString(
+                      new Point[] {
+                        new Point(10, 10),
+                        new Point(20, 10),
+                        new Point(20, 20),
+                        new Point(10, 20),
+                        new Point(10, 10)
+                      },
+                      true)
+                })
+            .hashCode(),
+        geo1.hashCode());
+    assertFalse(geo1.equals(null));
+    assertFalse(geo1.equals(""));
+    assertNotEquals(
+        new GeometryCollection(
+            new Geometry[] {
+              new Point(0, 10),
+              new LineString(
+                  new Point[] {
+                    new Point(10, 10),
+                    new Point(20, 10),
+                    new Point(20, 20),
+                    new Point(10, 20),
+                    new Point(10, 10)
+                  },
+                  true)
+            }),
+        geo1);
+  }
 }

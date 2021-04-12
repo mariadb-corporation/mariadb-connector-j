@@ -416,8 +416,8 @@ public class ClobTest extends Common {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(clob, clob);
     assertEquals(new MariaDbClob(bytes), clob);
-    assertNotEquals(null, clob);
-    assertNotEquals("", clob);
+    assertFalse(clob.equals(null));
+    assertFalse(clob.equals(""));
     byte[] bytes = "Abc£de🙏fgh".getBytes(StandardCharsets.UTF_8);
     assertNotEquals(new MariaDbClob(bytes), clob);
     assertNotEquals(new MariaDbClob("Abc".getBytes(StandardCharsets.UTF_8)), clob);

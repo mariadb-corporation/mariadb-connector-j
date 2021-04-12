@@ -382,4 +382,58 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiLineString.class));
   }
+
+  @Test
+  public void equal() {
+    assertEquals(ls2, ls2);
+    assertEquals(
+        new MultiLineString(
+            new LineString[] {
+              new LineString(
+                  new Point[] {
+                    new Point(0, 0), new Point(50, 0), new Point(50, 50), new Point(0, 50)
+                  },
+                  true),
+              new LineString(
+                  new Point[] {
+                    new Point(10, 10), new Point(20, 10), new Point(20, 20), new Point(10, 20)
+                  },
+                  true)
+            }),
+        ls2);
+    assertEquals(
+        new MultiLineString(
+                new LineString[] {
+                  new LineString(
+                      new Point[] {
+                        new Point(0, 0), new Point(50, 0), new Point(50, 50), new Point(0, 50)
+                      },
+                      true),
+                  new LineString(
+                      new Point[] {
+                        new Point(10, 10), new Point(20, 10), new Point(20, 20), new Point(10, 20)
+                      },
+                      true)
+                })
+            .hashCode(),
+        ls2.hashCode());
+    assertFalse(ls2.equals(null));
+    assertFalse(ls2.equals(""));
+    assertNotEquals(ls1, ls2);
+    assertNotEquals(
+        new MultiLineString(
+            new LineString[] {
+              new LineString(
+                  new Point[] {
+                    new Point(0, 0), new Point(50, 0), new Point(50, 50), new Point(0, 50)
+                  },
+                  true),
+              new LineString(
+                  new Point[] {
+                    new Point(10, 10), new Point(20, 10), new Point(20, 20), new Point(10, 20)
+                  },
+                  false)
+            }),
+        ls1);
+  }
 }

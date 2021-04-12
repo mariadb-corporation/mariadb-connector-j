@@ -334,4 +334,25 @@ public class MultiPointCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiPoint.class));
   }
+
+  @Test
+  public void equal() {
+    MultiPoint mp =
+        new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)});
+    assertEquals(mp, mp);
+    assertEquals(
+        new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}), mp);
+    assertEquals(
+        new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)})
+            .hashCode(),
+        mp.hashCode());
+    assertFalse(mp.equals(null));
+    assertFalse(mp.equals(""));
+    assertNotEquals(
+        new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 20)}), mp);
+    assertNotEquals(
+        new MultiPoint(
+            new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0), new Point(10, 20)}),
+        mp);
+  }
 }

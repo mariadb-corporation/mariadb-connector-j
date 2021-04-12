@@ -329,4 +329,92 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiPolygon.class));
   }
+
+  @Test
+  public void equal() {
+    assertEquals(ls1, ls1);
+    MultiPolygon testPoly =
+        new MultiPolygon(
+            new Polygon[] {
+              new Polygon(
+                  new LineString[] {
+                    new LineString(
+                        new Point[] {
+                          new Point(1, 1),
+                          new Point(1, 5),
+                          new Point(4, 9),
+                          new Point(6, 9),
+                          new Point(9, 3),
+                          new Point(7, 2),
+                          new Point(1, 1)
+                        },
+                        false),
+                  }),
+              new Polygon(
+                  new LineString[] {
+                    new LineString(
+                        new Point[] {
+                          new Point(0, 0),
+                          new Point(50, 0),
+                          new Point(50, 50),
+                          new Point(0, 50),
+                          new Point(0, 0)
+                        },
+                        false),
+                    new LineString(
+                        new Point[] {
+                          new Point(10, 10),
+                          new Point(20, 10),
+                          new Point(20, 20),
+                          new Point(10, 20),
+                          new Point(10, 10)
+                        },
+                        false)
+                  })
+            });
+    assertEquals(testPoly, ls1);
+    assertEquals(testPoly.hashCode(), ls1.hashCode());
+    assertFalse(ls1.equals(null));
+    assertFalse(ls1.equals(""));
+    assertNotEquals(
+        new MultiPolygon(
+            new Polygon[] {
+              new Polygon(
+                  new LineString[] {
+                    new LineString(
+                        new Point[] {
+                          new Point(1, 1),
+                          new Point(1, 5),
+                          new Point(4, 9),
+                          new Point(6, 9),
+                          new Point(9, 3),
+                          new Point(7, 2),
+                          new Point(1, 1)
+                        },
+                        false),
+                  }),
+              new Polygon(
+                  new LineString[] {
+                    new LineString(
+                        new Point[] {
+                          new Point(0, 0),
+                          new Point(50, 0),
+                          new Point(50, 50),
+                          new Point(0, 50),
+                          new Point(0, 0)
+                        },
+                        false),
+                    new LineString(
+                        new Point[] {
+                          new Point(10, 10),
+                          new Point(20, 10),
+                          new Point(20, 20),
+                          new Point(10, 20),
+                          new Point(10, 15)
+                        },
+                        false)
+                  })
+            }),
+        ls1);
+  }
 }
