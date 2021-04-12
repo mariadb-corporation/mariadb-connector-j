@@ -188,7 +188,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.FOUND_ROWS;
     }
 
-    if (configuration.allowMultiQueries() || !skipPostCommands) {
+    if (configuration.allowMultiQueries()) {
       capabilities |= Capabilities.MULTI_STATEMENTS;
     }
 

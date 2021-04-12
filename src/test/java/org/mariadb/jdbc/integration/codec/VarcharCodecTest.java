@@ -46,7 +46,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-            "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -1027,7 +1027,8 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   @Test
   public void wrongUtf8String() throws SQLException {
-    final byte[] utf8WrongBytes = new byte[] {(byte)0xc2, (byte)0f, (byte)0xDB, (byte)00, (byte)0xE1, (byte)00};
+    final byte[] utf8WrongBytes =
+        new byte[] {(byte) 0xc2, (byte) 0f, (byte) 0xDB, (byte) 00, (byte) 0xE1, (byte) 00};
     String st = new String(utf8WrongBytes);
 
     wrongUtf8(sharedConn, st);

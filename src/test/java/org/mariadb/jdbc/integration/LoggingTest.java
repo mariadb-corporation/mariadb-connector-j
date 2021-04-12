@@ -100,24 +100,13 @@ public class LoggingTest extends Common {
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
       String defaultRequest =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| CD 00 00 00 03 73 65 74  20 61 75 74 6F 63 6F 6D | .....set autocom |\n"
-              + "| 6D 69 74 3D 31 2C 20 73  71 6C 5F 6D 6F 64 65 20 | mit=1, sql_mode  |\n"
-              + "| 3D 20 63 6F 6E 63 61 74  28 40 40 73 71 6C 5F 6D | = concat(@@sql_m |\n"
-              + "| 6F 64 65 2C 27 2C 53 54  52 49 43 54 5F 54 52 41 | ode,',STRICT_TRA |\n"
-              + "| 4E 53 5F 54 41 42 4C 45  53 27 29 2C 20 73 65 73 | NS_TABLES'), ses |\n"
-              + "| 73 69 6F 6E 5F 74 72 61  63 6B 5F 73 63 68 65 6D | sion_track_schem |\n"
-              + "| 61 3D 31 2C 74 78 5F 69  73 6F 6C 61 74 69 6F 6E | a=1,tx_isolation |\n"
-              + "| 3D 27 52 45 50 45 41 54  41 42 4C 45 2D 52 45 41 | ='REPEATABLE-REA |\n"
-              + "| 44 27 3B 53 45 4C 45 43  54 20 40 40 6D 61 78 5F | D';SELECT @@max_ |\n"
-              + "| 61 6C 6C 6F 77 65 64 5F  70 61 63 6B 65 74 2C 20 | allowed_packet,  |\n"
-              + "| 40 40 77 61 69 74 5F 74  69 6D 65 6F 75 74 3B 53 | @@wait_timeout;S |\n"
-              + "| 45 54 20 53 45 53 53 49  4F 4E 20 54 52 41 4E 53 | ET SESSION TRANS |\n"
-              + "| 41 43 54 49 4F 4E 20 52  45 41 44 20 57 52 49 54 | ACTION READ WRIT |\n"
-              + "| 45                                               | E                |\n"
-              + "+--------------------------------------------------+------------------+";
+          "+--------------------------------------------------+\n" +
+                  "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n" +
+                  "+--------------------------------------------------+------------------+\n" +
+                  "| 23 00 00 00 03 53 45 54  20 53 45 53 53 49 4F 4E | #....SET SESSION |\n" +
+                  "| 20 54 52 41 4E 53 41 43  54 49 4F 4E 20 52 45 41 |  TRANSACTION REA |\n" +
+                  "| 44 20 57 52 49 54 45                             | D WRITE          |\n" +
+                  "+--------------------------------------------------+------------------+";
       if (!"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv"))) {
         Assertions.assertTrue(
             contents.contains(defaultRequest)

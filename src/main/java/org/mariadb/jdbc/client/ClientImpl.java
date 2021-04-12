@@ -197,11 +197,6 @@ public class ClientImpl implements Client, AutoCloseable {
       // **********************************************************************
       if (!skipPostCommands) {
         postConnectionQueries();
-
-        // disable multi-queries
-        if (!conf.allowMultiQueries()) {
-          execute(SetOptionPacket.INSTANCE);
-        }
       }
 
     } catch (IOException ioException) {
@@ -292,10 +287,11 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   private void postConnectionQueries() throws SQLException {
-    String command;
+    List<String> commands = new ArrayList<>();
     String serverTz = conf.timezone() != null ? handleTimezone() : null;
-    command = createSessionVariableQuery(serverTz);
-    command += ";SELECT @@max_allowed_packet, @@wait_timeout";
+
+    commands.add(createSessionVariableQuery(serverTz));
+    commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
 
     List<String> galeraAllowedStates =
         conf.galeraAllowedState() == null
@@ -305,17 +301,24 @@ public class ClientImpl implements Client, AutoCloseable {
     if (hostAddress != null
         && Boolean.TRUE.equals(hostAddress.primary)
         && !galeraAllowedStates.isEmpty()) {
-      command += ";show status like 'wsrep_local_state'";
+      commands.add("show status like 'wsrep_local_state'");
     }
 
     if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      command +=
-          ";SET SESSION TRANSACTION "
-              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE");
+      commands.add(
+          "SET SESSION TRANSACTION "
+              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE"));
     }
 
     try {
-      List<Completion> res = execute(new QueryPacket(command));
+      List<Completion> res;
+      ClientMessage[] msgs = new ClientMessage[commands.size()];
+      for (int i = 0; i < commands.size(); i++) {
+        msgs[i] = new QueryPacket(commands.get(i));
+      }
+      res =
+          executePipeline(
+              msgs, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
 
       // read max allowed packet
       Result result = (Result) res.get(1);
@@ -344,9 +347,7 @@ public class ClientImpl implements Client, AutoCloseable {
                 "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
                 conf.timezone()));
       }
-      throw exceptionFactory
-          .withSql(command)
-          .create("Initialization command fail", "08000", sqlException);
+      throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
   }
 
@@ -459,22 +460,39 @@ public class ClientImpl implements Client, AutoCloseable {
 
     int readCounter = 0;
     int[] responseMsg = new int[messages.length];
+    boolean disablePipeline =
+        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("disablePipeline", "false"));
+
     try {
-      for (int i = 0; i < messages.length; i++) {
-        responseMsg[i] = sendQuery(messages[i]);
-      }
-      for (; readCounter < messages.length; ) {
-        readCounter++;
-        for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
+      if (disablePipeline) {
+        for (int i = 0; i < messages.length; i++) {
           results.addAll(
-              readResponse(
+              execute(
+                  messages[i],
                   stmt,
-                  messages[readCounter - 1],
                   fetchSize,
                   maxRows,
                   resultSetConcurrency,
                   resultSetType,
                   closeOnCompletion));
+        }
+      } else {
+        for (int i = 0; i < messages.length; i++) {
+          responseMsg[i] = sendQuery(messages[i]);
+        }
+        for (; readCounter < messages.length; ) {
+          readCounter++;
+          for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
+            results.addAll(
+                readResponse(
+                    stmt,
+                    messages[readCounter - 1],
+                    fetchSize,
+                    maxRows,
+                    resultSetConcurrency,
+                    resultSetType,
+                    closeOnCompletion));
+          }
         }
       }
       return results;

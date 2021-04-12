@@ -249,11 +249,6 @@
       <version>${osgi.compendium.version}</version>
       <scope>provided</scope>
     </dependency>
-    <!--    <dependency>-->
-    <!--      <groupId>com.amazonaws</groupId>-->
-    <!--      <artifactId>aws-java-sdk-rds</artifactId>-->
-    <!--      <optional>true</optional>-->
-    <!--    </dependency>-->
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-rds</artifactId>

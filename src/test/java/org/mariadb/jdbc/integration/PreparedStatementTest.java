@@ -940,6 +940,9 @@ public class PreparedStatementTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts")) {
       prepareStatementConcur(con);
     }
+    try (Connection con = createCon("&useServerPrepStmts=false&disablePipeline")) {
+      prepareStatementConcur(con);
+    }
   }
 
   private void prepareStatementConcur(Connection con) throws SQLException {
