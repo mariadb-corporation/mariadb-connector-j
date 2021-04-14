@@ -292,7 +292,7 @@ public class HostnameVerifier {
       if (cn == null) {
         if (subjectAltNames.isEmpty()) {
           throw new SSLException(
-              "CN not found in certificate principal \"{}"
+              "CN not found in certificate principal \""
                   + subjectPrincipal
                   + "\" and certificate doesn't contain SAN");
         } else {

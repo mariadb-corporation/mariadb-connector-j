@@ -160,8 +160,6 @@ public class LoggingTest extends Common {
     }
   }
 
-  HostnameVerifier verifier = new HostnameVerifier();
-
   @Test
   void certLogging() throws Exception {
     File tempFile = File.createTempFile("log", ".tmp");
@@ -183,7 +181,6 @@ public class LoggingTest extends Common {
     fa.setEncoder(pa);
 
     fa.setFile(tempFile.getPath());
-    HostnameVerifier verifier = new HostnameVerifier();
 
     fa.setAppend(true);
     fa.setContext(context);
@@ -221,22 +218,22 @@ public class LoggingTest extends Common {
     assertEquals(
         new X500Principal("CN=*.mariadb.org, O=\"Acme,Inc.\", L=SZ, ST=GD, C=CN"),
         cert.getSubjectX500Principal());
-    verifier.verify("localhost", cert, -1);
-    verifier.verify("localhost.localdomain", cert, -1);
+    HostnameVerifier.verify("localhost", cert, -1);
+    HostnameVerifier.verify("localhost.localdomain", cert, -1);
     verifyExceptionEqual(
         "local.host",
         cert,
         "DNS host \"local.host\" doesn't correspond to certificate "
             + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
-    verifier.verify("127.0.0.1", cert, -1);
+    HostnameVerifier.verify("127.0.0.1", cert, -1);
     verifyExceptionEqual(
         "127.0.0.2",
         cert,
         "IPv4 host \"127.0.0.2\" doesn't correspond to certificate "
             + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
-    verifier.verify("2001:db8:3902:3468:0:0:0:443", cert, -1);
+    HostnameVerifier.verify("2001:db8:3902:3468:0:0:0:443", cert, -1);
     verifyExceptionEqual(
         "2001:db8:1::",
         cert,
@@ -265,7 +262,7 @@ public class LoggingTest extends Common {
 
   private void verifyExceptionEqual(String host, X509Certificate cert, String exceptionMessage) {
     Exception e =
-        Assertions.assertThrows(SSLException.class, () -> verifier.verify(host, cert, -1));
+        Assertions.assertThrows(SSLException.class, () -> HostnameVerifier.verify(host, cert, -1));
     Assertions.assertTrue(
         e.getMessage().contains(exceptionMessage), "real message:" + e.getMessage());
   }
