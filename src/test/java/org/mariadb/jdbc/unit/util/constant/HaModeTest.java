@@ -14,8 +14,10 @@ import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.Security;
+import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.*;
 import org.mariadb.jdbc.util.log.LoggerHelper;
+import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 public class HaModeTest {
@@ -36,6 +38,8 @@ public class HaModeTest {
     LoggerHelper lh = new LoggerHelper();
     ConnectionHelper ch = new ConnectionHelper();
     Pools p = new Pools();
+    Loggers l = new Loggers();
+    VersionFactory vv = new VersionFactory();
   }
 
   @Test

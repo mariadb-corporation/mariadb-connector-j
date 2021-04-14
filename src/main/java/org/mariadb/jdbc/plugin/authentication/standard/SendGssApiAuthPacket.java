@@ -28,8 +28,8 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssUtility;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.authentication.standard.gssapi.GssUtility;
 import org.mariadb.jdbc.plugin.authentication.standard.gssapi.GssapiAuth;
 import org.mariadb.jdbc.plugin.authentication.standard.gssapi.StandardGssapiAuthentication;
 

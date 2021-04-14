@@ -224,12 +224,33 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    // with system
+    // with system properties
     System.setProperty("javax.net.ssl.keyStore", System.getenv("TEST_DB_CLIENT_PKCS"));
     System.setProperty("javax.net.ssl.keyStorePassword", "kspass");
     try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
+
+    // wrong keystore type
+    System.setProperty("javax.net.ssl.keyStoreType", "JKS");
+    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
+    System.clearProperty("javax.net.ssl.keyStoreType");
+    try (Connection con =
+        createCon(baseMutualOptions + "&sslMode=trust&keyStoreType=JKS", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+
+    // without password
+    System.clearProperty("javax.net.ssl.keyStorePassword");
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
   }
 
   @Test
@@ -306,7 +327,7 @@ public class SslTest extends Common {
     }
   }
 
-  private String retrieveCertificatePath() throws Exception {
+  public static String retrieveCertificatePath() throws Exception {
     String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
 
     // try local server
@@ -325,7 +346,7 @@ public class SslTest extends Common {
     return serverCertificatePath;
   }
 
-  private String checkFileExists(String path) throws IOException {
+  private static String checkFileExists(String path) throws IOException {
     if (path == null) return null;
     File f = new File(path);
     if (f.exists()) {

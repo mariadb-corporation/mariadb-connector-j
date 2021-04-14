@@ -23,6 +23,7 @@
 package org.mariadb.jdbc.client.tls;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -50,32 +51,26 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       ExceptionFactory exceptionFactory)
       throws SQLException {
 
-    InputStream inStream = null;
     try {
-
-      try {
-        inStream = new URL(keyStoreUrl).openStream();
-      } catch (IOException ioexception) {
-        inStream = new FileInputStream(keyStoreUrl);
+      try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
+        char[] keyStorePasswordChars =
+            keyStorePassword == null ? null : keyStorePassword.toCharArray();
+        KeyStore ks =
+            KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
+        ks.load(inStream, keyStorePasswordChars);
+        return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
       }
-
-      char[] keyStorePasswordChars =
-          keyStorePassword == null ? null : keyStorePassword.toCharArray();
-
-      KeyStore ks = KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
-      ks.load(inStream, keyStorePasswordChars);
-      return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
     } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
           "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, "08000", ex);
-    } finally {
-      try {
-        if (inStream != null) {
-          inStream.close();
-        }
-      } catch (IOException ioEx) {
-        // ignore error
-      }
+    }
+  }
+
+  private static InputStream loadFromUrl(String keyStoreUrl) throws FileNotFoundException {
+    try {
+      return new URL(keyStoreUrl).openStream();
+    } catch (IOException ioexception) {
+      return new FileInputStream(keyStoreUrl);
     }
   }
 
@@ -113,8 +108,9 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
           };
     } else {
       String keyStore = System.getProperty("javax.net.ssl.keyStore");
-      String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
-      String keyStoreType = System.getProperty("javax.net.ssl.keyStoreType");
+      String keyStorePassword =
+          System.getProperty("javax.net.ssl.keyStorePassword", conf.keyStorePassword());
+      String keyStoreType = System.getProperty("javax.net.ssl.keyStoreType", conf.keyStoreType());
       if (keyStore != null) {
         try {
           keyManager =
@@ -123,7 +119,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               };
         } catch (SQLException queryException) {
           keyManager = null;
-          logger.error("Error loading keymanager from system properties", queryException);
+          logger.error("Error loading key manager from system properties", queryException);
         }
       }
     }
@@ -143,14 +139,13 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   @Override
   public void verify(String host, SSLSession session, Configuration conf, long serverThreadId)
       throws SSLException {
-    HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
-    if (!hostnameVerifier.verify(host, session, serverThreadId)) {
-
-      // Use proprietary verify method in order to have an exception with a better description
-      // of error.
+    try {
       Certificate[] certs = session.getPeerCertificates();
       X509Certificate cert = (X509Certificate) certs[0];
-      hostnameVerifier.verify(host, cert, serverThreadId);
+      HostnameVerifier.verify(host, cert, serverThreadId);
+    } catch (SSLException ex) {
+      logger.info(ex.getMessage(), ex);
+      throw ex;
     }
   }
 }

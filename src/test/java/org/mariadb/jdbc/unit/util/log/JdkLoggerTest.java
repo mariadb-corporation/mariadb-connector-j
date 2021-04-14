@@ -94,6 +94,7 @@ public class JdkLoggerTest {
     assertTrue(logger.isTraceEnabled());
     logger.trace("trace msg");
     logger.trace("trace msg3 {} {}", 1, "t");
+    logger.trace("trace msg3 {} {}", (String) null);
     logger.trace("trace msg2", new SQLException("test"));
 
     String outSt = new String(out.toByteArray());

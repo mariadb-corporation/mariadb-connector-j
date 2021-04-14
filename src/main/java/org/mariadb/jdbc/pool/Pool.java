@@ -438,7 +438,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       }
 
       if (logger.isInfoEnabled()) {
-        logger.info(
+        logger.debug(
             "closing pool {} (total:{}, active:{}, pending:{})",
             poolTag,
             totalConnection.get(),

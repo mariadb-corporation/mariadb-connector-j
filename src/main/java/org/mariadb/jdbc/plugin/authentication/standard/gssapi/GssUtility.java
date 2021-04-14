@@ -19,12 +19,9 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
+package org.mariadb.jdbc.plugin.authentication.standard.gssapi;
 
 import com.sun.jna.Platform;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.GssapiAuth;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.StandardGssapiAuthentication;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.WindowsNativeSspiAuthentication;
 
 public class GssUtility {
 

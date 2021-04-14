@@ -315,14 +315,14 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatch() throws SQLException {
-    //    executeBatch(sharedConn);
+    executeBatch(sharedConn);
     executeBatch(sharedConnBinary);
-    //    try (Connection con = createCon("allowLocalInfile=true")) {
-    //      executeBatch(con);
-    //    }
-    //    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
-    //      executeBatch(con);
-    //    }
+    try (Connection con = createCon("allowLocalInfile=true")) {
+      executeBatch(con);
+    }
+    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
+      executeBatch(con);
+    }
   }
 
   private void executeBatch(Connection con) throws SQLException {
@@ -373,6 +373,36 @@ public class PreparedStatementTest extends Common {
       assertEquals(127, rs.getInt(1));
       assertEquals(45, rs.getInt(2));
       assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  public void executeWrongBatch() throws SQLException {
+    //    executeWrongBatch(sharedConn);
+    //    executeWrongBatch(sharedConnBinary);
+    try (Connection con = createCon("useBulkStmts=false&useServerPrepStmts=true")) {
+      executeWrongBatch(con);
+    }
+  }
+
+  private void executeWrongBatch(Connection con) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE prepare1");
+    stmt.execute("SET sql_mode = concat(@@sql_mode,',ERROR_FOR_DIVISION_BY_ZERO')");
+    try (PreparedStatement preparedStatement = con.prepareStatement("SELECT 5/?")) {
+      preparedStatement.setInt(1, 5);
+      preparedStatement.addBatch();
+      preparedStatement.executeBatch();
+
+      preparedStatement.setInt(1, 5);
+      preparedStatement.addBatch();
+      preparedStatement.setInt(1, 0);
+      preparedStatement.addBatch();
+      try {
+        preparedStatement.executeBatch();
+      } catch (BatchUpdateException e) {
+        // eat
+      }
     }
   }
 

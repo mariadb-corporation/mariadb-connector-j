@@ -10,11 +10,11 @@ import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.client.tls.HostnameVerifierImpl;
+import org.mariadb.jdbc.client.tls.HostnameVerifier;
 
-public class HostnameVerifierImplTest {
+public class HostnameVerifierTest {
 
-  private final HostnameVerifierImpl verifier = new HostnameVerifierImpl();
+  private final HostnameVerifier verifier = new HostnameVerifier();
 
   private static X509Certificate getCertificate(String certString) throws CertificateException {
     CertificateFactory cf = CertificateFactory.getInstance("X.509");

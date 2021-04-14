@@ -82,7 +82,7 @@ public final class Security {
                 out.append(",");
               }
               out.append(key);
-              out.append(sb.toString());
+              out.append(sb);
               first = false;
             } else {
               key = sb.toString().trim();
@@ -121,7 +121,7 @@ public final class Security {
         out.append(",");
       }
       out.append(key);
-      out.append(sb.toString());
+      out.append(sb);
     } else {
       String tmpkey = sb.toString().trim();
       if (!tmpkey.isEmpty() && !first) {

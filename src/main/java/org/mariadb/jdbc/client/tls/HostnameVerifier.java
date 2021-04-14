@@ -23,7 +23,6 @@ package org.mariadb.jdbc.client.tls;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -31,16 +30,14 @@ import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 import javax.security.auth.x500.X500Principal;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
-public class HostnameVerifierImpl implements HostnameVerifier {
+public class HostnameVerifier {
 
-  private static final Logger logger = Loggers.getLogger(HostnameVerifierImpl.class);
+  private static final Logger logger = Loggers.getLogger(HostnameVerifier.class);
   private static final Pattern IP_V4 =
       Pattern.compile(
           "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
@@ -175,7 +172,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     return IP_V6.matcher(ip).matches() || IP_V6_COMPRESSED.matcher(ip).matches();
   }
 
-  private SubjectAltNames getSubjectAltNames(X509Certificate cert)
+  private static SubjectAltNames getSubjectAltNames(X509Certificate cert)
       throws CertificateParsingException {
     Collection<List<?>> entries = cert.getSubjectAlternativeNames();
     SubjectAltNames subjectAltNames = new SubjectAltNames();
@@ -204,34 +201,6 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     return subjectAltNames;
   }
 
-  @Override
-  public boolean verify(String host, SSLSession session) {
-    return verify(host, session, -1);
-  }
-
-  /**
-   * Verification, like HostnameVerifier.verify() with an additional server thread id to identify
-   * connection in logs.
-   *
-   * @param host host to connect (DNS/IP)
-   * @param session SSL session
-   * @param serverThreadId connection id to identify connection in logs
-   * @return true if valid
-   */
-  public boolean verify(String host, SSLSession session, long serverThreadId) {
-    try {
-      Certificate[] certs = session.getPeerCertificates();
-      X509Certificate cert = (X509Certificate) certs[0];
-      verify(host, cert, serverThreadId);
-      return true;
-    } catch (SSLException ex) {
-      if (logger.isDebugEnabled()) {
-        logger.debug(ex.getMessage(), ex);
-      }
-      return false;
-    }
-  }
-
   /**
    * Verification that throw an exception with a detailed error message in case of error.
    *
@@ -240,7 +209,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
    * @param serverThreadId server thread Identifier to identify connection in logs
    * @throws SSLException exception
    */
-  public void verify(String host, X509Certificate cert, long serverThreadId) throws SSLException {
+  public static void verify(String host, X509Certificate cert, long serverThreadId)
+      throws SSLException {
     if (host == null) {
       return; // no validation if no host (possible for name pipe)
     }
@@ -332,7 +302,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                   + "\" and "
                   + normalizedHostMsg(lowerCaseHost)
                   + " doesn't correspond to "
-                  + subjectAltNames.toString());
+                  + subjectAltNames);
         }
       }
 

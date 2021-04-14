@@ -47,7 +47,7 @@ import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.tls.HostnameVerifierImpl;
+import org.mariadb.jdbc.client.tls.HostnameVerifier;
 import org.slf4j.LoggerFactory;
 
 public class LoggingTest extends Common {
@@ -160,7 +160,7 @@ public class LoggingTest extends Common {
     }
   }
 
-  HostnameVerifierImpl verifier = new HostnameVerifierImpl();
+  HostnameVerifier verifier = new HostnameVerifier();
 
   @Test
   void certLogging() throws Exception {
@@ -183,7 +183,7 @@ public class LoggingTest extends Common {
     fa.setEncoder(pa);
 
     fa.setFile(tempFile.getPath());
-    HostnameVerifierImpl verifier = new HostnameVerifierImpl();
+    HostnameVerifier verifier = new HostnameVerifier();
 
     fa.setAppend(true);
     fa.setContext(context);

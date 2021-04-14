@@ -24,7 +24,6 @@ package org.mariadb.jdbc.util;
 import java.sql.SQLException;
 import java.util.Locale;
 import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public final class NativeSql {
 
@@ -33,104 +32,128 @@ public final class NativeSql {
       return sql;
     }
 
-    StringBuilder escapeSequenceBuf = new StringBuilder();
-    StringBuilder sqlBuffer = new StringBuilder();
+    ClientParser.LexState state = ClientParser.LexState.Normal;
+    char lastChar = '\0';
+    boolean singleQuotes = false;
+    int lastEscapePart = 0;
 
-    char[] charArray = sql.toCharArray();
-    char lastChar = 0;
-    boolean inQuote = false;
-    char quoteChar = 0;
-    boolean inComment = false;
-    boolean isSlashSlashComment = false;
-    int inEscapeSeq = 0;
+    StringBuilder sb = new StringBuilder();
+    char[] query = sql.toCharArray();
+    int queryLength = query.length;
+    int escapeIdx = 0;
+    boolean inEscape = false;
 
-    for (char car : charArray) {
-      if (lastChar == '\\'
-          && (context.getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) == 0) {
-        sqlBuffer.append(car);
-        // avoid considering escaped backslash as a futur escape character
-        lastChar = ' ';
+    for (int idx = 0; idx < queryLength; idx++) {
+
+      char car = query[idx];
+      if (state == ClientParser.LexState.Escape
+          && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+        state = ClientParser.LexState.String;
+        if (!inEscape) sb.append(car);
+        lastChar = car;
         continue;
       }
-
       switch (car) {
-        case '\'':
-        case '"':
-        case '`':
-          if (!inComment) {
-            if (inQuote) {
-              if (quoteChar == car) {
-                inQuote = false;
-              }
-            } else {
-              inQuote = true;
-              quoteChar = car;
-            }
+        case '*':
+          if (state == ClientParser.LexState.Normal && lastChar == '/') {
+            state = ClientParser.LexState.SlashStarComment;
           }
           break;
 
-        case '*':
-          if (!inQuote && !inComment && lastChar == '/') {
-            inComment = true;
-            isSlashSlashComment = false;
+        case '/':
+          if (state == ClientParser.LexState.SlashStarComment && lastChar == '*') {
+            state = ClientParser.LexState.Normal;
+          } else if (state == ClientParser.LexState.Normal && lastChar == '/') {
+            state = ClientParser.LexState.EOLComment;
+          }
+          break;
+
+        case '#':
+          if (state == ClientParser.LexState.Normal) {
+            state = ClientParser.LexState.EOLComment;
           }
           break;
 
         case '-':
-        case '/':
-          if (!inQuote) {
-            if (inComment) {
-              if (lastChar == '*' && !isSlashSlashComment) {
-                inComment = false;
-              }
-            } else {
-              if (lastChar == car) {
-                inComment = true;
-                isSlashSlashComment = true;
-              }
-            }
+          if (state == ClientParser.LexState.Normal && lastChar == '-') {
+            state = ClientParser.LexState.EOLComment;
           }
           break;
+
         case '\n':
-          if (inComment && isSlashSlashComment) {
-            // slash-slash and dash-dash comments ends with the end of line
-            inComment = false;
+          if (state == ClientParser.LexState.EOLComment) {
+            state = ClientParser.LexState.Normal;
+          }
+          break;
+
+        case '"':
+          if (state == ClientParser.LexState.Normal) {
+            state = ClientParser.LexState.String;
+            singleQuotes = false;
+          } else if (state == ClientParser.LexState.String && !singleQuotes) {
+            state = ClientParser.LexState.Normal;
+          } else if (state == ClientParser.LexState.Escape && !singleQuotes) {
+            state = ClientParser.LexState.String;
+          }
+          break;
+
+        case '\'':
+          if (state == ClientParser.LexState.Normal) {
+            state = ClientParser.LexState.String;
+            singleQuotes = true;
+          } else if (state == ClientParser.LexState.String && singleQuotes) {
+            state = ClientParser.LexState.Normal;
+          } else if (state == ClientParser.LexState.Escape && singleQuotes) {
+            state = ClientParser.LexState.String;
+          }
+          break;
+
+        case '\\':
+          if (state == ClientParser.LexState.String) {
+            state = ClientParser.LexState.Escape;
+          }
+          break;
+        case '`':
+          if (state == ClientParser.LexState.Backtick) {
+            state = ClientParser.LexState.Normal;
+          } else if (state == ClientParser.LexState.Normal) {
+            state = ClientParser.LexState.Backtick;
           }
           break;
         case '{':
-          if (!inQuote && !inComment) {
-            inEscapeSeq++;
+          if (state == ClientParser.LexState.Normal) {
+            if (!inEscape) {
+              inEscape = true;
+              lastEscapePart = idx;
+            }
+            escapeIdx++;
           }
           break;
 
         case '}':
-          if (!inQuote && !inComment) {
-            inEscapeSeq--;
-            if (inEscapeSeq == 0) {
-              escapeSequenceBuf.append(car);
-              sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), context));
-              escapeSequenceBuf.setLength(0);
-              lastChar = car;
-              continue;
+          if (state == ClientParser.LexState.Normal) {
+            if (inEscape) {
+              escapeIdx--;
+
+              if (escapeIdx == 0) {
+                String str = sql.substring(lastEscapePart, idx + 1);
+                String escapedSeq = resolveEscapes(str, context);
+                sb.append(escapedSeq);
+                inEscape = false;
+                continue;
+              }
             }
           }
           break;
-
-        default:
-          break;
       }
+      if (!inEscape) sb.append(car);
       lastChar = car;
-      if (inEscapeSeq > 0) {
-        escapeSequenceBuf.append(car);
-      } else {
-        sqlBuffer.append(car);
-      }
     }
-    if (inEscapeSeq > 0) {
+    if (inEscape) {
       throw new SQLException(
-          "Invalid escape sequence , missing closing '}' character in '" + sqlBuffer);
+          "Invalid escape sequence , missing closing '}' character in '" + sql + "'");
     }
-    return sqlBuffer.toString();
+    return sb.toString();
   }
 
   private static String resolveEscapes(String escaped, Context context) throws SQLException {

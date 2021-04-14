@@ -414,7 +414,11 @@ public class ClientPreparedStatement extends BasePreparedStatement {
         }
       } else {
         for (int i = 0; i < Math.min(res.size(), batchParameters.size()); i++) {
-          updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+          if (res.get(i) instanceof OkPacket) {
+            updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+          } else {
+            updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
+          }
         }
       }
       currResult = results.remove(0);

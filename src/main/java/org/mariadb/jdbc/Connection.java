@@ -689,6 +689,11 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void abort(Executor executor) throws SQLException {
+    if (poolConnection != null) {
+      MariaDbPoolConnection poolConnection = this.poolConnection;
+      poolConnection.close();
+      return;
+    }
     client.abort(executor);
   }
 

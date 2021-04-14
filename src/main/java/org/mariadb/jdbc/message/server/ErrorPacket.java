@@ -56,7 +56,7 @@ public final class ErrorPacket implements ServerMessage {
       this.sqlState = "HY000";
     }
     if (logger.isWarnEnabled()) {
-      logger.warn("Error: {}", toString());
+      logger.warn("Error: {}-{}: {}", errorCode, sqlState, message);
     }
 
     // force current status to in transaction to ensure rollback/commit, since command may have

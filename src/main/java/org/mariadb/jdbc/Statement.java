@@ -696,7 +696,11 @@ public class Statement implements java.sql.Statement {
 
       int[] updates = new int[res.size()];
       for (int i = 0; i < res.size(); i++) {
-        updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+        if (res.get(i) instanceof OkPacket) {
+          updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+        } else {
+          updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
+        }
       }
       currResult = results.remove(0);
       batchQueries.clear();

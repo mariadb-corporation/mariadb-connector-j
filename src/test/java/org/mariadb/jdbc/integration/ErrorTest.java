@@ -37,6 +37,8 @@ public class ErrorTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE deadlock(a int primary key)");
+    stmt.execute("CREATE TABLE deadlock2(a int primary key) ENGINE=InnoDB");
+
     stmt.execute("FLUSH TABLES");
   }
 
@@ -44,11 +46,20 @@ public class ErrorTest extends Common {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS deadlock");
+    stmt.execute("DROP TABLE IF EXISTS deadlock2");
   }
 
   @Test
   public void dumpQueryOnException() throws Exception {
     try (Connection con = createCon("dumpQueriesOnException")) {
+      Statement stmt = con.createStatement();
+      assertThrowsContains(
+          SQLSyntaxErrorException.class,
+          () -> stmt.execute("SELECT 'long value' FROM wrongTable"),
+          "Query is: SELECT 'long value' FROM wrongTable");
+    }
+
+    try (Connection con = createCon("maxQuerySizeToLog=100&dumpQueriesOnException")) {
       Statement stmt = con.createStatement();
       assertThrowsContains(
           SQLSyntaxErrorException.class,
@@ -67,11 +78,19 @@ public class ErrorTest extends Common {
 
   @Test
   public void testPre41ErrorFormat() throws Exception {
+    testPre41ErrorFormat(sharedConn);
+    try (Connection con =
+        createCon("dumpQueriesOnException&includeInnodbStatusInDeadlockExceptions")) {
+      testPre41ErrorFormat(con);
+    }
+  }
+
+  private void testPre41ErrorFormat(Connection con) throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     SQLException exception = null;
     int max_connections;
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT @@max_connections");
     rs.next();
     max_connections = rs.getInt(1);

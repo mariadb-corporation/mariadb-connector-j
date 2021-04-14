@@ -33,9 +33,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.*;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
 import javax.sql.*;
 import org.junit.jupiter.api.Assumptions;
@@ -43,6 +42,8 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 import org.mariadb.jdbc.pool.InternalPoolConnection;
+import org.mariadb.jdbc.pool.Pool;
+import org.mariadb.jdbc.pool.Pools;
 import org.slf4j.LoggerFactory;
 
 public class PooledConnectionTest extends Common {
@@ -86,6 +87,9 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolFailover() throws Exception {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -201,6 +205,23 @@ public class PooledConnectionTest extends Common {
       if (pc != null) {
         pc.close();
       }
+    }
+  }
+
+  @Test
+  public void testPooledConnectionException2() throws Exception {
+    try (Pool pool = Pools.retrievePool(Configuration.parse(mDefUrl + "&maxPoolSize=2"))) {
+      InternalPoolConnection pooledConnection = pool.getPoolConnection();
+      org.mariadb.jdbc.Connection con = pooledConnection.getConnection();
+      con.setAutoCommit(false);
+      con.createStatement().execute("START TRANSACTION ");
+
+      Connection con2 = pool.getPoolConnection().getConnection();
+      con2.createStatement().execute("KILL " + con.getThreadId());
+      con2.close();
+      Thread.sleep(10);
+      assertThrows(SQLException.class, () -> con.commit());
+      pooledConnection.close();
     }
   }
 

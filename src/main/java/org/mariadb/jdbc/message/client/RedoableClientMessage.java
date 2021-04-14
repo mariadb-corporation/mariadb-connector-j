@@ -8,7 +8,8 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 public interface RedoableClientMessage extends ClientMessage {
 
-  default void saveParameters() {};
+  default void saveParameters() {}
+  ;
 
   default void ensureReplayable(Context context) throws IOException, SQLException {}
 

@@ -72,9 +72,8 @@ public class ExceptionFactory {
         Statement stmt = connection.createStatement();
         try {
           ResultSet rs = stmt.executeQuery("SHOW ENGINE INNODB STATUS");
-          if (rs.next()) {
-            msg.append("\ndeadlock information: ").append(rs.getString(3));
-          }
+          rs.next();
+          msg.append("\ndeadlock information: ").append(rs.getString(3));
         } catch (SQLException sqle) {
           // eat
         }
@@ -226,14 +225,14 @@ public class ExceptionFactory {
         break;
     }
 
-    if (poolConnection != null && statement != null && statement instanceof PreparedStatement) {
-      poolConnection.fireStatementErrorOccurred((PreparedStatement) statement, returnEx);
-    }
-
-    if (poolConnection != null
-        && (returnEx instanceof SQLNonTransientConnectionException
-            || returnEx instanceof SQLTransientConnectionException)) {
-      poolConnection.fireConnectionErrorOccurred(returnEx);
+    if (poolConnection != null) {
+      if (statement != null && statement instanceof PreparedStatement) {
+        poolConnection.fireStatementErrorOccurred((PreparedStatement) statement, returnEx);
+      }
+      if (returnEx instanceof SQLNonTransientConnectionException
+          || returnEx instanceof SQLTransientConnectionException) {
+        poolConnection.fireConnectionErrorOccurred(returnEx);
+      }
     }
 
     return returnEx;

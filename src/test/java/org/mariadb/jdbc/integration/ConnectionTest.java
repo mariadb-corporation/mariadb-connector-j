@@ -107,7 +107,8 @@ public class ConnectionTest extends Common {
     String[] inputs =
         new String[] {
           "select {fn TIMESTAMPDIFF ( SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}, {fn TIMESTAMPDIFF (HOUR, {fn convert  ('sQL_'   , SQL_INTEGER)})}",
-          "{call foo({fn now()})}",
+          "{call foo({fn now()})} //end",
+          "{call foo({fn '{' now()} /* {test}# \"'\" */) \"\\\"'#\" '\"\\''} #{test2}",
           "{  call foo({fn now()})}",
           "{\r\ncall foo({fn now()})}",
           "{\r\n  call foo({fn now()})}",
@@ -131,7 +132,8 @@ public class ConnectionTest extends Common {
     String[] outputs =
         new String[] {
           "select TIMESTAMPDIFF ( HOUR, convert('SQL_', INTEGER)), TIMESTAMPDIFF (HOUR, convert  ('sQL_'   , INTEGER))",
-          "call foo(now())",
+          "call foo(now()) //end",
+          "call foo('{' now() /* {test}# \"'\" */) \"\\\"'#\" '\"\\'' #{test2}",
           "call foo(now())",
           "call foo(now())",
           "call foo(now())",
@@ -153,8 +155,12 @@ public class ConnectionTest extends Common {
           "SELECT * FROM TABLE1 LEFT OUTER JOIN TABLE2 ON DEPT_NO = 003420930"
         };
     for (int i = 0; i < inputs.length; i++) {
-      assertEquals(sharedConn.nativeSQL(inputs[i]), outputs[i]);
+      assertEquals(outputs[i], sharedConn.nativeSQL(inputs[i]));
     }
+    assertEquals(
+        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')",
+        sharedConn.nativeSQL(
+            "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')"));
 
     try {
       sharedConn.nativeSQL("{call foo({fn now())}");
@@ -169,6 +175,15 @@ public class ConnectionTest extends Common {
       fail("most have thrown an error");
     } catch (SQLException e) {
       assertTrue(e.getMessage().contains("unknown escape sequence {unknown}"));
+    }
+  }
+
+  @Test
+  public void nativeSQLNoBackSlash() throws SQLException {
+    try (Connection con = createCon()) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
+      assertEquals("call foo('{' now())", con.nativeSQL("{call foo({fn '{' now()})}"));
     }
   }
 
@@ -926,6 +941,24 @@ public class ConnectionTest extends Common {
                 + path)) {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
+    }
+
+    if (haveSsl()) {
+      String serverCertPath = SslTest.retrieveCertificatePath();
+      if (serverCertPath != null) {
+        try (Connection con =
+            DriverManager.getConnection(
+                "jdbc:mariadb:///"
+                    + sharedConn.getCatalog()
+                    + "?sslMode=verify-full&user=testSocket&password=MySup5%rPassw@ord"
+                    + "&serverSslCert="
+                    + serverCertPath
+                    + "&localSocket="
+                    + path)) {
+          rs = con.createStatement().executeQuery("select 1");
+          assertTrue(rs.next());
+        }
+      }
     }
     stmt.execute("DROP USER testSocket@'localhost'");
   }

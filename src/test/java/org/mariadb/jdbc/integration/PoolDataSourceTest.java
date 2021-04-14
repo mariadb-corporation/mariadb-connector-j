@@ -506,10 +506,8 @@ public class PoolDataSourceTest extends Common {
     int numberOfConnection = 0;
 
     for (Integer integer : threadIds) {
-      System.out.println("Connection id : " + integer);
       numberOfConnection++;
     }
-    System.out.println("Size : " + threadIds.size() + " " + numberOfConnection);
     assertTrue(
         numberOfConnection <= 8, "connection ids must be less than 8 : " + numberOfConnection);
     assertTrue(System.currentTimeMillis() - start < (5_000));

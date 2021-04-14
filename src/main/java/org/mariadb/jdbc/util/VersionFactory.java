@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-public class VersionFactory {
+public final class VersionFactory {
   private static Version instance = null;
 
   // use getShape method to get object of type shape
