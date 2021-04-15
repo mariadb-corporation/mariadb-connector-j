@@ -877,11 +877,15 @@ public class ConnectionTest extends Common {
 
   @Test
   public void windowsNamedPipe() throws SQLException {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
-    try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket")) {
+    ResultSet rs = null;
+    try {
+      rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket");
+    } catch (SQLException sqle) {
+      // on non windows system, named_pipe doesn't exist.
+    }
+    if (rs != null) {
       assertTrue(rs.next());
+      System.out.println("named_pipe:" + rs.getString(1));
       if (rs.getBoolean(1)) {
         String namedPipeName = rs.getString(2);
         System.out.println("namedPipeName:" + namedPipeName);
