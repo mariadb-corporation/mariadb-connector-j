@@ -4,3 +4,4 @@ codecov:
 ignore:
   - "src/main/java/org/mariadb/jdbc/plugin/authentication/standard/ed25519"  # ignore folders and all its contents
   - "src/main/java/org/mariadb/jdbc/plugin/credential/aws"
+  - "src/main/java/org/mariadb/jdbc/plugin/authentication/addon"

@@ -2,7 +2,7 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
 
-package org.mariadb.jdbc.plugin.authentication.standard;
+package org.mariadb.jdbc.plugin.authentication.addon;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -12,9 +12,9 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.GssUtility;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.GssapiAuth;
-import org.mariadb.jdbc.plugin.authentication.standard.gssapi.StandardGssapiAuthentication;
+import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssUtility;
+import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssapiAuth;
+import org.mariadb.jdbc.plugin.authentication.addon.gssapi.StandardGssapiAuthentication;
 
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 

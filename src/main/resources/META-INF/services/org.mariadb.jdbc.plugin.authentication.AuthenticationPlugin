@@ -1,5 +1,5 @@
-org.mariadb.jdbc.plugin.authentication.standard.ClearPasswordPlugin
-org.mariadb.jdbc.plugin.authentication.standard.SendGssApiAuthPacket
+org.mariadb.jdbc.plugin.authentication.addon.ClearPasswordPlugin
+org.mariadb.jdbc.plugin.authentication.addon.SendGssApiAuthPacket
 org.mariadb.jdbc.plugin.authentication.standard.Ed25519PasswordPlugin
 org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin
 org.mariadb.jdbc.plugin.authentication.standard.SendPamAuthPacket
