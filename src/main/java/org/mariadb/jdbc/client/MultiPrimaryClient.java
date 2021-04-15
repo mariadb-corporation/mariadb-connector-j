@@ -1,23 +1,6 @@
-/*
- * MariaDB Client for Java
- *
- * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *
- * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- */
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client;
 
@@ -191,7 +174,7 @@ public class MultiPrimaryClient implements Client {
     // transaction replay
     if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
       RedoContext ctx = (RedoContext) oldCli.getContext();
-      ((ClientReplayImpl)currentClient).transactionReplay(ctx.getTransactionSaver());
+      ((ClientReplayImpl) currentClient).transactionReplay(ctx.getTransactionSaver());
     }
   }
 
@@ -293,15 +276,14 @@ public class MultiPrimaryClient implements Client {
       HostAddress hostAddress = currentClient.getHostAddress();
       reConnect();
 
-
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
-                String.format(
-                        "Driver has reconnect connection after a "
-                                + "communications "
-                                + "failure with %s during a COMMIT statement",
-                        hostAddress),
-                "25S03");
+            String.format(
+                "Driver has reconnect connection after a "
+                    + "communications "
+                    + "failure with %s during a COMMIT statement",
+                hostAddress),
+            "25S03");
       }
 
       if (message instanceof RedoableWithPrepareClientMessage) {

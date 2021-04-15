@@ -1,23 +1,6 @@
-/*
- * MariaDB Client for Java
- *
- * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *
- * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- */
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -108,16 +91,16 @@ public class FailoverTest extends Common {
 
   private void transactionReplayDuringCommit(boolean transactionReplay) throws SQLException {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement st = sharedConn.createStatement();
     st.execute("DROP TABLE IF EXISTS transaction_failover");
     st.execute(
-            "CREATE TABLE transaction_failover "
-                    + "(id int not null primary key auto_increment, test varchar(20)) "
-                    + "engine=innodb");
+        "CREATE TABLE transaction_failover "
+            + "(id int not null primary key auto_increment, test varchar(20)) "
+            + "engine=innodb");
 
     try (Connection con =
-                 createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
+        createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
@@ -130,7 +113,10 @@ public class FailoverTest extends Common {
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
       proxy.restart(300);
       if (transactionReplay) {
-        assertThrowsContains(SQLTransientConnectionException.class, () -> con.commit(), "Driver has reconnect connection after a communications failure");
+        assertThrowsContains(
+            SQLTransientConnectionException.class,
+            () -> con.commit(),
+            "Driver has reconnect connection after a communications failure");
 
         ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
         for (int i = 0; i < 1; i++) {
@@ -143,9 +129,9 @@ public class FailoverTest extends Common {
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
-                SQLTransientConnectionException.class,
-                () -> con.commit(),
-                "In progress transaction was lost");
+            SQLTransientConnectionException.class,
+            () -> con.commit(),
+            "In progress transaction was lost");
       }
     }
   }
