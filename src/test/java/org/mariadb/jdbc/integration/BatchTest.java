@@ -113,6 +113,10 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
       differentParameterType(con);
     }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
+      differentParameterType(con);
+    }
+
   }
 
   public void differentParameterType(Connection con) throws SQLException {

@@ -69,8 +69,6 @@ public interface Client extends AutoCloseable {
 
   void closePrepare(PrepareResultPacket prepare) throws SQLException;
 
-  void transactionReplay(TransactionSaver transactionSaver) throws SQLException;
-
   void abort(Executor executor) throws SQLException;
 
   void close() throws SQLException;

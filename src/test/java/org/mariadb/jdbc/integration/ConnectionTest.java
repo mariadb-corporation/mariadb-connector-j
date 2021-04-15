@@ -865,6 +865,18 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void testNoUseReadAheadInputConnection() throws Exception {
+    try (Connection connection = createCon("useReadAheadInput=false")) {
+      // must have succeed
+      Statement stmt = connection.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user");
+      int i = 0;
+      while (rs.next()) i++;
+      assertTrue(i > 0);
+    }
+  }
+
+  @Test
   public void useNoDatabase() throws SQLException {
     try (Connection con = createCon()) {
       String db = con.getCatalog();
@@ -943,6 +955,15 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
     }
 
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            DriverManager.getConnection(
+                "jdbc:mariadb:///"
+                    + sharedConn.getCatalog()
+                    + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=/wrongPath"),
+        "Socket fail to connect to host");
+
     if (haveSsl()) {
       String serverCertPath = SslTest.retrieveCertificatePath();
       if (serverCertPath != null) {
@@ -1016,6 +1037,31 @@ public class ConnectionTest extends Common {
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {
+      con.isValid(1);
+    }
+  }
+
+  @Test
+  public void setReadOnly() throws SQLException {
+    Connection con = createCon();
+    con.setReadOnly(true);
+    con.close();
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> con.setReadOnly(false),
+        "Connection is closed");
+  }
+
+  @Test
+  public void timezone() throws SQLException {
+    try (Connection con = createCon("timezone=GMT-8")) {
+      Statement statement = con.createStatement();
+      ResultSet rs = statement.executeQuery("SELECT @@time_zone");
+      rs.next();
+      assertEquals("-08:00", rs.getString(1));
+    }
+
+    try (Connection con = createCon("timezone=disable")) {
       con.isValid(1);
     }
   }

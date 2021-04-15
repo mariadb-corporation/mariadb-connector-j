@@ -754,6 +754,23 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
+  public void streamNotFinished() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
+    Statement stmt = sharedConn.createStatement();
+    stmt.setFetchSize(2);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
+
+    Statement stmt2 = sharedConn.createStatement();
+    ResultSet rs2 = stmt2.executeQuery("SELECT 1");
+    rs2.next();
+    assertEquals(1, rs2.getInt(1));
+    for (int i = 1; i <= 10; i++) {
+      rs.next();
+      assertEquals(i, rs.getInt(1));
+    }
+  }
+
+  @Test
   public void expectedError() throws SQLException {
     try (PreparedStatement prep = sharedConn.prepareStatement("SELECT ?")) {
       assertThrowsContains(

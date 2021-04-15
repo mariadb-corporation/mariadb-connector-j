@@ -31,7 +31,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLPermission;
+import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
@@ -73,13 +75,14 @@ public class ClientImpl implements Client, AutoCloseable {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private boolean closed = false;
-  private ExceptionFactory exceptionFactory;
+  protected ExceptionFactory exceptionFactory;
   protected PacketWriter writer;
   private PacketReader reader;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   private int waitTimeout;
+  private boolean disablePipeline;
   protected Context context;
 
   public ClientImpl(
@@ -90,6 +93,8 @@ public class ClientImpl implements Client, AutoCloseable {
     this.lock = lock;
     this.hostAddress = hostAddress;
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
+    this.disablePipeline =
+        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("disablePipeline", "false"));
 
     String host = hostAddress != null ? hostAddress.host : null;
     this.socketTimeout = conf.socketTimeout();
@@ -376,15 +381,17 @@ public class ClientImpl implements Client, AutoCloseable {
     // force client timezone to connection to ensure result of now(), ...
     if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
       ZoneId serverZoneId = ZoneId.of(serverTz).normalized();
-      ZoneId clientZoneId =
-          conf.timezone() == null
-              ? ZoneId.systemDefault().normalized()
-              : ZoneId.of(conf.timezone()).normalized();
-
+      ZoneId clientZoneId = ZoneId.of(conf.timezone()).normalized();
       if (!serverZoneId.equals(clientZoneId)) {
         serverZoneId = ZoneId.of(serverTz, ZoneId.SHORT_IDS);
         if (!serverZoneId.equals(clientZoneId)) {
-          sb.append(",time_zone='").append(conf.timezone()).append("'");
+          // to ensure system not having saving time set, prefer fixed offset if possible
+          if (clientZoneId.getRules().isFixedOffset()) {
+            ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
+            sb.append(",time_zone='").append(zoneOffset.getId()).append("'");
+          } else {
+            sb.append(",time_zone='").append(conf.timezone()).append("'");
+          }
         }
       }
     }
@@ -460,15 +467,12 @@ public class ClientImpl implements Client, AutoCloseable {
 
     int readCounter = 0;
     int[] responseMsg = new int[messages.length];
-    boolean disablePipeline =
-        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("disablePipeline", "false"));
-
     try {
       if (disablePipeline) {
-        for (int i = 0; i < messages.length; i++) {
+        for (readCounter = 0; readCounter < messages.length; readCounter++) {
           results.addAll(
               execute(
-                  messages[i],
+                  messages[readCounter],
                   stmt,
                   fetchSize,
                   maxRows,
@@ -607,39 +611,6 @@ public class ClientImpl implements Client, AutoCloseable {
           "Socket error during post connection queries: " + ioException.getMessage(),
           "08000",
           ioException);
-    }
-  }
-
-  public void transactionReplay(TransactionSaver transactionSaver) throws SQLException {
-    List<RedoableClientMessage> buffers = transactionSaver.getBuffers();
-    try {
-      // replay all but last
-      PrepareResultPacket prepare;
-      for (RedoableClientMessage querySaver : buffers) {
-        int responseNo;
-        if (querySaver instanceof RedoableWithPrepareClientMessage) {
-          // command is a prepare statement query
-          // redo on new connection need to re-prepare query
-          // and substitute statement id
-          RedoableWithPrepareClientMessage redoable =
-              ((RedoableWithPrepareClientMessage) querySaver);
-          String cmd = redoable.getCommand();
-          prepare = context.getPrepareCache().get(cmd, redoable.prep());
-          if (prepare == null) {
-            PreparePacket preparePacket = new PreparePacket(cmd);
-            sendQuery(preparePacket);
-            prepare = (PrepareResultPacket) readPacket(preparePacket);
-          }
-          responseNo = querySaver.reEncode(writer, context, prepare);
-        } else {
-          responseNo = querySaver.reEncode(writer, context, null);
-        }
-        for (int j = 0; j < responseNo; j++) {
-          readResponse(querySaver);
-        }
-      }
-    } catch (IOException e) {
-      throw exceptionFactory.create("Socket error during transaction replay", "08000", e);
     }
   }
 

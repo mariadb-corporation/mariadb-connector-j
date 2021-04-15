@@ -191,7 +191,7 @@ public class MultiPrimaryClient implements Client {
     // transaction replay
     if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
       RedoContext ctx = (RedoContext) oldCli.getContext();
-      currentClient.transactionReplay(ctx.getTransactionSaver());
+      ((ClientReplayImpl)currentClient).transactionReplay(ctx.getTransactionSaver());
     }
   }
 
@@ -293,14 +293,15 @@ public class MultiPrimaryClient implements Client {
       HostAddress hostAddress = currentClient.getHostAddress();
       reConnect();
 
+
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
-            String.format(
-                "Driver has reconnect connection after a "
-                    + "communications "
-                    + "failure with %s during a COMMIT statement",
-                hostAddress),
-            "25S03");
+                String.format(
+                        "Driver has reconnect connection after a "
+                                + "communications "
+                                + "failure with %s during a COMMIT statement",
+                        hostAddress),
+                "25S03");
       }
 
       if (message instanceof RedoableWithPrepareClientMessage) {
@@ -403,9 +404,6 @@ public class MultiPrimaryClient implements Client {
       reConnect();
     }
   }
-
-  @Override
-  public void transactionReplay(TransactionSaver transactionSaver) {}
 
   @Override
   public void abort(Executor executor) throws SQLException {

@@ -39,6 +39,7 @@ public class StatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS StatementTest");
     stmt.execute("DROP TABLE IF EXISTS executeGenerated");
     stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
+    stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
   }
 
   @BeforeAll
@@ -50,6 +51,8 @@ public class StatementTest extends Common {
         "CREATE TABLE executeGenerated (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute(
         "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("CREATE TABLE testAffectedRow(id int)");
+    stmt.execute("FLUSH TABLES");
   }
 
   @Test
@@ -833,6 +836,24 @@ public class StatementTest extends Common {
       } catch (SQLException | InterruptedException e) {
         e.printStackTrace();
       }
+    }
+  }
+
+  @Test
+  public void testAffectedRow() throws SQLException {
+    testAffectedRow(false);
+    testAffectedRow(true);
+  }
+
+  private void testAffectedRow(boolean useAffectedRows) throws SQLException {
+    try (Connection con = createCon("&useAffectedRows=" + useAffectedRows)) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRow");
+      stmt.execute("START TRANSACTION");
+      stmt.execute("INSERT INTO testAffectedRow values (1), (1), (2), (3)");
+      int rowCount = stmt.executeUpdate("UPDATE testAffectedRow set id = 1");
+      assertEquals(useAffectedRows ? 2 : 4, rowCount);
+      con.rollback();
     }
   }
 }

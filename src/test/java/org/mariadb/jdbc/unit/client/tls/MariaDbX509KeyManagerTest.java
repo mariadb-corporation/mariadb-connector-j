@@ -45,7 +45,20 @@ public class MariaDbX509KeyManagerTest {
               new X500Principal("EMAILADDRESS=X, OU=X, CN=ca.example.com, L=X, O=X, ST=X, C=XX")
             },
             null));
-
+    assertNull(
+        keyMger.chooseEngineClientAlias(
+            new String[] {},
+            new Principal[] {
+              new X500Principal("EMAILADDRESS=X, OU=X, CN=ca.example.com, L=X, O=X, ST=X, C=XX")
+            },
+            null));
+    assertNull(
+        keyMger.chooseEngineClientAlias(
+            null,
+            new Principal[] {
+              new X500Principal("EMAILADDRESS=X, OU=X, CN=ca.example.com, L=X, O=X, ST=X, C=XX")
+            },
+            null));
     assertNull(keyMger.getServerAliases("RSA", null));
     assertNull(keyMger.chooseServerAlias("RSA", null, null));
     assertNull(keyMger.chooseEngineServerAlias("RSA", null, null));
@@ -54,7 +67,10 @@ public class MariaDbX509KeyManagerTest {
   private MariaDbX509KeyManager get()
       throws KeyStoreException, CertificateException, IOException, NoSuchAlgorithmException {
     try (InputStream inStream =
-        MariaDbX509KeyManagerTest.class.getClassLoader().getResourceAsStream("test-keystore.p12")) {
+        MariaDbX509KeyManagerTest.class
+            .getClassLoader()
+            .getResourceAsStream("testclient-keystore.p12")) {
+      assertNotNull(inStream);
       char[] keyStorePasswordChars = "kspass".toCharArray();
       KeyStore ks = KeyStore.getInstance("PKCS12");
       ks.load(inStream, keyStorePasswordChars);

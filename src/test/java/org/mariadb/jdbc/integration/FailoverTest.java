@@ -101,6 +101,56 @@ public class FailoverTest extends Common {
   }
 
   @Test
+  public void transactionReplayDuringCommit() throws SQLException {
+    transactionReplayDuringCommit(true);
+    transactionReplayDuringCommit(false);
+  }
+
+  private void transactionReplayDuringCommit(boolean transactionReplay) throws SQLException {
+    Assumptions.assumeTrue(
+            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Statement st = sharedConn.createStatement();
+    st.execute("DROP TABLE IF EXISTS transaction_failover");
+    st.execute(
+            "CREATE TABLE transaction_failover "
+                    + "(id int not null primary key auto_increment, test varchar(20)) "
+                    + "engine=innodb");
+
+    try (Connection con =
+                 createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
+      assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+      con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+      final Statement stmt = con.createStatement();
+      con.setNetworkTimeout(Runnable::run, 200);
+      long threadId = con.getContext().getThreadId();
+
+      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
+      con.setAutoCommit(false);
+      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
+      stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
+      proxy.restart(300);
+      if (transactionReplay) {
+        assertThrowsContains(SQLTransientConnectionException.class, () -> con.commit(), "Driver has reconnect connection after a communications failure");
+
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
+        for (int i = 0; i < 1; i++) {
+          assertTrue(rs.next());
+          assertEquals("test" + i, rs.getString("test"));
+        }
+
+        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        assertFalse(con.getAutoCommit());
+        assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
+      } else {
+        assertThrowsContains(
+                SQLTransientConnectionException.class,
+                () -> con.commit(),
+                "In progress transaction was lost");
+      }
+    }
+  }
+
+  @Test
   public void transactionReplayPreparedStatement() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));

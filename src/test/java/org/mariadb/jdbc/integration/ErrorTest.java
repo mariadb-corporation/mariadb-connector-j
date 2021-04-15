@@ -87,7 +87,9 @@ public class ErrorTest extends Common {
 
   private void testPre41ErrorFormat(Connection con) throws Exception {
     Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+                && !"skysql".equals(System.getenv("srv"))
+                && !"skysql-ha".equals(System.getenv("srv")));
     SQLException exception = null;
     int max_connections;
     Statement stmt = con.createStatement();

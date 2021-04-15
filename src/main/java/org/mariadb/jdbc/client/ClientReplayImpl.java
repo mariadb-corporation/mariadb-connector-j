@@ -31,6 +31,7 @@ import org.mariadb.jdbc.client.context.RedoContext;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.util.exceptions.MaxAllowedPacketException;
 
 public class ClientReplayImpl extends ClientImpl {
 
@@ -48,11 +49,25 @@ public class ClientReplayImpl extends ClientImpl {
         ((RedoableClientMessage) message).ensureReplayable(context);
       return message.encode(writer, context);
     } catch (IOException ioException) {
+      if (ioException instanceof MaxAllowedPacketException) {
+        if (((MaxAllowedPacketException) ioException).isMustReconnect()) {
+          destroySocket();
+          throw exceptionFactory
+                  .withSql(message.description())
+                  .create(
+                          "Packet too big for current server max_allowed_packet value",
+                          "08000",
+                          ioException);
+        }
+        throw exceptionFactory
+                .withSql(message.description())
+                .create(
+                        "Packet too big for current server max_allowed_packet value", "HZ000", ioException);
+      }
       destroySocket();
-      throw context
-          .getExceptionFactory()
-          .withSql(message.description())
-          .create("Socket error", "08000", ioException);
+      throw exceptionFactory
+              .withSql(message.description())
+              .create("Socket error", "08000", ioException);
     }
   }
 
