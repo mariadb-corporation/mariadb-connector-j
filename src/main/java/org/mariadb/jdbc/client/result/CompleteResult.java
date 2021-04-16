@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
@@ -133,7 +134,7 @@ public class CompleteResult extends Result {
   public void fetchRemaining() {}
 
   @Override
-  public void closeFromStmtClose() {
+  public void closeFromStmtClose(ReentrantLock lock) {
     this.closed = true;
   }
 

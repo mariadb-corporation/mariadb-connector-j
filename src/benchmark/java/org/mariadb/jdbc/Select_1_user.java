@@ -7,8 +7,8 @@ package org.mariadb.jdbc;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 
 public class Select_1_user extends Common {
 
@@ -25,8 +25,8 @@ public class Select_1_user extends Common {
 
   private Object[] run(Connection con) throws Throwable {
     final int numberOfUserCol = 46;
-    try (Statement st = con.createStatement()) {
-      ResultSet rs = st.executeQuery("select * FROM mysql.user LIMIT 1");
+    try (PreparedStatement prep = con.prepareStatement("select * FROM mysql.user LIMIT 1")) {
+      ResultSet rs = prep.executeQuery();
       rs.next();
       Object[] objs = new Object[numberOfUserCol];
       for (int i = 0; i < numberOfUserCol; i++) {

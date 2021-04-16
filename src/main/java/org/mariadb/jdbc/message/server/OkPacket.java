@@ -28,32 +28,26 @@ public class OkPacket implements Completion {
         && buf.readableBytes() > 0) {
       buf.skip(buf.readLengthNotNull()); // skip info
       while (buf.readableBytes() > 0) {
-        ReadableByteBuf stateInfo = buf.readLengthBuffer();
-        if (stateInfo.readableBytes() > 0) {
-          switch (stateInfo.readByte()) {
+        if (buf.readLengthNotNull() > 0) {
+          switch (buf.readByte()) {
             case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-              ReadableByteBuf sessionVariableBuf = stateInfo.readLengthBuffer();
-              String variable =
-                  sessionVariableBuf.readString(sessionVariableBuf.readLengthNotNull());
-              Integer len = sessionVariableBuf.readLength();
-              String value = len == null ? null : sessionVariableBuf.readString(len);
-              if (logger.isDebugEnabled()) {
-                logger.debug("System variable change :  {} = {}", variable, value);
-              }
+              buf.readLengthNotNull();
+              String variable = buf.readString(buf.readLengthNotNull());
+              Integer len = buf.readLength();
+              String value = len == null ? null : buf.readString(len);
+              logger.debug("System variable change:  {} = {}", variable, value);
               break;
 
             case StateChange.SESSION_TRACK_SCHEMA:
-              ReadableByteBuf sessionSchemaBuf = stateInfo.readLengthBuffer();
-              Integer dbLen = sessionSchemaBuf.readLength();
-              String database = dbLen == null ? null : sessionSchemaBuf.readString(dbLen);
+              buf.readLengthNotNull();
+              Integer dbLen = buf.readLength();
+              String database = dbLen == null ? null : buf.readString(dbLen);
               context.setDatabase(database.isEmpty() ? null : database);
-              if (logger.isDebugEnabled()) {
-                logger.debug("Database change : now is '{}'", database);
-              }
+              logger.debug("Database change: is '{}'", database);
               break;
 
             default:
-              // eat;
+              buf.skip(buf.readLengthNotNull());
           }
         }
       }

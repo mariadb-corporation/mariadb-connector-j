@@ -98,6 +98,21 @@ public final class ReadableByteBuf {
     }
   }
 
+  /**
+   * Identifier can have a max length of 256 (alias) So no need to check whole length encoding.
+   *
+   * @return current pos
+   */
+  public int skipIdentifier() {
+    int type = (buf[pos++] & 0xff);
+    if (type == 252) {
+      pos += readUnsignedShort();
+      return pos;
+    }
+    pos += type;
+    return pos;
+  }
+
   public Integer readLength() {
     int type = readUnsignedByte();
     switch (type) {

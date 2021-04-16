@@ -15,6 +15,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
@@ -215,9 +216,14 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
-  public void closeFromStmtClose() throws SQLException {
-    this.fetchRemaining();
-    this.closed = true;
+  public void closeFromStmtClose(ReentrantLock lock) throws SQLException {
+    lock.lock();
+    try {
+      this.fetchRemaining();
+      this.closed = true;
+    } finally {
+      lock.unlock();
+    }
   }
 
   public void abort() {

@@ -128,26 +128,21 @@ public class Statement implements java.sql.Statement {
    */
   @Override
   public void close() throws SQLException {
-    lock.lock();
-    try {
-      if (!closed) {
-        closed = true;
+    if (!closed) {
+      closed = true;
 
-        if (currResult != null && currResult instanceof Result) {
-          ((Result) currResult).closeFromStmtClose();
-        }
+      if (currResult != null && currResult instanceof Result) {
+        ((Result) currResult).closeFromStmtClose(lock);
+      }
 
-        // close result-set
-        if (results != null) {
-          for (Completion completion : results) {
-            if (completion instanceof Result) {
-              ((Result) completion).closeFromStmtClose();
-            }
+      // close result-set
+      if (results != null) {
+        for (Completion completion : results) {
+          if (completion instanceof Result) {
+            ((Result) completion).closeFromStmtClose(lock);
           }
         }
       }
-    } finally {
-      lock.unlock();
     }
   }
 

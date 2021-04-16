@@ -47,24 +47,29 @@ public class ColumnDefinitionPacket implements ServerMessage {
 
   public ColumnDefinitionPacket(ReadableByteBuf buf, boolean extendedInfo) {
     // skip first strings
-    stringPos = new int[6];
-    stringPos[0] = 0; // catalog pos
-    stringPos[1] = buf.skip(buf.readLengthNotNull()).pos(); // schema pos
-    stringPos[2] = buf.skip(buf.readLengthNotNull()).pos(); // table alias pos
-    stringPos[3] = buf.skip(buf.readLengthNotNull()).pos(); // table pos
-    stringPos[4] = buf.skip(buf.readLengthNotNull()).pos(); // column alias pos
-    stringPos[5] = buf.skip(buf.readLengthNotNull()).pos(); // column pos
-    buf.skip(buf.readLengthNotNull());
+    stringPos = new int[5];
+    stringPos[0] = buf.skipIdentifier(); // schema pos
+    stringPos[1] = buf.skipIdentifier(); // table alias pos
+    stringPos[2] = buf.skipIdentifier(); // table pos
+    stringPos[3] = buf.skipIdentifier(); // column alias pos
+    stringPos[4] = buf.skipIdentifier(); // column pos
+    buf.skipIdentifier();
 
     if (extendedInfo) {
       String tmpTypeName = null;
-      //      String tmpTypeFormat = null;
-      ReadableByteBuf subPacket = buf.readLengthBuffer();
-      while (subPacket.readableBytes() > 0) {
-        if (subPacket.readByte() == 0) {
-          tmpTypeName = subPacket.readAscii(subPacket.readLength());
-        } else { // skip data
-          subPacket.skip(subPacket.readLength());
+
+      // fast skipping extended info (usually not set)
+      if (buf.readByte() != 0) {
+        // revert position, because has extended info.
+        buf.pos(buf.pos() - 1);
+
+        ReadableByteBuf subPacket = buf.readLengthBuffer();
+        while (subPacket.readableBytes() > 0) {
+          if (subPacket.readByte() == 0) {
+            tmpTypeName = subPacket.readAscii(subPacket.readLength());
+          } else { // skip data
+            subPacket.skip(subPacket.readLength());
+          }
         }
       }
       extTypeName = tmpTypeName;
@@ -89,17 +94,16 @@ public class ColumnDefinitionPacket implements ServerMessage {
     arr[2] = 'E';
     arr[3] = 'F';
 
-    int[] stringPos = new int[6];
-    stringPos[0] = 0; // catalog pos
-    stringPos[1] = 4; // schema pos
-    stringPos[2] = 5; // table alias pos
-    stringPos[3] = 6; // table pos
+    int[] stringPos = new int[5];
+    stringPos[0] = 4; // schema pos
+    stringPos[1] = 5; // table alias pos
+    stringPos[2] = 6; // table pos
 
     // lenenc_str     name
     // lenenc_str     org_name
     int pos = 7;
     for (int i = 0; i < 2; i++) {
-      stringPos[i + 4] = pos;
+      stringPos[i + 3] = pos;
       arr[pos++] = (byte) nameBytes.length;
       System.arraycopy(nameBytes, 0, arr, pos, nameBytes.length);
       pos += nameBytes.length;
@@ -134,27 +138,27 @@ public class ColumnDefinitionPacket implements ServerMessage {
   }
 
   public String getSchema() {
-    buf.pos(stringPos[1]);
+    buf.pos(stringPos[0]);
     return buf.readString(buf.readLength());
   }
 
   public String getTableAlias() {
-    buf.pos(stringPos[2]);
+    buf.pos(stringPos[1]);
     return buf.readString(buf.readLength());
   }
 
   public String getTable() {
-    buf.pos(stringPos[useAliasAsName ? 2 : 3]);
+    buf.pos(stringPos[useAliasAsName ? 1 : 2]);
     return buf.readString(buf.readLength());
   }
 
   public String getColumnAlias() {
-    buf.pos(stringPos[4]);
+    buf.pos(stringPos[3]);
     return buf.readString(buf.readLength());
   }
 
   public String getColumn() {
-    buf.pos(stringPos[5]);
+    buf.pos(stringPos[4]);
     return buf.readString(buf.readLength());
   }
 
