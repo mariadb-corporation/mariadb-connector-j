@@ -367,8 +367,7 @@ public class MultiPrimaryClient implements Client {
           completions, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
     } catch (SQLNonTransientConnectionException e) {
       reConnect();
-      currentClient.readStreamingResults(
-          completions, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+      throw getExceptionFactory().create("Socket error during result streaming", "HY000");
     }
   }
 
@@ -390,13 +389,7 @@ public class MultiPrimaryClient implements Client {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
-
-    try {
-      currentClient.abort(executor);
-    } catch (SQLNonTransientConnectionException e) {
-      reConnect();
-      currentClient.abort(executor);
-    }
+    currentClient.abort(executor);
   }
 
   @Override
@@ -460,7 +453,7 @@ public class MultiPrimaryClient implements Client {
   }
 
   public boolean isPrimary() {
-    return getHostAddress().primary;
+    return true;
   }
 
   @Override
