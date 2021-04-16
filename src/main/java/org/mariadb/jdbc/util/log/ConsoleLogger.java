@@ -7,6 +7,7 @@ package org.mariadb.jdbc.util.log;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
 
+@SuppressWarnings("ALL")
 public class ConsoleLogger implements Logger {
 
   private final String name;

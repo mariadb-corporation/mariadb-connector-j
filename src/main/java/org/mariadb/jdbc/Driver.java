@@ -64,10 +64,13 @@ public final class Driver implements java.sql.Driver {
    */
   public Connection connect(final String url, final Properties props) throws SQLException {
     Configuration configuration = Configuration.parse(url, props);
-    if (configuration.pool()) {
-      return Pools.retrievePool(configuration).getPoolConnection().getConnection();
+    if (configuration != null) {
+      if (configuration.pool()) {
+        return Pools.retrievePool(configuration).getPoolConnection().getConnection();
+      }
+      return connect(configuration);
     }
-    return connect(configuration);
+    return null;
   }
 
   /**

@@ -195,8 +195,7 @@ public class DurationCodec implements Codec<Duration> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object val, Calendar cal, Long maxLength)
       throws IOException {
     int nano = ((Duration) val).getNano();
     if (nano > 0) {

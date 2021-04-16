@@ -264,8 +264,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     LocalDateTime val = (LocalDateTime) value;
     int nano = val.getNano();

@@ -63,8 +63,7 @@ public class MultiPolygonCodec implements Codec<MultiPolygon> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     MultiPolygon mariadbMultiPolygon = (MultiPolygon) value;
 

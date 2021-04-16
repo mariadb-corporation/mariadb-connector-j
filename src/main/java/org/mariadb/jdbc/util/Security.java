@@ -37,7 +37,7 @@ public final class Security {
           if (state == Parse.Normal) {
             state = Parse.String;
             singleQuotes = false;
-          } else if (state == Parse.String && !singleQuotes) {
+          } else if (!singleQuotes) {
             state = Parse.Normal;
           }
           break;
@@ -46,7 +46,7 @@ public final class Security {
           if (state == Parse.Normal) {
             state = Parse.String;
             singleQuotes = true;
-          } else if (state == Parse.String && singleQuotes) {
+          } else if (singleQuotes) {
             state = Parse.Normal;
           }
           break;
@@ -118,7 +118,6 @@ public final class Security {
   private enum Parse {
     Normal,
     String, /* inside string */
-    Quote,
     Escape /* found backslash */
   }
 }

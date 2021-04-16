@@ -235,8 +235,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     LocalDate val = (LocalDate) value;
     encoder.writeByte(7); // length

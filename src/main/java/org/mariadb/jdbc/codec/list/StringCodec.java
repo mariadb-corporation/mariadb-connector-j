@@ -190,12 +190,12 @@ public class StringCodec implements Codec<String> {
         int tSeconds = 0;
         long tMicroseconds = 0;
         if (length == 0) {
-          String zeroValue = "00:00:00";
+          StringBuilder zeroValue = new StringBuilder("00:00:00");
           if (column.getDecimals() > 0) {
-            zeroValue += ".";
-            for (int i = 0; i < column.getDecimals(); i++) zeroValue += "0";
+            zeroValue.append(".");
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue.append("0");
           }
-          return zeroValue;
+          return zeroValue.toString();
         }
         boolean negate = buf.readByte() == 0x01;
         if (length > 4) {
@@ -237,12 +237,12 @@ public class StringCodec implements Codec<String> {
       case DATETIME:
       case TIMESTAMP:
         if (length == 0) {
-          String zeroValue = "0000-00-00 00:00:00";
+          StringBuilder zeroValue = new StringBuilder("0000-00-00 00:00:00");
           if (column.getDecimals() > 0) {
-            zeroValue += ".";
-            for (int i = 0; i < column.getDecimals(); i++) zeroValue += "0";
+            zeroValue.append(".");
+            for (int i = 0; i < column.getDecimals(); i++) zeroValue.append("0");
           }
-          return zeroValue;
+          return zeroValue.toString();
         }
         int year = buf.readUnsignedShort();
         int month = buf.readByte();
@@ -265,10 +265,10 @@ public class StringCodec implements Codec<String> {
             LocalDateTime.of(year, month, day, hour, minutes, seconds)
                 .plusNanos(microseconds * 1000);
 
-        String microSecPattern = "";
+        StringBuilder microSecPattern = new StringBuilder();
         if (column.getDecimals() > 0) {
-          microSecPattern += ".";
-          for (int i = 0; i < column.getDecimals(); i++) microSecPattern += "S";
+          microSecPattern.append(".");
+          for (int i = 0; i < column.getDecimals(); i++) microSecPattern.append("S");
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss" + microSecPattern);
         return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().format(formatter);
@@ -299,8 +299,7 @@ public class StringCodec implements Codec<String> {
     encoder.writeByte('\'');
   }
 
-  public void encodeBinary(
-      PacketWriter writer, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter writer, Object value, Calendar cal, Long maxLength)
       throws IOException {
     byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
     int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;

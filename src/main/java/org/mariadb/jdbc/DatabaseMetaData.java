@@ -622,7 +622,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       boolean mustAddType = false;
       StringBuilder sqlType = new StringBuilder(" AND TABLE_TYPE IN (");
       for (int i = 0; i < types.length; i++) {
-        if (mustAddType == true) sqlType.append(",");
+        if (mustAddType) sqlType.append(",");
         mustAddType = true;
         if (types[i] == null) {
           mustAddType = false;
@@ -1160,7 +1160,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public String getDatabaseProductVersion() {
-    return connection.getContext().getVersion().getServerVersion();
+    return connection.getContext().getVersion().getVersion();
   }
 
   public String getDriverName() {
@@ -3746,7 +3746,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isInstance(this);
   }
 

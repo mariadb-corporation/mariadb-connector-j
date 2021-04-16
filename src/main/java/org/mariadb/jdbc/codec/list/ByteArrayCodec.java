@@ -99,8 +99,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     int length = ((byte[]) value).length;
     if (maxLength != null) length = Math.min(length, maxLength.intValue());

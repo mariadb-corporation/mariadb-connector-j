@@ -565,12 +565,10 @@ public class Statement implements java.sql.Statement {
    *
    * @return one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
    *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *     <code>Statement</code>
    * @since 1.2
    */
   @Override
-  public int getResultSetType() throws SQLException {
+  public int getResultSetType() {
     return this.resultSetType;
   }
 

@@ -65,8 +65,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     MultiPoint mp = (MultiPoint) value;
     encoder.writeLength(13 + mp.getPoints().length * 21);

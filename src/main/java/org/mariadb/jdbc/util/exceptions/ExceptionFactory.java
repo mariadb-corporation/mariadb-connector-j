@@ -105,9 +105,8 @@ public class ExceptionFactory {
     return msg.toString();
   }
 
-  public ExceptionFactory setConnection(ExceptionFactory oldExceptionFactory) {
+  public void setConnection(ExceptionFactory oldExceptionFactory) {
     this.connection = oldExceptionFactory.connection;
-    return this;
   }
 
   public ExceptionFactory setConnection(Connection connection) {

@@ -19,11 +19,10 @@ import org.mariadb.jdbc.util.NativeSql;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
-  protected final String sql;
   protected final String databaseName;
   protected final String procedureName;
   protected CallableParameterMetaData parameterMetaData = null;
-  protected Set<Integer> outputParameters = new HashSet<>();
+  protected final Set<Integer> outputParameters = new HashSet<>();
   protected Result outputResult = null;
 
   public BaseCallableStatement(
@@ -48,7 +47,6 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         resultSetType,
         resultSetConcurrency,
         defaultFetchSize);
-    this.sql = sql;
     this.databaseName = databaseName;
     this.procedureName = procedureName;
   }

@@ -164,8 +164,7 @@ public class BooleanCodec implements Codec<Boolean> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeByte(((Boolean) value) ? 1 : 0);
   }

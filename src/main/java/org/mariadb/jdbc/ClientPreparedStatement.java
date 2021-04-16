@@ -22,7 +22,7 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class ClientPreparedStatement extends BasePreparedStatement {
-  private ClientParser parser;
+  private final ClientParser parser;
 
   public ClientPreparedStatement(
       String sql,
@@ -318,7 +318,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
   protected void validParameters() throws SQLException {
     for (int i = 0; i < parser.getParamCount(); i++) {
-      if (!parameters.containsKey(i)) {
+      if (parameters.containsKey(i)) {
         throw exceptionFactory()
             .create("Parameter at position " + (i + 1) + " is not set", "07004");
       }

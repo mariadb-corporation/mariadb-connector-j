@@ -7,7 +7,6 @@ package org.mariadb.jdbc.codec.list;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
-import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
@@ -84,7 +83,7 @@ public class ReaderCodec implements Codec<Reader> {
   @Override
   public void encodeText(
       PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLen)
-      throws IOException, SQLException {
+      throws IOException {
     Reader reader = (Reader) val;
     encoder.writeByte('\'');
     char[] buf = new char[4096];
@@ -112,9 +111,8 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object val, Calendar cal, Long maxLength)
-      throws IOException, SQLException {
+  public void encodeBinary(PacketWriter encoder, Object val, Calendar cal, Long maxLength)
+      throws IOException {
     // prefer use of encodeLongData, because length is unknown
     byte[] clobBytes = new byte[4096];
     int pos = 0;
@@ -140,7 +138,7 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, Reader reader, Long maxLength)
+  public void encodeLongData(PacketWriter encoder, Reader reader, Long maxLength)
       throws IOException {
     char[] buf = new char[4096];
     int len;
@@ -154,7 +152,7 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   @Override
-  public byte[] encodeData(Context context, Reader reader, Long maxLength) throws IOException {
+  public byte[] encodeData(Reader reader, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     char[] buf = new char[4096];
     int len;

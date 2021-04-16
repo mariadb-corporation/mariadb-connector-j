@@ -4,6 +4,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
+@SuppressWarnings("unused")
 public class ServerStatus {
 
   public static final short IN_TRANSACTION = 1;

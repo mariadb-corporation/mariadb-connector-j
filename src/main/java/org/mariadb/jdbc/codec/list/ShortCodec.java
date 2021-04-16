@@ -216,8 +216,7 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeShort((Short) value);
   }

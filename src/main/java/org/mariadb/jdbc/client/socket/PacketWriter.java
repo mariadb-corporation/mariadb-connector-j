@@ -15,6 +15,7 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
 
+@SuppressWarnings("SameReturnValue")
 public class PacketWriter {
 
   public static final int SMALL_BUFFER_SIZE = 8192;
@@ -62,9 +63,9 @@ public class PacketWriter {
     return pos;
   }
 
-  public int pos(int pos) throws IOException {
+  public void pos(int pos) throws IOException {
     if (pos > buf.length) growBuffer(pos);
-    return this.pos = pos;
+    this.pos = pos;
   }
 
   /**
@@ -758,16 +759,12 @@ public class PacketWriter {
     mark = -1;
 
     if (bufContainDataAfterMark) {
-      byte[] data = Arrays.copyOfRange(buf, initialPacketPos(), pos);
+      byte[] data = Arrays.copyOfRange(buf, 4, pos);
       initPacket();
       bufContainDataAfterMark = false;
       return data;
     }
     return null;
-  }
-
-  public int initialPacketPos() {
-    return 4;
   }
 
   public void initPacket() {

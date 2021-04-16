@@ -143,7 +143,7 @@ public final class ConnectionHelper {
   }
 
   public static long initializeClientCapabilities(
-      final Configuration configuration, final long serverCapabilities, boolean skipPostCommands) {
+      final Configuration configuration, final long serverCapabilities) {
     long capabilities =
         Capabilities.IGNORE_SPACE
             | Capabilities.CLIENT_PROTOCOL_41
@@ -210,7 +210,7 @@ public final class ConnectionHelper {
         || (serverLanguage >= 224 && serverLanguage <= 247)) {
       return (byte) serverLanguage;
     }
-    if (handshake.getMajorServerVersion() == 5 && handshake.getMinorServerVersion() <= 1) {
+    if (!handshake.getVersion().versionGreaterOrEqual(5, 5, 0)) {
       // 5.1 version doesn't know 4 bytes utf8
       return (byte) 33; // utf8_general_ci
     }
@@ -233,7 +233,7 @@ public final class ConnectionHelper {
           // Authentication Switch Request see
           // https://mariadb.com/kb/en/library/connection/#authentication-switch-request
           // *************************************************************************************
-          AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf, context);
+          AuthSwitchPacket authSwitchPacket = AuthSwitchPacket.decode(buf);
           AuthenticationPlugin authenticationPlugin =
               AuthenticationPluginLoader.get(authSwitchPacket.getPlugin(), conf);
 
@@ -324,7 +324,7 @@ public final class ConnectionHelper {
 
         SSLSession session = sslSocket.getSession();
         try {
-          socketPlugin.verify(hostAddress.host, session, conf, context.getThreadId());
+          socketPlugin.verify(hostAddress.host, session, context.getThreadId());
         } catch (SSLException ex) {
           throw context
               .getExceptionFactory()

@@ -5,7 +5,6 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 
@@ -24,7 +23,7 @@ public final class SslRequestPacket implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(PacketWriter writer, Context context) throws IOException {
     writer.writeInt((int) clientCapabilities);
     writer.writeInt(1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1 byte

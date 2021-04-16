@@ -75,7 +75,7 @@ public final class NativeSql {
             singleQuotes = false;
           } else if (state == ClientParser.LexState.String && !singleQuotes) {
             state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Escape && !singleQuotes) {
+          } else if (state == ClientParser.LexState.Escape) {
             state = ClientParser.LexState.String;
           }
           break;
@@ -86,7 +86,7 @@ public final class NativeSql {
             singleQuotes = true;
           } else if (state == ClientParser.LexState.String && singleQuotes) {
             state = ClientParser.LexState.Normal;
-          } else if (state == ClientParser.LexState.Escape && singleQuotes) {
+          } else if (state == ClientParser.LexState.Escape) {
             state = ClientParser.LexState.String;
           }
           break;

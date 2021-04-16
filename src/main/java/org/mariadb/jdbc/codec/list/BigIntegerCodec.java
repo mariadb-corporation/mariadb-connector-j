@@ -211,8 +211,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     String asciiFormat = value.toString();
     encoder.writeLength(asciiFormat.length());

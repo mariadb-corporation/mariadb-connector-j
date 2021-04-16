@@ -6,7 +6,7 @@ package org.mariadb.jdbc.plugin.credential;
 
 public class Credential {
   private final String password;
-  private String user;
+  private final String user;
 
   public Credential(String user, String password) {
     this.user = user;

@@ -49,27 +49,22 @@ public class ColumnDefinitionPacket implements ServerMessage {
     // skip first strings
     stringPos = new int[6];
     stringPos[0] = 0; // catalog pos
-    stringPos[1] = buf.skip(buf.readLength()).pos(); // schema pos
-    stringPos[2] = buf.skip(buf.readLength()).pos(); // table alias pos
-    stringPos[3] = buf.skip(buf.readLength()).pos(); // table pos
-    stringPos[4] = buf.skip(buf.readLength()).pos(); // column alias pos
-    stringPos[5] = buf.skip(buf.readLength()).pos(); // column pos
-    buf.skip(buf.readLength());
+    stringPos[1] = buf.skip(buf.readLengthNotNull()).pos(); // schema pos
+    stringPos[2] = buf.skip(buf.readLengthNotNull()).pos(); // table alias pos
+    stringPos[3] = buf.skip(buf.readLengthNotNull()).pos(); // table pos
+    stringPos[4] = buf.skip(buf.readLengthNotNull()).pos(); // column alias pos
+    stringPos[5] = buf.skip(buf.readLengthNotNull()).pos(); // column pos
+    buf.skip(buf.readLengthNotNull());
 
     if (extendedInfo) {
       String tmpTypeName = null;
       //      String tmpTypeFormat = null;
       ReadableByteBuf subPacket = buf.readLengthBuffer();
       while (subPacket.readableBytes() > 0) {
-        switch (subPacket.readByte()) {
-          case 0:
-            tmpTypeName = subPacket.readAscii(subPacket.readLength());
-            break;
-
-          default:
-            // skip data
-            subPacket.skip(subPacket.readLength());
-            break;
+        if (subPacket.readByte() == 0) {
+          tmpTypeName = subPacket.readAscii(subPacket.readLength());
+        } else { // skip data
+          subPacket.skip(subPacket.readLength());
         }
       }
       extTypeName = tmpTypeName;
@@ -163,10 +158,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return buf.readString(buf.readLength());
   }
 
-  public int getCharset() {
-    return charset;
-  }
-
   public long getLength() {
     return length;
   }
@@ -199,32 +190,8 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return (int) length;
   }
 
-  public boolean getNullability() {
-    return (flags & ColumnFlags.NOT_NULL) == 0;
-  }
-
   public boolean isPrimaryKey() {
     return (this.flags & ColumnFlags.PRIMARY_KEY) > 0;
-  }
-
-  public boolean isUniqueKey() {
-    return (this.flags & ColumnFlags.UNIQUE_KEY) > 0;
-  }
-
-  public boolean isMultipleKey() {
-    return (this.flags & ColumnFlags.MULTIPLE_KEY) > 0;
-  }
-
-  public boolean isBlob() {
-    return (this.flags & ColumnFlags.BLOB) > 0;
-  }
-
-  public boolean isZeroFill() {
-    return (this.flags & ColumnFlags.ZEROFILL) > 0;
-  }
-
-  public boolean isNullable() {
-    return !((this.flags & ColumnFlags.NOT_NULL) > 0);
   }
 
   public boolean isAutoIncrement() {

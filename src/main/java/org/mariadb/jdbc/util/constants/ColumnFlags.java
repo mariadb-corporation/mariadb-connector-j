@@ -4,6 +4,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
+@SuppressWarnings("unused")
 public final class ColumnFlags {
   public static final short NOT_NULL = 1;
   public static final short PRIMARY_KEY = 2;

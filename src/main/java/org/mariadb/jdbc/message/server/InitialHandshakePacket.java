@@ -5,23 +5,20 @@
 package org.mariadb.jdbc.message.server;
 
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
 public final class InitialHandshakePacket implements ServerMessage {
 
   private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
 
-  private final String serverVersion;
   private final long threadId;
   private final byte[] seed;
   private final long capabilities;
   private final short defaultCollation;
   private final short serverStatus;
-  private final boolean mariaDBServer;
   private final String authenticationPluginType;
-  private int majorVersion;
-  private int minorVersion;
-  private int patchVersion;
+  private final ServerVersion version;
 
   private InitialHandshakePacket(
       String serverVersion,
@@ -33,15 +30,13 @@ public final class InitialHandshakePacket implements ServerMessage {
       boolean mariaDBServer,
       String authenticationPluginType) {
 
-    this.serverVersion = serverVersion;
     this.threadId = threadId;
     this.seed = seed;
     this.capabilities = capabilities;
     this.defaultCollation = defaultCollation;
     this.serverStatus = serverStatus;
-    this.mariaDBServer = mariaDBServer;
     this.authenticationPluginType = authenticationPluginType;
-    parseVersion(serverVersion);
+    this.version = new ServerVersion(serverVersion, mariaDBServer);
   }
 
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {
@@ -127,8 +122,8 @@ public final class InitialHandshakePacket implements ServerMessage {
         authenticationPluginType);
   }
 
-  public String getServerVersion() {
-    return serverVersion;
+  public ServerVersion getVersion() {
+    return version;
   }
 
   public long getThreadId() {
@@ -152,53 +147,10 @@ public final class InitialHandshakePacket implements ServerMessage {
   }
 
   public boolean isMariaDBServer() {
-    return mariaDBServer;
+    return version.isMariaDBServer();
   }
 
   public String getAuthenticationPluginType() {
     return authenticationPluginType;
-  }
-
-  private void parseVersion(String serverVersion) {
-    int length = serverVersion.length();
-    char car;
-    int offset = 0;
-    int type = 0;
-    int val = 0;
-    for (; offset < length; offset++) {
-      car = serverVersion.charAt(offset);
-      if (car < '0' || car > '9') {
-        switch (type) {
-          case 0:
-            majorVersion = val;
-            break;
-          case 1:
-            minorVersion = val;
-            break;
-          case 2:
-            patchVersion = val;
-            return;
-          default:
-            break;
-        }
-        type++;
-        val = 0;
-      } else {
-        val = val * 10 + car - 48;
-      }
-    }
-
-    // serverVersion finished by number like "5.5.57", assign patchVersion
-    if (type == 2) {
-      patchVersion = val;
-    }
-  }
-
-  public int getMajorServerVersion() {
-    return majorVersion;
-  }
-
-  public int getMinorServerVersion() {
-    return minorVersion;
   }
 }

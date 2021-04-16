@@ -53,44 +53,40 @@ public final class PreparePacket implements ClientMessage {
       throws IOException, SQLException {
 
     ReadableByteBuf buf = reader.readPacket(true, traceEnable);
-    switch (buf.getUnsignedByte()) {
-        // *********************************************************************************************************
-        // * ERROR response
-        // *********************************************************************************************************
-      case 0xff:
-        // force current status to in transaction to ensure rollback/commit, since command may
-        // have issue a transaction
-        ErrorPacket errorPacket = new ErrorPacket(buf, context);
-        throw exceptionFactory
-            .withSql(this.description())
-            .create(
-                errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
-      default:
-        if (context.getConf().useServerPrepStmts()
-            && context.getConf().cachePrepStmts()
-            && sql.length() < 1000) {
-          CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
-          PrepareResultPacket previousCached =
-              context
-                  .getPrepareCache()
-                  .put(
-                      sql,
-                      prepare,
-                      stmt instanceof ServerPreparedStatement
-                          ? (ServerPreparedStatement) stmt
-                          : null);
-          if (stmt != null) {
-            ((BasePreparedStatement) stmt)
-                .setPrepareResult(previousCached != null ? previousCached : prepare);
-          }
-          return previousCached != null ? previousCached : prepare;
-        }
-        PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
-        if (stmt != null) {
-          ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
-        }
-        return prepareResult;
+    // *********************************************************************************************************
+    // * ERROR response
+    // *********************************************************************************************************
+    if (buf.getUnsignedByte()
+        == 0xff) { // force current status to in transaction to ensure rollback/commit, since
+      // command may
+      // have issue a transaction
+      ErrorPacket errorPacket = new ErrorPacket(buf, context);
+      throw exceptionFactory
+          .withSql(this.description())
+          .create(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
     }
+    if (context.getConf().useServerPrepStmts()
+        && context.getConf().cachePrepStmts()
+        && sql.length() < 1000) {
+      CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
+      PrepareResultPacket previousCached =
+          context
+              .getPrepareCache()
+              .put(
+                  sql,
+                  prepare,
+                  stmt instanceof ServerPreparedStatement ? (ServerPreparedStatement) stmt : null);
+      if (stmt != null) {
+        ((BasePreparedStatement) stmt)
+            .setPrepareResult(previousCached != null ? previousCached : prepare);
+      }
+      return previousCached != null ? previousCached : prepare;
+    }
+    PrepareResultPacket prepareResult = new PrepareResultPacket(buf, reader, context);
+    if (stmt != null) {
+      ((BasePreparedStatement) stmt).setPrepareResult(prepareResult);
+    }
+    return prepareResult;
   }
 
   @Override

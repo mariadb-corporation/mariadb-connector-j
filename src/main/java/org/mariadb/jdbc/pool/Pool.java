@@ -440,7 +440,7 @@ public class Pool implements AutoCloseable, PoolMBean {
       // loop for up to 10 seconds to close not used connection
       long start = System.nanoTime();
       do {
-        closeAll(connectionRemover, idleConnections);
+        closeAll(idleConnections);
         if (totalConnection.get() > 0) {
           Thread.sleep(0, 10_00);
         }
@@ -449,7 +449,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       // after having wait for 10 seconds, force removal, even if used connections
       if (totalConnection.get() > 0 || idleConnections.isEmpty()) {
-        closeAll(connectionRemover, idleConnections);
+        closeAll(idleConnections);
       }
 
       connectionRemover.shutdown();
@@ -462,8 +462,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
   }
 
-  private void closeAll(
-      ExecutorService connectionRemover, Collection<InternalPoolConnection> collection) {
+  private void closeAll(Collection<InternalPoolConnection> collection) {
     synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
       for (InternalPoolConnection item : collection) {
         collection.remove(item);

@@ -20,7 +20,7 @@ public interface ScalarOps {
    * @param s the scalar to reduce
    * @return $s \bmod l$
    */
-  public byte[] reduce(byte[] s);
+  byte[] reduce(byte[] s);
 
   /**
    * $r = (a * b + c) \bmod l$
@@ -30,5 +30,5 @@ public interface ScalarOps {
    * @param c a scalar
    * @return $(a*b + c) \bmod l$
    */
-  public byte[] multiplyAndAdd(byte[] a, byte[] b, byte[] c);
+  byte[] multiplyAndAdd(byte[] a, byte[] b, byte[] c);
 }

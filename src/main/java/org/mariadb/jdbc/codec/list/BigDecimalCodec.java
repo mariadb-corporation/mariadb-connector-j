@@ -213,8 +213,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     String asciiFormat = ((BigDecimal) value).toPlainString();
     encoder.writeLength(asciiFormat.length());

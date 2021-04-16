@@ -21,7 +21,6 @@ public final class HandshakeResponse implements ClientMessage {
   private static final String _CLIENT_VERSION = "_client_version";
   private static final String _SERVER_HOST = "_server_host";
   private static final String _OS = "_os";
-  private static final String _PID = "_pid";
   private static final String _THREAD = "_thread";
   private static final String _JAVA_VENDOR = "_java_vendor";
   private static final String _JAVA_VERSION = "_java_version";
@@ -127,18 +126,15 @@ public final class HandshakeResponse implements ClientMessage {
   public int encode(PacketWriter writer, Context context) throws IOException {
 
     final byte[] authData;
-    switch (authenticationPluginType) {
-      case "mysql_clear_password":
-        if ((clientCapabilities & Capabilities.SSL) == 0) {
-          throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
-        }
-        authData =
-            (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
-        break;
-
-      default:
-        authenticationPluginType = "mysql_native_password";
-        authData = NativePasswordPlugin.encryptPassword(password, seed);
+    if ("mysql_clear_password".equals(authenticationPluginType)) {
+      if ((clientCapabilities & Capabilities.SSL) == 0) {
+        throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
+      }
+      authData =
+          (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
+    } else {
+      authenticationPluginType = "mysql_native_password";
+      authData = NativePasswordPlugin.encryptPassword(password, seed);
     }
 
     writer.writeInt((int) clientCapabilities);

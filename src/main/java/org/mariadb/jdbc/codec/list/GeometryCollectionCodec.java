@@ -64,8 +64,7 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     GeometryCollection geometryCollection = (GeometryCollection) value;
 

@@ -600,7 +600,7 @@ public class UpdatableResult extends CompleteResult {
       }
     }
     if (firstUpdate) return null;
-    return updateSql.append(whereClause.toString()).toString();
+    return updateSql.append(whereClause).toString();
   }
 
   @Override

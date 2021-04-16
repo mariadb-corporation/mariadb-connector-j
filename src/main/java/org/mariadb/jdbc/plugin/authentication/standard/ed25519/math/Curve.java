@@ -74,8 +74,7 @@ public class Curve implements Serializable {
   }
 
   public GroupElement createPoint(byte[] P, boolean precompute) {
-    GroupElement ge = new GroupElement(this, P, precompute);
-    return ge;
+    return new GroupElement(this, P, precompute);
   }
 
   @Override

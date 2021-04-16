@@ -21,12 +21,12 @@ public class BaseContext implements Context {
   private final boolean skipMeta;
   private final boolean extendedInfo;
   private final Configuration conf;
-  private ExceptionFactory exceptionFactory;
+  private final ExceptionFactory exceptionFactory;
   protected int serverStatus;
   private String database;
   private int transactionIsolationLevel;
   private int warning;
-  private PrepareCache prepareCache;
+  private final PrepareCache prepareCache;
   private int stateFlag = 0;
 
   public BaseContext(
@@ -39,7 +39,7 @@ public class BaseContext implements Context {
     this.seed = handshake.getSeed();
     this.serverCapabilities = handshake.getCapabilities();
     this.serverStatus = handshake.getServerStatus();
-    this.version = new ServerVersion(handshake.getServerVersion(), handshake.isMariaDBServer());
+    this.version = handshake.getVersion();
     this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
     this.skipMeta = (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
     this.extendedInfo = (serverCapabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0;

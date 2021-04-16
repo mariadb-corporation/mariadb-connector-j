@@ -48,9 +48,6 @@ import org.mariadb.jdbc.util.log.Loggers;
 
 public class ClientImpl implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(ClientImpl.class);
-
-  private static Integer MAX_ALLOWED_PACKET = 0;
-
   private final Socket socket;
   private final MutableInt sequence = new MutableInt();
   private final MutableInt compressionSequence = new MutableInt();
@@ -58,14 +55,14 @@ public class ClientImpl implements Client, AutoCloseable {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private boolean closed = false;
-  protected ExceptionFactory exceptionFactory;
+  protected final ExceptionFactory exceptionFactory;
   protected PacketWriter writer;
   private PacketReader reader;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   private int waitTimeout;
-  private boolean disablePipeline;
+  private final boolean disablePipeline;
   protected Context context;
 
   public ClientImpl(
@@ -108,8 +105,7 @@ public class ClientImpl implements Client, AutoCloseable {
 
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       long clientCapabilities =
-          ConnectionHelper.initializeClientCapabilities(
-              conf, handshake.getCapabilities(), skipPostCommands);
+          ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
@@ -390,7 +386,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
     sb.append("='").append(conf.transactionIsolation().getValue()).append("'");
 
-    return "set " + sb.toString();
+    return "set " + sb;
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
@@ -467,7 +463,7 @@ public class ClientImpl implements Client, AutoCloseable {
         for (int i = 0; i < messages.length; i++) {
           responseMsg[i] = sendQuery(messages[i]);
         }
-        for (; readCounter < messages.length; ) {
+        while (readCounter < messages.length) {
           readCounter++;
           for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
             results.addAll(
@@ -565,7 +561,7 @@ public class ClientImpl implements Client, AutoCloseable {
     return completions;
   }
 
-  public List<Completion> readResponse(ClientMessage message) throws SQLException {
+  public void readResponse(ClientMessage message) throws SQLException {
     checkNotClosed();
     if (streamStmt != null) {
       streamStmt.fetchRemaining();
@@ -581,7 +577,6 @@ public class ClientImpl implements Client, AutoCloseable {
         ResultSet.CONCUR_READ_ONLY,
         ResultSet.TYPE_FORWARD_ONLY,
         false);
-    return completions;
   }
 
   public void closePrepare(PrepareResultPacket prepare) throws SQLException {

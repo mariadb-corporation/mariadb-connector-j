@@ -77,7 +77,7 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
     return credential;
   }
 
-  private class IdentityExpire {
+  private static class IdentityExpire {
 
     private final LocalDateTime expiration;
     private final Credential credential;
@@ -96,7 +96,7 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
     }
   }
 
-  private class KeyCache {
+  private static class KeyCache {
     private final Configuration conf;
     private final String userName;
     private final HostAddress hostAddress;

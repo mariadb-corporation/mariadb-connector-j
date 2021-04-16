@@ -93,7 +93,7 @@ public class TimestampCodec implements Codec<Timestamp> {
         if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
         synchronized (cal1) {
           cal1.clear();
-          cal1.set(year, 0, 1);
+          cal1.set(year, Calendar.JANUARY, 1);
           return new Timestamp(cal1.getTimeInMillis());
         }
 
@@ -330,8 +330,7 @@ public class TimestampCodec implements Codec<Timestamp> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     cal.setTimeInMillis(((Timestamp) value).getTime());

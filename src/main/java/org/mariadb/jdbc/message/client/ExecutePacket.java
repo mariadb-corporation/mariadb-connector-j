@@ -61,7 +61,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     for (int i = 0; i < parameterCount; i++) {
       Parameter<?> p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        new LongDataPacket(statementId, p, i, command, prep).encode(writer, context);
+        new LongDataPacket(statementId, p, i).encode(writer, context);
       }
     }
 

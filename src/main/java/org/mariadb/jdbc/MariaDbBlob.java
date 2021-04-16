@@ -375,7 +375,7 @@ public class MariaDbBlob implements Blob, Serializable {
     }
 
     @Override
-    public void write(int bit) throws IOException {
+    public void write(int bit) {
 
       if (this.pos >= blob.length) {
         byte[] tmp = new byte[2 * blob.length + 1];

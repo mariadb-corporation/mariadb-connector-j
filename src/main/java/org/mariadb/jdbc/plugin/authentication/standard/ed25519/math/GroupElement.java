@@ -478,12 +478,10 @@ public class GroupElement implements Serializable {
   private GroupElement toRep(final Representation repr) {
     switch (this.repr) {
       case P2:
-        switch (repr) {
-          case P2:
-            return p2(this.curve, this.X, this.Y, this.Z);
-          default:
-            throw new IllegalArgumentException();
+        if (repr == Representation.P2) {
+          return p2(this.curve, this.X, this.Y, this.Z);
         }
+        throw new IllegalArgumentException();
       case P3:
         switch (repr) {
           case P2:
@@ -527,19 +525,15 @@ public class GroupElement implements Serializable {
             throw new IllegalArgumentException();
         }
       case PRECOMP:
-        switch (repr) {
-          case PRECOMP:
-            return precomp(this.curve, this.X, this.Y, this.Z);
-          default:
-            throw new IllegalArgumentException();
+        if (repr == Representation.PRECOMP) {
+          return precomp(this.curve, this.X, this.Y, this.Z);
         }
+        throw new IllegalArgumentException();
       case CACHED:
-        switch (repr) {
-          case CACHED:
-            return cached(this.curve, this.X, this.Y, this.Z, this.T);
-          default:
-            throw new IllegalArgumentException();
+        if (repr == Representation.CACHED) {
+          return cached(this.curve, this.X, this.Y, this.Z, this.T);
         }
+        throw new IllegalArgumentException();
       default:
         throw new UnsupportedOperationException();
     }

@@ -16,7 +16,6 @@ public class CompressOutputStream extends OutputStream {
   private static final Logger logger = Loggers.getLogger(CompressOutputStream.class);
 
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
-  private static final float MIN_COMPRESSION_RATIO = 0.9f;
 
   private static final int SMALL_BUFFER_SIZE = 8192;
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
@@ -127,15 +126,12 @@ public class CompressOutputStream extends OutputStream {
 
         buf[0] = (byte) (pos - 7);
         buf[1] = (byte) ((pos - 7) >>> 8);
-        buf[2] = (byte) ((pos - 7) >>> 16);
+        buf[2] = 0;
         buf[3] = sequence.incrementAndGet();
         buf[4] = 0;
         buf[5] = 0;
         buf[6] = 0;
 
-        //        if (logger.isTraceEnabled()) {
-        //          logger.trace("send compress: \n{}", LoggerHelper.hex(buf, 0, pos, 1000));
-        //        }
         out.write(buf, 0, pos);
 
       } else {
@@ -164,11 +160,6 @@ public class CompressOutputStream extends OutputStream {
 
           out.write(header, 0, 7);
           out.write(compressedBytes, 0, compressLen);
-          //          if (logger.isTraceEnabled()) {
-          //            logger.trace(
-          //                "send compress: \n{}",
-          //                LoggerHelper.hex(header, compressedBytes, 0, compressLen, 1000));
-          //          }
         }
       }
 

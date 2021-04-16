@@ -210,8 +210,7 @@ public class DateCodec implements Codec<Date> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar providedCal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     cal.setTimeInMillis(((Date) value).getTime());

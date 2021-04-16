@@ -8,13 +8,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.sql.SQLException;
-import java.util.Arrays;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
 
 public class NativePasswordPlugin implements AuthenticationPlugin {
@@ -98,17 +97,11 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
    * @throws IOException if socket error
    */
   public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
-      throws SQLException, IOException {
+      throws IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {
-      byte[] truncatedSeed;
-      if (seed.length > 0) {
-        // Seed is ended with a null byte value.
-        truncatedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
-      } else {
-        truncatedSeed = new byte[0];
-      }
+      byte[] truncatedSeed = AuthSwitchPacket.getTruncatedSeed(seed);
       out.writeBytes(encryptPassword(authenticationData, truncatedSeed));
       out.flush();
     }

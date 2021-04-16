@@ -62,6 +62,7 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     throw new IllegalStateException("not available method");
   }
 
+  @SuppressWarnings("unused")
   public CachedPrepareResultPacket put(String key, PrepareResultPacket result) {
     throw new IllegalStateException("not available method");
   }

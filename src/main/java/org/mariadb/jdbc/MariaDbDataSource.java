@@ -94,11 +94,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
    * @param iface a Class defining an interface.
    * @return true if this implements the interface or directly or indirectly wraps an object that
    *     does.
-   * @throws SQLException if an error occurs while determining whether this is a wrapper for an
-   *     object with the given interface.
    */
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isInstance(this);
   }
 

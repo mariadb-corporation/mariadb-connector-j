@@ -59,11 +59,8 @@ public interface TlsSocketPlugin {
    *
    * @param host hostname
    * @param sslSession ssl session
-   * @param conf connection string option. Non standard option are stored in * `nonMappedOptions` if
-   *     any specific option is needed.
    * @param serverThreadId current server threadId
    * @throws SSLException if verification fail
    */
-  void verify(String host, SSLSession sslSession, Configuration conf, long serverThreadId)
-      throws SSLException;
+  void verify(String host, SSLSession sslSession, long serverThreadId) throws SSLException;
 }

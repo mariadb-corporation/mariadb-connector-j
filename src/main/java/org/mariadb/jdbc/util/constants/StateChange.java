@@ -4,6 +4,7 @@
 
 package org.mariadb.jdbc.util.constants;
 
+@SuppressWarnings("unused")
 public final class StateChange {
 
   public static final short SESSION_TRACK_SYSTEM_VARIABLES = 0;

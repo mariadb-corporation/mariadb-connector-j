@@ -23,7 +23,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   private static final CodecList codecList = CodecLoader.get();
   protected ParameterList parameters;
   protected List<ParameterList> batchParameters;
-  protected String sql;
+  protected final String sql;
   protected PrepareResultPacket prepareResult = null;
 
   public BasePreparedStatement(

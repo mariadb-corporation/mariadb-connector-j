@@ -6,7 +6,6 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.codec.Parameter;
@@ -24,20 +23,11 @@ public final class LongDataPacket implements ClientMessage {
   private final int statementId;
   private final Parameter<?> parameter;
   private final int index;
-  private final String command;
-  private final ServerPreparedStatement prep;
 
-  public LongDataPacket(
-      int statementId,
-      Parameter<?> parameter,
-      int index,
-      String command,
-      ServerPreparedStatement prep) {
+  public LongDataPacket(int statementId, Parameter<?> parameter, int index) {
     this.statementId = statementId;
     this.parameter = parameter;
     this.index = index;
-    this.command = command;
-    this.prep = prep;
   }
 
   @Override

@@ -38,7 +38,7 @@ public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
-  protected long deniedListTimeout;
+  protected final long deniedListTimeout;
   protected final Configuration conf;
   protected boolean closed = false;
   protected final ReentrantLock lock;
@@ -92,9 +92,7 @@ public class MultiPrimaryClient implements Client {
     // return the one with lower denylist timeout
     // (check that server is in conf, because denyList is shared for all instances)
     if (denyList.entrySet().stream()
-            .filter(e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly)
-            .count()
-        == 0)
+        .noneMatch(e -> conf.addresses().contains(e.getKey()) && e.getKey().primary != readOnly))
       throw new SQLNonTransientConnectionException(
           String.format("No %s host defined", readOnly ? "replica" : "primary"));
     while (maxRetries > 0) {

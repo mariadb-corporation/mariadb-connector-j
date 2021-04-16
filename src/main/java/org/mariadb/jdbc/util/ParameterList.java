@@ -29,9 +29,9 @@ public class ParameterList implements Cloneable {
 
   public boolean containsKey(int index) {
     if (index >= 0 && length > index) {
-      return elementData[index] != null;
+      return elementData[index] == null;
     }
-    return false;
+    return true;
   }
 
   public void set(int index, Parameter<?> element) {
@@ -53,9 +53,7 @@ public class ParameterList implements Cloneable {
   @Override
   public ParameterList clone() {
     ParameterList param = new ParameterList(length);
-    for (int i = 0; i < length; i++) {
-      param.elementData[i] = elementData[i];
-    }
+    if (length >= 0) System.arraycopy(elementData, 0, param.elementData, 0, length);
     param.length = length;
     return param;
   }

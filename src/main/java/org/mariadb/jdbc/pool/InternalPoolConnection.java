@@ -4,7 +4,6 @@
 
 package org.mariadb.jdbc.pool;
 
-import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.sql.*;
 import org.mariadb.jdbc.Connection;
@@ -23,7 +22,7 @@ public class InternalPoolConnection extends MariaDbPoolConnection {
     lastUsed = new AtomicLong(System.nanoTime());
   }
 
-  public void close() throws SQLException {
+  public void close() {
     fireConnectionClosed(new ConnectionEvent(this));
   }
 

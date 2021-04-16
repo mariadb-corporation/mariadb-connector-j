@@ -41,25 +41,21 @@ public final class ReadableByteBuf {
     return this;
   }
 
-  public ReadableByteBuf pos(int pos) {
+  public void pos(int pos) {
     this.pos = pos;
-    return this;
   }
 
-  public ReadableByteBuf mark() {
+  public void mark() {
     mark = pos;
-    return this;
   }
 
-  public ReadableByteBuf reset() {
+  public void reset() {
     if (mark == -1) throw new IllegalStateException("mark was not set");
     pos = mark;
-    return this;
   }
 
-  public ReadableByteBuf skip() {
+  public void skip() {
     pos++;
-    return this;
   }
 
   public ReadableByteBuf skip(int length) {

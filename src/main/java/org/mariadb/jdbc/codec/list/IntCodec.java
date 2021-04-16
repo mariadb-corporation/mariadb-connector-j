@@ -171,7 +171,7 @@ public class IntCodec implements Codec<Integer> {
             return val.intValueExact();
           } catch (ArithmeticException ae) {
             throw new SQLDataException(
-                String.format("value '%s' cannot be decoded as Integer", val.toString()));
+                String.format("value '%s' cannot be decoded as Integer", val));
           }
         }
 
@@ -239,8 +239,7 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeInt(((Integer) value).intValue());
   }

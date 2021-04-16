@@ -37,8 +37,8 @@ public abstract class Result implements ResultSet, Completion {
   protected final Context context;
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  protected ColumnDefinitionPacket[] metadataList;
-  protected RowDecoder row;
+  protected final ColumnDefinitionPacket[] metadataList;
+  protected final RowDecoder row;
   protected int dataSize = 0;
   protected byte[][] data;
   protected boolean loaded;
@@ -220,7 +220,7 @@ public abstract class Result implements ResultSet, Completion {
     this.closed = true;
   }
 
-  public void abort() throws SQLException {
+  public void abort() {
     this.closed = true;
   }
 
@@ -241,7 +241,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   @Override
-  public boolean wasNull() throws SQLException {
+  public boolean wasNull() {
     return row.wasNull();
   }
 
@@ -1003,7 +1003,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   @Override
-  public boolean isClosed() throws SQLException {
+  public boolean isClosed() {
     return closed;
   }
 
@@ -1242,7 +1242,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isInstance(this);
   }
 

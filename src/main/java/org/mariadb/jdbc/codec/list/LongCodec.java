@@ -99,8 +99,7 @@ public class LongCodec implements Codec<Long> {
           try {
             return val.longValueExact();
           } catch (ArithmeticException ae) {
-            throw new SQLDataException(
-                String.format("value '%s' cannot be decoded as Long", val.toString()));
+            throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", val));
           }
         }
 
@@ -203,8 +202,7 @@ public class LongCodec implements Codec<Long> {
           try {
             return val.longValueExact();
           } catch (ArithmeticException ae) {
-            throw new SQLDataException(
-                String.format("value '%s' cannot be decoded as Long", val.toString()));
+            throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", val));
           }
         }
 
@@ -253,8 +251,7 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeLong((Long) value);
   }

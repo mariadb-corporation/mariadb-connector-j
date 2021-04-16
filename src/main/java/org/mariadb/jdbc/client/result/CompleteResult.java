@@ -130,10 +130,10 @@ public class CompleteResult extends Result {
   }
 
   @Override
-  public void fetchRemaining() throws SQLException {}
+  public void fetchRemaining() {}
 
   @Override
-  public void closeFromStmtClose() throws SQLException {
+  public void closeFromStmtClose() {
     this.closed = true;
   }
 

@@ -117,8 +117,7 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     // length is not known
     byte[] blobBytes = new byte[4096];
@@ -156,8 +155,8 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public void encodeLongData(
-      PacketWriter encoder, Context context, InputStream value, Long maxLength) throws IOException {
+  public void encodeLongData(PacketWriter encoder, InputStream value, Long maxLength)
+      throws IOException {
     byte[] array = new byte[4096];
     int len;
     if (maxLength == null) {
@@ -174,7 +173,7 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public byte[] encodeData(Context context, InputStream value, Long maxLength) throws IOException {
+  public byte[] encodeData(InputStream value, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     byte[] array = new byte[4096];
     int len;

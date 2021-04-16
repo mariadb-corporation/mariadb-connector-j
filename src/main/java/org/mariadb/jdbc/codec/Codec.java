@@ -38,20 +38,19 @@ public interface Codec<T> {
   void encodeText(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
-  void encodeBinary(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
+  void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   default boolean canEncodeLongData() {
     return false;
   }
 
-  default void encodeLongData(PacketWriter encoder, Context context, T value, Long length)
+  default void encodeLongData(PacketWriter encoder, T value, Long length)
       throws IOException, SQLException {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }
 
-  default byte[] encodeData(Context context, T value, Long length)
-      throws IOException, SQLException {
+  default byte[] encodeData(T value, Long length) throws IOException, SQLException {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }
 

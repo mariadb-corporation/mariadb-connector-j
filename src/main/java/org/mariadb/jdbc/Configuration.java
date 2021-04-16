@@ -501,7 +501,7 @@ public class Configuration {
       if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
         hostAddressesString = urlSecondPart.substring(0, paramIndex);
         additionalParameters = urlSecondPart.substring(paramIndex);
-      } else if (dbIndex < paramIndex || dbIndex > paramIndex && paramIndex < 0) {
+      } else if (dbIndex < paramIndex || dbIndex > paramIndex) {
         hostAddressesString = urlSecondPart.substring(0, dbIndex);
         additionalParameters = urlSecondPart.substring(dbIndex);
       } else {
@@ -1030,7 +1030,7 @@ public class Configuration {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
-              sb.append(((Boolean) obj).toString());
+              sb.append(obj);
             }
           } else if (field.getType().equals(int.class)) {
             try {

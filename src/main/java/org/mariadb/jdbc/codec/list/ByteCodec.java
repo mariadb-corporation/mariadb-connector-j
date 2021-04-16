@@ -181,8 +181,7 @@ public class ByteCodec implements Codec<Byte> {
             result = val.longValueExact();
           } catch (NumberFormatException | ArithmeticException nfe) {
             throw new SQLDataException(
-                String.format(
-                    "value '%s' (%s) cannot be decoded as Byte", val.toString(), column.getType()));
+                String.format("value '%s' (%s) cannot be decoded as Byte", val, column.getType()));
           }
         }
         break;
@@ -258,8 +257,7 @@ public class ByteCodec implements Codec<Byte> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     encoder.writeByte((byte) value);
   }

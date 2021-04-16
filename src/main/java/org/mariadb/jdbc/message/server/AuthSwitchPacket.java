@@ -4,8 +4,8 @@
 
 package org.mariadb.jdbc.message.server;
 
+import java.util.Arrays;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
 
 public class AuthSwitchPacket implements ServerMessage {
 
@@ -17,7 +17,7 @@ public class AuthSwitchPacket implements ServerMessage {
     this.seed = seed;
   }
 
-  public static AuthSwitchPacket decode(ReadableByteBuf buf, Context context) {
+  public static AuthSwitchPacket decode(ReadableByteBuf buf) {
     buf.skip(1);
     String plugin = buf.readStringNullEnd();
 
@@ -32,5 +32,9 @@ public class AuthSwitchPacket implements ServerMessage {
 
   public byte[] getSeed() {
     return seed;
+  }
+
+  public static byte[] getTruncatedSeed(byte[] seed) {
+    return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
   }
 }

@@ -12,23 +12,12 @@ public final class ClientParser implements PrepareResult {
 
   private final String sql;
   private final List<byte[]> queryParts;
-  private final boolean rewriteType;
   private final int paramCount;
-  private boolean isQueryMultiValuesRewritable;
-  private boolean isQueryMultipleRewritable;
 
-  private ClientParser(
-      String sql,
-      List<byte[]> queryParts,
-      boolean isQueryMultiValuesRewritable,
-      boolean isQueryMultipleRewritable,
-      boolean rewriteType) {
+  private ClientParser(String sql, List<byte[]> queryParts) {
     this.sql = sql;
     this.queryParts = queryParts;
-    this.isQueryMultiValuesRewritable = isQueryMultiValuesRewritable;
-    this.isQueryMultipleRewritable = isQueryMultipleRewritable;
-    this.paramCount = queryParts.size() - (rewriteType ? 3 : 1);
-    this.rewriteType = rewriteType;
+    this.paramCount = queryParts.size() - 1;
   }
 
   /**
@@ -43,8 +32,6 @@ public final class ClientParser implements PrepareResult {
    * @return ClientPrepareResult
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
-    boolean reWritablePrepare = false;
-    boolean multipleQueriesPrepare = true;
     List<byte[]> partList = new ArrayList<>();
     LexState state = LexState.Normal;
     char lastChar = '\0';
@@ -88,13 +75,11 @@ public final class ClientParser implements PrepareResult {
         case '-':
           if (state == LexState.Normal && lastChar == '-') {
             state = LexState.EOLComment;
-            multipleQueriesPrepare = false;
           }
           break;
 
         case '\n':
           if (state == LexState.EOLComment) {
-            multipleQueriesPrepare = true;
             state = LexState.Normal;
           }
           break;
@@ -105,7 +90,7 @@ public final class ClientParser implements PrepareResult {
             singleQuotes = false;
           } else if (state == LexState.String && !singleQuotes) {
             state = LexState.Normal;
-          } else if (state == LexState.Escape && !singleQuotes) {
+          } else if (state == LexState.Escape) {
             state = LexState.String;
           }
           break;
@@ -116,7 +101,7 @@ public final class ClientParser implements PrepareResult {
             singleQuotes = true;
           } else if (state == LexState.String && singleQuotes) {
             state = LexState.Normal;
-          } else if (state == LexState.Escape && singleQuotes) {
+          } else if (state == LexState.Escape) {
             state = LexState.String;
           }
           break;
@@ -132,7 +117,6 @@ public final class ClientParser implements PrepareResult {
         case ';':
           if (state == LexState.Normal) {
             endingSemicolon = true;
-            multipleQueriesPrepare = false;
           }
           break;
         case '?':
@@ -153,7 +137,6 @@ public final class ClientParser implements PrepareResult {
           // multiple queries
           if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
             endingSemicolon = false;
-            multipleQueriesPrepare = true;
           }
           break;
       }
@@ -168,8 +151,7 @@ public final class ClientParser implements PrepareResult {
               .getBytes(StandardCharsets.UTF_8));
     }
 
-    return new ClientParser(
-        queryString, partList, reWritablePrepare, multipleQueriesPrepare, false);
+    return new ClientParser(queryString, partList);
   }
 
   public String getSql() {

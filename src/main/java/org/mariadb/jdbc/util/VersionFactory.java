@@ -28,53 +28,10 @@ public final class VersionFactory {
           } catch (IOException e) {
             e.printStackTrace();
           }
-          instance = parse(tmpVersion);
+          instance = new Version(tmpVersion);
         }
       }
     }
     return instance;
-  }
-
-  public static Version parse(String version) {
-    int major = 0;
-    int minor = 0;
-    int patch = 0;
-    String qualif = "";
-
-    int length = version.length();
-    char car;
-    int offset = 0;
-    int type = 0;
-    int val = 0;
-    for (; offset < length; offset++) {
-      car = version.charAt(offset);
-      if (car < '0' || car > '9') {
-        switch (type) {
-          case 0:
-            major = val;
-            break;
-          case 1:
-            minor = val;
-            break;
-          case 2:
-            patch = val;
-            qualif = version.substring(offset);
-            offset = length;
-            break;
-          default:
-            break;
-        }
-        type++;
-        val = 0;
-      } else {
-        val = val * 10 + car - 48;
-      }
-    }
-
-    if (type == 2) {
-      patch = val;
-    }
-
-    return new Version(version, major, minor, patch, qualif);
   }
 }

@@ -111,8 +111,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException, SQLException {
     // prefer use of encodeLongData, because length is unknown
     Reader reader = ((Clob) value).getCharacterStream();
@@ -138,7 +137,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public void encodeLongData(PacketWriter encoder, Context context, Clob value, Long maxLength)
+  public void encodeLongData(PacketWriter encoder, Clob value, Long maxLength)
       throws IOException, SQLException {
     Reader reader = value.getCharacterStream();
     char[] buf = new char[4096];
@@ -153,8 +152,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public byte[] encodeData(Context context, Clob value, Long maxLength)
-      throws IOException, SQLException {
+  public byte[] encodeData(Clob value, Long maxLength) throws IOException, SQLException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     Reader reader = value.getCharacterStream();
     char[] buf = new char[4096];

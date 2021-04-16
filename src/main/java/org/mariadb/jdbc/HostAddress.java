@@ -12,7 +12,7 @@ import org.mariadb.jdbc.util.constants.HaMode;
 
 public class HostAddress {
 
-  public String host;
+  public final String host;
   public int port;
   public Boolean primary;
 

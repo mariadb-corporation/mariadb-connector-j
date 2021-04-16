@@ -56,16 +56,16 @@ public class Parameter<T> {
   }
 
   public void encodeBinary(PacketWriter encoder, Context context) throws IOException, SQLException {
-    codec.encodeBinary(encoder, context, this.value, this.cal, length);
+    codec.encodeBinary(encoder, this.value, this.cal, length);
   }
 
   public void encodeLongData(PacketWriter encoder, Context context)
       throws IOException, SQLException {
-    codec.encodeLongData(encoder, context, this.value, length);
+    codec.encodeLongData(encoder, this.value, length);
   }
 
   public byte[] encodeData(Context context) throws IOException, SQLException {
-    return codec.encodeData(context, this.value, length);
+    return codec.encodeData(this.value, length);
   }
 
   public boolean canEncodeLongData() {

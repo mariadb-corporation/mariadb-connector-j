@@ -24,6 +24,7 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
+import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
@@ -44,9 +45,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    */
   public static byte[] sha256encryptPassword(final CharSequence password, final byte[] seed) {
     if (password == null) return new byte[0];
-
-    byte[] truncatedSeed = new byte[seed.length - 1];
-    System.arraycopy(seed, 0, truncatedSeed, 0, seed.length - 1);
+    byte[] truncatedSeed = AuthSwitchPacket.getTruncatedSeed(seed);
     try {
       final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
       byte[] bytePwd = password.toString().getBytes(StandardCharsets.UTF_8);
@@ -112,14 +111,13 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     ReadableByteBuf buf = in.readPacket(true);
 
     switch (buf.getByte()) {
-
-        // success or error
       case (byte) 0x00:
       case (byte) 0xFF:
+        // success or error
         return buf;
 
-        // fast authentication result
       default:
+        // fast authentication result
         byte[] authResult = new byte[buf.readLengthNotNull()];
         buf.readBytes(authResult);
         switch (authResult[0]) {
@@ -141,10 +139,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               if (conf.serverRsaPublicKeyFile() != null) {
                 publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
               } else {
-                /**
-                 * ******************************************* read public key from socket
-                 * *******************************************
-                 */
+                // read public key from socket
                 if (!conf.allowPublicKeyRetrieval()) {
                   throw new SQLException(
                       "RSA public key is not available client side (option serverRsaPublicKeyFile not set)",

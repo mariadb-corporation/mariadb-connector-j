@@ -40,12 +40,11 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     }
   }
 
-  public boolean incrementUse(ServerPreparedStatement preparedStatement) {
+  public void incrementUse(ServerPreparedStatement preparedStatement) {
     if (closing.get()) {
-      return false;
+      return;
     }
     if (preparedStatement != null) statements.add(preparedStatement);
-    return true;
   }
 
   public void unCache(Client con) {

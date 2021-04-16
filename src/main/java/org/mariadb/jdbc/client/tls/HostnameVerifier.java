@@ -304,7 +304,7 @@ public class HostnameVerifier {
                 + normalizedCn
                 + "\"";
         if (!subjectAltNames.isEmpty()) {
-          errorMsg += " and " + subjectAltNames.toString();
+          errorMsg += " and " + subjectAltNames;
         }
         throw new SSLException(errorMsg);
       }

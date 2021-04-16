@@ -15,12 +15,12 @@ public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private static final CodecList codecList = CodecLoader.get();
   private final Configuration conf;
-  protected ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
-  protected ColumnDefinitionPacket[] columns;
+  protected final ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
+  protected final ColumnDefinitionPacket[] columns;
 
   protected int length;
   protected int index;
-  protected int columnCount;
+  protected final int columnCount;
   private Map<String, Integer> mapper = null;
 
   public RowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {

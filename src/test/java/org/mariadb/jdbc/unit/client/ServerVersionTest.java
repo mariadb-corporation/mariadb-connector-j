@@ -18,7 +18,7 @@ public class ServerVersionTest {
     assertEquals(10, ver.getMajorVersion());
     assertEquals(5, ver.getMinorVersion());
     assertEquals(2, ver.getPatchVersion());
-    assertEquals("10.5.2", ver.getServerVersion());
+    assertEquals("10.5.2", ver.getVersion());
     assertTrue(ver.isMariaDBServer());
     assertTrue(ver.versionGreaterOrEqual(10, 5, 1));
     assertTrue(ver.versionGreaterOrEqual(10, 4, 5));
@@ -32,7 +32,7 @@ public class ServerVersionTest {
     assertEquals(10, ver.getMajorVersion());
     assertEquals(5, ver.getMinorVersion());
     assertEquals(2, ver.getPatchVersion());
-    assertEquals("10.5.2-MariaDB", ver.getServerVersion());
+    assertEquals("10.5.2-MariaDB", ver.getVersion());
     assertTrue(ver.isMariaDBServer());
     assertTrue(ver.versionGreaterOrEqual(10, 5, 1));
     assertTrue(ver.versionGreaterOrEqual(10, 4, 5));
@@ -46,7 +46,7 @@ public class ServerVersionTest {
     assertEquals(8, ver.getMajorVersion());
     assertEquals(0, ver.getMinorVersion());
     assertEquals(12, ver.getPatchVersion());
-    assertEquals("8.0.12-something", ver.getServerVersion());
+    assertEquals("8.0.12-something", ver.getVersion());
     assertFalse(ver.isMariaDBServer());
   }
 }

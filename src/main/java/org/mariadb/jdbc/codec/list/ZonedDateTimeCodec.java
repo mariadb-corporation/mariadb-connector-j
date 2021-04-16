@@ -78,7 +78,6 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
       throws IOException {
     ZonedDateTime zdt = (ZonedDateTime) val;
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    ;
     encoder.writeByte('\'');
     encoder.writeAscii(
         zdt.withZoneSameInstant(cal.getTimeZone().toZoneId())
@@ -90,8 +89,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
-  public void encodeBinary(
-      PacketWriter encoder, Context context, Object value, Calendar calParam, Long maxLength)
+  public void encodeBinary(PacketWriter encoder, Object value, Calendar calParam, Long maxLength)
       throws IOException {
     ZonedDateTime zdt = (ZonedDateTime) value;
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;

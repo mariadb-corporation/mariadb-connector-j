@@ -8,26 +8,25 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.util.Version;
-import org.mariadb.jdbc.util.VersionFactory;
 
 @SuppressWarnings("ConstantConditions")
 public class VersionTest {
 
   @Test
   public void testValue() {
-    Version v = VersionFactory.parse("3.0.0-alpha-SNAPSHOT");
+    Version v = new Version("3.0.0-alpha-SNAPSHOT");
     assertEquals(3, v.getMajorVersion());
     assertEquals(0, v.getMinorVersion());
     assertEquals(0, v.getPatchVersion());
     assertEquals("-alpha-SNAPSHOT", v.getQualifier());
 
-    v = VersionFactory.parse("3.0.0=alpha-SNAPSHOT");
+    v = new Version("3.0.0=alpha-SNAPSHOT");
     assertEquals(3, v.getMajorVersion());
     assertEquals(0, v.getMinorVersion());
     assertEquals(0, v.getPatchVersion());
     assertEquals("=alpha-SNAPSHOT", v.getQualifier());
 
-    v = VersionFactory.parse("3.0.1");
+    v = new Version("3.0.1");
     assertEquals(3, v.getMajorVersion());
     assertEquals(0, v.getMinorVersion());
     assertEquals(1, v.getPatchVersion());

@@ -24,12 +24,9 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ConnectionState;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
-import org.mariadb.jdbc.util.log.Logger;
-import org.mariadb.jdbc.util.log.Loggers;
 
 public class Connection implements java.sql.Connection {
 
-  private static final Logger logger = Loggers.getLogger(Connection.class);
   private static final Pattern CALLABLE_STATEMENT_PATTERN =
       Pattern.compile(
           "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
@@ -38,8 +35,6 @@ public class Connection implements java.sql.Connection {
               + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
   private final ReentrantLock lock;
-  private final List<ConnectionEventListener> connectionEventListeners = new ArrayList<>();
-  private final List<StatementEventListener> statementEventListeners = new ArrayList<>();
   private final Configuration conf;
   private ExceptionFactory exceptionFactory;
   private final Client client;
@@ -52,7 +47,7 @@ public class Connection implements java.sql.Connection {
   private final int defaultFetchSize;
   private MariaDbPoolConnection poolConnection;
 
-  public Connection(Configuration conf, ReentrantLock lock, Client client) throws SQLException {
+  public Connection(Configuration conf, ReentrantLock lock, Client client) {
     this.conf = conf;
     this.lock = lock;
     this.exceptionFactory = client.getExceptionFactory().setConnection(this);
@@ -274,7 +269,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public void setCatalog(String catalog) throws SQLException {
     if ((client.getContext().getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0
-        && catalog == client.getContext().getDatabase()) {
+        && catalog.equals(client.getContext().getDatabase())) {
       return;
     }
     lock.lock();
@@ -719,7 +714,7 @@ public class Connection implements java.sql.Connection {
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isInstance(this);
   }
 

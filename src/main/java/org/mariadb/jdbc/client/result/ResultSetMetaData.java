@@ -339,10 +339,8 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @param iface a Class defining an interface.
    * @return true if this implements the interface or directly or indirectly wraps an object that
    *     does.
-   * @throws SQLException if an error occurs while determining whether this is a wrapper for an
-   *     object with the given interface.
    */
-  public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(final Class<?> iface) {
     return iface.isInstance(this);
   }
 }

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.UUID;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.SslMode;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPlugin;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.log.Logger;
@@ -69,59 +70,55 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     TrustManager[] trustManager = null;
     KeyManager[] keyManager = null;
 
-    switch (conf.sslMode()) {
-      case TRUST:
-        trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
-        break;
+    if (conf.sslMode() == SslMode.TRUST) {
+      trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
+    } else { // if certificate is provided, load it.
+      // if not, relying on default truststore
+      if (conf.serverSslCert() != null) {
 
-      default:
-        // if certificate is provided, load it.
-        // if not, relying on default truststore
-        if (conf.serverSslCert() != null) {
-
-          KeyStore ks;
-          try {
-            ks = KeyStore.getInstance(KeyStore.getDefaultType());
-          } catch (GeneralSecurityException generalSecurityEx) {
-            throw exceptionFactory.create(
-                "Failed to create keystore instance", "08000", generalSecurityEx);
-          }
-
-          try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
-            // generate a keyStore from the provided cert
-
-            // Note: KeyStore requires it be loaded even if you don't load anything into it
-            // (will be initialized with "javax.net.ssl.trustStore") values.
-            ks.load(null);
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
-            for (Certificate ca : caList) {
-              ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
-            }
-
-            TrustManagerFactory tmf =
-                TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(ks);
-            for (TrustManager tm : tmf.getTrustManagers()) {
-              if (tm instanceof X509TrustManager) {
-                trustManager = new X509TrustManager[] {(X509TrustManager) tm};
-                break;
-              }
-            }
-
-            if (trustManager == null) {
-              throw new SQLException("No X509TrustManager found");
-            }
-
-          } catch (IOException ioEx) {
-            throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
-          } catch (GeneralSecurityException generalSecurityEx) {
-            throw exceptionFactory.create(
-                "Failed to store certificate from serverSslCert into a keyStore",
-                "08000",
-                generalSecurityEx);
-          }
+        KeyStore ks;
+        try {
+          ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        } catch (GeneralSecurityException generalSecurityEx) {
+          throw exceptionFactory.create(
+              "Failed to create keystore instance", "08000", generalSecurityEx);
         }
+
+        try (InputStream inStream = getInputStreamFromPath(conf.serverSslCert())) {
+          // generate a keyStore from the provided cert
+
+          // Note: KeyStore requires it be loaded even if you don't load anything into it
+          // (will be initialized with "javax.net.ssl.trustStore") values.
+          ks.load(null);
+          CertificateFactory cf = CertificateFactory.getInstance("X.509");
+          Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
+          for (Certificate ca : caList) {
+            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+          }
+
+          TrustManagerFactory tmf =
+              TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          tmf.init(ks);
+          for (TrustManager tm : tmf.getTrustManagers()) {
+            if (tm instanceof X509TrustManager) {
+              trustManager = new X509TrustManager[] {(X509TrustManager) tm};
+              break;
+            }
+          }
+
+          if (trustManager == null) {
+            throw new SQLException("No X509TrustManager found");
+          }
+
+        } catch (IOException ioEx) {
+          throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);
+        } catch (GeneralSecurityException generalSecurityEx) {
+          throw exceptionFactory.create(
+              "Failed to store certificate from serverSslCert into a keyStore",
+              "08000",
+              generalSecurityEx);
+        }
+      }
     }
 
     if (conf.keyStore() != null) {
@@ -178,8 +175,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   }
 
   @Override
-  public void verify(String host, SSLSession session, Configuration conf, long serverThreadId)
-      throws SSLException {
+  public void verify(String host, SSLSession session, long serverThreadId) throws SSLException {
     try {
       Certificate[] certs = session.getPeerCertificates();
       X509Certificate cert = (X509Certificate) certs[0];
