@@ -17,6 +17,7 @@ import java.sql.SQLPermission;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.zone.ZoneRulesException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
@@ -359,18 +360,25 @@ public class ClientImpl implements Client, AutoCloseable {
 
     // force client timezone to connection to ensure result of now(), ...
     if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-      ZoneId serverZoneId = ZoneId.of(serverTz).normalized();
+      boolean mustSetTimezone = true;
       ZoneId clientZoneId = ZoneId.of(conf.timezone()).normalized();
-      if (!serverZoneId.equals(clientZoneId)) {
-        serverZoneId = ZoneId.of(serverTz, ZoneId.SHORT_IDS);
-        if (!serverZoneId.equals(clientZoneId)) {
-          // to ensure system not having saving time set, prefer fixed offset if possible
-          if (clientZoneId.getRules().isFixedOffset()) {
-            ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
-            sb.append(",time_zone='").append(zoneOffset.getId()).append("'");
-          } else {
-            sb.append(",time_zone='").append(conf.timezone()).append("'");
-          }
+
+      // try to avoid timezone consideration if server use the same one
+      try {
+        if (ZoneId.of(serverTz).normalized().equals(clientZoneId)
+            || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
+          mustSetTimezone = false;
+        }
+      } catch (ZoneRulesException e) {
+        // eat
+      }
+
+      if (mustSetTimezone) {
+        if (clientZoneId.getRules().isFixedOffset()) {
+          ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
+          sb.append(",time_zone='").append(zoneOffset.getId()).append("'");
+        } else {
+          sb.append(",time_zone='").append(conf.timezone()).append("'");
         }
       }
     }

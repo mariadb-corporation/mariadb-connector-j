@@ -1017,10 +1017,11 @@ public class PreparedStatementTest extends Common {
         st.setInt(i, rnds[i - 1]);
       }
       assertThrowsContains(
-          SQLTransientConnectionException.class,
+          SQLException.class,
           () -> st.executeQuery(),
           "Prepared statement contains too many placeholders");
     }
+    assertTrue(sharedConnBinary.isValid(1));
   }
 
   private String generateLongText(int len) {

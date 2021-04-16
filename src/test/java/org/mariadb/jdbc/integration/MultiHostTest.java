@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.sql.*;
-
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
@@ -106,7 +105,7 @@ public class MultiHostTest extends Common {
   @Test
   public void masterFailover() throws Exception {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -117,21 +116,21 @@ public class MultiHostTest extends Common {
     }
 
     String url =
-            mDefUrl.replaceAll(
-                    "//([^/]*)/",
-                    String.format(
-                            "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
-                            proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
+                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
     try (Connection con =
-                 (Connection)
-                         DriverManager.getConnection(
-                                 url
-                                         + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
@@ -144,10 +143,10 @@ public class MultiHostTest extends Common {
 
     // with transaction replay
     try (Connection con =
-                 (Connection)
-                         DriverManager.getConnection(
-                                 url
-                                         + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
@@ -186,8 +185,9 @@ public class MultiHostTest extends Common {
   @Test
   public void masterStreamingFailover() throws Exception {
     Assumptions.assumeTrue(
-            isMariaDBServer() &&
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        isMariaDBServer()
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -198,47 +198,56 @@ public class MultiHostTest extends Common {
     }
 
     String url =
-            mDefUrl.replaceAll(
-                    "//([^/]*)/",
-                    String.format(
-                            "//address=(host=localhost)(port=%s)(type=master)/",
-                            proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=%s)(type=master)/",
+                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
     Connection con =
-                 (Connection)
-                         DriverManager.getConnection(
-                                 url
-                                         + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
-      long threadId = con.getThreadId();
-      Statement stmt = con.createStatement();
-      stmt.setFetchSize(2);
-      ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
-      rs.next();
-      assertEquals(1, rs.getInt(1));
-      proxy.restart(50);
-      Statement stmt2 = con.createStatement();
-      assertThrowsContains(SQLException.class, () -> stmt2.executeQuery("SELECT * from mysql.user"), "Socket error during result streaming");
-      assertNotEquals(threadId, con.getThreadId());
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+    long threadId = con.getThreadId();
+    Statement stmt = con.createStatement();
+    stmt.setFetchSize(2);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
+    rs.next();
+    assertEquals(1, rs.getInt(1));
+    proxy.restart(50);
+    Statement stmt2 = con.createStatement();
+    assertThrowsContains(
+        SQLException.class,
+        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        "Socket error during result streaming");
+    assertNotEquals(threadId, con.getThreadId());
 
-      // additional small test
+    // additional small test
     assertEquals(0, con.getNetworkTimeout());
-    con.setNetworkTimeout(Runnable::run,10);
+    con.setNetworkTimeout(Runnable::run, 10);
     assertEquals(10, con.getNetworkTimeout());
 
     con.setReadOnly(true);
-      con.close();
-      assertThrowsContains(SQLNonTransientConnectionException.class, () -> con.setReadOnly(false), "Connection is closed");
-    assertThrowsContains(SQLNonTransientConnectionException.class, () -> con.abort(Runnable::run), "Connection is closed");
+    con.close();
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> con.setReadOnly(false),
+        "Connection is closed");
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> con.abort(Runnable::run),
+        "Connection is closed");
 
     Connection con2 =
-            (Connection)
-                    DriverManager.getConnection(
-                            url
-                                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     con2.abort(Runnable::run);
   }
 
@@ -301,12 +310,12 @@ public class MultiHostTest extends Common {
     }
   }
 
-
   @Test
   public void masterReplicationStreamingFailover() throws Exception {
     Assumptions.assumeTrue(
-            isMariaDBServer() &&
-                    !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        isMariaDBServer()
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -317,21 +326,21 @@ public class MultiHostTest extends Common {
     }
 
     String url =
-            mDefUrl.replaceAll(
-                    "//([^/]*)/",
-                    String.format(
-                            "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
-                            proxy.getLocalPort(), hostAddress.host, hostAddress.port, hostname, port));
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
+                proxy.getLocalPort(), hostAddress.host, hostAddress.port, hostname, port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
     Connection con =
-            (Connection)
-                    DriverManager.getConnection(
-                            url
-                                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
@@ -340,27 +349,35 @@ public class MultiHostTest extends Common {
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
-    assertThrowsContains(SQLException.class, () -> stmt2.executeQuery("SELECT * from mysql.user"), "Socket error during result streaming");
+    assertThrowsContains(
+        SQLException.class,
+        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        "Socket error during result streaming");
     assertNotEquals(threadId, con.getThreadId());
 
     // additional small test
     assertEquals(0, con.getNetworkTimeout());
-    con.setNetworkTimeout(Runnable::run,10);
+    con.setNetworkTimeout(Runnable::run, 10);
     assertEquals(10, con.getNetworkTimeout());
 
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(SQLNonTransientConnectionException.class, () -> con.setReadOnly(false), "Connection is closed");
-    assertThrowsContains(SQLNonTransientConnectionException.class, () -> con.abort(Runnable::run), "Connection is closed");
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> con.setReadOnly(false),
+        "Connection is closed");
+    assertThrowsContains(
+        SQLNonTransientConnectionException.class,
+        () -> con.abort(Runnable::run),
+        "Connection is closed");
 
     Connection con2 =
-            (Connection)
-                    DriverManager.getConnection(
-                            url
-                                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     con2.abort(Runnable::run);
   }
-
 
   public Connection createProxyConKeep(String opts) throws SQLException {
     Configuration conf = Configuration.parse(mDefUrl);

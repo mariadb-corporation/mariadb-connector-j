@@ -73,11 +73,12 @@ public class LocalInfileTest extends Common {
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
       assertThrowsContains(
-          SQLTransientConnectionException.class,
+          SQLException.class,
           () ->
               stmt.execute(
                   "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
           "Could not send file : someFile");
+      assertTrue(con.isValid(1));
     }
   }
 
@@ -95,13 +96,14 @@ public class LocalInfileTest extends Common {
       tempFile.setReadable(false);
       Statement stmt = con.createStatement();
       assertThrowsContains(
-          SQLTransientConnectionException.class,
+          SQLException.class,
           () ->
               stmt.execute(
                   "LOAD DATA LOCAL INFILE '"
                       + tempFile.getCanonicalPath().replace("\\", "/")
                       + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
           "Could not send file");
+      assertTrue(con.isValid(1));
     }
   }
 
