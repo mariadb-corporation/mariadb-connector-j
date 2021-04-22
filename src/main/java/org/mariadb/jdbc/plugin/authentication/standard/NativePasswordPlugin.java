@@ -69,11 +69,6 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
     return TYPE;
   }
 
-  @Override
-  public boolean activeByDefault() {
-    return true;
-  }
-
   /**
    * Initialized data.
    *

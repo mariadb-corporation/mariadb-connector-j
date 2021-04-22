@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.plugin.authentication;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Driver;
@@ -23,17 +24,21 @@ public final class AuthenticationPluginLoader {
 
     ServiceLoader<AuthenticationPlugin> loader =
         ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
-
+    String restrictedAuth =
+        conf.restrictedAuth() == null
+            ? "mysql_native_password,client_ed25519,auth_gssapi_client"
+            : conf.restrictedAuth();
+    String[] authList = restrictedAuth.split(",");
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
-        if (implClass.activeByDefault() || !conf.restrictedAuth()) {
+        if ("none".equals(restrictedAuth) || Arrays.stream(authList).anyMatch(type::contains)) {
           return implClass;
         } else {
           throw new SQLException(
               String.format(
                   "Client restrict authentication plugin to a limited set of authentication plugin and doesn't permit requested plugin ('%s'). "
-                      + "This can be disabled using option `restrictedAuth=false`",
-                  type),
+                      + "Current list is `restrictedAuth=%s`",
+                  type, restrictedAuth),
               "08004",
               1251);
         }

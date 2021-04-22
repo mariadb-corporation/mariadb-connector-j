@@ -68,7 +68,7 @@ public class Configuration {
   private int maxQuerySizeToLog = 1024;
   private boolean pinGlobalTxToPhysicalConnection = false;
   private String geometryDefaultType = null;
-  private boolean restrictedAuth = true;
+  private String restrictedAuth = null;
 
   // socket
   private String socketFactory = null;
@@ -153,7 +153,7 @@ public class Configuration {
       int maxQuerySizeToLog,
       boolean pinGlobalTxToPhysicalConnection,
       String geometryDefaultType,
-      boolean restrictedAuth,
+      String restrictedAuth,
       String socketFactory,
       int connectTimeout,
       String pipe,
@@ -328,7 +328,7 @@ public class Configuration {
       Boolean cachePrepStmts,
       Boolean transactionReplay,
       String geometryDefaultType,
-      Boolean restrictedAuth,
+      String restrictedAuth,
       Properties nonMappedOptions)
       throws SQLException {
     this.database = database;
@@ -949,7 +949,7 @@ public class Configuration {
     return geometryDefaultType;
   }
 
-  public boolean restrictedAuth() {
+  public String restrictedAuth() {
     return restrictedAuth;
   }
 
@@ -1111,7 +1111,7 @@ public class Configuration {
     private Integer maxQuerySizeToLog;
     private Boolean pinGlobalTxToPhysicalConnection;
     private String geometryDefaultType;
-    private Boolean restrictedAuth;
+    private String restrictedAuth;
     private String transactionIsolation;
 
     // socket
@@ -1341,12 +1341,12 @@ public class Configuration {
     }
 
     /**
-     * restrict authentication method to secure list. Default true.
+     * restrict authentication method to secure list. Default "default".
      *
-     * @param restrictedAuth use restricted authentication plugin list
+     * @param restrictedAuth use authentication plugin list
      * @return this {@link Builder}
      */
-    public Builder restrictedAuth(Boolean restrictedAuth) {
+    public Builder restrictedAuth(String restrictedAuth) {
       this.restrictedAuth = restrictedAuth;
       return this;
     }

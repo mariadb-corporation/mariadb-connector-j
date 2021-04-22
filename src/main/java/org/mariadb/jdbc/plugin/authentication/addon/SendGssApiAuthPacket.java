@@ -38,11 +38,6 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     return "auth_gssapi_client";
   }
 
-  @Override
-  public boolean activeByDefault() {
-    return true;
-  }
-
   /**
    * Initialization.
    *

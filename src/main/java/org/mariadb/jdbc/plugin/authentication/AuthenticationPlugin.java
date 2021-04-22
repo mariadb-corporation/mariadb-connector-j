@@ -22,13 +22,6 @@ public interface AuthenticationPlugin {
   String type();
 
   /**
-   * Authentication plugin active without setting option.
-   *
-   * @return true if active
-   */
-  boolean activeByDefault();
-
-  /**
    * Plugin initialization.
    *
    * @param authenticationData authentication data (password/token)

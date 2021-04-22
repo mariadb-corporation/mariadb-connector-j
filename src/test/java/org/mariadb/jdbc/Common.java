@@ -53,7 +53,7 @@ public class Common {
       password = get("DB_PASSWORD", prop);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=false&%s",
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
               hostname, port, get("DB_DATABASE", prop), user, password, defaultOther);
 
     } catch (IOException io) {

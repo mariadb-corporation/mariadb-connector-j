@@ -79,11 +79,6 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     return "client_ed25519";
   }
 
-  @Override
-  public boolean activeByDefault() {
-    return true;
-  }
-
   /**
    * Initialization.
    *

@@ -75,11 +75,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     return TYPE;
   }
 
-  @Override
-  public boolean activeByDefault() {
-    return false;
-  }
-
   /**
    * Initialized data.
    *
