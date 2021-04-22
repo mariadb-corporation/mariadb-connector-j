@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.constants.HaMode;
@@ -136,6 +137,8 @@ public class Configuration {
   // MySQL sha authentication
   private String serverRsaPublicKeyFile = null;
   private boolean allowPublicKeyRetrieval = false;
+
+  private Codec<?>[] codecs = null;
 
   private Configuration() {}
 
@@ -953,6 +956,10 @@ public class Configuration {
     return restrictedAuth;
   }
 
+  public Codec<?>[] codecs() {
+    return codecs;
+  }
+
   /**
    * ToString implementation.
    *
@@ -1083,8 +1090,16 @@ public class Configuration {
       // only for jws, so never thrown
       throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
     }
-
+    conf.loadCodecs();
     return sb.toString();
+  }
+
+  private void loadCodecs() {
+    ServiceLoader<Codec> loader =
+        ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
+    List<Codec<?>> result = new ArrayList<>();
+    loader.iterator().forEachRemaining(result::add);
+    codecs = result.toArray(new Codec[0]);
   }
 
   @Override

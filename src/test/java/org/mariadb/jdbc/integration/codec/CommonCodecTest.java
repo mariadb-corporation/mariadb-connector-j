@@ -75,6 +75,12 @@ public class CommonCodecTest extends Common {
           ((Time) exp).getTime(), ((Time) rs.getObject("t" + idx + "alias", objClass)).getTime());
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
+    } else if (exp instanceof Date) {
+      assertEquals(((Date) exp).getTime(), ((Date) rs.getObject(idx, objClass)).getTime());
+      assertEquals(
+          ((Date) exp).getTime(), ((Date) rs.getObject("t" + idx + "alias", objClass)).getTime());
+      assertNull(rs.getObject(4, objClass));
+      assertNull(rs.getObject("t4alias", objClass));
     } else {
       assertEquals(exp, rs.getObject(idx, objClass));
       assertEquals(exp, rs.getObject("t" + idx + "alias", objClass));

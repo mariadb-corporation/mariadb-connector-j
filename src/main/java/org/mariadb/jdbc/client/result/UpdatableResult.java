@@ -20,7 +20,6 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class UpdatableResult extends CompleteResult {
-  private static final CodecList codecList = CodecLoader.get();
   private static final int STATE_STANDARD = 0;
   private static final int STATE_UPDATE = 1;
   private static final int STATE_UPDATED = 2;
@@ -967,7 +966,7 @@ public class UpdatableResult extends CompleteResult {
       return;
     }
 
-    for (Codec<?> codec : codecList.getCodecs()) {
+    for (Codec<?> codec : context.getConf().codecs()) {
       if (codec.canEncode(x)) {
         Parameter p = new Parameter(codec, x, scaleOrLength);
         parameters.set(columnIndex - 1, p);

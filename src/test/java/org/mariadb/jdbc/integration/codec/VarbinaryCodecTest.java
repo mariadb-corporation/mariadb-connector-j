@@ -129,7 +129,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
         LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault()));
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, OffsetTime.class);
-    testObject(rs, java.util.Date.class, new Timestamp(tt.getTime() + 152), 2);
+    testObject(rs, java.util.Date.class, Date.valueOf("2010-12-31"), 2);
   }
 
   @Test

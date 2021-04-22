@@ -97,7 +97,8 @@ public class DateCodec implements Codec<Date> {
       case TIMESTAMP:
       case DATETIME:
         Timestamp lt = TimestampCodec.INSTANCE.decodeText(buf, length, column, cal);
-        return new Date(lt.getTime());
+        String st = lt.toString();
+        return Date.valueOf(st.substring(0, 10));
 
       default:
         buf.skip(length);
@@ -186,7 +187,8 @@ public class DateCodec implements Codec<Date> {
       case DATETIME:
         Timestamp lt = TimestampCodec.INSTANCE.decodeBinary(buf, length, column, cal);
         if (lt == null) return null;
-        return new Date(lt.getTime());
+        String st = lt.toString();
+        return Date.valueOf(st.substring(0, 10));
 
       default:
         buf.skip(length);

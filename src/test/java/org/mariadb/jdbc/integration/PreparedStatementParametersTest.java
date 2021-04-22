@@ -136,7 +136,6 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setNString(1, "你好(hello in Chinese)"),
         rs -> assertEquals("你好(hello in Chinese)", rs.getNString(1)),
         con);
-
     checkSendBlob(
         ps -> ps.setBytes(1, "01234".getBytes()),
         rs -> assertArrayEquals("01234".getBytes(), rs.getBytes(1)),
@@ -147,7 +146,7 @@ public class PreparedStatementParametersTest extends Common {
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs -> assertEquals(1263254400000L, rs.getDate(1, utcCal).getTime()),
+        rs -> assertEquals(1263250800000L, rs.getDate(1, utcCal).getTime()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),

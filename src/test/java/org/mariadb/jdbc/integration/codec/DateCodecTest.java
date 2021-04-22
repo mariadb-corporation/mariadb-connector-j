@@ -122,7 +122,7 @@ public class DateCodecTest extends CommonCodecTest {
         rs,
         ZonedDateTime.class,
         LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()));
-    testObject(rs, java.util.Date.class, Timestamp.valueOf("2010-01-12 00:00:00.0"));
+    testObject(rs, java.util.Date.class, Date.valueOf("2010-01-12"));
   }
 
   @Test

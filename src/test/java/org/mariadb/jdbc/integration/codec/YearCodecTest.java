@@ -142,7 +142,7 @@ public class YearCodecTest extends CommonCodecTest {
         rs,
         ZonedDateTime.class,
         LocalDateTime.parse("2010-01-01T00:00:00").atZone(ZoneId.systemDefault()));
-    testObject(rs, java.util.Date.class, Timestamp.valueOf("2010-01-01 00:00:00.0"));
+    testObject(rs, java.util.Date.class, Date.valueOf("2010-01-01"));
     rs.next();
 
     testObject(rs, Integer.class, isMariaDBServer() ? 80 : 1980);
@@ -178,7 +178,7 @@ public class YearCodecTest extends CommonCodecTest {
         rs,
         ZonedDateTime.class,
         LocalDateTime.parse("1980-01-01T00:00:00").atZone(ZoneId.systemDefault()));
-    testObject(rs, java.util.Date.class, Timestamp.valueOf("1980-01-01 00:00:00.0"));
+    testObject(rs, java.util.Date.class, Date.valueOf("1980-01-01"));
   }
 
   @Test

@@ -20,7 +20,6 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
-  private static final CodecList codecList = CodecLoader.get();
   protected ParameterList parameters;
   protected List<ParameterList> batchParameters;
   protected final String sql;
@@ -1021,7 +1020,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
       return;
     }
 
-    for (Codec<?> codec : codecList.getCodecs()) {
+    for (Codec<?> codec : con.getContext().getConf().codecs()) {
       if (codec.canEncode(x)) {
         Parameter p = new Parameter(codec, x, scaleOrLength);
         parameters.set(parameterIndex - 1, p);

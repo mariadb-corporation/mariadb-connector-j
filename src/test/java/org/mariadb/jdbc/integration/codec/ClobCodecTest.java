@@ -136,7 +136,7 @@ public class ClobCodecTest extends CommonCodecTest {
     testErrObject(rs, BigInteger.class);
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, OffsetTime.class);
-    testObject(rs, java.util.Date.class, new Timestamp(tt.getTime() + 152), 2);
+    testObject(rs, java.util.Date.class, Date.valueOf("2010-12-31"), 2);
   }
 
   @Test
