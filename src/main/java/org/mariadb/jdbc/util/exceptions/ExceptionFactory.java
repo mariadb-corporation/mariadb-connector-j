@@ -71,20 +71,21 @@ public class ExceptionFactory {
       }
     }
 
-    if (conf.includeInnodbStatusInDeadlockExceptions()) {
-      if (LOCK_DEADLOCK_ERROR_CODES.contains(errorCode) && connection != null) {
-        Statement stmt = connection.createStatement();
-        try {
-          ResultSet rs = stmt.executeQuery("SHOW ENGINE INNODB STATUS");
-          rs.next();
-          msg.append("\ndeadlock information: ").append(rs.getString(3));
-        } catch (SQLException sqle) {
-          // eat
-        }
+    if (conf.includeInnodbStatusInDeadlockExceptions()
+        && LOCK_DEADLOCK_ERROR_CODES.contains(errorCode)
+        && connection != null) {
+      Statement stmt = connection.createStatement();
+      try {
+        ResultSet rs = stmt.executeQuery("SHOW ENGINE INNODB STATUS");
+        rs.next();
+        msg.append("\ndeadlock information: ").append(rs.getString(3));
+      } catch (SQLException sqle) {
+        // eat
       }
     }
 
-    if (conf.includeThreadDumpInDeadlockExceptions()) {
+    if (conf.includeThreadDumpInDeadlockExceptions()
+        && LOCK_DEADLOCK_ERROR_CODES.contains(errorCode)) {
       msg.append("\nthread name: ").append(Thread.currentThread().getName());
       msg.append("\ncurrent threads: ");
       Thread.getAllStackTraces()
