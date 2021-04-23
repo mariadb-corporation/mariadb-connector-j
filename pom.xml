@@ -271,7 +271,9 @@
         <configuration>
           <destFile>${jacoco.reportPath}</destFile>
           <append>true</append>
-
+          <excludes>
+            <exclude>META-INF/**</exclude>
+          </excludes>
         </configuration>
         <executions>
           <execution>
