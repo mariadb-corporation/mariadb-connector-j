@@ -39,6 +39,7 @@ public class PreparedStatementParametersTest extends Common {
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute("CREATE TABLE prepareParam5 (t1 TIMESTAMP(6))");
     stmt.execute("CREATE TABLE prepareParam6 (t1 BIGINT)");
+    stmt.execute("CREATE TABLE prepareParam7 (t1 TIME(6))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -52,6 +53,7 @@ public class PreparedStatementParametersTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS prepareParam4");
     stmt.execute("DROP TABLE IF EXISTS prepareParam5");
     stmt.execute("DROP TABLE IF EXISTS prepareParam6");
+    stmt.execute("DROP TABLE IF EXISTS prepareParam7");
   }
 
   @Test
@@ -144,13 +146,15 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
         rs -> assertEquals(Date.valueOf("2010-05-25"), rs.getDate(1)),
         con);
+    boolean minus = TimeZone.getDefault().getOffset(System.currentTimeMillis()) > 0;
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs -> assertEquals(1263250800000L, rs.getDate(1, utcCal).getTime()),
+        rs ->
+            assertEquals(minus ? 1263164400000L : 1263254400000L, rs.getDate(1, utcCal).getTime()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs -> assertEquals("2010-01-12", rs.getDate(1, utcCal).toString()),
+        rs -> assertEquals(minus ? "2010-01-11" : "2010-01-12", rs.getDate(1, utcCal).toString()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
@@ -172,22 +176,8 @@ public class PreparedStatementParametersTest extends Common {
           ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
           rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
           con);
-      checkSendTimestamp(
-          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-          rs -> assertEquals("18:16:01", rs.getTime(1).toString()),
-          con);
-      checkSendTimestamp(
-          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123), utcCal),
-          rs -> assertEquals("18:16:01", rs.getTime(1, utcCal).toString()),
-          con);
-      checkSendTimestamp(
-          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123), utcCal),
-          rs ->
-              assertEquals(
-                  Time.valueOf("18:16:01").getTime() + 123 - TimeZone.getDefault().getDSTSavings(),
-                  rs.getTime(1).getTime()),
-          con);
     }
+
     checkSendTimestamp(
         ps -> ps.setTimestamp(1, Timestamp.valueOf("2010-05-25 18:16:01.987")),
         rs ->
@@ -318,6 +308,32 @@ public class PreparedStatementParametersTest extends Common {
   }
 
   @Test
+  public void checkTimeParameters() throws Exception {
+    checkTimeParameters(sharedConn, true);
+    checkTimeParameters(sharedConnBinary, false);
+  }
+
+  @SuppressWarnings("deprecation")
+  public void checkTimeParameters(org.mariadb.jdbc.Connection con, boolean text) throws Exception {
+    Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    checkSendTime(
+        ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime())),
+        rs -> assertEquals("18:16:01", rs.getTime(1).toString()),
+        con);
+    checkSendTime(
+        ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime()), utcCal),
+        rs -> assertEquals("18:16:01", rs.getTime(1, utcCal).toString()),
+        con);
+    checkSendTime(
+        ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123), utcCal),
+        rs ->
+            assertEquals(
+                Time.valueOf("18:16:01").getTime() + 123 - TimeZone.getDefault().getOffset(0),
+                rs.getTime(1).getTime()),
+        con);
+  }
+
+  @Test
   public void checkNotSupported() throws Exception {
     checkNotSupported(sharedConn, true);
     checkNotSupported(sharedConnBinary, false);
@@ -382,6 +398,14 @@ public class PreparedStatementParametersTest extends Common {
       Connection con)
       throws Exception {
     checkSend(consumer, check, "prepareParam5", con);
+  }
+
+  private void checkSendTime(
+      ThrowingConsumer<PreparedStatement, Exception> consumer,
+      ThrowingConsumer<ResultSet, Exception> check,
+      Connection con)
+      throws Exception {
+    checkSend(consumer, check, "prepareParam7", con);
   }
 
   private void checkSend(

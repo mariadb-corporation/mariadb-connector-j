@@ -689,7 +689,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(DateCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new Parameter<>(DateCodec.INSTANCE, x, cal));
   }
 
   /**

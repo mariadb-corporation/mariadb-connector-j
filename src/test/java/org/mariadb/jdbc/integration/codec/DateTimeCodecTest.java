@@ -336,18 +336,30 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getDate(ResultSet rs) throws SQLException {
     assertEquals(
-        1263250800000L, rs.getDate(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        1263254400000L
+            - TimeZone.getDefault().getOffset(Timestamp.valueOf("2010-01-12 01:55:12").getTime()),
+        rs.getDate(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(1263250800000L, rs.getDate(1).getTime());
+    assertEquals(
+        1263254400000L
+            - TimeZone.getDefault().getOffset(Timestamp.valueOf("2010-01-12 01:55:12").getTime()),
+        rs.getDate(1).getTime());
     assertFalse(rs.wasNull());
 
     assertEquals(
-        -30609795600000L,
+        -30609792000000L
+            - TimeZone.getDefault().getOffset(Timestamp.valueOf("1000-01-01 01:55:13").getTime()),
         rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(-30609795600000L, rs.getDate(2).getTime());
+    assertEquals(
+        -30609792000000L
+            - TimeZone.getDefault().getOffset(Timestamp.valueOf("1000-01-01 01:55:13").getTime()),
+        rs.getDate(2).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(253402210800000L, rs.getDate(3).getTime());
+    assertEquals(
+        253402214400000L
+            - TimeZone.getDefault().getOffset(Timestamp.valueOf("9999-12-31 18:30:12").getTime()),
+        rs.getDate(3).getTime());
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
