@@ -34,6 +34,8 @@ install:
     esac
 
 jobs:
+  allow_failures:
+    - env: srv=build v=10.6
   include:
     - env: srv=mariadb v=10.5
       os: windows
