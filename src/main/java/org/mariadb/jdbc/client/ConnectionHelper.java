@@ -108,23 +108,7 @@ public final class ConnectionHelper {
     Socket socket;
     try {
       socket = createSocket(conf, hostAddress);
-      socket.setTcpNoDelay(true);
-
-      socket.setSoTimeout(conf.socketTimeout());
-      if (conf.tcpKeepAlive()) {
-        socket.setKeepAlive(true);
-      }
-      if (conf.tcpAbortiveClose()) {
-        socket.setSoLinger(true, 0);
-      }
-
-      // Bind the socket to a particular interface if the connection property
-      // localSocketAddress has been defined.
-      if (conf.localSocketAddress() != null) {
-        InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
-        socket.bind(localAddress);
-      }
-
+      SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null

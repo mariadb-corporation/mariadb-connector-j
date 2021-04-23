@@ -23,6 +23,7 @@ import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class Pool implements AutoCloseable, PoolMBean {
 
   private static final Logger logger = Loggers.getLogger(Pool.class);

@@ -20,6 +20,7 @@
     <osgi.compendium.version>5.0.0</osgi.compendium.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <logback.version>1.2.3</logback.version>
+    <jacoco.version>0.8.5</jacoco.version>
   </properties>
 
   <licenses>
@@ -96,13 +97,37 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
           <showWarnings>true</showWarnings>
           <compilerArgs>
             <arg>-Xlint:all,-options,-path,-processing</arg>
           </compilerArgs>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
+        <executions>
+          <execution>
+            <id>compile-java-8</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>compile-java-11</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>11</release>
+              <source>11</source>
+              <target>11</target>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
+              </compileSourceRoots>
+              <multiReleaseOutput>true</multiReleaseOutput>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -122,6 +147,18 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Multi-Release>true</Multi-Release>
+            </manifestEntries>
+          </archive>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
@@ -230,7 +267,12 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.5</version>
+        <version>${jacoco.version}</version>
+        <configuration>
+          <destFile>${jacoco.reportPath}</destFile>
+          <append>true</append>
+
+        </configuration>
         <executions>
           <execution>
             <goals>

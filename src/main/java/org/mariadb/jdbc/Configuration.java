@@ -78,6 +78,9 @@ public class Configuration {
   private String pipe = null;
   private String localSocket = null;
   private boolean tcpKeepAlive = false;
+  private int tcpKeepIdle = 0;
+  private int tcpKeepCount = 0;
+  private int tcpKeepInterval = 0;
   private boolean tcpAbortiveClose = false;
   private String localSocketAddress = null;
   private int socketTimeout = 0;
@@ -162,6 +165,9 @@ public class Configuration {
       String pipe,
       String localSocket,
       boolean tcpKeepAlive,
+      int tcpKeepIdle,
+      int tcpKeepCount,
+      int tcpKeepInterval,
       boolean tcpAbortiveClose,
       String localSocketAddress,
       int socketTimeout,
@@ -224,6 +230,9 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     this.tcpKeepAlive = tcpKeepAlive;
+    this.tcpKeepIdle = tcpKeepIdle;
+    this.tcpKeepCount = tcpKeepCount;
+    this.tcpKeepInterval = tcpKeepInterval;
     this.tcpAbortiveClose = tcpAbortiveClose;
     this.localSocketAddress = localSocketAddress;
     this.socketTimeout = socketTimeout;
@@ -283,6 +292,9 @@ public class Configuration {
       String pipe,
       String localSocket,
       Boolean tcpKeepAlive,
+      Integer tcpKeepIdle,
+      Integer tcpKeepCount,
+      Integer tcpKeepInterval,
       Boolean tcpAbortiveClose,
       String localSocketAddress,
       Integer socketTimeout,
@@ -349,6 +361,9 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
+    if (tcpKeepIdle != null) this.tcpKeepIdle = tcpKeepIdle;
+    if (tcpKeepCount != null) this.tcpKeepCount = tcpKeepCount;
+    if (tcpKeepInterval != null) this.tcpKeepInterval = tcpKeepInterval;
     if (tcpAbortiveClose != null) this.tcpAbortiveClose = tcpAbortiveClose;
     this.localSocketAddress = localSocketAddress;
     if (socketTimeout != null) this.socketTimeout = socketTimeout;
@@ -654,6 +669,9 @@ public class Configuration {
         this.pipe,
         this.localSocket,
         this.tcpKeepAlive,
+        this.tcpKeepIdle,
+        this.tcpKeepCount,
+        this.tcpKeepInterval,
         this.tcpAbortiveClose,
         this.localSocketAddress,
         this.socketTimeout,
@@ -774,6 +792,18 @@ public class Configuration {
 
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
+  }
+
+  public int tcpKeepIdle() {
+    return tcpKeepIdle;
+  }
+
+  public int tcpKeepCount() {
+    return tcpKeepCount;
+  }
+
+  public int tcpKeepInterval() {
+    return tcpKeepInterval;
   }
 
   public boolean tcpAbortiveClose() {
@@ -1094,12 +1124,13 @@ public class Configuration {
     return sb.toString();
   }
 
+  @SuppressWarnings("rawtypes")
   private void loadCodecs() {
     ServiceLoader<Codec> loader =
         ServiceLoader.load(Codec.class, Configuration.class.getClassLoader());
     List<Codec<?>> result = new ArrayList<>();
     loader.iterator().forEachRemaining(result::add);
-    codecs = result.toArray(new Codec[0]);
+    codecs = result.toArray(new Codec<?>[0]);
   }
 
   @Override
@@ -1135,6 +1166,9 @@ public class Configuration {
     private String pipe;
     private String localSocket;
     private Boolean tcpKeepAlive;
+    private Integer tcpKeepIdle;
+    private Integer tcpKeepCount;
+    private Integer tcpKeepInterval;
     private Boolean tcpAbortiveClose;
     private String localSocketAddress;
     private Integer socketTimeout;
@@ -1323,6 +1357,39 @@ public class Configuration {
      */
     public Builder tcpKeepAlive(Boolean tcpKeepAlive) {
       this.tcpKeepAlive = tcpKeepAlive;
+      return this;
+    }
+
+    /**
+     * Indicate TCP keep-idle value (for java 11+ only).
+     *
+     * @param tcpKeepIdle value
+     * @return this {@link Builder}
+     */
+    public Builder tcpKeepIdle(Integer tcpKeepIdle) {
+      this.tcpKeepIdle = tcpKeepIdle;
+      return this;
+    }
+
+    /**
+     * Indicate TCP keep-count value (for java 11+ only).
+     *
+     * @param tcpKeepCount value
+     * @return this {@link Builder}
+     */
+    public Builder tcpKeepCount(Integer tcpKeepCount) {
+      this.tcpKeepCount = tcpKeepCount;
+      return this;
+    }
+
+    /**
+     * Indicate TCP keep-interval value (for java 11+ only).
+     *
+     * @param tcpKeepInterval value
+     * @return this {@link Builder}
+     */
+    public Builder tcpKeepInterval(Integer tcpKeepInterval) {
+      this.tcpKeepInterval = tcpKeepInterval;
       return this;
     }
 
@@ -1634,6 +1701,9 @@ public class Configuration {
               this.pipe,
               this.localSocket,
               this.tcpKeepAlive,
+              this.tcpKeepIdle,
+              this.tcpKeepCount,
+              this.tcpKeepInterval,
               this.tcpAbortiveClose,
               this.localSocketAddress,
               this.socketTimeout,
