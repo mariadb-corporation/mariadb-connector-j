@@ -42,7 +42,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     for (int i = 0; i < parameterCount; i++) {
       Parameter<?> p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData(context)));
+        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
       }
     }
   }
@@ -99,7 +99,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       for (int i = 0; i < parameterCount; i++) {
         Parameter<?> p = parameters.get(i);
         if (!p.isNull() && !p.canEncodeLongData()) {
-          p.encodeBinary(writer, context);
+          p.encodeBinary(writer);
         }
       }
     }

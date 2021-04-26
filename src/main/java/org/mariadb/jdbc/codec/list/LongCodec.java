@@ -47,13 +47,13 @@ public class LongCodec implements Codec<Long> {
   public static long parseNotEmpty(ReadableByteBuf buf, int length) {
 
     boolean negate = false;
-    int idx = 1;
-    long result = buf.readByte() - 48;
+    int idx = 0;
+    long result = 0;
 
-    if (result == -3) { // minus sign
+    if (length > 0 && buf.getByte() == 45) { // minus sign
       negate = true;
-      idx = 2;
-      result = buf.readByte() - 48;
+      buf.skip();
+      idx++;
     }
 
     while (idx++ < length) {
@@ -78,9 +78,17 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Long decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextLong(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public long decodeTextLong(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     long result;
     switch (column.getType()) {
@@ -151,9 +159,17 @@ public class LongCodec implements Codec<Long> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Long decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryLong(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public long decodeBinaryLong(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
 
     switch (column.getType()) {

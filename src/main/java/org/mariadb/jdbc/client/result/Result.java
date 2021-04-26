@@ -258,32 +258,27 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
-    Boolean b = row.getValue(columnIndex, BooleanCodec.INSTANCE, null);
-    return b != null && b;
+    return row.getBooleanValue(columnIndex);
   }
 
   @Override
   public byte getByte(int columnIndex) throws SQLException {
-    Byte b = row.getValue(columnIndex, ByteCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getByteValue(columnIndex);
   }
 
   @Override
   public short getShort(int columnIndex) throws SQLException {
-    Short b = row.getValue(columnIndex, ShortCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getShortValue(columnIndex);
   }
 
   @Override
   public int getInt(int columnIndex) throws SQLException {
-    Integer b = row.getValue(columnIndex, IntCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getIntValue(columnIndex);
   }
 
   @Override
   public long getLong(int columnIndex) throws SQLException {
-    Long b = row.getValue(columnIndex, LongCodec.INSTANCE, null);
-    return (b == null) ? 0L : b;
+    return row.getLongValue(columnIndex);
   }
 
   public BigInteger getBigInteger(int columnIndex) throws SQLException {
@@ -296,14 +291,12 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public float getFloat(int columnIndex) throws SQLException {
-    Float b = row.getValue(columnIndex, FloatCodec.INSTANCE, null);
-    return (b == null) ? 0F : b;
+    return row.getFloatValue(columnIndex);
   }
 
   @Override
   public double getDouble(int columnIndex) throws SQLException {
-    Double b = row.getValue(columnIndex, DoubleCodec.INSTANCE, null);
-    return (b == null) ? 0D : b;
+    return row.getDoubleValue(columnIndex);
   }
 
   @Override
@@ -357,44 +350,37 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public boolean getBoolean(String columnLabel) throws SQLException {
-    Boolean b = row.getValue(columnLabel, BooleanCodec.INSTANCE, null);
-    return b != null && b;
+    return row.getBooleanValue(row.getIndex(columnLabel));
   }
 
   @Override
   public byte getByte(String columnLabel) throws SQLException {
-    Byte b = row.getValue(columnLabel, ByteCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getByteValue(row.getIndex(columnLabel));
   }
 
   @Override
   public short getShort(String columnLabel) throws SQLException {
-    Short b = row.getValue(columnLabel, ShortCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getShortValue(row.getIndex(columnLabel));
   }
 
   @Override
   public int getInt(String columnLabel) throws SQLException {
-    Integer b = row.getValue(columnLabel, IntCodec.INSTANCE, null);
-    return (b == null) ? 0 : b;
+    return row.getIntValue(row.getIndex(columnLabel));
   }
 
   @Override
   public long getLong(String columnLabel) throws SQLException {
-    Long b = row.getValue(columnLabel, LongCodec.INSTANCE, null);
-    return (b == null) ? 0L : b;
+    return row.getLongValue(row.getIndex(columnLabel));
   }
 
   @Override
   public float getFloat(String columnLabel) throws SQLException {
-    Float b = row.getValue(columnLabel, FloatCodec.INSTANCE, null);
-    return (b == null) ? 0F : b;
+    return row.getFloatValue(row.getIndex(columnLabel));
   }
 
   @Override
   public double getDouble(String columnLabel) throws SQLException {
-    Double b = row.getValue(columnLabel, DoubleCodec.INSTANCE, null);
-    return (b == null) ? 0D : b;
+    return row.getDoubleValue(row.getIndex(columnLabel));
   }
 
   @Override

@@ -37,18 +37,23 @@ public abstract class RowDecoder {
 
   public abstract <T> T decode(Codec<T> codec, Calendar calendar) throws SQLException;
 
+  public abstract byte decodeByte() throws SQLException;
+
+  public abstract boolean decodeBoolean() throws SQLException;
+
+  public abstract short decodeShort() throws SQLException;
+
+  public abstract int decodeInt() throws SQLException;
+
+  public abstract long decodeLong() throws SQLException;
+
+  public abstract float decodeFloat() throws SQLException;
+
+  public abstract double decodeDouble() throws SQLException;
+
   @SuppressWarnings("unchecked")
   public <T> T getValue(int index, Class<T> type, Calendar calendar) throws SQLException {
-    if (readBuf.buf() == null) {
-      throw new SQLDataException("wrong row position", "22023");
-    }
-    if (index < 1 || index > columnCount) {
-      throw new SQLException(
-          String.format(
-              "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
-    }
-
-    setPosition(index - 1);
+    checkIndexAndSetPosition(index);
 
     if (wasNull()) {
       if (type.isPrimitive()) {
@@ -77,15 +82,7 @@ public abstract class RowDecoder {
 
   public abstract boolean wasNull();
 
-  /**
-   * Get value.
-   *
-   * @param index REAL index (0 = first)
-   * @param codec codec
-   * @return value
-   * @throws SQLException if cannot decode value
-   */
-  public <T> T getValue(int index, Codec<T> codec, Calendar cal) throws SQLException {
+  private void checkIndexAndSetPosition(int index) throws SQLException {
     if (index < 1 || index > columnCount) {
       throw new SQLException(
           String.format(
@@ -96,16 +93,81 @@ public abstract class RowDecoder {
     }
 
     setPosition(index - 1);
+  }
+
+  /**
+   * Get value.
+   *
+   * @param index REAL index (0 = first)
+   * @param codec codec
+   * @return value
+   * @throws SQLException if cannot decode value
+   */
+  public <T> T getValue(int index, Codec<T> codec, Calendar cal) throws SQLException {
+    checkIndexAndSetPosition(index);
     if (length == NULL_LENGTH) {
       return null;
     }
     return decode(codec, cal);
   }
 
-  public <T> T getValue(String label, Codec<T> codec, Calendar cal) throws SQLException {
-    if (readBuf.buf() == null) {
-      throw new SQLDataException("wrong row position", "22023");
+  public byte getByteValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0;
     }
+    return decodeByte();
+  }
+
+  public boolean getBooleanValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return false;
+    }
+    return decodeBoolean();
+  }
+
+  public short getShortValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0;
+    }
+    return decodeShort();
+  }
+
+  public int getIntValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0;
+    }
+    return decodeInt();
+  }
+
+  public long getLongValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0L;
+    }
+    return decodeLong();
+  }
+
+  public float getFloatValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0F;
+    }
+    return decodeFloat();
+  }
+
+  public double getDoubleValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return 0D;
+    }
+    return decodeDouble();
+  }
+
+  public <T> T getValue(String label, Codec<T> codec, Calendar cal) throws SQLException {
     return getValue(getIndex(label), codec, cal);
   }
 

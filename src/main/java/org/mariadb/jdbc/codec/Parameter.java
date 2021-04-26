@@ -25,46 +25,36 @@ public class Parameter<T> {
         }
       };
 
-  private final Codec<T> codec;
-  private final T value;
-  private final Calendar cal;
-  private final Long length;
+  protected final Codec<T> codec;
+  protected final T value;
+  protected final Long length;
 
   public Parameter(Codec<T> codec, T value) {
     this.codec = codec;
     this.value = value;
-    this.cal = null;
     this.length = null;
   }
 
   public Parameter(Codec<T> codec, T value, Long length) {
     this.codec = codec;
     this.value = value;
-    this.cal = null;
     this.length = length;
   }
 
-  public Parameter(Codec<T> codec, T value, Calendar cal) {
-    this.codec = codec;
-    this.value = value;
-    this.cal = cal;
-    this.length = null;
-  }
-
   public void encodeText(PacketWriter encoder, Context context) throws IOException, SQLException {
-    codec.encodeText(encoder, context, this.value, this.cal, length);
+    codec.encodeText(encoder, context, this.value, null, length);
   }
 
-  public void encodeBinary(PacketWriter encoder, Context context) throws IOException, SQLException {
-    codec.encodeBinary(encoder, this.value, this.cal, length);
+  public void encodeBinary(PacketWriter encoder) throws IOException, SQLException {
+    codec.encodeBinary(encoder, this.value, null, length);
   }
 
-  public void encodeLongData(PacketWriter encoder, Context context)
+  public void encodeLongData(PacketWriter encoder)
       throws IOException, SQLException {
     codec.encodeLongData(encoder, this.value, length);
   }
 
-  public byte[] encodeData(Context context) throws IOException, SQLException {
+  public byte[] encodeData() throws IOException, SQLException {
     return codec.encodeData(this.value, length);
   }
 

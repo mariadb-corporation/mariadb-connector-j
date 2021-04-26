@@ -55,9 +55,17 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Float decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextFloat(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public float decodeTextFloat(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
       case TINYINT:
@@ -102,16 +110,24 @@ public class FloatCodec implements Codec<Float> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Float decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryFloat(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public float decodeBinaryFloat(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
       case TINYINT:
         if (!column.isSigned()) {
-          return (float) buf.readUnsignedByte();
+          return buf.readUnsignedByte();
         }
-        return (float) buf.readByte();
+        return buf.readByte();
 
       case YEAR:
       case SMALLINT:

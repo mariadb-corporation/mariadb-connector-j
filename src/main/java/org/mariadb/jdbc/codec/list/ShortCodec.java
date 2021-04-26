@@ -57,9 +57,17 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Short decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextShort(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public short decodeTextShort(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     long result;
     switch (column.getType()) {
@@ -122,9 +130,17 @@ public class ShortCodec implements Codec<Short> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Short decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryShort(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public short decodeBinaryShort(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     long result;
     switch (column.getType()) {

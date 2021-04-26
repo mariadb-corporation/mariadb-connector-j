@@ -36,7 +36,7 @@ public final class LongDataPacket implements ClientMessage {
     writer.writeByte(0x18);
     writer.writeInt(statementId);
     writer.writeShort((short) index);
-    parameter.encodeLongData(writer, context);
+    parameter.encodeLongData(writer);
     writer.flush();
     return 0;
   }

@@ -16,7 +16,6 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.ClientParser;
-import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -48,8 +47,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
     boolean noBackslashEscapes =
         (con.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
-    parser =
-        ClientParser.parameterParts(NativeSql.parse(sql, con.getContext()), noBackslashEscapes);
+    parser = ClientParser.parameterParts(sql, noBackslashEscapes);
     parameters = new ParameterList(parser.getParamCount());
   }
 

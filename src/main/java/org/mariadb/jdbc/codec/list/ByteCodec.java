@@ -72,7 +72,15 @@ public class ByteCodec implements Codec<Byte> {
 
   @Override
   public Byte decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextByte(buffer, length, column);
+  }
+
+  public byte decodeTextByte(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
 
     long result;
@@ -87,7 +95,7 @@ public class ByteCodec implements Codec<Byte> {
         break;
 
       case BIT:
-        Byte val = buf.readByte();
+        byte val = buf.readByte();
         if (length > 1) buf.skip(length - 1);
         return val;
 
@@ -144,7 +152,15 @@ public class ByteCodec implements Codec<Byte> {
 
   @Override
   public Byte decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryByte(buffer, length, column);
+  }
+
+  public byte decodeBinaryByte(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
 
     long result;

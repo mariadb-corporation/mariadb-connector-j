@@ -689,7 +689,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(DateCodec.INSTANCE, x, cal));
+    parameters.set(parameterIndex - 1, new ParameterWithCal<>(DateCodec.INSTANCE, x, cal));
   }
 
   /**
@@ -711,7 +711,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(TimeCodec.INSTANCE, x, cal));
+    parameters.set(parameterIndex - 1, new ParameterWithCal<>(TimeCodec.INSTANCE, x, cal));
   }
 
   /**
@@ -733,7 +733,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(TimestampCodec.INSTANCE, x, cal));
+    parameters.set(parameterIndex - 1, new ParameterWithCal<>(TimestampCodec.INSTANCE, x, cal));
   }
 
   /**

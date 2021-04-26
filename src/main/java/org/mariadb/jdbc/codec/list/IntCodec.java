@@ -58,9 +58,18 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Integer decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextInt(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public int decodeTextInt(
+      final ReadableByteBuf buf, final int length, final ColumnDefinitionPacket column)
       throws SQLDataException {
     long result;
     switch (column.getType()) {
@@ -131,14 +140,22 @@ public class IntCodec implements Codec<Integer> {
   }
 
   @Override
-  @SuppressWarnings("fallthrough")
   public Integer decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryInt(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public int decodeBinaryInt(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     long result;
     switch (column.getType()) {
       case TINYINT:
-        return (int) (column.isSigned() ? buf.readByte() : buf.readUnsignedByte());
+        return (column.isSigned() ? buf.readByte() : buf.readUnsignedByte());
 
       case YEAR:
       case SMALLINT:

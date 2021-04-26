@@ -59,6 +59,12 @@ public class DoubleCodec implements Codec<Double> {
   public Double decodeText(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
+    return decodeTextDouble(buf, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public double decodeTextDouble(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
+      throws SQLDataException {
     switch (column.getType()) {
       case TINYINT:
       case SMALLINT:
@@ -105,6 +111,12 @@ public class DoubleCodec implements Codec<Double> {
   @SuppressWarnings("fallthrough")
   public Double decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryDouble(buf, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public double decodeBinaryDouble(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
       case TINYINT:

@@ -7,6 +7,7 @@ package org.mariadb.jdbc.codec;
 import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public class BinaryRowDecoder extends RowDecoder {
@@ -20,6 +21,41 @@ public class BinaryRowDecoder extends RowDecoder {
   @Override
   public <T> T decode(Codec<T> codec, Calendar cal) throws SQLException {
     return codec.decodeBinary(readBuf, length, columns[index], cal);
+  }
+
+  @Override
+  public byte decodeByte() throws SQLException {
+    return ByteCodec.INSTANCE.decodeBinaryByte(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public boolean decodeBoolean() throws SQLException {
+    return BooleanCodec.INSTANCE.decodeBinaryBoolean(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public short decodeShort() throws SQLException {
+    return ShortCodec.INSTANCE.decodeBinaryShort(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public int decodeInt() throws SQLException {
+    return IntCodec.INSTANCE.decodeBinaryInt(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public long decodeLong() throws SQLException {
+    return LongCodec.INSTANCE.decodeBinaryLong(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public float decodeFloat() throws SQLException {
+    return FloatCodec.INSTANCE.decodeBinaryFloat(readBuf, length, columns[index]);
+  }
+
+  @Override
+  public double decodeDouble() throws SQLException {
+    return DoubleCodec.INSTANCE.decodeBinaryDouble(readBuf, length, columns[index]);
   }
 
   @Override

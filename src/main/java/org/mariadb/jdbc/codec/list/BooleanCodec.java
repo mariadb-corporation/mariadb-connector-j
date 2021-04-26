@@ -54,10 +54,17 @@ public class BooleanCodec implements Codec<Boolean> {
     return value instanceof Boolean;
   }
 
-  @Override
-  @SuppressWarnings("fallthrough")
   public Boolean decodeText(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeTextBoolean(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public boolean decodeTextBoolean(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
       case BIT:
@@ -100,10 +107,17 @@ public class BooleanCodec implements Codec<Boolean> {
     }
   }
 
-  @Override
-  @SuppressWarnings("fallthrough")
   public Boolean decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDefinitionPacket column,
+      final Calendar cal)
+      throws SQLDataException {
+    return decodeBinaryBoolean(buffer, length, column);
+  }
+
+  @SuppressWarnings("fallthrough")
+  public boolean decodeBinaryBoolean(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
       throws SQLDataException {
     switch (column.getType()) {
       case BIT:
