@@ -43,11 +43,12 @@ jobs:
     - env: srv=mariadb v=10.2 local=1
     - env: srv=mariadb v=10.3 local=1
     - env: srv=mariadb v=10.4 local=1
+    - env: srv=mariadb v=10.6 local=1
     - env: srv=mariadb v=10.5 packet=40
     - env: srv=mariadb v=10.5 packet=8 jdk=openjdk8
     - env: srv=mariadb v=10.5 BENCH=1
     - env: srv=maxscale
-    - env: srv=build v=10.6
+    - env: srv=mariadb v=10.6
     - env: srv=mysql v=5.7
     - env: srv=mysql v=8.0
     - env: srv=skysql
