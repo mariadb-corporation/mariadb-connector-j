@@ -4,36 +4,36 @@ environment:
     - DB: '10.2.34'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
-      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+      JAVA_HOME: C:\Program Files\Java\jdk11
 
     - DB: '10.3.25'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
-      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+      JAVA_HOME: C:\Program Files\Java\jdk11
 
     - DB: '10.4.15'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
-      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+      JAVA_HOME: C:\Program Files\Java\jdk11
 
     - DB: '10.5.6'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
-      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+      JAVA_HOME: C:\Program Files\Java\jdk11
 
 clone_folder: c:\projects\mariadb-connector-j
 install:
   - ps: |
       Add-Type -AssemblyName System.IO.Compression.FileSystem
       if (!(Test-Path -Path "C:\maven" )) {
-        (new-object System.Net.WebClient).DownloadFile('http://www.us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.zip', 'C:\maven-bin.zip')
+        (new-object System.Net.WebClient).DownloadFile('http://www.us.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.zip', 'C:\maven-bin.zip')
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
   - cmd: appveyor-download.bat
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
-  - cmd: SET PATH=C:\maven\apache-maven-3.5.4\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
+  - cmd: SET PATH=C:\maven\apache-maven-3.6.3\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
   - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.4

@@ -485,14 +485,7 @@ public class PoolDataSourceTest extends Common {
     }
     connectionAppender.shutdown();
     connectionAppender.awaitTermination(30, TimeUnit.SECONDS);
-    int numberOfConnection = 0;
-
-    for (Integer integer : threadIds) {
-      numberOfConnection++;
-    }
-    assertTrue(
-        numberOfConnection <= 8, "connection ids must be less than 8 : " + numberOfConnection);
-    assertTrue(System.currentTimeMillis() - start < (5_000));
+    assertTrue(threadIds.size() <= 8, "connection ids must be less than 8 : " + threadIds.size());
     Pools.close("PoolTest");
   }
 

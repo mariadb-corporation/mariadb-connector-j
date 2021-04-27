@@ -62,6 +62,7 @@ public class XaTest extends Common {
     assertEquals(xid, new MariaDbXid(1575, new byte[] {0x00}, new byte[] {0x01}));
     assertFalse(xid.equals("dd"));
     assertFalse(xid.equals(null));
+    assertEquals(1544359, xid.hashCode());
   }
 
   @Test

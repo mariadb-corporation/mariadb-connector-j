@@ -405,61 +405,65 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @throws Exception if interrupted
    */
   @Override
-  public void close() throws Exception {
-    synchronized (this) {
-      Pools.remove(this);
-      poolState.set(POOL_STATE_CLOSING);
-      pendingRequestNumber.set(0);
+  public void close() {
+    try {
+      synchronized (this) {
+        Pools.remove(this);
+        poolState.set(POOL_STATE_CLOSING);
+        pendingRequestNumber.set(0);
 
-      scheduledFuture.cancel(false);
-      connectionAppender.shutdown();
+        scheduledFuture.cancel(false);
+        connectionAppender.shutdown();
 
-      try {
-        connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
-      } catch (InterruptedException i) {
-        // eat
-      }
-
-      if (logger.isInfoEnabled()) {
-        logger.debug(
-            "closing pool {} (total:{}, active:{}, pending:{})",
-            poolTag,
-            totalConnection.get(),
-            getActiveConnections(),
-            pendingRequestNumber.get());
-      }
-
-      ExecutorService connectionRemover =
-          new ThreadPoolExecutor(
-              totalConnection.get(),
-              conf.maxPoolSize(),
-              10,
-              TimeUnit.SECONDS,
-              new LinkedBlockingQueue<>(conf.maxPoolSize()),
-              new PoolThreadFactory(poolTag + "-destroyer"));
-
-      // loop for up to 10 seconds to close not used connection
-      long start = System.nanoTime();
-      do {
-        closeAll(idleConnections);
-        if (totalConnection.get() > 0) {
-          Thread.sleep(0, 10_00);
+        try {
+          connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException i) {
+          // eat
         }
-      } while (totalConnection.get() > 0
-          && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 10);
 
-      // after having wait for 10 seconds, force removal, even if used connections
-      if (totalConnection.get() > 0 || idleConnections.isEmpty()) {
-        closeAll(idleConnections);
-      }
+        if (logger.isInfoEnabled()) {
+          logger.debug(
+              "closing pool {} (total:{}, active:{}, pending:{})",
+              poolTag,
+              totalConnection.get(),
+              getActiveConnections(),
+              pendingRequestNumber.get());
+        }
 
-      connectionRemover.shutdown();
-      try {
-        unRegisterJmx();
-      } catch (Exception exception) {
-        // eat
+        ExecutorService connectionRemover =
+            new ThreadPoolExecutor(
+                totalConnection.get(),
+                conf.maxPoolSize(),
+                10,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(conf.maxPoolSize()),
+                new PoolThreadFactory(poolTag + "-destroyer"));
+
+        // loop for up to 10 seconds to close not used connection
+        long start = System.nanoTime();
+        do {
+          closeAll(idleConnections);
+          if (totalConnection.get() > 0) {
+            Thread.sleep(0, 10_00);
+          }
+        } while (totalConnection.get() > 0
+            && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 10);
+
+        // after having wait for 10 seconds, force removal, even if used connections
+        if (totalConnection.get() > 0 || idleConnections.isEmpty()) {
+          closeAll(idleConnections);
+        }
+
+        connectionRemover.shutdown();
+        try {
+          unRegisterJmx();
+        } catch (Exception exception) {
+          // eat
+        }
+        connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
       }
-      connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+    } catch (Exception e) {
+      // eat
     }
   }
 

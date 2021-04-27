@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import java.util.Arrays;
+import java.util.Objects;
 import javax.transaction.xa.Xid;
 
 public class MariaDbXid implements Xid {
@@ -36,6 +37,14 @@ public class MariaDbXid implements Xid {
           && Arrays.equals(branchQualifier, other.getBranchQualifier());
     }
     return false;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = Objects.hash(formatId);
+    result = 31 * result + Arrays.hashCode(globalTransactionId);
+    result = 31 * result + Arrays.hashCode(branchQualifier);
+    return result;
   }
 
   public int getFormatId() {
