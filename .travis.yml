@@ -56,7 +56,7 @@ jobs:
 
 
 script:
-  - mvn clean -Dmaven.test.skip > /dev/null
+  - mvn clean -Dmaven.test.skip
   - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip ; fi
   - if [ -n "$BENCH" ] ; then java -Duser.country=US -Duser.language=en -DTEST_PORT=$TEST_DB_PORT -DTEST_HOST=$TEST_DB_HOST -DTEST_USERNAME=$TEST_DB_USER -DTEST_PASSWORD=$TEST_DB_PASSWORD -jar target/benchmarks.jar; fi
   - if [ -z "$BENCH" ] ; then MAVEN_SKIP_RC=true MAVEN_OPTS="-Xmx2g" mvn clean test -DjobId=${TRAVIS_JOB_ID}; fi
