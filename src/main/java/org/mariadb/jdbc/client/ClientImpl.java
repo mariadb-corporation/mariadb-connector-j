@@ -406,6 +406,9 @@ public class ClientImpl implements Client, AutoCloseable {
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
+      if (logger.isDebugEnabled() && message.description() != null) {
+        logger.debug("execute query: {}", message.description());
+      }
       return message.encode(writer, context);
     } catch (IOException ioException) {
       if (ioException instanceof MaxAllowedPacketException) {

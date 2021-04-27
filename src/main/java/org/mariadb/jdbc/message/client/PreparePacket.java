@@ -67,7 +67,7 @@ public final class PreparePacket implements ClientMessage {
     }
     if (context.getConf().useServerPrepStmts()
         && context.getConf().cachePrepStmts()
-        && sql.length() < 1000) {
+        && sql.length() < 8192) {
       CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
       PrepareResultPacket previousCached =
           context
