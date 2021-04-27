@@ -111,7 +111,8 @@ public class HaModeTest {
       System.out.println(entry.getKey() + " : " + entry.getValue());
     }
     use = res.get(host2);
-    Assertions.assertTrue(use > 450 && use < 550, "Expect 50% host2 and 50% host 3");
+    Assertions.assertTrue(
+        use > 400 && use < 600, "Expect 50% host2 and 50% host 3, but was " + use);
   }
 
   @Test

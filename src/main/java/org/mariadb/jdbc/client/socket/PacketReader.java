@@ -34,6 +34,7 @@ public class PacketReader {
    *
    * @param in stream
    * @param conf connection options
+   * @param sequence current increment sequence
    */
   public PacketReader(InputStream in, Configuration conf, MutableInt sequence) {
     this.inputStream = in;

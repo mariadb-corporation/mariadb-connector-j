@@ -15,9 +15,10 @@ before_install:
   - if [[ -d $HOME/docker ]]; then ls $HOME/docker/*.tar.gz | xargs -I {file} sh -c "zcat {file} | docker load"; fi
 
 cache:
-  bundler: true
   directories:
     - $HOME/docker
+    - $HOME/.m2
+
 env: LOCAL=0
 
 install:
@@ -45,7 +46,7 @@ jobs:
     - env: srv=mariadb v=10.4 local=1
     - env: srv=mariadb v=10.6 local=1
     - env: srv=mariadb v=10.5 packet=40
-    - env: srv=mariadb v=10.5 packet=8 jdk=openjdk8
+    - env: srv=mariadb v=10.5 packet=8
     - env: srv=mariadb v=10.5 BENCH=1
     - env: srv=maxscale
     - env: srv=build v=10.6
@@ -57,7 +58,7 @@ jobs:
 
 script:
   - mvn clean -Dmaven.test.skip
-  - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip ; fi
+  - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip -Dmaven.javadoc.skip=true ; fi
   - if [ -n "$BENCH" ] ; then java -Duser.country=US -Duser.language=en -DTEST_PORT=$TEST_DB_PORT -DTEST_HOST=$TEST_DB_HOST -DTEST_USERNAME=$TEST_DB_USER -DTEST_PASSWORD=$TEST_DB_PASSWORD -jar target/benchmarks.jar; fi
   - if [ -z "$BENCH" ] ; then MAVEN_SKIP_RC=true MAVEN_OPTS="-Xmx2g" mvn clean test -DjobId=${TRAVIS_JOB_ID}; fi
 

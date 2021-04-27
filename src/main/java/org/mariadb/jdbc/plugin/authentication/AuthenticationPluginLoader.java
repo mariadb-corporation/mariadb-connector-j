@@ -17,6 +17,7 @@ public final class AuthenticationPluginLoader {
    * implementing AuthenticationPlugin and registering new type in resources services.
    *
    * @param type authentication plugin type
+   * @param conf current configuration
    * @return Authentication plugin corresponding to type
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */

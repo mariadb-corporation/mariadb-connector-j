@@ -22,8 +22,8 @@ public final class ErrorPacket implements ServerMessage {
    * 54 6F 6F 20 6D 61 6E 79 20 | .......Too many | | 63 6F 6E 6E 65 63 74 69 6F 6E 73 | connections
    * | +--------------------------------------------------+------------------+
    *
-   * @param buf
-   * @param context
+   * @param buf error packet buffer
+   * @param context current context
    */
   public ErrorPacket(ReadableByteBuf buf, Context context) {
     buf.skip();
