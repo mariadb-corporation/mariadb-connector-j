@@ -75,6 +75,15 @@ public class XaTest extends Common {
     assertTrue(con1.getXAResource().isSameRM(con1.getXAResource()));
     assertTrue(con1.getXAResource().isSameRM(con2.getXAResource()));
     assertFalse(con1.getXAResource().isSameRM(con3.getXAResource()));
+
+    assertEquals(0, con1.getXAResource().getTransactionTimeout());
+    con1.getXAResource().setTransactionTimeout(10);
+    assertEquals(0, con1.getXAResource().getTransactionTimeout());
+    Xid xid = new MariaDbXid(1575, new byte[] {0x00}, new byte[] {0x01});
+    con1.getXAResource().forget(xid);
+    assertThrows(XAException.class, () -> con1.getXAResource().end(xid, XAResource.TMENDRSCAN));
+    assertThrows(XAException.class, () -> con1.getXAResource().start(xid, XAResource.TMSUCCESS));
+
     con1.close();
     con2.close();
     con3.close();
