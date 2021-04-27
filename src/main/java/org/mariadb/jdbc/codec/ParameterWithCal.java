@@ -4,14 +4,13 @@
 
 package org.mariadb.jdbc.codec;
 
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
+import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.socket.PacketWriter;
 
-public class ParameterWithCal<T> extends Parameter {
+public class ParameterWithCal<T> extends Parameter<T> {
 
   private final Calendar cal;
 

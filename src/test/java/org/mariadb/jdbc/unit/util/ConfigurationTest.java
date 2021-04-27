@@ -542,11 +542,11 @@ public class ConfigurationTest extends Common {
         SQLException.class,
         () -> Configuration.parse(wrongIntVal),
         "Optional parameter socketTimeout must be Integer, was 'blabla'");
-    String wrongBoolVal = "jdbc:mariadb://localhost?pinGlobalTxToPhysicalConnection=blabla";
+    String wrongBoolVal = "jdbc:mariadb://localhost?autocommit=blabla";
     assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse(wrongBoolVal),
-        "Optional parameter pinGlobalTxToPhysicalConnection must be boolean (true/false or 0/1)");
+        "Optional parameter autocommit must be boolean (true/false or 0/1)");
     String url =
         "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=primary)"
             + "(host=master2),address=(type=replica)(host=slave1)(port=3308)/database?user=greg&password=pass";
@@ -589,7 +589,6 @@ public class ConfigurationTest extends Common {
     assertEquals("greg", conf.user());
     assertEquals("pass", conf.password());
     assertEquals("BLA", conf.servicePrincipalName());
-    assertTrue(conf.pinGlobalTxToPhysicalConnection());
     assertTrue(conf.allowPublicKeyRetrieval());
     assertEquals("/tmp/path", conf.serverRsaPublicKeyFile());
     assertEquals(3, conf.addresses().size());
@@ -768,7 +767,6 @@ public class ConfigurationTest extends Common {
             .retriesAllDown(10)
             .galeraAllowedState("A,B")
             .enabledSslProtocolSuites("TLSv1.2")
-            .pinGlobalTxToPhysicalConnection(true)
             .transactionReplay(true)
             .pool(true)
             .poolName("myPool")
@@ -793,7 +791,7 @@ public class ConfigurationTest extends Common {
             .allowPublicKeyRetrieval(true)
             .build();
     assertEquals(
-        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&pinGlobalTxToPhysicalConnection=true&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
+        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
   }
 

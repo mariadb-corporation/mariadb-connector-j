@@ -8,11 +8,9 @@ import java.io.PrintWriter;
 import java.sql.*;
 import java.sql.Connection;
 import java.util.logging.Logger;
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.PooledConnection;
+import javax.sql.*;
 
-public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
+public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
   private final Configuration conf;
 
@@ -161,15 +159,24 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    org.mariadb.jdbc.Connection connection = Driver.connect(conf);
-    return new MariaDbPoolConnection(connection);
+    return new MariaDbPoolConnection(Driver.connect(conf));
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
     Configuration conf = this.conf.clone(username, password);
-    org.mariadb.jdbc.Connection connection = Driver.connect(conf);
-    return new MariaDbPoolConnection(connection);
+    return new MariaDbPoolConnection(Driver.connect(conf));
+  }
+
+  @Override
+  public XAConnection getXAConnection() throws SQLException {
+    return new MariaDbPoolConnection(Driver.connect(conf));
+  }
+
+  @Override
+  public XAConnection getXAConnection(String username, String password) throws SQLException {
+    Configuration conf = this.conf.clone(username, password);
+    return new MariaDbPoolConnection(Driver.connect(conf));
   }
 }

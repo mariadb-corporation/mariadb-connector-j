@@ -6,7 +6,6 @@ package org.mariadb.jdbc.codec;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Calendar;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 
@@ -49,8 +48,7 @@ public class Parameter<T> {
     codec.encodeBinary(encoder, this.value, null, length);
   }
 
-  public void encodeLongData(PacketWriter encoder)
-      throws IOException, SQLException {
+  public void encodeLongData(PacketWriter encoder) throws IOException, SQLException {
     codec.encodeLongData(encoder, this.value, length);
   }
 

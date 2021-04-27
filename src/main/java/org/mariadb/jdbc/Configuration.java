@@ -67,7 +67,6 @@ public class Configuration {
   private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
-  private boolean pinGlobalTxToPhysicalConnection = false;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
 
@@ -157,7 +156,6 @@ public class Configuration {
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
-      boolean pinGlobalTxToPhysicalConnection,
       String geometryDefaultType,
       String restrictedAuth,
       String socketFactory,
@@ -222,7 +220,6 @@ public class Configuration {
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
-    this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     this.geometryDefaultType = geometryDefaultType;
     this.restrictedAuth = restrictedAuth;
     this.socketFactory = socketFactory;
@@ -286,7 +283,6 @@ public class Configuration {
       String user,
       String password,
       String enabledSslProtocolSuites,
-      Boolean pinGlobalTxToPhysicalConnection,
       String socketFactory,
       Integer connectTimeout,
       String pipe,
@@ -354,8 +350,6 @@ public class Configuration {
     this.user = user;
     this.password = password;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
-    if (pinGlobalTxToPhysicalConnection != null)
-      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
     this.socketFactory = socketFactory;
     if (connectTimeout != null) this.connectTimeout = connectTimeout;
     this.pipe = pipe;
@@ -650,8 +644,8 @@ public class Configuration {
 
   public Configuration clone(String username, String password) {
     return new Configuration(
-        username,
-        password,
+        username != null && username.isEmpty() ? null : username,
+        password != null && password.isEmpty() ? null : password,
         this.database,
         this.addresses,
         this.haMode,
@@ -661,7 +655,6 @@ public class Configuration {
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
-        this.pinGlobalTxToPhysicalConnection,
         this.geometryDefaultType,
         this.restrictedAuth,
         this.socketFactory,
@@ -763,10 +756,6 @@ public class Configuration {
 
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
-  }
-
-  public boolean pinGlobalTxToPhysicalConnection() {
-    return pinGlobalTxToPhysicalConnection;
   }
 
   public String socketFactory() {
@@ -1155,7 +1144,6 @@ public class Configuration {
     private Boolean autocommit;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
-    private Boolean pinGlobalTxToPhysicalConnection;
     private String geometryDefaultType;
     private String restrictedAuth;
     private String transactionIsolation;
@@ -1275,11 +1263,6 @@ public class Configuration {
 
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
       this.enabledSslProtocolSuites = nullOrEmpty(enabledSslProtocolSuites);
-      return this;
-    }
-
-    public Builder pinGlobalTxToPhysicalConnection(Boolean pinGlobalTxToPhysicalConnection) {
-      this.pinGlobalTxToPhysicalConnection = pinGlobalTxToPhysicalConnection;
       return this;
     }
 
@@ -1695,7 +1678,6 @@ public class Configuration {
               this.user,
               this.password,
               this.enabledSslProtocolSuites,
-              this.pinGlobalTxToPhysicalConnection,
               this.socketFactory,
               this.connectTimeout,
               this.pipe,

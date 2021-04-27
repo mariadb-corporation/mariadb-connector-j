@@ -13,12 +13,14 @@ import java.util.List;
 import java.util.logging.Logger;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
 import org.mariadb.jdbc.pool.InternalPoolConnection;
 import org.mariadb.jdbc.pool.Pool;
 import org.mariadb.jdbc.pool.Pools;
 
 public class MariaDbPoolDataSource
-    implements DataSource, ConnectionPoolDataSource, Closeable, AutoCloseable {
+    implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
 
   private final Pool pool;
 
@@ -173,6 +175,16 @@ public class MariaDbPoolDataSource
   @Override
   public InternalPoolConnection getPooledConnection(String username, String password)
       throws SQLException {
+    return pool.getPoolConnection(username, password);
+  }
+
+  @Override
+  public XAConnection getXAConnection() throws SQLException {
+    return pool.getPoolConnection();
+  }
+
+  @Override
+  public XAConnection getXAConnection(String username, String password) throws SQLException {
     return pool.getPoolConnection(username, password);
   }
 
