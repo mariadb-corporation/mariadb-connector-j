@@ -15,7 +15,5 @@ public final class OptionAliases {
     OPTIONS_ALIASES = new HashMap<>();
     OPTIONS_ALIASES.put("enabledSSLCipherSuites", "enabledSslCipherSuites");
     OPTIONS_ALIASES.put("serverRSAPublicKeyFile", "serverRsaPublicKeyFile");
-    OPTIONS_ALIASES.put("useSsl", "sslMode");
-    OPTIONS_ALIASES.put("useSSL", "sslMode");
   }
 }

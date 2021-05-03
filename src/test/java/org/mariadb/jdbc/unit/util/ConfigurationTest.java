@@ -236,6 +236,29 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
+  public void testSslCompatibility() throws Throwable {
+    assertEquals(
+        SslMode.VERIFY_FULL, Configuration.parse("jdbc:mariadb://localhost/test?useSsl").sslMode());
+    assertEquals(
+        SslMode.VERIFY_FULL,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=true").sslMode());
+    assertEquals(
+        SslMode.VERIFY_FULL,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl=1").sslMode());
+    assertEquals(
+        SslMode.VERIFY_FULL,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSSL=1").sslMode());
+    assertEquals(
+        SslMode.TRUST,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl&trustServerCertificate")
+            .sslMode());
+    assertEquals(
+        SslMode.VERIFY_CA,
+        Configuration.parse("jdbc:mariadb://localhost/test?useSsl&disableSslHostnameVerification")
+            .sslMode());
+  }
+
+  @Test
   public void testBooleanDefault() throws Throwable {
     assertFalse(
         Configuration.parse("jdbc:mariadb:///test").includeThreadDumpInDeadlockExceptions());

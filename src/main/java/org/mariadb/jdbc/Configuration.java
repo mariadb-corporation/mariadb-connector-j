@@ -611,10 +611,25 @@ public class Configuration {
         }
       }
 
+      // for compatibility with 2.x
+      if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
+        if (isSet("trustServerCertificate", nonMappedOptions)) {
+          builder.sslMode("trust");
+        } else if (isSet("disableSslHostnameVerification", nonMappedOptions)) {
+          builder.sslMode("verify-ca");
+        } else {
+          builder.sslMode("verify-full");
+        }
+      }
     } catch (IllegalAccessException | SecurityException s) {
       throw new IllegalArgumentException("Unexpected error", s);
     }
     builder._nonMappedOptions = nonMappedOptions;
+  }
+
+  private static boolean isSet(String key, Properties nonMappedOptions) {
+    String value = nonMappedOptions.getProperty(key);
+    return value != null && (value.equals("1") || value.equals("true") || value.isEmpty());
   }
 
   private static HaMode parseHaMode(String url, int separator) {
