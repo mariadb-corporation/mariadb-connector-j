@@ -12,10 +12,10 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 
 ## Status
 [![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://travis-ci.com/mariadb-corporation/mariadb-connector-j)
-[![Windows Build](https://ci.appveyor.com/api/projects/status/icmwu47dyj05htid/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j-8yinp/branch/master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MariaDB/mariadb-connector-j&amp;utm_campaign=Badge_Grade)
+[![codecov][codecov-image]][codecov-url]
 
 ## Obtaining the driver
 
@@ -28,7 +28,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.7.2</version>
+	<version>2.5.4</version>
 </dependency>
 ```
 
@@ -46,7 +46,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>2.6.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
@@ -63,3 +63,7 @@ For a Getting started guide, API docs, recipes,  etc. see the
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
 [Developers Guide.](/documentation/developers-guide.creole)
+
+
+[codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
+[codecov-url]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j

@@ -1,1 +1,7 @@
 comment: off
+codecov:
+  token: 36743525-d093-4119-9e55-39aa2ebe1ae1
+ignore:
+  - "src/main/java/org/mariadb/jdbc/plugin/authentication/standard/ed25519"  # ignore folders and all its contents
+  - "src/main/java/org/mariadb/jdbc/plugin/credential/aws"
+  - "src/main/java/org/mariadb/jdbc/plugin/authentication/addon"
