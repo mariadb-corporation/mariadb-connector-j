@@ -1,6 +1,6 @@
 # Change Log
 
-## [3.0.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.0) (29 Jan. 2021)
+## [3.0.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.0) (3 May 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.2...3.0.0)
 
 This version is a total rewrite of java driver. 
