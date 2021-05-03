@@ -66,7 +66,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
         password = (String) conf.nonMappedOptions().get("password" + counter);
       }
 
-      byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
+      byte[] bytePwd = password != null ? password.getBytes(StandardCharsets.UTF_8) : new byte[0];
       out.writeBytes(bytePwd, 0, bytePwd.length);
       out.writeByte(0);
       out.flush();
