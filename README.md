@@ -28,28 +28,20 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.5.4</version>
+	<version>2.7.2</version>
 </dependency>
 ```
 
-Development snapshot are available on sonatype nexus repository  
+New version 3.0 is a complete rewrite with code clarification, reduced size (15%), more than 90% coverage tested, with performance gain.
+But still in alpha for now:
 ```script
-<repositories>
-    <repository>
-        <id>sonatype-nexus-snapshots</id>
-        <name>Sonatype Nexus Snapshots</name>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-</repositories>
-
-<dependencies>
-    <dependency>
-        <groupId>org.mariadb.jdbc</groupId>
-        <artifactId>mariadb-java-client</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
-    </dependency>
-</dependencies>
+<dependency>
+    <groupId>org.mariadb.jdbc</groupId>
+    <artifactId>mariadb-java-client</artifactId>
+    <version>3.0.0-alpha</version>
+</dependency>
 ```
+
 
 ## Documentation
 
