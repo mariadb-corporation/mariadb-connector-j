@@ -22,7 +22,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 For java 8 or more :
 (maintenance branch for java 7 is 1.x)
 
-The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
+The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/downloads/#connectors)
 or maven : 
 ```script
 <dependency>
@@ -32,7 +32,7 @@ or maven :
 </dependency>
 ```
 
-New version 3.0 is a complete rewrite with code clarification, reduced size (15%), more than 90% coverage tested, with performance gain.
+New version 3.0 is a complete rewrite with code simplification, reduced size (15%), more than 90% coverage tested, with performance gain.
 But still in alpha for now:
 ```script
 <dependency>
@@ -46,15 +46,10 @@ But still in alpha for now:
 ## Documentation
 
 For a Getting started guide, API docs, recipes,  etc. see the 
-* [About MariaDB connector/J](/documentation/about-mariadb-connector-j.creole)
-* [Use MariaDB connector/j driver](/documentation/use-mariadb-connector-j-driver.creole)
+* [About MariaDB connector/J](https://mariadb.com/kb/en/about-mariadb-connector-j/)
+* [Install driver](https://mariadb.com/kb/en/installing-mariadb-connectorj/)
 * [Changelog](/CHANGELOG.md)
-* [Failover and high-availability](/documentation/failover-and-high-availability-with-mariadb-connector-j.creole)
-
-
-## Contributing
-To get started with a development installation and learn more about contributing, please follow the instructions at our 
-[Developers Guide.](/documentation/developers-guide.creole)
+* [Failover and high-availability](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/)
 
 
 [codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
