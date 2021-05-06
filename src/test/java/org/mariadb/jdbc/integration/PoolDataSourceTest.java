@@ -485,7 +485,7 @@ public class PoolDataSourceTest extends Common {
     }
     connectionAppender.shutdown();
     connectionAppender.awaitTermination(30, TimeUnit.SECONDS);
-    assertTrue(threadIds.size() <= 8, "connection ids must be less than 8 : " + threadIds.size());
+    assertTrue(threadIds.size() <= 9, "connection ids must be less than 9 : " + threadIds.size());
     Pools.close("PoolTest");
   }
 
