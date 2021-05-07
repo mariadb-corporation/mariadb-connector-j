@@ -215,7 +215,8 @@ public class FetchSizeTest extends BaseTest {
    */
   @Test
   public void fetchSizeCancel() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(minVersion(10, 1)); // 10.1.2 in fact
     Assume.assumeTrue(!sharedOptions().profileSql);
     long start = System.currentTimeMillis();
@@ -249,7 +250,8 @@ public class FetchSizeTest extends BaseTest {
 
   @Test
   public void fetchSizePrepareCancel() throws SQLException {
-    Assume.assumeTrue(System.getenv("MAXSCALE_TEST_DISABLE") == null);
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
 
     long start;

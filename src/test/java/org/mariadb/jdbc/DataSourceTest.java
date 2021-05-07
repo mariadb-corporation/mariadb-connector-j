@@ -170,9 +170,9 @@ public class DataSourceTest extends BaseTest {
   public void setDatabaseNameTest() throws SQLException {
     Assume.assumeFalse(options.useSsl != null && options.useSsl);
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null
-            && System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null);
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     MariaDbDataSource ds =
         new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
     try (Connection connection = ds.getConnection(username, password)) {

@@ -78,8 +78,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
   public void init() {
     Assume.assumeTrue(
         initialUrl != null
-            && System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null);
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     defaultUrl = initialUrl;
     currentType = HaMode.NONE;
   }
@@ -167,9 +167,9 @@ public class MonoServerFailoverTest extends BaseMonoServer {
   @Test
   public void isValidConnectionThatIsKilledExternally() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null
-            && System.getenv("MAXSCALE_TEST_DISABLE") == null);
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !"maxscale".equals(System.getenv("srv")));
     try (Connection connection = getNewConnection()) {
       connection.setCatalog("mysql");
       Protocol protocol = getProtocolFromConnection(connection);

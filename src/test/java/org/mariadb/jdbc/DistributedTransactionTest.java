@@ -72,7 +72,8 @@ public class DistributedTransactionTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     afterClass();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE xatable(i int)");

@@ -39,7 +39,8 @@ public class DataSourcePoolTest extends BaseTest {
   /** Initialisation. */
   @BeforeClass
   public static void beforeClassDataSourceTest() {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     connectToIP = System.getProperty("testConnectToIP", defConnectToIP);
   }
 
@@ -113,7 +114,8 @@ public class DataSourcePoolTest extends BaseTest {
    */
   @Test
   public void setDatabaseNameTest() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(hostname == null ? "localhost" : hostname, port, database)) {
       try (Connection connection = ds.getConnection(username, password)) {

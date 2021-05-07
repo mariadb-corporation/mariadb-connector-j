@@ -241,7 +241,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   @Test
   public void testResetTransactionIsolation() throws SQLException {
     Assume.assumeTrue(
-        !sharedIsAurora() && System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+        !sharedIsAurora()
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
@@ -316,8 +318,8 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
     // not for maxscale, testing thread id is not relevant.
     // appveyor is so slow wait time are not relevant.
     Assume.assumeTrue(
-        System.getenv("SKYSQL") == null
-            && System.getenv("SKYSQL_HA") == null
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
             && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
 
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
@@ -428,7 +430,8 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void ensureUsingPool() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     ThreadPoolExecutor connectionAppender =
         new ThreadPoolExecutor(
             50,
@@ -476,9 +479,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   @Test
   public void ensureClosed() throws Throwable {
     Assume.assumeTrue(
-        System.getenv("MAXSCALE_TEST_DISABLE") == null
-            && System.getenv("SKYSQL_HA") == null
-            && System.getenv("SKYSQL") == null);
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv")));
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
 

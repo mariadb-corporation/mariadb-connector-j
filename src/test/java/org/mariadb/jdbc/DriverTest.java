@@ -275,7 +275,8 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataNotPreparable() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -319,7 +320,8 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void parameterMetaDataPreparable() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeFalse(sharedUsePrepare());
     Statement stmt = sharedConnection.createStatement();
     Map<String, Integer> initValues = loadVariables(stmt);
@@ -1072,7 +1074,8 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testConnectWithDb() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     requireMinimumVersion(5, 0);
     try {
@@ -1082,7 +1085,7 @@ public class DriverTest extends BaseTest {
     }
 
     try (Connection connection =
-        setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test_testdrop")) {
+        setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test_testdrop", port)) {
       DatabaseMetaData dbmd = connection.getMetaData();
       ResultSet rs = dbmd.getCatalogs();
       boolean foundDb = false;
@@ -1232,7 +1235,7 @@ public class DriverTest extends BaseTest {
       setConnection("&password=");
     } catch (SQLException ex) {
       // SQLException is ok because we might get for example an access denied exception
-      if (!(ex.getMessage().contains("Could not connect: Access denied"))) {
+      if (!(ex.getMessage().contains("Access denied"))) {
         throw ex;
       }
     }
@@ -1240,7 +1243,8 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void conj1() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     requireMinimumVersion(5, 0);
 
@@ -1496,6 +1500,7 @@ public class DriverTest extends BaseTest {
     }
 
     String path = rs.getString(2);
+    st.execute("DROP user IF EXISTS testSocket@'localhost'");
     st.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("FLUSH PRIVILEGES");
@@ -1603,7 +1608,7 @@ public class DriverTest extends BaseTest {
   @Test
   public void createDbWithSpacesTest() throws SQLException {
     try (Connection connection =
-        setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test with spaces")) {
+        setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test with spaces", port)) {
       DatabaseMetaData dbmd = connection.getMetaData();
       ResultSet rs = dbmd.getCatalogs();
       boolean foundDb = false;
@@ -1712,9 +1717,10 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void databaseType() throws SQLException {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
-    boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
+    boolean isMysql = System.getenv("AURORA") != null || System.getenv("srv").contains("mysql");
     assertEquals(
         isMysql ? "MySQL" : "MariaDB", sharedConnection.getMetaData().getDatabaseProductName());
     if (!isMysql) {

@@ -131,20 +131,38 @@ public class BaseMultiHostTest {
         BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
       Properties prop = new Properties();
       prop.load(inputStream);
+      String defaultOther;
+      String val = System.getenv("TEST_REQUIRE_TLS");
+      if ("1".equals(val)) {
+        String cert = System.getenv("TEST_DB_SERVER_CERT");
+        defaultOther = "sslMode=verify-full&serverSslCert=" + cert;
+      } else {
+        defaultOther = get("DB_OTHER", prop);
+      }
+      hostname = get("DB_HOST", prop);
+      username = get("DB_USER", prop);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&disableSslHostnameVerification&%s",
-              prop.getProperty("DB_HOST"),
-              prop.getProperty("DB_PORT"),
-              prop.getProperty("DB_DATABASE"),
-              prop.getProperty("DB_USER"),
-              prop.getProperty("DB_PASSWORD"),
-              prop.getProperty("DB_OTHER"));
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
+              hostname,
+              Integer.parseInt(get("DB_PORT", prop)),
+              get("DB_DATABASE", prop),
+              username,
+              get("DB_PASSWORD", prop),
+              defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();
     }
   }
+
+  private static String get(String name, Properties prop) {
+    String val = System.getenv("TEST_" + name);
+    if (val == null) val = System.getProperty("TEST_" + name);
+    if (val == null) val = prop.getProperty(name);
+    return val;
+  }
+
   /**
    * Initialize parameters.
    *

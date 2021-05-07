@@ -84,7 +84,8 @@ public class AllowMasterDownTest extends BaseTest {
   @Before
   public void init() {
     Assume.assumeTrue(testSingleHost);
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     if (testSingleHost) {
       masterDownUrl =
           "jdbc:mariadb:replication//"

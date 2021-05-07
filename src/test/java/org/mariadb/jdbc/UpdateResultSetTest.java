@@ -67,6 +67,7 @@ public class UpdateResultSetTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    dropTables();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
       stmt.execute(
@@ -132,7 +133,7 @@ public class UpdateResultSetTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void dropTables() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.executeQuery("DROP TABLE IF EXISTS `testDefaultUUID`");
       stmt.execute("DROP TABLE IF EXISTS testnoprimarykey");

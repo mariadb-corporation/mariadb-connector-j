@@ -619,7 +619,6 @@ public class JdbcParserTest {
             + "+LBCR0B194YbRn6726vWwUUE05yskVN6gllGSCgZ/G8y98DhjQ==\n"
             + "-----END CERTIFICATE-----&useSSL=true&password=testj&password=pwd2";
     UrlParser jdbc = UrlParser.parse(url);
-    assertEquals("diego", jdbc.getOptions().user);
     assertEquals(true, jdbc.getOptions().profileSql);
     assertEquals(
         "-----BEGIN CERTIFICATE-----\n"
@@ -643,7 +642,7 @@ public class JdbcParserTest {
             + "-----END CERTIFICATE-----",
         jdbc.getOptions().serverSslCert);
     assertEquals(true, jdbc.getOptions().useSsl);
-    assertEquals("testj", jdbc.getOptions().password);
+    assertEquals("pwd2", jdbc.getOptions().password);
   }
 
   /**

@@ -854,9 +854,7 @@ public enum DefaultOptions {
             properties.setProperty(parameter, "");
           }
         } else {
-          if (!properties.containsKey(parameter.substring(0, pos))) {
-            properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
-          }
+          properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
         }
       }
     }

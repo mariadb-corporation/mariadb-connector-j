@@ -144,7 +144,11 @@ public class MariaDbX509TrustManager implements X509TrustManager {
               Thread.currentThread().getContextClassLoader().getResourceAsStream(classpathFile);
         } else {
           try {
-            inStream = new FileInputStream(options.serverSslCert);
+            try {
+              inStream = new URL(options.serverSslCert).openStream();
+            } catch (IOException ioexception) {
+              inStream = new FileInputStream(options.serverSslCert);
+            }
           } catch (FileNotFoundException fileNotFoundEx) {
             throw new SQLException(
                 "Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert,

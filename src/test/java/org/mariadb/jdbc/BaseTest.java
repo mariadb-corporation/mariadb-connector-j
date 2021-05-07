@@ -82,26 +82,6 @@ import org.mariadb.jdbc.util.Options;
 public class BaseTest {
   protected static String mDefUrl;
 
-  static {
-    try (InputStream inputStream =
-        BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
-      Properties prop = new Properties();
-      prop.load(inputStream);
-      mDefUrl =
-          String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-              System.getProperty("TEST_DB_HOST", prop.getProperty("DB_HOST")),
-              System.getProperty("TEST_DB_PORT", prop.getProperty("DB_PORT")),
-              System.getProperty("TEST_DB_DATABASE", prop.getProperty("DB_DATABASE")),
-              System.getProperty("TEST_DB_USER", prop.getProperty("DB_USER")),
-              System.getProperty("TEST_DB_PASSWORD", prop.getProperty("DB_PASSWORD")),
-              System.getProperty("TEST_DB_OTHER", prop.getProperty("DB_OTHER")));
-
-    } catch (IOException io) {
-      io.printStackTrace();
-    }
-  }
-
   private static final NumberFormat numberFormat = DecimalFormat.getInstance(Locale.ROOT);
   protected static String connU;
   protected static String connUri;
@@ -117,8 +97,42 @@ public class BaseTest {
   protected static Connection sharedConnection;
   protected static boolean runLongTest = false;
   protected static boolean doPrecisionTest = true;
-  private static TcpProxy proxy = null;
+  protected static TcpProxy proxy = null;
   private static UrlParser urlParser;
+
+  static {
+    try (InputStream inputStream =
+        BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
+      Properties prop = new Properties();
+      prop.load(inputStream);
+      String defaultOther;
+      String val = System.getenv("TEST_REQUIRE_TLS");
+      if ("1".equals(val)) {
+        String cert = System.getenv("TEST_DB_SERVER_CERT");
+        defaultOther = "sslMode=verify-full&serverSslCert=" + cert;
+      } else {
+        defaultOther = get("DB_OTHER", prop);
+      }
+      hostname = get("DB_HOST", prop);
+      username = get("DB_USER", prop);
+      port = Integer.parseInt(get("DB_PORT", prop));
+      password = get("DB_PASSWORD", prop);
+      mDefUrl =
+          String.format(
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
+              hostname, port, get("DB_DATABASE", prop), username, password, defaultOther);
+
+    } catch (IOException io) {
+      io.printStackTrace();
+    }
+  }
+
+  private static String get(String name, Properties prop) {
+    String val = System.getenv("TEST_" + name);
+    if (val == null) val = System.getProperty("TEST_" + name);
+    if (val == null) val = prop.getProperty(name);
+    return val;
+  }
 
   @Rule
   public TestRule watcher =
@@ -541,7 +555,7 @@ public class BaseTest {
     return openConnection(connUri + parameters, null);
   }
 
-  protected Connection setConnection(String additionalParameters, String database)
+  protected Connection setConnection(String additionalParameters, String database, int port)
       throws SQLException {
     StringBuilder sb = new StringBuilder();
     sb.append("jdbc:mariadb://");
@@ -791,7 +805,7 @@ public class BaseTest {
    * @param connection connection to check
    * @return true if SSL is enabled
    */
-  public boolean haveSsl(Connection connection) {
+  public static boolean haveSsl(Connection connection) {
     try {
       ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
       assertTrue(rs.next());
@@ -857,43 +871,6 @@ public class BaseTest {
 
   public void requireMinimumVersion(int major, int minor) throws SQLException {
     Assume.assumeTrue(minVersion(major, minor));
-  }
-
-  /**
-   * Cancel if Maxscale version isn't required minimum.
-   *
-   * @param major minimum maxscale major version
-   * @param minor minimum maxscale minor version
-   */
-  public void ifMaxscaleRequireMinimumVersion(int major, int minor) {
-    String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
-    if (maxscaleVersion == null) {
-      return;
-    }
-
-    String[] versionArray = maxscaleVersion.split("[^0-9]");
-
-    int majorVersion = 0;
-    int minorVersion = 0;
-
-    // standard version
-    if (versionArray.length > 2) {
-
-      majorVersion = Integer.parseInt(versionArray[0]);
-      minorVersion = Integer.parseInt(versionArray[1]);
-
-    } else {
-
-      if (versionArray.length > 0) {
-        majorVersion = Integer.parseInt(versionArray[0]);
-      }
-
-      if (versionArray.length > 1) {
-        minorVersion = Integer.parseInt(versionArray[1]);
-      }
-    }
-
-    Assume.assumeTrue(majorVersion > major || (majorVersion == major && minorVersion >= minor));
   }
 
   /**

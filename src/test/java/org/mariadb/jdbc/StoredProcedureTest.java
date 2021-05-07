@@ -572,7 +572,8 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
-    Assume.assumeTrue(System.getenv("SKYSQL") == null && System.getenv("SKYSQL_HA") == null);
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
     cancelForVersion(10, 2, 2);
