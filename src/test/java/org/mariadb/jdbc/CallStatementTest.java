@@ -226,6 +226,10 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void stmtInoutParam() throws SQLException {
     try (Connection connection = setConnection("&dumpQueriesOnException")) {
+      // to ensure not having too many connection error for maxscale
+      connection.isValid(1);
+    }
+    try (Connection connection = setConnection("&dumpQueriesOnException")) {
       Statement stmt = connection.createStatement();
       stmt.execute("{call inOutParam(1)}");
       fail("must fail : statement cannot be use when there is out parameter");

@@ -70,7 +70,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
    *
    * @param connection current connection
    * @param databaseName database name
-   * @param procedureName function name
+   * @param functionName function name
    * @param arguments function args
    * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>
    *     ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
@@ -82,7 +82,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
   public MariaDbFunctionStatement(
       MariaDbConnection connection,
       String databaseName,
-      String procedureName,
+      String functionName,
       String arguments,
       int resultSetType,
       final int resultSetConcurrency,
@@ -90,12 +90,12 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
       throws SQLException {
     super(
         connection,
-        "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
+        "SELECT " + functionName + ((arguments == null) ? "()" : arguments),
         resultSetType,
         resultSetConcurrency,
-        exceptionFactory);
-    parameterMetadata =
-        new CallableParameterMetaData(connection, databaseName, procedureName, true);
+        exceptionFactory,
+        databaseName,
+        functionName);
     super.initFunctionData(getParameterCount() + 1);
   }
 

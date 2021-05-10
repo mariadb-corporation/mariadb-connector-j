@@ -510,6 +510,22 @@ public class MariaDbConnection implements Connection {
     }
   }
 
+  public CallableParameterMetaData getInternalParameterMetaData(
+      String procedureName, String databaseName, boolean isFunction) throws SQLException {
+    PreparedStatement prep =
+        new ClientSidePreparedStatement(
+            this,
+            "SELECT * from information_schema.parameters WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            Statement.NO_GENERATED_KEYS,
+            exceptionFactory);
+    prep.setString(1, procedureName);
+    prep.setString(2, databaseName);
+    ResultSet rs = prep.executeQuery();
+    return new CallableParameterMetaData(rs, isFunction);
+  }
+
   /**
    * Creates a <code>CallableStatement</code> object for calling database stored procedures. The
    * <code>CallableStatement</code> object provides methods for setting up its IN and OUT

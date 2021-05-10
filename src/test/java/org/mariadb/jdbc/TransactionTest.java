@@ -103,7 +103,10 @@ public class TransactionTest extends BaseTest {
       st.executeUpdate("insert into tx_prim_key(id) values(32)");
       st.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
     }
-
+    try (Connection connection = setConnection()) {
+      // to ensure not having too many connection error for maxscale
+      connection.isValid(1);
+    }
     // 2. try to delete entry in Primary table in a transaction - which will fail due
     // foreign key.
     sharedConnection.setAutoCommit(false);

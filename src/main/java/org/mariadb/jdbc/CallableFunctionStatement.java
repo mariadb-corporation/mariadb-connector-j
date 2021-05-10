@@ -67,6 +67,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
     implements CallableStatement {
 
   protected CallableParameterMetaData parameterMetadata;
+  private String databaseName;
+  private String functionName;
+
   /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
   private CallParameter[] params;
 
@@ -80,6 +83,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
    * @param exceptionFactory Exception factory
+   * @param databaseName database name
+   * @param functionName function name
    * @throws SQLException if clientPrepareStatement creation throw an exception
    */
   public CallableFunctionStatement(
@@ -87,7 +92,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
       String sql,
       int resultSetType,
       final int resultSetConcurrency,
-      ExceptionFactory exceptionFactory)
+      ExceptionFactory exceptionFactory,
+      String databaseName,
+      String functionName)
       throws SQLException {
     super(
         connection,
@@ -96,6 +103,8 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
         resultSetConcurrency,
         Statement.NO_GENERATED_KEYS,
         exceptionFactory);
+    this.databaseName = databaseName;
+    this.functionName = functionName;
   }
 
   /**
@@ -135,8 +144,14 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
   protected abstract SelectResultSet getResult() throws SQLException;
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    parameterMetadata.readMetadataFromDbIfRequired();
+    readMetadataFromDbIfRequired();
     return parameterMetadata;
+  }
+
+  private void readMetadataFromDbIfRequired() throws SQLException {
+    if (parameterMetadata == null) {
+      parameterMetadata = connection.getInternalParameterMetaData(functionName, databaseName, true);
+    }
   }
 
   /**
@@ -147,9 +162,9 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
    * @throws SQLException exception
    */
   private int nameToIndex(String parameterName) throws SQLException {
-    parameterMetadata.readMetadataFromDbIfRequired();
+    readMetadataFromDbIfRequired();
     for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
-      String name = parameterMetadata.getName(i);
+      String name = parameterMetadata.getParameterName(i);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
         return i;
       }
@@ -166,7 +181,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
    */
   private int nameToOutputIndex(String parameterName) throws SQLException {
     for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
-      String name = parameterMetadata.getName(i);
+      String name = parameterMetadata.getParameterName(i);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
         return i;
       }

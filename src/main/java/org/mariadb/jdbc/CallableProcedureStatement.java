@@ -73,6 +73,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   protected int[] outputParameterMapper = null;
   protected CallableParameterMetaData parameterMetadata;
   protected boolean hasInOutParameters;
+  private String database;
+  private String procedureName;
 
   /**
    * Constructor for getter/setter of callableStatement.
@@ -85,6 +87,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *     or <code>ResultSet.CONCUR_UPDATABLE</code>
    * @param exceptionFactory Exception factory
+   * @param database database name
+   * @param procedureName function name
    * @throws SQLException is prepareStatement connection throw any error
    */
   public CallableProcedureStatement(
@@ -92,7 +96,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
       String sql,
       int resultSetScrollType,
       int resultSetConcurrency,
-      ExceptionFactory exceptionFactory)
+      ExceptionFactory exceptionFactory,
+      String database,
+      String procedureName)
       throws SQLException {
     super(
         connection,
@@ -101,6 +107,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         resultSetConcurrency,
         Statement.NO_GENERATED_KEYS,
         exceptionFactory);
+    this.database = database;
+    this.procedureName = procedureName;
   }
 
   /**
@@ -134,8 +142,14 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   protected abstract SelectResultSet getOutputResult() throws SQLException;
 
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    parameterMetadata.readMetadataFromDbIfRequired();
+    readMetadataFromDbIfRequired();
     return parameterMetadata;
+  }
+
+  private void readMetadataFromDbIfRequired() throws SQLException {
+    if (parameterMetadata == null) {
+      parameterMetadata = connection.getInternalParameterMetaData(procedureName, database, false);
+    }
   }
 
   /**
@@ -146,9 +160,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @throws SQLException exception
    */
   private int nameToIndex(String parameterName) throws SQLException {
-    parameterMetadata.readMetadataFromDbIfRequired();
+    readMetadataFromDbIfRequired();
     for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
-      String name = parameterMetadata.getName(i);
+      String name = parameterMetadata.getParameterName(i);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
         return i;
       }
@@ -164,9 +178,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @throws SQLException exception
    */
   private int nameToOutputIndex(String parameterName) throws SQLException {
-    parameterMetadata.readMetadataFromDbIfRequired();
+    readMetadataFromDbIfRequired();
     for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
-      String name = parameterMetadata.getName(i + 1);
+      String name = parameterMetadata.getParameterName(i + 1);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
         if (outputParameterMapper[i] == -1) {
           // this is not an outputParameter

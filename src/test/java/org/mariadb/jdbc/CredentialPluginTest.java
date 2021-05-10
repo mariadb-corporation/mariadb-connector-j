@@ -75,7 +75,10 @@ public class CredentialPluginTest extends BaseTest {
   public void propertiesIdentityTest() throws SQLException {
     System.setProperty("mariadb.user", "identityUser");
     System.setProperty("mariadb.pwd", "!Passw0rd3Works");
-
+    try (Connection connection = setConnection()) {
+      // to ensure not having too many connection error for maxscale
+      connection.isValid(1);
+    }
     try (Connection conn =
         DriverManager.getConnection(
             "jdbc:mariadb://"
@@ -103,6 +106,10 @@ public class CredentialPluginTest extends BaseTest {
     System.setProperty("myUserKey", "identityUser");
     System.setProperty("myPwdKey", "!Passw0rd3Works");
 
+    try (Connection connection = setConnection()) {
+      // to ensure not having too many connection error for maxscale
+      connection.isValid(1);
+    }
     try (Connection conn =
         DriverManager.getConnection(
             "jdbc:mariadb://"

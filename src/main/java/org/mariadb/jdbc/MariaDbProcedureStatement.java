@@ -89,9 +89,14 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
       int resultSetConcurrency,
       ExceptionFactory exceptionFactory)
       throws SQLException {
-    super(connection, query, resultSetType, resultSetConcurrency, exceptionFactory);
-    this.parameterMetadata =
-        new CallableParameterMetaData(connection, database, procedureName, false);
+    super(
+        connection,
+        query,
+        resultSetType,
+        resultSetConcurrency,
+        exceptionFactory,
+        database,
+        procedureName);
     setParamsAccordingToSetArguments();
     setParametersVariables();
   }
