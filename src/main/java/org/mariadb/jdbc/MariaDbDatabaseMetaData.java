@@ -93,11 +93,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     if (options.tinyInt1isBit) {
       upperCaseWithoutSize =
-          " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
+          " IF(COLUMN_TYPE like 'tinyint%', 'BIT', " + upperCaseWithoutSize + ")";
     }
 
     if (!options.yearIsDateType) {
-      return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
+      return " IF(COLUMN_TYPE like 'year%', 'SMALLINT', " + upperCaseWithoutSize + ")";
     }
 
     return upperCaseWithoutSize;
@@ -1067,10 +1067,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     if (table == null) {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
-
-    boolean hasIsGeneratedCol =
-        (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 2, 0))
-            || (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8, 0, 0));
+    boolean hasIsGeneratedCol = (connection.isServerMariaDb() && connection.versionGreaterOrEqual(10, 2, 0));
 
     String sql =
         "SELECT "
