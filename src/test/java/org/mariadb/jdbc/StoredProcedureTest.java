@@ -67,7 +67,7 @@ public class StoredProcedureTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE DATABASE IF NOT EXISTS testProcMultiDb");
       stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");
@@ -218,13 +218,18 @@ public class StoredProcedureTest extends BaseTest {
 
       stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
       stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
+      stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
+      stmt.execute(
+          "CREATE PROCEDURE testj.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10), IN p2 VARCHAR(10))\nBEGIN\nselect 1;\nEND");
+      stmt.execute(
+          "CREATE PROCEDURE testj2.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10))\nBEGIN\nselect 2;\nEND");
 
       stmt.execute("FLUSH TABLES");
     }
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP DATABASE IF EXISTS testProcMultiDb");
       stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
@@ -284,6 +289,8 @@ public class StoredProcedureTest extends BaseTest {
       stmt.execute("DROP TABLE IF EXISTS testCallableNullSettersTable");
       stmt.execute("DROP TABLE IF EXISTS testCallableThrowException4");
       stmt.execute("DROP TABLE IF EXISTS testCallableThrowException3");
+      stmt.execute("DROP PROCEDURE IF EXISTS testj.testSameProcedureWithDifferentParameters");
+      stmt.execute("DROP DATABASE IF EXISTS testj2");
     }
   }
 
@@ -573,11 +580,6 @@ public class StoredProcedureTest extends BaseTest {
   @Test
   public void testSameProcedureWithDifferentParameters() throws Exception {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
-      stmt.execute(
-          "CREATE PROCEDURE testj.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10), IN p2 VARCHAR(10))\nBEGIN\nselect 1;\nEND");
-      stmt.execute(
-          "CREATE PROCEDURE testj2.testSameProcedureWithDifferentParameters(OUT p1 VARCHAR(10))\nBEGIN\nselect 2;\nEND");
 
       try (CallableStatement callableStatement =
           sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
@@ -596,6 +598,8 @@ public class StoredProcedureTest extends BaseTest {
         } catch (SQLException sqlEx) {
           assertEquals("42000", sqlEx.getSQLState());
         }
+      } catch (SQLException sqlEx) {
+        assertEquals("42000", sqlEx.getSQLState());
       }
 
       try (CallableStatement callableStatement =
@@ -604,8 +608,6 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.execute();
       }
       sharedConnection.setCatalog("testj");
-      stmt.execute("DROP PROCEDURE testj.testSameProcedureWithDifferentParameters");
-      stmt.executeUpdate("DROP DATABASE testj2");
     }
   }
 

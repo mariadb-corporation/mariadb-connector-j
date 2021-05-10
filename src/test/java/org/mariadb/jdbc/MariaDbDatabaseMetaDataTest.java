@@ -63,6 +63,7 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE yearTableMeta(xx tinyint(1), x2 tinyint(1) unsigned, yy year(4), zz bit, uu smallint)");
@@ -71,9 +72,9 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE yearTableMeta");
+      stmt.execute("DROP TABLE IF EXISTS yearTableMeta");
     }
   }
 

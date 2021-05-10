@@ -65,7 +65,8 @@ public class AutoReconnectTest extends BaseTest {
         !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection conn = setConnection("&autoReconnect")) {
+    Assume.assumeTrue(isMariadbServer());
+    try (Connection conn = setConnection("&autoReconnect&allowPublicKeyRetrieval")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");
 

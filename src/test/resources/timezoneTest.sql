@@ -1,6 +1,6 @@
 INSERT INTO time_zone (Use_leap_seconds) VALUES ('N');
 SET @time_zone_id= LAST_INSERT_ID();
-INSERT INTO time_zone_name (Name, Time_zone_id) VALUES ('Canada/Atlantic', @time_zone_id);
+INSERT INTO time_zone_name (`Name`, Time_zone_id) VALUES ('Canada/Atlantic', @time_zone_id);
 INSERT INTO time_zone_transition (Time_zone_id, Transition_time, Transition_type_id) VALUES
  (@time_zone_id, -2147483648, 0)
 ,(@time_zone_id, -2131645536, 2)
@@ -232,7 +232,7 @@ INSERT INTO time_zone_transition (Time_zone_id, Transition_time, Transition_type
 ,(@time_zone_id, 2120104800, 1)
 ,(@time_zone_id, 2140664400, 2)
 ;
-INSERT INTO time_zone_transition_type (Time_zone_id, Transition_type_id, Offset, Is_DST, Abbreviation) VALUES
+INSERT INTO time_zone_transition_type (Time_zone_id, Transition_type_id, `Offset`, Is_DST, Abbreviation) VALUES
  (@time_zone_id, 0, -15264, 0, 'LMT')
 ,(@time_zone_id, 1, -10800, 1, 'ADT')
 ,(@time_zone_id, 2, -14400, 0, 'AST')
@@ -243,7 +243,7 @@ INSERT INTO time_zone_transition_type (Time_zone_id, Transition_type_id, Offset,
 
 INSERT INTO time_zone (Use_leap_seconds) VALUES ('N');
 SET @time_zone_id= LAST_INSERT_ID();
-INSERT INTO time_zone_name (Name, Time_zone_id) VALUES ('Europe/Paris', @time_zone_id);
+INSERT INTO time_zone_name (`Name`, Time_zone_id) VALUES ('Europe/Paris', @time_zone_id);
 INSERT INTO time_zone_transition (Time_zone_id, Transition_time, Transition_type_id) VALUES
  (@time_zone_id, -2147483648, 1)
 ,(@time_zone_id, -1855958901, 5)
@@ -430,7 +430,7 @@ INSERT INTO time_zone_transition (Time_zone_id, Transition_time, Transition_type
 ,(@time_zone_id, 2121901200, 11)
 ,(@time_zone_id, 2140045200, 12)
 ;
-INSERT INTO time_zone_transition_type (Time_zone_id, Transition_type_id, Offset, Is_DST, Abbreviation) VALUES
+INSERT INTO time_zone_transition_type (Time_zone_id, Transition_type_id, `Offset`, Is_DST, Abbreviation) VALUES
  (@time_zone_id, 0, 561, 0, 'LMT')
 ,(@time_zone_id, 1, 561, 0, 'PMT')
 ,(@time_zone_id, 2, 3600, 1, 'WEST')

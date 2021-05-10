@@ -89,9 +89,8 @@ public class CredentialPluginTest extends BaseTest {
                 + ((database == null) ? "" : database)
                 + "?credentialType=PROPERTY"
                 + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                + ((options.serverSslCert != null)
-                    ? "&serverSslCert=" + options.serverSslCert
-                    : ""))) {
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
+                + "&allowPublicKeyRetrieval")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -121,9 +120,8 @@ public class CredentialPluginTest extends BaseTest {
                 + "?credentialType=PROPERTY"
                 + "&userKey=myUserKey&pwdKey=myPwdKey"
                 + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
-                + ((options.serverSslCert != null)
-                    ? "&serverSslCert=" + options.serverSslCert
-                    : ""))) {
+                + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
+                + "&allowPublicKeyRetrieval")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");

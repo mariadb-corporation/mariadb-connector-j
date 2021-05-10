@@ -86,7 +86,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
   @Test
   public void checkClosedConnectionAfterFailover() throws Throwable {
-    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&allowPublicKeyRetrieval", true)) {
 
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
@@ -135,7 +136,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
   @Test
   public void checkAutoReconnectDeconnection() throws Throwable {
-    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+    try (Connection connection =
+        getNewConnection("&retriesAllDown=6&allowPublicKeyRetrieval", true)) {
 
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);

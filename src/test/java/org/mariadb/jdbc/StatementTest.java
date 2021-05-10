@@ -482,6 +482,7 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void deadLockInformation() throws SQLException {
+    Assume.assumeTrue(isMariadbServer());
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("insert into deadlock(a) values(0), (1)");
 

@@ -92,7 +92,8 @@ public class PasswordEncodingTest extends BaseTest {
                     + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
                     + ((options.serverSslCert != null)
                         ? "&serverSslCert=" + options.serverSslCert
-                        : ""))) {
+                        : "")
+                    + "&allowPublicKeyRetrieval")) {
           // windows-1252 and windows-1250 will work have the same conversion for this password
           if (!currentCharsetName.equals(Charset.defaultCharset().name())
               && (!"windows-1252".equals(currentCharsetName)
@@ -180,7 +181,8 @@ public class PasswordEncodingTest extends BaseTest {
                   + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
                   + ((options.serverSslCert != null)
                       ? "&serverSslCert=" + options.serverSslCert
-                      : ""))) {
+                      : "")
+                  + "&allowPublicKeyRetrieval")) {
         if (!currentCharsetName.equals(charsetName)) {
           fail(
               "must have failed for charsetName="

@@ -1074,14 +1074,18 @@ public class DatatypeTest extends BaseTest {
         preparedStatement.execute();
         fail("must have fail");
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("Incorrect string value"));
+        assertTrue(
+            sqle.getMessage().contains("Incorrect string value")
+                || sqle.getMessage().contains("Conversion from"));
       }
 
       try {
         preparedStatement.setBytes(1, str.getBytes(StandardCharsets.UTF_8));
         preparedStatement.execute();
       } catch (SQLException sqle) {
-        assertTrue(sqle.getMessage().contains("Incorrect string value"));
+        assertTrue(
+            sqle.getMessage().contains("Incorrect string value")
+                || sqle.getMessage().contains("Conversion from"));
       }
 
       ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
