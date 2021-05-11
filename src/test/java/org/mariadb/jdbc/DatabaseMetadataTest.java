@@ -141,6 +141,11 @@ public class DatabaseMetadataTest extends BaseTest {
               + "t5 time(0),"
               + "t6 time(6))");
       stmt.execute(
+          "CREATE TABLE getStringPrecision("
+              + "col1 CHAR(100) CHARSET utf8mb4, "
+              + "col2 CHAR(100) CHARSET utf8,"
+              + "col3 CHAR(100) CHARSET latin2)");
+      stmt.execute(
           "CREATE TABLE getTimePrecision2("
               + "d date, "
               + "t1 datetime(0),"
@@ -203,6 +208,7 @@ public class DatabaseMetadataTest extends BaseTest {
       stmt.execute("drop table if exists fore_key1");
       stmt.execute("drop table if exists prim_key");
       stmt.execute("drop table if exists table_type_test");
+      stmt.execute("drop table if exists getStringPrecision");
     }
   }
 
@@ -1446,6 +1452,23 @@ public class DatabaseMetadataTest extends BaseTest {
     // time(6)
     assertEquals(17, rsmd.getPrecision(7));
     assertEquals(6, rsmd.getScale(7));
+  }
+
+  @Test
+  public void getStringPrecision() throws SQLException {
+    Assume.assumeTrue(doPrecisionTest);
+    Statement stmt = sharedConnection.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM getStringPrecision");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    // CHAR(100) CHARSET=utf8mb4
+    assertEquals(100, rsmd.getPrecision(1));
+    assertEquals(0, rsmd.getScale(1));
+    // CHAR(100) CHARSET=utf8
+    assertEquals(100, rsmd.getPrecision(2));
+    assertEquals(0, rsmd.getScale(2));
+    // CHAR(100) CHARSET=latin2
+    assertEquals(100, rsmd.getPrecision(3));
+    assertEquals(0, rsmd.getScale(3));
   }
 
   @Test
