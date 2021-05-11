@@ -73,6 +73,8 @@ public class CredentialPluginTest extends BaseTest {
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     System.setProperty("mariadb.user", "identityUser");
     System.setProperty("mariadb.pwd", "!Passw0rd3Works");
     try (Connection connection = setConnection()) {
@@ -101,14 +103,11 @@ public class CredentialPluginTest extends BaseTest {
 
   @Test
   public void specificPropertiesIdentityTest() throws SQLException {
-
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     System.setProperty("myUserKey", "identityUser");
     System.setProperty("myPwdKey", "!Passw0rd3Works");
 
-    try (Connection connection = setConnection()) {
-      // to ensure not having too many connection error for maxscale
-      connection.isValid(1);
-    }
     try (Connection conn =
         DriverManager.getConnection(
             "jdbc:mariadb://"
@@ -121,7 +120,7 @@ public class CredentialPluginTest extends BaseTest {
                 + "&userKey=myUserKey&pwdKey=myPwdKey"
                 + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
                 + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-                + "&allowPublicKeyRetrieval")) {
+                + "&allowPublicKeyRetrieval=true")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");

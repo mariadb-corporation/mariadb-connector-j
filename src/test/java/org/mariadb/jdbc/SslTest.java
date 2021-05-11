@@ -389,38 +389,17 @@ public class SslTest extends BaseTest {
         () ->
             setConnection(
                 baseOptions + "&useSsl&disableSslHostnameVerification", database, sslPort));
-    System.out.println(
-        "DEGO : "
-            + baseMutualOptions
-            + "&useSsl&disableSslHostnameVerification&serverSslCert="
-            + serverCertPath);
-    StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb://");
-    if (hostname == null) {
-      sb.append("localhost");
-    } else {
-      sb.append(hostname);
+    if (!"skysql-ha".equals(System.getenv("srv")) && !"maxscale".equals(System.getenv("srv"))) {
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              setConnection(
+                  baseMutualOptions
+                      + "&useSsl&disableSslHostnameVerification&serverSslCert="
+                      + serverCertPath,
+                  database,
+                  sslPort));
     }
-    sb.append(":").append(port).append("/");
-    if (database != null) {
-      sb.append(database);
-    }
-    sb.append("?user=").append(username);
-    if (password != null && !password.isEmpty()) {
-      sb.append("&password=").append(password);
-    }
-    if (parameters != null && !parameters.isEmpty()) {
-      sb.append("&").append(parameters);
-    }
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            setConnection(
-                baseMutualOptions
-                    + "&useSsl&disableSslHostnameVerification&serverSslCert="
-                    + serverCertPath,
-                database,
-                sslPort));
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {

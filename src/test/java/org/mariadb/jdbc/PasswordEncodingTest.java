@@ -93,7 +93,7 @@ public class PasswordEncodingTest extends BaseTest {
                     + ((options.serverSslCert != null)
                         ? "&serverSslCert=" + options.serverSslCert
                         : "")
-                    + "&allowPublicKeyRetrieval")) {
+                    + "&allowPublicKeyRetrieval=true")) {
           // windows-1252 and windows-1250 will work have the same conversion for this password
           if (!currentCharsetName.equals(Charset.defaultCharset().name())
               && (!"windows-1252".equals(currentCharsetName)
@@ -121,7 +121,7 @@ public class PasswordEncodingTest extends BaseTest {
       Statement stmt = sharedConnection.createStatement();
       for (String charsetName : charsets) {
         try {
-          stmt.execute("DROP USER 'test" + charsetName + "'@'%'");
+          stmt.execute("DROP USER IF EXISTS 'test" + charsetName + "'@'%'");
         } catch (SQLException e) {
           // nothing
           e.printStackTrace();

@@ -107,11 +107,10 @@ public class BaseTest {
       prop.load(inputStream);
       String defaultOther;
       String val = System.getenv("TEST_REQUIRE_TLS");
+      defaultOther = get("DB_OTHER", prop);
       if ("1".equals(val)) {
         String cert = System.getenv("TEST_DB_SERVER_CERT");
-        defaultOther = "sslMode=verify-full&serverSslCert=" + cert;
-      } else {
-        defaultOther = get("DB_OTHER", prop);
+        defaultOther += "&useSsl&serverSslCert=" + cert;
       }
       hostname = get("DB_HOST", prop);
       username = get("DB_USER", prop);
@@ -119,7 +118,7 @@ public class BaseTest {
       password = get("DB_PASSWORD", prop);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
               hostname, port, get("DB_DATABASE", prop), username, password, defaultOther);
 
     } catch (IOException io) {
@@ -298,7 +297,7 @@ public class BaseTest {
    * @throws SQLException exception
    */
   @AfterClass
-  public static void after() throws SQLException {
+  public static void after() throws Throwable {
     if (testSingleHost && sharedConnection != null && !sharedConnection.isClosed()) {
       try {
         sharedConnection.close();
@@ -307,8 +306,25 @@ public class BaseTest {
       }
     }
     if (!Platform.isWindows()) {
+
       Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+      boolean ok = true;
       Thread thread;
+      while (it.hasNext()) {
+        thread = it.next();
+        if (thread.getName().contains("MariaDb-bulk-")) {
+          if (thread.getState() != State.WAITING) {
+            // print stack trace to console.
+            for (StackTraceElement ste : thread.getStackTrace()) {
+              System.out.println(ste);
+            }
+          }
+          if (thread.getState() != State.WAITING) ok = false;
+        }
+      }
+      if (ok) return;
+      Thread.sleep(1000);
+      it = Thread.getAllStackTraces().keySet().iterator();
       while (it.hasNext()) {
         thread = it.next();
         if (thread.getName().contains("MariaDb-bulk-")) {

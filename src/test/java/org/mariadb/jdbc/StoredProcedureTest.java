@@ -75,7 +75,7 @@ public class StoredProcedureTest extends BaseTest {
       stmt.execute("CREATE PROCEDURE multiResultSets() BEGIN  SELECT 1; SELECT 2; END");
       stmt.execute("CREATE PROCEDURE inoutParam(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
       stmt.execute("CREATE PROCEDURE testGetProcedures(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-      stmt.execute("CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a; end");
+      stmt.execute("CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a as b; end");
       stmt.execute(
           "CREATE PROCEDURE TEST_SP1() BEGIN\n"
               + "SELECT @Something := 'Something';\n"
@@ -495,12 +495,17 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void callUseParameterName() throws Exception {
-    CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
-    stmt.setInt("a", 1);
-    ResultSet rs = stmt.executeQuery();
-    assertTrue(rs.next());
-    int res = rs.getInt(1);
-    assertEquals(res, 1);
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
+    try (CallableStatement call = sharedConnection.prepareCall("{call useParameterName(?)}")) {
+      call.setInt("a", 1);
+      ResultSet rs = call.executeQuery();
+      assertTrue(rs.next());
+      int res = rs.getInt(1);
+      assertEquals(res, 1);
+    } finally {
+      sharedConnection.commit();
+    }
   }
 
   @Test(expected = SQLException.class)
@@ -549,21 +554,25 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void callWithStrangeParameter() throws SQLException {
-    try (CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}")) {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
+    try (CallableStatement call = sharedConnection.prepareCall("{call withStrangeParameter(?)}")) {
       double expected = 5.43;
-      stmt.setDouble("a", expected);
-      try (ResultSet rs = stmt.executeQuery()) {
+      call.setDouble("a", expected);
+      try (ResultSet rs = call.executeQuery()) {
         assertTrue(rs.next());
-        double res = rs.getDouble(1);
+        double res = rs.getDouble("b");
         assertEquals(expected, res, 0);
         // now fail due to three decimals
         double tooMuch = 34.987;
-        stmt.setDouble("a", tooMuch);
-        try (ResultSet rs2 = stmt.executeQuery()) {
+        call.setDouble("a", tooMuch);
+        try (ResultSet rs2 = call.executeQuery()) {
           assertTrue(rs2.next());
-          assertNotEquals(rs2.getDouble(1), tooMuch);
+          assertNotEquals(rs2.getDouble("b"), tooMuch);
         }
       }
+    } finally {
+      sharedConnection.commit();
     }
   }
 
@@ -622,99 +631,106 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test
   public void testFunctionCall() throws Exception {
-    CallableStatement callableStatement =
-        sharedConnection.prepareCall("{? = CALL testFunctionCall(?,?,?)}");
-    callableStatement.registerOutParameter(1, Types.INTEGER);
-    callableStatement.setFloat(2, 2);
-    callableStatement.setInt(3, 1);
-    callableStatement.setInt(4, 1);
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
+    try (CallableStatement callableStatement =
+        sharedConnection.prepareCall("{? = CALL testFunctionCall(?,?,?)}")) {
+      callableStatement.registerOutParameter(1, Types.INTEGER);
+      callableStatement.setFloat(2, 2);
+      callableStatement.setInt(3, 1);
+      callableStatement.setInt(4, 1);
 
-    assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
-    assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
-    DatabaseMetaData dbmd = sharedConnection.getMetaData();
+      assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
+      assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
+      DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
-    ResultSet rs =
-        dbmd.getFunctionColumns(sharedConnection.getCatalog(), null, "testFunctionCall", "%");
-    ResultSetMetaData rsmd = rs.getMetaData();
+      ResultSet rs =
+          dbmd.getFunctionColumns(sharedConnection.getCatalog(), null, "testFunctionCall", "%");
+      ResultSetMetaData rsmd = rs.getMetaData();
 
-    assertEquals(17, rsmd.getColumnCount());
-    assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
-    assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
-    assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
-    assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
-    assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
-    assertEquals("DATA_TYPE", rsmd.getColumnName(6));
-    assertEquals("TYPE_NAME", rsmd.getColumnName(7));
-    assertEquals("PRECISION", rsmd.getColumnName(8));
-    assertEquals("LENGTH", rsmd.getColumnName(9));
-    assertEquals("SCALE", rsmd.getColumnName(10));
-    assertEquals("RADIX", rsmd.getColumnName(11));
-    assertEquals("NULLABLE", rsmd.getColumnName(12));
-    assertEquals("REMARKS", rsmd.getColumnName(13));
-    assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
-    assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
-    assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
-    assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
+      assertEquals(17, rsmd.getColumnCount());
+      assertEquals("FUNCTION_CAT", rsmd.getColumnName(1));
+      assertEquals("FUNCTION_SCHEM", rsmd.getColumnName(2));
+      assertEquals("FUNCTION_NAME", rsmd.getColumnName(3));
+      assertEquals("COLUMN_NAME", rsmd.getColumnName(4));
+      assertEquals("COLUMN_TYPE", rsmd.getColumnName(5));
+      assertEquals("DATA_TYPE", rsmd.getColumnName(6));
+      assertEquals("TYPE_NAME", rsmd.getColumnName(7));
+      assertEquals("PRECISION", rsmd.getColumnName(8));
+      assertEquals("LENGTH", rsmd.getColumnName(9));
+      assertEquals("SCALE", rsmd.getColumnName(10));
+      assertEquals("RADIX", rsmd.getColumnName(11));
+      assertEquals("NULLABLE", rsmd.getColumnName(12));
+      assertEquals("REMARKS", rsmd.getColumnName(13));
+      assertEquals("CHAR_OCTET_LENGTH", rsmd.getColumnName(14));
+      assertEquals("ORDINAL_POSITION", rsmd.getColumnName(15));
+      assertEquals("IS_NULLABLE", rsmd.getColumnName(16));
+      assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
 
-    rs.close();
+      rs.close();
 
-    assertFalse(callableStatement.execute());
-    assertEquals(2f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+      assertFalse(callableStatement.execute());
+      assertEquals(2f, callableStatement.getInt(1), .001);
+      assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
-    assertEquals(-1, callableStatement.executeUpdate());
-    assertEquals(2f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+      assertEquals(-1, callableStatement.executeUpdate());
+      assertEquals(2f, callableStatement.getInt(1), .001);
+      assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
-    callableStatement.setFloat("a", 4);
-    callableStatement.setInt("b", 1);
-    callableStatement.setInt("c", 1);
+      callableStatement.setFloat("a", 4);
+      callableStatement.setInt("b", 1);
+      callableStatement.setInt("c", 1);
 
-    assertFalse(callableStatement.execute());
-    assertEquals(4f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+      assertFalse(callableStatement.execute());
+      assertEquals(4f, callableStatement.getInt(1), .001);
+      assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
-    assertEquals(-1, callableStatement.executeUpdate());
-    assertEquals(4f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+      assertEquals(-1, callableStatement.executeUpdate());
+      assertEquals(4f, callableStatement.getInt(1), .001);
+      assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
 
-    rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
-    assertTrue(rs.next());
-    assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
-    assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
-    callableStatement.setNull(2, Types.FLOAT);
-    callableStatement.setInt(3, 1);
-    callableStatement.setInt(4, 1);
+      rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
+      assertTrue(rs.next());
+      assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
+      assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
+      callableStatement.setNull(2, Types.FLOAT);
+      callableStatement.setInt(3, 1);
+      callableStatement.setInt(4, 1);
 
-    assertFalse(callableStatement.execute());
-    assertEquals(0f, callableStatement.getInt(1), .001);
-    assertEquals(true, callableStatement.wasNull());
-    assertEquals(null, callableStatement.getObject(1));
-    assertEquals(true, callableStatement.wasNull());
+      assertFalse(callableStatement.execute());
+      assertEquals(0f, callableStatement.getInt(1), .001);
+      assertEquals(true, callableStatement.wasNull());
+      assertEquals(null, callableStatement.getObject(1));
+      assertEquals(true, callableStatement.wasNull());
 
-    assertEquals(-1, callableStatement.executeUpdate());
-    assertEquals(0f, callableStatement.getInt(1), .001);
-    assertEquals(true, callableStatement.wasNull());
-    assertEquals(null, callableStatement.getObject(1));
-    assertEquals(true, callableStatement.wasNull());
+      assertEquals(-1, callableStatement.executeUpdate());
+      assertEquals(0f, callableStatement.getInt(1), .001);
+      assertEquals(true, callableStatement.wasNull());
+      assertEquals(null, callableStatement.getObject(1));
+      assertEquals(true, callableStatement.wasNull());
 
-    callableStatement = sharedConnection.prepareCall("{? = CALL testFunctionCall(4,5,?)}");
-    callableStatement.registerOutParameter(1, Types.INTEGER);
-    callableStatement.setInt(2, 1);
+      try (CallableStatement callableStatement2 =
+          sharedConnection.prepareCall("{? = CALL testFunctionCall(4,5,?)}")) {
+        callableStatement2.registerOutParameter(1, Types.INTEGER);
+        callableStatement2.setInt(2, 1);
 
-    assertFalse(callableStatement.execute());
-    assertEquals(4f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        assertFalse(callableStatement2.execute());
+        assertEquals(4f, callableStatement2.getInt(1), .001);
+        assertEquals("java.lang.Integer", callableStatement2.getObject(1).getClass().getName());
 
-    assertEquals(-1, callableStatement.executeUpdate());
-    assertEquals(4f, callableStatement.getInt(1), .001);
-    assertEquals("java.lang.Integer", callableStatement.getObject(1).getClass().getName());
+        assertEquals(-1, callableStatement2.executeUpdate());
+        assertEquals(4f, callableStatement2.getInt(1), .001);
+        assertEquals("java.lang.Integer", callableStatement2.getObject(1).getClass().getName());
 
-    assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
-    assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
-    assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
-    assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
-    assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4));
+        assertEquals(4, callableStatement2.getParameterMetaData().getParameterCount());
+        assertEquals(Types.INTEGER, callableStatement2.getParameterMetaData().getParameterType(1));
+        assertEquals(Types.FLOAT, callableStatement2.getParameterMetaData().getParameterType(2));
+        assertEquals(Types.BIGINT, callableStatement2.getParameterMetaData().getParameterType(3));
+        assertEquals(Types.INTEGER, callableStatement2.getParameterMetaData().getParameterType(4));
+      }
+    } finally {
+      sharedConnection.commit();
+    }
   }
 
   @Test
@@ -899,6 +915,8 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
     try (CallableStatement cstmt =
         sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
       byte[] buffer = new byte[65];
@@ -937,6 +955,8 @@ public class StoredProcedureTest extends BaseTest {
       }
 
       cstmt.close();
+    } finally {
+      sharedConnection.commit();
     }
   }
 
@@ -1516,28 +1536,33 @@ public class StoredProcedureTest extends BaseTest {
     cancelForVersion(10, 2, 2);
     cancelForVersion(10, 2, 3);
     cancelForVersion(10, 2, 4);
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
     // registering with VARCHAR Type
-    CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}");
-    cstmt.registerOutParameter(2, Types.VARCHAR);
-    cstmt.setString(1, "x");
-    cstmt.execute();
+    try (CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}")) {
+      cstmt.registerOutParameter(2, Types.VARCHAR);
+      cstmt.setString(1, "x");
+      cstmt.execute();
 
-    assertEquals("ox", cstmt.getString(2));
-    assertEquals("ox", cstmt.getObject(2, String.class)); // works
-    assertEquals("ox", cstmt.getObject(2));
-    assertEquals("ox", cstmt.getObject("testValue"));
+      assertEquals("ox", cstmt.getString(2));
+      assertEquals("ox", cstmt.getObject(2, String.class)); // works
+      assertEquals("ox", cstmt.getObject(2));
+      assertEquals("ox", cstmt.getObject("testValue"));
 
-    // registering with Binary Type
-    CallableStatement cstmt2 = sharedConnection.prepareCall("{call issue425(?, ?)}");
-    cstmt2.registerOutParameter(2, Types.BINARY);
-    cstmt2.setString(1, "x");
-    cstmt2.execute();
+      // registering with Binary Type
+      CallableStatement cstmt2 = sharedConnection.prepareCall("{call issue425(?, ?)}");
+      cstmt2.registerOutParameter(2, Types.BINARY);
+      cstmt2.setString(1, "x");
+      cstmt2.execute();
 
-    assertEquals("ox", cstmt2.getString(2));
-    assertEquals("ox", cstmt2.getObject(2, String.class)); // works
-    assertTrue(cstmt2.getObject(2) instanceof byte[]);
-    assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(2)));
-    assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject("testValue")));
+      assertEquals("ox", cstmt2.getString(2));
+      assertEquals("ox", cstmt2.getObject(2, String.class)); // works
+      assertTrue(cstmt2.getObject(2) instanceof byte[]);
+      assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(2)));
+      assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject("testValue")));
+    } finally {
+      sharedConnection.commit();
+    }
   }
 
   @Test

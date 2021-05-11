@@ -121,11 +121,13 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
       }
 
       out.startPacket(sequence.incrementAndGet());
-      byte[] bytePwd;
-      if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-        bytePwd = password.getBytes(passwordCharacterEncoding);
-      } else {
-        bytePwd = password.getBytes();
+      byte[] bytePwd = new byte[0];
+      if (password != null) {
+        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+          bytePwd = password.getBytes(passwordCharacterEncoding);
+        } else {
+          bytePwd = password.getBytes();
+        }
       }
 
       out.write(bytePwd, 0, bytePwd.length);

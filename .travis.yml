@@ -51,7 +51,7 @@ jobs:
     - env: srv=maxscale
     - env: srv=build v=10.6
     - env: srv=mysql v=5.7
-    - env: srv=mysql v=8.0
+    - env: srv=mysql v=8.0 TEST_DB_OTHER=allowPublicKeyRetrieval
     - env: srv=skysql
     - env: srv=skysql-ha
 
