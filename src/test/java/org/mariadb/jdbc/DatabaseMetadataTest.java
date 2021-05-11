@@ -539,9 +539,9 @@ public class DatabaseMetadataTest extends BaseTest {
     DatabaseMetaData dbmd = sharedConnection.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
 
-    assertEquals(true, rs.next());
+    assertTrue(rs.next());
     rs = dbmd.getTables("", null, "prim_key", null);
-    assertEquals(true, rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
