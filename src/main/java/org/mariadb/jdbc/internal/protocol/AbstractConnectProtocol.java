@@ -246,7 +246,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
-            options.pipe == null ? new InetSocketAddress(host, port) : null;
+            (options.pipe == null && options.localSocket == null)
+                ? new InetSocketAddress(host, port)
+                : null;
         socket.connect(sockAddr, options.connectTimeout);
       }
       return socket;
@@ -1357,7 +1359,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     // CONJ-293 : handle name-pipe without host
     if (hosts.isEmpty()) {
-      if (options.pipe != null) {
+      if (options.pipe != null || options.localSocket != null) {
         try {
           createConnection(null, username);
           return;

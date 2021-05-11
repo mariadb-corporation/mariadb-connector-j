@@ -1504,7 +1504,11 @@ public class DriverTest extends BaseTest {
     st.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
     st.execute("FLUSH PRIVILEGES");
-    String connString = connU + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=" + path;
+    String connString =
+        "jdbc:mariadb:///"
+            + database
+            + "?user=testSocket&password=MySup5%rPassw@ord&localSocket="
+            + path;
 
     try (Connection connection = openConnection(connString, null)) {
       rs = connection.createStatement().executeQuery("select 1");
