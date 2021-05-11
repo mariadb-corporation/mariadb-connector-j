@@ -15,7 +15,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.util.NativeSql;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
@@ -2751,11 +2750,12 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
-    String sql =
-        "SELECT * from information_schema.parameters WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?";
     PreparedStatement prep =
         new ClientPreparedStatement(
-            NativeSql.parse(sql, con.getContext()),
+            "SELECT * from information_schema.PARAMETERS "
+                + "WHERE SPECIFIC_NAME = ? "
+                + "AND SPECIFIC_SCHEMA = ? "
+                + "ORDER BY ORDINAL_POSITION",
             con,
             lock,
             false,
