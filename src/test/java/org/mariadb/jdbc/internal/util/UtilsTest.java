@@ -103,7 +103,7 @@ public class UtilsTest {
   }
 
   @Test
-  public void localLocalParsing() {
+  public void localDataParsing() {
     assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE 'file_name'", null, "file_name"));
     assertTrue(
         Utils.validateFileName(
@@ -147,5 +147,53 @@ public class UtilsTest {
             "/*test*/ LOAD DATA LOCAL INFILE\n?", pathParameterHolders, "file_name"));
     assertFalse(
         Utils.validateFileName("LOAD DATA INFILE ? /**/", goodParameterHolders, "file_name"));
+  }
+
+
+  @Test
+  public void localXmlParsing() {
+    assertTrue(Utils.validateFileName("LOAD XML LOCAL INFILE 'file_name'", null, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "LOAD XML LOW_PRIORITY LOCAL INFILE 'file_name'", null, "file_name"));
+    assertTrue(
+            Utils.validateFileName("LOAD XML CONCURRENT LOCAL INFILE 'file_name'", null, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE 'file_name' /*gni*/", null, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE\n'/etc/tto/file_name'", null, "/etc/tto/file_name"));
+
+    assertFalse(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE\n'/etc/tto/file_name'", null, "file_name"));
+    assertFalse(Utils.validateFileName("LOAD XML INFILE 'file_name' /**/", null, "file_name"));
+
+    ParameterHolder[] goodParameterHolders =
+            new ParameterHolder[] {new StringParameter("file_name", false)};
+
+    assertTrue(
+            Utils.validateFileName("LOAD XML LOCAL INFILE ?", goodParameterHolders, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "LOAD XML LOW_PRIORITY LOCAL INFILE ?", goodParameterHolders, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "LOAD XML CONCURRENT LOCAL INFILE ?", goodParameterHolders, "file_name"));
+    assertTrue(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE ? /*gni*/", goodParameterHolders, "file_name"));
+    ParameterHolder[] pathParameterHolders =
+            new ParameterHolder[] {new StringParameter("/etc/tto/file_name", false)};
+    assertTrue(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE\n?", pathParameterHolders, "/etc/tto/file_name"));
+
+    assertFalse(
+            Utils.validateFileName(
+                    "/*test*/ LOAD XML LOCAL INFILE\n?", pathParameterHolders, "file_name"));
+    assertFalse(
+            Utils.validateFileName("LOAD XML INFILE ? /**/", goodParameterHolders, "file_name"));
   }
 }

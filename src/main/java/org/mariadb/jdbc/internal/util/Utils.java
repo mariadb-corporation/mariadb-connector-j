@@ -1008,7 +1008,7 @@ public class Utils {
       String sql, ParameterHolder[] parameters, String fileName) {
     Pattern pattern =
         Pattern.compile(
-            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
                 + fileName
                 + "'",
             Pattern.CASE_INSENSITIVE);

@@ -65,9 +65,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE LocalInfileInputStreamTest(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE LocalInfileXmlInputStreamTest(id int, test varchar(100))");
       stmt.execute("CREATE TABLE ttlocal(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE ttXmllocal(id int, test varchar(100))");
       stmt.execute("CREATE TABLE ldinfile(a varchar(10))");
       stmt.execute(
           "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1");
@@ -76,10 +79,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS LocalInfileInputStreamTest");
+      stmt.execute("DROP TABLE IF EXISTS LocalInfileXmlInputStreamTest");
       stmt.execute("DROP TABLE IF EXISTS ttlocal");
+      stmt.execute("DROP TABLE IF EXISTS ttXmllocal");
       stmt.execute("DROP TABLE IF EXISTS ldinfile");
       stmt.execute("DROP TABLE IF EXISTS `infile`");
     }
@@ -114,6 +119,38 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
   }
 
+
+  @Test
+  public void testLocalXmlInfileInputStream() throws SQLException {
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(
+            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+      try (Statement st = connection.createStatement()) {
+        // Build a tab-separated record file
+        String builder = "<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n";
+
+        InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
+        ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
+        st.executeUpdate(
+                "LOAD XML LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileXmlInputStreamTest (id, test)");
+
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileXmlInputStreamTest");
+        assertTrue(rs.next());
+
+        int count = rs.getInt(1);
+        assertEquals(2, count);
+
+        rs = st.executeQuery("SELECT * FROM LocalInfileXmlInputStreamTest");
+
+        validateRecord(rs, 1, "hello");
+        validateRecord(rs, 2, "world");
+      }
+    }
+  }
+
+
+
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
@@ -128,6 +165,21 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       testLocalInfile(connection, temp.getAbsolutePath().replace("\\", "/"));
+    }
+  }
+
+
+  @Test
+  public void testLocalXmlInfileValidInterceptor() throws Exception {
+    Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
+    Assume.assumeTrue(
+            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    File temp = File.createTempFile("validateInfile", ".txt");
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+      bw.write("<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n");
+    }
+    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+      testXmlLocalInfile(connection, temp.getAbsolutePath().replace("\\", "/"));
     }
   }
 
@@ -182,6 +234,25 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
   }
 
+  private void testXmlLocalInfile(Connection connection, String file) throws SQLException {
+    try (Statement st = connection.createStatement()) {
+      st.executeUpdate(
+              "LOAD XML LOCAL INFILE '"
+                      + file
+                      + "' INTO TABLE ttXmllocal "
+                      + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                      + "  (id, test)");
+
+      ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttXmllocal");
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+
+      rs = st.executeQuery("SELECT * FROM ttXmllocal");
+
+      validateRecord(rs, 1, "hello");
+      validateRecord(rs, 2, "world");
+    }
+  }
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
