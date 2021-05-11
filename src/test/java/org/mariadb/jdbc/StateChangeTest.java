@@ -64,7 +64,7 @@ public class StateChangeTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE autoIncrementChange(id int not null primary key auto_increment, name char(20))");
@@ -73,7 +73,7 @@ public class StateChangeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS autoIncrementChange");
     }

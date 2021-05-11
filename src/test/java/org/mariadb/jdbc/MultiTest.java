@@ -65,7 +65,7 @@ public class MultiTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE MultiTestt1(id int, test varchar(100))");
       stmt.execute("CREATE TABLE MultiTestt2(id int, test varchar(100))");
@@ -122,7 +122,7 @@ public class MultiTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
       stmt.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");

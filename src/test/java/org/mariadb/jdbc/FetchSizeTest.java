@@ -67,6 +67,7 @@ public class FetchSizeTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE fetchSizeTest1(id int, test varchar(100))");
       stmt.execute("CREATE TABLE fetchSizeTest2(id int, test varchar(100))");
@@ -78,7 +79,7 @@ public class FetchSizeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS fetchSizeTest1");
       stmt.execute("DROP TABLE IF EXISTS fetchSizeTest2");

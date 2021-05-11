@@ -61,6 +61,7 @@ import org.junit.BeforeClass;
 public class ComMultiPrepareStatementTest extends BaseTest {
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE test_insert_select_com_multi(`field1` varchar(20))");
       stmt.execute("FLUSH TABLES");
@@ -68,9 +69,9 @@ public class ComMultiPrepareStatementTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE test_insert_select_com_multi");
+      stmt.execute("DROP TABLE IF EXISTS test_insert_select_com_multi");
     }
   }
 

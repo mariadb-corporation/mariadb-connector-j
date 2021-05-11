@@ -67,6 +67,7 @@ public class DataNTypeTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE testSetNClob(id int not null primary key, strm text) CHARSET utf8");
@@ -85,14 +86,14 @@ public class DataNTypeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE testSetNClob");
-      stmt.execute("DROP TABLE testSetObjectNClob");
-      stmt.execute("DROP TABLE testSetNString");
-      stmt.execute("DROP TABLE testSetObjectNString");
-      stmt.execute("DROP TABLE testSetNCharacter");
-      stmt.execute("DROP TABLE testSetObjectNCharacter");
+      stmt.execute("DROP TABLE IF EXISTS testSetNClob");
+      stmt.execute("DROP TABLE IF EXISTS testSetObjectNClob");
+      stmt.execute("DROP TABLE IF EXISTS testSetNString");
+      stmt.execute("DROP TABLE IF EXISTS testSetObjectNString");
+      stmt.execute("DROP TABLE IF EXISTS testSetNCharacter");
+      stmt.execute("DROP TABLE IF EXISTS testSetObjectNCharacter");
     }
   }
 

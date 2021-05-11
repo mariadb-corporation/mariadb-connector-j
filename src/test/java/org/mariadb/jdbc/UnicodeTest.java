@@ -63,6 +63,7 @@ public class UnicodeTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE unicode_test(id int not null primary key auto_increment, test_text varchar(100)) charset utf8");
@@ -77,7 +78,7 @@ public class UnicodeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS unicode_test");
       stmt.execute("DROP TABLE IF EXISTS umlaut_test");

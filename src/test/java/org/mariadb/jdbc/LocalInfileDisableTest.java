@@ -66,6 +66,7 @@ public class LocalInfileDisableTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE LocalInfileDisableTest(id int, test varchar(100))");
       stmt.execute("FLUSH TABLES");
@@ -73,9 +74,9 @@ public class LocalInfileDisableTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE LocalInfileDisableTest");
+      stmt.execute("DROP TABLE IF EXISTS LocalInfileDisableTest");
     }
   }
 

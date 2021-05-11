@@ -39,7 +39,7 @@ public class ScalarFunctionsTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE TEST_SYNTAX_ERROR("
@@ -52,7 +52,7 @@ public class ScalarFunctionsTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS TEST_SYNTAX_ERROR");
     }

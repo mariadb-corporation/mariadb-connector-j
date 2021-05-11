@@ -67,6 +67,7 @@ public class RePrepareTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE rePrepareTestSelectError(test int)");
       stmt.execute("CREATE TABLE rePrepareTestInsertError(test int)");
@@ -76,7 +77,7 @@ public class RePrepareTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS rePrepareTestSelectError");
       stmt.execute("DROP TABLE IF EXISTS rePrepareTestInsertError");

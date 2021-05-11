@@ -68,6 +68,7 @@ public class BooleanTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE booleantest(id int not null primary key auto_increment, test boolean)");
@@ -80,11 +81,11 @@ public class BooleanTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE booleantest");
-      stmt.execute("DROP TABLE booleanvalue");
-      stmt.execute("DROP TABLE booleanAllField");
+      stmt.execute("DROP TABLE IF EXISTS booleantest");
+      stmt.execute("DROP TABLE IF EXISTS booleanvalue");
+      stmt.execute("DROP TABLE IF EXISTS booleanAllField");
     }
   }
 

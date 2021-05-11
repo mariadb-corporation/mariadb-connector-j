@@ -70,7 +70,7 @@ public class DateTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE dtest(d date)");
       stmt.execute(
@@ -107,7 +107,7 @@ public class DateTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS dtest");
       stmt.execute("DROP TABLE IF EXISTS date_test");

@@ -67,6 +67,7 @@ public class CheckDataTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE CheckDataTest1(id int not null primary key auto_increment, test varchar(10))");
@@ -81,12 +82,12 @@ public class CheckDataTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE CheckDataTest1");
-      stmt.execute("DROP TABLE CheckDataTest2");
-      stmt.execute("DROP TABLE CheckDataTest3");
-      stmt.execute("DROP TABLE CheckDataTest4");
+      stmt.execute("DROP TABLE IF EXISTS CheckDataTest1");
+      stmt.execute("DROP TABLE IF EXISTS CheckDataTest2");
+      stmt.execute("DROP TABLE IF EXISTS CheckDataTest3");
+      stmt.execute("DROP TABLE IF EXISTS CheckDataTest4");
     }
   }
 

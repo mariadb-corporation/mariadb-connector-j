@@ -70,6 +70,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE gigantic_load_data_infile(id int not null primary key auto_increment, name char(20)) ENGINE=myisam");
@@ -78,9 +79,9 @@ public class GiganticLoadDataInfileTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE gigantic_load_data_infile");
+      stmt.execute("DROP TABLE IF EXISTS gigantic_load_data_infile");
     }
   }
 

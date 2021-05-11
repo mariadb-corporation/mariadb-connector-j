@@ -75,6 +75,7 @@ public class BlobTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE bug716378(id int not null primary key auto_increment, test longblob, test2 blob, test3 text)");
@@ -101,20 +102,20 @@ public class BlobTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE bug716378");
-      stmt.execute("DROP TABLE BlobTeststreamtest2");
-      stmt.execute("DROP TABLE BlobTeststreamtest3");
-      stmt.execute("DROP TABLE BlobTestclobtest");
-      stmt.execute("DROP TABLE BlobTestclobtest2");
-      stmt.execute("DROP TABLE BlobTestclobtest3");
-      stmt.execute("DROP TABLE BlobTestclobtest4");
-      stmt.execute("DROP TABLE BlobTestclobtest5");
-      stmt.execute("DROP TABLE BlobTestblobtest");
-      stmt.execute("DROP TABLE BlobTestblobtest2");
-      stmt.execute("DROP TABLE conj77_test");
-      stmt.execute("DROP TABLE emptyBlob");
+      stmt.execute("DROP TABLE IF EXISTS bug716378");
+      stmt.execute("DROP TABLE IF EXISTS BlobTeststreamtest2");
+      stmt.execute("DROP TABLE IF EXISTS BlobTeststreamtest3");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestclobtest");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestclobtest2");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestclobtest3");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestclobtest4");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestclobtest5");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestblobtest");
+      stmt.execute("DROP TABLE IF EXISTS BlobTestblobtest2");
+      stmt.execute("DROP TABLE IF EXISTS conj77_test");
+      stmt.execute("DROP TABLE IF EXISTS emptyBlob");
     }
   }
 

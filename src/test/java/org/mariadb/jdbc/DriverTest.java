@@ -71,7 +71,7 @@ public class DriverTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE tt1(id int , name varchar(20))");
       stmt.execute("CREATE TABLE tt2(id int , name varchar(20))");
@@ -130,7 +130,7 @@ public class DriverTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS tt1");
       stmt.execute("DROP TABLE IF EXISTS tt2");

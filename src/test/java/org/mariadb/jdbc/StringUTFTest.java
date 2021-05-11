@@ -63,7 +63,7 @@ public class StringUTFTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE stringutftest(stringutf varchar(40)) COLLATE='utf8mb4_general_ci'");
@@ -72,7 +72,7 @@ public class StringUTFTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS stringutftest");
     }

@@ -67,7 +67,7 @@ public class ConnectionTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE dummy(a BLOB)");
       stmt.execute("CREATE DATABASE gogogo");
@@ -76,7 +76,7 @@ public class ConnectionTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS dummy");
       stmt.execute("DROP DATABASE IF EXISTS gogogo");

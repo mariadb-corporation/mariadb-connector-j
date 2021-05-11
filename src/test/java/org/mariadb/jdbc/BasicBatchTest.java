@@ -69,6 +69,7 @@ public class BasicBatchTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE test_batch(id int not null primary key auto_increment, test varchar(10))");
@@ -88,17 +89,17 @@ public class BasicBatchTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE test_batch");
-      stmt.execute("DROP TABLE test_batch2");
-      stmt.execute("DROP TABLE test_batch3");
-      stmt.execute("DROP TABLE batchUpdateException");
-      stmt.execute("DROP TABLE batchPrepareUpdateException");
-      stmt.execute("DROP TABLE rewritetest");
-      stmt.execute("DROP TABLE rewritetest2");
-      stmt.execute("DROP TABLE bug501452");
-      stmt.execute("DROP TABLE testBatchString");
+      stmt.execute("DROP TABLE IF EXISTS test_batch");
+      stmt.execute("DROP TABLE IF EXISTS test_batch2");
+      stmt.execute("DROP TABLE IF EXISTS test_batch3");
+      stmt.execute("DROP TABLE IF EXISTS batchUpdateException");
+      stmt.execute("DROP TABLE IF EXISTS batchPrepareUpdateException");
+      stmt.execute("DROP TABLE IF EXISTS rewritetest");
+      stmt.execute("DROP TABLE IF EXISTS rewritetest2");
+      stmt.execute("DROP TABLE IF EXISTS bug501452");
+      stmt.execute("DROP TABLE IF EXISTS testBatchString");
     }
   }
 

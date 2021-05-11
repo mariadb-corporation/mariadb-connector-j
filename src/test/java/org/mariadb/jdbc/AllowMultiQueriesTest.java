@@ -71,6 +71,7 @@ public class AllowMultiQueriesTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE AllowMultiQueriesTest(id int not null primary key auto_increment, test varchar(10))");
@@ -83,10 +84,10 @@ public class AllowMultiQueriesTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE AllowMultiQueriesTest");
-      stmt.execute("DROP TABLE AllowMultiQueriesTest2");
+      stmt.execute("DROP TABLE IF EXISTS AllowMultiQueriesTest");
+      stmt.execute("DROP TABLE IF EXISTS AllowMultiQueriesTest2");
     }
   }
 

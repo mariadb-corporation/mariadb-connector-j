@@ -76,7 +76,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE ServerPrepareStatementTest(id int not null primary key auto_increment, test boolean)");
@@ -157,7 +157,7 @@ public class ServerPrepareStatementTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTest");
       stmt.execute("DROP TABLE IF EXISTS ServerPrepareStatementTestt");

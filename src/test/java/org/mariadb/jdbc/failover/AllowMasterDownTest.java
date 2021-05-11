@@ -63,7 +63,7 @@ public class AllowMasterDownTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE checkMetaData(xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint)");
@@ -72,7 +72,7 @@ public class AllowMasterDownTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS checkMetaData");
     }

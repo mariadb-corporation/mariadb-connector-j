@@ -61,7 +61,7 @@ public class CallStatementTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");
       stmt.execute("CREATE PROCEDURE useWrongParameterName(a int) begin select a; end");
@@ -93,7 +93,7 @@ public class CallStatementTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
       stmt.execute("DROP PROCEDURE IF EXISTS useWrongParameterName");

@@ -69,7 +69,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE pk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, id2))");
@@ -123,7 +123,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS pk_test");
       stmt.execute("DROP TABLE IF EXISTS datetime_test");

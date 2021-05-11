@@ -33,7 +33,7 @@ public class ResultSetMetaDataTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    dropTables();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, "
@@ -48,7 +48,7 @@ public class ResultSetMetaDataTest extends BaseTest {
   }
 
   @AfterClass
-  public static void dropTables() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS test_rsmd");
       stmt.execute("DROP TABLE IF EXISTS t1");

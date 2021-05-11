@@ -68,7 +68,7 @@ public class ScrollTypeTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE resultsSetReadingTest(id int not null primary key auto_increment, test int)");
@@ -81,7 +81,7 @@ public class ScrollTypeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS resultsSetReadingTest");
       stmt.execute("DROP TABLE IF EXISTS scrollMultipleFetch");

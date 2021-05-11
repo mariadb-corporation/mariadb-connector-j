@@ -65,6 +65,7 @@ public class ByteTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE ByteTest(test tinyint, test2 TINYBLOB)");
       stmt.execute("FLUSH TABLES");
@@ -72,9 +73,9 @@ public class ByteTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE ByteTest");
+      stmt.execute("DROP TABLE IF EXISTS ByteTest");
     }
   }
 

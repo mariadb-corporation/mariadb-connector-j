@@ -66,6 +66,7 @@ import org.junit.Test;
 public class CollationTest extends BaseTest {
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE emojiTest(id int unsigned, field longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci)");
@@ -80,14 +81,14 @@ public class CollationTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE emojiTest");
-      stmt.execute("DROP TABLE unicodeTestChar");
-      stmt.execute("DROP TABLE textUtf8");
-      stmt.execute("DROP TABLE blobUtf8");
-      stmt.execute("DROP TABLE fooLatin1");
-      stmt.execute("DROP TABLE languageCasing");
+      stmt.execute("DROP TABLE IF EXISTS emojiTest");
+      stmt.execute("DROP TABLE IF EXISTS unicodeTestChar");
+      stmt.execute("DROP TABLE IF EXISTS textUtf8");
+      stmt.execute("DROP TABLE IF EXISTS blobUtf8");
+      stmt.execute("DROP TABLE IF EXISTS fooLatin1");
+      stmt.execute("DROP TABLE IF EXISTS languageCasing");
     }
   }
 

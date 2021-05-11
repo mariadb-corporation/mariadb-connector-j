@@ -64,6 +64,7 @@ public class TransactionTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key)");
       stmt.execute(
@@ -76,7 +77,7 @@ public class TransactionTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS tx_fore_key");
       stmt.execute("DROP TABLE IF EXISTS tx_prim_key");

@@ -75,7 +75,8 @@ public class StoredProcedureTest extends BaseTest {
       stmt.execute("CREATE PROCEDURE multiResultSets() BEGIN  SELECT 1; SELECT 2; END");
       stmt.execute("CREATE PROCEDURE inoutParam(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
       stmt.execute("CREATE PROCEDURE testGetProcedures(INOUT p1 INT) begin set p1 = p1 + 1; end\n");
-      stmt.execute("CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a as b; end");
+      stmt.execute(
+          "CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a as b; end");
       stmt.execute(
           "CREATE PROCEDURE TEST_SP1() BEGIN\n"
               + "SELECT @Something := 'Something';\n"

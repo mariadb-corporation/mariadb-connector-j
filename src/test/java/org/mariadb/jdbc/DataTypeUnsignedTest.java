@@ -67,7 +67,7 @@ public class DataTypeUnsignedTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE unsignedBitTest(id BIT(8))");
       stmt.execute("CREATE TABLE unsignedTinyIntTest(id TINYINT UNSIGNED)");
@@ -84,7 +84,7 @@ public class DataTypeUnsignedTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS unsignedBitTest");
       stmt.execute("DROP TABLE IF EXISTS unsignedTinyIntTest");

@@ -66,6 +66,7 @@ public class DataTypeSignedTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE signedTinyIntTest(id TINYINT)");
       stmt.execute("CREATE TABLE signedSmallIntTest(id SMALLINT)");
@@ -78,7 +79,7 @@ public class DataTypeSignedTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS signedTinyIntTest");
       stmt.execute("DROP TABLE IF EXISTS signedSmallIntTest");

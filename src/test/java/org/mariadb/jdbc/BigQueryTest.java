@@ -72,6 +72,7 @@ public class BigQueryTest extends BaseTest {
    */
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE bigblob(id int not null primary key auto_increment, test longblob)");
@@ -89,14 +90,14 @@ public class BigQueryTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE bigblob");
-      stmt.execute("DROP TABLE bigblob2");
-      stmt.execute("DROP TABLE bigblob3");
-      stmt.execute("DROP TABLE bigblob4");
-      stmt.execute("DROP TABLE bigblob5");
-      stmt.execute("DROP TABLE bigblob6");
+      stmt.execute("DROP TABLE IF EXISTS bigblob");
+      stmt.execute("DROP TABLE IF EXISTS bigblob2");
+      stmt.execute("DROP TABLE IF EXISTS bigblob3");
+      stmt.execute("DROP TABLE IF EXISTS bigblob4");
+      stmt.execute("DROP TABLE IF EXISTS bigblob5");
+      stmt.execute("DROP TABLE IF EXISTS bigblob6");
     }
   }
 

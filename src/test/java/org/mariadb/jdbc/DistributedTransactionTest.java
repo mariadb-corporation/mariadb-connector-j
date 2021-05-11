@@ -74,7 +74,7 @@ public class DistributedTransactionTest extends BaseTest {
   public static void initClass() throws SQLException {
     Assume.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE xatable(i int)");
       stmt.execute("FLUSH TABLES");
@@ -82,7 +82,7 @@ public class DistributedTransactionTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS xatable");
     }

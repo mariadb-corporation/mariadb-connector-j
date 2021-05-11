@@ -119,12 +119,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testLocalXmlInfileInputStream() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
         // Build a tab-separated record file
@@ -133,7 +132,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
         ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
         st.executeUpdate(
-                "LOAD XML LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileXmlInputStreamTest (id, test)");
+            "LOAD XML LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileXmlInputStreamTest (id, test)");
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileXmlInputStreamTest");
         assertTrue(rs.next());
@@ -148,8 +147,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
       }
     }
   }
-
-
 
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
@@ -168,12 +165,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
   }
 
-
   @Test
   public void testLocalXmlInfileValidInterceptor() throws Exception {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("validateInfile", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n");
@@ -237,11 +233,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
   private void testXmlLocalInfile(Connection connection, String file) throws SQLException {
     try (Statement st = connection.createStatement()) {
       st.executeUpdate(
-              "LOAD XML LOCAL INFILE '"
-                      + file
-                      + "' INTO TABLE ttXmllocal "
-                      + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                      + "  (id, test)");
+          "LOAD XML LOCAL INFILE '"
+              + file
+              + "' INTO TABLE ttXmllocal "
+              + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+              + "  (id, test)");
 
       ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttXmllocal");
       assertTrue(rs.next());
@@ -253,6 +249,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
       validateRecord(rs, 2, "world");
     }
   }
+
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {

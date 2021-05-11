@@ -61,7 +61,7 @@ public class ResultSetTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    afterClass();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE result_set_test(id int not null primary key auto_increment, name char(20))");
@@ -132,7 +132,7 @@ public class ResultSetTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS result_set_test");
       stmt.execute("DROP TABLE IF EXISTS gen_key_test_resultset");

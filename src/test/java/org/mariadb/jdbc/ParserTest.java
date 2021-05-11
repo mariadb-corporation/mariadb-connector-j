@@ -68,6 +68,7 @@ public class ParserTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE table1(id1 int auto_increment primary key)");
       stmt.execute("CREATE TABLE table2(id2 int auto_increment primary key)");
@@ -76,7 +77,7 @@ public class ParserTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS table1");
       stmt.execute("DROP TABLE IF EXISTS table2");

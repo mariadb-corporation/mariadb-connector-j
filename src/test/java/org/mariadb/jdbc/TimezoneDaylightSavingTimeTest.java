@@ -124,6 +124,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
       utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
       utcDateFormatSimple.setTimeZone(utcTimeZone);
+      drop();
       try (Statement stmt = sharedConnection.createStatement()) {
         stmt.execute("CREATE TABLE daylightMysql(tt DATE)");
         stmt.execute(
@@ -151,7 +152,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS daylightMysql");
       stmt.execute("DROP TABLE IF EXISTS daylight");

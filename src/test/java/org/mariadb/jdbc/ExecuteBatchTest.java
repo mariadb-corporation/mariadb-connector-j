@@ -84,7 +84,7 @@ public class ExecuteBatchTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
-    dropTables();
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE ExecuteBatchTest(id int not null primary key auto_increment, test varchar(100) , test2 int)");
@@ -94,7 +94,7 @@ public class ExecuteBatchTest extends BaseTest {
   }
 
   @AfterClass
-  public static void dropTables() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS ExecuteBatchTest");
       stmt.execute("DROP TABLE IF EXISTS ExecuteBatchUseBatchMultiSend");

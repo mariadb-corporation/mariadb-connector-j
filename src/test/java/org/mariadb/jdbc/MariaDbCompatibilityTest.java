@@ -63,6 +63,7 @@ public class MariaDbCompatibilityTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE datatypesTest(type_longvarchar TEXT NULL)");
       stmt.execute(
@@ -72,7 +73,7 @@ public class MariaDbCompatibilityTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS datatypesTest");
       stmt.execute("DROP TABLE IF EXISTS mysqlcompatibilitytest");

@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import java.io.File;
 import java.net.SocketException;
 import java.sql.*;
 import java.util.HashMap;
@@ -516,10 +515,11 @@ public class MariaDbConnection implements Connection {
     PreparedStatement prep =
         new ClientSidePreparedStatement(
             this,
-            "SELECT * from information_schema.PARAMETERS " +
-                    "WHERE SPECIFIC_NAME = ? " +
-                    "AND SPECIFIC_SCHEMA = " + (databaseName != null ?  "?" : "DATABASE()") +
-                    " ORDER BY ORDINAL_POSITION",
+            "SELECT * from information_schema.PARAMETERS "
+                + "WHERE SPECIFIC_NAME = ? "
+                + "AND SPECIFIC_SCHEMA = "
+                + (databaseName != null ? "?" : "DATABASE()")
+                + " ORDER BY ORDINAL_POSITION",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY,
             Statement.NO_GENERATED_KEYS,

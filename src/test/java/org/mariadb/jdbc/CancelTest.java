@@ -65,6 +65,7 @@ public class CancelTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
           "CREATE TABLE timeoutBatch(id int not null primary key auto_increment, aa text)");
@@ -74,7 +75,7 @@ public class CancelTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS timeoutBatch");
       stmt.execute("DROP TABLE IF EXISTS timeoutBatch2");

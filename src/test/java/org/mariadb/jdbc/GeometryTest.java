@@ -68,6 +68,7 @@ public class GeometryTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE geom_test(g geometry)");
       stmt.execute("FLUSH TABLES");
@@ -75,9 +76,9 @@ public class GeometryTest extends BaseTest {
   }
 
   @AfterClass
-  public static void afterClass() throws SQLException {
+  public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
-      stmt.execute("DROP TABLE geom_test");
+      stmt.execute("DROP TABLE IF EXISTS geom_test");
     }
   }
 
