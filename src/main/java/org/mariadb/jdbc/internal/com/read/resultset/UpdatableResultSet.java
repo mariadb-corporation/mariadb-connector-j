@@ -80,15 +80,13 @@ public class UpdatableResultSet extends SelectResultSet {
   private String database;
   private String table;
 
-  private boolean canBeUpdate;
-  private boolean canBeInserted;
-  private boolean canBeRefresh;
   private int notInsertRowPointer;
 
-  private String exceptionUpdateMsg;
-  private String exceptionInsertMsg;
+  private SQLException updateException;
+  private SQLException insertException;
+
   private int state = STATE_STANDARD;
-  private ParameterHolder[] parameterHolders;
+  private final ParameterHolder[] parameterHolders;
   private MariaDbConnection connection;
   private PreparedStatement refreshPreparedStatement = null;
   private ClientSidePreparedStatement deletePreparedStatement = null;
@@ -127,9 +125,6 @@ public class UpdatableResultSet extends SelectResultSet {
 
     database = null;
     table = null;
-    canBeUpdate = true;
-    canBeInserted = true;
-    canBeRefresh = false;
 
     // check that resultSet concern one table and database exactly
     for (ColumnDefinition columnDefinition : columnsInformation) {
@@ -137,13 +132,13 @@ public class UpdatableResultSet extends SelectResultSet {
       if (columnDefinition.getDatabase() == null || columnDefinition.getDatabase().isEmpty()) {
 
         cannotUpdateInsertRow(
-            "The result-set contains fields without without any database information");
+            "The result-set contains fields without without any database information", true);
         return;
 
       } else {
 
         if (database != null && !database.equals(columnDefinition.getDatabase())) {
-          cannotUpdateInsertRow("The result-set contains more than one database");
+          cannotUpdateInsertRow("The result-set contains more than one database", true);
           return;
         }
 
@@ -154,13 +149,13 @@ public class UpdatableResultSet extends SelectResultSet {
           || columnDefinition.getOriginalTable().isEmpty()) {
 
         cannotUpdateInsertRow(
-            "The result-set contains fields without without any table information");
+            "The result-set contains fields without without any table information", true);
         return;
 
       } else {
 
         if (table != null && !table.equals(columnDefinition.getOriginalTable())) {
-          cannotUpdateInsertRow("The result-set contains fields on different tables");
+          cannotUpdateInsertRow("The result-set contains fields on different tables", true);
           return;
         }
 
@@ -169,109 +164,106 @@ public class UpdatableResultSet extends SelectResultSet {
     }
 
     if (database == null) {
-      cannotUpdateInsertRow("The result-set does not contain any table information");
+      cannotUpdateInsertRow("The result-set does not contain any table information", true);
       return;
     }
 
     if (table == null) {
-      cannotUpdateInsertRow("The result-set does not contain any table information");
+      cannotUpdateInsertRow("The result-set does not contain any table information", true);
       return;
     }
 
     // read table metadata
-    if (canBeUpdate) {
-      if (results.getStatement() != null && results.getStatement().getConnection() != null) {
+    if (results.getStatement() != null && results.getStatement().getConnection() != null) {
 
-        connection = results.getStatement().getConnection();
-        Statement stmt =
-            connection.createStatement(
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        ResultSet rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
+      connection = results.getStatement().getConnection();
+      Statement stmt =
+          connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+      ResultSet rs = stmt.executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
 
-        UpdatableColumnDefinition[] updatableColumns =
-            new UpdatableColumnDefinition[columnInformationLength];
+      UpdatableColumnDefinition[] updatableColumns =
+          new UpdatableColumnDefinition[columnInformationLength];
 
-        boolean primaryFound = false;
-        while (rs.next()) {
-          // read SHOW COLUMNS informations
-          String fieldName = rs.getString("Field");
-          boolean canBeNull = "YES".equals(rs.getString("Null"));
-          boolean hasDefault = rs.getString("Default") != null;
-          String extra = rs.getString("Extra");
-          boolean generated = extra != null && !extra.isEmpty();
-          boolean autoIncrement = extra != null && "auto_increment".equals(extra);
-          boolean primary = "PRI".equals(rs.getString("Key"));
+      boolean primaryFound = false;
+      while (rs.next()) {
+        // read SHOW COLUMNS information
+        String fieldName = rs.getString("Field");
+        boolean canBeNull = "YES".equals(rs.getString("Null"));
+        boolean hasDefault = rs.getString("Default") != null;
+        String extra = rs.getString("Extra");
+        boolean generated = extra != null && !extra.isEmpty();
+        boolean autoIncrement = "auto_increment".equals(extra);
+        boolean primary = "PRI".equals(rs.getString("Key"));
 
-          boolean found = false;
+        boolean found = false;
 
-          // update column information with SHOW COLUMNS additional informations
-          for (int index = 0; index < columnInformationLength; index++) {
-            ColumnDefinition columnDefinition = columnsInformation[index];
-            if (fieldName.equals(columnDefinition.getOriginalName())) {
-              updatableColumns[index] =
-                  new UpdatableColumnDefinition(
-                      columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
-              found = true;
-            }
-          }
-
-          if (primary) {
-            primaryFound = true;
-          }
-
-          if (!found) {
-            if (primary) {
-              // without primary key in resultSet, update/delete cannot be done, since query need
-              // to be updated/deleted for this unknown identifier
-              //
-              // For insert, key is not mandatory in resultSet if automatically generated, but data
-              // cannot be added to rows in adequate format
-              cannotUpdateInsertRow("Primary key field `" + fieldName + "` is not in result-set");
-              return;
-            }
-
-            // check that missing field can be null / have default values / are generated
-            // automatically
-            if (!canBeNull && !hasDefault && !generated) {
-              cannotInsertRow(
-                  "Field `"
-                      + fieldName
-                      + "` is not present in query returning "
-                      + "fields and cannot be null");
-            }
-          }
-        }
-
-        if (!primaryFound) {
-          // if there is no primary key (UNIQUE key are considered as primary by SHOW COLUMNS),
-          // rows cannot be updated.
-          cannotUpdateInsertRow("Table `" + database + "`.`" + table + "` has no primary key");
-          return;
-        } else {
-          canBeRefresh = true;
-        }
-
-        boolean ensureAllColumnHaveMeta = true;
+        // update column information with SHOW COLUMNS additional information
         for (int index = 0; index < columnInformationLength; index++) {
-          if (updatableColumns[index] == null) {
-            // abnormal error : some field in META are not listed in SHOW COLUMNS
-            cannotUpdateInsertRow(
-                "Metadata information not available for table `"
-                    + database
-                    + "`.`"
-                    + table
-                    + "`, field `"
-                    + columnsInformation[index].getOriginalName()
-                    + "`");
-            ensureAllColumnHaveMeta = false;
+          ColumnDefinition columnDefinition = columnsInformation[index];
+          if (fieldName.equals(columnDefinition.getOriginalName())) {
+            updatableColumns[index] =
+                new UpdatableColumnDefinition(
+                    columnDefinition, canBeNull, hasDefault, generated, primary, autoIncrement);
+            found = true;
           }
         }
-        if (ensureAllColumnHaveMeta) {
-          columnsInformation = updatableColumns;
+
+        if (primary) {
+          primaryFound = true;
         }
-      } else {
-        throw new SQLException("abnormal error : connection is null");
+
+        if (!found) {
+          if (primary) {
+            // without primary key in resultSet, update/delete cannot be done, since query need
+            // to be updated/deleted for this unknown identifier
+            //
+            // For insert, key is not mandatory in resultSet if automatically generated, but data
+            // cannot be added to rows in adequate format
+            cannotUpdateInsertRow(
+                "Primary key field `" + fieldName + "` is not in result-set", false);
+            return;
+          }
+
+          // check that missing field can be null / have default values / are generated
+          // automatically
+          if (!canBeNull && !hasDefault && !generated) {
+            cannotInsertRow(
+                "Field `"
+                    + fieldName
+                    + "` is not present in query returning "
+                    + "fields and cannot be null");
+          }
+        }
       }
+
+      if (!primaryFound) {
+        // if there is no primary key (UNIQUE key are considered as primary by SHOW COLUMNS),
+        // rows cannot be updated.
+        cannotUpdateInsertRow("Table `" + database + "`.`" + table + "` has no primary key", true);
+        return;
+      }
+
+      boolean ensureAllColumnHaveMeta = true;
+      for (int index = 0; index < columnInformationLength; index++) {
+        if (updatableColumns[index] == null) {
+          // abnormal error : some field in META are not listed in SHOW COLUMNS
+          cannotUpdateInsertRow(
+              "Metadata information not available for table `"
+                  + database
+                  + "`.`"
+                  + table
+                  + "`, field `"
+                  + columnsInformation[index].getOriginalName()
+                  + "`",
+              false);
+          ensureAllColumnHaveMeta = false;
+        }
+      }
+      if (ensureAllColumnHaveMeta) {
+        columnsInformation = updatableColumns;
+      }
+    } else {
+      throw new SQLException("abnormal error : connection is null");
     }
   }
 
@@ -279,22 +271,24 @@ public class UpdatableResultSet extends SelectResultSet {
     return (UpdatableColumnDefinition[]) columnsInformation;
   }
 
-  private void cannotUpdateInsertRow(String reason) {
-    if (exceptionUpdateMsg == null) {
-      exceptionUpdateMsg = "ResultSet cannot be updated. " + reason;
+  private void cannotUpdateInsertRow(String reason, boolean exceptionUpdateNotSupported) {
+    if (updateException == null) {
+      if (exceptionUpdateNotSupported) {
+        updateException =
+            new SQLFeatureNotSupportedException("ResultSet cannot be updated. " + reason);
+      } else updateException = new SQLException("ResultSet cannot be updated. " + reason);
     }
-    if (exceptionInsertMsg == null) {
-      exceptionInsertMsg = "No row can be inserted. " + reason;
+    if (insertException == null) {
+      if (exceptionUpdateNotSupported) {
+        insertException = new SQLFeatureNotSupportedException("No row can be inserted. " + reason);
+      } else insertException = new SQLException("No row can be inserted. " + reason);
     }
-    canBeUpdate = false;
-    canBeInserted = false;
   }
 
   private void cannotInsertRow(String reason) {
-    if (exceptionInsertMsg == null) {
-      exceptionInsertMsg = "No row can be inserted. " + reason;
+    if (insertException == null) {
+      insertException = new SQLException("No row can be inserted. " + reason);
     }
-    canBeInserted = false;
   }
 
   private void checkUpdatable(int position) throws SQLException {
@@ -315,12 +309,12 @@ public class UpdatableResultSet extends SelectResultSet {
         throw new SQLDataException("Current position is after the last row", "22023");
       }
 
-      if (!canBeUpdate) {
-        throw new SQLException(exceptionUpdateMsg);
+      if (updateException != null) {
+        throw updateException;
       }
     }
-    if (state == STATE_INSERT && !canBeInserted) {
-      throw new SQLException(exceptionInsertMsg);
+    if (state == STATE_INSERT && insertException != null) {
+      throw insertException;
     }
   }
 
@@ -653,13 +647,13 @@ public class UpdatableResultSet extends SelectResultSet {
             break;
           case Types.DOUBLE:
           case Types.FLOAT:
-            updateDouble(parameterIndex, Double.valueOf(str));
+            updateDouble(parameterIndex, Double.parseDouble(str));
             break;
           case Types.REAL:
-            updateFloat(parameterIndex, Float.valueOf(str));
+            updateFloat(parameterIndex, Float.parseFloat(str));
             break;
           case Types.BIGINT:
-            updateLong(parameterIndex, Long.valueOf(str));
+            updateLong(parameterIndex, Long.parseLong(str));
             break;
           case Types.DECIMAL:
           case Types.NUMERIC:
@@ -766,13 +760,13 @@ public class UpdatableResultSet extends SelectResultSet {
     } else if (obj instanceof Date) {
       updateDate(parameterIndex, (Date) obj);
     } else if (obj instanceof java.util.Date) {
-      long timemillis = ((java.util.Date) obj).getTime();
+      long time = ((java.util.Date) obj).getTime();
       if (targetSqlType == Types.DATE) {
-        updateDate(parameterIndex, new Date(timemillis));
+        updateDate(parameterIndex, new Date(time));
       } else if (targetSqlType == Types.TIME) {
-        updateTime(parameterIndex, new Time(timemillis));
+        updateTime(parameterIndex, new Time(time));
       } else if (targetSqlType == Types.TIMESTAMP) {
-        updateTimestamp(parameterIndex, new Timestamp(timemillis));
+        updateTimestamp(parameterIndex, new Timestamp(time));
       }
     } else if (obj instanceof Boolean) {
       updateBoolean(parameterIndex, (Boolean) obj);
@@ -969,13 +963,13 @@ public class UpdatableResultSet extends SelectResultSet {
   }
 
   /** {inheritDoc}. */
-  public void updateNString(int columnIndex, String nstring) throws SQLException {
-    updateString(columnIndex, nstring);
+  public void updateNString(int columnIndex, String value) throws SQLException {
+    updateString(columnIndex, value);
   }
 
   /** {inheritDoc}. */
-  public void updateNString(String columnLabel, String nstring) throws SQLException {
-    updateString(columnLabel, nstring);
+  public void updateNString(String columnLabel, String value) throws SQLException {
+    updateString(columnLabel, value);
   }
 
   /** {inheritDoc}. */
@@ -1195,7 +1189,7 @@ public class UpdatableResultSet extends SelectResultSet {
           updateSql.append("`").append(colInfo.getOriginalName()).append("` = ? ");
         }
       }
-      updateSql.append(whereClause.toString());
+      updateSql.append(whereClause);
 
       ClientSidePreparedStatement preparedStatement =
           connection.clientPrepareStatement(updateSql.toString());
@@ -1234,8 +1228,8 @@ public class UpdatableResultSet extends SelectResultSet {
       throw new SQLException("Cannot call deleteRow() when inserting a new row");
     }
 
-    if (!canBeUpdate) {
-      throw new SQLDataException(exceptionUpdateMsg);
+    if (updateException != null) {
+      throw updateException;
     }
 
     if (getRowPointer() < 0) {
@@ -1369,7 +1363,7 @@ public class UpdatableResultSet extends SelectResultSet {
       throw new SQLDataException("Current position is after the last row", "22023");
     }
 
-    if (canBeRefresh) {
+    if (updateException == null) {
       updateRowData(refreshRawData());
     }
   }
@@ -1382,8 +1376,8 @@ public class UpdatableResultSet extends SelectResultSet {
 
   /** {inheritDoc}. */
   public void moveToInsertRow() throws SQLException {
-    if (!canBeInserted) {
-      throw new SQLException(exceptionInsertMsg);
+    if (insertException != null) {
+      throw insertException;
     }
     Arrays.fill(parameterHolders, null);
     state = STATE_INSERT;

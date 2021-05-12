@@ -178,7 +178,7 @@ public class UpdateResultSetTest extends BaseTest {
       try {
         rs.updateString(1, "1");
         fail();
-      } catch (SQLException sqle) {
+      } catch (SQLFeatureNotSupportedException sqle) {
         assertEquals(
             "ResultSet cannot be updated. Table "
                 + "`"
@@ -199,7 +199,7 @@ public class UpdateResultSetTest extends BaseTest {
       try {
         rs.updateString(1, "1");
         fail();
-      } catch (SQLException sqle) {
+      } catch (SQLFeatureNotSupportedException sqle) {
         assertTrue(
             sqle.getMessage(),
             sqle.getMessage()
@@ -225,7 +225,7 @@ public class UpdateResultSetTest extends BaseTest {
       try {
         rs.updateString("t1", "new value");
         fail("must have failed since there is different tables");
-      } catch (SQLException sqle) {
+      } catch (SQLFeatureNotSupportedException sqle) {
         assertTrue(
             sqle.getMessage(),
             sqle.getMessage()
@@ -251,7 +251,7 @@ public class UpdateResultSetTest extends BaseTest {
       try {
         rs.updateString("t1", "new value");
         fail("must have failed since there is a field without database");
-      } catch (SQLException sqle) {
+      } catch (SQLFeatureNotSupportedException sqle) {
         assertTrue(
             sqle.getMessage(),
             sqle.getMessage()
@@ -290,7 +290,7 @@ public class UpdateResultSetTest extends BaseTest {
         try {
           rs.updateString("t1", "new value");
           fail("must have failed since there is different database");
-        } catch (SQLException sqle) {
+        } catch (SQLFeatureNotSupportedException sqle) {
           assertTrue(
               sqle.getMessage(),
               sqle.getMessage().contains("The result-set contains more than one database"));

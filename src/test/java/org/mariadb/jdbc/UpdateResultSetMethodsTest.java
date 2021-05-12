@@ -83,13 +83,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
 
   @Test
   public void testDeleteRow() {
-    try {
-      rs.deleteRow();
-    } catch (SQLFeatureNotSupportedException sqle) {
-      Assert.fail();
-    } catch (SQLException sqlee) {
-      // eat
-    }
+    Assert.assertThrows(SQLFeatureNotSupportedException.class, () -> rs.deleteRow());
   }
 
   @Test
@@ -115,13 +109,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
 
   @Test
   public void testMoveToInsertRow() {
-    try {
-      rs.moveToInsertRow();
-    } catch (SQLFeatureNotSupportedException sqle) {
-      Assert.fail();
-    } catch (SQLException sqlee) {
-      // eat
-    }
+    Assert.assertThrows(SQLFeatureNotSupportedException.class, () -> rs.moveToInsertRow());
   }
 
   @Test

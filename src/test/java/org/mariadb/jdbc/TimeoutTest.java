@@ -160,8 +160,6 @@ public class TimeoutTest extends BaseTest {
         statement.execute("set session wait_timeout=1");
         Thread.sleep(2000); // Wait for the server to kill the connection
 
-        logInfo(connection.toString());
-
         // here a SQLNonTransientConnectionException is expected
         // "Could not read resultset: unexpected end of stream, ..."
         try {
