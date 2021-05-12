@@ -279,7 +279,6 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
   @Override
   public void clearBatch() {
     parameterList.clear();
-    this.parameters = new ParameterHolder[prepareResult.getParamCount()];
   }
 
   /** {inheritdoc}. */
