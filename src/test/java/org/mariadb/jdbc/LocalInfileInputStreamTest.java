@@ -68,6 +68,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE TABLE LocalInfileInputStreamTest(id int, test varchar(100))");
+      stmt.execute("CREATE TABLE LocalInfileInputStreamTest2(id int, test varchar(100))");
       stmt.execute("CREATE TABLE LocalInfileXmlInputStreamTest(id int, test varchar(100))");
       stmt.execute("CREATE TABLE ttlocal(id int, test varchar(100))");
       stmt.execute("CREATE TABLE ttXmllocal(id int, test varchar(100))");
@@ -82,11 +83,27 @@ public class LocalInfileInputStreamTest extends BaseTest {
   public static void drop() throws SQLException {
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS LocalInfileInputStreamTest");
+      stmt.execute("DROP TABLE IF EXISTS LocalInfileInputStreamTest2");
       stmt.execute("DROP TABLE IF EXISTS LocalInfileXmlInputStreamTest");
       stmt.execute("DROP TABLE IF EXISTS ttlocal");
       stmt.execute("DROP TABLE IF EXISTS ttXmllocal");
       stmt.execute("DROP TABLE IF EXISTS ldinfile");
       stmt.execute("DROP TABLE IF EXISTS `infile`");
+    }
+  }
+
+  @Test
+  public void loadDataInBatch() throws SQLException {
+    String batch_update =
+        "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)";
+    String builder = "1\thello\n2\tworld\n";
+    try (Connection con = setConnection()) {
+      Statement smt = con.createStatement();
+      InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
+      ((MariaDbStatement) smt).setLocalInfileInputStream(inputStream);
+      smt.addBatch(batch_update);
+      smt.addBatch("SET UNIQUE_CHECKS=1");
+      smt.executeBatch();
     }
   }
 

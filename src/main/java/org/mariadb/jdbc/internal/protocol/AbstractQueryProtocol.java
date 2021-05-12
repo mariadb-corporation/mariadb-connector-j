@@ -67,6 +67,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 import javax.sql.rowset.serial.SerialException;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
@@ -108,7 +109,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
   private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
       new HashSet<>(Arrays.asList(1205, 1213, 1614));
-
+  private static final Pattern LOAD_LOCAL_INFILE =
+      Pattern.compile("^(load\\s*(data|xml)\\s*local\\s*infile)", Pattern.CASE_INSENSITIVE);
   private ThreadPoolExecutor readScheduler = null;
   private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
@@ -750,7 +752,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   private void executeBatch(Results results, final List<String> queries) throws SQLException {
 
-    if (!options.useBatchMultiSend) {
+    // Ensure not having load local infile
+    boolean usePipeline = options.useBatchMultiSend;
+    if (usePipeline) {
+      for (int i = 0; i < queries.size(); i++) {
+        if (LOAD_LOCAL_INFILE.matcher(queries.get(i)).find()) {
+          usePipeline = false;
+          break;
+        }
+      }
+    }
+
+    if (!usePipeline) {
 
       String sql = null;
       SQLException exception = null;
