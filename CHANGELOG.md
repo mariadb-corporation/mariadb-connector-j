@@ -1,5 +1,21 @@
 # Change Log
 
+## [2.7.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.3) (12 May 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.2...2.7.3)
+
+* CONJ-619	Multiple batch update fails after LOAD DATA LOCAL INFILE
+* CONJ-854	LOAD XML INFILE breaks when using LOCAL
+* CONJ-855	throwing more specific exception for updatable result-set that can not be updated by ResultSet
+* CONJ-857	Remove use of mysql.proc table, relying on information_schema.parameters
+* CONJ-864	includeThreadDumpInDeadlockExceptions always includes the thread dump, even when it is not a deadlock exception
+* CONJ-866	long binary parsing improvement
+* CONJ-871	OSGi: Missing Import-Package in Connector/J bundle (javax.sql.rowset.serial)
+* CONJ-878	option serverSslCert file location
+* CONJ-880	metadata query performance correction
+* CONJ-858	Properties.put with object that differ from String supported even if use is not recommended
+* CONJ-861	executeBatch must not clear last parameter value.
+* CONJ-883	using unix socket, hostname is not mandatory anymore
+
 ## [2.7.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.2) (29 Jan. 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.1...2.7.2)
 
