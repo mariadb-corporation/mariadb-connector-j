@@ -76,6 +76,33 @@ public class JdbcParserTest {
   }
 
   @Test
+  public void testPropertiesObjectParsing() throws SQLException {
+    String url =
+        "jdbc:mariadb://master:3306,replica1:3307,replica2:3308/database?autoReconnect=true";
+
+    UrlParser urlParser = UrlParser.parse(url, null);
+    assertEquals("database", urlParser.getDatabase());
+    assertNull(urlParser.getUsername());
+    assertNull(urlParser.getPassword());
+    assertNull(urlParser.getOptions().useSsl);
+    assertNull(urlParser.getOptions().serverSslCert);
+
+    Properties prop = new Properties();
+    prop.setProperty("user", "greg");
+    prop.setProperty("password", "pass");
+    prop.put("useSSL", true);
+    prop.put("serverSslCert", "/path/to/cert.pem");
+
+    urlParser = UrlParser.parse(url, prop);
+
+    assertEquals("database", urlParser.getDatabase());
+    assertEquals("greg", urlParser.getUsername());
+    assertEquals("pass", urlParser.getPassword());
+    assertTrue(urlParser.getOptions().useSsl);
+    assertEquals("/path/to/cert.pem", urlParser.getOptions().serverSslCert);
+  }
+
+  @Test
   public void testAuroraUseBatchMultiSend() throws Throwable {
     assertTrue(
         UrlParser.parse("jdbc:mariadb://localhost/test")
