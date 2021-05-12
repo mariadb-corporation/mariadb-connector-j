@@ -121,7 +121,9 @@ public final class ExceptionFactory {
       msg.append("\ndeadlock information: ").append(deadLockException);
     }
 
-    if (options != null && options.includeThreadDumpInDeadlockExceptions) {
+    if (options != null
+            && deadLockException != null
+            && options.includeThreadDumpInDeadlockExceptions) {
       if (threadName != null) {
         msg.append("\nthread name: ").append(threadName);
       }
