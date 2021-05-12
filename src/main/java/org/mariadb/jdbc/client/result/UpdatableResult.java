@@ -29,9 +29,10 @@ public class UpdatableResult extends CompleteResult {
   private String database;
   private String table;
   private boolean canInsert;
+  private boolean canUpdate;
+  private String sqlStateError = "HY000";
   private boolean isAutoincrementPk;
   private int savedRowPointer;
-  private boolean canUpdate;
   private String changeError;
   private int state = STATE_STANDARD;
   private ParameterList parameters;
@@ -73,17 +74,20 @@ public class UpdatableResult extends CompleteResult {
       if (columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
+        sqlStateError = "0A000";
         return;
       }
 
       if (database != null && !database.equals(columnDefinition.getSchema())) {
         cannotUpdateInsertRow("The result-set contains more than one database");
+        sqlStateError = "0A000";
         return;
       }
       database = columnDefinition.getSchema();
 
       if (table != null && !table.equals(columnDefinition.getTable())) {
         cannotUpdateInsertRow("The result-set contains fields on different tables");
+        sqlStateError = "0A000";
         return;
       }
       table = columnDefinition.getTable();
@@ -148,7 +152,7 @@ public class UpdatableResult extends CompleteResult {
         throw new SQLDataException("Current position is after the last row", "22023");
       }
       if (!canUpdate) {
-        throw exceptionFactory.create("ResultSet cannot be updated. " + changeError);
+        throw exceptionFactory.create("ResultSet cannot be updated. " + changeError, sqlStateError);
       }
     }
   }
@@ -666,7 +670,7 @@ public class UpdatableResult extends CompleteResult {
       throw exceptionFactory.create("Cannot call deleteRow() when inserting a new row");
     }
     if (!canUpdate) {
-      throw exceptionFactory.create("ResultSet cannot be updated. " + changeError);
+      throw exceptionFactory.create("ResultSet cannot be updated. " + changeError, sqlStateError);
     }
     if (rowPointer < 0) {
       throw new SQLDataException("Current position is before the first row", "22023");
@@ -741,7 +745,7 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void moveToInsertRow() throws SQLException {
     if (!canInsert) {
-      throw exceptionFactory.create("No row can be inserted. " + changeError);
+      throw exceptionFactory.create("No row can be inserted. " + changeError, sqlStateError);
     }
     parameters = new ParameterList(parameters.size());
     state = STATE_INSERT;

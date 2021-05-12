@@ -124,7 +124,7 @@ public class UpdateResultSetTest extends Common {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       assertThrowsContains(
-          SQLException.class,
+          SQLFeatureNotSupportedException.class,
           () -> rs.updateString(1, "1"),
           "The result-set contains fields without without any database/table information");
     }
@@ -144,9 +144,9 @@ public class UpdateResultSetTest extends Common {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       assertThrowsContains(
-          SQLException.class,
+          SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
-          "ResultSet cannot be updated. " + "The result-set contains fields on different tables");
+          "ResultSet cannot be updated. The result-set contains fields on different tables");
     }
   }
 
@@ -163,7 +163,7 @@ public class UpdateResultSetTest extends Common {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       assertThrowsContains(
-          SQLException.class,
+          SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "ResultSet cannot be updated. "
               + "The result-set contains fields without without any database/table information");
@@ -227,7 +227,7 @@ public class UpdateResultSetTest extends Common {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       assertThrowsContains(
-          SQLException.class,
+          SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "The result-set contains more than one database");
     }
@@ -798,21 +798,11 @@ public class UpdateResultSetTest extends Common {
     assertEquals("666", rs.getString(2));
 
     rs.moveToInsertRow();
-    try {
-      rs.refreshRow();
-      fail("Can't refresh when on insert row");
-    } catch (SQLException sqle) {
-      // expected
-    }
+    assertThrows(SQLException.class, () -> rs.refreshRow());
     rs.moveToCurrentRow();
 
     assertFalse(rs.next());
-    try {
-      rs.refreshRow();
-      fail("Can't refresh when not on row.");
-    } catch (SQLException sqle) {
-      // expected
-    }
+    assertThrows(SQLException.class, () -> rs.refreshRow());
   }
 
   @Test
