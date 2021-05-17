@@ -96,7 +96,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   public void loadDataInBatch() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String batch_update =
         "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)";
     String builder = "1\thello\n2\tworld\n";
