@@ -68,14 +68,8 @@ public class SelectResultSet implements ResultSet {
   public static final int YEAR_IS_DATE_TYPE = 2;
   private static final String NOT_UPDATABLE_ERROR =
       "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
-  private static final ColumnDefinition[] INSERT_ID_COLUMNS;
 
   private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
-
-  static {
-    INSERT_ID_COLUMNS = new ColumnDefinition[1];
-    INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT);
-  }
 
   protected TimeZone timeZone;
   protected Options options;
@@ -274,6 +268,8 @@ public class SelectResultSet implements ResultSet {
   }
 
   public static SelectResultSet createEmptyResultSet() {
+    ColumnDefinition[] INSERT_ID_COLUMNS = new ColumnDefinition[1];
+    INSERT_ID_COLUMNS[0] = ColumnDefinition.create("insert_id", ColumnType.BIGINT);
     return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null, TYPE_SCROLL_SENSITIVE);
   }
 
