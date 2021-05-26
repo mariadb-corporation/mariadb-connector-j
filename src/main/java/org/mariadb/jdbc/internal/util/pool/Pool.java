@@ -145,7 +145,7 @@ public class Pool implements AutoCloseable, PoolMBean {
               try {
                 addConnection();
               } catch (SQLException sqle) {
-                // eat
+                logger.error("error adding connection to pool", sqle);
               }
             }
           });
