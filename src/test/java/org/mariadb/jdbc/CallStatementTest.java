@@ -169,6 +169,32 @@ public class CallStatementTest extends BaseTest {
   }
 
   @Test
+  public void functionParameterByNameError() throws SQLException {
+    try (CallableStatement call =
+                 sharedConnection.prepareCall("{? = call stmtSimpleFunction(?,?,?)}")){
+      call.setInt("a", 8);
+      call.setInt(3, 2);
+      call.setInt(4, 2);
+      call.execute();
+
+      try {
+        call.getString("b");
+        fail("must have thrown exception");
+      } catch (SQLDataException ee) {
+        assertTrue(ee.getMessage().contains("No such column"));
+      }
+
+      try {
+        call.getString("d");
+        fail("must have thrown exception");
+      } catch (SQLSyntaxErrorException ee) {
+        assertTrue(ee.getMessage().contains("there is no parameter with the name d"));
+      }
+      assertEquals(8, call.getInt(1));
+    }
+  }
+
+  @Test
   public void prepareStmtWithOutParameter() throws SQLException {
     Assume.assumeTrue(sharedUsePrepare());
     PreparedStatement preparedStatement =

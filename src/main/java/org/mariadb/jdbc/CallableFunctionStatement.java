@@ -181,7 +181,7 @@ public abstract class CallableFunctionStatement extends ClientSidePreparedStatem
    */
   private int nameToOutputIndex(String parameterName) throws SQLException {
     for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
-      String name = parameterMetadata.getParameterName(i);
+      String name = parameterMetadata.getParameterName(i + 1);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
         return i;
       }
