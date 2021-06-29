@@ -183,7 +183,6 @@ public class ExecuteBatchTest extends BaseTest {
     Assume.assumeTrue(isMariadbServer());
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("TRUNCATE TABLE ExecuteBatchTest");
-    stmt.execute("START TRANSACTION");
     try (Connection connection =
         setConnection(
             "&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql="
@@ -192,8 +191,6 @@ public class ExecuteBatchTest extends BaseTest {
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
       addBatchData(preparedStatement, 10000, connection, false, false || !minVersion(10, 2));
-    } finally {
-      sharedConnection.rollback();
     }
   }
 
@@ -298,6 +295,9 @@ public class ExecuteBatchTest extends BaseTest {
       boolean additionnalParameter,
       boolean sendUnique)
       throws SQLException {
+    Statement stmt = connection.createStatement();
+    stmt.execute("START TRANSACTION");
+
     for (int i = 0; i < batchNumber; i++) {
       preparedStatement.setString(1, oneHundredLengthString);
       preparedStatement.setInt(2, i);
@@ -319,8 +319,7 @@ public class ExecuteBatchTest extends BaseTest {
     }
 
     // check that connection is OK and results are well inserted
-    ResultSet resultSet =
-        connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
+    ResultSet resultSet = stmt.executeQuery("SELECT * FROM ExecuteBatchTest");
     for (int i = 0; i < batchNumber; i++) {
       assertTrue(resultSet.next());
       if (sendUnique

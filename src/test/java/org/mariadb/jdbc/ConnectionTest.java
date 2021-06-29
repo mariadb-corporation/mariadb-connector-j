@@ -876,6 +876,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void testWarnings() throws SQLException {
     Assume.assumeTrue(isMariadbServer());
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
     SQLWarning warning = sharedConnection.getWarnings();

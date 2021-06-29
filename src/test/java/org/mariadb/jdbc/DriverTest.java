@@ -972,7 +972,6 @@ public class DriverTest extends BaseTest {
     } finally {
       sharedConnection.rollback();
     }
-
   }
 
   @Test(expected = SQLException.class)
