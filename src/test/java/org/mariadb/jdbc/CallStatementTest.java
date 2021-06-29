@@ -171,7 +171,7 @@ public class CallStatementTest extends BaseTest {
   @Test
   public void functionParameterByNameError() throws SQLException {
     try (CallableStatement call =
-                 sharedConnection.prepareCall("{? = call stmtSimpleFunction(?,?,?)}")){
+        sharedConnection.prepareCall("{? = call stmtSimpleFunction(?,?,?)}")) {
       call.setInt("a", 8);
       call.setInt(3, 2);
       call.setInt(4, 2);

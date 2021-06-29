@@ -397,12 +397,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     if (catalog == null || catalog.isEmpty()) {
-      if (connection.nullCatalogMeansCurrent) {
-        /* Treat null catalog as current */
-        return getImportedKeysUsingInformationSchema("", table);
-      } else {
-        return getImportedKeysUsingInformationSchema(catalog, table);
-      }
+      return getImportedKeysUsingInformationSchema(catalog, table);
     }
 
     try {
@@ -531,14 +526,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    */
   private boolean catalogCond(
       boolean firstCondition, StringBuilder sb, String columnName, String catalog) {
-    if (catalog == null) {
-      /* Treat null catalog as current */
-      if (connection.nullCatalogMeansCurrent) {
-        sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append(" = database()");
-        return false;
-      }
-      return firstCondition;
+    // null catalog => searching without any catalog restriction
+    if (catalog == null && !connection.nullCatalogMeansCurrent) return firstCondition;
+
+    // nullCatalogMeansCurrent or empty catalog => search restricting to current catalog
+    if ((catalog == null && connection.nullCatalogMeansCurrent) || catalog.isEmpty()) {
+      sb.append(firstCondition ? " WHERE " : " AND ").append(columnName).append(" = database()");
+      return false;
     }
+
+    // search with specified catalog
     sb.append(firstCondition ? " WHERE " : " AND ")
         .append(columnName)
         .append("=")
@@ -651,11 +648,17 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     StringBuilder sb =
         new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
-                + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
-                + " NULL REF_GENERATION"
-                + " FROM INFORMATION_SCHEMA.TABLES ");
+            "SELECT TABLE_SCHEMA TABLE_CAT, "
+                + "NULL TABLE_SCHEM, "
+                + "TABLE_NAME, "
+                + "IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE, "
+                + "TABLE_COMMENT REMARKS, "
+                + "NULL TYPE_CAT, "
+                + "NULL TYPE_SCHEM, "
+                + "NULL TYPE_NAME, "
+                + "NULL SELF_REFERENCING_COL_NAME, "
+                + "NULL REF_GENERATION "
+                + "FROM INFORMATION_SCHEMA.TABLES");
     boolean firstCondition = true;
     firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);

@@ -241,6 +241,55 @@ public class DatabaseMetadataTest extends BaseTest {
   }
 
   @Test
+  public void foreignKeyTest() throws SQLException {
+
+    try (Connection con = setConnection("")) {
+      foreignKeyTest(con, true);
+    }
+    try (Connection con = setConnection("&nullCatalogMeansCurrent=false")) {
+      foreignKeyTest(con, false);
+    }
+  }
+
+  private void foreignKeyTest(Connection con, boolean nullAsCurrent) throws SQLException {
+    String db = con.getCatalog();
+    Statement stmt = con.createStatement();
+    stmt.execute("DROP DATABASE IF EXISTS dbTmp");
+    stmt.execute("DROP TABLE IF EXISTS tableWithForeignKey");
+    stmt.execute("DROP TABLE IF EXISTS tableWithPk");
+    stmt.execute("CREATE TABLE tableWithPk(id BIGINT PRIMARY KEY) ENGINE=InnoDB");
+
+    stmt.execute(
+        "CREATE TABLE IF NOT EXISTS tableWithForeignKey\n"
+            + "          (\n"
+            + "                  id BIGINT NOT NULL AUTO_INCREMENT,\n"
+            + "                  fk_id BIGINT,\n"
+            + "                  PRIMARY KEY (id),\n"
+            + "  CONSTRAINT fk_key FOREIGN KEY (fk_id) REFERENCES tableWithPk (id)\n"
+            + "          ) ENGINE=InnoDB");
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getImportedKeys(null, null, "tableWithForeignKey");
+    assertTrue(rs.next());
+    rs.close();
+
+    rs = dbmd.getImportedKeys("", null, "tableWithForeignKey");
+    assertTrue(rs.next());
+
+    stmt.execute("CREATE DATABASE dbTmp");
+    con.setCatalog("dbTmp");
+    try {
+      rs = dbmd.getImportedKeys("", null, "tableWithForeignKey");
+      assertFalse(rs.next());
+
+      rs = dbmd.getImportedKeys(null, null, "tableWithForeignKey");
+      assertEquals(!nullAsCurrent, rs.next());
+    } finally {
+      con.setCatalog(db);
+      stmt.execute("DROP DATABASE dbTmp");
+    }
+  }
+
+  @Test
   public void primaryKeyTest2() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("drop table if exists t2");
@@ -541,13 +590,36 @@ public class DatabaseMetadataTest extends BaseTest {
 
   @Test
   public void testGetTables() throws SQLException {
-    Statement stmt = sharedConnection.createStatement();
-    DatabaseMetaData dbmd = sharedConnection.getMetaData();
-    ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
+    try (Connection con = setConnection("")) {
+      testGetTables(con, true);
+    }
+    try (Connection con = setConnection("&nullCatalogMeansCurrent=false")) {
+      testGetTables(con, false);
+    }
+  }
 
+  private void testGetTables(Connection conn, boolean nullCatalogMeansCurrent) throws SQLException {
+    Statement stmt = conn.createStatement();
+    DatabaseMetaData dbmd = conn.getMetaData();
+    ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
     assertTrue(rs.next());
     rs = dbmd.getTables("", null, "prim_key", null);
-    assertFalse(rs.next());
+    assertTrue(rs.next());
+
+    String db = conn.getCatalog();
+    stmt.execute("DROP DATABASE IF EXISTS dbTmp");
+    stmt.execute("CREATE DATABASE dbTmp");
+    conn.setCatalog("dbTmp");
+    try {
+      rs = dbmd.getTables("", null, "prim_key", null);
+      assertFalse(rs.next());
+      rs = dbmd.getTables(null, null, "prim_key", null);
+      assertEquals(!nullCatalogMeansCurrent, rs.next());
+
+    } finally {
+      conn.setCatalog(db);
+      stmt.execute("DROP DATABASE dbTmp");
+    }
   }
 
   @Test
