@@ -958,16 +958,21 @@ public class DriverTest extends BaseTest {
     Statement stmt =
         sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     stmt.execute("TRUNCATE streamingressetpos");
-    stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4), (5), (6)");
-
-    stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
-    for (int i = 1; i <= 6; i++) {
-      assertTrue(rs.next());
-      assertEquals(i, rs.getRow());
+    stmt.execute("START TRANSACTION");
+    try {
+      stmt.execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4), (5), (6)");
+      stmt.setFetchSize(2);
+      ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
+      for (int i = 1; i <= 6; i++) {
+        assertTrue(rs.next());
+        assertEquals(i, rs.getRow());
+      }
+      assertFalse(rs.next());
+      assertEquals(7, rs.getRow());
+    } finally {
+      sharedConnection.rollback();
     }
-    assertFalse(rs.next());
-    assertEquals(7, rs.getRow());
+
   }
 
   @Test(expected = SQLException.class)

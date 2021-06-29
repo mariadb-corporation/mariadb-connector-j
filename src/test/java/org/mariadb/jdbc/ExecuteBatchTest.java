@@ -181,9 +181,9 @@ public class ExecuteBatchTest extends BaseTest {
     //    Assume.assumeTrue(runLongTest);
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(isMariadbServer());
-
-    sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("TRUNCATE TABLE ExecuteBatchTest");
+    stmt.execute("START TRANSACTION");
     try (Connection connection =
         setConnection(
             "&useBulkStmts=true&useComMulti=false&useBatchMultiSend=true&profileSql="
@@ -192,6 +192,8 @@ public class ExecuteBatchTest extends BaseTest {
           connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
       // packet size : 7 200 068 kb
       addBatchData(preparedStatement, 10000, connection, false, false || !minVersion(10, 2));
+    } finally {
+      sharedConnection.rollback();
     }
   }
 
