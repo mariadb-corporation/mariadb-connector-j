@@ -161,7 +161,7 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
-      client.execute(new QueryPacket("set autocommit=" + ((autoCommit) ? "1" : "0")));
+      client.execute(new QueryPacket(((autoCommit) ? "set autocommit=1" : "set autocommit=0")));
     } finally {
       lock.unlock();
     }
