@@ -1227,7 +1227,11 @@ public class MariaDbConnection implements Connection {
     try {
       return protocol.isValid(timeout * 1000);
     } catch (SQLException e) {
-      // eat
+      if (pooledConnection != null) {
+        MariaDbPooledConnection poolConnection = this.pooledConnection;
+        poolConnection.fireConnectionErrorOccurred(e);
+        poolConnection.close();
+      }
       return false;
     }
   }
