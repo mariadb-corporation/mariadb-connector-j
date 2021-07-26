@@ -66,7 +66,7 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute(
-          "CREATE TABLE yearTableMeta(xx tinyint(1), x2 tinyint(1) unsigned, yy year(4), zz bit, uu smallint)");
+          "CREATE TABLE yearTableMeta(xx tinyint(1), x2 tinyint(1) unsigned, x3 tinyint(4) , yy year(4), zz bit, uu smallint)");
       stmt.execute("FLUSH TABLES");
     }
   }
@@ -102,6 +102,8 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     assertEquals(tinyAsBit ? "BIT" : "TINYINT", rs.getString(6));
     assertTrue(rs.next());
     assertEquals(tinyAsBit ? "BIT" : "TINYINT UNSIGNED", rs.getString(6));
+    assertTrue(rs.next());
+    assertEquals("TINYINT", rs.getString(6));
     assertTrue(rs.next());
     assertEquals(yearAsDate ? "YEAR" : "SMALLINT", rs.getString(6));
     assertEquals(yearAsDate ? null : "5", rs.getString(7)); // column size

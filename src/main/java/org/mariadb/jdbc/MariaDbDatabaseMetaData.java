@@ -93,7 +93,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     if (options.tinyInt1isBit) {
       upperCaseWithoutSize =
-          " IF(COLUMN_TYPE like 'tinyint%', 'BIT', " + upperCaseWithoutSize + ")";
+          " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
     }
 
     if (!options.yearIsDateType) {
@@ -547,7 +547,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   // table name)
   private boolean patternCond(
       boolean firstCondition, StringBuilder sb, String columnName, String tableName) {
-    if (tableName == null) {
+    if (tableName == null || "%".equals(tableName)) {
       return firstCondition;
     }
     sb.append(firstCondition ? " WHERE " : " AND ")
