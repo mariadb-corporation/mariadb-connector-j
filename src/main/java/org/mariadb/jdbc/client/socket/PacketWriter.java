@@ -605,6 +605,7 @@ public class PacketWriter {
     } else {
       newCapacity = maxPacketLength;
     }
+
     if (len + pos > newCapacity) {
       if (mark != -1) {
         // buf is > 16M with mark.

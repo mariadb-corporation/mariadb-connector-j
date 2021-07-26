@@ -479,7 +479,7 @@ public class StatementTest extends Common {
   public void testWarnings() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer());
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Statement stmt = sharedConn.createStatement();
 

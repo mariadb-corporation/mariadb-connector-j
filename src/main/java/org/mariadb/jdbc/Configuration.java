@@ -64,6 +64,7 @@ public class Configuration {
   // various
   private String timezone = null;
   private boolean autocommit = true;
+  private boolean useMysqlMetadata = false;
   private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -153,6 +154,7 @@ public class Configuration {
       Properties nonMappedOptions,
       String timezone,
       boolean autocommit,
+      boolean useMysqlMetadata,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -217,6 +219,7 @@ public class Configuration {
     this.nonMappedOptions = nonMappedOptions;
     this.timezone = timezone;
     this.autocommit = autocommit;
+    this.useMysqlMetadata = useMysqlMetadata;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -313,6 +316,7 @@ public class Configuration {
       String connectionAttributes,
       Boolean useBulkStmts,
       Boolean autocommit,
+      Boolean useMysqlMetadata,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -386,6 +390,7 @@ public class Configuration {
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
     if (autocommit != null) this.autocommit = autocommit;
+    if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -667,6 +672,7 @@ public class Configuration {
         this.nonMappedOptions,
         this.timezone,
         this.autocommit,
+        this.useMysqlMetadata,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -892,6 +898,10 @@ public class Configuration {
 
   public boolean autocommit() {
     return autocommit;
+  }
+
+  public boolean useMysqlMetadata() {
+    return useMysqlMetadata;
   }
 
   public boolean includeInnodbStatusInDeadlockExceptions() {
@@ -1157,6 +1167,7 @@ public class Configuration {
     // various
     private String timezone;
     private Boolean autocommit;
+    private Boolean useMysqlMetadata;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private String geometryDefaultType;
@@ -1577,6 +1588,18 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Permit to indicate to force DatabaseMetadata.getDatabaseProductName() to return `MySQL` as
+     * database type, not real database type
+     *
+     * @param useMysqlMetadata
+     * @return
+     */
+    public Builder useMysqlMetadata(Boolean useMysqlMetadata) {
+      this.useMysqlMetadata = useMysqlMetadata;
+      return this;
+    }
+
     public Builder includeInnodbStatusInDeadlockExceptions(
         Boolean includeInnodbStatusInDeadlockExceptions) {
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
@@ -1723,6 +1746,7 @@ public class Configuration {
               this.connectionAttributes,
               this.useBulkStmts,
               this.autocommit,
+              this.useMysqlMetadata,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

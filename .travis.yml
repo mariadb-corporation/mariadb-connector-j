@@ -19,7 +19,7 @@ cache:
     - $HOME/docker
     - $HOME/.m2
 
-env: LOCAL=0
+env: local=0
 
 install:
   - |-

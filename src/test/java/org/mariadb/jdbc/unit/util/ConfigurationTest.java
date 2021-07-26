@@ -827,4 +827,28 @@ public class ConfigurationTest extends Common {
     assertNotEquals("", conf);
     assertNotEquals(Configuration.parse("jdbc:mariadb://localhost/test2"), conf);
   }
+
+  @Test
+  public void useMysqlMetadata() throws SQLException {
+    assertTrue(
+        new Configuration.Builder()
+            .database("DB")
+            .useMysqlMetadata(true)
+            .build()
+            .useMysqlMetadata());
+
+    assertFalse(
+        new Configuration.Builder()
+            .database("DB")
+            .useMysqlMetadata(false)
+            .build()
+            .useMysqlMetadata());
+
+    assertFalse(
+        new Configuration.Builder()
+            .database("DB")
+            .useMysqlMetadata(null)
+            .build()
+            .useMysqlMetadata());
+  }
 }

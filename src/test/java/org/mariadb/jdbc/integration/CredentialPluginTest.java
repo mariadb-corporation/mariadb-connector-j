@@ -132,7 +132,7 @@ public class CredentialPluginTest extends Common {
 
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
+        () -> createCon("&user=toti&credentialType=ENV&pwdKey=myPwdKey"),
         "Access denied");
 
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");

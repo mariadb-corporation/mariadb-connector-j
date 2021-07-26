@@ -1179,7 +1179,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @return server type
    */
   public String getDatabaseProductName() {
-    if (connection.getContext().getVersion().isMariaDBServer()) {
+    if (!conf.useMysqlMetadata() && connection.getContext().getVersion().isMariaDBServer()) {
       return "MariaDB";
     }
     return "MySQL";
