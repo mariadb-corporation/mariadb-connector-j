@@ -245,35 +245,37 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @return SQLException exception with new message in case of timer timeout.
    */
   protected SQLException executeExceptionEpilogue(SQLException sqle) {
-    // if has a failover, closing the statement
-    if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
-      try {
-        close();
-      } catch (SQLException sqlee) {
-        // eat exception
+    try {
+      if (sqle.getErrorCode() == 1148 && !options.allowLocalInfile) {
+        return exceptionFactory
+                .raiseStatementError(connection, this)
+                .create(
+                        "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                        "42000",
+                        1148,
+                        sqle);
       }
-    }
 
-    if (sqle.getErrorCode() == 1148 && !options.allowLocalInfile) {
-      return exceptionFactory
-          .raiseStatementError(connection, this)
-          .create(
-              "Usage of LOCAL INFILE is disabled. "
-                  + "To use it enable it via the connection property allowLocalInfile=true",
-              "42000",
-              1148,
-              sqle);
-    }
+      if (isTimedout) {
+        return exceptionFactory
+                .raiseStatementError(connection, this)
+                .create("Query timed out", "70100", 1317, sqle);
+      }
 
-    if (isTimedout) {
-      return exceptionFactory
-          .raiseStatementError(connection, this)
-          .create("Query timed out", "70100", 1317, sqle);
-    }
+      SQLException sqlException = exceptionFactory.raiseStatementError(connection, this).create(sqle);
+      logger.error("error executing query", sqlException);
+      return sqlException;
+    } finally {
+      // if has a failover, closing the statement
+      if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+        try {
+          close();
+        } catch (SQLException sqlee) {
+          // eat exception
+        }
+      }
 
-    SQLException sqlException = exceptionFactory.raiseStatementError(connection, this).create(sqle);
-    logger.error("error executing query", sqlException);
-    return sqlException;
+    }
   }
 
   protected void executeEpilogue() {
@@ -290,22 +292,23 @@ public class MariaDbStatement implements Statement, Cloneable {
   }
 
   private SQLException handleFailoverAndTimeout(SQLException sqle) {
-
-    // if has a failover, closing the statement
-    if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
-      try {
-        close();
-      } catch (SQLException sqlee) {
-        // eat exception
+    try {
+      if (isTimedout) {
+        return exceptionFactory
+                .raiseStatementError(connection, this)
+                .create("Query timed out", "70100", 1317, sqle);
+      }
+      return sqle;
+    } finally {
+      // if has a failover, closing the statement
+      if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+        try {
+          close();
+        } catch (SQLException sqlee) {
+          // eat exception
+        }
       }
     }
-
-    if (isTimedout) {
-      return exceptionFactory
-          .raiseStatementError(connection, this)
-          .create("Query timed out", "70100", 1317, sqle);
-    }
-    return sqle;
   }
 
   protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqle, int size) {

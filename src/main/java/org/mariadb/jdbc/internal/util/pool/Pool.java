@@ -357,12 +357,16 @@ public class Pool implements AutoCloseable, PoolMBean {
 
           @Override
           public void connectionErrorOccurred(ConnectionEvent event) {
-
             MariaDbPooledConnection item = ((MariaDbPooledConnection) event.getSource());
-            if (idleConnections.remove(item)) {
-              totalConnection.decrementAndGet();
-            }
+            totalConnection.decrementAndGet();
+            // if occurs when idle, remove from list
+            idleConnections.remove(item);
             silentCloseConnection(item);
+
+            // ensure that other connection will be validated before being use
+            // since one connection failed, better to assume the other might as well
+            idleConnections.stream().forEach(c -> c.lastUsedToNow());
+
             addConnectionRequest();
             logger.debug(
                 "connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",

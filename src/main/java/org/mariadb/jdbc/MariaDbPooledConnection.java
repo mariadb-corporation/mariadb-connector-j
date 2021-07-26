@@ -191,7 +191,7 @@ public class MariaDbPooledConnection implements PooledConnection {
    * @param st statement
    * @param ex exception
    */
-  public void fireStatementErrorOccured(Statement st, SQLException ex) {
+  public void fireStatementErrorOccurred(Statement st, SQLException ex) {
     if (st instanceof PreparedStatement) {
       StatementEvent event = new StatementEvent(this, (PreparedStatement) st, ex);
       for (StatementEventListener listener : statementEventListeners) {
@@ -213,7 +213,7 @@ public class MariaDbPooledConnection implements PooledConnection {
    *
    * @param ex exception
    */
-  public void fireConnectionErrorOccured(SQLException ex) {
+  public void fireConnectionErrorOccurred(SQLException ex) {
     ConnectionEvent event = new ConnectionEvent(this, ex);
     for (ConnectionEventListener listener : connectionEventListeners) {
       listener.connectionErrorOccurred(event);
@@ -241,5 +241,9 @@ public class MariaDbPooledConnection implements PooledConnection {
   /** Set last poolConnection use to now. */
   public void lastUsedToNow() {
     lastUsed.set(System.nanoTime());
+  }
+
+  public void ensureValidation() {
+    lastUsed.set(0);
   }
 }

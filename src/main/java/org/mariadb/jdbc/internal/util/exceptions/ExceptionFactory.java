@@ -81,7 +81,10 @@ public final class ExceptionFactory {
     }
 
     if (connection != null && connection.pooledConnection != null) {
-      connection.pooledConnection.fireStatementErrorOccured(statement, returnEx);
+      connection.pooledConnection.fireStatementErrorOccurred(statement, returnEx);
+      if (returnEx instanceof SQLNonTransientConnectionException) {
+        connection.pooledConnection.fireConnectionErrorOccurred(returnEx);
+      }
     }
     return returnEx;
   }
