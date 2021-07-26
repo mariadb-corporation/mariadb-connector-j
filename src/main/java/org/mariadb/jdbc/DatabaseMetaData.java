@@ -519,7 +519,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   // table name)
   private boolean patternCond(
       boolean firstCondition, StringBuilder sb, String columnName, String tableName) {
-    if (tableName == null) {
+    if (tableName == null || "%".equals(tableName)) {
       return firstCondition;
     }
     sb.append(firstCondition ? " WHERE " : " AND ")
