@@ -101,7 +101,11 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     assertTrue(rs.next());
     assertEquals(tinyAsBit ? "BIT" : "TINYINT", rs.getString(6));
     assertTrue(rs.next());
-    assertEquals(tinyAsBit ? "BIT" : "TINYINT UNSIGNED", rs.getString(6));
+    if (isMariadbServer() || !minVersion(8, 0)) {
+      assertEquals(tinyAsBit ? "BIT" : "TINYINT UNSIGNED", rs.getString(6));
+    } else {
+      assertEquals("TINYINT UNSIGNED", rs.getString(6));
+    }
     assertTrue(rs.next());
     assertEquals("TINYINT", rs.getString(6));
     assertTrue(rs.next());
