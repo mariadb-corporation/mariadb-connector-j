@@ -135,6 +135,7 @@ public class PooledConnectionTest extends Common {
 
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
+      Thread.sleep(100);
       InternalPoolConnection pc = ds.getPooledConnection();
       org.mariadb.jdbc.Connection conn = pc.getConnection();
       long threadId = conn.getThreadId();
@@ -153,10 +154,12 @@ public class PooledConnectionTest extends Common {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
       assertTrue(
           contents.contains(
-              "removed from pool MariaDB-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
+              "removed from pool MariaDB-pool due to error during reset (total:0, active:0, pending:0)"),
+          contents);
+      assertTrue(contents.contains("pool MariaDB-pool new physical connection created"), contents);
+
       assertTrue(
-          contents.contains("connection removed from pool MariaDB-pool due to error during reset"));
-      assertTrue(contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"));
+          contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"), contents);
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
     }

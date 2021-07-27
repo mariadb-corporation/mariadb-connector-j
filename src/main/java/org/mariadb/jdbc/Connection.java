@@ -619,6 +619,11 @@ public class Connection implements java.sql.Connection {
       client.execute(PingPacket.INSTANCE);
       return true;
     } catch (SQLException sqle) {
+      if (poolConnection != null) {
+        MariaDbPoolConnection poolConnection = this.poolConnection;
+        poolConnection.fireConnectionErrorOccurred(sqle);
+        poolConnection.close();
+      }
       return false;
     } finally {
       lock.unlock();

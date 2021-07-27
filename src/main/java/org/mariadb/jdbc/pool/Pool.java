@@ -192,15 +192,23 @@ public class Pool implements AutoCloseable, PoolMBean {
             if (poolState.get() == POOL_STATE_OK) {
               try {
                 if (!idleConnections.contains(item)) {
+                  item.getConnection().setPoolConnection(null);
                   item.getConnection().reset();
                   idleConnections.addFirst(item);
+                  item.getConnection().setPoolConnection(item);
                 }
               } catch (SQLException sqle) {
 
                 // sql exception during reset, removing connection from pool
                 totalConnection.decrementAndGet();
                 silentCloseConnection(item.getConnection());
-                logger.debug("connection removed from pool {} due to error during reset", poolTag);
+                logger.debug(
+                    "connection {} removed from pool {} due to error during reset (total:{}, active:{}, pending:{})",
+                    item.getConnection().getThreadId(),
+                    poolTag,
+                    totalConnection.get(),
+                    getActiveConnections(),
+                    pendingRequestNumber.get());
               }
             } else {
               // pool is closed, should then not be render to pool, but closed.
@@ -217,9 +225,13 @@ public class Pool implements AutoCloseable, PoolMBean {
           public void connectionErrorOccurred(ConnectionEvent event) {
 
             InternalPoolConnection item = ((InternalPoolConnection) event.getSource());
-            if (idleConnections.remove(item)) {
-              totalConnection.decrementAndGet();
-            }
+            totalConnection.decrementAndGet();
+            idleConnections.remove(item);
+
+            // ensure that other connection will be validated before being use
+            // since one connection failed, better to assume the other might as well
+            idleConnections.stream().forEach(c -> c.lastUsedToNow());
+
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
             logger.debug(
@@ -284,8 +296,6 @@ public class Pool implements AutoCloseable, PoolMBean {
         } catch (SQLException sqle) {
           // eat
         }
-
-        totalConnection.decrementAndGet();
 
         // validation failed
         silentAbortConnection(item.getConnection());
