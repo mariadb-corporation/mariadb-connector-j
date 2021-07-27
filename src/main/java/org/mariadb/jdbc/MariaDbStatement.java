@@ -248,21 +248,22 @@ public class MariaDbStatement implements Statement, Cloneable {
     try {
       if (sqle.getErrorCode() == 1148 && !options.allowLocalInfile) {
         return exceptionFactory
-                .raiseStatementError(connection, this)
-                .create(
-                        "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
-                        "42000",
-                        1148,
-                        sqle);
+            .raiseStatementError(connection, this)
+            .create(
+                "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                "42000",
+                1148,
+                sqle);
       }
 
       if (isTimedout) {
         return exceptionFactory
-                .raiseStatementError(connection, this)
-                .create("Query timed out", "70100", 1317, sqle);
+            .raiseStatementError(connection, this)
+            .create("Query timed out", "70100", 1317, sqle);
       }
 
-      SQLException sqlException = exceptionFactory.raiseStatementError(connection, this).create(sqle);
+      SQLException sqlException =
+          exceptionFactory.raiseStatementError(connection, this).create(sqle);
       logger.error("error executing query", sqlException);
       return sqlException;
     } finally {
@@ -274,7 +275,6 @@ public class MariaDbStatement implements Statement, Cloneable {
           // eat exception
         }
       }
-
     }
   }
 
@@ -295,8 +295,8 @@ public class MariaDbStatement implements Statement, Cloneable {
     try {
       if (isTimedout) {
         return exceptionFactory
-                .raiseStatementError(connection, this)
-                .create("Query timed out", "70100", 1317, sqle);
+            .raiseStatementError(connection, this)
+            .create("Query timed out", "70100", 1317, sqle);
       }
       return sqle;
     } finally {

@@ -332,7 +332,13 @@ public class Pool implements AutoCloseable, PoolMBean {
             if (poolState.get() == POOL_STATE_OK) {
               try {
                 if (!idleConnections.contains(item)) {
+                  // remove pool connection to avoid throwing connectionErrorOccurred
+                  item.getConnection().pooledConnection = null;
+
                   item.getConnection().reset();
+
+                  // set pool connection back
+                  item.getConnection().pooledConnection = item;
                   idleConnections.addFirst(item);
                 }
               } catch (SQLException sqle) {
@@ -340,7 +346,13 @@ public class Pool implements AutoCloseable, PoolMBean {
                 // sql exception during reset, removing connection from pool
                 totalConnection.decrementAndGet();
                 silentCloseConnection(item);
-                logger.debug("connection removed from pool {} due to error during reset", poolTag);
+                logger.debug(
+                    "connection {} removed from pool {} due to error during reset (total:{}, active:{}, pending:{})",
+                    item.getConnection().getServerThreadId(),
+                    poolTag,
+                    totalConnection.get(),
+                    getActiveConnections(),
+                    pendingRequestNumber.get());
               }
             } else {
               // pool is closed, should then not be render to pool, but closed.
