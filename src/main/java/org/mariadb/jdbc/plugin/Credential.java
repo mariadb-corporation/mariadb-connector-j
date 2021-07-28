@@ -2,7 +2,7 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
 
-package org.mariadb.jdbc.plugin.credential;
+package org.mariadb.jdbc.plugin;
 
 public class Credential {
   private final String password;

@@ -25,7 +25,7 @@ import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
-import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 

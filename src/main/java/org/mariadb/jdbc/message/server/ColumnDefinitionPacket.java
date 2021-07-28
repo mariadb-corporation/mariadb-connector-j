@@ -9,9 +9,9 @@ import java.sql.Types;
 import java.util.Objects;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.codec.list.*;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 

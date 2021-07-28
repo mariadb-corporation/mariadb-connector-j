@@ -155,6 +155,7 @@
         <configuration>
           <archive>
             <manifestEntries>
+              <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
               <Multi-Release>true</Multi-Release>
             </manifestEntries>
           </archive>

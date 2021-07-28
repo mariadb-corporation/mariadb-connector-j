@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class IntCodec implements Codec<Integer> {
 
@@ -258,7 +258,7 @@ public class IntCodec implements Codec<Integer> {
   @Override
   public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeInt(((Integer) value).intValue());
+    encoder.writeInt((Integer) value);
   }
 
   public int getBinaryEncodeType() {

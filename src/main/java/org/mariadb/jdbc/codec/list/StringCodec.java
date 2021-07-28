@@ -7,6 +7,7 @@ package org.mariadb.jdbc.codec.list;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.time.LocalDate;
@@ -17,9 +18,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class StringCodec implements Codec<String> {
@@ -175,7 +176,7 @@ public class StringCodec implements Codec<String> {
           val = new BigInteger(1, bb);
         }
 
-        return new BigDecimal(String.valueOf(val)).setScale(column.getDecimals()).toPlainString();
+        return new BigDecimal(String.valueOf(val)).setScale(column.getDecimals(), RoundingMode.CEILING).toPlainString();
 
       case FLOAT:
         return String.valueOf(buf.readFloat());

@@ -13,9 +13,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class DoubleCodec implements Codec<Double> {
 
@@ -121,16 +121,16 @@ public class DoubleCodec implements Codec<Double> {
     switch (column.getType()) {
       case TINYINT:
         if (!column.isSigned()) {
-          return (double) buf.readUnsignedByte();
+          return buf.readUnsignedByte();
         }
-        return (double) buf.readByte();
+        return buf.readByte();
 
       case YEAR:
       case SMALLINT:
         if (!column.isSigned()) {
-          return (double) buf.readUnsignedShort();
+          return buf.readUnsignedShort();
         }
-        return (double) buf.readShort();
+        return buf.readShort();
 
       case MEDIUMINT:
         double d;
@@ -142,7 +142,7 @@ public class DoubleCodec implements Codec<Double> {
         if (!column.isSigned()) {
           return (double) buf.readUnsignedInt();
         }
-        return (double) buf.readInt();
+        return buf.readInt();
 
       case BIGINT:
         if (column.isSigned()) {
@@ -157,7 +157,7 @@ public class DoubleCodec implements Codec<Double> {
         }
 
       case FLOAT:
-        return (double) buf.readFloat();
+        return buf.readFloat();
 
       case DOUBLE:
         return buf.readDouble();

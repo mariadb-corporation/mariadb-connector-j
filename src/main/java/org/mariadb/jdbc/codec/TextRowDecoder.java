@@ -9,6 +9,7 @@ import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class TextRowDecoder extends RowDecoder {
 

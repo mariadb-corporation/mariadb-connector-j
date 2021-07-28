@@ -7,6 +7,7 @@ package org.mariadb.jdbc.plugin.credential;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 
 /**
  * Provider to handle plugin authentication. This can allow library users to override our default

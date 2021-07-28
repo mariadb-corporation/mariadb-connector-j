@@ -11,7 +11,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
 public class ClearPasswordPlugin implements AuthenticationPlugin {
 

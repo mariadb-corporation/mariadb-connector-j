@@ -4,8 +4,8 @@
 
 package org.mariadb.jdbc.integration.util;
 
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 
 /**
  * Authentication using environment variable.

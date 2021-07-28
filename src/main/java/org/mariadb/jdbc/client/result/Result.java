@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
@@ -20,13 +21,13 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.codec.BinaryRowDecoder;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.RowDecoder;
 import org.mariadb.jdbc.codec.TextRowDecoder;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
@@ -304,7 +305,7 @@ public abstract class Result implements ResultSet, Completion {
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     BigDecimal d = row.getValue(columnIndex, BigDecimalCodec.INSTANCE, null);
     if (d == null) return null;
-    return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
+    return d.setScale(scale, RoundingMode.HALF_DOWN);
   }
 
   @Override
@@ -388,7 +389,7 @@ public abstract class Result implements ResultSet, Completion {
   public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
     BigDecimal d = row.getValue(columnLabel, BigDecimalCodec.INSTANCE, null);
     if (d == null) return null;
-    return d.setScale(scale, BigDecimal.ROUND_HALF_DOWN);
+    return d.setScale(scale, RoundingMode.HALF_DOWN);
   }
 
   @Override

@@ -17,6 +17,7 @@ import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.ParameterList;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {

@@ -17,6 +17,7 @@ import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class UpdatableResult extends CompleteResult {
@@ -104,7 +105,7 @@ public class UpdatableResult extends CompleteResult {
     canUpdate = false;
     changeError = "Cannot update rows, since primary field is not present in query";
 
-    // check that table contain a generated primary field
+    // check that table contains a generated primary field
     // to check if insert are still possible
     ResultSet rs =
         statement

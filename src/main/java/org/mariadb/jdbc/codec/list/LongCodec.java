@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class LongCodec implements Codec<Long> {
 
@@ -183,16 +183,16 @@ public class LongCodec implements Codec<Long> {
 
       case TINYINT:
         if (!column.isSigned()) {
-          return (long) buf.readUnsignedByte();
+          return buf.readUnsignedByte();
         }
-        return (long) buf.readByte();
+        return buf.readByte();
 
       case YEAR:
       case SMALLINT:
         if (!column.isSigned()) {
-          return (long) buf.readUnsignedShort();
+          return buf.readUnsignedShort();
         }
-        return (long) buf.readShort();
+        return buf.readShort();
 
       case MEDIUMINT:
         long l = column.isSigned() ? buf.readMedium() : buf.readUnsignedMedium();
@@ -203,7 +203,7 @@ public class LongCodec implements Codec<Long> {
         if (!column.isSigned()) {
           return buf.readUnsignedInt();
         }
-        return (long) buf.readInt();
+        return buf.readInt();
 
       case BIGINT:
         if (column.isSigned() || (buf.getByte(buf.pos() + 7) & 0x80) == 0) {

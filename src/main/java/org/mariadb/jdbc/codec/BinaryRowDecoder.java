@@ -9,6 +9,7 @@ import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.codec.list.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class BinaryRowDecoder extends RowDecoder {
 
@@ -198,7 +199,6 @@ public class BinaryRowDecoder extends RowDecoder {
           default:
             // length is encoded on 1 bytes (is then less than 251)
             length = len;
-            return;
         }
     }
   }

@@ -13,8 +13,8 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 
 /**
  * Permit AWS database IAM authentication.

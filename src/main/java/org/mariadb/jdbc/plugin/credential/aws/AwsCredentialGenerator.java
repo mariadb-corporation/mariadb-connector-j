@@ -13,7 +13,7 @@ import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
 import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
 import java.util.Properties;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.plugin.credential.Credential;
+import org.mariadb.jdbc.plugin.Credential;
 
 public class AwsCredentialGenerator {
 

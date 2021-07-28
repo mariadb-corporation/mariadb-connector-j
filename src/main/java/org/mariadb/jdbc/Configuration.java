@@ -10,8 +10,8 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.mariadb.jdbc.codec.Codec;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -1122,7 +1122,7 @@ public class Configuration {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
-              sb.append(obj.toString());
+              sb.append(obj);
             }
           }
         }
@@ -1589,11 +1589,11 @@ public class Configuration {
     }
 
     /**
-     * Permit to indicate to force DatabaseMetadata.getDatabaseProductName() to return `MySQL` as
+     * Permit indicating to force DatabaseMetadata.getDatabaseProductName() to return `MySQL` as
      * database type, not real database type
      *
-     * @param useMysqlMetadata
-     * @return
+     * @param useMysqlMetadata force DatabaseMetadata.getDatabaseProductName() to return `MySQL`
+     * @return this {@link Builder}
      */
     public Builder useMysqlMetadata(Boolean useMysqlMetadata) {
       this.useMysqlMetadata = useMysqlMetadata;
