@@ -813,6 +813,41 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
+  public void ensureSocketTimeoutState() throws Throwable {
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS ensureSocketTimeoutState");
+    stmt.execute("CREATE TABLE ensureSocketTimeoutState(id int auto_increment primary key)");
+    stmt.execute("INSERT INTO ensureSocketTimeoutState VALUES (1), (3), (5), (7), (9)");
+
+    new Thread(
+            () -> {
+              try (Connection conn = setConnection("&socketTimeout=1000")) {
+                Statement stmt2 = conn.createStatement();
+                stmt2.execute("BEGIN");
+                stmt2.execute("DELETE FROM ensureSocketTimeoutState WHERE id IN (1, 3, 5, 7, 9)");
+                stmt2.execute("SELECT SLEEP(30)");
+              } catch (SQLException e) {
+                // eat
+              }
+            })
+        .start();
+    Thread.sleep(100);
+
+    long insertStart = System.currentTimeMillis();
+
+    try (Connection conn = setConnection()) {
+      Statement stmt2 = conn.createStatement();
+      stmt2.execute("BEGIN");
+      stmt2.execute("INSERT INTO ensureSocketTimeoutState VALUES (2)");
+      stmt2.execute("COMMIT");
+    }
+    assertTrue(System.currentTimeMillis() - insertStart < 5000);
+  }
+
+  @Test
   public void prepareStatementCols() throws SQLException {
     try (PreparedStatement preparedStatement =
         sharedConnection.prepareStatement("SELECT 1", new int[] {})) {

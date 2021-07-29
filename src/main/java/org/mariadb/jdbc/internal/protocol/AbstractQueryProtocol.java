@@ -2046,6 +2046,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (maxSizeError) {
         mustReconnect = true;
       }
+      if (initialException instanceof SocketTimeoutException) destroySocket();
     }
 
     if (mustReconnect && !explicitClosed) {
