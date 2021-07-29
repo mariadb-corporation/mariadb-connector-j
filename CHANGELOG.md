@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.7.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.4) (29 Jul 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.3...2.7.4)
+
+* CONJ-890	getImportedKeys/getTables regression returning an empty resultset for null/empty catalog
+* CONJ-863	Ensure socket state when SocketTimeout occurs
+* CONJ-873	IndexOutOfBoundsException when executing prepared queries using automatic key generation in parallel
+* CONJ-884	MariaDbPoolDataSource leaks connections when the mariadb server restarts
+* CONJ-893	DatabaseMetaData.getColumns regression causing TINYINT(x) with x > 1 to return BIT type in place of TINYINT
+* CONJ-889	CallableStatement using function throw wrong error on getter
+
+
 ## [3.0.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.0) (3 May 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.2...3.0.0)
 
@@ -53,8 +64,21 @@ COMMIT;
 Equivalent options are `tcpKeepIdle`, `tcpKeepCount`, `tcpKeepInterval`
 Since available only with java 11, setting this option with java < 11 will have no effect. 
 
+## [2.7.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.3) (12 May 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.2...2.7.3)
 
-
+* CONJ-619	Multiple batch update fails after LOAD DATA LOCAL INFILE
+* CONJ-854	LOAD XML INFILE breaks when using LOCAL
+* CONJ-855	throwing more specific exception for updatable result-set that can not be updated by ResultSet
+* CONJ-857	Remove use of mysql.proc table, relying on information_schema.parameters
+* CONJ-864	includeThreadDumpInDeadlockExceptions always includes the thread dump, even when it is not a deadlock exception
+* CONJ-866	long binary parsing improvement
+* CONJ-871	OSGi: Missing Import-Package in Connector/J bundle (javax.sql.rowset.serial)
+* CONJ-878	option serverSslCert file location
+* CONJ-880	metadata query performance correction
+* CONJ-858	Properties.put with object that differ from String supported even if use is not recommended
+* CONJ-861	executeBatch must not clear last parameter value.
+* CONJ-883	using unix socket, hostname is not mandatory anymore
 
 
 ## [2.7.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.2) (29 Jan. 2021)
