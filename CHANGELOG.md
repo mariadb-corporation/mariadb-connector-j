@@ -1,5 +1,16 @@
 # Change Log
 
+## [3.0.1-beta](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.1-rc) (29 Jul 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.0-alpha...3.0.1-beta)
+
+* CONJ-879 Provide JPMS module descriptor
+* CONJ-880 metadata query performance correction
+* CONJ-884 MariaDbPoolDataSource leaks connections when the mariadb server restarts
+* CONJ-885 org.mariadb.jdbc.internal.util.pool.Pool swallows SQLException during addConnection
+* CONJ-891 getImportedKeys with null catalog restrict result to current database		
+* CONJ-894 Adding useMysqlMetadata for 2.7 compatibility
+
+
 ## [2.7.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.4) (29 Jul 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.3...2.7.4)
 
