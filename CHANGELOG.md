@@ -1,5 +1,16 @@
 # Change Log
 
+## [2.7.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.4) (29 Jul 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.3...2.7.4)
+
+* CONJ-890	getImportedKeys/getTables regression returning an empty resultset for null/empty catalog
+* CONJ-863	Ensure socket state when SocketTimeout occurs
+* CONJ-873	IndexOutOfBoundsException when executing prepared queries using automatic key generation in parallel
+* CONJ-884	MariaDbPoolDataSource leaks connections when the mariadb server restarts
+* CONJ-893	DatabaseMetaData.getColumns regression causing TINYINT(x) with x > 1 to return BIT type in place of TINYINT
+* CONJ-889	CallableStatement using function throw wrong error on getter
+
+
 ## [2.7.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.3) (12 May 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.2...2.7.3)
 
@@ -786,7 +797,6 @@ LOAD DATA INFILE The fastest way to load many datas is using query [LOAD DATA IN
 * If someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
 
 See [load-data-infile documentation](./documentation/use-mariadb-connector-j-driver.creole#load-data-infile) for more information.
-
 Interceptors can now filter LOAD DATA LOCAL INFILE query's file location to validate path / file name.
 Those interceptors:
 * Must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
