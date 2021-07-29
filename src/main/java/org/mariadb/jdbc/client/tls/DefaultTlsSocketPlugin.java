@@ -20,7 +20,7 @@ import java.util.UUID;
 import javax.net.ssl.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.SslMode;
-import org.mariadb.jdbc.plugin.tls.TlsSocketPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;

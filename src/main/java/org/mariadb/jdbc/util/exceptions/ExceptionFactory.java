@@ -51,7 +51,6 @@ public class ExceptionFactory {
       String initialMessage,
       long threadId,
       Configuration conf,
-      Exception cause,
       String sql,
       int errorCode,
       Connection connection) {
@@ -97,8 +96,8 @@ public class ExceptionFactory {
                     .append(thread.getId())
                     .append(" status:")
                     .append(thread.getState());
-                for (int i = 0; i < traces.length; i++) {
-                  msg.append("\n    ").append(traces[i]);
+                for (StackTraceElement trace : traces) {
+                  msg.append("\n    ").append(trace);
                 }
               });
     }
@@ -189,8 +188,7 @@ public class ExceptionFactory {
   private SQLException createException(
       String initialMessage, String sqlState, int errorCode, Exception cause) {
 
-    String msg =
-        buildMsgText(initialMessage, threadId, conf, cause, getSql(), errorCode, connection);
+    String msg = buildMsgText(initialMessage, threadId, conf, getSql(), errorCode, connection);
 
     if ("70100".equals(sqlState)) { // ER_QUERY_INTERRUPTED
       return new SQLTimeoutException(msg, sqlState, errorCode);

@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.client.tls.DefaultTlsSocketPlugin;
-import org.mariadb.jdbc.plugin.tls.TlsSocketPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 
 public class TlsSocketPluginLoaderTest extends Common {

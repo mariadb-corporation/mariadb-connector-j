@@ -12,7 +12,7 @@ import org.mariadb.jdbc.client.tls.MariaDbX509TrustingManager;
 public class MariaDbX509TrustingManagerTest {
 
   @Test
-  public void check() throws Exception {
+  public void check() {
     MariaDbX509TrustingManager trustingManager = new MariaDbX509TrustingManager();
     assertNull(trustingManager.getAcceptedIssuers());
     trustingManager.checkClientTrusted(null, null);

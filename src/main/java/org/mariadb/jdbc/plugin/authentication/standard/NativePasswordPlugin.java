@@ -14,7 +14,7 @@ import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketReader;
 import org.mariadb.jdbc.client.socket.PacketWriter;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
-import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
 public class NativePasswordPlugin implements AuthenticationPlugin {
 
@@ -26,11 +26,17 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
   /**
    * Encrypts a password.
    *
-   * <p>protocol for authentication is like this: 1. Server sends a random array of bytes (the seed)
-   * 2. client makes a sha1 digest of the password 3. client hashes the output of 2 4. client
-   * digests the seed 5. client updates the digest with the output from 3 6. an xor of the output of
-   * 5 and 2 is sent to server 7. server does the same thing and verifies that the scrambled
-   * passwords match
+   * <p>protocol for authentication is like this:
+   *
+   * <ul>
+   *   <li>Server sends a random array of bytes (the seed)
+   *   <li>client makes a sha1 digest of the password
+   *   <li>client hashes the output of 2
+   *   <li>client digests the seed
+   *   <li>client updates the digest with the output from 3
+   *   <li>an xor of the output of 5 and 2 is sent to server
+   *   <li>server does the same thing and verifies that the scrambled passwords match
+   * </ul>
    *
    * @param password the password to encrypt
    * @param seed the seed to use

@@ -15,7 +15,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.util.NativeSql;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
@@ -415,7 +414,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * <p>This method returns a Java object whose type corresponds to the JDBC type that was
    * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
+   * registering the target JDBC types as <code>java.sql.Types.OTHER</code>, this method can be used
    * to read database-specific abstract data types.
    *
    * @param parameterIndex the first parameter is 1, the second is 2, and so on
@@ -458,7 +457,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * <p>This method returns a Java object whose type corresponds to the JDBC type that was
    * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
+   * registering the target JDBC types as <code>java.sql.Types.OTHER</code>, this method can be used
    * to read database-specific abstract data types.
    *
    * @param parameterIndex the first parameter is 1, the second is 2, and so on
@@ -1544,7 +1543,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * <p>This method returns a Java object whose type corresponds to the JDBC type that was
    * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
+   * registering the target JDBC types as <code>java.sql.Types.OTHER</code>, this method can be used
    * to read database-specific abstract data types.
    *
    * @param parameterName the name of the parameter
@@ -1585,7 +1584,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * <p>This method returns a Java object whose type corresponds to the JDBC type that was
    * registered for this parameter using the method <code>registerOutParameter</code>. By
-   * registering the target JDBC type as <code>java.sql.Types.OTHER</code>, this method can be used
+   * registering the target JDBC types as <code>java.sql.Types.OTHER</code>, this method can be used
    * to read database-specific abstract data types.
    *
    * @param parameterName the name of the parameter
@@ -1761,7 +1760,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * @param parameterIndex the first parameter is 1, the second is 2,...
    * @return a <code>RowId</code> object that represents the JDBC <code>ROWID</code> value is used
-   *     as the designated parameter. If the parameter contains a SQL <code>NULL</code>, then a
+   *     as the designated parameter. If the parameter contains an SQL <code>NULL</code>, then a
    *     <code>null</code> value is returned.
    * @throws SQLException if the parameterIndex is not valid; if a database access error occurs or
    *     this method is called on a closed <code>CallableStatement</code>
@@ -1779,7 +1778,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * @param parameterName the name of the parameter
    * @return a <code>RowId</code> object that represents the JDBC <code>ROWID</code> value is used
-   *     as the designated parameter. If the parameter contains a SQL <code>NULL</code>, then a
+   *     as the designated parameter. If the parameter contains an SQL <code>NULL</code>, then a
    *     <code>null</code> value is returned.
    * @throws SQLException if parameterName does not correspond to a named parameter; if a database
    *     access error occurs or this method is called on a closed <code>CallableStatement</code>
@@ -1793,7 +1792,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   /**
    * Sets the designated parameter to the given <code>java.sql.RowId</code> object. The driver
-   * converts this to a SQL <code>ROWID</code> when it sends it to the database.
+   * converts this to an SQL <code>ROWID</code> when it sends it to the database.
    *
    * @param parameterName the name of the parameter
    * @param x the parameter value
@@ -1809,7 +1808,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   /**
    * Sets the designated parameter to the given <code>String</code> object. The driver converts this
-   * to a SQL <code>NCHAR</code> or <code>NVARCHAR</code> or <code>LONGNVARCHAR</code>
+   * to an SQL <code>NCHAR</code> or <code>NVARCHAR</code> or <code>LONGNVARCHAR</code>
    *
    * @param parameterName the name of the parameter to be set
    * @param value the parameter value
@@ -1848,7 +1847,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   /**
    * Sets the designated parameter to a <code>java.sql.NClob</code> object. The object implements
-   * the <code>java.sql.NClob</code> interface. This <code>NClob</code> object maps to a SQL <code>
+   * the <code>java.sql.NClob</code> interface. This <code>NClob</code> object maps to an SQL <code>
    * NCLOB</code>.
    *
    * @param parameterName the name of the parameter to be set
@@ -1872,7 +1871,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * <code>setCharacterStream (int, Reader, int)</code> method because it informs the driver that
    * the parameter value should be sent to the server as a <code>CLOB</code>. When the <code>
    * setCharacterStream</code> method is used, the driver may have to do extra work to determine
-   * whether the parameter data should be send to the server as a <code>LONGVARCHAR</code> or a
+   * whether the parameter data should be sent to the server as a <code>LONGVARCHAR</code> or a
    * <code>CLOB</code>
    *
    * @param parameterName the name of the parameter to be set
@@ -1922,7 +1921,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * <code>setCharacterStream (int, Reader, int)</code> method because it informs the driver that
    * the parameter value should be sent to the server as a <code>NCLOB</code>. When the <code>
    * setCharacterStream</code> method is used, the driver may have to do extra work to determine
-   * whether the parameter data should be send to the server as a <code>LONGNVARCHAR</code> or a
+   * whether the parameter data should be sent to the server as a <code>LONGNVARCHAR</code> or a
    * <code>NCLOB</code>
    *
    * @param parameterName the name of the parameter to be set
@@ -2360,7 +2359,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * <code>setCharacterStream (int, Reader)</code> method because it informs the driver that the
    * parameter value should be sent to the server as a <code>CLOB</code>. When the <code>
    * setCharacterStream</code> method is used, the driver may have to do extra work to determine
-   * whether the parameter data should be send to the server as a <code>LONGVARCHAR</code> or a
+   * whether the parameter data should be sent to the server as a <code>LONGVARCHAR</code> or a
    * <code>CLOB</code>
    *
    * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more
@@ -2383,7 +2382,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * <code>setBinaryStream (int, InputStream)</code> method because it informs the driver that the
    * parameter value should be sent to the server as a <code>BLOB</code>. When the <code>
    * setBinaryStream</code> method is used, the driver may have to do extra work to determine
-   * whether the parameter data should be send to the server as a <code>LONGVARBINARY</code> or a
+   * whether the parameter data should be sent to the server as a <code>LONGVARBINARY</code> or a
    * <code>BLOB</code>
    *
    * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more
@@ -2406,7 +2405,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * <code>setCharacterStream (int, Reader)</code> method because it informs the driver that the
    * parameter value should be sent to the server as a <code>NCLOB</code>. When the <code>
    * setCharacterStream</code> method is used, the driver may have to do extra work to determine
-   * whether the parameter data should be send to the server as a <code>LONGNVARCHAR</code> or a
+   * whether the parameter data should be sent to the server as a <code>LONGNVARCHAR</code> or a
    * <code>NCLOB</code>
    *
    * <p><B>Note:</B> Consult your JDBC driver documentation to determine if it might be more
@@ -2657,7 +2656,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    *
    * <p>If the JDBC type expected to be returned to this output parameter is specific to this
    * particular database, {@code sqlType} should be {@code JDBCType.OTHER} or a {@code SQLType} that
-   * is supported by the JDBC driver.. The method {@link #getObject} retrieves the value.
+   * is supported by the JDBC driver. The method {@link #getObject} retrieves the value.
    *
    * <p>The default implementation will throw {@code SQLFeatureNotSupportedException}
    *
@@ -2751,11 +2750,12 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
 
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
-    String sql =
-        "SELECT * from information_schema.parameters WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?";
     PreparedStatement prep =
         new ClientPreparedStatement(
-            NativeSql.parse(sql, con.getContext()),
+            "SELECT * from information_schema.PARAMETERS "
+                + "WHERE SPECIFIC_NAME = ? "
+                + "AND SPECIFIC_SCHEMA = ? "
+                + "ORDER BY ORDINAL_POSITION",
             con,
             lock,
             false,

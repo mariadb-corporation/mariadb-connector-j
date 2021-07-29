@@ -14,7 +14,7 @@ public class TcpProxy {
   private static final Logger logger = Loggers.getLogger(TcpProxy.class);
 
   private final String host;
-  private TcpProxySocket socket;
+  private final TcpProxySocket socket;
 
   /**
    * Initialise proxy.
@@ -63,13 +63,6 @@ public class TcpProxy {
       Thread.sleep(10);
     } catch (InterruptedException e) {
       // eat Exception
-    }
-  }
-
-  /** Assure that proxy is in a stable status. */
-  public void assureProxyOk() {
-    if (socket.isClosed()) {
-      restart();
     }
   }
 

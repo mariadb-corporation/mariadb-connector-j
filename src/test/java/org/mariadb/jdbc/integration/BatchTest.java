@@ -30,14 +30,14 @@ public class BatchTest extends Common {
   @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
-      wrongParameter(con, true);
+      wrongParameter(con);
     }
     try (Connection con = createCon("&useServerPrepStmts=true")) {
-      wrongParameter(con, false);
+      wrongParameter(con);
     }
   }
 
-  public void wrongParameter(Connection con, boolean text) throws SQLException {
+  public void wrongParameter(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =
@@ -62,7 +62,7 @@ public class BatchTest extends Common {
       prep.setString(3, "wrong position");
       assertThrowsContains(
           SQLTransientConnectionException.class,
-          () -> prep.addBatch(),
+          prep::addBatch,
           "Parameter at position 2 is not set");
 
       prep.setInt(1, 5);
@@ -71,7 +71,7 @@ public class BatchTest extends Common {
       prep.setString(2, "without position 1");
       assertThrowsContains(
           SQLTransientConnectionException.class,
-          () -> prep.addBatch(),
+          prep::addBatch,
           "Parameter at " + "position 1 is not set");
     }
   }
@@ -238,7 +238,7 @@ public class BatchTest extends Common {
         prep.addBatch();
 
         BatchUpdateException e =
-            Assertions.assertThrows(BatchUpdateException.class, () -> prep.executeBatch());
+            Assertions.assertThrows(BatchUpdateException.class, prep::executeBatch);
         int[] updateCounts = e.getUpdateCounts();
         assertEquals(nb + 1, updateCounts.length);
       }
@@ -290,9 +290,7 @@ public class BatchTest extends Common {
       prep.setString(2, "val3");
       prep.addBatch();
       assertThrowsContains(
-          BatchUpdateException.class,
-          () -> prep.executeBatch(),
-          "Duplicate entry '1' for key 'PRIMARY'");
+          BatchUpdateException.class, prep::executeBatch, "Duplicate entry '1' for key 'PRIMARY'");
     }
   }
 }

@@ -47,7 +47,7 @@ public class LoggingTest extends Common {
     logger.detachAndStopAllAppenders();
 
     LoggerContext context = new LoggerContext();
-    FileAppender<ILoggingEvent> fa = new FileAppender<ILoggingEvent>();
+    FileAppender<ILoggingEvent> fa = new FileAppender<>();
     fa.setName("FILE");
     fa.setImmediateFlush(true);
     PatternLayoutEncoder pa = new PatternLayoutEncoder();
@@ -154,7 +154,7 @@ public class LoggingTest extends Common {
     logger.detachAndStopAllAppenders();
 
     LoggerContext context = new LoggerContext();
-    FileAppender<ILoggingEvent> fa = new FileAppender<ILoggingEvent>();
+    FileAppender<ILoggingEvent> fa = new FileAppender<>();
     fa.setName("FILE");
     fa.setImmediateFlush(true);
     PatternLayoutEncoder pa = new PatternLayoutEncoder();
@@ -248,20 +248,5 @@ public class LoggingTest extends Common {
         Assertions.assertThrows(SSLException.class, () -> HostnameVerifier.verify(host, cert, -1));
     Assertions.assertTrue(
         e.getMessage().contains(exceptionMessage), "real message:" + e.getMessage());
-  }
-
-  public String encodeHexString(byte[] byteArray) {
-    StringBuffer hexStringBuffer = new StringBuffer();
-    for (int i = 0; i < byteArray.length; i++) {
-      hexStringBuffer.append(byteToHex(byteArray[i]));
-    }
-    return hexStringBuffer.toString();
-  }
-
-  public String byteToHex(byte num) {
-    char[] hexDigits = new char[2];
-    hexDigits[0] = Character.forDigit((num >> 4) & 0xF, 16);
-    hexDigits[1] = Character.forDigit((num & 0xF), 16);
-    return new String(hexDigits);
   }
 }

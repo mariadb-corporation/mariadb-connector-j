@@ -1373,16 +1373,6 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(true, foundTestUnitsJdbc);
   }
 
-  /* Verify default behavior for nullCatalogMeansCurrent (=true) */
-  @Test
-  public void nullCatalogMeansCurrent() throws Exception {
-    String catalog = sharedConn.getCatalog();
-    ResultSet rs = sharedConn.getMetaData().getColumns(null, null, null, null);
-    while (rs.next()) {
-      assertTrue(rs.getString("TABLE_CAT").equalsIgnoreCase(catalog));
-    }
-  }
-
   @Test
   public void testGetTypeInfoBasic() throws SQLException {
     testResultSetColumns(
@@ -1715,14 +1705,13 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
-  public void various() throws SQLException {
+  public void various() {
     org.mariadb.jdbc.DatabaseMetaData meta = sharedConn.getMetaData();
     assertEquals(64, meta.getMaxProcedureNameLength());
   }
 
   @Test
   public void getIndexInfo() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
     DatabaseMetaData meta = sharedConn.getMetaData();
 
     assertThrowsContains(
@@ -1742,7 +1731,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(1, rs.getShort(8));
     assertEquals("no", rs.getString(9));
     assertEquals("A", rs.getString(10));
-    assertEquals(0l, rs.getLong(11));
+    assertEquals(0L, rs.getLong(11));
     assertNull(rs.getString(12));
     assertNull(rs.getString(13));
 
@@ -1757,7 +1746,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(1, rs.getShort(8));
     assertEquals("customer_id", rs.getString(9));
     assertEquals("A", rs.getString(10));
-    assertEquals(0l, rs.getLong(11));
+    assertEquals(0L, rs.getLong(11));
     assertNull(rs.getString(12));
     assertNull(rs.getString(13));
 
@@ -1772,7 +1761,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(1, rs.getShort(8));
     assertEquals("product_category", rs.getString(9));
     assertEquals("A", rs.getString(10));
-    assertEquals(0l, rs.getLong(11));
+    assertEquals(0L, rs.getLong(11));
     assertNull(rs.getString(12));
     assertNull(rs.getString(13));
 
@@ -1787,7 +1776,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(2, rs.getShort(8));
     assertEquals("product_id", rs.getString(9));
     assertEquals("A", rs.getString(10));
-    assertEquals(0l, rs.getLong(11));
+    assertEquals(0L, rs.getLong(11));
     assertNull(rs.getString(12));
     assertNull(rs.getString(13));
   }
@@ -2010,6 +1999,48 @@ public class DatabaseMetadataTest extends Common {
       assertEquals("JSON", meta.getColumnTypeName(1));
       assertEquals("java.lang.String", meta.getColumnClassName(1));
       assertEquals(Types.VARBINARY, meta.getColumnType(1));
+    }
+  }
+
+  @Test
+  public void foreignKeyTest() throws SQLException {
+
+    try (Connection con = createCon()) {
+      String db = con.getCatalog();
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("DROP DATABASE IF EXISTS dbTmp");
+      stmt.execute("DROP TABLE IF EXISTS tableWithForeignKey");
+      stmt.execute("DROP TABLE IF EXISTS tableWithPk");
+      stmt.execute("CREATE TABLE tableWithPk(id BIGINT PRIMARY KEY) ENGINE=InnoDB");
+
+      stmt.execute(
+          "CREATE TABLE IF NOT EXISTS tableWithForeignKey\n"
+              + "          (\n"
+              + "                  id BIGINT NOT NULL AUTO_INCREMENT,\n"
+              + "                  fk_id BIGINT,\n"
+              + "                  PRIMARY KEY (id),\n"
+              + "  CONSTRAINT fk_key FOREIGN KEY (fk_id) REFERENCES tableWithPk (id)\n"
+              + "          ) ENGINE=InnoDB");
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getImportedKeys(null, null, "tableWithForeignKey");
+      assertTrue(rs.next());
+      rs.close();
+
+      rs = dbmd.getImportedKeys("", null, "tableWithForeignKey");
+      assertTrue(rs.next());
+
+      stmt.execute("CREATE DATABASE dbTmp");
+      con.setCatalog("dbTmp");
+      try {
+        rs = dbmd.getImportedKeys("", null, "tableWithForeignKey");
+        assertFalse(rs.next());
+
+        rs = dbmd.getImportedKeys(null, null, "tableWithForeignKey");
+        assertTrue(rs.next());
+      } finally {
+        con.setCatalog(db);
+        stmt.execute("DROP DATABASE dbTmp");
+      }
     }
   }
 }

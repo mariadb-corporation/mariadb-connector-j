@@ -6,7 +6,6 @@ package org.mariadb.jdbc.unit.util.log;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.sql.SQLException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.util.log.ConsoleLogger;
@@ -17,7 +16,7 @@ import org.mariadb.jdbc.util.log.Slf4JLogger;
 public class LoggerFactoryTest {
 
   @AfterAll
-  public static void drop() throws SQLException {
+  public static void drop() {
     System.clearProperty(Loggers.TEST_ENABLE_SLF4J);
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
     System.clearProperty(Loggers.CONSOLE_DEBUG_PROPERTY);

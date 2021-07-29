@@ -2,7 +2,7 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
 
-package org.mariadb.jdbc.plugin.tls;
+package org.mariadb.jdbc.plugin;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -26,7 +26,7 @@ public interface TlsSocketPlugin {
   /**
    * Get socket factory.
    *
-   * @param conf connection string option. Non standard option are stored in `nonMappedOptions` if
+   * @param conf connection string option. Non-standard option are stored in `nonMappedOptions` if
    *     any specific option is needed.
    * @param exceptionFactory exception handler
    * @return custom SSL socket factory

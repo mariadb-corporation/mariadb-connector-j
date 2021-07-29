@@ -21,7 +21,7 @@ public class ClobTest extends Common {
   private final byte[] bytes = "abc£de🙏fgh".getBytes(StandardCharsets.UTF_8);
 
   @Test
-  public void length() throws SQLException {
+  public void length() {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(11, clob.length());
 
@@ -108,7 +108,7 @@ public class ClobTest extends Common {
   }
 
   @Test
-  public void position() throws SQLException {
+  public void position() {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(5, clob.position("de", 2));
     assertEquals(5, clob.position((Clob) new MariaDbClob("de".getBytes()), 2));
@@ -134,7 +134,6 @@ public class ClobTest extends Common {
     clob2.setString(2, "zg");
     assertEquals("czg🙏f", clob2.getSubString(1, 6));
     clob2.setString(7, "zzz");
-    String ss = clob2.getSubString(1, 12);
     assertEquals("czg🙏fgzzz", clob2.getSubString(1, 12));
 
     assertThrowsContains(
@@ -249,7 +248,6 @@ public class ClobTest extends Common {
 
   @Test
   public void setBinaryStream() throws SQLException, IOException {
-    final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbClob blob = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
@@ -282,7 +280,6 @@ public class ClobTest extends Common {
 
   @Test
   public void setBinaryStreamOffset() throws SQLException, IOException {
-    final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbClob blob = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
@@ -344,7 +341,7 @@ public class ClobTest extends Common {
   }
 
   @Test
-  public void free() throws SQLException {
+  public void free() {
     MariaDbClob blob = new MariaDbClob(bytes);
     blob.free();
     assertEquals(0, blob.length());

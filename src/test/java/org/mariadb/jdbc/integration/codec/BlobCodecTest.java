@@ -22,7 +22,7 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class BlobCodecTest extends CommonCodecTest {
   private static File tmpFile;
-  private static byte[] fileContent = new byte[11000];
+  private static final byte[] fileContent = new byte[11000];
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -118,8 +118,8 @@ public class BlobCodecTest extends CommonCodecTest {
     testErrObject(rs, BigInteger.class);
     testErrObject(rs, Double.class);
     testErrObject(rs, Float.class);
-    testObject(rs, Byte.class, Byte.valueOf((byte) '0'));
-    testArrObject(rs, byte[].class, new byte[] {(byte) '0'});
+    testObject(rs, Byte.class, (byte) '0');
+    testArrObject(rs, new byte[] {(byte) '0'});
     testErrObject(rs, Boolean.class);
     testErrObject(rs, Clob.class);
     testErrObject(rs, NClob.class);
@@ -358,7 +358,7 @@ public class BlobCodecTest extends CommonCodecTest {
     getBigInteger(getPrepare(sharedConnBinary));
   }
 
-  public void getBigInteger(CompleteResult rs) throws SQLException {
+  public void getBigInteger(CompleteResult rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigInteger(1),
@@ -377,7 +377,7 @@ public class BlobCodecTest extends CommonCodecTest {
     getDuration(getPrepare(sharedConnBinary));
   }
 
-  public void getDuration(ResultSet rs) throws SQLException {
+  public void getDuration(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
@@ -986,8 +986,8 @@ public class BlobCodecTest extends CommonCodecTest {
     assertArrayEquals("2g🌟4".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
   }
 
-  private class BlobInputStream implements Blob {
-    private InputStream data;
+  private static class BlobInputStream implements Blob {
+    private final InputStream data;
 
     public BlobInputStream(InputStream data) {
       this.data = data;
@@ -1003,7 +1003,6 @@ public class BlobCodecTest extends CommonCodecTest {
 
       // if not have thrown an error
       byte[] buf = new byte[length];
-      byte[] array = new byte[4096];
       int len;
       int intpos = 0;
       try {
@@ -1018,43 +1017,43 @@ public class BlobCodecTest extends CommonCodecTest {
     }
 
     @Override
-    public InputStream getBinaryStream() throws SQLException {
+    public InputStream getBinaryStream() {
       return data;
     }
 
     @Override
-    public long position(byte[] bytes, long l) throws SQLException {
+    public long position(byte[] bytes, long l) {
       return 0;
     }
 
     @Override
-    public long position(Blob blob, long l) throws SQLException {
+    public long position(Blob blob, long l) {
       return 0;
     }
 
     @Override
-    public int setBytes(long l, byte[] bytes) throws SQLException {
+    public int setBytes(long l, byte[] bytes) {
       return 0;
     }
 
     @Override
-    public int setBytes(long l, byte[] bytes, int i, int i1) throws SQLException {
+    public int setBytes(long l, byte[] bytes, int i, int i1) {
       return 0;
     }
 
     @Override
-    public OutputStream setBinaryStream(long l) throws SQLException {
+    public OutputStream setBinaryStream(long l) {
       return null;
     }
 
     @Override
-    public void truncate(long l) throws SQLException {}
+    public void truncate(long l) {}
 
     @Override
-    public void free() throws SQLException {}
+    public void free() {}
 
     @Override
-    public InputStream getBinaryStream(long l, long l1) throws SQLException {
+    public InputStream getBinaryStream(long l, long l1) {
       return null;
     }
   }

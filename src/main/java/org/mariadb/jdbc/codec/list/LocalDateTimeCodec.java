@@ -16,9 +16,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
@@ -82,7 +82,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       timestampsPart[2] = 1;
     }
 
-    // fix non leading tray for nanoseconds
+    // fix non-leading tray for nanoseconds
     if (nanoLen >= 0) {
       for (int begin = 0; begin < 6 - nanoLen; begin++) {
         timestampsPart[6] = timestampsPart[6] * 10;
@@ -122,7 +122,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
               String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
@@ -202,7 +202,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
               String.format("Data type %s cannot be decoded as LocalDateTime", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

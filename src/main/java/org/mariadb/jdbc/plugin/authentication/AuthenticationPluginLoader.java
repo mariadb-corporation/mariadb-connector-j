@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
 public final class AuthenticationPluginLoader {
 

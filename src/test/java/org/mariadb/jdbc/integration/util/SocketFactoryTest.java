@@ -7,13 +7,12 @@ package org.mariadb.jdbc.integration.util;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import javax.net.SocketFactory;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
 
 public class SocketFactoryTest extends ConfigurableSocketFactory {
-  SocketFactory socketFactory = SocketFactory.getDefault();
+  final SocketFactory socketFactory = SocketFactory.getDefault();
 
   public SocketFactoryTest() {}
 
@@ -26,13 +25,12 @@ public class SocketFactoryTest extends ConfigurableSocketFactory {
   }
 
   @Override
-  public Socket createSocket(String s, int i) throws IOException, UnknownHostException {
+  public Socket createSocket(String s, int i) throws IOException {
     return socketFactory.createSocket(s, i);
   }
 
   @Override
-  public Socket createSocket(String s, int i, InetAddress inetAddress, int i1)
-      throws IOException, UnknownHostException {
+  public Socket createSocket(String s, int i, InetAddress inetAddress, int i1) throws IOException {
     return socketFactory.createSocket(s, i, inetAddress, i1);
   }
 

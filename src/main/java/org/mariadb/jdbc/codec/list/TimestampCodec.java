@@ -16,9 +16,9 @@ import java.util.TimeZone;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class TimestampCodec implements Codec<Timestamp> {
 
@@ -124,7 +124,7 @@ public class TimestampCodec implements Codec<Timestamp> {
               String.format("Data type %s cannot be decoded as Timestamp", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
@@ -166,7 +166,7 @@ public class TimestampCodec implements Codec<Timestamp> {
           return null;
         }
 
-        // fix non leading tray for nanoseconds
+        // fix non-leading tray for nanoseconds
         if (nanoBegin > 0) {
           for (int begin = 0; begin < 6 - (length - nanoBegin - 1); begin++) {
             timestampsPart[6] = timestampsPart[6] * 10;
@@ -253,7 +253,7 @@ public class TimestampCodec implements Codec<Timestamp> {
               String.format("Data type %s cannot be decoded as Timestamp", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

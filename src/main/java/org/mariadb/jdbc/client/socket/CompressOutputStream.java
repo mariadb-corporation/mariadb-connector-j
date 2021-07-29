@@ -9,14 +9,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 import org.mariadb.jdbc.util.MutableInt;
-import org.mariadb.jdbc.util.log.Logger;
-import org.mariadb.jdbc.util.log.Loggers;
 
 public class CompressOutputStream extends OutputStream {
-  private static final Logger logger = Loggers.getLogger(CompressOutputStream.class);
-
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
-
   private static final int SMALL_BUFFER_SIZE = 8192;
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
   private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
@@ -77,8 +72,8 @@ public class CompressOutputStream extends OutputStream {
 
   /**
    * Writes <code>len</code> bytes from the specified byte array starting at offset <code>off</code>
-   * to this output stream. The general contract for <code>write(b, off, len)</code> is that some of
-   * the bytes in the array <code>b</code> are written to the output stream in order; element <code>
+   * to this output stream. The general contract for <code>write(b, off, len)</code> is that some
+   * bytes in the array <code>b</code> are written to the output stream in order; element <code>
    * b[off]</code> is the first byte written and <code>b[off+len-1]</code> is the last byte written
    * by this operation.
    *

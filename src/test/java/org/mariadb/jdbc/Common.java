@@ -172,35 +172,33 @@ public class Common {
 
   @RegisterExtension public Extension watcher = new Follow();
 
-  private class Follow implements TestWatcher, BeforeEachCallback {
+  private static class Follow implements TestWatcher, BeforeEachCallback {
     @Override
     public void testDisabled(ExtensionContext context, Optional<String> reason) {
-      System.out.println(
-          String.format(
-              "  - Disabled %s: with reason :- %s",
-              context.getDisplayName(), reason.orElse("No reason")));
+      System.out.printf(
+          "  - Disabled %s: with reason :- %s%n",
+          context.getDisplayName(), reason.orElse("No reason"));
     }
 
     @Override
     public void testAborted(ExtensionContext context, Throwable cause) {
-      System.out.println(String.format("  - Aborted %s: ", context.getDisplayName()));
+      System.out.printf("  - Aborted %s: %n", context.getDisplayName());
     }
 
     @Override
     public void testFailed(ExtensionContext context, Throwable cause) {
-      System.out.println(String.format("  \u2717 Failed %s: ", context.getDisplayName()));
+      System.out.printf("  ✗ Failed %s: %n", context.getDisplayName());
     }
 
     @Override
     public void testSuccessful(ExtensionContext context) {
-      System.out.println(
-          String.format(
-              "  ✓ %s: %sms",
-              context.getDisplayName(), Duration.between(initialTest, Instant.now()).toMillis()));
+      System.out.printf(
+          "  ✓ %s: %sms%n",
+          context.getDisplayName(), Duration.between(initialTest, Instant.now()).toMillis());
     }
 
     @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+    public void beforeEach(ExtensionContext extensionContext) {
       initialTest = Instant.now();
     }
   }

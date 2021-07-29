@@ -10,8 +10,8 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.mariadb.jdbc.codec.Codec;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -49,7 +49,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
 public class Configuration {
 
   private static final Pattern URL_PARAMETER =
-      Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
+      Pattern.compile("(/([^?]*))?(\\?(.+))*", Pattern.DOTALL);
 
   // standard options
   private String user = null;
@@ -64,6 +64,7 @@ public class Configuration {
   // various
   private String timezone = null;
   private boolean autocommit = true;
+  private boolean useMysqlMetadata = false;
   private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -153,6 +154,7 @@ public class Configuration {
       Properties nonMappedOptions,
       String timezone,
       boolean autocommit,
+      boolean useMysqlMetadata,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -217,6 +219,7 @@ public class Configuration {
     this.nonMappedOptions = nonMappedOptions;
     this.timezone = timezone;
     this.autocommit = autocommit;
+    this.useMysqlMetadata = useMysqlMetadata;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -313,6 +316,7 @@ public class Configuration {
       String connectionAttributes,
       Boolean useBulkStmts,
       Boolean autocommit,
+      Boolean useMysqlMetadata,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -386,6 +390,7 @@ public class Configuration {
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
     if (autocommit != null) this.autocommit = autocommit;
+    if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -667,6 +672,7 @@ public class Configuration {
         this.nonMappedOptions,
         this.timezone,
         this.autocommit,
+        this.useMysqlMetadata,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -894,6 +900,10 @@ public class Configuration {
     return autocommit;
   }
 
+  public boolean useMysqlMetadata() {
+    return useMysqlMetadata;
+  }
+
   public boolean includeInnodbStatusInDeadlockExceptions() {
     return includeInnodbStatusInDeadlockExceptions;
   }
@@ -1112,7 +1122,7 @@ public class Configuration {
               sb.append(first ? '?' : '&');
               first = false;
               sb.append(field.getName()).append('=');
-              sb.append(obj.toString());
+              sb.append(obj);
             }
           }
         }
@@ -1157,6 +1167,7 @@ public class Configuration {
     // various
     private String timezone;
     private Boolean autocommit;
+    private Boolean useMysqlMetadata;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private String geometryDefaultType;
@@ -1348,7 +1359,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate if TCP keep-alive must be enable.
+     * Indicate if TCP keep-alive must be enabled.
      *
      * @param tcpKeepAlive value
      * @return this {@link Builder}
@@ -1486,7 +1497,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate to compresses exchanges with the database through gzip. This permits better
+     * Indicate to compress exchanges with the database through gzip. This permits better
      * performance when the database is not in the same location.
      *
      * @param useCompression to enable/disable compression
@@ -1574,6 +1585,18 @@ public class Configuration {
 
     public Builder autocommit(Boolean autocommit) {
       this.autocommit = autocommit;
+      return this;
+    }
+
+    /**
+     * Permit indicating to force DatabaseMetadata.getDatabaseProductName() to return `MySQL` as
+     * database type, not real database type
+     *
+     * @param useMysqlMetadata force DatabaseMetadata.getDatabaseProductName() to return `MySQL`
+     * @return this {@link Builder}
+     */
+    public Builder useMysqlMetadata(Boolean useMysqlMetadata) {
+      this.useMysqlMetadata = useMysqlMetadata;
       return this;
     }
 
@@ -1723,6 +1746,7 @@ public class Configuration {
               this.connectionAttributes,
               this.useBulkStmts,
               this.autocommit,
+              this.useMysqlMetadata,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

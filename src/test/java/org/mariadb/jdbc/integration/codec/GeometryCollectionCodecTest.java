@@ -21,30 +21,7 @@ import org.mariadb.jdbc.type.*;
 public class GeometryCollectionCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
 
-  private Polygon poly1 =
-      new Polygon(
-          new LineString[] {
-            new LineString(
-                new Point[] {
-                  new Point(0, 0),
-                  new Point(50, 0),
-                  new Point(50, 50),
-                  new Point(0, 50),
-                  new Point(0, 0)
-                },
-                false),
-            new LineString(
-                new Point[] {
-                  new Point(10, 10),
-                  new Point(20, 10),
-                  new Point(20, 20),
-                  new Point(10, 20),
-                  new Point(10, 10)
-                },
-                false)
-          });
-
-  GeometryCollection geo1 =
+  final GeometryCollection geo1 =
       new GeometryCollection(
           new Geometry[] {
             new Point(0, 0),
@@ -58,7 +35,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
                 },
                 true)
           });
-  GeometryCollection geo2 =
+  final GeometryCollection geo2 =
       new GeometryCollection(
           new Geometry[] {
             new Polygon(
@@ -84,7 +61,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
                 }),
             new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)})
           });
-  GeometryCollection geo3 =
+  final GeometryCollection geo3 =
       new GeometryCollection(
           new Geometry[] {
             new MultiLineString(
@@ -236,7 +213,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
 
     String hexa =
         "000000000107000000020000000101000000000000000000000000000000000000000102000000050000000000000000002440000000000000244000000000000034400000000000002440000000000000344000000000000034400000000000002440000000000000344000000000000024400000000000002440";
-    testArrObject(rs, byte[].class, MultiPolygonCodecTest.decodeHexString(hexa));
+    testArrObject(rs, MultiPolygonCodecTest.decodeHexString(hexa));
 
     testErrObject(rs, Boolean.class);
     testErrObject(rs, Clob.class);

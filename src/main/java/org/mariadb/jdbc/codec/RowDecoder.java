@@ -10,6 +10,7 @@ import java.util.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;

@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class ParameterWithCal<T> extends Parameter<T> {
 

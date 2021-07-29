@@ -175,7 +175,7 @@ public final class ReadableByteBuf {
     return ((buf[pos++] & 0xff)
             + ((buf[pos++] & 0xff) << 8)
             + ((buf[pos++] & 0xff) << 16)
-            + ((buf[pos++] & 0xff) << 24))
+            + ((long) (buf[pos++] & 0xff) << 24))
         & 0xffffffffL;
   }
 

@@ -87,4 +87,13 @@ public class ConfigurationTest extends Common {
       }
     }
   }
+
+  @Test
+  public void useMysqlMetadata() throws SQLException {
+    assertEquals(
+        isMariaDBServer() ? "MariaDB" : "MySQL", sharedConn.getMetaData().getDatabaseProductName());
+    try (org.mariadb.jdbc.Connection conn = createCon("&useMysqlMetadata=true")) {
+      assertEquals("MySQL", conn.getMetaData().getDatabaseProductName());
+    }
+  }
 }

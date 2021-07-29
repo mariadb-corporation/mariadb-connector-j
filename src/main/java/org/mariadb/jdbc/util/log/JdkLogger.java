@@ -125,7 +125,7 @@ public class JdkLogger implements Logger {
       String computed = from;
       for (Object argument : arguments) {
         computed =
-            computed.replaceFirst("\\{\\}", Matcher.quoteReplacement(String.valueOf(argument)));
+            computed.replaceFirst("\\{}", Matcher.quoteReplacement(String.valueOf(argument)));
       }
       return computed;
     }

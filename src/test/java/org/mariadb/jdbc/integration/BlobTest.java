@@ -19,7 +19,7 @@ public class BlobTest extends Common {
   private final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
 
   @Test
-  public void length() throws SQLException {
+  public void length() {
     MariaDbBlob blob = new MariaDbBlob(bytes);
     assertEquals(6, blob.length());
 
@@ -130,7 +130,6 @@ public class BlobTest extends Common {
 
   @Test
   public void setBytes() throws SQLException {
-    final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbBlob blob = new MariaDbBlob(new byte[0]);
@@ -165,7 +164,6 @@ public class BlobTest extends Common {
 
   @Test
   public void setBytesOffset() throws SQLException {
-    final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbBlob blob = new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5});
@@ -198,7 +196,6 @@ public class BlobTest extends Common {
 
   @Test
   public void setBinaryStream() throws SQLException, IOException {
-    final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbBlob blob = new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5});
@@ -238,7 +235,6 @@ public class BlobTest extends Common {
 
   @Test
   public void setBinaryStreamOffset() throws SQLException, IOException {
-    final byte[] bytes = new byte[] {0, 1, 2, 3, 4, 5};
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
     MariaDbBlob blob = new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5});
@@ -290,7 +286,7 @@ public class BlobTest extends Common {
   }
 
   @Test
-  public void free() throws SQLException {
+  public void free() {
     MariaDbBlob blob = new MariaDbBlob(bytes);
     blob.free();
     assertEquals(0, blob.length());

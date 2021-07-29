@@ -6,8 +6,6 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.*;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -519,7 +517,7 @@ public class ConnectionTest extends Common {
       assertEquals("ye``\\\\``p", savepoint.getSavepointName());
       assertThrowsContains(
           SQLException.class,
-          () -> savepoint.getSavepointId(),
+          savepoint::getSavepointId,
           "Cannot retrieve savepoint id of a named savepoint");
       con.rollback(savepoint);
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
@@ -566,7 +564,7 @@ public class ConnectionTest extends Common {
       assertTrue(savepoint.getSavepointId() > 0);
       assertThrowsContains(
           SQLException.class,
-          () -> savepoint.getSavepointName(),
+          savepoint::getSavepointName,
           "Cannot retrieve savepoint name of an unnamed savepoint");
       con.rollback(savepoint);
       assertThrowsContains(
@@ -616,7 +614,7 @@ public class ConnectionTest extends Common {
     }
   }
 
-  class MySavepoint implements Savepoint {
+  static class MySavepoint implements Savepoint {
     @Override
     public int getSavepointId() throws SQLException {
       return 0;
@@ -724,8 +722,6 @@ public class ConnectionTest extends Common {
      */
     public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
 
-      int autoInc = autoIncInit;
-      int autoIncOffset = autoIncOffsetInit;
       // in case of galera
       //      if (isGalera()) {
       //        ResultSet rs =
@@ -744,7 +740,7 @@ public class ConnectionTest extends Common {
       //          autoIncOffset = 0;
       //        }
       //      }
-      return new int[] {autoInc, autoIncOffset};
+      return new int[] {autoIncInit, autoIncOffsetInit};
     }
   }
 
@@ -792,7 +788,7 @@ public class ConnectionTest extends Common {
 
     try (Connection connection =
         createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
-      // must have succeed
+      // must have succeeded
       connection.getCatalog();
     }
     stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
@@ -823,7 +819,7 @@ public class ConnectionTest extends Common {
     stmt.execute("FLUSH PRIVILEGES");
 
     try (Connection connection = createCon("user=testPam&password=myPwd&restrictedAuth=dialog")) {
-      // must have succeed
+      // must have succeeded
       connection.getCatalog();
     }
     assertThrowsContains(
@@ -841,7 +837,7 @@ public class ConnectionTest extends Common {
     @Test
     public void testConnection() throws Exception {
       try (Connection connection = createCon("useCompression")) {
-        // must have succeed
+        // must have succeeded
         connection.getCatalog();
       }
     }
@@ -850,7 +846,7 @@ public class ConnectionTest extends Common {
   @Test
   public void testNoUseReadAheadInputConnection() throws Exception {
     try (Connection connection = createCon("useReadAheadInput=false")) {
-      // must have succeed
+      // must have succeeded
       Statement stmt = connection.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user");
       int i = 0;
@@ -862,7 +858,7 @@ public class ConnectionTest extends Common {
   @Test
   public void useNoDatabase() throws SQLException {
     try (Connection con = createCon()) {
-      String db = con.getCatalog();
+      con.getCatalog();
       Statement stmt = con.createStatement();
       stmt.execute("CREATE DATABASE someDb");
       con.setCatalog("someDb");
@@ -881,7 +877,7 @@ public class ConnectionTest extends Common {
     try {
       rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket");
     } catch (SQLException sqle) {
-      // on non windows system, named_pipe doesn't exist.
+      // on non Windows system, named_pipe doesn't exist.
     }
     if (rs != null) {
       assertTrue(rs.next());
@@ -969,25 +965,6 @@ public class ConnectionTest extends Common {
       }
     }
     stmt.execute("DROP USER testSocket@'localhost'");
-  }
-
-  public boolean isLocalConnection(String testName) {
-    boolean isLocal = false;
-    try {
-      if (InetAddress.getByName(hostname).isAnyLocalAddress()
-          || InetAddress.getByName(hostname).isLoopbackAddress()) {
-        isLocal = true;
-      }
-    } catch (UnknownHostException e) {
-      // for some reason it wasn't possible to parse the hostname
-      // do nothing
-    }
-
-    if (!isLocal) {
-      System.out.println("test '" + testName + "' skipped because connection is not local");
-    }
-
-    return isLocal;
   }
 
   @Test

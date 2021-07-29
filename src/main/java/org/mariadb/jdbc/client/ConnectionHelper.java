@@ -29,11 +29,11 @@ import org.mariadb.jdbc.message.client.SslRequestPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
-import org.mariadb.jdbc.plugin.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.AuthenticationPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.authentication.AuthenticationPluginLoader;
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
-import org.mariadb.jdbc.plugin.tls.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -120,7 +120,7 @@ public final class ConnectionHelper {
 
     } catch (IOException ioe) {
       throw new SQLNonTransientConnectionException(
-          String.format("Socket fail to connect to host:%s. %s", hostAddress, ioe.getMessage()),
+          String.format("Socket fail to connect to host:%s. %s", hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
           "08000",
           ioe);
     }
@@ -328,8 +328,8 @@ public final class ConnectionHelper {
   /**
    * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
    * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
-   * with openSSL (default). MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS
-   * is TLSv1.1.
+   * with openSSL (default). MySQL's community versions &ge; 5.7.10 is compiled with yaSSL, so max
+   * TLS is TLSv1.1.
    *
    * @param sslSocket current sslSocket
    * @throws SQLException if protocol isn't a supported protocol

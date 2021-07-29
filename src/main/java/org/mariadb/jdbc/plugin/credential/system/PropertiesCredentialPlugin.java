@@ -6,19 +6,9 @@ package org.mariadb.jdbc.plugin.credential.system;
 
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 
-/**
- * Authentication using java system properties.
- *
- * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
- *
- * <p>example : `jdbc:mariadb://host/db?identityType=PROPERTY` will use environment variable
- * MARIADB_USER and MARIADB_PWD
- *
- * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
- */
 /**
  * Authentication using java system properties.
  *
@@ -26,7 +16,7 @@ import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
  *
  * <p>example : `jdbc:mariadb://host/db?credentialType=PROPERTY`
  *
- * <p>2 options `userKey` and `pwdKey` permits to indicate which system properties to use .
+ * <p>2 options `userKey` and `pwdKey` permits indicating which system properties to use .
  */
 public class PropertiesCredentialPlugin implements CredentialPlugin {
 

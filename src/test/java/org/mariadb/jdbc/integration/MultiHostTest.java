@@ -201,8 +201,7 @@ public class MultiHostTest extends Common {
         mDefUrl.replaceAll(
             "//([^/]*)/",
             String.format(
-                "//address=(host=localhost)(port=%s)(type=master)/",
-                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+                "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
@@ -330,7 +329,7 @@ public class MultiHostTest extends Common {
             "//([^/]*)/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
-                proxy.getLocalPort(), hostAddress.host, hostAddress.port, hostname, port));
+                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");

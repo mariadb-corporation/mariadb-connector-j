@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class ByteCodec implements Codec<Byte> {
 
@@ -203,7 +203,7 @@ public class ByteCodec implements Codec<Byte> {
         break;
 
       case BIT:
-        Byte val = buf.readByte();
+        byte val = buf.readByte();
         if (length > 1) buf.skip(length - 1);
         return val;
 

@@ -17,9 +17,9 @@ import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class BlobCodec implements Codec<Blob> {
@@ -170,24 +170,7 @@ public class BlobCodec implements Codec<Blob> {
       }
 
     } catch (SQLException sqle) {
-      ByteArrayOutputStream bb = new ByteArrayOutputStream();
-      byte[] array = new byte[4096];
-
-      if (maxLength == null) {
-        int len;
-        while ((len = is.read(array)) > 0) {
-          bb.write(array, 0, len);
-        }
-      } else {
-        long maxLen = maxLength;
-        int len;
-        while (maxLen > 0 && (len = is.read(array)) > 0) {
-          bb.write(array, 0, Math.min(len, (int) maxLen));
-          maxLen -= len;
-        }
-      }
-      byte[] val = bb.toByteArray();
-
+      byte[] val = encode(is, maxLength);
       encoder.writeLength(val.length);
       encoder.writeBytes(val, 0, val.length);
     }
@@ -216,10 +199,12 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   public byte[] encodeData(Blob value, Long maxLength) throws IOException, SQLException {
+    return encode(value.getBinaryStream(), maxLength);
+  }
+
+  private byte[] encode(InputStream is, Long maxLength) throws IOException {
     ByteArrayOutputStream bb = new ByteArrayOutputStream();
     byte[] array = new byte[4096];
-    InputStream is = value.getBinaryStream();
-
     if (maxLength == null) {
       int len;
       while ((len = is.read(array)) > 0) {

@@ -107,16 +107,16 @@ public class ReadResultSetTest extends Common {
     assertThrowsContains(ns, () -> rs.updateNClob("t1", (NClob) null), NOT_SUPPORTED);
     assertThrowsContains(ns, () -> rs.updateNClob("t1", (Reader) null), NOT_SUPPORTED);
 
-    assertThrowsContains(ns, () -> rs.insertRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.updateRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.deleteRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.refreshRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.cancelRowUpdates(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.moveToInsertRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.moveToCurrentRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowUpdated(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowInserted(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowDeleted(), NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::insertRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::updateRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::deleteRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::refreshRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::cancelRowUpdates, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::moveToInsertRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::moveToCurrentRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowUpdated, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowInserted, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowDeleted, NOT_SUPPORTED);
 
     assertThrowsContains(
         ns, () -> rs.updateRef(1, null), "Method ResultSet.updateRef not supported");
@@ -172,7 +172,7 @@ public class ReadResultSetTest extends Common {
         ns,
         () -> rs.getObject("t1", map),
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
-    assertThrowsContains(ns, () -> rs.getCursorName(), "Cursors are not supported");
+    assertThrowsContains(ns, rs::getCursorName, "Cursors are not supported");
   }
 
   @Test
@@ -242,6 +242,6 @@ public class ReadResultSetTest extends Common {
     assertFalse(rs.isBeforeFirst());
     rs.close();
     assertThrowsContains(
-        SQLException.class, () -> rs.isBeforeFirst(), "Operation not permit on a closed resultSet");
+        SQLException.class, rs::isBeforeFirst, "Operation not permit on a closed resultSet");
   }
 }

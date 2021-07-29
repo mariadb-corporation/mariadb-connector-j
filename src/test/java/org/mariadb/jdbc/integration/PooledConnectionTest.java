@@ -96,7 +96,7 @@ public class PooledConnectionTest extends Common {
       proxy.stop();
       assertThrowsContains(
           SQLException.class,
-          () -> ds.getPooledConnection(),
+          ds::getPooledConnection,
           "No connection available within the specified time");
     }
   }
@@ -117,7 +117,7 @@ public class PooledConnectionTest extends Common {
     logger.detachAndStopAllAppenders();
 
     LoggerContext context = new LoggerContext();
-    FileAppender<ILoggingEvent> fa = new FileAppender<ILoggingEvent>();
+    FileAppender<ILoggingEvent> fa = new FileAppender<>();
     fa.setName("FILE");
     fa.setImmediateFlush(true);
     PatternLayoutEncoder pa = new PatternLayoutEncoder();
@@ -135,6 +135,7 @@ public class PooledConnectionTest extends Common {
 
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
+      Thread.sleep(100);
       InternalPoolConnection pc = ds.getPooledConnection();
       org.mariadb.jdbc.Connection conn = pc.getConnection();
       long threadId = conn.getThreadId();
@@ -153,10 +154,12 @@ public class PooledConnectionTest extends Common {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
       assertTrue(
           contents.contains(
-              "removed from pool MariaDB-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
+              "removed from pool MariaDB-pool due to error during reset (total:0, active:0, pending:0)"),
+          contents);
+      assertTrue(contents.contains("pool MariaDB-pool new physical connection created"), contents);
+
       assertTrue(
-          contents.contains("connection removed from pool MariaDB-pool due to error during reset"));
-      assertTrue(contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"));
+          contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"), contents);
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
     }
@@ -203,7 +206,7 @@ public class PooledConnectionTest extends Common {
       con2.createStatement().execute("KILL " + con.getThreadId());
       con2.close();
       Thread.sleep(10);
-      assertThrows(SQLException.class, () -> con.commit());
+      assertThrows(SQLException.class, con::commit);
       pooledConnection.close();
     }
   }
@@ -242,25 +245,25 @@ public class PooledConnectionTest extends Common {
       ps.execute();
       fail("should never get there");
     } catch (Exception e) {
-      assertTrue(listener.statementErrorOccured);
+      assertTrue(listener.statementErrorOccurred);
     }
     assertTrue(listener.statementClosed);
     pc.close();
   }
 
-  public class MyEventListener implements ConnectionEventListener, StatementEventListener {
+  public static class MyEventListener implements ConnectionEventListener, StatementEventListener {
 
     public SQLException sqlException;
     public boolean closed;
-    public boolean connectionErrorOccured;
+    public boolean connectionErrorOccurred;
     public boolean statementClosed;
-    public boolean statementErrorOccured;
+    public boolean statementErrorOccurred;
 
     /** MyEventListener initialisation. */
     public MyEventListener() {
       sqlException = null;
       closed = false;
-      connectionErrorOccured = false;
+      connectionErrorOccurred = false;
     }
 
     public void connectionClosed(ConnectionEvent event) {
@@ -270,7 +273,7 @@ public class PooledConnectionTest extends Common {
 
     public void connectionErrorOccurred(ConnectionEvent event) {
       sqlException = event.getSQLException();
-      connectionErrorOccured = true;
+      connectionErrorOccurred = true;
     }
 
     public void statementClosed(StatementEvent event) {
@@ -279,7 +282,7 @@ public class PooledConnectionTest extends Common {
 
     public void statementErrorOccurred(StatementEvent event) {
       sqlException = event.getSQLException();
-      statementErrorOccured = true;
+      statementErrorOccurred = true;
     }
   }
 }

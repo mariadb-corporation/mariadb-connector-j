@@ -54,7 +54,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   private void reconnectIfNeeded() {
     if (!closed) {
 
-      // try reconnect primary
+      // try to reconnect primary
       if (primaryClient == null && nextTryPrimary < System.currentTimeMillis()) {
         try {
           primaryClient = connectHost(false, true);
@@ -64,7 +64,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
         }
       }
 
-      // try reconnect replica
+      // try to reconnect replica
       if (replicaClient == null && nextTryReplica < System.currentTimeMillis()) {
         try {
           replicaClient = connectHost(true, true);

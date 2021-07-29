@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class Parameter<T> {
   @SuppressWarnings({"rawtypes", "unchecked"})

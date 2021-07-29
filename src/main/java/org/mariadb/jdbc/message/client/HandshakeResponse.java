@@ -10,8 +10,8 @@ import java.util.StringTokenizer;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
-import org.mariadb.jdbc.plugin.credential.Credential;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
 

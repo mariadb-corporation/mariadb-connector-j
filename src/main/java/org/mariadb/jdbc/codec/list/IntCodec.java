@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class IntCodec implements Codec<Integer> {
 
@@ -108,7 +108,7 @@ public class IntCodec implements Codec<Integer> {
               String.format("Data type %s cannot be decoded as Integer", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case FLOAT:
       case DOUBLE:
@@ -218,7 +218,7 @@ public class IntCodec implements Codec<Integer> {
               String.format("Data type %s cannot be decoded as Integer", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case OLDDECIMAL:
       case VARCHAR:
@@ -258,7 +258,7 @@ public class IntCodec implements Codec<Integer> {
   @Override
   public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeInt(((Integer) value).intValue());
+    encoder.writeInt((Integer) value);
   }
 
   public int getBinaryEncodeType() {

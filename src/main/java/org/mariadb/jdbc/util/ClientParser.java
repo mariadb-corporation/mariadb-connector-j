@@ -15,7 +15,7 @@ public final class ClientParser implements PrepareResult {
   private final String sql;
   private final List<byte[]> queryParts;
   private final int paramCount;
-  private static Map<String, ClientParser> cache = new LinkedHashMap<>(512);
+  private static final Map<String, ClientParser> cache = new LinkedHashMap<>(512);
 
   private ClientParser(String sql, List<byte[]> queryParts) {
     this.sql = sql;

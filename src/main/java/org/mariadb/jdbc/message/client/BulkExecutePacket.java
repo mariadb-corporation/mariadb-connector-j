@@ -35,8 +35,8 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
 
   public void saveParameters() {
     List<ParameterList> savedList = new ArrayList<>(batchParameterList.size());
-    for (int i = 0; i < batchParameterList.size(); i++) {
-      savedList.add(batchParameterList.get(i).clone());
+    for (ParameterList parameterList : batchParameterList) {
+      savedList.add(parameterList.clone());
     }
     this.batchParameterList = savedList;
   }
@@ -62,14 +62,12 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
     byte[] lastCmdData = null;
     int bulkPacketNo = 0;
 
-    /**
-     * Implementation After writing bunch of parameter to buffer is marked. then : - when writing
-     * next bunch of parameter, if buffer grow more than max_allowed_packet, send buffer up to mark,
-     * then create a new packet with current bunch of data - if bunch of parameter data type changes
-     * send buffer up to mark, then create a new packet with new data type.
-     *
-     * <p>Problem remains if a bunch of parameter is bigger than max_allowed_packet
-     */
+    // Implementation After writing a bunch of parameter to buffer is marked. then : - when writing
+    // next bunch of parameter, if buffer grow more than max_allowed_packet, send buffer up to mark,
+    // then create a new packet with current bunch of data - if a bunch of parameter data type
+    // changes
+    // send buffer up to mark, then create a new packet with new data type.
+    // Problem remains if a bunch of parameter is bigger than max_allowed_packet
     main_loop:
     while (true) {
       bulkPacketNo++;
@@ -118,7 +116,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
           for (int j = 0; j < parameterCount; j++) {
             parameterHeaderType[j] = parameters.get(j);
           }
-          break parameter_loop;
+          break;
         }
 
         writer.mark();

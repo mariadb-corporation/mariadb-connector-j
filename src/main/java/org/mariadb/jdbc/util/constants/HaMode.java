@@ -68,9 +68,7 @@ public enum HaMode {
       ConcurrentMap<HostAddress, Long> blacklist,
       boolean primary) {
     // use in order not blacklisted server
-    HostAddress hostAddress;
-    for (int i = 0; i < hostAddresses.size(); i++) {
-      hostAddress = hostAddresses.get(i);
+    for (HostAddress hostAddress : hostAddresses) {
       if (hostAddress.primary == primary) {
         if (!blacklist.containsKey(hostAddress)) return Optional.of(hostAddress);
         if (blacklist.get(hostAddress) < System.currentTimeMillis()) {

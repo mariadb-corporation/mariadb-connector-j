@@ -13,9 +13,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class FloatCodec implements Codec<Float> {
 
@@ -78,7 +78,7 @@ public class FloatCodec implements Codec<Float> {
       case DECIMAL:
       case FLOAT:
       case YEAR:
-        return Float.valueOf(buf.readAscii(length));
+        return Float.parseFloat(buf.readAscii(length));
 
       case BLOB:
       case TINYBLOB:
@@ -90,14 +90,14 @@ public class FloatCodec implements Codec<Float> {
               String.format("Data type %s cannot be decoded as Float", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String val = buf.readString(length);
         try {
-          return Float.valueOf(val);
+          return Float.parseFloat(val);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Float", val));
         }
@@ -134,7 +134,7 @@ public class FloatCodec implements Codec<Float> {
         if (!column.isSigned()) {
           return (float) buf.readUnsignedShort();
         }
-        return (float) buf.readShort();
+        return buf.readShort();
 
       case MEDIUMINT:
         float f = column.isSigned() ? buf.readMedium() : buf.readUnsignedMedium();
@@ -179,14 +179,14 @@ public class FloatCodec implements Codec<Float> {
               String.format("Data type %s cannot be decoded as Float", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String str2 = buf.readString(length);
         try {
-          return Float.valueOf(str2);
+          return Float.parseFloat(str2);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Float", str2));
         }

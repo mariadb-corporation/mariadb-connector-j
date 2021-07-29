@@ -17,9 +17,9 @@ import java.util.TimeZone;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class LocalTimeCodec implements Codec<LocalTime> {
 
@@ -132,7 +132,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
@@ -216,7 +216,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:

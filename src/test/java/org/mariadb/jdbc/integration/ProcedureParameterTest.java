@@ -9,11 +9,60 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.BitSet;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
 
 public class ProcedureParameterTest extends Common {
+
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    drop();
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");
+    stmt.execute(
+        "CREATE PROCEDURE withStrangeParameter(IN a DECIMAL(10,2)) begin select a as b; end");
+    stmt.execute("FLUSH TABLES");
+  }
+
+  @AfterAll
+  public static void drop() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP PROCEDURE IF EXISTS useParameterName");
+    stmt.execute("DROP PROCEDURE IF EXISTS withStrangeParameter");
+  }
+
+  @Test
+  public void callUseParameterName() throws Exception {
+    CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
+    stmt.setInt("a", 1);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    int res = rs.getInt(1);
+    assertEquals(res, 1);
+  }
+
+  @Test
+  public void callWithStrangeParameter() throws SQLException {
+    try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
+      double expected = 5.43;
+      call.setDouble("a", expected);
+      try (ResultSet rs = call.executeQuery()) {
+        assertTrue(rs.next());
+        double res = rs.getDouble("b");
+        assertEquals(expected, res, 0);
+        // now fail due to three decimals
+        double tooMuch = 34.987;
+        call.setDouble("a", tooMuch);
+        try (ResultSet rs2 = call.executeQuery()) {
+          assertTrue(rs2.next());
+          assertNotEquals(rs2.getDouble("b"), tooMuch);
+        }
+      }
+    }
+  }
 
   @Test
   public void basicProcedure() throws SQLException {

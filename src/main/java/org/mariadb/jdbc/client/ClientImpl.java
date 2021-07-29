@@ -36,8 +36,8 @@ import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.util.MutableInt;
 import org.mariadb.jdbc.util.Security;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -230,7 +230,7 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   /**
-   * load server timezone and ensure this correspond to client timezone
+   * load server timezone and ensure this corresponds to client timezone
    *
    * @throws SQLException if any socket error.
    */
@@ -815,7 +815,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  public void close() throws SQLException {
+  public void close() {
     boolean locked = lock.tryLock();
 
     if (!this.closed) {

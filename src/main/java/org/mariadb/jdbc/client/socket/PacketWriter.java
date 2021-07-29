@@ -605,6 +605,7 @@ public class PacketWriter {
     } else {
       newCapacity = maxPacketLength;
     }
+
     if (len + pos > newCapacity) {
       if (mark != -1) {
         // buf is > 16M with mark.
@@ -674,11 +675,11 @@ public class PacketWriter {
    * send, throw an exception to avoid having the connection closed.
    *
    * @param length additional length to query size
-   * @throws MaxAllowedPacketException if query has not to be send.
+   * @throws MaxAllowedPacketException if query has not to be sent.
    */
   public void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
     if (cmdLength + length >= maxAllowedPacket) {
-      // launch exception only if no packet has been send.
+      // launch exception only if no packet has been sent.
       throw new MaxAllowedPacketException(
           "query size ("
               + (cmdLength + length)

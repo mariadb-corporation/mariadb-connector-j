@@ -7,6 +7,7 @@ package org.mariadb.jdbc.plugin.tls;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
 import org.mariadb.jdbc.client.tls.DefaultTlsSocketPlugin;
+import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 
 public final class TlsSocketPluginLoader {
 

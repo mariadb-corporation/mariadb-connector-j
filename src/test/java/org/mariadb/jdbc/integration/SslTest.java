@@ -19,8 +19,8 @@ import org.mariadb.jdbc.integration.tools.TcpProxy;
 @DisplayName("SSL tests")
 public class SslTest extends Common {
   private static Integer sslPort;
-  private static String baseOptions = "&user=serverAuthUser&password=!Passw0rd3Works";
-  private static String baseMutualOptions = "&user=mutualAuthUser&password=!Passw0rd3Works";
+  private static final String baseOptions = "&user=serverAuthUser&password=!Passw0rd3Works";
+  private static final String baseMutualOptions = "&user=mutualAuthUser&password=!Passw0rd3Works";
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -45,11 +45,9 @@ public class SslTest extends Common {
   }
 
   private static void createSslUser(String user, String requirement) throws SQLException {
-    boolean useOldNotation = true;
-    if ((isMariaDBServer() && minVersion(10, 2, 0))
-        || (!isMariaDBServer() && minVersion(8, 0, 0))) {
-      useOldNotation = false;
-    }
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
       stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);

@@ -34,14 +34,14 @@ public class ParameterMetaDataTest extends Common {
   @Test
   public void parameterMetaDataTypeNotAvailable() throws Exception {
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
-      parameterMetaDataTypeNotAvailable(con, true);
+      parameterMetaDataTypeNotAvailable(con);
     }
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      parameterMetaDataTypeNotAvailable(con, false);
+      parameterMetaDataTypeNotAvailable(con);
     }
   }
 
-  private void parameterMetaDataTypeNotAvailable(org.mariadb.jdbc.Connection con, boolean text)
+  private void parameterMetaDataTypeNotAvailable(org.mariadb.jdbc.Connection con)
       throws SQLException {
     String query = "SELECT * FROM parameter_meta WHERE test = ? and id = ?";
     try (PreparedStatement prepStmt = con.prepareStatement(query)) {
@@ -61,15 +61,14 @@ public class ParameterMetaDataTest extends Common {
   @Test
   public void parameterMetaDataNotPreparable() throws Exception {
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
-      parameterMetaDataNotPreparable(con, true);
+      parameterMetaDataNotPreparable(con);
     }
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      parameterMetaDataNotPreparable(con, false);
+      parameterMetaDataNotPreparable(con);
     }
   }
 
-  private void parameterMetaDataNotPreparable(org.mariadb.jdbc.Connection con, boolean text)
-      throws SQLException {
+  private void parameterMetaDataNotPreparable(org.mariadb.jdbc.Connection con) throws SQLException {
     // statement that cannot be prepared
     try (PreparedStatement pstmt =
         con.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {

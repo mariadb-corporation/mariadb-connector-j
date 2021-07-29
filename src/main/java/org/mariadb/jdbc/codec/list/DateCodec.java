@@ -14,9 +14,9 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.context.Context;
 import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Codec;
 import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class DateCodec implements Codec<Date> {
 
@@ -78,7 +78,7 @@ public class DateCodec implements Codec<Date> {
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -86,7 +86,7 @@ public class DateCodec implements Codec<Date> {
       case DATE:
         String val = buf.readString(length);
         if ("0000-00-00".equals(val)) return null;
-        String[] stDatePart = val.split("-| ");
+        String[] stDatePart = val.split("[- ]");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -158,13 +158,13 @@ public class DateCodec implements Codec<Date> {
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String val = buf.readString(length);
-        String[] stDatePart = val.split("-| ");
+        String[] stDatePart = val.split("[- ]");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));

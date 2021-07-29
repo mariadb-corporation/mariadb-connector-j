@@ -36,11 +36,9 @@ public class PoolDataSourceTest extends Common {
     drop();
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    boolean useOldNotation = true;
-    if ((isMariaDBServer() && minVersion(10, 2, 0))
-        || (!isMariaDBServer() && minVersion(8, 0, 0))) {
-      useOldNotation = false;
-    }
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
       stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
@@ -299,13 +297,13 @@ public class PoolDataSourceTest extends Common {
         MBeanInfo info = server.getMBeanInfo(name);
         assertEquals(4, info.getAttributes().length);
 
-        checkJmxInfo(server, name, 1, 1, 0, 0);
+        checkJmxInfo(server, name, 1, 1, 0);
 
         try (Connection connection2 = pool.getConnection()) {
           connection2.isValid(1);
-          checkJmxInfo(server, name, 2, 2, 0, 0);
+          checkJmxInfo(server, name, 2, 2, 0);
         }
-        checkJmxInfo(server, name, 1, 2, 1, 0);
+        checkJmxInfo(server, name, 1, 2, 1);
       }
     }
   }
@@ -332,13 +330,13 @@ public class PoolDataSourceTest extends Common {
           // eat
         }
 
-        checkJmxInfo(server, name, 1, 5, 4, 0);
+        checkJmxInfo(server, name, 1, 5, 4);
 
         try (Connection connection2 = pool.getConnection()) {
           connection2.isValid(1);
-          checkJmxInfo(server, name, 2, 5, 3, 0);
+          checkJmxInfo(server, name, 2, 5, 3);
         }
-        checkJmxInfo(server, name, 1, 5, 4, 0);
+        checkJmxInfo(server, name, 1, 5, 4);
       }
     }
   }
@@ -359,13 +357,13 @@ public class PoolDataSourceTest extends Common {
 
       Set<ObjectName> objectNames = server.queryNames(filter, null);
       ObjectName name = objectNames.iterator().next();
-      checkJmxInfo(server, name, 0, 3, 3, 0);
+      checkJmxInfo(server, name, 0, 3, 3);
 
       List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
       Thread.sleep(200);
 
       // must still have 3 connections, but must be other ones
-      checkJmxInfo(server, name, 0, 3, 3, 0);
+      checkJmxInfo(server, name, 0, 3, 3);
     }
   }
 
@@ -389,13 +387,13 @@ public class PoolDataSourceTest extends Common {
         // to ensure pool has time to create minimal connection number
         Thread.sleep(200);
 
-        checkJmxInfo(server, name, 1, 3, 2, 0);
+        checkJmxInfo(server, name, 1, 3, 2);
 
         try (Connection connection2 = pool.getConnection()) {
           connection2.isValid(1);
-          checkJmxInfo(server, name, 2, 3, 1, 0);
+          checkJmxInfo(server, name, 2, 3, 1);
         }
-        checkJmxInfo(server, name, 1, 3, 2, 0);
+        checkJmxInfo(server, name, 1, 3, 2);
       }
     }
   }
@@ -405,16 +403,14 @@ public class PoolDataSourceTest extends Common {
       ObjectName name,
       long expectedActive,
       long expectedTotal,
-      long expectedIdle,
-      long expectedRequest)
+      long expectedIdle)
       throws Exception {
 
     assertEquals(
         expectedActive, ((Long) server.getAttribute(name, "ActiveConnections")).longValue());
     assertEquals(expectedTotal, ((Long) server.getAttribute(name, "TotalConnections")).longValue());
     assertEquals(expectedIdle, ((Long) server.getAttribute(name, "IdleConnections")).longValue());
-    assertEquals(
-        expectedRequest, ((Long) server.getAttribute(name, "ConnectionRequests")).longValue());
+    assertEquals(0, ((Long) server.getAttribute(name, "ConnectionRequests")).longValue());
   }
 
   @Test
@@ -562,7 +558,6 @@ public class PoolDataSourceTest extends Common {
    * List current connections to server.
    *
    * @return number of thread connected.
-   * @throws SQLException if queries failed
    */
   public static int getCurrentConnections() {
     try {

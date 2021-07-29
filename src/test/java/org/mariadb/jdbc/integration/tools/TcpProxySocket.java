@@ -16,7 +16,7 @@ public class TcpProxySocket implements Runnable {
 
   private final String host;
   private final int remoteport;
-  private int localport;
+  private final int localport;
   private boolean stop = false;
   private Socket client = null;
   private Socket server = null;
@@ -77,7 +77,7 @@ public class TcpProxySocket implements Runnable {
 
     try {
       if (client != null) {
-        // send a RST, not FIN
+        // send an RST, not FIN
         client.setSoLinger(true, 0);
         client.close();
       }

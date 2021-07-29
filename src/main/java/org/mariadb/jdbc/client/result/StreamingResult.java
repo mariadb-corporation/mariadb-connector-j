@@ -83,7 +83,7 @@ public class StreamingResult extends Result {
         fetchSizeTmp--;
       }
       dataFetchTime++;
-      if (maxRows > 0 && dataFetchTime * fetchSize >= maxRows && !loaded) skipRemaining();
+      if (maxRows > 0 && (long) dataFetchTime * fetchSize >= maxRows && !loaded) skipRemaining();
     } catch (IOException ioe) {
       throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
     } finally {
@@ -159,7 +159,7 @@ public class StreamingResult extends Result {
       return false;
     } else {
       // has read all data and pointer is after last result
-      // so result would have to always to be true,
+      // so result would have to always be true,
       // but when result contain no row at all jdbc say that must return false
       return dataSize > 0 || dataFetchTime > 1;
     }

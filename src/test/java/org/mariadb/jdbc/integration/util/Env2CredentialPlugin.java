@@ -4,8 +4,8 @@
 
 package org.mariadb.jdbc.integration.util;
 
-import org.mariadb.jdbc.plugin.credential.Credential;
-import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
+import org.mariadb.jdbc.plugin.Credential;
+import org.mariadb.jdbc.plugin.CredentialPlugin;
 
 /**
  * Authentication using environment variable.
@@ -14,7 +14,7 @@ import org.mariadb.jdbc.plugin.credential.CredentialPlugin;
  *
  * <p>example : `jdbc:mariadb://host/db?credentialType=ENV`
  *
- * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
+ * <p>2 options `userKey` and `pwdKey` permits indicating which environment variable to use.
  */
 public class Env2CredentialPlugin implements CredentialPlugin {
 

@@ -92,15 +92,15 @@ public class FloatCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Integer.class, 0);
     //    testObject(rs, String.class, "0");
-    testObject(rs, Long.class, Long.valueOf(0));
-    testObject(rs, Short.class, Short.valueOf((short) 0));
+    testObject(rs, Long.class, 0L);
+    testObject(rs, Short.class, (short) 0);
     //    testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
-    testObject(rs, Double.class, Double.valueOf(0));
-    testObject(rs, Float.class, Float.valueOf(0));
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
+    testObject(rs, Double.class, (double) 0);
+    testObject(rs, Float.class, (float) 0);
+    testObject(rs, Byte.class, (byte) 0);
     testErrObject(rs, byte[].class);
     testErrObject(rs, Date.class);
     testErrObject(rs, Time.class);
@@ -363,7 +363,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getDate(getPrepare(sharedConnBinary));
   }
 
-  public void getDate(ResultSet rs) throws SQLException {
+  public void getDate(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type FLOAT cannot be decoded as Date");
     assertThrowsContains(
@@ -383,7 +383,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getTime(getPrepare(sharedConnBinary));
   }
 
-  public void getTime(ResultSet rs) throws SQLException {
+  public void getTime(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type FLOAT cannot be decoded as Time");
     assertThrowsContains(
@@ -403,7 +403,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getTimestamp(getPrepare(sharedConnBinary));
   }
 
-  public void getTimestamp(ResultSet rs) throws SQLException {
+  public void getTimestamp(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
@@ -425,7 +425,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getAsciiStream(getPrepare(sharedConnBinary));
   }
 
-  public void getAsciiStream(ResultSet rs) throws SQLException {
+  public void getAsciiStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
@@ -448,7 +448,7 @@ public class FloatCodecTest extends CommonCodecTest {
   }
 
   @SuppressWarnings("deprecation")
-  public void getUnicodeStream(ResultSet rs) throws SQLException {
+  public void getUnicodeStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
@@ -470,7 +470,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getBinaryStream(getPrepare(sharedConnBinary));
   }
 
-  public void getBinaryStream(ResultSet rs) throws SQLException {
+  public void getBinaryStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
@@ -492,7 +492,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getBytes(getPrepare(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) throws SQLException {
+  public void getBytes(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes(1),
@@ -514,7 +514,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getCharacterStream(ResultSet rs) throws SQLException {
+  public void getCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -536,7 +536,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getNCharacterStream(ResultSet rs) throws SQLException {
+  public void getNCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
@@ -567,7 +567,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws SQLException {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -589,7 +589,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getClob(getPrepare(sharedConnBinary));
   }
 
-  public void getClob(ResultSet rs) throws SQLException {
+  public void getClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type FLOAT cannot be decoded as Clob");
     assertThrowsContains(
@@ -609,7 +609,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getNClob(getPrepare(sharedConnBinary));
   }
 
-  public void getNClob(ResultSet rs) throws SQLException {
+  public void getNClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getNClob(1), "Data type FLOAT cannot be decoded as Clob");
     assertThrowsContains(
@@ -640,7 +640,7 @@ public class FloatCodecTest extends CommonCodecTest {
     getURL(getPrepare(sharedConnBinary));
   }
 
-  public void getURL(ResultSet rs) throws SQLException {
+  public void getURL(ResultSet rs) {
     assertThrowsContains(SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse");
     assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse");

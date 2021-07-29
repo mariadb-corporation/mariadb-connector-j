@@ -1,12 +1,3 @@
-/**
- * EdDSA-Java by str4d
- *
- * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
- * copyright and related or neighboring rights to EdDSA-Java.
- *
- * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
- * <https://creativecommons.org/publicdomain/zero/1.0/>.
- */
 package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math;
 
 import java.io.Serializable;
@@ -195,8 +186,7 @@ public class GroupElement implements Serializable {
   final GroupElement[][] precmp;
 
   /**
-   * Precomputed table for {@link #doubleScalarMultiplyVariableTime(GroupElement, byte[], byte[])},
-   * filled if necessary.
+   * Precomputed table for , filled if necessary.
    *
    * <p>Variable is package private only so that tests run.
    */
@@ -345,61 +335,12 @@ public class GroupElement implements Serializable {
   }
 
   /**
-   * Gets the curve of the group element.
-   *
-   * @return The curve.
-   */
-  public Curve getCurve() {
-    return this.curve;
-  }
-
-  /**
    * Gets the representation of the group element.
    *
    * @return The representation.
    */
   public Representation getRepresentation() {
     return this.repr;
-  }
-
-  /**
-   * Gets the $X$ value of the group element. This is for most representation the projective $X$
-   * coordinate.
-   *
-   * @return The $X$ value.
-   */
-  public FieldElement getX() {
-    return this.X;
-  }
-
-  /**
-   * Gets the $Y$ value of the group element. This is for most representation the projective $Y$
-   * coordinate.
-   *
-   * @return The $Y$ value.
-   */
-  public FieldElement getY() {
-    return this.Y;
-  }
-
-  /**
-   * Gets the $Z$ value of the group element. This is for most representation the projective $Z$
-   * coordinate.
-   *
-   * @return The $Z$ value.
-   */
-  public FieldElement getZ() {
-    return this.Z;
-  }
-
-  /**
-   * Gets the $T$ value of the group element. This is for most representation the projective $T$
-   * coordinate.
-   *
-   * @return The $T$ value.
-   */
-  public FieldElement getT() {
-    return this.T;
   }
 
   /**
@@ -564,9 +505,7 @@ public class GroupElement implements Serializable {
     return precmp;
   }
 
-  /**
-   * Precomputes table for {@link #doubleScalarMultiplyVariableTime(GroupElement, byte[], byte[])}.
-   */
+  /** Precomputes table for . */
   private GroupElement[] precomputeDouble() {
     // Precomputation for double scalar multiplication.
     // P,3P,5P,7P,9P,11P,13P,15P
@@ -885,7 +824,7 @@ public class GroupElement implements Serializable {
     int i;
     // Radix 16 notation
     for (i = 0; i < 32; i++) {
-      e[2 * i + 0] = (byte) (a[i] & 15);
+      e[2 * i] = (byte) (a[i] & 15);
       e[2 * i + 1] = (byte) ((a[i] >> 4) & 15);
     }
     /* each e[i] is between 0 and 15 */
@@ -1032,60 +971,6 @@ public class GroupElement implements Serializable {
     }
 
     return r;
-  }
-
-  /**
-   * $r = a * A + b * B$ where $a = a[0]+256*a[1]+\dots+256^{31} a[31]$, $b =
-   * b[0]+256*b[1]+\dots+256^{31} b[31]$ and $B$ is this point.
-   *
-   * <p>$A$ must have been previously precomputed.
-   *
-   * @param A in P3 representation.
-   * @param a $= a[0]+256*a[1]+\dots+256^{31} a[31]$
-   * @param b $= b[0]+256*b[1]+\dots+256^{31} b[31]$
-   * @return the GroupElement
-   */
-  public GroupElement doubleScalarMultiplyVariableTime(
-      final GroupElement A, final byte[] a, final byte[] b) {
-    // TODO-CR BR: A check that this is the base point is needed.
-    final byte[] aslide = slide(a);
-    final byte[] bslide = slide(b);
-
-    GroupElement r = this.curve.getZero(Representation.P2);
-
-    int i;
-    for (i = 255; i >= 0; --i) {
-      if (aslide[i] != 0 || bslide[i] != 0) break;
-    }
-
-    for (; i >= 0; --i) {
-      GroupElement t = r.dbl();
-
-      if (aslide[i] > 0) {
-        t = t.toP3().madd(A.dblPrecmp[aslide[i] / 2]);
-      } else if (aslide[i] < 0) {
-        t = t.toP3().msub(A.dblPrecmp[(-aslide[i]) / 2]);
-      }
-
-      if (bslide[i] > 0) {
-        t = t.toP3().madd(this.dblPrecmp[bslide[i] / 2]);
-      } else if (bslide[i] < 0) {
-        t = t.toP3().msub(this.dblPrecmp[(-bslide[i]) / 2]);
-      }
-
-      r = t.toP2();
-    }
-
-    return r;
-  }
-
-  /**
-   * Verify that a point is on its curve.
-   *
-   * @return true if the point lies on its curve.
-   */
-  public boolean isOnCurve() {
-    return isOnCurve(curve);
   }
 
   /**

@@ -1,6 +1,6 @@
 # Contributing
 
-Each pull request should address a single issue, and contain both the fix as well as a description of how the pull request and tests that validate that the PR fixes the issue in question.
+Each pull request should address a single issue, and contain both the fix and a description of how the pull request and tests that validate that the PR fixes the issue in question.
 
 For significant feature additions, we like to have an open issue in [MariaDB JIRA](https://mariadb.atlassian.net/secure/RapidBoard.jspa?projectKey=CONJ). It is expected that discussion will have taken place in the attached issue.
 
@@ -32,7 +32,7 @@ so you can run
     mvn test
 ```
     
-You can change those parameter by adding -DdbUrl parameter. like : 
+You can change this parameter by adding -DdbUrl parameter. like : 
  
 ```script
     mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****

@@ -2,7 +2,7 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
 
-package org.mariadb.jdbc.plugin.authentication;
+package org.mariadb.jdbc.plugin;
 
 import java.io.IOException;
 import java.sql.SQLException;

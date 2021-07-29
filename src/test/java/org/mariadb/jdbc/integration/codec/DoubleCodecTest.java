@@ -92,15 +92,15 @@ public class DoubleCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Integer.class, 0);
     //    testObject(rs, String.class, "0");
-    testObject(rs, Long.class, Long.valueOf(0));
-    testObject(rs, Short.class, Short.valueOf((short) 0));
+    testObject(rs, Long.class, 0L);
+    testObject(rs, Short.class, (short) 0);
     //    testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
-    testObject(rs, Double.class, Double.valueOf(0));
-    testObject(rs, Float.class, Float.valueOf(0));
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
+    testObject(rs, Double.class, (double) 0);
+    testObject(rs, Float.class, (float) 0);
+    testObject(rs, Byte.class, (byte) 0);
     testErrObject(rs, byte[].class);
     testErrObject(rs, Date.class);
     testErrObject(rs, Time.class);
@@ -361,7 +361,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getDate(getPrepare(sharedConnBinary));
   }
 
-  public void getDate(ResultSet rs) throws Exception {
+  public void getDate(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type DOUBLE cannot be decoded as Date");
     assertThrowsContains(
@@ -381,7 +381,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getTime(getPrepare(sharedConnBinary));
   }
 
-  public void getTime(ResultSet rs) throws Exception {
+  public void getTime(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type DOUBLE cannot be decoded as Time");
     assertThrowsContains(
@@ -401,7 +401,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getTimestamp(getPrepare(sharedConnBinary));
   }
 
-  public void getTimestamp(ResultSet rs) throws Exception {
+  public void getTimestamp(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
@@ -423,7 +423,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getAsciiStream(getPrepare(sharedConnBinary));
   }
 
-  public void getAsciiStream(ResultSet rs) throws Exception {
+  public void getAsciiStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
@@ -446,7 +446,7 @@ public class DoubleCodecTest extends CommonCodecTest {
   }
 
   @SuppressWarnings("deprecation")
-  public void getUnicodeStream(ResultSet rs) throws Exception {
+  public void getUnicodeStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
@@ -468,7 +468,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getBinaryStream(getPrepare(sharedConnBinary));
   }
 
-  public void getBinaryStream(ResultSet rs) throws Exception {
+  public void getBinaryStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
@@ -490,7 +490,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getBytes(getPrepare(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) throws Exception {
+  public void getBytes(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes(1),
@@ -512,7 +512,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getCharacterStream(ResultSet rs) throws Exception {
+  public void getCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -534,7 +534,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getNCharacterStream(ResultSet rs) throws Exception {
+  public void getNCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
@@ -556,7 +556,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getRef(getPrepare(sharedConnBinary));
   }
 
-  public void getRef(ResultSet rs) throws Exception {
+  public void getRef(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getRef(1), "Method ResultSet.getRef not supported");
     assertThrowsContains(
@@ -574,7 +574,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws Exception {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -596,7 +596,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getClob(getPrepare(sharedConnBinary));
   }
 
-  public void getClob(ResultSet rs) throws Exception {
+  public void getClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type DOUBLE cannot be decoded as Clob");
     assertThrowsContains(
@@ -616,7 +616,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getNClob(getPrepare(sharedConnBinary));
   }
 
-  public void getNClob(ResultSet rs) throws Exception {
+  public void getNClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getNClob(1), "Data type DOUBLE cannot be decoded as Clob");
     assertThrowsContains(
@@ -636,7 +636,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     getURL(getPrepare(sharedConnBinary));
   }
 
-  public void getURL(ResultSet rs) throws Exception {
+  public void getURL(ResultSet rs) {
     assertThrowsContains(SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse");
     assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse");
