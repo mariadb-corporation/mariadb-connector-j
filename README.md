@@ -32,12 +32,12 @@ or maven :
 ```
 
 New version 3.0 is a complete rewrite with code simplification, reduced size (15%), more than 90% coverage tested, with performance gain.
-But still in alpha for now:
+But still in beta for now:
 ```script
 <dependency>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
-    <version>3.0.0-alpha</version>
+    <version>3.0.1-beta</version>
 </dependency>
 ```
 

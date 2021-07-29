@@ -458,7 +458,7 @@ public class StatementTest extends Common {
   @Test
   public void testWarnings() throws SQLException {
     Assumptions.assumeTrue(
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer());
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));

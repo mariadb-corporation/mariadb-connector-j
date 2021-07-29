@@ -120,7 +120,9 @@ public final class ConnectionHelper {
 
     } catch (IOException ioe) {
       throw new SQLNonTransientConnectionException(
-          String.format("Socket fail to connect to host:%s. %s", hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
+          String.format(
+              "Socket fail to connect to host:%s. %s",
+              hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
           "08000",
           ioe);
     }
