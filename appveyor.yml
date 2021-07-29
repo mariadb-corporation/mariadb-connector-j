@@ -23,20 +23,12 @@ environment:
 
 clone_folder: c:\projects\mariadb-connector-j
 install:
-  - ps: |
-      Add-Type -AssemblyName System.IO.Compression.FileSystem
-      if (!(Test-Path -Path "C:\maven" )) {
-        (new-object System.Net.WebClient).DownloadFile('https://www.us.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.zip', 'C:\maven-bin.zip')
-        [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
-      }
-  # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
+  - cmd: choco install maven
   - cmd: appveyor-download.bat
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
-  - cmd: SET PATH=C:\maven\apache-maven-3.6.3\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
-  - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.4
   - cmd: cd c:\projects\mariadb-connector-j
   - cmd: mvn --version
   - cmd: java -version
