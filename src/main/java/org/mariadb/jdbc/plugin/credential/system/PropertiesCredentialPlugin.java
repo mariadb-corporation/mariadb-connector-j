@@ -16,7 +16,7 @@ import org.mariadb.jdbc.plugin.CredentialPlugin;
  *
  * <p>example : `jdbc:mariadb://host/db?credentialType=PROPERTY`
  *
- * <p>2 options `userKey` and `pwdKey` permits to indicate which system properties to use .
+ * <p>2 options `userKey` and `pwdKey` permits indicating which system properties to use .
  */
 public class PropertiesCredentialPlugin implements CredentialPlugin {
 

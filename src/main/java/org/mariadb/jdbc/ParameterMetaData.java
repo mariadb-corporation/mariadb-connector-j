@@ -105,7 +105,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
    * https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
    *
    * @param param the first parameter is 1, the second is 2, ...
-   * @return SQL type from <code>java.sql.Types</code>
+   * @return SQL types from <code>java.sql.Types</code>
    * @throws SQLException because not supported
    */
   @Override
@@ -163,13 +163,13 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
    *
    * <p>If the receiver implements the interface then the result is the receiver or a proxy for the
    * receiver. If the receiver is a wrapper and the wrapped object implements the interface then the
-   * result is the wrapped object or a proxy for the wrapped object. Otherwise return the the result
-   * of calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
+   * result is the wrapped object or a proxy for the wrapped object. Otherwise, return the result of
+   * calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
    * the receiver is not a wrapper and does not implement the interface, then an <code>SQLException
    * </code> is thrown.
    *
    * @param iface A Class defining an interface that the result must implement.
-   * @return an object that implements the interface. May be a proxy for the actual implementing
+   * @return an object that implements the interface. Maybe a proxy for the actual implementing
    *     object.
    * @throws SQLException If no object found that implements the interface
    */

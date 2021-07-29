@@ -110,13 +110,13 @@ public class LocalDateCodec implements Codec<LocalDate> {
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
       case STRING:
         String val = buf.readString(length);
-        String[] stDatePart = val.split("-| ");
+        String[] stDatePart = val.split("[- ]");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
@@ -175,13 +175,13 @@ public class LocalDateCodec implements Codec<LocalDate> {
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:
       case VARSTRING:
         String val = buf.readString(length);
-        String[] stDatePart = val.split("-| ");
+        String[] stDatePart = val.split("[- ]");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
               String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));

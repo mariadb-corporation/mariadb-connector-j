@@ -27,23 +27,23 @@ import org.mariadb.jdbc.util.options.OptionAliases;
 public class HaModeTest {
   @Test
   public void instantiateStaticOnlyClass() {
-    Capabilities capabilities = new Capabilities();
-    ColumnFlags columnFlags = new ColumnFlags();
-    ConnectionState connectionState = new ConnectionState();
-    ServerStatus serverStatus = new ServerStatus();
-    StateChange stateChange = new StateChange();
-    CharsetEncodingLength c = new CharsetEncodingLength();
-    NativeSql n = new NativeSql();
-    Security s = new Security();
-    OptionAliases oa = new OptionAliases();
-    CredentialPluginLoader cp = new CredentialPluginLoader();
-    AuthenticationPluginLoader ap = new AuthenticationPluginLoader();
-    TlsSocketPluginLoader tp = new TlsSocketPluginLoader();
-    LoggerHelper lh = new LoggerHelper();
-    ConnectionHelper ch = new ConnectionHelper();
-    Pools p = new Pools();
-    Loggers l = new Loggers();
-    VersionFactory vv = new VersionFactory();
+    new Capabilities();
+    new ColumnFlags();
+    new ConnectionState();
+    new ServerStatus();
+    new StateChange();
+    new CharsetEncodingLength();
+    new NativeSql();
+    new Security();
+    new OptionAliases();
+    new CredentialPluginLoader();
+    new AuthenticationPluginLoader();
+    new TlsSocketPluginLoader();
+    new LoggerHelper();
+    new ConnectionHelper();
+    new Pools();
+    new Loggers();
+    new VersionFactory();
   }
 
   @Test
@@ -97,7 +97,7 @@ public class HaModeTest {
     available.add(host6);
 
     ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
-    Map<HostAddress, Integer> res = loopPercReturn(HaMode.LOADBALANCE, available, denyList, true);
+    Map<HostAddress, Integer> res = loopPercReturn(available, denyList);
     for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
       System.out.println(entry.getKey() + " : " + entry.getValue());
     }
@@ -106,7 +106,7 @@ public class HaModeTest {
 
     denyList.putIfAbsent(host1, System.currentTimeMillis() + 10000);
 
-    res = loopPercReturn(HaMode.LOADBALANCE, available, denyList, true);
+    res = loopPercReturn(available, denyList);
     for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
       System.out.println(entry.getKey() + " : " + entry.getValue());
     }
@@ -133,13 +133,10 @@ public class HaModeTest {
   }
 
   private Map<HostAddress, Integer> loopPercReturn(
-      HaMode haMode,
-      List<HostAddress> available,
-      ConcurrentMap<HostAddress, Long> denyList,
-      Boolean primary) {
+      List<HostAddress> available, ConcurrentMap<HostAddress, Long> denyList) {
     Map<HostAddress, Integer> resMap = new HashMap<>();
     for (int i = 0; i < 1000; i++) {
-      Optional<HostAddress> res = haMode.getAvailableHost(available, denyList, primary);
+      Optional<HostAddress> res = HaMode.LOADBALANCE.getAvailableHost(available, denyList, true);
       if (res.isPresent()) {
         if (resMap.containsKey(res.get())) {
           resMap.put(res.get(), resMap.get(res.get()) + 1);

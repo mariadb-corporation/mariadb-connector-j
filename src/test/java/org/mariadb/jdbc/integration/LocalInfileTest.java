@@ -59,7 +59,7 @@ public class LocalInfileTest extends Common {
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       assertThrowsContains(
-          BatchUpdateException.class, () -> stmt.executeBatch(), "The used command is not allowed");
+          BatchUpdateException.class, stmt::executeBatch, "The used command is not allowed");
     }
   }
 

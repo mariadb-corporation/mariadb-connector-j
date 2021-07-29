@@ -23,7 +23,7 @@ import org.mariadb.jdbc.type.Point;
 
 public class MultiLineStringCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
-  private MultiLineString ls1 =
+  private final MultiLineString ls1 =
       new MultiLineString(
           new LineString[] {
             new LineString(
@@ -37,7 +37,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
                 },
                 true)
           });
-  private MultiLineString ls2 =
+  private final MultiLineString ls2 =
       new MultiLineString(
           new LineString[] {
             new LineString(
@@ -52,7 +52,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
                 true)
           });
 
-  private MultiLineString ls3 =
+  private final MultiLineString ls3 =
       new MultiLineString(
           new LineString[] {
             new LineString(
@@ -173,7 +173,6 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     testErrObject(rs, Byte.class);
     testArrObject(
         rs,
-        byte[].class,
         new byte[] {
           (byte) 0x00,
           0x00,

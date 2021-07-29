@@ -236,7 +236,7 @@ public class MariaDbBlob implements Blob, Serializable {
    * Blob</code> value is reached while writing the array of bytes, then the length of the <code>
    * Blob</code> value will be increased to accommodate the extra bytes.
    *
-   * <p><b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the
+   * <p><b>Note:</b> If the value specified for <code>pos</code> is greater than the length+1 of the
    * <code>BLOB</code> value then the behavior is undefined. Some JDBC drivers may throw a <code>
    * SQLException</code> while other drivers may support this operation.
    *
@@ -289,7 +289,7 @@ public class MariaDbBlob implements Blob, Serializable {
    * while writing to the stream, then the length of the <code>Blob</code> value will be increased
    * to accommodate the extra bytes.
    *
-   * <p><b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the
+   * <p><b>Note:</b> If the value specified for <code>pos</code> is greater than the length+1 of the
    * <code>BLOB</code> value then the behavior is undefined. Some JDBC drivers may throw a <code>
    * SQLException</code> while other drivers may support this operation.
    *

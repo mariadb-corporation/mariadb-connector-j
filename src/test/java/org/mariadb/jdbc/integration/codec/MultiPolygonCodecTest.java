@@ -20,7 +20,7 @@ import org.mariadb.jdbc.type.*;
 
 public class MultiPolygonCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
-  private MultiPolygon ls1 =
+  private final MultiPolygon ls1 =
       new MultiPolygon(
           new Polygon[] {
             new Polygon(
@@ -59,7 +59,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
                       false)
                 })
           });
-  private MultiPolygon ls2 =
+  private final MultiPolygon ls2 =
       new MultiPolygon(
           new Polygon[] {
             new Polygon(
@@ -78,7 +78,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
                 })
           });
 
-  private MultiPolygon ls3 =
+  private final MultiPolygon ls3 =
       new MultiPolygon(
           new Polygon[] {
             new Polygon(
@@ -240,7 +240,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     testErrObject(rs, Byte.class);
     String hexa =
         "0000000001060000000200000001030000000100000007000000000000000000F03F000000000000F03F000000000000F03F00000000000014400000000000001040000000000000224000000000000018400000000000002240000000000000224000000000000008400000000000001C400000000000000040000000000000F03F000000000000F03F010300000002000000050000000000000000000000000000000000000000000000000049400000000000000000000000000000494000000000000049400000000000000000000000000000494000000000000000000000000000000000050000000000000000002440000000000000244000000000000034400000000000002440000000000000344000000000000034400000000000002440000000000000344000000000000024400000000000002440";
-    testArrObject(rs, byte[].class, decodeHexString(hexa));
+    testArrObject(rs, decodeHexString(hexa));
 
     testErrObject(rs, Boolean.class);
     testErrObject(rs, Clob.class);

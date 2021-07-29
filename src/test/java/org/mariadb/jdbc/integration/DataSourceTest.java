@@ -6,7 +6,6 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.*;
 import java.sql.*;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Assumptions;

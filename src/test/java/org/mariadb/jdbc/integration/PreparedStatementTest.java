@@ -151,7 +151,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       assertThrowsContains(
           SQLException.class,
-          () -> preparedStatement.executeUpdate(),
+          preparedStatement::executeUpdate,
           "Parameter at position 1 is not " + "set");
 
       preparedStatement.setNull(1, Types.VARBINARY);
@@ -178,7 +178,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.clearParameters();
       assertThrowsContains(
           SQLException.class,
-          () -> preparedStatement.executeQuery(),
+          preparedStatement::executeQuery,
           "Parameter at position 1 is not set");
       preparedStatement.setInt(2, 11);
       preparedStatement.setInt(1, 6);
@@ -200,7 +200,7 @@ public class PreparedStatementTest extends Common {
         sharedConn.prepareStatement("SELECT * FROM prepare1")) {
       assertThrowsContains(
           SQLException.class,
-          () -> preparedStatement.executeUpdate(),
+          preparedStatement::executeUpdate,
           "the given SQL statement produces an unexpected ResultSet object");
     }
   }
@@ -275,7 +275,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(1, 5);
       preparedStatement.setInt(2, 10);
       preparedStatement.clearParameters();
-      assertThrows(SQLException.class, () -> preparedStatement.execute());
+      assertThrows(SQLException.class, preparedStatement::execute);
     }
   }
 
@@ -361,8 +361,8 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeWrongBatch() throws SQLException {
-    //    executeWrongBatch(sharedConn);
-    //    executeWrongBatch(sharedConnBinary);
+    executeWrongBatch(sharedConn);
+    executeWrongBatch(sharedConnBinary);
     try (Connection con = createCon("useBulkStmts=false&useServerPrepStmts=true")) {
       executeWrongBatch(con);
     }
@@ -728,11 +728,11 @@ public class PreparedStatementTest extends Common {
       prep.setInt(1, 1);
       prep.setString(2, "val2");
       assertThrowsContains(
-          SQLException.class, () -> prep.execute(), "Duplicate entry '1' for key 'PRIMARY'");
+          SQLException.class, prep::execute, "Duplicate entry '1' for key 'PRIMARY'");
     }
     try (PreparedStatement prep = con.prepareStatement("Wrong command")) {
       assertThrowsContains(
-          SQLException.class, () -> prep.execute(), "You have an error in your SQL syntax");
+          SQLException.class, prep::execute, "You have an error in your SQL syntax");
     }
   }
 
@@ -1018,7 +1018,7 @@ public class PreparedStatementTest extends Common {
       }
       assertThrowsContains(
           SQLException.class,
-          () -> st.executeQuery(),
+          st::executeQuery,
           "Prepared statement contains too many placeholders");
     }
     assertTrue(sharedConnBinary.isValid(1));
@@ -1029,7 +1029,7 @@ public class PreparedStatementTest extends Common {
     int rightLimit = 122; // letter 'z'
     Random random = new Random();
     return random
-        .ints(leftLimit, leftLimit + 1) // rightLimit + 1)
+        .ints(leftLimit, rightLimit)
         .limit(len)
         .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
         .toString();

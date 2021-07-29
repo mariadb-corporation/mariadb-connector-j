@@ -76,7 +76,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
               String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -182,7 +182,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
               String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:

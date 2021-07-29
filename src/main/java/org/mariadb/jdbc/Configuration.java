@@ -49,7 +49,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
 public class Configuration {
 
   private static final Pattern URL_PARAMETER =
-      Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
+      Pattern.compile("(/([^?]*))?(\\?(.+))*", Pattern.DOTALL);
 
   // standard options
   private String user = null;
@@ -1359,7 +1359,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate if TCP keep-alive must be enable.
+     * Indicate if TCP keep-alive must be enabled.
      *
      * @param tcpKeepAlive value
      * @return this {@link Builder}
@@ -1497,7 +1497,7 @@ public class Configuration {
     }
 
     /**
-     * Indicate to compresses exchanges with the database through gzip. This permits better
+     * Indicate to compress exchanges with the database through gzip. This permits better
      * performance when the database is not in the same location.
      *
      * @param useCompression to enable/disable compression

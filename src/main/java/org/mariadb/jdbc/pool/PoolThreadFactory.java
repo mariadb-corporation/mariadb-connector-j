@@ -22,7 +22,7 @@ public class PoolThreadFactory implements java.util.concurrent.ThreadFactory {
   public Thread newThread(Runnable runnable) {
     Thread result = parentFactory.newThread(runnable);
     result.setName(threadName + "-" + threadId.incrementAndGet());
-    result.setDaemon(true); // set as daemon so that mariaDb wont hold up shutdown
+    result.setDaemon(true); // set as daemon so that mariaDb won't hold up shutdown
 
     return result;
   }

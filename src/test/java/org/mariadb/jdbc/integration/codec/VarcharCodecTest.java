@@ -111,17 +111,17 @@ public class VarcharCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Integer.class, 0);
     testObject(rs, String.class, "0");
     testObject(rs, Byte.class, Byte.valueOf("0"));
-    testObject(rs, Long.class, Long.valueOf(0));
-    testObject(rs, Short.class, Short.valueOf((short) 0));
+    testObject(rs, Long.class, 0L);
+    testObject(rs, Short.class, (short) 0);
     testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
-    testObject(rs, Double.class, Double.valueOf(0));
-    testObject(rs, Float.class, Float.valueOf(0));
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
-    testArrObject(rs, byte[].class, new byte[] {(byte) '0'});
+    testObject(rs, Double.class, (double) 0);
+    testObject(rs, Float.class, (float) 0);
+    testObject(rs, Byte.class, (byte) 0);
+    testArrObject(rs, new byte[] {(byte) '0'});
     testObject(rs, Boolean.class, Boolean.FALSE);
     testObject(rs, Clob.class, new MariaDbClob("0".getBytes()));
     testObject(rs, NClob.class, new MariaDbClob("0".getBytes()));
@@ -775,7 +775,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws Exception {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),
@@ -1032,7 +1032,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   @Test
   public void wrongUtf8String() throws SQLException {
     final byte[] utf8WrongBytes =
-        new byte[] {(byte) 0xc2, (byte) 0f, (byte) 0xDB, (byte) 00, (byte) 0xE1, (byte) 00};
+        new byte[] {(byte) 0xc2, (byte) 0f, (byte) 0xDB, (byte) 0, (byte) 0xE1, (byte) 0};
     String st = new String(utf8WrongBytes);
 
     wrongUtf8(sharedConn, st);

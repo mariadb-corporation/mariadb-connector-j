@@ -64,6 +64,6 @@ public class DriverTest extends Common {
     assertEquals(3, driver.getMajorVersion());
     assertTrue(driver.getMinorVersion() > -1);
     assertTrue(driver.jdbcCompliant());
-    assertThrows(SQLFeatureNotSupportedException.class, () -> driver.getParentLogger());
+    assertThrows(SQLFeatureNotSupportedException.class, driver::getParentLogger);
   }
 }

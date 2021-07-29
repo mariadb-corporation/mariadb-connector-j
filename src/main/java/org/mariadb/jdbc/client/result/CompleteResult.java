@@ -88,10 +88,10 @@ public class CompleteResult extends Result {
     for (String[] rowData : data) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-      for (int i = 0; i < rowData.length; i++) {
+      for (String rowDatum : rowData) {
 
-        if (rowData[i] != null) {
-          byte[] bb = rowData[i].getBytes();
+        if (rowDatum != null) {
+          byte[] bb = rowDatum.getBytes();
           int len = bb.length;
           if (len < 251) {
             baos.write((byte) len);
@@ -147,7 +147,7 @@ public class CompleteResult extends Result {
     } else {
 
       // has read all data and pointer is after last result
-      // so result would have to always to be true,
+      // so result would have to always be true,
       // but when result contain no row at all jdbc say that must return false
       return dataSize > 0;
     }

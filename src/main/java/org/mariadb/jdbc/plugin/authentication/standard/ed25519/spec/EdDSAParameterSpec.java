@@ -60,10 +60,6 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
     return hashAlgo;
   }
 
-  public ScalarOps getScalarOps() {
-    return sc;
-  }
-
   /** @return the base (generator) */
   public GroupElement getB() {
     return B;

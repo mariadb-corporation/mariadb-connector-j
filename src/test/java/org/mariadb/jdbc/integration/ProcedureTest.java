@@ -39,7 +39,7 @@ public class ProcedureTest extends Common {
   }
 
   @Test
-  public void wrongCall() throws SQLException {
+  public void wrongCall() {
     assertThrowsContains(
         SQLException.class, () -> sharedConn.prepareCall("SELECT ?"), "invalid callable syntax");
   }

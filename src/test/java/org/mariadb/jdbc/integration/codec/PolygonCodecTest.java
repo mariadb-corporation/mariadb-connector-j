@@ -23,7 +23,7 @@ import org.mariadb.jdbc.type.Polygon;
 
 public class PolygonCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
-  private Polygon ls1 =
+  private final Polygon ls1 =
       new Polygon(
           new LineString[] {
             new LineString(
@@ -38,7 +38,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                 },
                 false)
           });
-  private Polygon ls2 =
+  private final Polygon ls2 =
       new Polygon(
           new LineString[] {
             new LineString(
@@ -61,7 +61,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                 false)
           });
 
-  private Polygon ls3 =
+  private final Polygon ls3 =
       new Polygon(
           new LineString[] {
             new LineString(
@@ -185,7 +185,6 @@ public class PolygonCodecTest extends CommonCodecTest {
     testErrObject(rs, Byte.class);
     testArrObject(
         rs,
-        byte[].class,
         new byte[] {
           (byte) 0x00,
           0x00,

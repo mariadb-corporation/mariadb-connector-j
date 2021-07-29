@@ -28,19 +28,13 @@ public class ColumnDefinitionPacket implements ServerMessage {
   private boolean useAliasAsName;
 
   private ColumnDefinitionPacket(
-      ReadableByteBuf buf,
-      int charset,
-      long length,
-      DataType dataType,
-      byte decimals,
-      int flags,
-      int[] stringPos) {
+      ReadableByteBuf buf, long length, DataType dataType, int[] stringPos) {
     this.buf = buf;
-    this.charset = charset;
+    this.charset = 33;
     this.length = length;
     this.dataType = dataType;
-    this.decimals = decimals;
-    this.flags = flags;
+    this.decimals = (byte) 0;
+    this.flags = ColumnFlags.PRIMARY_KEY;
     this.stringPos = stringPos;
     this.extTypeName = null;
   }
@@ -128,38 +122,32 @@ public class ColumnDefinitionPacket implements ServerMessage {
     }
 
     return new ColumnDefinitionPacket(
-        new ReadableByteBuf(null, arr, arr.length),
-        33,
-        len,
-        type,
-        (byte) 0,
-        ColumnFlags.PRIMARY_KEY,
-        stringPos);
+        new ReadableByteBuf(null, arr, arr.length), len, type, stringPos);
   }
 
   public String getSchema() {
     buf.pos(stringPos[0]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readLengthNotNull());
   }
 
   public String getTableAlias() {
     buf.pos(stringPos[1]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readLengthNotNull());
   }
 
   public String getTable() {
     buf.pos(stringPos[useAliasAsName ? 1 : 2]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readLengthNotNull());
   }
 
   public String getColumnAlias() {
     buf.pos(stringPos[3]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readLengthNotNull());
   }
 
   public String getColumn() {
     buf.pos(stringPos[4]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readLengthNotNull());
   }
 
   public long getLength() {
@@ -231,7 +219,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case DECIMAL:
         // DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
         // so :
-        // - if can be signed, 1 byte is saved for sign
+        // - if is signed, 1 byte is saved for sign
         // - if decimal > 0, one byte more for dot
         if (isSigned()) {
           return length - ((decimals > 0) ? 2 : 1);

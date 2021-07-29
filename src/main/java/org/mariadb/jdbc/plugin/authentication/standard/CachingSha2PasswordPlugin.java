@@ -36,7 +36,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
   private Configuration conf;
 
   /**
-   * Send a SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
+   * Send an SHA-2 encrypted password. encryption XOR(SHA256(password), SHA256(seed,
    * SHA256(SHA256(password))))
    *
    * @param password password
@@ -185,7 +185,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    *
    * @param serverRsaPublicKeyFile RSA public key file
    * @return public key
-   * @throws SQLException if cannot read file or file content is not a public key.
+   * @throws SQLException if having an error reading file or file content is not a public key.
    */
   public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
     byte[] keyBytes;

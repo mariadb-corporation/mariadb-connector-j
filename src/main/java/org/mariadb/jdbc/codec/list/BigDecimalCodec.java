@@ -82,7 +82,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
               String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -145,19 +145,9 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         return BigDecimal.valueOf(buf.readInt());
 
       case BIGINT:
-        BigInteger val;
-        if (column.isSigned()) {
-          val = BigInteger.valueOf(buf.readLong());
-        } else {
-          // need BIG ENDIAN, so reverse order
-          byte[] bb = new byte[8];
-          for (int i = 7; i >= 0; i--) {
-            bb[i] = buf.readByte();
-          }
-          val = new BigInteger(1, bb);
-        }
-
-        return new BigDecimal(String.valueOf(val)).setScale(column.getDecimals(), RoundingMode.CEILING);
+        BigInteger val = getBigInteger(buf, column);
+        return new BigDecimal(String.valueOf(val))
+            .setScale(column.getDecimals(), RoundingMode.CEILING);
 
       case FLOAT:
         return BigDecimal.valueOf(buf.readFloat());
@@ -203,6 +193,21 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
     }
+  }
+
+  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDefinitionPacket column) {
+    BigInteger val;
+    if (column.isSigned()) {
+      val = BigInteger.valueOf(buf.readLong());
+    } else {
+      // need BIG ENDIAN, so reverse order
+      byte[] bb = new byte[8];
+      for (int i = 7; i >= 0; i--) {
+        bb[i] = buf.readByte();
+      }
+      val = new BigInteger(1, bb);
+    }
+    return val;
   }
 
   @Override

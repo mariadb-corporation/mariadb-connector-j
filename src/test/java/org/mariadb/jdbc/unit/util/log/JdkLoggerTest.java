@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.util.log.JdkLogger;
 
 public class JdkLoggerTest {
-  ByteArrayOutputStream out = new ByteArrayOutputStream();
+  final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   public class BufHandler extends StreamHandler {
     public BufHandler() {
@@ -31,8 +31,7 @@ public class JdkLoggerTest {
     }
   }
 
-  public class MySimpleFormatter extends Formatter {
-    private final String format = "[%4$-7s] %5$s %n";
+  public static class MySimpleFormatter extends Formatter {
 
     public MySimpleFormatter() {}
 
@@ -60,12 +59,13 @@ public class JdkLoggerTest {
       }
 
       return String.format(
-          this.format, zdt, source, record.getLoggerName(), Level.FINEST, message, throwable);
+          "[%4$-7s] %5$s %n",
+          zdt, source, record.getLoggerName(), Level.FINEST, message, throwable);
     }
   }
 
   @Test
-  public void logger() throws IOException {
+  public void logger() {
 
     java.util.logging.Logger log = Logger.getLogger("logger");
     log.addHandler(new BufHandler());
@@ -101,7 +101,7 @@ public class JdkLoggerTest {
     logger.trace("trace msg3 {} {}", (String) null);
     logger.trace("trace msg2", new SQLException("test"));
 
-    String outSt = new String(out.toByteArray());
+    String outSt = out.toString();
     String expected =
         "[FINEST ] error msg \n"
             + "[FINEST ] error msg3 1 t \n"

@@ -78,7 +78,7 @@ public class FloatCodec implements Codec<Float> {
       case DECIMAL:
       case FLOAT:
       case YEAR:
-        return Float.valueOf(buf.readAscii(length));
+        return Float.parseFloat(buf.readAscii(length));
 
       case BLOB:
       case TINYBLOB:
@@ -90,14 +90,14 @@ public class FloatCodec implements Codec<Float> {
               String.format("Data type %s cannot be decoded as Float", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String val = buf.readString(length);
         try {
-          return Float.valueOf(val);
+          return Float.parseFloat(val);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Float", val));
         }
@@ -179,7 +179,7 @@ public class FloatCodec implements Codec<Float> {
               String.format("Data type %s cannot be decoded as Float", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:

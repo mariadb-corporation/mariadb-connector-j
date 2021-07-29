@@ -5,9 +5,6 @@
 package org.mariadb.jdbc.codec.list;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.time.LocalDate;
@@ -164,19 +161,7 @@ public class StringCodec implements Codec<String> {
         return String.valueOf(buf.readInt());
 
       case BIGINT:
-        BigInteger val;
-        if (column.isSigned()) {
-          val = BigInteger.valueOf(buf.readLong());
-        } else {
-          // need BIG ENDIAN, so reverse order
-          byte[] bb = new byte[8];
-          for (int ii = 7; ii >= 0; ii--) {
-            bb[ii] = buf.readByte();
-          }
-          val = new BigInteger(1, bb);
-        }
-
-        return new BigDecimal(String.valueOf(val)).setScale(column.getDecimals(), RoundingMode.CEILING).toPlainString();
+        return BigDecimalCodec.getBigInteger(buf, column).toString();
 
       case FLOAT:
         return String.valueOf(buf.readFloat());

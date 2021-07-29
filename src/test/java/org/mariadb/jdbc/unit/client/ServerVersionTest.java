@@ -13,7 +13,7 @@ import org.mariadb.jdbc.client.ServerVersion;
 public class ServerVersionTest {
 
   @Test
-  public void check() throws Exception {
+  public void check() {
     ServerVersion ver = new ServerVersion("10.5.2", true);
     assertEquals(10, ver.getMajorVersion());
     assertEquals(5, ver.getMinorVersion());

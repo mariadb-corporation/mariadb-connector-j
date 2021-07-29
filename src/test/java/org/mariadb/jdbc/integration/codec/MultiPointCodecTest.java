@@ -157,7 +157,6 @@ public class MultiPointCodecTest extends CommonCodecTest {
     testErrObject(rs, Byte.class);
     testArrObject(
         rs,
-        byte[].class,
         new byte[] {
           (byte) 0x00,
           0x00,

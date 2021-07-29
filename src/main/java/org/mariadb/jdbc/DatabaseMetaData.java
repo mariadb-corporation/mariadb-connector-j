@@ -488,10 +488,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @param columnName - column name in the information schema table
    * @param catalog - catalog name. This driver does not (always) follow JDBC standard for following
    *     special values, due to ConnectorJ compatibility 1. empty string ("") - matches current
-   *     catalog (i.e database). JDBC standard says only tables without catalog should be returned -
-   *     such tables do not exist in MariaDB. If there is no current catalog, then empty string
+   *     catalog (i.e. database). JDBC standard says only tables without catalog should be returned
+   *     - such tables do not exist in MariaDB. If there is no current catalog, then empty string
    *     matches any catalog. 2. null - if nullCatalogMeansCurrent=true (which is the default), then
-   *     the handling is the same as for "" . i.e return current catalog.JDBC-conforming way would
+   *     the handling is the same as for "" . i.e. return current catalog.JDBC-conforming way would
    *     be to match any catalog with null parameter. This can be switched with
    *     nullCatalogMeansCurrent=false in the connection URL.
    * @return part of SQL query ,that restricts search for the catalog.
@@ -630,21 +630,20 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " NULL REF_GENERATION"
                 + " FROM INFORMATION_SCHEMA.TABLES");
     boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
+    firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
 
     if (types != null && types.length > 0) {
       boolean mustAddType = false;
       StringBuilder sqlType = new StringBuilder(" AND TABLE_TYPE IN (");
-      for (int i = 0; i < types.length; i++) {
+      for (String s : types) {
         if (mustAddType) sqlType.append(",");
         mustAddType = true;
-        if (types[i] == null) {
+        if (s == null) {
           mustAddType = false;
           continue;
         }
-        String type =
-            "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(types[i]);
+        String type = "TABLE".equals(s) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(s);
         sqlType.append(type);
       }
       sqlType.append(")");
@@ -786,8 +785,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
                 + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
                 + " FROM INFORMATION_SCHEMA.COLUMNS");
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
     sb.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION");
@@ -938,8 +936,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
                 + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "KCU.TABLE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "KCU.TABLE_SCHEMA", catalog);
     sb.append(firstCondition ? " WHERE " : " AND ")
         .append("KCU.TABLE_NAME = ")
         .append(escapeQuote(table));
@@ -1858,7 +1855,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * <code>PROCEDURE_CAT</code>, <code>PROCEDURE_SCHEM</code>, <code>PROCEDURE_NAME</code> and
    * <code>SPECIFIC_ NAME</code>.
    *
-   * <p>Each procedure description has the the following columns:
+   * <p>Each procedure description has the following columns:
    *
    * <OL>
    *   <LI><B>PROCEDURE_CAT</B> String {@code =>} procedure catalog (may be <code>null</code>)
@@ -1916,8 +1913,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " SPECIFIC_NAME "
                 + " FROM INFORMATION_SCHEMA.ROUTINES ");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "ROUTINE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "ROUTINE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", procedureNamePattern);
 
     return executeQuery(sb.toString());
@@ -2080,8 +2076,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
                 + " FROM INFORMATION_SCHEMA.PARAMETERS");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "SPECIFIC_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
     firstCondition = patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
     sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
@@ -2200,8 +2195,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
                 + " FROM INFORMATION_SCHEMA.PARAMETERS");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "SPECIFIC_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "SPECIFIC_NAME", functionNamePattern);
     firstCondition = patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
     sb.append(firstCondition ? " WHERE " : " AND ")
@@ -2278,8 +2272,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + "PRIVILEGE_TYPE AS PRIVILEGE, "
                 + "IS_GRANTABLE "
                 + "FROM INFORMATION_SCHEMA.COLUMN_PRIVILEGES");
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     sb.append(firstCondition ? " WHERE " : " AND ")
         .append(" TABLE_NAME = ")
         .append(escapeQuote(table));
@@ -2337,8 +2330,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + "PRIVILEGE_TYPE PRIVILEGE, "
                 + "IS_GRANTABLE "
                 + "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES");
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     sb.append(" ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ");
 
@@ -2508,8 +2500,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
                 + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME ");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "KCU.REFERENCED_TABLE_SCHEMA", parentCatalog);
+    boolean firstCondition = catalogCond(true, sb, "KCU.REFERENCED_TABLE_SCHEMA", parentCatalog);
     firstCondition = catalogCond(firstCondition, sb, "KCU.TABLE_SCHEMA", foreignCatalog);
     firstCondition = patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", parentTable);
     firstCondition = patternCond(firstCondition, sb, "KCU.TABLE_NAME", foreignTable);
@@ -3309,8 +3300,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + "NULL FILTER_CONDITION"
                 + " FROM INFORMATION_SCHEMA.STATISTICS");
 
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "TABLE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     sb.append(firstCondition ? " WHERE " : " AND ")
         .append("TABLE_NAME = ")
         .append(escapeQuote(table));
@@ -3479,7 +3469,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   /**
    * Retrieves a description of the user-defined type (UDT) hierarchies defined in a particular
-   * schema in this database. Only the immediate super type/ sub type relationship is modeled. Only
+   * schema in this database. Only the immediate super type/ subtype relationship is modeled. Only
    * supertype information for UDTs matching the catalog, schema, and type name is returned. The
    * type name parameter may be a fully-qualified name. When the UDT name supplied is a
    * fully-qualified name, the catalog and schemaPattern parameters are ignored. If a UDT does not
@@ -3748,7 +3738,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * returned. They are ordered by <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>
    * FUNCTION_NAME</code> and <code>SPECIFIC_ NAME</code>.
    *
-   * <p>Each function description has the the following columns:
+   * <p>Each function description has the following columns:
    *
    * <OL>
    *   <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>)
@@ -3796,8 +3786,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " FUNCTION_TYPE, "
                 + "SPECIFIC_NAME "
                 + " FROM INFORMATION_SCHEMA.ROUTINES");
-    boolean firstCondition = true;
-    firstCondition = catalogCond(firstCondition, sb, "ROUTINE_SCHEMA", catalog);
+    boolean firstCondition = catalogCond(true, sb, "ROUTINE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", functionNamePattern);
     sb.append(firstCondition ? " WHERE " : " AND ").append(" ROUTINE_TYPE='FUNCTION'");
 

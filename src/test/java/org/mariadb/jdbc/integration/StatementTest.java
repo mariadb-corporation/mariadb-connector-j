@@ -97,7 +97,7 @@ public class StatementTest extends Common {
     Statement stmt = sharedConn.createStatement();
     assertFalse(stmt.execute("INSERT INTO executeGenerated(t2) values (100)"));
 
-    SQLException e = Assertions.assertThrows(SQLException.class, () -> stmt.getGeneratedKeys());
+    SQLException e = Assertions.assertThrows(SQLException.class, stmt::getGeneratedKeys);
     assertTrue(e.getMessage().contains("Cannot return generated keys"));
 
     assertFalse(
@@ -218,38 +218,30 @@ public class StatementTest extends Common {
     assertTrue(rs.isClosed());
 
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.clearBatch(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::clearBatch, "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.isPoolable(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::isPoolable, "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
         () -> stmt.setPoolable(true),
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
-        () -> stmt.closeOnCompletion(),
+        stmt::closeOnCompletion,
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
-        () -> stmt.isCloseOnCompletion(),
+        stmt::isCloseOnCompletion,
         "Cannot do an operation on a closed statement");
 
     assertThrowsContains(
         SQLException.class,
-        () -> stmt.getResultSetConcurrency(),
+        stmt::getResultSetConcurrency,
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getFetchSize(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getFetchSize, "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getMoreResults(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getMoreResults, "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
         () -> stmt.execute("ANY"),
@@ -263,27 +255,19 @@ public class StatementTest extends Common {
         () -> stmt.executeQuery("ANY"),
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.executeBatch(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::executeBatch, "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getConnection(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getConnection, "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
         () -> stmt.getMoreResults(1),
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class, () -> stmt.cancel(), "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::cancel, "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getMaxRows(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getMaxRows, "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getLargeMaxRows(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getLargeMaxRows, "Cannot do an operation on a closed statement");
 
     assertThrowsContains(
         SQLException.class,
@@ -294,16 +278,12 @@ public class StatementTest extends Common {
         () -> stmt.setEscapeProcessing(true),
         "Cannot do an operation on a closed statement");
     assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getQueryTimeout(),
-        "Cannot do an operation on a closed statement");
+        SQLException.class, stmt::getQueryTimeout, "Cannot do an operation on a closed statement");
+    assertThrowsContains(
+        SQLException.class, stmt::getUpdateCount, "Cannot do an operation on a closed statement");
     assertThrowsContains(
         SQLException.class,
-        () -> stmt.getUpdateCount(),
-        "Cannot do an operation on a closed statement");
-    assertThrowsContains(
-        SQLException.class,
-        () -> stmt.getLargeUpdateCount(),
+        stmt::getLargeUpdateCount,
         "Cannot do an operation on a closed statement");
   }
 
@@ -418,7 +398,7 @@ public class StatementTest extends Common {
 
   @Test
   @Timeout(20)
-  public void queryTimeout() throws Exception {
+  public void queryTimeout() {
     Assumptions.assumeTrue(
         isMariaDBServer()
             && !"maxscale".equals(System.getenv("srv"))
@@ -686,9 +666,7 @@ public class StatementTest extends Common {
     stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
     assertThrowsContains(
-        BatchUpdateException.class,
-        () -> stmt.executeBatch(),
-        "You have an error in your SQL syntax");
+        BatchUpdateException.class, stmt::executeBatch, "You have an error in your SQL syntax");
   }
 
   @Test
@@ -724,7 +702,7 @@ public class StatementTest extends Common {
     stmt.addBatch("WRONG QUERY");
     assertThrowsContains(
         BatchUpdateException.class,
-        () -> stmt.executeLargeBatch(),
+        stmt::executeLargeBatch,
         "You have an error in your SQL syntax");
   }
 

@@ -149,7 +149,7 @@ public class UnixDomainSocket extends Socket {
 
   public static class SockAddr extends Structure {
 
-    public short sun_family;
+    public short sun_family = AF_UNIX;
     public byte[] sun_path;
 
     /**
@@ -158,7 +158,6 @@ public class UnixDomainSocket extends Socket {
      * @param sunPath path
      */
     public SockAddr(String sunPath) {
-      sun_family = AF_UNIX;
       byte[] arr = sunPath.getBytes();
       sun_path = new byte[arr.length + 1];
       System.arraycopy(arr, 0, sun_path, 0, Math.min(sun_path.length - 1, arr.length));

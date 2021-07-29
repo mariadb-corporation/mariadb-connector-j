@@ -86,9 +86,7 @@ public interface ClientMessage {
       case 0xfb:
         buf.skip(1); // skip header
         String fileName = buf.readStringNullEnd();
-        InputStream is = null;
-        try {
-          is = new FileInputStream(fileName);
+        try (InputStream is = new FileInputStream(fileName)) {
 
           byte[] fileBuf = new byte[8192];
           int len;
@@ -129,8 +127,6 @@ public interface ClientMessage {
           throw exceptionFactory
               .withSql(this.description())
               .create("Could not send file : " + f.getMessage(), "HY000", f);
-        } finally {
-          if (is != null) is.close();
         }
 
         // *********************************************************************************************************

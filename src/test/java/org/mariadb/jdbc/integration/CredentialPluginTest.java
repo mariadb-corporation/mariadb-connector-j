@@ -28,11 +28,9 @@ public class CredentialPluginTest extends Common {
   public static void beforeTest() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer());
     drop();
-    boolean useOldNotation = true;
-    if ((isMariaDBServer() && minVersion(10, 2, 0))
-        || (!isMariaDBServer() && minVersion(8, 0, 0))) {
-      useOldNotation = false;
-    }
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     if (useOldNotation) {
       stmt.execute("CREATE USER 'identityUser'@'localhost'");

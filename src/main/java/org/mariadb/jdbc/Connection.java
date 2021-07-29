@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.sql.*;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.ClientImpl;
 import org.mariadb.jdbc.client.context.Context;
@@ -29,10 +28,10 @@ public class Connection implements java.sql.Connection {
 
   private static final Pattern CALLABLE_STATEMENT_PATTERN =
       Pattern.compile(
-          "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-              + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
-              + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
-              + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
+          "^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*"
+              + "call(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*((((`[^`]+`)|([^`}]+))\\.)?"
+              + "((`[^`]+`)|([^`}(]+)))\\s*(\\(.*\\))?(\\s*/\\*([^*]|\\*[^/])*\\*/)*"
+              + "\\s*(#.*)?)\\s*(}\\s*)?$",
           Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
   private final ReentrantLock lock;
   private final Configuration conf;
@@ -211,7 +210,7 @@ public class Connection implements java.sql.Connection {
   }
 
   /**
-   * Are table case sensitive or not . Default Value: 0 (Unix), 1 (Windows), 2 (Mac OS X). If set to
+   * Are table case-sensitive or not . Default Value: 0 (Unix), 1 (Windows), 2 (Mac OS X). If set to
    * 0 (the default on Unix-based systems), table names and aliases and database names are compared
    * in a case-sensitive manner. If set to 1 (the default on Windows), names are stored in lowercase
    * and not compared in a case-sensitive manner. If set to 2 (the default on Mac OS X), names are
@@ -647,9 +646,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setClientInfo(Properties properties) {
-    for (Map.Entry<?, ?> entry : properties.entrySet()) {
-      clientInfo.put(entry.getKey(), entry.getValue());
-    }
+    clientInfo.putAll(properties);
   }
 
   @Override

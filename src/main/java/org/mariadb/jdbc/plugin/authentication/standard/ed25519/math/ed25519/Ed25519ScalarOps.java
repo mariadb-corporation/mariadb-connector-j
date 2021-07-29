@@ -73,21 +73,6 @@ public class Ed25519ScalarOps implements ScalarOps {
     long carry15;
     long carry16;
 
-    /**
-     * Lots of magic numbers :) To understand what's going on below, note that
-     *
-     * <p>(1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493. (2) s11 is the
-     * coefficient of 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)).
-     * (3) 2^252 congruent -q0 modulo q. (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21)
-     * - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)
-     *
-     * <p>Thus s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent s23
-     * * (666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) -
-     * 683901 * 2^(5*21)) * 2^(11*21) modulo q = s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) +
-     * 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657 * 2^(15*21) - 683901 * 2^(16*21)).
-     *
-     * <p>The same procedure is then applied for s22,...,s18.
-     */
     s11 += s23 * 666643;
     s12 += s23 * 470296;
     s13 += s23 * 654183;
@@ -142,7 +127,6 @@ public class Ed25519ScalarOps implements ScalarOps {
     // not used again
     // s18 = 0;
 
-    /** Time to reduce the coefficient in order not to get an overflow. */
     carry6 = (s6 + (1 << 20)) >> 21;
     s7 += carry6;
     s6 -= carry6 << 21;
@@ -178,7 +162,6 @@ public class Ed25519ScalarOps implements ScalarOps {
     s16 += carry15;
     s15 -= carry15 << 21;
 
-    /** Continue with above procedure. */
     s5 += s17 * 666643;
     s6 += s17 * 470296;
     s7 += s17 * 654183;
@@ -233,7 +216,6 @@ public class Ed25519ScalarOps implements ScalarOps {
     // set below
     // s12 = 0;
 
-    /** Reduce coefficients again. */
     carry0 = (s0 + (1 << 20)) >> 21;
     s1 += carry0;
     s0 -= carry0 << 21;

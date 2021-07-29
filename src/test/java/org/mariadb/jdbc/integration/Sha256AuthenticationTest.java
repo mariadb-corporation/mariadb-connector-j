@@ -13,7 +13,8 @@ import org.mariadb.jdbc.Common;
 public class Sha256AuthenticationTest extends Common {
 
   private static String rsaPublicKey;
-  private static boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+  private static final boolean isWindows =
+      System.getProperty("os.name").toLowerCase().contains("win");
 
   @AfterAll
   public static void drop() throws SQLException {

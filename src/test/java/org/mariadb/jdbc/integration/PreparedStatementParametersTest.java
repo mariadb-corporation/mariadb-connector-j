@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -58,16 +59,17 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void validateParameters() throws Exception {
-    validateParameters(sharedConn, true);
-    validateParameters(sharedConnBinary, false);
+    validateParameters(sharedConn);
+    validateParameters(sharedConnBinary);
   }
 
-  public void validateParameters(org.mariadb.jdbc.Connection con, boolean text) throws Exception {
+  public void validateParameters(Connection con) throws Exception {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
       try {
         prep.execute();
         fail();
       } catch (SQLException sqle) {
+        // eat
       }
     }
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepareParam6 VALUES (?)")) {
@@ -76,7 +78,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.clearParameters();
       assertThrowsContains(
           SQLTransientConnectionException.class,
-          () -> prep.execute(),
+          prep::execute,
           "Parameter at position 1 is not set");
     }
   }
@@ -127,8 +129,7 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setBigDecimal(1, new BigDecimal("-156.59")),
         rs ->
             assertEquals(
-                new BigDecimal("-156.59"),
-                rs.getBigDecimal(1).setScale(2, BigDecimal.ROUND_HALF_DOWN)),
+                new BigDecimal("-156.59"), rs.getBigDecimal(1).setScale(2, RoundingMode.HALF_DOWN)),
         con);
     checkSendString(
         ps -> ps.setString(1, "你好(hello in Chinese)"),
@@ -301,20 +302,20 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
         con);
     checkSendString(
-        ps -> ps.setURL(1, new URL("http://www.someUrl.com")),
-        rs -> assertEquals("http://www.someUrl.com", rs.getString(1)),
+        ps -> ps.setURL(1, new URL("https://www.someUrl.com")),
+        rs -> assertEquals("https://www.someUrl.com", rs.getString(1)),
         con);
     // TODO SET OBJECT
   }
 
   @Test
   public void checkTimeParameters() throws Exception {
-    checkTimeParameters(sharedConn, true);
-    checkTimeParameters(sharedConnBinary, false);
+    checkTimeParameters(sharedConn);
+    checkTimeParameters(sharedConnBinary);
   }
 
   @SuppressWarnings("deprecation")
-  public void checkTimeParameters(org.mariadb.jdbc.Connection con, boolean text) throws Exception {
+  public void checkTimeParameters(Connection con) throws Exception {
     Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
     checkSendTime(
         ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime())),
@@ -335,11 +336,11 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void checkNotSupported() throws Exception {
-    checkNotSupported(sharedConn, true);
-    checkNotSupported(sharedConnBinary, false);
+    checkNotSupported(sharedConn);
+    checkNotSupported(sharedConnBinary);
   }
 
-  private void checkNotSupported(Connection con, boolean text) throws SQLException {
+  private void checkNotSupported(Connection con) throws SQLException {
     try (PreparedStatement preparedStatement = con.prepareStatement("SELECT * FROM prepareParam")) {
       assertThrowsContains(
           SQLException.class,
@@ -481,7 +482,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.setString(2, st);
       assertThrowsContains(
           SQLException.class,
-          () -> prep.execute(),
+          prep::execute,
           "Packet too big for current server max_allowed_packet value");
       assertFalse(con.isClosed());
     }
@@ -520,7 +521,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.setString(2, st);
       assertThrowsContains(
           SQLNonTransientConnectionException.class,
-          () -> prep.execute(),
+          prep::execute,
           "Packet too big for current server max_allowed_packet value");
       assertTrue(con.isClosed());
     }

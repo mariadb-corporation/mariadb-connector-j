@@ -18,7 +18,7 @@ public final class Pools {
   private static ScheduledThreadPoolExecutor poolExecutor = null;
 
   /**
-   * Get existing pool for a configuration. Create it if doesn't exists.
+   * Get existing pool for a configuration. Create it if it doesn't exist.
    *
    * @param conf configuration parser
    * @return pool

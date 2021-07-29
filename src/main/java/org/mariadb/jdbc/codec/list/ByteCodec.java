@@ -203,7 +203,7 @@ public class ByteCodec implements Codec<Byte> {
         break;
 
       case BIT:
-        Byte val = buf.readByte();
+        byte val = buf.readByte();
         if (length > 1) buf.skip(length - 1);
         return val;
 

@@ -119,7 +119,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * Retrieves the designated parameter's SQL type.
    *
    * @param index the first parameter is 1, the second is 2, ...
-   * @return SQL type from <code>java.sql.Types</code>
+   * @return SQL types from <code>java.sql.Types</code>
    * @throws SQLException if a database access error occurs
    * @see Types
    * @since 1.4
@@ -300,13 +300,13 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    *
    * <p>If the receiver implements the interface then the result is the receiver or a proxy for the
    * receiver. If the receiver is a wrapper and the wrapped object implements the interface then the
-   * result is the wrapped object or a proxy for the wrapped object. Otherwise return the the result
-   * of calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
+   * result is the wrapped object or a proxy for the wrapped object. Otherwise, return the result of
+   * calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
    * the receiver is not a wrapper and does not implement the interface, then an <code>SQLException
    * </code> is thrown.
    *
    * @param iface A Class defining an interface that the result must implement.
-   * @return an object that implements the interface. May be a proxy for the actual implementing
+   * @return an object that implements the interface. Maybe a proxy for the actual implementing
    *     object.
    * @throws SQLException If no object found that implements the interface
    * @since 1.6
@@ -332,12 +332,10 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * @param iface a Class defining an interface.
    * @return true if this implements the interface or directly or indirectly wraps an object that
    *     does.
-   * @throws SQLException if an error occurs while determining whether this is a wrapper for an
-   *     object with the given interface.
    * @since 1.6
    */
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return iface.isInstance(this);
   }
 }

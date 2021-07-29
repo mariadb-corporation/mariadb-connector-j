@@ -49,7 +49,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
-    if (index <= 0 || index > 1) {
+    if (index != 1) {
       throw exceptionFactory().create(String.format("wrong parameter index %s", index));
     }
     super.registerOutParameter(index, sqlType);

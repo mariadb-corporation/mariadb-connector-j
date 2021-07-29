@@ -76,7 +76,7 @@ public class DoubleCodec implements Codec<Double> {
       case OLDDECIMAL:
       case DECIMAL:
       case YEAR:
-        return Double.valueOf(buf.readAscii(length));
+        return Double.parseDouble(buf.readAscii(length));
 
       case BLOB:
       case TINYBLOB:
@@ -88,14 +88,14 @@ public class DoubleCodec implements Codec<Double> {
               String.format("Data type %s cannot be decoded as Double", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String str2 = buf.readString(length);
         try {
-          return Double.valueOf(str2);
+          return Double.parseDouble(str2);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Double", str2));
         }
@@ -176,14 +176,14 @@ public class DoubleCodec implements Codec<Double> {
               String.format("Data type %s cannot be decoded as Double", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
       case STRING:
         String str2 = buf.readString(length);
         try {
-          return Double.valueOf(str2);
+          return Double.parseDouble(str2);
         } catch (NumberFormatException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Double", str2));
         }

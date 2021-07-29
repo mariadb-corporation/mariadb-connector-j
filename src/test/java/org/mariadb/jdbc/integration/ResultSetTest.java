@@ -21,7 +21,6 @@ import org.mariadb.jdbc.Statement;
 
 public class ResultSetTest extends Common {
 
-  private final String NOT_SUPPORTED = "Not supported when using CONCUR_READ_ONLY concurrency";
   private final Class<? extends java.lang.Exception> ns = SQLFeatureNotSupportedException.class;
 
   @AfterAll
@@ -44,6 +43,7 @@ public class ResultSetTest extends Common {
     Assertions.assertNull(rs.getWarnings());
     rs.next();
     assertThrowsContains(ns, () -> rs.updateArray(1, null), "Array are not supported");
+    String NOT_SUPPORTED = "Not supported when using CONCUR_READ_ONLY concurrency";
     assertThrowsContains(ns, () -> rs.updateNull(1), NOT_SUPPORTED);
     assertThrowsContains(ns, () -> rs.updateBoolean(1, true), NOT_SUPPORTED);
     assertThrowsContains(ns, () -> rs.updateByte(1, (byte) 0x00), NOT_SUPPORTED);
@@ -101,16 +101,16 @@ public class ResultSetTest extends Common {
     assertThrowsContains(ns, () -> rs.updateNClob("t1", (NClob) null), NOT_SUPPORTED);
     assertThrowsContains(ns, () -> rs.updateNClob("t1", (Reader) null), NOT_SUPPORTED);
 
-    assertThrowsContains(ns, () -> rs.insertRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.updateRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.deleteRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.refreshRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.cancelRowUpdates(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.moveToInsertRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.moveToCurrentRow(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowUpdated(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowInserted(), NOT_SUPPORTED);
-    assertThrowsContains(ns, () -> rs.rowDeleted(), NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::insertRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::updateRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::deleteRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::refreshRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::cancelRowUpdates, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::moveToInsertRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::moveToCurrentRow, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowUpdated, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowInserted, NOT_SUPPORTED);
+    assertThrowsContains(ns, rs::rowDeleted, NOT_SUPPORTED);
 
     assertThrowsContains(
         ns, () -> rs.updateRef(1, null), "Method ResultSet.updateRef not supported");
@@ -166,7 +166,7 @@ public class ResultSetTest extends Common {
         ns,
         () -> rs.getObject("t1", map),
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
-    assertThrowsContains(ns, () -> rs.getCursorName(), "Cursors are not supported");
+    assertThrowsContains(ns, rs::getCursorName, "Cursors are not supported");
   }
 
   @Test
@@ -215,7 +215,7 @@ public class ResultSetTest extends Common {
     assertFalse(rs.isBeforeFirst());
     rs.close();
     assertThrowsContains(
-        SQLException.class, () -> rs.isBeforeFirst(), "Operation not permit on a closed resultSet");
+        SQLException.class, rs::isBeforeFirst, "Operation not permit on a closed resultSet");
   }
 
   @Test

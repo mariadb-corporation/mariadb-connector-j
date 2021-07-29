@@ -24,7 +24,7 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 public class ServerPreparedStatement extends BasePreparedStatement {
   private static final Pattern PREPARABLE_STATEMENT_PATTERN =
       Pattern.compile(
-          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
+          "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
           Pattern.CASE_INSENSITIVE);
 
   public ServerPreparedStatement(

@@ -98,7 +98,7 @@ public class ShortCodec implements Codec<Short> {
               String.format("Data type %s cannot be decoded as Short", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case FLOAT:
       case DOUBLE:
@@ -195,7 +195,7 @@ public class ShortCodec implements Codec<Short> {
               String.format("Data type %s cannot be decoded as Short", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case OLDDECIMAL:
       case VARCHAR:

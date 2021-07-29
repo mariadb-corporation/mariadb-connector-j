@@ -24,7 +24,7 @@ public class AwsCredentialGenerator {
   /**
    * AWS Generator.
    *
-   * @param nonMappedOptions non standard options
+   * @param nonMappedOptions non-standard options
    * @param userName user
    * @param hostAddress current server information
    */

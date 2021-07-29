@@ -13,7 +13,7 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 public class PrepareCacheTest {
 
   @Test
-  public void check() throws Exception {
+  public void check() {
     PrepareCache cache = new PrepareCache(20, null);
     try {
       cache.get("dd");

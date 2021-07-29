@@ -16,7 +16,6 @@ import org.mariadb.jdbc.Statement;
 
 public class StreamingRowChangeTest extends Common {
 
-  private final String NOT_SUPPORTED = "Operation not permit on a closed resultSet";
   private final String NOT_FORWARD = "Operation not permit on TYPE_FORWARD_ONLY resultSet";
   private final Class<? extends java.lang.Exception> sqle = SQLException.class;
 
@@ -39,19 +38,20 @@ public class StreamingRowChangeTest extends Common {
     stmt.setFetchSize(3);
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     rs.close();
-    assertThrowsContains(sqle, () -> rs.next(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.isBeforeFirst(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.isAfterLast(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.isFirst(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.isLast(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.beforeFirst(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.afterLast(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.first(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.last(), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.getRow(), NOT_SUPPORTED);
+    String NOT_SUPPORTED = "Operation not permit on a closed resultSet";
+    assertThrowsContains(sqle, rs::next, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::isBeforeFirst, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::isAfterLast, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::isFirst, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::isLast, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::beforeFirst, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::afterLast, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::first, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::last, NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::getRow, NOT_SUPPORTED);
     assertThrowsContains(sqle, () -> rs.absolute(0), NOT_SUPPORTED);
     assertThrowsContains(sqle, () -> rs.relative(1), NOT_SUPPORTED);
-    assertThrowsContains(sqle, () -> rs.previous(), NOT_SUPPORTED);
+    assertThrowsContains(sqle, rs::previous, NOT_SUPPORTED);
   }
 
   @Test
@@ -260,7 +260,7 @@ public class StreamingRowChangeTest extends Common {
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
     final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    assertThrowsContains(sqle, () -> rs2.beforeFirst(), NOT_FORWARD);
+    assertThrowsContains(sqle, rs2::beforeFirst, NOT_FORWARD);
   }
 
   @Test
@@ -282,7 +282,7 @@ public class StreamingRowChangeTest extends Common {
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
     final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    assertThrowsContains(sqle, () -> rs2.afterLast(), NOT_FORWARD);
+    assertThrowsContains(sqle, rs2::afterLast, NOT_FORWARD);
   }
 
   @Test
@@ -306,7 +306,7 @@ public class StreamingRowChangeTest extends Common {
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
     final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    assertThrowsContains(sqle, () -> rs2.first(), NOT_FORWARD);
+    assertThrowsContains(sqle, rs2::first, NOT_FORWARD);
   }
 
   @Test
@@ -433,7 +433,7 @@ public class StreamingRowChangeTest extends Common {
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
     final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
-    assertThrowsContains(sqle, () -> rs2.previous(), NOT_FORWARD);
+    assertThrowsContains(sqle, rs2::previous, NOT_FORWARD);
   }
 
   @Test

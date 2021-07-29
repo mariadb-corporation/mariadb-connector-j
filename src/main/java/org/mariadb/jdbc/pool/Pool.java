@@ -211,7 +211,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                     pendingRequestNumber.get());
               }
             } else {
-              // pool is closed, should then not be render to pool, but closed.
+              // pool is closed, should then not be rendered to pool, but closed.
               try {
                 item.getConnection().close();
               } catch (SQLException sqle) {
@@ -230,7 +230,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
-            idleConnections.stream().forEach(c -> c.lastUsedToNow());
+            idleConnections.forEach(InternalPoolConnection::lastUsedToNow);
 
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
@@ -409,11 +409,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     return conf;
   }
 
-  /**
-   * Close pool and underlying connections.
-   *
-   * @throws Exception if interrupted
-   */
+  /** Close pool and underlying connections. */
   @Override
   public void close() {
     try {

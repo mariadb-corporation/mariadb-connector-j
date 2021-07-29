@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public final class VersionFactory {
-  private static Version instance = null;
+  private static volatile Version instance = null;
 
   // use getShape method to get object of type shape
   public static Version getInstance() {

@@ -60,13 +60,10 @@ public class CommonCodecTest extends Common {
       assertNull(rs.getObject("t4alias", objClass));
     } else if (exp instanceof InputStream) {
       assertStreamEquals((InputStream) exp, (InputStream) rs.getObject(idx, objClass));
-      //      assertStreamEquals((InputStream) exp, (InputStream) rs.getObject("t1alias",
-      // objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
     } else if (exp instanceof Reader) {
       assertReaderEquals((Reader) exp, (Reader) rs.getObject(idx, objClass));
-      //      assertReaderEquals((Reader) exp, (Reader) rs.getObject("t1alias", objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
     } else if (exp instanceof Time) {
@@ -96,10 +93,10 @@ public class CommonCodecTest extends Common {
     assertNull(rs.getObject("t4alias", objClass));
   }
 
-  void testArrObject(ResultSet rs, Class<?> objClass, byte[] exp) throws SQLException {
-    assertArrayEquals(exp, (byte[]) rs.getObject(1, objClass));
-    assertArrayEquals(exp, (byte[]) rs.getObject("t1alias", objClass));
-    assertNull(rs.getObject(4, objClass));
-    assertNull(rs.getObject("t4alias", objClass));
+  void testArrObject(ResultSet rs, byte[] exp) throws SQLException {
+    assertArrayEquals(exp, (byte[]) rs.getObject(1, (Class<?>) byte[].class));
+    assertArrayEquals(exp, (byte[]) rs.getObject("t1alias", (Class<?>) byte[].class));
+    assertNull(rs.getObject(4, (Class<?>) byte[].class));
+    assertNull(rs.getObject("t4alias", (Class<?>) byte[].class));
   }
 }

@@ -55,7 +55,7 @@ public class ReaderCodec implements Codec<Reader> {
               String.format("Data type %s cannot be decoded as Reader", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case STRING:
       case VARCHAR:

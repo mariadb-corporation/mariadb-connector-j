@@ -82,7 +82,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       // Send Parameter type flag
       writer.writeByte(0x01);
 
-      // Store types of parameters in first in first package that is sent to the server.
+      // Store types of parameters in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {
         Parameter<?> p = parameters.get(i);
         writer.writeByte(p.getBinaryEncodeType());

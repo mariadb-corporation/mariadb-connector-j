@@ -32,8 +32,8 @@ public enum TransactionIsolation {
     for (TransactionIsolation transactionIsolation : values()) {
       if (transactionIsolation
           .value
-          .replaceAll(" |-|_", "")
-          .equalsIgnoreCase(value.replaceAll(" |-|_", ""))) {
+          .replaceAll("[ \\-_]", "")
+          .equalsIgnoreCase(value.replaceAll("[ \\-_]", ""))) {
         return transactionIsolation;
       }
     }

@@ -93,6 +93,7 @@ public class ErrorTest extends Common {
       try {
         if (cons[i] != null) cons[i].close();
       } catch (SQLException sqle) {
+        // eat
       }
     }
     assertNotNull(exception);

@@ -31,8 +31,8 @@ If really wanting to use JDK logger, System property "mariadb.logging.fallback" 
 
 
 ### Failover
-Failover implementation now permit to redo transaction : 
-when creating a transaction, all command will be cached, and can be replay in case of failover. 
+Failover implementation now permit redoing transaction : 
+when creating a transaction, all command will be cached, and can be replayed in case of failover. 
 
 This functionality can be enabled using option `transactionReplay`.
 
@@ -87,7 +87,7 @@ minor:
 ## [2.7.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.0) (24 Sep. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.6.2...2.7.0)
 
-* CONJ-805	maxFieldSize string truncation occurs on bytes length, not character length
+* CONJ-805	maxFieldSize string truncation occurs on bytes' length, not character length
 * CONJ-807	Correcting possible Get Access Denied error if using multiple classloader
 * CONJ-810	normalization of resultset getDate/getTime of timestamp field.
 * CONJ-812	DatabaseMetadata.getBestRowIdentifier and getMaxProcedureNameLength correction
@@ -148,7 +148,7 @@ minor:
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.3...2.5.4)
 
 * CONJ-756 - Logging correction when using enablePacketDebug option
-* CONJ-755 - permits to avoid setting session_track_schema with new option `trackSchema`
+* CONJ-755 - permits avoiding setting session_track_schema with new option `trackSchema`
 
 ## [2.5.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.5.3) (07 Jan. 2020)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.2...2.5.3)
@@ -182,8 +182,8 @@ minor:
 * CONJ-727 - Support configuration of custom SSLSocketFactory
 * CONJ-561 - JDBC 4.3 partial implementation java.sql.Statement methods isSimpleIdentifier, enquoteIdentifier, enquoteLiteral and enquoteNCharLiteral
 * CONJ-692 - ConnectionPoolDataSource interface addition to MariaDbPoolDataSource
-* CONJ-563 - closing possible option batch thread on driver deregistration.
-* CONJ-732 - Driver getPropertyInfo returns no options information when url is empty
+* CONJ-563 - closing possible option batch thread on driver registration.
+* CONJ-732 - Driver getPropertyInfo returns no options' information when url is empty
 * CONJ-734 - DatabaseMetaData.getSchemaTerm now return "schema", not empty string
 
 ## [2.4.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.4) (14 Sep. 2019)
@@ -295,7 +295,7 @@ Connecting MySQL community server use YaSSL without correction, and connection m
 Using useBulkStmts permit faster batch, but cause one major issue : Batch return -1 = SUCCESS_NO_INFO
 
 Different option use this information for optimistic update, and cannot confirm if update succeed or not.
-This option still makes sense, since for big batch is way more faster, but will not be activated by default.
+This option still makes sense, since for big batch is way faster, but will not be activated by default.
 
 
 ##= Minor change:
@@ -319,7 +319,7 @@ minor change:
 
 New options
 |=useAffectedRows|default correspond to the JDBC standard, reporting real affected rows. if
-enable, will report "affected" rows. example : if enable, an update command that doesn't change a row value will still be "affected", then report.<br /><i>Default: false. Since 2.2.6</i>
+enable, will report "affected" rows. example : if enabled, an update command that doesn't change a row value will still be "affected", then report.<br /><i>Default: false. Since 2.2.6</i>
 
 Bug correction:
 * CONJ-624 - MariaDbPoolDataSource possible NPE on configuration getter
@@ -349,7 +349,7 @@ Bug correction:
 Minor changes:
 * CONJ-580 - Some options are missing in documentation like default 'autocommit' value
 * CONJ-597 - Internal exchanges send utf8mb4 with server even if default server collation is not utf8/utf8mb4
-* CONJ-600 - Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
+* CONJ-600 - Upgrading non-mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
 * CONJ-575 - test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
 
 ## [2.2.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.3) (08 Mar. 2018)
@@ -359,7 +359,7 @@ Bug correction:
 * CONJ-583 - possible hang indefinitely using master/slave configuration and failover occur
 * CONJ-586 - erroneous transaction state when first command result as error
 * CONJ-587 - using allowMasterDownConnection option can lead to NPE when using setReadOnly()
-* CONJ-588 - using option 'allowMasterDownConnection' won't permit to connect if master is down
+* CONJ-588 - using option 'allowMasterDownConnection' won't permit connecting if master is down
 * CONJ-534 - Connection.isValid() must be routed to Master and Slave connections to avoid any server timeout
 
 ## [2.2.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.2) (20 Feb. 2018)
@@ -511,7 +511,7 @@ other evolution
 
 Bug
 * CONJ-502 - isolation leak when using multiple pools on same VM on failover
-* CONJ-503 - regression on aurora Connection Connection.isReadOnly()
+* CONJ-503 - regression on aurora Connection.isReadOnly()
 * CONJ-505 - correcting issue that ended throwing "Unknown prepared statement handler given to mysqld_stmt_execute"
 * CONJ-496 - return rounded numeric when querying on a decimal field in place of throwing an exception for compatibility
 
@@ -556,7 +556,7 @@ Task
 * CONJ-465 - new option "enablePacketDebug"
 
 New Options :
-|=enablePacketDebug|Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).<br />Hexadecimal value of those packet will be added to stacktrace when an IOException occur.<br />This options has no performance incidence (< 1 microseconds per query) but driver will then take 16kb more memory.//Default: true. Since 1.6.0//|
+|=enablePacketDebug|Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).<br />Hexadecimal value of this packet will be added to stacktrace when an IOException occur.<br />This options has no performance incidence (< 1 microseconds per query) but driver will then take 16kb more memory.//Default: true. Since 1.6.0//|
 
 * CONJ-468 - autoIncrementIncrement value loaded during connection, avoiding a query for first statement for rewrite
 
@@ -591,11 +591,11 @@ will be executed on close, to avoid having to parse all remaining results.
 
 ##= [CONJ-442]
 Memory optimization : streaming query.
-Very big command now doesn't use any intermediate buffer. Commands are send directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
+Very big command now doesn't use any intermediate buffer. Commands are sent directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
 
 ##= [CONJ-366]
 Faster connection : bundle first commands in authentication packet
-Driver execute different command on connection. Those queries are now send using pipeline (all queries are send, then only all results are reads).
+Driver execute different command on connection. Those queries are now send using pipeline (all queries are sent, then only all results are reads).
 
 New Options :
 |=usePipelineAuth|Fast connection creation.//Default: true. Since 2.0.0//|
@@ -605,7 +605,7 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 
 ##= Remaining JDBC 4.2 missing implementation :
 - CONJ-414 - support for large update count [CONJ-414]
-- CONJ-409 - PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
+- CONJ-409 - PrepareStatement.setObject(...) support for with java 8 temporal object.
 - CONJ-411 - support for Statement maxFieldSize
 
 ##= Misc
@@ -632,9 +632,9 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 * CONJ-434 : 1.5.8 regression : ResultSet returns duplicate entries when using fetchsize
 * CONJ-437 : ResultSet.getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol
 * CONJ-435 : avoid "All pipe instances are busy" exception on multiple connections to the same named pipe
-* CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY only when streaming
+* CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY when streaming
 * CONJ-440 : handle very big COM_STMT_SEND_LONG_DATA packet (1Gb)
-* CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException
+* CONJ-429 : ResultSet.getDouble/getFloat may throw a NumberFormatException
 * CONJ-438 : using option rewriteBatchedStatements, permit rewrite when query has column/table that contain 'select' keyword.
 
 ## 1.5.8
@@ -690,7 +690,7 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 * CONJ-354 : Streaming issue when using procedures in PrepareStatement/Statement
 * CONJ-345 : Regression with using COLLATE keyword in PrepareStatement query
 * CONJ-352 : metadata correction on getPrecision() for numeric fields
-* CONJ-350 : make prepare fallback to client prepare if query cannot be prepare
+* CONJ-350 : make prepare fallback to client prepare if query cannot be prepared
 
 ## 1.5.2
 Release version
@@ -714,7 +714,7 @@ Aurora now auto discover nodes from cluster endpoint.
 
 ##### Aurora endpoints
 
-Every aurora instance has a specific endpoint, i.e. an URL that identify the host. Those endpoints look like `xxx.yyy.zzz.rds.amazonaws.com`.
+Every aurora instance has a specific endpoint, i.e. a URL that identify the host. Those endpoints look like `xxx.yyy.zzz.rds.amazonaws.com`.
 
 There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.rds.amazonaws.com`) which is assigned to the current master instance and will change when a new master is promoted.
 
@@ -729,7 +729,7 @@ jdbc:mariadb:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
 
 Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
 
-This discovery append at connection time, so if you are using pool framework, check if this framework as a property that controls the maximum lifetime of a connection in the pool, and set a value to avoid infinite lifetime. When this lifetime is reached, pool will discarded the current connection, and create a new one (if needed). New connections will use the new replicas.
+This discovery append at connection time, so if you are using pool framework, check if this framework as a property that controls the maximum lifetime of a connection in the pool, and set a value to avoid infinite lifetime. When this lifetime is reached, pool will discard the current connection, and create a new one (if needed). New connections will use the new replicas.
 (If connections are never discarded, new replicas will begin be used only when a failover occur)
 
 
@@ -743,14 +743,14 @@ Release candidate version
 CONJ-295.<br />
 
 Java kerberos implementation is not well implemented with windows :
-* need a windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
+* need a Windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
 * java kinit must be executed to create a Ticket.
 * restriction when client with local admin rights
 * ...
 
-[see openJDK issue](https://bugs.openjdk.java.net/browse/JDK-6722928) for more informations
+[see openJDK issue](https://bugs.openjdk.java.net/browse/JDK-6722928) for more information
 
-Kerberos GSSAPI implementation on windows in now based on [Waffle](https://github.com/dblock/waffle) that support windows SSPI based on [JNA](https://github.com/java-native-access/jna).<br />
+Kerberos GSSAPI implementation on Windows in now based on [Waffle](https://github.com/dblock/waffle) that support windows SSPI based on [JNA](https://github.com/java-native-access/jna).<br />
 if waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
 
 This removes all those problems
@@ -767,7 +767,7 @@ MariaDB server from version 10.0.15 is using the openSSL library permitting TLSv
 
 TLSv1.2 can be enabled by setting option {{{enabledSslProtocolSuites}}} to values {{{"TLSv1, TLSv1.1, TLSv1.2"}}}.
 
-A new option {{{enabledSslCipherSuites}}} permit to set specific cipher.
+A new option {{{enabledSslCipherSuites}}} permit setting specific cipher.
 
 New Options :
 |=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). <br />Example : "TLSv1, TLSv1.1, TLSv1.2"<br />//Default: TLSv1, TLSv1.1. Since 1.5.0//|
@@ -790,7 +790,7 @@ Basically that permit to avoid a lot of 'ping-pong' between driver and server.
 
 New Options :
 |=useBatchMultiSend|PreparedStatement.executeBatch() will send many QUERY before reading result packets.//Default: true. Since 1.5.0//|
-|=useBatchMultiSendNumber|When using useBatchMultiSend, indicate maximum query that can be send at a time.<br />//Default: 100. Since 1.5.0//|
+|=useBatchMultiSendNumber|When using useBatchMultiSend, indicate maximum query that can be sent at a time.<br />//Default: 100. Since 1.5.0//|
 
 ### Prepare + execute in one call
 CONJ-296
@@ -809,7 +809,7 @@ Driver is using this functionality to PREPARE and EXECUTE in one client-server r
 
 ### Client logging
 
-Client logging can be enable, permitting to log query information, execution time and different failover information.
+Client logging can be enabled, permitting to log query information, execution time and different failover information.
 This implementation need the standard SLF4J dependency.
 
 New Options :
@@ -848,7 +848,7 @@ return filePath.equals("/var/tmp/exchanges");
 }}}
 file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor must exist with content {{{org.project.LocalInfileInterceptorImpl}}}.
 
-You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.
+You can get rid of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.
 
 Using the previous example:
 {{{

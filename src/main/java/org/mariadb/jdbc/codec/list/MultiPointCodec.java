@@ -68,7 +68,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
     MultiPoint mp = (MultiPoint) value;
-    encoder.writeLength(13 + mp.getPoints().length * 21);
+    encoder.writeLength(13 + mp.getPoints().length * 21L);
     encoder.writeInt(0); // SRID
     encoder.writeByte(0x01); // LITTLE ENDIAN
     encoder.writeInt(4); // wkbMultiPoint

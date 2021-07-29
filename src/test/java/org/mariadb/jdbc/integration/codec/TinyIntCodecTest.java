@@ -138,15 +138,15 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Integer.class, 0);
     testObject(rs, String.class, "0");
-    testObject(rs, Long.class, Long.valueOf(0));
-    testObject(rs, Short.class, Short.valueOf((short) 0));
+    testObject(rs, Long.class, 0L);
+    testObject(rs, Short.class, (short) 0);
     testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
-    testObject(rs, Double.class, Double.valueOf(0));
-    testObject(rs, Float.class, Float.valueOf(0));
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
+    testObject(rs, Double.class, (double) 0);
+    testObject(rs, Float.class, (float) 0);
+    testObject(rs, Byte.class, (byte) 0);
     testErrObject(rs, byte[].class);
     testErrObject(rs, Date.class);
     testErrObject(rs, Time.class);
@@ -589,7 +589,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getDate(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getDate(ResultSet rs) throws SQLException {
+  public void getDate(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type TINYINT cannot be decoded as Date");
     assertThrowsContains(
@@ -609,7 +609,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getTime(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getTime(ResultSet rs) throws SQLException {
+  public void getTime(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type TINYINT cannot be decoded as Time");
     assertThrowsContains(
@@ -629,7 +629,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getTimestamp(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getTimestamp(ResultSet rs) throws SQLException {
+  public void getTimestamp(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
@@ -651,7 +651,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getAsciiStream(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getAsciiStream(ResultSet rs) throws SQLException {
+  public void getAsciiStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
@@ -674,7 +674,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   @SuppressWarnings("deprecation")
-  public void getUnicodeStream(ResultSet rs) throws SQLException {
+  public void getUnicodeStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
@@ -696,7 +696,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getBinaryStream(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getBinaryStream(ResultSet rs) throws SQLException {
+  public void getBinaryStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
@@ -718,7 +718,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getBytes(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) throws SQLException {
+  public void getBytes(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes(1),
@@ -740,7 +740,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getCharacterStream(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getCharacterStream(ResultSet rs) throws SQLException {
+  public void getCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -762,7 +762,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getNCharacterStream(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getNCharacterStream(ResultSet rs) throws SQLException {
+  public void getNCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
@@ -784,7 +784,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getRef(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getRef(ResultSet rs) throws SQLException {
+  public void getRef(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getRef(1), "Method ResultSet.getRef not supported");
     assertThrowsContains(
@@ -802,7 +802,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getBlob(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws SQLException {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
@@ -824,7 +824,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getClob(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getClob(ResultSet rs) throws SQLException {
+  public void getClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type TINYINT cannot be decoded as Clob");
     assertThrowsContains(
@@ -844,7 +844,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getNClob(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getNClob(ResultSet rs) throws SQLException {
+  public void getNClob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob(1),
@@ -866,7 +866,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getArray(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getArray(ResultSet rs) throws SQLException {
+  public void getArray(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getArray(1), "Method ResultSet.getArray not supported");
     assertThrowsContains(
@@ -886,7 +886,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getURL(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getURL(ResultSet rs) throws SQLException {
+  public void getURL(ResultSet rs) {
     assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse '0' as URL");
     assertThrowsContains(
@@ -904,7 +904,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     getSQLXML(getPrepareSigned(sharedConnBinary));
   }
 
-  public void getSQLXML(ResultSet rs) throws SQLException {
+  public void getSQLXML(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getSQLXML(1), "Method ResultSet.getSQLXML not supported");
     assertThrowsContains(

@@ -54,8 +54,8 @@ public class ConsoleLoggerTest {
         logger.trace("trace msg3 {} {}", 1, "t");
         logger.trace("trace msg2", new SQLException("test"));
 
-        String errSt = new String(err.toByteArray());
-        String outSt = new String(out.toByteArray());
+        String errSt = err.toString();
+        String outSt = out.toString();
 
         assertTrue(
             errSt.contains(

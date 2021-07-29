@@ -103,7 +103,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
   }
 
   @Override
-  public XAResource getXAResource() throws SQLException {
+  public XAResource getXAResource() {
     return new MariaDbXAResource();
   }
 
@@ -183,12 +183,12 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
 
     @Override
-    public void forget(Xid xid) throws XAException {
+    public void forget(Xid xid) {
       // Not implemented by the server
     }
 
     @Override
-    public int getTransactionTimeout() throws XAException {
+    public int getTransactionTimeout() {
       // not implemented
       return 0;
     }
@@ -198,7 +198,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
 
     @Override
-    public boolean isSameRM(XAResource xaResource) throws XAException {
+    public boolean isSameRM(XAResource xaResource) {
       if (xaResource instanceof MariaDbXAResource) {
         MariaDbXAResource other = (MariaDbXAResource) xaResource;
         return other.getConf().equals(this.getConf());
@@ -252,7 +252,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
 
     @Override
-    public boolean setTransactionTimeout(int i) throws XAException {
+    public boolean setTransactionTimeout(int i) {
       return false;
     }
 

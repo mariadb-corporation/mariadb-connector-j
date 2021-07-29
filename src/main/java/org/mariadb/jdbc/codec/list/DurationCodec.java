@@ -74,7 +74,7 @@ public class DurationCodec implements Codec<Duration> {
               String.format("Data type %s cannot be decoded as Duration", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case TIME:
       case VARCHAR:

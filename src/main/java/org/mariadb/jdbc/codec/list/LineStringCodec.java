@@ -67,7 +67,7 @@ public class LineStringCodec implements Codec<LineString> {
       throws IOException {
     LineString line = (LineString) value;
 
-    encoder.writeLength(13 + line.getPoints().length * 16);
+    encoder.writeLength(13 + line.getPoints().length * 16L);
     encoder.writeInt(0); // SRID
     encoder.writeByte(0x01); // LITTLE ENDIAN
     encoder.writeInt(2); // wkbLineString

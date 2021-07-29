@@ -345,7 +345,7 @@ public class ConfigurationTest extends Common {
   }
 
   @Test
-  public void testOptionParseIntegerNotPossible() throws Throwable {
+  public void testOptionParseIntegerNotPossible() {
     assertThrows(
         SQLException.class,
         () ->
@@ -748,9 +748,7 @@ public class ConfigurationTest extends Common {
     Configuration conf =
         new Configuration.Builder()
             .addresses(
-                new HostAddress[] {
-                  HostAddress.from("host1", 3305, true), HostAddress.from("host2", 3307, false)
-                })
+                HostAddress.from("host1", 3305, true), HostAddress.from("host2", 3307, false))
             .user("me")
             .password("pwd")
             .database("db")

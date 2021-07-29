@@ -230,7 +230,7 @@ public class ClientImpl implements Client, AutoCloseable {
   }
 
   /**
-   * load server timezone and ensure this correspond to client timezone
+   * load server timezone and ensure this corresponds to client timezone
    *
    * @throws SQLException if any socket error.
    */
@@ -815,7 +815,7 @@ public class ClientImpl implements Client, AutoCloseable {
     }
   }
 
-  public void close() throws SQLException {
+  public void close() {
     boolean locked = lock.tryLock();
 
     if (!this.closed) {

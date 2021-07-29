@@ -34,7 +34,7 @@ public final class ErrorPacket implements ServerMessage {
       this.sqlState = buf.readAscii(5);
       this.message = buf.readStringEof();
     } else {
-      // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
+      // Pre-4.1 message, still can be output in newer versions (e.g. with 'Too many connections')
       this.message = buf.readStringEof();
       this.sqlState = "HY000";
     }

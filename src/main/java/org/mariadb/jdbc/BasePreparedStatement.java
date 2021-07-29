@@ -793,7 +793,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   /**
    * Sets the designated parameter to the given <code>java.sql.RowId</code> object. The driver
-   * converts this to a SQL <code>ROWID</code> value when it sends it to the database
+   * converts this to an SQL <code>ROWID</code> value when it sends it to the database
    *
    * @param parameterIndex the first parameter is 1, the second is 2, ...
    * @param x the parameter value
@@ -810,7 +810,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   /**
    * Sets the designated parameter to the given <code>String</code> object. The driver converts this
-   * to a SQL <code>NCHAR</code> or <code>NVARCHAR</code> or <code>LONGNVARCHAR</code> value
+   * to an SQL <code>NCHAR</code> or <code>NVARCHAR</code> or <code>LONGNVARCHAR</code> value
    * (depending on the argument's size relative to the driver's limits on <code>NVARCHAR</code>
    * values) when it sends it to the database.
    *
@@ -853,7 +853,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   /**
    * Sets the designated parameter to a <code>java.sql.NClob</code> object. The driver converts this
-   * to a SQL <code>NCLOB</code> value when it sends it to the database.
+   * to an SQL <code>NCLOB</code> value when it sends it to the database.
    *
    * @param parameterIndex of the first parameter is 1, the second is 2, ...
    * @param value the parameter value

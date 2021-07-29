@@ -129,7 +129,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
 
   /**
    * Gets the designated column's suggested title for use in printouts and displays. The suggested
-   * title is usually specified by the SQL <code>AS</code> clause. If a SQL <code>AS</code> is not
+   * title is usually specified by the SQL <code>AS</code> clause. If an SQL <code>AS</code> is not
    * specified, the value returned from <code>getColumnLabel</code> will be the same as the value
    * returned by the <code>getColumnName</code> method.
    *
@@ -261,7 +261,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   }
 
   /**
-   * Indicates whether it is possible for a write on the designated column to succeed.
+   * Indicates whether it is possible for writing on the designated column to succeed.
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
@@ -272,7 +272,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
   }
 
   /**
-   * Indicates whether a write on the designated column will definitely succeed.
+   * Indicates whether writing on the designated column will definitely succeed.
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
@@ -309,13 +309,13 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * or standard methods not exposed by the proxy. <br>
    * If the receiver implements the interface then the result is the receiver or a proxy for the
    * receiver. If the receiver is a wrapper and the wrapped object implements the interface then the
-   * result is the wrapped object or a proxy for the wrapped object. Otherwise return the the result
-   * of calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
+   * result is the wrapped object or a proxy for the wrapped object. Otherwise, return the result of
+   * calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
    * the receiver is not a wrapper and does not implement the interface, then an <code>SQLException
    * </code> is thrown.
    *
    * @param iface A Class defining an interface that the result must implement.
-   * @return an object that implements the interface. May be a proxy for the actual implementing
+   * @return an object that implements the interface. Maybe a proxy for the actual implementing
    *     object.
    * @throws SQLException If no object found that implements the interface
    */

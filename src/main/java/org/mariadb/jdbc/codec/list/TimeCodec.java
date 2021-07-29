@@ -67,7 +67,7 @@ public class TimeCodec implements Codec<Time> {
               String.format("Data type %s cannot be decoded as Time", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -121,7 +121,7 @@ public class TimeCodec implements Codec<Time> {
               String.format("Data type %s cannot be decoded as Time", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:

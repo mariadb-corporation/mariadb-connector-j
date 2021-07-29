@@ -63,18 +63,6 @@ public class YearCodecTest extends CommonCodecTest {
     return rs;
   }
 
-  private ResultSet getPrepareBinary() throws SQLException {
-    PreparedStatement stmt =
-        sharedConn.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec"
-                + " WHERE 1 > ?");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
-    assertTrue(rs.next());
-    return rs;
-  }
-
   @Test
   public void getObject() throws SQLException {
     getObject(get());
@@ -464,7 +452,7 @@ public class YearCodecTest extends CommonCodecTest {
     getTime(getPrepare(sharedConnBinary));
   }
 
-  public void getTime(ResultSet rs) throws SQLException {
+  public void getTime(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getTime(1), "Data type YEAR cannot be decoded as Time");
   }
@@ -480,7 +468,7 @@ public class YearCodecTest extends CommonCodecTest {
     getDuration(getPrepare(sharedConnBinary));
   }
 
-  public void getDuration(ResultSet rs) throws SQLException {
+  public void getDuration(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
@@ -498,7 +486,7 @@ public class YearCodecTest extends CommonCodecTest {
     getLocalTime(getPrepare(sharedConnBinary));
   }
 
-  public void getLocalTime(ResultSet rs) throws SQLException {
+  public void getLocalTime(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, LocalTime.class),
@@ -581,7 +569,7 @@ public class YearCodecTest extends CommonCodecTest {
     getAsciiStream(getPrepare(sharedConnBinary));
   }
 
-  public void getAsciiStream(ResultSet rs) throws SQLException {
+  public void getAsciiStream(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getAsciiStream(1),
@@ -600,7 +588,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   @SuppressWarnings("deprecation")
-  public void getUnicodeStream(ResultSet rs) throws SQLException {
+  public void getUnicodeStream(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getUnicodeStream(1),
@@ -618,7 +606,7 @@ public class YearCodecTest extends CommonCodecTest {
     getBinaryStream(getPrepare(sharedConnBinary));
   }
 
-  public void getBinaryStream(ResultSet rs) throws SQLException {
+  public void getBinaryStream(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getBinaryStream(1),
@@ -636,7 +624,7 @@ public class YearCodecTest extends CommonCodecTest {
     getBytes(getPrepare(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) throws SQLException {
+  public void getBytes(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getBytes(1), "Data type YEAR cannot be decoded as byte[]");
   }
@@ -652,7 +640,7 @@ public class YearCodecTest extends CommonCodecTest {
     getCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getCharacterStream(ResultSet rs) throws SQLException {
+  public void getCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getCharacterStream(1),
@@ -670,7 +658,7 @@ public class YearCodecTest extends CommonCodecTest {
     getNCharacterStream(getPrepare(sharedConnBinary));
   }
 
-  public void getNCharacterStream(ResultSet rs) throws SQLException {
+  public void getNCharacterStream(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
@@ -688,7 +676,7 @@ public class YearCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws SQLException {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getBlob(1), "Data type YEAR cannot be decoded as Blob");
   }
@@ -704,7 +692,7 @@ public class YearCodecTest extends CommonCodecTest {
     getClob(getPrepare(sharedConnBinary));
   }
 
-  public void getClob(ResultSet rs) throws SQLException {
+  public void getClob(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getClob(1), "Data type YEAR cannot be decoded as Clob");
   }
@@ -720,7 +708,7 @@ public class YearCodecTest extends CommonCodecTest {
     getNClob(getPrepare(sharedConnBinary));
   }
 
-  public void getNClob(ResultSet rs) throws SQLException {
+  public void getNClob(ResultSet rs) {
     assertThrowsContains(
         SQLException.class, () -> rs.getNClob(1), "Data type YEAR cannot be decoded as Clob");
   }

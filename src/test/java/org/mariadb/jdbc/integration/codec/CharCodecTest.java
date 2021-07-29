@@ -99,16 +99,16 @@ public class CharCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, Integer.valueOf(0));
+    testObject(rs, Integer.class, 0);
     testObject(rs, String.class, "0");
-    testObject(rs, Long.class, Long.valueOf(0));
-    testObject(rs, Short.class, Short.valueOf((short) 0));
+    testObject(rs, Long.class, 0L);
+    testObject(rs, Short.class, (short) 0);
     testObject(rs, BigDecimal.class, BigDecimal.valueOf(0));
     testObject(rs, BigInteger.class, BigInteger.valueOf(0));
-    testObject(rs, Double.class, Double.valueOf(0));
-    testObject(rs, Float.class, Float.valueOf(0));
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
-    testArrObject(rs, byte[].class, new byte[] {(byte) '0'});
+    testObject(rs, Double.class, (double) 0);
+    testObject(rs, Float.class, (float) 0);
+    testObject(rs, Byte.class, (byte) 0);
+    testArrObject(rs, new byte[] {(byte) '0'});
     testObject(rs, Boolean.class, Boolean.FALSE);
     testObject(rs, Clob.class, new MariaDbClob("0".getBytes()));
     testObject(rs, NClob.class, new MariaDbClob("0".getBytes()));
@@ -632,7 +632,7 @@ public class CharCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) throws Exception {
+  public void getBlob(ResultSet rs) {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),

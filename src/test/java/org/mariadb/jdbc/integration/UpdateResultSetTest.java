@@ -260,7 +260,7 @@ public class UpdateResultSetTest extends Common {
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
       assertThrowsContains(
           SQLException.class,
-          () -> rs.deleteRow(),
+          rs::deleteRow,
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
       ResultSetMetaData rsmd = rs.getMetaData();
       assertFalse(rsmd.isReadOnly(1));
@@ -399,7 +399,7 @@ public class UpdateResultSetTest extends Common {
 
       rs.moveToInsertRow();
       rs.updateString(2, "3-2");
-      assertThrows(SQLException.class, () -> rs.insertRow());
+      assertThrows(SQLException.class, rs::insertRow);
 
       rs.absolute(1);
       assertEquals("1-1", rs.getString(1));
@@ -524,7 +524,7 @@ public class UpdateResultSetTest extends Common {
         sharedConn.prepareStatement(
             "SELECT * FROM testDelete", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
-      assertThrows(SQLException.class, () -> rs.deleteRow());
+      assertThrows(SQLException.class, rs::deleteRow);
       assertTrue(rs.next());
       assertTrue(rs.next());
       assertEquals(2, rs.getInt(1));
@@ -622,7 +622,6 @@ public class UpdateResultSetTest extends Common {
             "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
 
       rs.updateBlob(2, new ByteArrayInputStream(updatedBlob));
       rs.updateRow();
@@ -798,11 +797,11 @@ public class UpdateResultSetTest extends Common {
     assertEquals("666", rs.getString(2));
 
     rs.moveToInsertRow();
-    assertThrows(SQLException.class, () -> rs.refreshRow());
+    assertThrows(SQLException.class, rs::refreshRow);
     rs.moveToCurrentRow();
 
     assertFalse(rs.next());
-    assertThrows(SQLException.class, () -> rs.refreshRow());
+    assertThrows(SQLException.class, rs::refreshRow);
   }
 
   @Test
@@ -853,9 +852,7 @@ public class UpdateResultSetTest extends Common {
       rs.updateInt("id", 3);
       rs.updateString("t1", "other-t1-value");
       assertThrowsContains(
-          SQLException.class,
-          () -> rs.refreshRow(),
-          "Cannot call refreshRow() when inserting a new row");
+          SQLException.class, rs::refreshRow, "Cannot call refreshRow() when inserting a new row");
 
       rs.insertRow();
       assertEquals(0, rs.getRow());
@@ -1007,9 +1004,9 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateInt(1, 20),
           "Current position is before the first row");
       assertThrowsContains(
-          SQLException.class, () -> rs.updateRow(), "Current position is before the first row");
+          SQLException.class, rs::updateRow, "Current position is before the first row");
       assertThrowsContains(
-          SQLException.class, () -> rs.deleteRow(), "Current position is before the first row");
+          SQLException.class, rs::deleteRow, "Current position is before the first row");
 
       assertTrue(rs.next());
       rs.updateInt(1, 20);
@@ -1020,9 +1017,9 @@ public class UpdateResultSetTest extends Common {
       assertThrowsContains(
           SQLException.class, () -> rs.updateInt(1, 20), "Current position is after the last row");
       assertThrowsContains(
-          SQLException.class, () -> rs.updateRow(), "Current position is after the last row");
+          SQLException.class, rs::updateRow, "Current position is after the last row");
       assertThrowsContains(
-          SQLException.class, () -> rs.deleteRow(), "Current position is after the last row");
+          SQLException.class, rs::deleteRow, "Current position is after the last row");
     }
   }
 
@@ -1106,13 +1103,9 @@ public class UpdateResultSetTest extends Common {
       assertThrowsContains(SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
       assertThrowsContains(SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
       assertThrowsContains(
-          SQLException.class,
-          () -> rs.deleteRow(),
-          "Cannot call deleteRow() when inserting a new row");
+          SQLException.class, rs::deleteRow, "Cannot call deleteRow() when inserting a new row");
       assertThrowsContains(
-          SQLException.class,
-          () -> rs.updateRow(),
-          "Cannot call updateRow() when inserting a new row");
+          SQLException.class, rs::updateRow, "Cannot call updateRow() when inserting a new row");
     }
   }
 

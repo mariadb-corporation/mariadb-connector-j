@@ -16,10 +16,6 @@ import org.mariadb.jdbc.Statement;
 
 public class RowChangeTest extends Common {
 
-  private final String NOT_SUPPORTED = "Operation not permit on a closed resultSet";
-  private final String NOT_FORWARD = "Operation not permit on TYPE_FORWARD_ONLY resultSet";
-  private final Class<? extends java.lang.Exception> sqle = SQLException.class;
-
   @AfterAll
   public static void after2() throws SQLException {
     sharedConn.createStatement().execute("DROP TABLE ResultSetTest");
@@ -32,28 +28,6 @@ public class RowChangeTest extends Common {
     stmt.execute("CREATE TABLE ResultSetTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO ResultSetTest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
   }
-  //
-  //  @Test
-  //  public void closedRes() throws SQLException {
-  //    Statement stmt = sharedConn.createStatement();
-  //    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
-  //    rs.close();
-  //    assertThrowsContains(sqle, () -> rs.next(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.isBeforeFirst(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.isAfterLast(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.isFirst(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.isLast(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.beforeFirst(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.afterLast(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.first(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.last(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.getRow(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.absolute(0), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.relative(1), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.previous(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.getFetchSize(), NOT_SUPPORTED);
-  //    assertThrowsContains(sqle, () -> rs.setFetchSize(1), NOT_SUPPORTED);
-  //  }
 
   @Test
   public void next() throws SQLException {

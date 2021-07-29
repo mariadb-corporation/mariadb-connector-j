@@ -1,12 +1,3 @@
-/**
- * EdDSA-Java by str4d
- *
- * <p>To the extent possible under law, the person who associated CC0 with EdDSA-Java has waived all
- * copyright and related or neighboring rights to EdDSA-Java.
- *
- * <p>You should have received a copy of the CC0 legalcode along with this work. If not, see
- * <https://creativecommons.org/publicdomain/zero/1.0/>.
- */
 package org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec;
 
 import java.util.HashMap;
@@ -49,26 +40,16 @@ public class EdDSANamedCurveTable {
               Utils.hexToBytes("5866666666666666666666666666666666666666666666666666666666666666"),
               true)); // Precompute tables for B
 
-  private static volatile HashMap<String, EdDSANamedCurveSpec> curves =
-      new HashMap<String, EdDSANamedCurveSpec>();
+  private static volatile HashMap<String, EdDSANamedCurveSpec> curves = new HashMap<>();
 
   private static synchronized void putCurve(String name, EdDSANamedCurveSpec curve) {
-    HashMap<String, EdDSANamedCurveSpec> newCurves =
-        new HashMap<String, EdDSANamedCurveSpec>(curves);
+    HashMap<String, EdDSANamedCurveSpec> newCurves = new HashMap<>(curves);
     newCurves.put(name, curve);
     curves = newCurves;
   }
 
   public static void defineCurve(EdDSANamedCurveSpec curve) {
     putCurve(curve.getName().toLowerCase(Locale.ENGLISH), curve);
-  }
-
-  static void defineCurveAlias(String name, String alias) {
-    EdDSANamedCurveSpec curve = curves.get(name.toLowerCase(Locale.ENGLISH));
-    if (curve == null) {
-      throw new IllegalStateException();
-    }
-    putCurve(alias.toLowerCase(Locale.ENGLISH), curve);
   }
 
   static {

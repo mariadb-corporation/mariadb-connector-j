@@ -139,7 +139,7 @@ public class LongCodec implements Codec<Long> {
               String.format("Data type %s cannot be decoded as Long", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARCHAR:
       case VARSTRING:
@@ -238,7 +238,7 @@ public class LongCodec implements Codec<Long> {
               String.format("Data type %s cannot be decoded as Long", column.getType()));
         }
         // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
+        // BLOB is considered as String if it has a collation (this is TEXT column)
 
       case VARSTRING:
       case VARCHAR:
