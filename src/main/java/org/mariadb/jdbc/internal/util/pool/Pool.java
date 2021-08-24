@@ -188,14 +188,15 @@ public class Pool implements AutoCloseable, PoolMBean {
       }
 
       if (shouldBeReleased && idleConnections.remove(item)) {
-
+        final long connId = item.getConnection().getServerThreadId();
         totalConnection.decrementAndGet();
         silentCloseConnection(item);
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed due to inactivity (total:{}, active:{}, pending:{})",
               poolTag,
+              connId,
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -234,8 +235,9 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       if (logger.isDebugEnabled()) {
         logger.debug(
-            "pool {} new physical connection created (total:{}, active:{}, pending:{})",
+            "pool {} new physical connection {} created (total:{}, active:{}, pending:{})",
             poolTag,
+            connection.getServerThreadId(),
             totalConnection.get(),
             getActiveConnections(),
             pendingRequestNumber.get());
@@ -266,6 +268,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       if (item != null) {
         MariaDbConnection connection = item.getConnection();
+        final long connId = connection.getServerThreadId();
         try {
           if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
               > options.poolValidMinDelay) {
@@ -292,8 +295,9 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed from pool due to failed validation (total:{}, active:{}, pending:{})",
               poolTag,
+              connId,
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
