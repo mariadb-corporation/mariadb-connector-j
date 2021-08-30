@@ -7,29 +7,33 @@ package org.mariadb.jdbc.message.server;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.Client;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 /** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
-public class PrepareResultPacket implements Completion {
+public class PrepareResultPacket implements Completion, Prepare {
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
-  private final ColumnDefinitionPacket[] parameters;
-  private ColumnDefinitionPacket[] columns;
+  private final Column[] parameters;
+  private Column[] columns;
   protected int statementId;
 
-  public PrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
+  public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     boolean trace = logger.isTraceEnabled();
     buffer.readByte(); /* skip COM_STMT_PREPARE_OK */
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
     final int numParams = buffer.readUnsignedShort();
-    this.parameters = new ColumnDefinitionPacket[numParams];
-    this.columns = new ColumnDefinitionPacket[numColumns];
+    this.parameters = new Column[numParams];
+    this.columns = new Column[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
@@ -69,15 +73,15 @@ public class PrepareResultPacket implements Completion {
     return statementId;
   }
 
-  public ColumnDefinitionPacket[] getParameters() {
+  public Column[] getParameters() {
     return parameters;
   }
 
-  public ColumnDefinitionPacket[] getColumns() {
+  public Column[] getColumns() {
     return columns;
   }
 
-  public void setColumns(ColumnDefinitionPacket[] columns) {
+  public void setColumns(Column[] columns) {
     this.columns = columns;
   }
 }

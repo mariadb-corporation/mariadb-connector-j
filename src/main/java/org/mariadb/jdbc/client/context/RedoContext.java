@@ -6,12 +6,12 @@ package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.PrepareCache;
-import org.mariadb.jdbc.client.TransactionSaver;
-import org.mariadb.jdbc.message.client.ClientMessage;
+import org.mariadb.jdbc.client.impl.TransactionSaver;
+import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.RedoableClientMessage;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.ServerStatus;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class RedoContext extends BaseContext {
 

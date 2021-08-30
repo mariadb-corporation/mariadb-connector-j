@@ -6,7 +6,7 @@ package org.mariadb.jdbc;
 
 import java.sql.*;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.result.Result;
+import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class FunctionStatement extends BaseCallableStatement implements CallableStatement {
@@ -43,14 +43,15 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   @Override
   protected void handleParameterOutput() throws SQLException {
-    this.outputResult = (Result) this.results.remove(this.results.size() - 1);
-    this.outputResult.next();
+    this.outputResultFromRes(1);
   }
 
   @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
     if (index != 1) {
-      throw exceptionFactory().create(String.format("wrong parameter index %s", index));
+      throw con.getExceptionFactory()
+          .of(this)
+          .create(String.format("wrong parameter index %s", index));
     }
     super.registerOutParameter(index, sqlType);
   }
@@ -58,7 +59,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
   @Override
   protected void validParameters() throws SQLException {
     // remove first parameter, as it's an output param only
-    ParameterList newParameters = new ParameterList(parameters.size() - 1);
+    Parameters newParameters = new ParameterList(parameters.size() - 1);
     for (int i = 0; i < parameters.size() - 1; i++) {
       newParameters.set(i, parameters.get(i + 1));
     }

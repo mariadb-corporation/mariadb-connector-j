@@ -18,7 +18,6 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
@@ -40,7 +39,7 @@ public class ProcedureTest extends Common {
 
   @Test
   public void wrongCall() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> sharedConn.prepareCall("SELECT ?"), "invalid callable syntax");
   }
 
@@ -111,10 +110,10 @@ public class ProcedureTest extends Common {
             + "END");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{call basic_proc(?,?,?,?,?,?,?)}")) {
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> callableStatement.getString(1), "No output result");
       callableStatement.getParameterMetaData();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(20, JDBCType.INTEGER),
           "wrong parameter index 20");
@@ -207,11 +206,11 @@ public class ProcedureTest extends Common {
       callableStatement.registerOutParameter("t7", JDBCType.BLOB, "typeName");
       checkResults(callableStatement);
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> callableStatement.registerOutParameter(100, JDBCType.BINARY),
           "wrong parameter index 100");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> callableStatement.registerOutParameter("unknown", JDBCType.INTEGER),
           "parameter name unknown not found");
@@ -258,83 +257,83 @@ public class ProcedureTest extends Common {
     callableStatement.getNCharacterStream(5).read(res);
     assertEquals("http", new String(res));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBytes(2),
         "Data type INTEGER cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getDate(2),
         "Data type INTEGER cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBytes(2),
         "Data type INTEGER cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getDate(2, (Calendar) null),
         "Data type INTEGER cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTime(2),
         "Data type INTEGER cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTime(2, (Calendar) null),
         "Data type INTEGER cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTimestamp(2),
         "Data type INTEGER cannot be decoded as Timestamp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTimestamp(2, (Calendar) null),
         "Data type INTEGER cannot be decoded as Timestamp");
     assertEquals(6L, callableStatement.getObject(2));
     Map<String, Class<?>> map = new HashMap<>();
     map.put("f", Integer.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getObject(2, map),
         " Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getRef(2),
         "Method ResultSet.getRef not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBlob(2),
         "Data type INTEGER cannot be decoded as Blob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getClob(2),
         "Data type INTEGER cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getArray(2),
         "Method ResultSet.getArray not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> callableStatement.getURL(2), "Could not parse '6' as URL");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getNClob(2),
         "Data type INTEGER cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getSQLXML(2),
         "SQLXML are not supported");
     assertEquals("6", callableStatement.getNString(2));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> callableStatement.getNCharacterStream(2),
         "Data type INTEGER cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> callableStatement.getCharacterStream(2),
         "Data type INTEGER cannot be decoded as Reader");
     assertEquals("6", callableStatement.getObject(2, String.class));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> callableStatement.getRowId(2), "RowId are not supported");
 
     assertEquals(6, callableStatement.getInt("t2"));
@@ -368,80 +367,80 @@ public class ProcedureTest extends Common {
     assertEquals("12:00:00", callableStatement.getTime("t6").toString());
     assertEquals("12:00:00", callableStatement.getTime("t6", Calendar.getInstance()).toString());
     assertEquals("2003-12-31", callableStatement.getDate("t6").toString());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBytes(null),
         "parameter name cannot be null");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBytes("t2"),
         "Data type INTEGER cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> callableStatement.getRowId("t2"), "RowId are not supported");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getDate("t2"),
         "Data type INTEGER cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getDate("t2", (Calendar) null),
         "Data type INTEGER cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTime("t2"),
         "Data type INTEGER cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTime("t2", (Calendar) null),
         "Data type INTEGER cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTimestamp("t2"),
         "Data type INTEGER cannot be decoded as Timestamp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getTimestamp("t2", (Calendar) null),
         "Data type INTEGER cannot be decoded as Timestamp");
     assertEquals(6L, callableStatement.getObject("t2"));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getObject("t2", map),
         " Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getRef("t2"),
         "Method ResultSet.getRef not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getBlob("t2"),
         "Data type INTEGER cannot be decoded as Blob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getClob("t2"),
         "Data type INTEGER cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getArray("t2"),
         "Method ResultSet.getArray not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> callableStatement.getURL("t2"), "Could not parse '6' as URL");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> callableStatement.getNClob("t2"),
         "Data type INTEGER cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLFeatureNotSupportedException.class,
         () -> callableStatement.getSQLXML("t2"),
         "SQLXML are not supported");
     assertEquals("6", callableStatement.getNString("t2"));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> callableStatement.getNCharacterStream("t2"),
         "Data type INTEGER cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> callableStatement.getCharacterStream("t2"),
         "Data type INTEGER cannot be decoded as Reader");
@@ -450,9 +449,10 @@ public class ProcedureTest extends Common {
     assertFalse(callableStatement.wasNull());
     assertEquals(20, callableStatement.getInt(3));
     assertFalse(callableStatement.wasNull());
-    assertThrowsContains(SQLException.class, () -> callableStatement.getInt(-1), "wrong index");
+    Common.assertThrowsContains(
+        SQLException.class, () -> callableStatement.getInt(-1), "wrong index");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> callableStatement.getInt(4), "index 4 not declared as output");
   }
 
@@ -1042,19 +1042,19 @@ public class ProcedureTest extends Common {
       callableStatement.execute();
       assertEquals("seb", callableStatement.getString(2));
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setRowId(1, null),
           "RowId parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setRowId("t1", null),
           "RowId parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setSQLXML(1, null),
           "SQLXML parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> callableStatement.setSQLXML("t1", null),
           "SQLXML parameter are not supported");

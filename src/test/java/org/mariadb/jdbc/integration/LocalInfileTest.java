@@ -13,7 +13,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 
 public class LocalInfileTest extends Common {
   @BeforeAll
@@ -49,7 +48,7 @@ public class LocalInfileTest extends Common {
 
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
@@ -58,7 +57,7 @@ public class LocalInfileTest extends Common {
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           BatchUpdateException.class, stmt::executeBatch, "The used command is not allowed");
     }
   }
@@ -72,7 +71,7 @@ public class LocalInfileTest extends Common {
 
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
@@ -95,7 +94,7 @@ public class LocalInfileTest extends Common {
       tempFile.deleteOnExit();
       tempFile.setReadable(false);
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(

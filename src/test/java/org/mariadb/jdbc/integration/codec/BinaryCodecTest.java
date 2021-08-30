@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class BinaryCodecTest extends CommonCodecTest {
   @AfterAll
@@ -221,7 +222,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals((byte) 1, rs.getByte(2));
     assertEquals((byte) 1, rs.getByte("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
         "value 'some\uD83C\uDF1F' (VARSTRING) cannot be decoded as Byte");
@@ -247,7 +248,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getShort(2));
     assertEquals(1, rs.getShort("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getShort(3), "value 'some🌟' cannot be decoded as Short");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
@@ -271,7 +272,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getInt(2));
     assertEquals(1, rs.getInt("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getInt(3), "value 'some🌟' cannot be decoded as Integer");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getInt(4));
@@ -295,7 +296,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(1L, rs.getLong(2));
     assertEquals(1L, rs.getLong("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getLong(3),
         "value 'some\uD83C\uDF1F' cannot be decoded as Long");
@@ -321,7 +322,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(1F, rs.getFloat(2));
     assertEquals(1F, rs.getFloat("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getFloat(3), "value 'some🌟' cannot be decoded as Float");
     assertFalse(rs.wasNull());
     assertEquals(0F, rs.getFloat(4));
@@ -345,7 +346,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(1D, rs.getDouble(2));
     assertEquals(1D, rs.getDouble("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(3),
         "value 'some🌟' cannot be decoded as Double");
@@ -371,7 +372,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(BigDecimal.ONE, rs.getBigDecimal(2));
     assertEquals(BigDecimal.ONE, rs.getBigDecimal("t2alias"));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(3),
         "value 'some🌟' cannot be decoded as BigDecimal");
@@ -392,7 +393,7 @@ public class BinaryCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(1),
         "value '0' (VARSTRING) cannot be decoded as Date");
@@ -403,7 +404,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals("2010-12-31", rs.getDate("t2alias").toString());
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
         "value '23:54:51.840010' (VARSTRING) cannot be decoded as Date");
@@ -425,12 +426,12 @@ public class BinaryCodecTest extends CommonCodecTest {
 
   public void getTime(ResultSet rs) throws SQLException {
     rs.next();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(1),
         "value '2011-01-01' cannot be decoded as Time");
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(2),
         "value '2010-12-31 23:59:59.152' cannot be decoded as Time");

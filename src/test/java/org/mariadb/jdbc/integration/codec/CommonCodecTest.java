@@ -11,7 +11,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
 import org.junit.jupiter.api.Assertions;
-import org.mariadb.jdbc.Common;
+import org.mariadb.jdbc.integration.Common;
 
 public class CommonCodecTest extends Common {
 

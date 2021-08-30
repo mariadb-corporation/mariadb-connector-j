@@ -6,16 +6,12 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.lang.reflect.Field;
 import java.sql.*;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 public class CredentialPluginTest extends Common {
 
@@ -67,13 +63,13 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=PROPERTY&user=identityUser"),
         "Access denied");
 
     System.setProperty("mariadb.user", "identityUser");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=PROPERTY&pwdKey=myPwdKey"),
         "Access denied");
@@ -112,7 +108,7 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void unknownCredentialTest() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=UNKNOWN"),
         "No identity plugin registered with the type \"UNKNOWN\"");
@@ -120,23 +116,22 @@ public class CredentialPluginTest extends Common {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void envsIdentityTest() throws Exception {
+  public void noEnvsIdentityTest() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
 
-    Map<String, String> tmpEnv = new HashMap<>();
-
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("&user=toti&credentialType=ENV&pwdKey=myPwdKey"),
         "Access denied");
+  }
 
-    tmpEnv.put("myPwdKey", "!Passw0rd3Works");
-    setEnv(tmpEnv);
-
-    assertThrowsContains(
+  @Test
+  @SetEnvironmentVariable(key = "myPwdKey", value = "!Passw0rd3Works")
+  public void envsPwdTest() throws Exception {
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
         "Access denied");
@@ -147,19 +142,24 @@ public class CredentialPluginTest extends Common {
       assertTrue(rs.next());
       assertEquals("5", rs.getString(1));
     }
+  }
 
-    tmpEnv.put("MARIADB_USER", "identityUser");
-    setEnv(tmpEnv);
-
+  @Test
+  @SetEnvironmentVariable(key = "myPwdKey", value = "!Passw0rd3Works")
+  @SetEnvironmentVariable(key = "MARIADB_USER", value = "identityUser")
+  public void envsDefaultIdentityAndPwdTest() throws Exception {
     try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {
       Statement stmt = conn.createStatement();
       ResultSet rs = stmt.executeQuery("SELECT '5'");
       assertTrue(rs.next());
       assertEquals("5", rs.getString(1));
     }
+  }
 
-    tmpEnv.put("MARIADB_PWD", "!Passw0rd3Works");
-    setEnv(tmpEnv);
+  @Test
+  @SetEnvironmentVariable(key = "MARIADB_PWD", value = "!Passw0rd3Works")
+  @SetEnvironmentVariable(key = "MARIADB_USER", value = "identityUser")
+  public void envsIdentityDefaultPwdTest() throws Exception {
 
     try (Connection conn = createCon("credentialType=ENV")) {
       Statement stmt = conn.createStatement();
@@ -167,11 +167,12 @@ public class CredentialPluginTest extends Common {
       assertTrue(rs.next());
       assertEquals("5", rs.getString(1));
     }
+  }
 
-    tmpEnv = new HashMap<>();
-    tmpEnv.put("myUserKey", "identityUser");
-    tmpEnv.put("myPwdKey", "!Passw0rd3Works");
-    setEnv(tmpEnv);
+  @Test
+  @SetEnvironmentVariable(key = "myPwdKey", value = "!Passw0rd3Works")
+  @SetEnvironmentVariable(key = "myUserKey", value = "identityUser")
+  public void envsIdentityAndPwdTest() throws Exception {
 
     try (Connection conn = createCon("credentialType=ENV&userKey=myUserKey&pwdKey=myPwdKey")) {
       Statement stmt = conn.createStatement();
@@ -182,6 +183,9 @@ public class CredentialPluginTest extends Common {
   }
 
   @Test
+  // @ClearSystemProperty(key = "some key")
+  @SetEnvironmentVariable(key = "MARIADB2_USER", value = "identityUser")
+  @SetEnvironmentVariable(key = "MARIADB2_PWD", value = "!Passw0rd3Works")
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
     Assumptions.assumeTrue(
@@ -189,10 +193,6 @@ public class CredentialPluginTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
-    Map<String, String> tmpEnv = new HashMap<>();
-    tmpEnv.put("MARIADB2_USER", "identityUser");
-    tmpEnv.put("MARIADB2_PWD", "!Passw0rd3Works");
-    setEnv(tmpEnv);
 
     assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST&sslMode=DISABLE"));
     assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST"));
@@ -202,41 +202,6 @@ public class CredentialPluginTest extends Common {
       ResultSet rs = stmt.executeQuery("SELECT '5'");
       assertTrue(rs.next());
       assertEquals("5", rs.getString(1));
-    }
-  }
-
-  /**
-   * Hack to add env variable for unit testing only
-   *
-   * @param newenv new env variable
-   * @throws Exception if any exception occurs
-   */
-  @SuppressWarnings("unchecked")
-  protected static void setEnv(Map<String, String> newenv) throws Exception {
-    try {
-      Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
-      Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
-      theEnvironmentField.setAccessible(true);
-      Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
-      env.putAll(newenv);
-      Field theCaseInsensitiveEnvironmentField =
-          processEnvironmentClass.getDeclaredField("theCaseInsensitiveEnvironment");
-      theCaseInsensitiveEnvironmentField.setAccessible(true);
-      Map<String, String> cienv =
-          (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
-      cienv.putAll(newenv);
-    } catch (NoSuchFieldException e) {
-      Class<?>[] classes = Collections.class.getDeclaredClasses();
-      Map<String, String> env = System.getenv();
-      for (Class<?> cl : classes) {
-        if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
-          Field field = cl.getDeclaredField("m");
-          field.setAccessible(true);
-          Object obj = field.get(env);
-          Map<String, String> map = (Map<String, String>) obj;
-          map.putAll(newenv);
-        }
-      }
     }
   }
 }

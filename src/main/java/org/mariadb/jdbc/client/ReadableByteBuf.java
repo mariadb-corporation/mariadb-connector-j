@@ -4,261 +4,84 @@
 
 package org.mariadb.jdbc.client;
 
-import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.MariaDbBlob;
-import org.mariadb.jdbc.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableInt;
 
-public final class ReadableByteBuf {
-  private final MutableInt sequence;
-  private int limit;
-  private byte[] buf;
-  private int pos;
-  private int mark;
+public interface ReadableByteBuf {
 
-  public ReadableByteBuf(MutableInt sequence, byte[] buf, int limit) {
-    this.sequence = sequence;
-    this.pos = 0;
-    this.buf = buf;
-    this.limit = limit;
-    this.mark = -1;
-  }
+  int readableBytes();
 
-  public int readableBytes() {
-    return limit - pos;
-  }
+  int pos();
 
-  public int pos() {
-    return pos;
-  }
+  byte[] buf();
 
-  public byte[] buf() {
-    return buf;
-  }
+  ReadableByteBuf buf(byte[] buf, int limit);
 
-  public ReadableByteBuf buf(byte[] buf, int limit) {
-    this.buf = buf;
-    this.limit = limit;
-    return this;
-  }
+  void pos(int pos);
 
-  public void pos(int pos) {
-    this.pos = pos;
-  }
+  void mark();
 
-  public void mark() {
-    mark = pos;
-  }
+  void reset();
 
-  public void reset() {
-    if (mark == -1) throw new IllegalStateException("mark was not set");
-    pos = mark;
-  }
+  void skip();
 
-  public void skip() {
-    pos++;
-  }
+  ReadableByteBuf skip(int length);
 
-  public ReadableByteBuf skip(int length) {
-    pos += length;
-    return this;
-  }
+  MariaDbBlob readBlob(int length);
 
-  public MariaDbBlob readBlob(int length) {
-    pos += length;
-    return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
-  }
+  MutableInt getSequence();
 
-  public MutableInt getSequence() {
-    return sequence;
-  }
+  byte getByte();
 
-  public byte getByte() {
-    return buf[pos];
-  }
+  byte getByte(int index);
 
-  public byte getByte(int index) {
-    return buf[index];
-  }
+  short getUnsignedByte();
 
-  public short getUnsignedByte() {
-    return (short) (buf[pos] & 0xff);
-  }
+  int readLengthNotNull();
 
-  public int readLengthNotNull() {
-    int type = (buf[pos++] & 0xff);
-    switch (type) {
-      case 252:
-        return readUnsignedShort();
-      case 253:
-        return readUnsignedMedium();
-      case 254:
-        return (int) readLong();
-      default:
-        return type;
-    }
-  }
+  int skipIdentifier();
 
-  /**
-   * Identifier can have a max length of 256 (alias) So no need to check whole length encoding.
-   *
-   * @return current pos
-   */
-  public int skipIdentifier() {
-    int type = (buf[pos++] & 0xff);
-    if (type == 252) {
-      pos += readUnsignedShort();
-      return pos;
-    }
-    pos += type;
-    return pos;
-  }
+  Integer readLength();
 
-  public Integer readLength() {
-    int type = readUnsignedByte();
-    switch (type) {
-      case 251:
-        return null;
-      case 252:
-        return readUnsignedShort();
-      case 253:
-        return readUnsignedMedium();
-      case 254:
-        return (int) readLong();
-      default:
-        return type;
-    }
-  }
+  byte readByte();
 
-  public byte readByte() {
-    return buf[pos++];
-  }
+  short readUnsignedByte();
 
-  public short readUnsignedByte() {
-    return (short) (buf[pos++] & 0xff);
-  }
+  short readShort();
 
-  public short readShort() {
-    return (short) ((buf[pos++] & 0xff) | (buf[pos++] << 8));
-  }
+  int readUnsignedShort();
 
-  public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) | (buf[pos++] << 8)) & 0xffff;
-  }
+  int readMedium();
 
-  public int readMedium() {
-    int value = readUnsignedMedium();
-    if ((value & 0x800000) != 0) {
-      value |= 0xff000000;
-    }
-    return value;
-  }
+  int readUnsignedMedium();
 
-  public int readUnsignedMedium() {
-    return ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8) + ((buf[pos++] & 0xff) << 16));
-  }
+  int readInt();
 
-  public int readInt() {
-    return ((buf[pos++] & 0xff)
-        + ((buf[pos++] & 0xff) << 8)
-        + ((buf[pos++] & 0xff) << 16)
-        + ((buf[pos++] & 0xff) << 24));
-  }
+  int readIntBE();
 
-  public int readIntBE() {
-    return (((buf[pos++] & 0xff) << 24)
-        + ((buf[pos++] & 0xff) << 16)
-        + ((buf[pos++] & 0xff) << 8)
-        + (buf[pos++] & 0xff));
-  }
+  long readUnsignedInt();
 
-  public long readUnsignedInt() {
-    return ((buf[pos++] & 0xff)
-            + ((buf[pos++] & 0xff) << 8)
-            + ((buf[pos++] & 0xff) << 16)
-            + ((long) (buf[pos++] & 0xff) << 24))
-        & 0xffffffffL;
-  }
+  long readLong();
 
-  public long readLong() {
-    return ((buf[pos++] & 0xffL)
-        + ((buf[pos++] & 0xffL) << 8)
-        + ((buf[pos++] & 0xffL) << 16)
-        + ((buf[pos++] & 0xffL) << 24)
-        + ((buf[pos++] & 0xffL) << 32)
-        + ((buf[pos++] & 0xffL) << 40)
-        + ((buf[pos++] & 0xffL) << 48)
-        + ((buf[pos++] & 0xffL) << 56));
-  }
+  long readLongBE();
 
-  public long readLongBE() {
-    return (((buf[pos++] & 0xffL) << 56)
-        + ((buf[pos++] & 0xffL) << 48)
-        + ((buf[pos++] & 0xffL) << 40)
-        + ((buf[pos++] & 0xffL) << 32)
-        + ((buf[pos++] & 0xffL) << 24)
-        + ((buf[pos++] & 0xffL) << 16)
-        + ((buf[pos++] & 0xffL) << 8)
-        + (buf[pos++] & 0xffL));
-  }
+  ReadableByteBuf readBytes(byte[] dst);
 
-  public ReadableByteBuf readBytes(byte[] dst) {
-    System.arraycopy(buf, pos, dst, 0, dst.length);
-    pos += dst.length;
-    return this;
-  }
+  byte[] readBytesNullEnd();
 
-  public byte[] readBytesNullEnd() {
-    int initialPosition = pos;
-    int cnt = 0;
-    while (readableBytes() > 0 && (buf[pos++] != 0)) {
-      cnt++;
-    }
-    byte[] dst = new byte[cnt];
-    System.arraycopy(buf, initialPosition, dst, 0, dst.length);
-    return dst;
-  }
+  ReadableByteBuf readLengthBuffer();
 
-  public ReadableByteBuf readLengthBuffer() {
-    int len = readLengthNotNull();
-    byte[] tmp = new byte[len];
-    readBytes(tmp);
-    return new ReadableByteBuf(sequence, tmp, len);
-  }
+  String readString(int length);
 
-  public String readString(int length) {
-    pos += length;
-    return new String(buf, pos - length, length, StandardCharsets.UTF_8);
-  }
+  String readAscii(int length);
 
-  public String readAscii(int length) {
-    pos += length;
-    return new String(buf, pos - length, length, StandardCharsets.US_ASCII);
-  }
+  String readStringNullEnd();
 
-  public String readStringNullEnd() {
-    int initialPosition = pos;
-    int cnt = 0;
-    while (readableBytes() > 0 && (buf[pos++] != 0)) {
-      cnt++;
-    }
-    return new String(buf, initialPosition, cnt, StandardCharsets.UTF_8);
-  }
+  String readStringEof();
 
-  public String readStringEof() {
-    int initialPosition = pos;
-    pos = limit;
-    return new String(buf, initialPosition, pos - initialPosition, StandardCharsets.UTF_8);
-  }
+  float readFloat();
 
-  public float readFloat() {
-    return Float.intBitsToFloat(readInt());
-  }
+  double readDouble();
 
-  public double readDouble() {
-    return Double.longBitsToDouble(readLong());
-  }
-
-  public double readDoubleBE() {
-    return Double.longBitsToDouble(readLongBE());
-  }
+  double readDoubleBE();
 }

@@ -8,15 +8,15 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.codec.DataType;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class ResultSetMetaData implements java.sql.ResultSetMetaData {
 
   private final ExceptionFactory exceptionFactory;
-  private final ColumnDefinitionPacket[] fieldPackets;
+  private final Column[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
 
@@ -30,7 +30,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public ResultSetMetaData(
       final ExceptionFactory exceptionFactory,
-      final ColumnDefinitionPacket[] fieldPackets,
+      final Column[] fieldPackets,
       final Configuration conf,
       final boolean forceAlias) {
     this.exceptionFactory = exceptionFactory;
@@ -149,8 +149,8 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnName(final int idx) throws SQLException {
-    ColumnDefinitionPacket column = getColumn(idx);
-    String columnName = column.getColumn();
+    Column column = getColumn(idx);
+    String columnName = column.getColumnName();
     if ("".equals(columnName) || forceAlias) {
       return column.getColumnAlias();
     }
@@ -240,7 +240,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnTypeName(final int index) throws SQLException {
-    ColumnDefinitionPacket column = getColumn(index);
+    Column column = getColumn(index);
     DataType dataType = column.getType();
     if (dataType == DataType.GEOMETRY && column.getExtTypeName() != null) {
       return column.getExtTypeName().toUpperCase(Locale.ROOT);
@@ -256,8 +256,8 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs or in case of wrong index
    */
   public boolean isReadOnly(final int column) throws SQLException {
-    ColumnDefinitionPacket ci = getColumn(column);
-    return ci.getColumn().isEmpty();
+    Column ci = getColumn(column);
+    return ci.getColumnName().isEmpty();
   }
 
   /**
@@ -297,7 +297,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
     return getColumn(column).getDefaultCodec(conf).className();
   }
 
-  private ColumnDefinitionPacket getColumn(int column) throws SQLException {
+  private Column getColumn(int column) throws SQLException {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }

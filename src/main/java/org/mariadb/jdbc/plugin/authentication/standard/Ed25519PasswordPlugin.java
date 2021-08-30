@@ -11,10 +11,10 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519ScalarOps;
@@ -101,7 +101,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws SQLException, IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();

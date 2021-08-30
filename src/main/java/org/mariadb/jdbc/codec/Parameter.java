@@ -6,11 +6,12 @@ package org.mariadb.jdbc.codec;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
-public class Parameter<T> {
+public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public static final Parameter<?> NULL_PARAMETER =
       new Parameter(null, null) {
@@ -41,15 +42,15 @@ public class Parameter<T> {
     this.length = length;
   }
 
-  public void encodeText(PacketWriter encoder, Context context) throws IOException, SQLException {
+  public void encodeText(Writer encoder, Context context) throws IOException, SQLException {
     codec.encodeText(encoder, context, this.value, null, length);
   }
 
-  public void encodeBinary(PacketWriter encoder) throws IOException, SQLException {
+  public void encodeBinary(Writer encoder) throws IOException, SQLException {
     codec.encodeBinary(encoder, this.value, null, length);
   }
 
-  public void encodeLongData(PacketWriter encoder) throws IOException, SQLException {
+  public void encodeLongData(Writer encoder) throws IOException, SQLException {
     codec.encodeLongData(encoder, this.value, length);
   }
 

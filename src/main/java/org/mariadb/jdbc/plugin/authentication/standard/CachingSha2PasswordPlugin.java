@@ -18,11 +18,11 @@ import java.util.Arrays;
 import java.util.Base64;
 import javax.crypto.Cipher;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.SslMode;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
@@ -98,7 +98,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws IOException, SQLException {
     byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
     new AuthMoreRawPacket(fastCryptPwd).encode(out, context);

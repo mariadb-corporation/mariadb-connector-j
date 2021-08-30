@@ -13,18 +13,20 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
-import org.mariadb.jdbc.codec.list.*;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.ParameterList;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
-  protected ParameterList parameters;
-  protected List<ParameterList> batchParameters;
+  protected Parameters parameters;
+  protected List<Parameters> batchParameters;
   protected final String sql;
-  protected PrepareResultPacket prepareResult = null;
+  protected Prepare prepareResult = null;
 
   public BasePreparedStatement(
       String sql,
@@ -48,15 +50,15 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     this.sql = sql;
   }
 
-  public void setPrepareResult(PrepareResultPacket prepareResult) {
+  public void setPrepareResult(Prepare prepareResult) {
     this.prepareResult = prepareResult;
   }
 
-  public ColumnDefinitionPacket[] getMeta() {
+  public Column[] getMeta() {
     return this.prepareResult.getColumns();
   }
 
-  public void updateMeta(ColumnDefinitionPacket[] ci) {
+  public void updateMeta(Column[] ci) {
     this.prepareResult.setColumns(ci);
   }
 
@@ -74,11 +76,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   public abstract ParameterMetaData getParameterMetaData() throws SQLException;
 
-  public void setParameters(ParameterList parameters) {
+  public void setParameters(Parameters parameters) {
     this.parameters = parameters;
   }
 
-  public void setParameter(int index, Parameter<?> param) {
+  public void setParameter(int index, org.mariadb.jdbc.client.util.Parameter param) {
     parameters.set(index, param);
   }
 
@@ -967,6 +969,10 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+  }
+
+  private ExceptionFactory exceptionFactory() {
+    return con.getExceptionFactory().of(this);
   }
 
   /**

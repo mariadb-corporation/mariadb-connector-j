@@ -115,12 +115,12 @@ public class SslTest extends Common {
             baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () ->
             createCon(baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=SSLv3", sslPort),
         "No appropriate protocol");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             createCon(
@@ -139,7 +139,7 @@ public class SslTest extends Common {
             sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             createCon(
@@ -264,7 +264,7 @@ public class SslTest extends Common {
       }
 
       String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               DriverManager.getConnection(

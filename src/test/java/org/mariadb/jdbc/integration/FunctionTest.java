@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.CallableParameterMetaData;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
@@ -53,7 +52,7 @@ public class FunctionTest extends Common {
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
       callableStatement.execute();
       callableStatement.getDouble(1);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
           " wrong parameter index 2");
@@ -77,7 +76,7 @@ public class FunctionTest extends Common {
     stmt.execute("CREATE FUNCTION parameter_meta () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call parameter_meta()}")) {
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
           "wrong parameter index");
@@ -103,33 +102,33 @@ public class FunctionTest extends Common {
     stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
     stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
     try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
           "wrong parameter index");
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
           "wrong parameter index");
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
           "wrong parameter index");
 
       callableStatement.execute();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
           "wrong parameter index");
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter("r", JDBCType.DOUBLE),
           "parameter name r not found");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
           "wrong parameter index");

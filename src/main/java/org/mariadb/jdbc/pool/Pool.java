@@ -37,7 +37,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private final AtomicInteger pendingRequestNumber = new AtomicInteger();
   private final AtomicInteger totalConnection = new AtomicInteger();
 
-  private final LinkedBlockingDeque<InternalPoolConnection> idleConnections;
+  private final LinkedBlockingDeque<MariaDbInnerPoolConnection> idleConnections;
   private final ThreadPoolExecutor connectionAppender;
   private final BlockingQueue<Runnable> connectionAppenderQueue;
 
@@ -128,9 +128,9 @@ public class Pool implements AutoCloseable, PoolMBean {
   private void removeIdleTimeoutConnection() {
 
     // descending iterator since first from queue are the first to be used
-    Iterator<InternalPoolConnection> iterator = idleConnections.descendingIterator();
+    Iterator<MariaDbInnerPoolConnection> iterator = idleConnections.descendingIterator();
 
-    InternalPoolConnection item;
+    MariaDbInnerPoolConnection item;
 
     while (iterator.hasNext()) {
       item = iterator.next();
@@ -182,13 +182,13 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     // create new connection
     Connection connection = Driver.connect(conf);
-    InternalPoolConnection item = new InternalPoolConnection(connection);
+    MariaDbInnerPoolConnection item = new MariaDbInnerPoolConnection(connection);
     item.addConnectionEventListener(
         new ConnectionEventListener() {
 
           @Override
           public void connectionClosed(ConnectionEvent event) {
-            InternalPoolConnection item = (InternalPoolConnection) event.getSource();
+            MariaDbInnerPoolConnection item = (MariaDbInnerPoolConnection) event.getSource();
             if (poolState.get() == POOL_STATE_OK) {
               try {
                 if (!idleConnections.contains(item)) {
@@ -224,13 +224,13 @@ public class Pool implements AutoCloseable, PoolMBean {
           @Override
           public void connectionErrorOccurred(ConnectionEvent event) {
 
-            InternalPoolConnection item = ((InternalPoolConnection) event.getSource());
+            MariaDbInnerPoolConnection item = ((MariaDbInnerPoolConnection) event.getSource());
             totalConnection.decrementAndGet();
             idleConnections.remove(item);
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
-            idleConnections.forEach(InternalPoolConnection::lastUsedToNow);
+            idleConnections.forEach(MariaDbInnerPoolConnection::lastUsedToNow);
 
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
@@ -266,11 +266,11 @@ public class Pool implements AutoCloseable, PoolMBean {
    *
    * @return an IDLE connection.
    */
-  private InternalPoolConnection getIdleConnection(long timeout, TimeUnit timeUnit)
+  private MariaDbInnerPoolConnection getIdleConnection(long timeout, TimeUnit timeUnit)
       throws InterruptedException {
 
     while (true) {
-      InternalPoolConnection item =
+      MariaDbInnerPoolConnection item =
           (timeout == 0)
               ? idleConnections.pollFirst()
               : idleConnections.pollFirst(timeout, timeUnit);
@@ -341,9 +341,9 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @return a connection object
    * @throws SQLException if no connection is created when reaching timeout (connectTimeout option)
    */
-  public InternalPoolConnection getPoolConnection() throws SQLException {
+  public MariaDbInnerPoolConnection getPoolConnection() throws SQLException {
     pendingRequestNumber.incrementAndGet();
-    InternalPoolConnection poolConnection;
+    MariaDbInnerPoolConnection poolConnection;
     try {
       // try to get Idle connection if any (with a very small timeout)
       if ((poolConnection =
@@ -384,7 +384,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @return connection
    * @throws SQLException if any error occur during connection
    */
-  public InternalPoolConnection getPoolConnection(String username, String password)
+  public MariaDbInnerPoolConnection getPoolConnection(String username, String password)
       throws SQLException {
     if (username == null
         ? conf.user() == null
@@ -395,7 +395,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     Configuration tmpConf = conf.clone(username, password);
-    return new InternalPoolConnection(Driver.connect(tmpConf));
+    return new MariaDbInnerPoolConnection(Driver.connect(tmpConf));
   }
 
   private String generatePoolTag(int poolIndex) {
@@ -473,9 +473,9 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
   }
 
-  private void closeAll(Collection<InternalPoolConnection> collection) {
+  private void closeAll(Collection<MariaDbInnerPoolConnection> collection) {
     synchronized (collection) { // synchronized mandatory to iterate Collections.synchronizedList()
-      for (InternalPoolConnection item : collection) {
+      for (MariaDbInnerPoolConnection item : collection) {
         collection.remove(item);
         totalConnection.decrementAndGet();
         silentAbortConnection(item.getConnection());
@@ -533,7 +533,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    */
   public List<Long> testGetConnectionIdleThreadIds() {
     List<Long> threadIds = new ArrayList<>();
-    for (InternalPoolConnection pooledConnection : idleConnections) {
+    for (MariaDbInnerPoolConnection pooledConnection : idleConnections) {
       threadIds.add(pooledConnection.getConnection().getThreadId());
     }
     return threadIds;

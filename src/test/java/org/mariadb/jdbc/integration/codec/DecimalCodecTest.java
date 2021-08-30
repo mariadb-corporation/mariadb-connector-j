@@ -16,6 +16,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class DecimalCodecTest extends CommonCodecTest {
   @AfterAll
@@ -394,9 +395,9 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type DECIMAL cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate("t1alias"),
         "Data type DECIMAL cannot be decoded as Date");
@@ -414,9 +415,9 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getTime(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type DECIMAL cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime("t1alias"),
         "Data type DECIMAL cannot be decoded as Time");
@@ -434,11 +435,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getTimestamp(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
         "Data type DECIMAL cannot be decoded as Timestamp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp("t1alias"),
         "Data type DECIMAL cannot be decoded as Timestamp");
@@ -456,11 +457,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getAsciiStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
         "Data type DECIMAL cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream("t1alias"),
         "Data type DECIMAL cannot be decoded as Stream");
@@ -479,11 +480,11 @@ public class DecimalCodecTest extends CommonCodecTest {
 
   @SuppressWarnings("deprecation")
   public void getUnicodeStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
         "Data type DECIMAL cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream("t1alias"),
         "Data type DECIMAL cannot be decoded as Stream");
@@ -501,11 +502,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getBinaryStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
         "Data type DECIMAL cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream("t1alias"),
         "Data type DECIMAL cannot be decoded as Stream");
@@ -523,11 +524,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getBytes(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes(1),
         "Data type DECIMAL cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes("t1alias"),
         "Data type DECIMAL cannot be decoded as byte[]");
@@ -545,11 +546,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type DECIMAL cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
         "Data type DECIMAL cannot be decoded as Reader");
@@ -567,11 +568,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getNCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type DECIMAL cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream("t2alias"),
         "Data type DECIMAL cannot be decoded as Reader");
@@ -589,9 +590,9 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getRef(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getRef(1), "Method ResultSet.getRef not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getRef("t2alias"), "Method ResultSet.getRef not supported");
   }
 
@@ -607,11 +608,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type DECIMAL cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
         "Data type DECIMAL cannot be decoded as Reader");
@@ -629,9 +630,9 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type DECIMAL cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getClob("t1alias"),
         "Data type DECIMAL cannot be decoded as Clob");
@@ -649,11 +650,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob(1),
         "Data type DECIMAL cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob("t1alias"),
         "Data type DECIMAL cannot be decoded as Clob");
@@ -671,9 +672,9 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getURL(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse '0' as URL");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse '0' as URL");
   }
 
@@ -715,7 +716,7 @@ public class DecimalCodecTest extends CommonCodecTest {
       assertEquals(new BigDecimal("1789.123456"), rs.getBigDecimal(2));
       assertNull(rs.getBigDecimal(3));
       assertEquals(new BigDecimal("-211790"), rs.getBigDecimal(4));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> prep.setObject(4, this),
           "Type org.mariadb.jdbc.integration.codec.DecimalCodecTest not supported type");

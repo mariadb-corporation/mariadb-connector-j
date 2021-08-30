@@ -26,7 +26,6 @@ import javax.sql.PooledConnection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.Statement;

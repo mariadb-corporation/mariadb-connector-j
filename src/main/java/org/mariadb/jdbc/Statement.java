@@ -8,17 +8,17 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
-import org.mariadb.jdbc.codec.DataType;
+import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class Statement implements java.sql.Statement {
 
@@ -58,7 +58,7 @@ public class Statement implements java.sql.Statement {
     this.fetchSize = defaultFetchSize;
   }
 
-  protected ExceptionFactory exceptionFactory() {
+  private ExceptionFactory exceptionFactory() {
     return con.getExceptionFactory().of(this);
   }
 

@@ -12,14 +12,16 @@ import java.util.Properties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.util.constants.HaMode;
+import org.mariadb.jdbc.export.HaMode;
+import org.mariadb.jdbc.export.SslMode;
+import org.mariadb.jdbc.integration.Common;
 
 @SuppressWarnings("ConstantConditions")
-public class ConfigurationTest extends Common {
+public class ConfigurationTest {
 
   @Test
   public void testWrongFormat() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse("jdbc:mariadb:/localhost/test"),
         "url parsing error : '//' is not present in the url");
@@ -44,7 +46,7 @@ public class ConfigurationTest extends Common {
 
   @Test
   public void testWrongHostFormat() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse("jdbc:mariadb://localhost:wrongPort/test"),
         "Incorrect port value : wrongPort");
@@ -304,7 +306,7 @@ public class ConfigurationTest extends Common {
 
   @Test
   public void wrongTypeParsing() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse("jdbc:mariadb://localhost/test?socketTimeout=20aa"),
         "Optional parameter socketTimeout must be Integer, was '20aa'");
@@ -561,26 +563,26 @@ public class ConfigurationTest extends Common {
   @Test
   public void testJdbcParserParameterErrorEqual() {
     String wrongIntVal = "jdbc:mariadb://localhost?socketTimeout=blabla";
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse(wrongIntVal),
         "Optional parameter socketTimeout must be Integer, was 'blabla'");
     String wrongBoolVal = "jdbc:mariadb://localhost?autocommit=blabla";
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse(wrongBoolVal),
         "Optional parameter autocommit must be boolean (true/false or 0/1)");
     String url =
         "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=primary)"
             + "(host=master2),address=(type=replica)(host=slave1)(port=3308)/database?user=greg&password=pass";
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse(url),
         "Invalid connection URL, expected key=value pairs, found (type=)");
     String url2 =
         "jdbc:mariadb://address=(type=wrong)(port=3306)(host=master1),address=(port=3307)(type=primary)"
             + "(host=master2),address=(type=replica)(host=slave1)(port=3308)/database?user=greg&password=pass";
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> Configuration.parse(url2),
         "Wrong type value (type=wrong) (possible value primary/replica)");

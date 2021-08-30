@@ -5,15 +5,16 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.message.ClientMessage;
 
 public final class PingPacket implements ClientMessage {
 
   public static final PingPacket INSTANCE = new PingPacket();
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x0e);
     writer.flush();

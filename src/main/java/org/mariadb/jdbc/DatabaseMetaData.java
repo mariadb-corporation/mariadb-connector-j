@@ -11,9 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
-import org.mariadb.jdbc.codec.DataType;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 

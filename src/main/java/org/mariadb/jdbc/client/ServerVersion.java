@@ -4,18 +4,27 @@
 
 package org.mariadb.jdbc.client;
 
-import org.mariadb.jdbc.util.Version;
+public interface ServerVersion {
 
-public final class ServerVersion extends Version {
+  String getVersion();
 
-  private final boolean mariaDBServer;
+  int getMajorVersion();
 
-  public ServerVersion(String serverVersion, boolean mariaDBServer) {
-    super(serverVersion);
-    this.mariaDBServer = mariaDBServer;
-  }
+  int getMinorVersion();
 
-  public boolean isMariaDBServer() {
-    return mariaDBServer;
-  }
+  int getPatchVersion();
+
+  String getQualifier();
+
+  /**
+   * Utility method to check if database version is greater than parameters.
+   *
+   * @param major major version
+   * @param minor minor version
+   * @param patch patch version
+   * @return true if version is greater than parameters
+   */
+  boolean versionGreaterOrEqual(int major, int minor, int patch);
+
+  boolean isMariaDBServer();
 }

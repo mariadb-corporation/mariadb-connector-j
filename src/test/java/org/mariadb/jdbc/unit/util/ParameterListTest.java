@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.codec.list.StringCodec;
+import org.mariadb.jdbc.plugin.codec.StringCodec;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class ParameterListTest {

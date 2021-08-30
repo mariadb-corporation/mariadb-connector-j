@@ -12,7 +12,6 @@ import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Configuration;
 
 public class DriverTest extends Common {

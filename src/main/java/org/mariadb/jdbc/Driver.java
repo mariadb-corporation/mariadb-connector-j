@@ -15,7 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.Client;
+import org.mariadb.jdbc.client.impl.MultiPrimaryClient;
+import org.mariadb.jdbc.client.impl.MultiPrimaryReplicaClient;
+import org.mariadb.jdbc.client.impl.ReplayClient;
+import org.mariadb.jdbc.client.impl.StandardClient;
 import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.VersionFactory;
 
@@ -48,8 +52,8 @@ public final class Driver implements java.sql.Driver {
             configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
         client =
             configuration.transactionReplay()
-                ? new ClientReplayImpl(configuration, hostAddress, lock, false)
-                : new ClientImpl(configuration, hostAddress, lock, false);
+                ? new ReplayClient(configuration, hostAddress, lock, false)
+                : new StandardClient(configuration, hostAddress, lock, false);
         break;
     }
     return new Connection(configuration, lock, client);

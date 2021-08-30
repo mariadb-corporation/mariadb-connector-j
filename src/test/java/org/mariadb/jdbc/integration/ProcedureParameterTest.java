@@ -12,7 +12,6 @@ import java.util.BitSet;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
 
 public class ProcedureParameterTest extends Common {
@@ -83,7 +82,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals("java.math.BigDecimal", meta.getParameterClassName(3));
       assertEquals("java.lang.String", meta.getParameterClassName(4));
       assertEquals("short", meta.getParameterClassName(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterClassName(6), "invalid parameter index 6");
 
       assertEquals("INT", meta.getParameterTypeName(1));
@@ -91,7 +90,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals("DECIMAL", meta.getParameterTypeName(3));
       assertEquals("VARCHAR", meta.getParameterTypeName(4));
       assertEquals("SMALLINT", meta.getParameterTypeName(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterTypeName(0), "invalid parameter index 0");
 
       assertEquals(Types.INTEGER, meta.getParameterType(1));
@@ -99,7 +98,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals(Types.DECIMAL, meta.getParameterType(3));
       assertEquals(Types.VARCHAR, meta.getParameterType(4));
       assertEquals(Types.SMALLINT, meta.getParameterType(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterType(0), "invalid parameter index 0");
 
       assertEquals(ParameterMetaData.parameterModeInOut, meta.getParameterMode(1));
@@ -107,14 +106,14 @@ public class ProcedureParameterTest extends Common {
       assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(3));
       assertEquals(ParameterMetaData.parameterModeOut, meta.getParameterMode(4));
       assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getParameterMode(10), "invalid parameter index 10");
 
       assertEquals(10, meta.getPrecision(1));
       assertEquals(8, meta.getPrecision(3));
       assertEquals(20, meta.getPrecision(4));
       assertEquals(5, meta.getPrecision(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getPrecision(10), "invalid parameter index 10");
 
       assertEquals(0, meta.getScale(1));
@@ -122,7 +121,7 @@ public class ProcedureParameterTest extends Common {
       assertEquals(3, meta.getScale(3));
       assertEquals(0, meta.getScale(4));
       assertEquals(0, meta.getScale(5));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> meta.getScale(10), "invalid parameter index 10");
 
       assertTrue(meta.isSigned(1));
@@ -133,7 +132,7 @@ public class ProcedureParameterTest extends Common {
 
       assertNotNull(meta.unwrap(org.mariadb.jdbc.CallableParameterMetaData.class));
       assertNotNull(meta.unwrap(ParameterMetaData.class));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.unwrap(String.class),
           "The receiver is not a wrapper for java.lang.String");

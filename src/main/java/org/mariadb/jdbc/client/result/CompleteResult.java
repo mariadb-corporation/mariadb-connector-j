@@ -12,9 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.codec.DataType;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public class CompleteResult extends Result {
@@ -25,8 +26,8 @@ public class CompleteResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,

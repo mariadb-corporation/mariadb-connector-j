@@ -9,9 +9,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
-import org.mariadb.jdbc.codec.DataType;
+import org.mariadb.jdbc.integration.Common;
 
 public class CompleteResultTest extends Common {
 

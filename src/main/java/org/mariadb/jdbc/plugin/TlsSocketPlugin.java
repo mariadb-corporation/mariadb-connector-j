@@ -12,7 +12,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.export.ExceptionFactory;
 
 public interface TlsSocketPlugin {
 

@@ -8,44 +8,38 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.client.socket.Writer;
 
 public interface Codec<T> {
 
   String className();
 
-  boolean canDecode(ColumnDefinitionPacket column, Class<?> type);
+  boolean canDecode(Column column, Class<?> type);
 
   boolean canEncode(Object value);
 
   T decodeText(
-      final ReadableByteBuf buffer,
-      final int length,
-      final ColumnDefinitionPacket column,
-      final Calendar cal)
+      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
       throws SQLDataException;
 
   T decodeBinary(
-      final ReadableByteBuf buffer,
-      final int length,
-      final ColumnDefinitionPacket column,
-      final Calendar cal)
+      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
       throws SQLDataException;
 
-  void encodeText(PacketWriter encoder, Context context, Object value, Calendar cal, Long length)
+  void encodeText(Writer encoder, Context context, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
-  void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long length)
+  void encodeBinary(Writer encoder, Object value, Calendar cal, Long length)
       throws IOException, SQLException;
 
   default boolean canEncodeLongData() {
     return false;
   }
 
-  default void encodeLongData(PacketWriter encoder, T value, Long length)
+  default void encodeLongData(Writer encoder, T value, Long length)
       throws IOException, SQLException {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
   }

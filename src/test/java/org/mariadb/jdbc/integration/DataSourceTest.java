@@ -10,7 +10,6 @@ import java.sql.*;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbDataSource;
 
 public class DataSourceTest extends Common {
@@ -88,7 +87,7 @@ public class DataSourceTest extends Common {
     DataSource ds = new MariaDbDataSource(mDefUrl);
     ds.unwrap(javax.sql.DataSource.class);
     ds.unwrap(MariaDbDataSource.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> ds.unwrap(String.class),
         "Datasource is not a wrapper for java.lang.String");
@@ -96,7 +95,7 @@ public class DataSourceTest extends Common {
     assertTrue(ds.isWrapperFor(javax.sql.DataSource.class));
     assertTrue(ds.isWrapperFor(MariaDbDataSource.class));
     assertFalse(ds.isWrapperFor(String.class));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> new MariaDbDataSource("jdbc:wrongUrl"),
         "Wrong mariaDB url: jdbc:wrongUrl");

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class TimeCodecTest extends CommonCodecTest {
   @AfterAll
@@ -196,7 +197,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getBoolean(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getBoolean(1), "Data type TIME cannot be decoded as Boolean");
   }
 
@@ -212,7 +213,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getByte(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getByte(1), "Data type TIME cannot be decoded as Byte");
   }
 
@@ -228,7 +229,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getShort(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getShort(1), "Data type TIME cannot be decoded as Short");
   }
 
@@ -244,7 +245,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getInt(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getInt(1), "Data type TIME cannot be decoded as Integer");
   }
 
@@ -260,7 +261,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getLong(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getLong(1), "Data type TIME cannot be decoded as Long");
   }
 
@@ -276,7 +277,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getFloat(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getFloat(1), "Data type TIME cannot be decoded as Float");
   }
 
@@ -292,7 +293,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getDouble(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getDouble(1), "Data type TIME cannot be decoded as Double");
   }
 
@@ -308,7 +309,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getBigDecimal(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getBigDecimal(1),
         "Data type TIME cannot be decoded as BigDecimal");
@@ -326,7 +327,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getDate(1), "Data type TIME cannot be decoded as Date");
   }
 
@@ -470,7 +471,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getAsciiStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getAsciiStream(1),
         "Data type TIME cannot be decoded as Stream");
@@ -489,7 +490,7 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @SuppressWarnings("deprecation")
   public void getUnicodeStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getUnicodeStream(1),
         "Data type TIME cannot be decoded as Stream");
@@ -507,7 +508,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getBinaryStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getBinaryStream(1),
         "Data type TIME cannot be decoded as Stream");
@@ -525,7 +526,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getBytes(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getBytes(1), "Data type TIME cannot be decoded as byte[]");
   }
 
@@ -541,7 +542,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getCharacterStream(1),
         "Data type TIME cannot be decoded as Reader");
@@ -559,7 +560,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getNCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type TIME cannot be decoded as Reader");
@@ -577,7 +578,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getBlob(1), "Data type TIME cannot be decoded as Blob");
   }
 
@@ -593,7 +594,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getClob(1), "Data type TIME cannot be decoded as Clob");
   }
 
@@ -609,7 +610,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getNClob(1), "Data type TIME cannot be decoded as Clob");
   }
 

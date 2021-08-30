@@ -6,9 +6,10 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.Parameter;
+import org.mariadb.jdbc.message.ClientMessage;
 
 /**
  * COM_STMT_SEND_LONG_DATA
@@ -21,17 +22,17 @@ import org.mariadb.jdbc.codec.Parameter;
 public final class LongDataPacket implements ClientMessage {
 
   private final int statementId;
-  private final Parameter<?> parameter;
+  private final Parameter parameter;
   private final int index;
 
-  public LongDataPacket(int statementId, Parameter<?> parameter, int index) {
+  public LongDataPacket(int statementId, Parameter parameter, int index) {
     this.statementId = statementId;
     this.parameter = parameter;
     this.index = index;
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(Writer writer, Context context) throws IOException, SQLException {
     writer.initPacket();
     writer.writeByte(0x18);
     writer.writeInt(statementId);

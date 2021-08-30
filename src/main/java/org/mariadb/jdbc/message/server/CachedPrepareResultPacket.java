@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Client;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.socket.Reader;
 
 public final class CachedPrepareResultPacket extends PrepareResultPacket {
 
@@ -21,7 +21,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
   private final AtomicBoolean cached = new AtomicBoolean();
   private final List<ServerPreparedStatement> statements = new ArrayList<>();
 
-  public CachedPrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
+  public CachedPrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     super(buffer, reader, context);
   }

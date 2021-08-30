@@ -17,29 +17,30 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.codec.BinaryRowDecoder;
 import org.mariadb.jdbc.codec.RowDecoder;
 import org.mariadb.jdbc.codec.TextRowDecoder;
-import org.mariadb.jdbc.codec.list.*;
+import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.constants.ServerStatus;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public abstract class Result implements ResultSet, Completion {
 
   protected final int resultSetType;
   protected final ExceptionFactory exceptionFactory;
-  protected final PacketReader reader;
+  protected final org.mariadb.jdbc.client.socket.Reader reader;
   protected final Context context;
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  protected final ColumnDefinitionPacket[] metadataList;
+  protected final Column[] metadataList;
   protected final RowDecoder row;
   protected int dataSize = 0;
   protected byte[][] data;
@@ -56,8 +57,8 @@ public abstract class Result implements ResultSet, Completion {
       org.mariadb.jdbc.Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      org.mariadb.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
@@ -100,14 +101,14 @@ public abstract class Result implements ResultSet, Completion {
       case (byte) 0xFF:
         loaded = true;
         ErrorPacket errorPacket =
-            new ErrorPacket(new ReadableByteBuf(null, buf, buf.length), context);
+            new ErrorPacket(new StandardReadableByteBuf(null, buf, buf.length), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
         if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = new ReadableByteBuf(null, buf, buf.length);
+          ReadableByteBuf readBuf = new StandardReadableByteBuf(null, buf, buf.length);
           readBuf.skip(); // skip header
           int serverStatus;
           int warnings;
@@ -820,7 +821,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   public void useAliasAsName() {
-    for (ColumnDefinitionPacket packet : metadataList) {
+    for (Column packet : metadataList) {
       packet.useAliasAsName();
     }
     forceAlias = true;

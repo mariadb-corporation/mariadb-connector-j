@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
@@ -60,7 +59,7 @@ public class BatchTest extends Common {
 
       prep.setInt(1, 5);
       prep.setString(3, "wrong position");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLTransientConnectionException.class,
           prep::addBatch,
           "Parameter at position 2 is not set");
@@ -69,7 +68,7 @@ public class BatchTest extends Common {
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLTransientConnectionException.class,
           prep::addBatch,
           "Parameter at " + "position 1 is not set");
@@ -289,7 +288,7 @@ public class BatchTest extends Common {
       prep.setInt(1, 1);
       prep.setString(2, "val3");
       prep.addBatch();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           BatchUpdateException.class, prep::executeBatch, "Duplicate entry '1' for key 'PRIMARY'");
     }
   }

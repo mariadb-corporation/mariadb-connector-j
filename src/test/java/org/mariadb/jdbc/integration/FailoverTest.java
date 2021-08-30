@@ -11,10 +11,9 @@ import java.sql.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.util.constants.HaMode;
+import org.mariadb.jdbc.export.HaMode;
 
 public class FailoverTest extends Common {
 
@@ -75,7 +74,7 @@ public class FailoverTest extends Common {
         assertFalse(con.getAutoCommit());
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLTransientConnectionException.class,
             () -> stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')"),
             "In progress transaction was lost");
@@ -113,7 +112,7 @@ public class FailoverTest extends Common {
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
       proxy.restart(300);
       if (transactionReplay) {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLTransientConnectionException.class,
             con::commit,
             "Driver has reconnect connection after a communications failure");
@@ -128,7 +127,7 @@ public class FailoverTest extends Common {
         assertFalse(con.getAutoCommit());
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLTransientConnectionException.class, con::commit, "In progress transaction was lost");
       }
     }
@@ -176,7 +175,7 @@ public class FailoverTest extends Common {
         if (transactionReplay) {
           p.execute();
         } else {
-          assertThrowsContains(
+          Common.assertThrowsContains(
               SQLTransientConnectionException.class,
               p::execute,
               "In progress transaction was lost");

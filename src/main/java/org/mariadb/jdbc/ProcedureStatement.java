@@ -7,8 +7,8 @@ package org.mariadb.jdbc;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.Result;
-import org.mariadb.jdbc.message.server.Completion;
 
 public class ProcedureStatement extends BaseCallableStatement implements CallableStatement {
 
@@ -48,9 +48,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
     for (int i = 1; i <= Math.min(this.results.size(), 2); i++) {
       Completion compl = this.results.get(this.results.size() - i);
       if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
-        this.outputResult = (Result) compl;
-        this.outputResult.next();
-        this.results.remove(this.results.size() - i);
+        outputResultFromRes(i);
       }
     }
   }
