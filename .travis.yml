@@ -35,30 +35,15 @@ install:
     esac
 
 jobs:
-  allow_failures:
-    - env: srv=build v=10.6
   include:
-    - env: srv=mariadb v=10.5
-      os: windows
-      language: shell
     - env: srv=mariadb v=10.2 local=1
-    - env: srv=mariadb v=10.3 local=1
-    - env: srv=mariadb v=10.4 local=1
-    - env: srv=mariadb v=10.6 local=1
-    - env: srv=mariadb v=10.5 packet=40
-    - env: srv=mariadb v=10.5 packet=8
-    - env: srv=mariadb v=10.5 BENCH=1
-    - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
-      env: srv=maxscale
-    - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
-      env: srv=build v=10.6
-    - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
-      env: srv=mysql v=5.7
-    - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
-      env: srv=mysql v=8.0 TEST_DB_OTHER=allowPublicKeyRetrieval
-    - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
+    - if: NOT env(CONNECTOR_TEST_SECRET_KEY) IS present
       env: srv=skysql
     - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
+      env: srv=skysql-ha
+    - if: NOT env(CONNECTOR_TEST_SECRET_KEY) IS blank
+      env: srv=skysql
+    - if: env(CONNECTOR_TEST_SECRET_KEY) IS blank
       env: srv=skysql-ha
 
 
