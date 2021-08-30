@@ -375,7 +375,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
-            idleConnections.stream().forEach(c -> c.lastUsedToNow());
+            idleConnections.stream().forEach(c -> c.ensureValidation());
 
             addConnectionRequest();
             logger.debug(
