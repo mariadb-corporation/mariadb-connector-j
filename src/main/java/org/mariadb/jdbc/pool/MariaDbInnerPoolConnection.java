@@ -39,4 +39,8 @@ public class MariaDbInnerPoolConnection extends MariaDbPoolConnection {
   public void lastUsedToNow() {
     lastUsed.set(System.nanoTime());
   }
+
+  public void ensureValidation() {
+    lastUsed.set(0L);
+  }
 }

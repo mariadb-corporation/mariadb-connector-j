@@ -230,7 +230,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
-            idleConnections.forEach(MariaDbInnerPoolConnection::lastUsedToNow);
+            idleConnections.forEach(MariaDbInnerPoolConnection::ensureValidation);
 
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
