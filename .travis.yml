@@ -42,9 +42,9 @@ jobs:
     - if: env(CONNECTOR_TEST_SECRET_KEY) IS present
       env: srv=skysql-ha
     - if: NOT env(CONNECTOR_TEST_SECRET_KEY) IS blank
-      env: srv=skysql
+      env: srv=skysql2
     - if: env(CONNECTOR_TEST_SECRET_KEY) IS blank
-      env: srv=skysql-ha
+      env: srv=skysql-ha2
 
 
 script:
