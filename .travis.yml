@@ -37,9 +37,9 @@ install:
 jobs:
   include:
     - env: srv=mariadb v=10.2 local=1
-    - if: env(TRAVIS_PULL_REQUEST) IS false
+    - if: NOT env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=skysql
-    - if: env(TRAVIS_PULL_REQUEST) IS false
+    - if: NOT env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=skysql-ha
 
 
