@@ -22,6 +22,7 @@ cache:
 env: LOCAL=0
 
 install:
+  - echo "TRAVIS_PULL_REQUEST:$TRAVIS_PULL_REQUEST"
   - |-
     case $TRAVIS_OS_NAME in
       windows)
@@ -37,10 +38,14 @@ install:
 jobs:
   include:
     - env: srv=mariadb v=10.2 local=1
-    - if: NOT env(TRAVIS_PULL_REQUEST) = "false"
+    - if: NOT (env(TRAVIS_PULL_REQUEST) = "false")
       env: srv=skysql
-    - if: NOT env(TRAVIS_PULL_REQUEST) = "false"
+    - if: NOT (env(TRAVIS_PULL_REQUEST) = "false")
       env: srv=skysql-ha
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
+      env: srv=skysql2
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
+      env: srv=skysql-ha2
 
 
 script:
