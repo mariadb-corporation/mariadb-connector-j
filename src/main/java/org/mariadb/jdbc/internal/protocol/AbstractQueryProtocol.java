@@ -1235,7 +1235,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     } catch (IOException e) {
       connected = false;
-      throw new SQLNonTransientConnectionException("Could not ping: " + e.getMessage(), "08000", e);
+      throw new SQLNonTransientConnectionException(
+          "Could not ping connection " + serverThreadId + " : " + e.getMessage(), "08000", e);
     } finally {
       lock.unlock();
     }

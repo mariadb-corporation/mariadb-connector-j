@@ -398,6 +398,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   /** Force closes socket and stream readers/writers. */
   public void abort() {
+    if (logger.isDebugEnabled()) {
+      logger.debug("aborting connection {}", serverThreadId);
+    }
     this.explicitClosed = true;
 
     boolean lockStatus = false;
