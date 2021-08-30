@@ -48,17 +48,17 @@ jobs:
     - env: srv=mariadb v=10.5 packet=40
     - env: srv=mariadb v=10.5 packet=8
     - env: srv=mariadb v=10.5 BENCH=1
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=maxscale
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=build v=10.6
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=mysql v=5.7
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=mysql v=8.0 TEST_DB_OTHER=allowPublicKeyRetrieval
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=skysql
-    - if: env(CONNECTOR_TEST_SECRET_KEY)
+    - if: env(TRAVIS_PULL_REQUEST) = "false"
       env: srv=skysql-ha
 
 
