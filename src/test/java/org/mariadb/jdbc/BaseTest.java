@@ -71,6 +71,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.util.Options;
 
 /**
@@ -965,7 +966,7 @@ public class BaseTest {
   }
 
   public boolean sharedIsAurora() {
-    return urlParser.isAurora();
+    return urlParser.getHaMode() == HaMode.AURORA;
   }
 
   /**

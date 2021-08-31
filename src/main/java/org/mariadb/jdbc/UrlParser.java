@@ -102,8 +102,6 @@ public class UrlParser implements Cloneable {
   private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
   private static final Pattern URL_PARAMETER =
       Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
-  private static final Pattern AWS_PATTERN =
-      Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
 
   private String database;
   private Options options = null;
@@ -213,8 +211,7 @@ public class UrlParser implements Cloneable {
       if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
         hostAddressesString = urlSecondPart.substring(0, paramIndex);
         additionalParameters = urlSecondPart.substring(paramIndex);
-      } else if ((dbIndex < paramIndex && dbIndex > -1)
-          || (dbIndex > paramIndex && paramIndex < 0)) {
+      } else if (dbIndex < paramIndex || dbIndex > paramIndex) {
         hostAddressesString = urlSecondPart.substring(0, dbIndex);
         additionalParameters = urlSecondPart.substring(dbIndex);
       } else {
@@ -255,9 +252,8 @@ public class UrlParser implements Cloneable {
       throws SQLException {
 
     if (additionalParameters != null) {
-      //noinspection Annotator
       Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-      matcher.find();
+      boolean unused = matcher.find();
       urlParser.database = matcher.group(2);
       urlParser.options =
           DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
@@ -351,7 +347,7 @@ public class UrlParser implements Cloneable {
   }
 
   /**
-   * Permit to set parameters not forced. if options useBatchMultiSend and usePipelineAuth are not
+   * Permit setting parameters not forced. if options useBatchMultiSend and usePipelineAuth are not
    * explicitly set in connection string, value will default to true or false according if aurora
    * detection.
    *
@@ -361,7 +357,7 @@ public class UrlParser implements Cloneable {
 
     // Aurora has issue with pipelining, depending on network speed.
     // Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
-    boolean disablePipeline = isAurora();
+    boolean disablePipeline = haMode == HaMode.AURORA;
 
     if (options.useBatchMultiSend == null) {
       options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
@@ -371,30 +367,6 @@ public class UrlParser implements Cloneable {
       options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
     }
     return this;
-  }
-
-  /**
-   * Detection of Aurora.
-   *
-   * <p>Aurora rely on MySQL, then cannot be identified by protocol. But Aurora doesn't permit some
-   * behaviour normally working with MySQL : pipelining. So Driver must identified if server is
-   * Aurora to disable pipeline options that are enable by default.
-   *
-   * @return true if aurora.
-   */
-  public boolean isAurora() {
-    if (haMode == HaMode.AURORA) {
-      return true;
-    }
-    if (addresses != null) {
-      for (HostAddress hostAddress : addresses) {
-        Matcher matcher = AWS_PATTERN.matcher(hostAddress.host);
-        if (matcher.find()) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**

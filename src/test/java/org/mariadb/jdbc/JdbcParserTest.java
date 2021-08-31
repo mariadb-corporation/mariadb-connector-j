@@ -131,32 +131,9 @@ public class JdbcParserTest {
             .getOptions()
             .useBatchMultiSend);
 
-    String hostAurora =
-        "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
-    assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().useBatchMultiSend);
-    assertTrue(
-        UrlParser.parse(hostAurora + "?useBatchMultiSend=true")
-            .auroraPipelineQuirks()
-            .getOptions()
-            .useBatchMultiSend);
-
-    String hostAuroraUpper =
-        "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.AMAZONAWS.com:3306/test";
-    assertFalse(
-        UrlParser.parse(hostAuroraUpper).auroraPipelineQuirks().getOptions().useBatchMultiSend);
-    assertTrue(
-        UrlParser.parse(hostAuroraUpper + "?useBatchMultiSend=true")
-            .auroraPipelineQuirks()
-            .getOptions()
-            .useBatchMultiSend);
-
     MariaDbDataSource datasource = new MariaDbDataSource();
     datasource.initialize();
     assertNull(datasource.getUrlParser().getOptions().useBatchMultiSend);
-    datasource.setUrl(hostAurora);
-    assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
-    datasource.setUrl(hostAurora + "?useBatchMultiSend=true");
-    assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
   }
 
   @Test
@@ -247,25 +224,9 @@ public class JdbcParserTest {
             .getOptions()
             .usePipelineAuth);
 
-    String hostAurora =
-        "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
-    assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().usePipelineAuth);
-    assertTrue(UrlParser.parse(hostAurora + "?usePipelineAuth=true").getOptions().usePipelineAuth);
-
-    String hostAuroraUpper =
-        "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.RDS.amazonaws.com:3306/test";
-    assertFalse(
-        UrlParser.parse(hostAuroraUpper).auroraPipelineQuirks().getOptions().usePipelineAuth);
-    assertTrue(
-        UrlParser.parse(hostAuroraUpper + "?usePipelineAuth=true").getOptions().usePipelineAuth);
-
     MariaDbDataSource datasource = new MariaDbDataSource();
     datasource.initialize();
     assertNull(datasource.getUrlParser().getOptions().usePipelineAuth);
-    datasource.setUrl(hostAurora);
-    assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
-    datasource.setUrl(hostAurora + "?usePipelineAuth=true");
-    assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
   }
 
   @Test
