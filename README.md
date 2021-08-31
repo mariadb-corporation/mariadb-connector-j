@@ -37,7 +37,7 @@ But still in beta for now:
 <dependency>
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
-    <version>3.0.1-beta</version>
+    <version>3.0.2-rc</version>
 </dependency>
 ```
 
