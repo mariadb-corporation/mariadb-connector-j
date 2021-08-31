@@ -48,14 +48,14 @@ public class ConnectionTest extends Common {
       assertEquals(50, con.getNetworkTimeout());
       Statement stmt = con.createStatement();
       stmt.execute("SELECT 1");
-      assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(0.1)"), "");
+      Common.assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(0.1)"), "");
     }
 
     try (Connection con = createCon("&socketTimeout=500")) {
       assertEquals(500, con.getNetworkTimeout());
       Statement stmt = con.createStatement();
       stmt.execute("SELECT SLEEP(0.1)");
-      assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(1)"), "");
+      Common.assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(1)"), "");
     }
 
     try (Connection con = createCon("&socketTimeout=0")) {
@@ -331,7 +331,7 @@ public class ConnectionTest extends Common {
   @Test
   public void checkFixedData() throws SQLException {
     sharedConn.unwrap(java.sql.Connection.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");
@@ -515,7 +515,7 @@ public class ConnectionTest extends Common {
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
       assertEquals("ye``\\\\``p", savepoint.getSavepointName());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           savepoint::getSavepointId,
           "Cannot retrieve savepoint id of a named savepoint");
@@ -539,12 +539,12 @@ public class ConnectionTest extends Common {
   @Test
   public void netWorkTimeout() throws SQLException {
     Connection con = createCon();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> con.setNetworkTimeout(Runnable::run, -200),
         "Connection.setNetworkTimeout cannot be called with a negative timeout");
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> con.setNetworkTimeout(Runnable::run, 200),
         "Connection.setNetworkTimeout cannot be called on a closed connection");
@@ -562,12 +562,12 @@ public class ConnectionTest extends Common {
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
       assertTrue(savepoint.getSavepointId() > 0);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           savepoint::getSavepointName,
           "Cannot retrieve savepoint name of an unnamed savepoint");
       con.rollback(savepoint);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> con.rollback(new MySavepoint()), "Unknown savepoint type");
       stmt.executeUpdate("INSERT INTO spt values('hej5')");
       stmt.executeUpdate("INSERT INTO spt values('hej6')");
@@ -598,7 +598,7 @@ public class ConnectionTest extends Common {
       stmt.executeUpdate("INSERT INTO spt  values('hej3')");
       stmt.executeUpdate("INSERT INTO spt values('hej4')");
       con.releaseSavepoint(savepoint);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> con.releaseSavepoint(new MySavepoint()),
           "Unknown savepoint type");
@@ -822,7 +822,7 @@ public class ConnectionTest extends Common {
       // must have succeeded
       connection.getCatalog();
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("user=testPam&password=myPwd&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
@@ -938,7 +938,7 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
     }
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             DriverManager.getConnection(
@@ -972,7 +972,7 @@ public class ConnectionTest extends Common {
     try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
       conn.isValid(1);
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> createCon("socketFactory=wrongClass"),
         "Socket factory failed to initialized with option \"socketFactory\" set to \"wrongClass\"");
@@ -990,7 +990,7 @@ public class ConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeFalse(haveSsl());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
   }
 
@@ -1010,7 +1010,7 @@ public class ConnectionTest extends Common {
     Connection con = createCon();
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");

@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Reader;
 
 public class StreamingResult extends Result {
 
@@ -22,8 +22,8 @@ public class StreamingResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      Reader reader,
       Context context,
       int fetchSize,
       ReentrantLock lock,

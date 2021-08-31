@@ -11,7 +11,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
 
 public class DatabaseMetadataTest extends Common {
@@ -313,7 +312,7 @@ public class DatabaseMetadataTest extends Common {
             + "      REFERENCES `cus``tomer`(id2)\n"
             + "      ON UPDATE SET NULL ON DELETE SET NULL)");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> con.getMetaData().getImportedKeys(con.getCatalog(), null, null),
         "'table' parameter in getImportedKeys cannot be null");
@@ -442,7 +441,7 @@ public class DatabaseMetadataTest extends Common {
       }
     }
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             con.getMetaData()
@@ -1009,7 +1008,7 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void getBestRowIdentifier() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.getBestRowIdentifier(null, null, null, 0, true),
         "'table' parameter cannot be null in getBestRowIdentifier()");
@@ -1196,7 +1195,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
         "'table' parameter must not be null");
@@ -1714,7 +1713,7 @@ public class DatabaseMetadataTest extends Common {
   public void getIndexInfo() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.getIndexInfo(null, null, null, true, true),
         "'table' parameter must not be null");
@@ -1818,7 +1817,7 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(meta.autoCommitFailureClosesAllResultSets());
 
     meta.unwrap(java.sql.DatabaseMetaData.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");

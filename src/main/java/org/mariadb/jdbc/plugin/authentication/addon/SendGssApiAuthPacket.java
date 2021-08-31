@@ -7,10 +7,11 @@ package org.mariadb.jdbc.plugin.authentication.addon;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssUtility;
 import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssapiAuth;
@@ -61,9 +62,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws IOException, SQLException {
-    ReadableByteBuf buf = new ReadableByteBuf(in.getSequence(), seed, seed.length);
+    ReadableByteBuf buf = new StandardReadableByteBuf(in.getSequence(), seed, seed.length);
 
     final String serverSpn = buf.readStringNullEnd();
     // using provided connection string SPN if set, or if not, using to server information

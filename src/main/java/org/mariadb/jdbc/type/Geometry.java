@@ -5,8 +5,8 @@
 package org.mariadb.jdbc.type;
 
 import java.sql.SQLDataException;
+import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 public interface Geometry {
 
@@ -16,7 +16,7 @@ public interface Geometry {
     return new Point(x, y);
   }
 
-  static Geometry getGeometry(ReadableByteBuf buf, int length, ColumnDefinitionPacket column)
+  static Geometry getGeometry(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
     if (length == 0) return null;
     boolean littleEndian = buf.readByte() == 0x01;

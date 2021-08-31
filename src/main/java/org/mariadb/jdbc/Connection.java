@@ -12,8 +12,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.Client;
-import org.mariadb.jdbc.client.ClientImpl;
-import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.impl.StandardClient;
+import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.client.ChangeDbPacket;
 import org.mariadb.jdbc.message.client.PingPacket;
 import org.mariadb.jdbc.message.client.QueryPacket;
@@ -22,7 +23,6 @@ import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ConnectionState;
 import org.mariadb.jdbc.util.constants.ServerStatus;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class Connection implements java.sql.Connection {
 
@@ -73,7 +73,8 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli = new ClientImpl(conf, client.getHostAddress(), new ReentrantLock(), true)) {
+    try (Client cli =
+        new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()));
     }
   }
@@ -483,14 +484,14 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint() throws SQLException {
-    Savepoint savepoint = new Savepoint(savepointId.incrementAndGet());
+    MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
     return savepoint;
   }
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
-    Savepoint savepoint = new Savepoint(name.replace("`", "``"));
+    MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
     return savepoint;
   }
@@ -501,10 +502,12 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.Savepoint) {
+        if (savepoint instanceof Connection.MariaDbSavepoint) {
           client.execute(
               new QueryPacket(
-                  "ROLLBACK TO SAVEPOINT `" + ((Connection.Savepoint) savepoint).rawValue() + "`"));
+                  "ROLLBACK TO SAVEPOINT `"
+                      + ((Connection.MariaDbSavepoint) savepoint).rawValue()
+                      + "`"));
         } else {
           throw exceptionFactory.create("Unknown savepoint type");
         }
@@ -520,10 +523,12 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.Savepoint) {
+        if (savepoint instanceof Connection.MariaDbSavepoint) {
           client.execute(
               new QueryPacket(
-                  "RELEASE SAVEPOINT `" + ((Connection.Savepoint) savepoint).rawValue() + "`"));
+                  "RELEASE SAVEPOINT `"
+                      + ((Connection.MariaDbSavepoint) savepoint).rawValue()
+                      + "`"));
         } else {
           throw exceptionFactory.create("Unknown savepoint type");
         }
@@ -733,17 +738,17 @@ public class Connection implements java.sql.Connection {
   }
 
   /** Internal Savepoint implementation */
-  class Savepoint implements java.sql.Savepoint {
+  class MariaDbSavepoint implements java.sql.Savepoint {
 
     private final String name;
     private final Integer id;
 
-    public Savepoint(final String name) {
+    public MariaDbSavepoint(final String name) {
       this.name = name;
       this.id = null;
     }
 
-    public Savepoint(final int savepointId) {
+    public MariaDbSavepoint(final int savepointId) {
       this.id = savepointId;
       this.name = null;
     }

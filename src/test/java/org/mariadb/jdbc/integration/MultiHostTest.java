@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 public class MultiHostTest extends Common {
@@ -48,7 +49,7 @@ public class MultiHostTest extends Common {
       stmt.execute("CREATE TABLE testReadOnly(id int)");
       con.setAutoCommit(false);
       con.setReadOnly(true);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
           "Cannot execute statement in a READ ONLY transaction");
@@ -220,7 +221,7 @@ public class MultiHostTest extends Common {
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt2.executeQuery("SELECT * from mysql.user"),
         "Socket error during result streaming");
@@ -233,11 +234,11 @@ public class MultiHostTest extends Common {
 
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.abort(Runnable::run),
         "Connection is closed");
@@ -348,7 +349,7 @@ public class MultiHostTest extends Common {
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt2.executeQuery("SELECT * from mysql.user"),
         "Socket error during result streaming");
@@ -361,11 +362,11 @@ public class MultiHostTest extends Common {
 
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.abort(Runnable::run),
         "Connection is closed");

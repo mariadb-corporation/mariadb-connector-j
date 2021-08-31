@@ -10,21 +10,23 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.Parameter;
+import org.mariadb.jdbc.client.util.Parameters;
+import org.mariadb.jdbc.export.MaxAllowedPacketException;
+import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.ParameterList;
 
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
-  private List<ParameterList> batchParameterList;
+  private List<Parameters> batchParameterList;
   private final String command;
   private final ServerPreparedStatement prep;
-  private PrepareResultPacket prepareResult;
+  private Prepare prepareResult;
 
   public BulkExecutePacket(
-      PrepareResultPacket prepareResult,
-      List<ParameterList> batchParameterList,
+      Prepare prepareResult,
+      List<Parameters> batchParameterList,
       String command,
       ServerPreparedStatement prep) {
     this.batchParameterList = batchParameterList;
@@ -34,14 +36,14 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
   }
 
   public void saveParameters() {
-    List<ParameterList> savedList = new ArrayList<>(batchParameterList.size());
-    for (ParameterList parameterList : batchParameterList) {
+    List<Parameters> savedList = new ArrayList<>(batchParameterList.size());
+    for (Parameters parameterList : batchParameterList) {
       savedList.add(parameterList.clone());
     }
     this.batchParameterList = savedList;
   }
 
-  public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  public int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
 
     int statementId =
@@ -49,12 +51,12 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
             ? newPrepareResult.getStatementId()
             : (this.prepareResult != null ? this.prepareResult.getStatementId() : -1);
 
-    Iterator<ParameterList> paramIterator = batchParameterList.iterator();
-    ParameterList parameters = paramIterator.next();
+    Iterator<Parameters> paramIterator = batchParameterList.iterator();
+    Parameters parameters = paramIterator.next();
     int parameterCount = parameters.size();
 
     @SuppressWarnings("rawtypes")
-    Parameter<?>[] parameterHeaderType = new Parameter[parameterCount];
+    Parameter[] parameterHeaderType = new Parameter[parameterCount];
     // set header type
     for (int i = 0; i < parameterCount; i++) {
       parameterHeaderType[i] = parameters.get(i);
@@ -82,7 +84,10 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       }
 
       if (lastCmdData != null) {
-        writer.checkMaxAllowedLength(lastCmdData.length);
+        if (writer.throwMaxAllowedLength(lastCmdData.length)) {
+          throw new MaxAllowedPacketException(
+              "query size is >= to max_allowed_packet", writer.getCmdLength() != 0);
+        }
         writer.writeBytes(lastCmdData);
         writer.mark();
         lastCmdData = null;
@@ -95,7 +100,7 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
       parameter_loop:
       while (true) {
         for (int i = 0; i < parameterCount; i++) {
-          Parameter<?> param = parameters.get(i);
+          Parameter param = parameters.get(i);
           if (param.isNull()) {
             writer.writeByte(0x01); // value is null
           } else {

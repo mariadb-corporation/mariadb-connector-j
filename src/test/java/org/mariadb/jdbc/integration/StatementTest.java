@@ -10,7 +10,6 @@ import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
@@ -217,71 +216,71 @@ public class StatementTest extends Common {
     assertTrue(stmt.isClosed());
     assertTrue(rs.isClosed());
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::clearBatch, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::isPoolable, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.setPoolable(true),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         stmt::closeOnCompletion,
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         stmt::isCloseOnCompletion,
         "Cannot do an operation on a closed statement");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         stmt::getResultSetConcurrency,
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getFetchSize, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getMoreResults, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.execute("ANY"),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.executeUpdate("ANY"),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.executeQuery("ANY"),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::executeBatch, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getConnection, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.getMoreResults(1),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::cancel, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getMaxRows, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getLargeMaxRows, "Cannot do an operation on a closed statement");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.setMaxRows(1),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.setEscapeProcessing(true),
         "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getQueryTimeout, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, stmt::getUpdateCount, "Cannot do an operation on a closed statement");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         stmt::getLargeUpdateCount,
         "Cannot do an operation on a closed statement");
@@ -364,11 +363,11 @@ public class StatementTest extends Common {
     assertTrue(stmt.isWrapperFor(Statement.class));
     stmt.unwrap(java.sql.Statement.class);
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.unwrap(String.class),
         "he receiver is not a wrapper and does not implement the interface");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> stmt.setCursorName(""), "Cursors are not supported");
 
     assertEquals(ResultSet.FETCH_FORWARD, stmt.getFetchDirection());
@@ -406,10 +405,10 @@ public class StatementTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> stmt.setQueryTimeout(-1), "Query timeout cannot be negative");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLTimeoutException.class,
         () -> {
           stmt.setQueryTimeout(1);
@@ -439,14 +438,14 @@ public class StatementTest extends Common {
     try (Connection con =
         (Connection) DriverManager.getConnection(mDefUrl + "&dumpQueriesOnException=true")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.executeQuery(
                   "select {fn timestampdiff(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df "),
           "select {fn timestampdiff" + "(SQL_TSI_HOUR, '2003-02-01','2003-05-01')} df df ");
       stmt.setEscapeProcessing(true);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.executeQuery(
@@ -504,7 +503,7 @@ public class StatementTest extends Common {
 
     ExecutorService exec = Executors.newFixedThreadPool(1);
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLTimeoutException.class,
         () -> {
           exec.execute(new CancelThread(stmt));
@@ -520,7 +519,8 @@ public class StatementTest extends Common {
   public void fetch() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
-    assertThrowsContains(SQLException.class, () -> stmt.setFetchSize(-10), "invalid fetch size");
+    Common.assertThrowsContains(
+        SQLException.class, () -> stmt.setFetchSize(-10), "invalid fetch size");
 
     stmt.setFetchSize(10);
     assertEquals(10, stmt.getFetchSize());
@@ -646,7 +646,7 @@ public class StatementTest extends Common {
     stmt.execute(
         "CREATE TABLE executeBatchBasic (t1 int not null primary key auto_increment, t2 int)");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt.addBatch(null),
         "null cannot be set to addBatch(String sql)");
@@ -667,7 +667,7 @@ public class StatementTest extends Common {
     assertArrayEquals(new int[0], stmt.executeBatch());
     stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         BatchUpdateException.class, stmt::executeBatch, "You have an error in your SQL syntax");
   }
 
@@ -702,7 +702,7 @@ public class StatementTest extends Common {
     Assertions.assertArrayEquals(new long[0], ret);
     stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         BatchUpdateException.class,
         stmt::executeLargeBatch,
         "You have an error in your SQL syntax");

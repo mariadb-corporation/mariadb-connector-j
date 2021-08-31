@@ -10,10 +10,11 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.export.HaMode;
+import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
-import org.mariadb.jdbc.util.constants.HaMode;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 /**

@@ -7,10 +7,10 @@ package org.mariadb.jdbc.plugin;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 
 public interface AuthenticationPlugin {
 
@@ -40,6 +40,6 @@ public interface AuthenticationPlugin {
    * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  ReadableByteBuf process(PacketWriter encoder, PacketReader decoder, Context context)
+  ReadableByteBuf process(Writer encoder, Reader decoder, Context context)
       throws IOException, SQLException;
 }

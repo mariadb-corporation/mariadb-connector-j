@@ -15,7 +15,7 @@ import javax.sql.ConnectionPoolDataSource;
 import javax.sql.DataSource;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
-import org.mariadb.jdbc.pool.InternalPoolConnection;
+import org.mariadb.jdbc.pool.MariaDbInnerPoolConnection;
 import org.mariadb.jdbc.pool.Pool;
 import org.mariadb.jdbc.pool.Pools;
 
@@ -168,12 +168,12 @@ public class MariaDbPoolDataSource
   }
 
   @Override
-  public InternalPoolConnection getPooledConnection() throws SQLException {
+  public MariaDbInnerPoolConnection getPooledConnection() throws SQLException {
     return pool.getPoolConnection();
   }
 
   @Override
-  public InternalPoolConnection getPooledConnection(String username, String password)
+  public MariaDbInnerPoolConnection getPooledConnection(String username, String password)
       throws SQLException {
     return pool.getPoolConnection(username, password);
   }

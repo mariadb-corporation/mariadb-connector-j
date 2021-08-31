@@ -10,7 +10,6 @@ import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
 
 public class ParameterMetaDataTest extends Common {
@@ -47,13 +46,13 @@ public class ParameterMetaDataTest extends Common {
     try (PreparedStatement prepStmt = con.prepareStatement(query)) {
       ParameterMetaData parameterMetaData = prepStmt.getParameterMetaData();
       assertEquals(2, parameterMetaData.getParameterCount());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> parameterMetaData.getParameterType(1),
           "Getting parameter type metadata are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> parameterMetaData.isNullable(-1), "Wrong index position");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> parameterMetaData.isNullable(3), "Wrong index position");
     }
   }
@@ -108,42 +107,42 @@ public class ParameterMetaDataTest extends Common {
       assertEquals(ParameterMetaData.parameterNullable, meta.isNullable(1));
       assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(1));
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> meta.getParameterType(1),
           "Getting parameter type " + "metadata are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> meta.getParameterClassName(1),
           "Unknown parameter metadata class name");
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.getScale(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.getPrecision(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.isSigned(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.isNullable(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.getParameterTypeName(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.getParameterMode(20),
           "Wrong index position. Is 20 but must be in 1-3 range");
 
       meta.unwrap(java.sql.ParameterMetaData.class);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> meta.unwrap(String.class),
           "The receiver is not a wrapper for java.lang.String");

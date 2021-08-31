@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class BitCodecTest extends CommonCodecTest {
   @AfterAll
@@ -295,9 +296,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getFloat(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getFloat(1), "Data type BIT cannot be decoded as Float");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getFloat("t1alias"),
         "Data type BIT cannot be decoded as Float");
@@ -315,9 +316,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getDouble(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getDouble(1), "Data type BIT cannot be decoded as Double");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble("t1alias"),
         "Data type BIT cannot be decoded as Double");
@@ -358,9 +359,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type BIT cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate("t1alias"),
         "Data type BIT cannot be decoded as Date");
@@ -378,9 +379,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getTime(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type BIT cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime("t1alias"),
         "Data type BIT cannot be decoded as Time");
@@ -398,11 +399,11 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getTimestamp(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
         "Data type BIT cannot be decoded as Timestamp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp("t1alias"),
         "Data type BIT cannot be decoded as Timestamp");
@@ -420,11 +421,11 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getAsciiStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
         "Data type BIT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream("t1alias"),
         "Data type BIT cannot be decoded as Stream");
@@ -443,11 +444,11 @@ public class BitCodecTest extends CommonCodecTest {
 
   @SuppressWarnings("deprecation")
   public void getUnicodeStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
         "Data type BIT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream("t1alias"),
         "Data type BIT cannot be decoded as Stream");
@@ -465,11 +466,11 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getBinaryStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
         "Data type BIT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream("t1alias"),
         "Data type BIT cannot be decoded as Stream");
@@ -487,9 +488,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getBytes(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getBytes(1), "Data type BIT cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes("t1alias"),
         "Data type BIT cannot be decoded as byte[]");
@@ -507,11 +508,11 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type BIT cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
         "Data type BIT cannot be decoded as Reader");
@@ -529,11 +530,11 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getNCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type BIT cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream("t2alias"),
         "Data type BIT cannot be decoded as Reader");
@@ -575,9 +576,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type BIT cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getClob("t1alias"),
         "Data type BIT cannot be decoded as Clob");
@@ -595,9 +596,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getNClob(1), "Data type BIT cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob("t1alias"),
         "Data type BIT cannot be decoded as Clob");
@@ -615,9 +616,9 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getURL(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse 'b''' as URL");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse 'b''' as URL");
   }
 

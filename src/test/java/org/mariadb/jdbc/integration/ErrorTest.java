@@ -11,7 +11,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 
 public class ErrorTest extends Common {
 
@@ -36,7 +35,7 @@ public class ErrorTest extends Common {
   public void dumpQueryOnException() throws Exception {
     try (Connection con = createCon("dumpQueriesOnException")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> stmt.execute("SELECT 'long value' FROM wrongTable"),
           "Query is: SELECT 'long value' FROM wrongTable");
@@ -44,7 +43,7 @@ public class ErrorTest extends Common {
 
     try (Connection con = createCon("maxQuerySizeToLog=100&dumpQueriesOnException")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> stmt.execute("SELECT 'long value' FROM wrongTable"),
           "Query is: SELECT 'long value' FROM wrongTable");
@@ -52,7 +51,7 @@ public class ErrorTest extends Common {
 
     try (Connection con = createCon("maxQuerySizeToLog=13&dumpQueriesOnException")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> stmt.execute("SELECT 'long value' FROM wrongTable"),
           "Query is: SELECT 'lo...");

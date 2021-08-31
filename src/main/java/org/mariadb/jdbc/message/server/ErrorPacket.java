@@ -4,8 +4,9 @@
 
 package org.mariadb.jdbc.message.server;
 
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.message.ServerMessage;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;

@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.Parameter;
+import org.mariadb.jdbc.export.ExceptionFactory;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
@@ -22,7 +23,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   protected final String procedureName;
   protected CallableParameterMetaData parameterMetaData = null;
   protected final Set<Integer> outputParameters = new HashSet<>();
-  protected Result outputResult = null;
+  private Result outputResult = null;
 
   public BaseCallableStatement(
       String sql,
@@ -51,6 +52,11 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   }
 
   public abstract boolean isFunction();
+
+  protected void outputResultFromRes(int i) throws SQLException {
+    this.outputResult = (Result) this.results.remove(this.results.size() - i);
+    this.outputResult.next();
+  }
 
   /**
    * Registers the OUT parameter in ordinal position <code>parameterIndex</code> to the JDBC type
@@ -2027,6 +2033,10 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
     throw exceptionFactory().notSupported("SQLXML are not supported");
+  }
+
+  private ExceptionFactory exceptionFactory() {
+    return con.getExceptionFactory().of(this);
   }
 
   /**

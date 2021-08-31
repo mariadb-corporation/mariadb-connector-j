@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.integration.Common;
 
 public class BlobCodecTest extends CommonCodecTest {
   private static File tmpFile;
@@ -150,16 +151,16 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString(1),
         "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString(2),
         "Data type BLOB cannot be decoded as String");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString("t2alias"),
         "Data type BLOB cannot be decoded as String");
@@ -180,16 +181,16 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString(1),
         "Data type BLOB cannot be decoded as String");
     assertFalse(rs.wasNull());
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString(2),
         "Data type BLOB cannot be decoded as String");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNString("t2alias"),
         "Data type BLOB cannot be decoded as String");
@@ -210,7 +211,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBoolean(1),
         "Data type BLOB cannot be decoded as Boolean");
@@ -240,7 +241,7 @@ public class BlobCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
     rs.next();
     rs.next();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(1),
         "empty String value cannot be decoded as Byte");
@@ -258,7 +259,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getShort(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getShort(1), "Data type BLOB cannot be decoded as Short");
     assertFalse(rs.wasNull());
   }
@@ -275,7 +276,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getInt(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getInt(1), "Data type BLOB cannot be decoded as Integer");
     assertFalse(rs.wasNull());
   }
@@ -292,7 +293,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getLong(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getLong(1), "Data type BLOB cannot be decoded as Long");
     assertFalse(rs.wasNull());
   }
@@ -309,7 +310,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getFloat(1), "Data type BLOB cannot be decoded as Float");
     assertFalse(rs.wasNull());
   }
@@ -326,7 +327,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(1),
         "Data type BLOB cannot be decoded as Double");
@@ -345,7 +346,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(1),
         "Data type BLOB cannot be decoded as BigDecimal");
@@ -359,7 +360,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getBigInteger(CompleteResult rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigInteger(1),
         "Data type BLOB cannot be decoded as BigInteger");
@@ -378,7 +379,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getDuration(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
         "Data type BLOB cannot be decoded as Duration");
@@ -396,7 +397,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getDate(1), "Data type BLOB cannot be decoded as Date");
     assertFalse(rs.wasNull());
   }
@@ -413,7 +414,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getTime(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getTime(1), "Data type BLOB cannot be decoded as Time");
     assertFalse(rs.wasNull());
   }
@@ -430,7 +431,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
         "Data type BLOB cannot be decoded as Timestamp");
@@ -546,7 +547,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getCharacterStream(ResultSet rs) throws Exception {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type BLOB cannot be decoded as Reader");
@@ -565,7 +566,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNCharacterStream(ResultSet rs) throws Exception {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type BLOB cannot be decoded as Reader");
@@ -607,7 +608,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) throws Exception {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getClob(1), "Data type BLOB cannot be decoded as Clob");
     assertFalse(rs.wasNull());
   }
@@ -624,7 +625,7 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) throws Exception {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class, () -> rs.getNClob(1), "Data type BLOB cannot be decoded as Clob");
     assertFalse(rs.wasNull());
   }

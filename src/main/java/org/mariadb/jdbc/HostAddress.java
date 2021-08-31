@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.mariadb.jdbc.util.constants.HaMode;
+import org.mariadb.jdbc.export.HaMode;
 
 public class HostAddress {
 

@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
 
 public class Sha256AuthenticationTest extends Common {
 
@@ -114,7 +113,7 @@ public class Sha256AuthenticationTest extends Common {
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     File tempFile = File.createTempFile("log", ".tmp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             createCon(
@@ -187,7 +186,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isMariaDBServer() && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("user=cachingSha256User&password=!Passw0rd3Works"),
         "RSA public key is not available client side");

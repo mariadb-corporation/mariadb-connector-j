@@ -6,6 +6,8 @@ package org.mariadb.jdbc.message.server;
 
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.ServerVersion;
+import org.mariadb.jdbc.message.ServerMessage;
+import org.mariadb.jdbc.message.server.util.ServerVersionUtility;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
 public final class InitialHandshakePacket implements ServerMessage {
@@ -36,7 +38,7 @@ public final class InitialHandshakePacket implements ServerMessage {
     this.defaultCollation = defaultCollation;
     this.serverStatus = serverStatus;
     this.authenticationPluginType = authenticationPluginType;
-    this.version = new ServerVersion(serverVersion, mariaDBServer);
+    this.version = new ServerVersionUtility(serverVersion, mariaDBServer);
   }
 
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {

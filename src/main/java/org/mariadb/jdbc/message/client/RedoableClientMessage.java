@@ -6,9 +6,10 @@ package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.message.ClientMessage;
 
 public interface RedoableClientMessage extends ClientMessage {
 
@@ -16,12 +17,12 @@ public interface RedoableClientMessage extends ClientMessage {
 
   default void ensureReplayable(Context context) throws IOException, SQLException {}
 
-  default int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  default int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context);
   }
 
-  default int reEncode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  default int reEncode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context, newPrepareResult);
   }

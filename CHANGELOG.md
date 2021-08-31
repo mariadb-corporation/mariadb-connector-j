@@ -1,6 +1,17 @@
 # Change Log
 
-## [3.0.1-beta](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.1-rc) (29 Jul 2021)
+## [3.0.2-rc](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.2-rc) (31 Aug 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.1-beta...3.0.2-rc)
+
+* CONJ-879 Java 9 module full support
+  *  Aws IAM credential now use sdk v2 authentication that support java 9 modularity 
+* CONJ-896 Ensure pool connections validation when a socket fail
+* CONJ-897 Ensure having connection's thread id in Exception / debug logs
+
+minor: 
+* Ensure travis testing for PR/fork 
+
+## [3.0.1-beta](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.1-beta) (29 Jul 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.0-alpha...3.0.1-beta)
 
 * CONJ-879 Provide JPMS module descriptor

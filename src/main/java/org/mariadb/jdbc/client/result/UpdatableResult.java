@@ -12,12 +12,11 @@ import java.sql.*;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.codec.*;
-import org.mariadb.jdbc.codec.list.*;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.ParameterList;
 
 public class UpdatableResult extends CompleteResult {
@@ -42,8 +41,8 @@ public class UpdatableResult extends CompleteResult {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      org.mariadb.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
@@ -71,7 +70,7 @@ public class UpdatableResult extends CompleteResult {
     // check that resultSet concern one table and database exactly
     database = null;
     table = null;
-    for (ColumnDefinitionPacket columnDefinition : metadataList) {
+    for (Column columnDefinition : metadataList) {
       if (columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
@@ -95,7 +94,7 @@ public class UpdatableResult extends CompleteResult {
     }
 
     // check that listed column contain primary field
-    for (ColumnDefinitionPacket col : metadataList) {
+    for (Column col : metadataList) {
       if (col.isPrimaryKey()) {
         isAutoincrementPk = col.isAutoIncrement();
         return;
@@ -403,8 +402,9 @@ public class UpdatableResult extends CompleteResult {
 
         int paramPos = 0;
         for (int pos = 0; pos < metadataList.length; pos++) {
-          ColumnDefinitionPacket colInfo = metadataList[pos];
-          Parameter<?> param = parameters.size() > pos ? parameters.get(pos) : null;
+          Column colInfo = metadataList[pos];
+          org.mariadb.jdbc.client.util.Parameter param =
+              parameters.size() > pos ? parameters.get(pos) : null;
           if (param != null) {
             ((BasePreparedStatement) insertPreparedStatement).setParameter(paramPos++, param);
           } else if (!colInfo.isPrimaryKey() && !colInfo.hasDefault()) {
@@ -455,20 +455,21 @@ public class UpdatableResult extends CompleteResult {
     boolean firstParam = true;
 
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
 
       if (pos != 0) {
         returningClause.append(", ");
       }
-      returningClause.append("`").append(colInfo.getColumn()).append("`");
+      returningClause.append("`").append(colInfo.getColumnName()).append("`");
 
-      Parameter<?> param = parameters.size() > pos ? parameters.get(pos) : null;
+      org.mariadb.jdbc.client.util.Parameter param =
+          parameters.size() > pos ? parameters.get(pos) : null;
       if (param != null) {
         if (!firstParam) {
           insertSql.append(",");
           valueClause.append(", ");
         }
-        insertSql.append("`").append(colInfo.getColumn()).append("`");
+        insertSql.append("`").append(colInfo.getColumnName()).append("`");
         valueClause.append("?");
         firstParam = false;
       } else {
@@ -483,13 +484,13 @@ public class UpdatableResult extends CompleteResult {
                   String.format(
                       "Cannot call insertRow() not setting value for primary key %s "
                           + "with default value before server 10.5",
-                      colInfo.getColumn()));
+                      colInfo.getColumnName()));
             }
           } else {
             throw exceptionFactory.create(
                 String.format(
                     "Cannot call insertRow() not setting value for primary key %s",
-                    colInfo.getColumn()));
+                    colInfo.getColumnName()));
           }
         } else if (!colInfo.hasDefault()) {
           if (!firstParam) {
@@ -497,7 +498,7 @@ public class UpdatableResult extends CompleteResult {
             valueClause.append(", ");
           }
           firstParam = false;
-          insertSql.append("`").append(colInfo.getColumn()).append("`");
+          insertSql.append("`").append(colInfo.getColumnName()).append("`");
           valueClause.append("?");
         }
       }
@@ -518,18 +519,18 @@ public class UpdatableResult extends CompleteResult {
 
     boolean firstPrimary = true;
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
       if (pos != 0) {
         selectSql.append(",");
       }
-      selectSql.append("`").append(colInfo.getColumn()).append("`");
+      selectSql.append("`").append(colInfo.getColumnName()).append("`");
 
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
         firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumn()).append("` = ? ");
+        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
     selectSql
@@ -558,12 +559,12 @@ public class UpdatableResult extends CompleteResult {
     int fieldsPrimaryIndex = 0;
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
       for (int pos = 0; pos < metadataList.length; pos++) {
-        ColumnDefinitionPacket colInfo = metadataList[pos];
+        Column colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
           if ((state != STATE_STANDARD) && parameters.size() > pos && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
-            Parameter<?> value = parameters.get(pos);
+            org.mariadb.jdbc.client.util.Parameter value = parameters.get(pos);
             ((BasePreparedStatement) refreshPreparedStatement)
                 .setParameter(fieldsPrimaryIndex++, value);
           } else {
@@ -585,14 +586,14 @@ public class UpdatableResult extends CompleteResult {
     boolean firstUpdate = true;
     boolean firstPrimary = true;
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
 
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
         firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumn()).append("` = ? ");
+        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
 
       if (parameters.size() > pos && parameters.get(pos) != null) {
@@ -600,7 +601,7 @@ public class UpdatableResult extends CompleteResult {
           updateSql.append(",");
         }
         firstUpdate = false;
-        updateSql.append("`").append(colInfo.getColumn()).append("` = ? ");
+        updateSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
     if (firstUpdate) return null;
@@ -641,7 +642,7 @@ public class UpdatableResult extends CompleteResult {
           int fieldsIndex = 0;
           for (int pos = 0; pos < metadataList.length; pos++) {
             if (parameters.size() > pos) {
-              Parameter<?> param = parameters.get(pos);
+              org.mariadb.jdbc.client.util.Parameter param = parameters.get(pos);
               if (param != null) {
                 ((BasePreparedStatement) preparedStatement).setParameter(fieldsIndex++, param);
               }
@@ -649,7 +650,7 @@ public class UpdatableResult extends CompleteResult {
           }
 
           for (int pos = 0; pos < metadataList.length; pos++) {
-            ColumnDefinitionPacket colInfo = metadataList[pos];
+            Column colInfo = metadataList[pos];
             if (colInfo.isPrimaryKey()) {
               preparedStatement.setObject(++fieldsIndex, getObject(pos + 1));
             }
@@ -684,13 +685,13 @@ public class UpdatableResult extends CompleteResult {
     StringBuilder deleteSql =
         new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
     boolean firstPrimary = true;
-    for (ColumnDefinitionPacket colInfo : metadataList) {
+    for (Column colInfo : metadataList) {
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           deleteSql.append("AND ");
         }
         firstPrimary = false;
-        deleteSql.append("`").append(colInfo.getColumn()).append("` = ? ");
+        deleteSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
 
@@ -705,7 +706,7 @@ public class UpdatableResult extends CompleteResult {
 
       int fieldsPrimaryIndex = 1;
       for (int pos = 0; pos < metadataList.length; pos++) {
-        ColumnDefinitionPacket colInfo = metadataList[pos];
+        Column colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
           deletePreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1));
         }

@@ -8,8 +8,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.util.VersionFactory;
@@ -54,21 +55,20 @@ public final class HandshakeResponse implements ClientMessage {
     this.exchangeCharset = exchangeCharset;
   }
 
-  private static void writeStringLengthAscii(PacketWriter encoder, String value)
-      throws IOException {
+  private static void writeStringLengthAscii(Writer encoder, String value) throws IOException {
     byte[] valBytes = value.getBytes(StandardCharsets.US_ASCII);
     encoder.writeLength(valBytes.length);
     encoder.writeBytes(valBytes);
   }
 
-  private static void writeStringLength(PacketWriter encoder, String value) throws IOException {
+  private static void writeStringLength(Writer encoder, String value) throws IOException {
     byte[] valBytes = value.getBytes(StandardCharsets.UTF_8);
     encoder.writeLength(valBytes.length);
     encoder.writeBytes(valBytes);
   }
 
   private static void writeConnectAttributes(
-      PacketWriter writer, String connectionAttributes, String host) throws IOException {
+      Writer writer, String connectionAttributes, String host) throws IOException {
 
     writer.mark();
     writer.writeInt(0);
@@ -123,7 +123,7 @@ public final class HandshakeResponse implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {

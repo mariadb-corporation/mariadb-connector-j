@@ -6,7 +6,7 @@ package org.mariadb.jdbc.util;
 
 import java.sql.SQLException;
 import java.util.Locale;
-import org.mariadb.jdbc.client.context.Context;
+import org.mariadb.jdbc.client.Context;
 
 public final class NativeSql {
 

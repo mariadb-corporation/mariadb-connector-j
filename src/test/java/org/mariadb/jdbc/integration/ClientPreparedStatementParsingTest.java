@@ -7,29 +7,20 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-import java.util.concurrent.locks.ReentrantLock;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.ClientPreparedStatement;
-import org.mariadb.jdbc.Common;
+import org.mariadb.jdbc.util.ClientParser;
+import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class ClientPreparedStatementParsingTest extends Common {
 
   private void checkParsing(String sql, int paramNumber, String[] partsMulti) throws Exception {
-    ClientPreparedStatement statement =
-        new ClientPreparedStatement(
-            sql,
-            sharedConn,
-            new ReentrantLock(),
-            false,
-            false,
-            ResultSet.FETCH_FORWARD,
-            ResultSet.CONCUR_READ_ONLY,
-            Statement.NO_GENERATED_KEYS,
-            0);
-    assertEquals(paramNumber, statement.test_getParser().getParamCount());
+    boolean noBackslashEscapes =
+        (sharedConn.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
+    ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
+    assertEquals(paramNumber, parser.getParamCount());
 
     for (int i = 0; i < partsMulti.length; i++) {
-      assertEquals(partsMulti[i], new String(statement.test_getParser().getQueryParts().get(i)));
+      assertEquals(partsMulti[i], new String(parser.getQueryParts().get(i)));
     }
   }
 

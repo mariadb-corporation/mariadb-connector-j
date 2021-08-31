@@ -8,22 +8,23 @@ import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.*;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.plugin.Codec;
 
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private final Configuration conf;
-  protected final ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
-  protected final ColumnDefinitionPacket[] columns;
+  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, null, 0);
+  protected final Column[] columns;
 
   protected int length;
   protected int index;
   protected final int columnCount;
   private Map<String, Integer> mapper = null;
 
-  public RowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
+  public RowDecoder(int columnCount, Column[] columns, Configuration conf) {
     this.columnCount = columnCount;
     this.columns = columns;
     this.conf = conf;
@@ -64,7 +65,7 @@ public abstract class RowDecoder {
       return null;
     }
 
-    ColumnDefinitionPacket column = columns[index - 1];
+    Column column = columns[index - 1];
     // type generic, return "natural" java type
     if (Object.class.equals(type) || type == null) {
       Codec<T> defaultCodec = ((Codec<T>) column.getDefaultCodec(conf));
@@ -177,7 +178,7 @@ public abstract class RowDecoder {
     if (mapper == null) {
       mapper = new HashMap<>();
       for (int i = 0; i < columnCount; i++) {
-        ColumnDefinitionPacket ci = columns[i];
+        Column ci = columns[i];
         String columnAlias = ci.getColumnAlias();
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);

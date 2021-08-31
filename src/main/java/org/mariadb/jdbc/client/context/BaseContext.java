@@ -5,11 +5,12 @@
 package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.ServerVersion;
+import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public class BaseContext implements Context {
 
@@ -119,6 +120,10 @@ public class BaseContext implements Context {
 
   public PrepareCache getPrepareCache() {
     return prepareCache;
+  }
+
+  public void resetPrepareCache() {
+    prepareCache.reset();
   }
 
   public int getStateFlag() {

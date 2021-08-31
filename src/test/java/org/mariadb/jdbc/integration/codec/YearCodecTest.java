@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class YearCodecTest extends CommonCodecTest {
   @AfterAll
@@ -257,11 +258,12 @@ public class YearCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       assertEquals(Byte.valueOf("10"), rs.getByte(1));
     } else {
-      assertThrowsContains(SQLDataException.class, () -> rs.getByte(1), "byte overflow");
+      Common.assertThrowsContains(SQLDataException.class, () -> rs.getByte(1), "byte overflow");
     }
     assertFalse(rs.wasNull());
-    assertThrowsContains(SQLDataException.class, () -> rs.getByte(2), "byte overflow");
-    assertThrowsContains(SQLDataException.class, () -> rs.getByte("t2alias"), "byte overflow");
+    Common.assertThrowsContains(SQLDataException.class, () -> rs.getByte(2), "byte overflow");
+    Common.assertThrowsContains(
+        SQLDataException.class, () -> rs.getByte("t2alias"), "byte overflow");
     assertFalse(rs.wasNull());
   }
 
@@ -453,7 +455,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getTime(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getTime(1), "Data type YEAR cannot be decoded as Time");
   }
 
@@ -469,7 +471,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getDuration(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
         "Type class java.time.Duration not supported type for YEAR type");
@@ -487,7 +489,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getLocalTime(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, LocalTime.class),
         "Type class java.time.LocalTime not supported type for YEAR type");
@@ -570,7 +572,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getAsciiStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getAsciiStream(1),
         "Data type YEAR cannot be decoded as Stream");
@@ -589,7 +591,7 @@ public class YearCodecTest extends CommonCodecTest {
 
   @SuppressWarnings("deprecation")
   public void getUnicodeStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getUnicodeStream(1),
         "Data type YEAR cannot be decoded as Stream");
@@ -607,7 +609,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getBinaryStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getBinaryStream(1),
         "Data type YEAR cannot be decoded as Stream");
@@ -625,7 +627,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getBytes(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getBytes(1), "Data type YEAR cannot be decoded as byte[]");
   }
 
@@ -641,7 +643,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getCharacterStream(1),
         "Data type YEAR cannot be decoded as Reader");
@@ -659,7 +661,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getNCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type YEAR cannot be decoded as Reader");
@@ -677,7 +679,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getBlob(1), "Data type YEAR cannot be decoded as Blob");
   }
 
@@ -693,7 +695,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getClob(1), "Data type YEAR cannot be decoded as Clob");
   }
 
@@ -709,7 +711,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getNClob(1), "Data type YEAR cannot be decoded as Clob");
   }
 

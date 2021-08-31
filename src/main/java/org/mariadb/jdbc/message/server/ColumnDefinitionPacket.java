@@ -8,14 +8,17 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 import java.util.Objects;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.codec.DataType;
-import org.mariadb.jdbc.codec.list.*;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.message.ServerMessage;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
-public class ColumnDefinitionPacket implements ServerMessage {
+public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   private final ReadableByteBuf buf;
   private final int charset;
@@ -122,7 +125,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
     }
 
     return new ColumnDefinitionPacket(
-        new ReadableByteBuf(null, arr, arr.length), len, type, stringPos);
+        new StandardReadableByteBuf(null, arr, arr.length), len, type, stringPos);
   }
 
   public String getSchema() {
@@ -145,7 +148,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return buf.readString(buf.readLengthNotNull());
   }
 
-  public String getColumn() {
+  public String getColumnName() {
     buf.pos(stringPos[4]);
     return buf.readString(buf.readLengthNotNull());
   }

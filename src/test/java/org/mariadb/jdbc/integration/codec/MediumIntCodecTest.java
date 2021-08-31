@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.integration.Common;
 
 public class MediumIntCodecTest extends CommonCodecTest {
   @AfterAll
@@ -569,11 +570,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getDate(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(1),
         "Data type MEDIUMINT cannot be decoded as Date");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Date");
@@ -591,11 +592,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getTime(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(1),
         "Data type MEDIUMINT cannot be decoded as Time");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Time");
@@ -613,11 +614,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getTimestamp(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
         "Data type MEDIUMINT cannot be decoded as Timestamp");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Timestamp");
@@ -635,11 +636,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getAsciiStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
         "Data type MEDIUMINT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Stream");
@@ -658,11 +659,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
 
   @SuppressWarnings("deprecation")
   private void getUnicodeStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
         "Data type MEDIUMINT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Stream");
@@ -680,11 +681,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getBinaryStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
         "Data type MEDIUMINT cannot be decoded as Stream");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Stream");
@@ -702,11 +703,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getBytes(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes(1),
         "Data type MEDIUMINT cannot be decoded as byte[]");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes("t1alias"),
         "Data type MEDIUMINT cannot be decoded as byte[]");
@@ -724,11 +725,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type MEDIUMINT cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Reader");
@@ -746,11 +747,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getNCharacterStream(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
         "Data type MEDIUMINT cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream("t2alias"),
         "Data type MEDIUMINT cannot be decoded as Reader");
@@ -768,9 +769,9 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getRef(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getRef(1), "Method ResultSet.getRef not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getRef("t2alias"), "Method ResultSet.getRef not supported");
   }
 
@@ -786,11 +787,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getBlob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
         "Data type MEDIUMINT cannot be decoded as Reader");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Reader");
@@ -808,11 +809,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getClob(1),
         "Data type MEDIUMINT cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getClob("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Clob");
@@ -830,11 +831,11 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getNClob(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob(1),
         "Data type MEDIUMINT cannot be decoded as Clob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob("t1alias"),
         "Data type MEDIUMINT cannot be decoded as Clob");
@@ -852,9 +853,9 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getArray(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getArray(1), "Method ResultSet.getArray not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getArray("t1alias"),
         "Method ResultSet.getArray not supported");
@@ -872,9 +873,9 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getURL(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL(1), "Could not parse '0' as URL");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLSyntaxErrorException.class, () -> rs.getURL("t1alias"), "Could not parse '0' as URL");
   }
 
@@ -890,9 +891,9 @@ public class MediumIntCodecTest extends CommonCodecTest {
   }
 
   private void getSQLXML(ResultSet rs) {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> rs.getSQLXML(1), "Method ResultSet.getSQLXML not supported");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rs.getSQLXML("t1alias"),
         "Method ResultSet.getSQLXML not supported");

@@ -13,7 +13,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbClob;
 
 public class ClobTest extends Common {
@@ -136,7 +135,7 @@ public class ClobTest extends Common {
     clob2.setString(7, "zzz");
     assertEquals("czg🙏fgzzz", clob2.getSubString(1, 12));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob2.setString(2, "abcd", 2, -2), "len must be > 0");
     clob2.setString(2, "abcd", 2, 2);
     assertEquals("ccd🙏f", clob2.getSubString(1, 6));
@@ -161,18 +160,19 @@ public class ClobTest extends Common {
     clob2.truncate(3);
     assertEquals("cld", clob2.getSubString(1, 20));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-1, "7"), "position must be >= 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(1, null), "cannot add null string");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-1, null, 1, 2), "cannot add null string");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(0, "dd", -1, 2), "offset must be >= 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.getSubString(-1, 7), "position must be >= 1");
-    assertThrowsContains(SQLException.class, () -> clob.getSubString(1, -7), "length must be > 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
+        SQLException.class, () -> clob.getSubString(1, -7), "length must be > 0");
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-2, "rrr"), "position must be >= 0");
   }
 
@@ -211,36 +211,36 @@ public class ClobTest extends Common {
         new byte[] {0x10, (byte) 0x20, (byte) 0x0a, (byte) 0xff, (byte) 0x6F, (byte) 0x6F};
     final byte[] utf8Wrong4bytes2 = new byte[] {-16, (byte) -97, (byte) -103};
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong2bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(new byte[] {(byte) 225}).length(),
         "invalid UTF8");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong3bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong4bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(new byte[] {(byte) 225}).truncate(2),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong2bytes).truncate(2),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong3bytes).truncate(3),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new MariaDbClob(utf8Wrong4bytes2).truncate(4),
         "invalid UTF8");

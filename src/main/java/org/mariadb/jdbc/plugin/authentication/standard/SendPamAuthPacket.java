@@ -8,10 +8,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {
@@ -47,7 +47,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws SQLException, IOException {
 
     while (true) {

@@ -7,7 +7,7 @@ package org.mariadb.jdbc.unit.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.client.PrepareCache;
+import org.mariadb.jdbc.client.impl.PrepareCache;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 public class PrepareCacheTest {

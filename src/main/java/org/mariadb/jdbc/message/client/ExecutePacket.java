@@ -7,25 +7,23 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketWriter;
-import org.mariadb.jdbc.codec.Parameter;
-import org.mariadb.jdbc.codec.list.ByteArrayCodec;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.Parameter;
+import org.mariadb.jdbc.client.util.Parameters;
+import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.ParameterList;
+import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
 /** See https://mariadb.com/kb/en/com_stmt_execute/ for documentation */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private ParameterList parameters;
+  private Parameters parameters;
   private final String command;
   private final ServerPreparedStatement prep;
-  private PrepareResultPacket prepareResult;
+  private Prepare prepareResult;
 
   public ExecutePacket(
-      PrepareResultPacket prepareResult,
-      ParameterList parameters,
-      String command,
-      ServerPreparedStatement prep) {
+      Prepare prepareResult, Parameters parameters, String command, ServerPreparedStatement prep) {
     this.parameters = parameters;
     this.prepareResult = prepareResult;
     this.command = command;
@@ -40,14 +38,15 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   public void ensureReplayable(Context context) throws IOException, SQLException {
     int parameterCount = parameters.size();
     for (int i = 0; i < parameterCount; i++) {
-      Parameter<?> p = parameters.get(i);
+      Parameter p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
+        this.parameters.set(
+            i, new org.mariadb.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
       }
     }
   }
 
-  public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  public int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
 
     int statementId =
@@ -59,7 +58,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
     // send long data value in separate packet
     for (int i = 0; i < parameterCount; i++) {
-      Parameter<?> p = parameters.get(i);
+      Parameter p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
         new LongDataPacket(statementId, p, i).encode(writer, context);
       }
@@ -84,7 +83,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
       // Store types of parameters in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {
-        Parameter<?> p = parameters.get(i);
+        Parameter p = parameters.get(i);
         writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
         if (p.isNull()) {
@@ -97,7 +96,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
       // send not null parameter, not long data
       for (int i = 0; i < parameterCount; i++) {
-        Parameter<?> p = parameters.get(i);
+        Parameter p = parameters.get(i);
         if (!p.isNull() && !p.canEncodeLongData()) {
           p.encodeBinary(writer);
         }

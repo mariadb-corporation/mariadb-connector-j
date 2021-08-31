@@ -7,15 +7,15 @@ package org.mariadb.jdbc.codec;
 import java.sql.SQLException;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.codec.list.*;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.plugin.Codec;
+import org.mariadb.jdbc.plugin.codec.*;
 
 public class BinaryRowDecoder extends RowDecoder {
 
   private byte[] nullBitmap;
 
-  public BinaryRowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
+  public BinaryRowDecoder(int columnCount, Column[] columns, Configuration conf) {
     super(columnCount, columns, conf);
   }
 

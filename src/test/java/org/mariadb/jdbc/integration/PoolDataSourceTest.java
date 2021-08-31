@@ -23,7 +23,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.pool.PoolThreadFactory;
 import org.mariadb.jdbc.pool.Pools;
@@ -595,7 +594,7 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void various() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> new MariaDbPoolDataSource("jdbc:notMariadb"),
         "Wrong mariaDB url");
@@ -603,7 +602,7 @@ public class PoolDataSourceTest extends Common {
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
       assertNotNull(pool.unwrap(org.mariadb.jdbc.MariaDbPoolDataSource.class));
       assertNotNull(pool.unwrap(ConnectionPoolDataSource.class));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> pool.unwrap(String.class),
           "Datasource is not a wrapper for java.lang.String");

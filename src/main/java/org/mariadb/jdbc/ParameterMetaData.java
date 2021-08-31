@@ -5,15 +5,15 @@
 package org.mariadb.jdbc;
 
 import java.sql.SQLException;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.export.ExceptionFactory;
 
 public class ParameterMetaData implements java.sql.ParameterMetaData {
 
-  private final ColumnDefinitionPacket[] params;
+  private final Column[] params;
   private final ExceptionFactory exceptionFactory;
 
-  public ParameterMetaData(ExceptionFactory exceptionFactory, ColumnDefinitionPacket[] params) {
+  protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
     this.params = params;
     this.exceptionFactory = exceptionFactory;
   }

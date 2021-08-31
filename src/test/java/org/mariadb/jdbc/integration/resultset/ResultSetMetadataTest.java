@@ -10,8 +10,8 @@ import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.integration.Common;
 
 public class ResultSetMetadataTest extends Common {
 
@@ -75,11 +75,11 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rsmd.isSigned(3));
     assertFalse(rsmd.isSigned(5));
 
-    assertThrowsContains(sqle, () -> rsmd.isAutoIncrement(6), "wrong column index 6");
-    assertThrowsContains(sqle, () -> rsmd.isReadOnly(6), "wrong column index 6");
-    assertThrowsContains(sqle, () -> rsmd.isReadOnly(-6), "wrong column index -6");
-    assertThrowsContains(sqle, () -> rsmd.isWritable(6), "wrong column index 6");
-    assertThrowsContains(sqle, () -> rsmd.isDefinitelyWritable(6), "wrong column index 6");
+    Common.assertThrowsContains(sqle, () -> rsmd.isAutoIncrement(6), "wrong column index 6");
+    Common.assertThrowsContains(sqle, () -> rsmd.isReadOnly(6), "wrong column index 6");
+    Common.assertThrowsContains(sqle, () -> rsmd.isReadOnly(-6), "wrong column index -6");
+    Common.assertThrowsContains(sqle, () -> rsmd.isWritable(6), "wrong column index 6");
+    Common.assertThrowsContains(sqle, () -> rsmd.isDefinitelyWritable(6), "wrong column index 6");
 
     DatabaseMetaData md = sharedConn.getMetaData();
     ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);
@@ -160,18 +160,18 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(rs.findColumn("idalias1"), 1);
     assertEquals(rs.findColumn("alias1.idalias1"), 1);
 
-    assertThrowsContains(sqle, () -> rs.findColumn("name"), "Unknown label 'name'");
+    Common.assertThrowsContains(sqle, () -> rs.findColumn("name"), "Unknown label 'name'");
     assertEquals(rs.findColumn("namealias1"), 2);
     assertEquals(rs.findColumn("alias1.namealias1"), 2);
 
-    assertThrowsContains(sqle, () -> rs.findColumn("id2"), "Unknown label 'id2'");
+    Common.assertThrowsContains(sqle, () -> rs.findColumn("id2"), "Unknown label 'id2'");
     assertEquals(rs.findColumn("idalias2"), 3);
     assertEquals(rs.findColumn("alias2.idalias2"), 3);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         sqle, () -> rs.findColumn("testAlias2.id2"), "Unknown label 'testAlias2.id2'");
 
     assertEquals(rs.findColumn("name2"), 4);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         sqle, () -> rs.findColumn("testAlias2.name2"), "Unknown label 'testAlias2.name2'");
     assertEquals(rs.findColumn("alias2.name2"), 4);
 
@@ -179,10 +179,10 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(rs.findColumn("testAlias.id"), 5);
     assertEquals(rs.findColumn("alias1.id"), 6);
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         sqle, () -> rs.findColumn("alias2.name22"), "Unknown label 'alias2.name22'");
-    assertThrowsContains(sqle, () -> rs.findColumn(""), "Unknown label ''");
-    assertThrowsContains(sqle, () -> rs.findColumn(null), "null is not a valid label value");
+    Common.assertThrowsContains(sqle, () -> rs.findColumn(""), "Unknown label ''");
+    Common.assertThrowsContains(sqle, () -> rs.findColumn(null), "null is not a valid label value");
   }
 
   @Test
@@ -220,7 +220,7 @@ public class ResultSetMetadataTest extends Common {
 
     rsmd.unwrap(org.mariadb.jdbc.client.result.ResultSetMetaData.class);
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> rsmd.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");

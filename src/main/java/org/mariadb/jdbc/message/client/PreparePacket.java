@@ -10,15 +10,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.*;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.Completion;
+import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
-import org.mariadb.jdbc.message.server.Completion;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
 
 public final class PreparePacket implements ClientMessage {
   private final String sql;
@@ -28,7 +29,7 @@ public final class PreparePacket implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x16);
     writer.writeString(this.sql);
@@ -44,8 +45,8 @@ public final class PreparePacket implements ClientMessage {
       int resultSetConcurrency,
       int resultSetType,
       boolean closeOnCompletion,
-      PacketReader reader,
-      PacketWriter writer,
+      Reader reader,
+      Writer writer,
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
@@ -68,14 +69,17 @@ public final class PreparePacket implements ClientMessage {
     if (context.getConf().useServerPrepStmts()
         && context.getConf().cachePrepStmts()
         && sql.length() < 8192) {
-      CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
+      PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
       PrepareResultPacket previousCached =
-          context
-              .getPrepareCache()
-              .put(
-                  sql,
-                  prepare,
-                  stmt instanceof ServerPreparedStatement ? (ServerPreparedStatement) stmt : null);
+          (PrepareResultPacket)
+              context
+                  .getPrepareCache()
+                  .put(
+                      sql,
+                      prepare,
+                      stmt instanceof ServerPreparedStatement
+                          ? (ServerPreparedStatement) stmt
+                          : null);
       if (stmt != null) {
         ((BasePreparedStatement) stmt)
             .setPrepareResult(previousCached != null ? previousCached : prepare);

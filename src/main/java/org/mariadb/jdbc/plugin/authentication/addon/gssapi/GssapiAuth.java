@@ -6,12 +6,11 @@ package org.mariadb.jdbc.plugin.authentication.addon.gssapi;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 
 public interface GssapiAuth {
 
-  void authenticate(
-      PacketWriter writer, PacketReader in, String servicePrincipalName, String mechanisms)
+  void authenticate(Writer writer, Reader in, String servicePrincipalName, String mechanisms)
       throws SQLException, IOException;
 }

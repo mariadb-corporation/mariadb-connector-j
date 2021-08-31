@@ -75,7 +75,11 @@ public final class Loggers {
         loggerFactory = new ConsoleLoggerFactory();
       }
     }
-    loggerFactory.getLogger(name);
+    try {
+      loggerFactory.getLogger(name);
+    } catch (Throwable e) {
+      // eat
+    }
     LOGGER_FACTORY = loggerFactory;
   }
 }

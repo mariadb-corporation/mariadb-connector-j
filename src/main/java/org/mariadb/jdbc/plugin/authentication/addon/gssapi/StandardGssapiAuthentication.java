@@ -13,8 +13,8 @@ import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import org.ietf.jgss.*;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 
 public class StandardGssapiAuthentication implements GssapiAuth {
 
@@ -29,10 +29,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
    * @throws SQLException in any Exception occur
    */
   public void authenticate(
-      final PacketWriter out,
-      final PacketReader in,
-      final String servicePrincipalName,
-      String mechanisms)
+      final Writer out, final Reader in, final String servicePrincipalName, String mechanisms)
       throws SQLException, IOException {
 
     if ("".equals(servicePrincipalName)) {

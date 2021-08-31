@@ -8,11 +8,9 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.context.Context;
-import org.mariadb.jdbc.message.client.ClientMessage;
-import org.mariadb.jdbc.message.server.Completion;
-import org.mariadb.jdbc.message.server.PrepareResultPacket;
-import org.mariadb.jdbc.util.exceptions.ExceptionFactory;
+import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.message.ClientMessage;
 
 public interface Client extends AutoCloseable {
 
@@ -50,7 +48,7 @@ public interface Client extends AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException;
 
-  void closePrepare(PrepareResultPacket prepare) throws SQLException;
+  void closePrepare(Prepare prepare) throws SQLException;
 
   void abort(Executor executor) throws SQLException;
 

@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Common;
 import org.mariadb.jdbc.Connection;
 
 public class EofTest extends Common {

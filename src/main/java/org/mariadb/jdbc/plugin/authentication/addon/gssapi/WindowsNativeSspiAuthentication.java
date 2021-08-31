@@ -8,8 +8,8 @@ import com.sun.jna.platform.win32.Sspi;
 import com.sun.jna.platform.win32.SspiUtil;
 import java.io.IOException;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.socket.PacketReader;
-import org.mariadb.jdbc.client.socket.PacketWriter;
+import org.mariadb.jdbc.client.socket.Reader;
+import org.mariadb.jdbc.client.socket.Writer;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
@@ -25,10 +25,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
    * @throws IOException if socket error
    */
   public void authenticate(
-      final PacketWriter out,
-      final PacketReader in,
-      final String servicePrincipalName,
-      final String mechanisms)
+      final Writer out, final Reader in, final String servicePrincipalName, final String mechanisms)
       throws IOException {
 
     // initialize a security context on the client

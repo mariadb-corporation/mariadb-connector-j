@@ -13,7 +13,6 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import org.junit.jupiter.api.*;
-import org.mariadb.jdbc.Common;
 
 public class UpdateResultSetTest extends Common {
 
@@ -90,7 +89,7 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "1"),
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
@@ -109,7 +108,7 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "val"),
           "ResultSet cannot be updated. primary field `id` is not present in query");
@@ -123,7 +122,7 @@ public class UpdateResultSetTest extends Common {
             "SELECT 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> rs.updateString(1, "1"),
           "The result-set contains fields without without any database/table information");
@@ -143,7 +142,7 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "ResultSet cannot be updated. The result-set contains fields on different tables");
@@ -162,7 +161,7 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "ResultSet cannot be updated. "
@@ -226,7 +225,7 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "The result-set contains more than one database");
@@ -251,14 +250,14 @@ public class UpdateResultSetTest extends Common {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> {
             rs.updateString(1, "1-1-bis");
             rs.updateRow();
           },
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           rs::deleteRow,
           "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
@@ -270,9 +269,11 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rsmd.isDefinitelyWritable(1));
       assertTrue(rsmd.isDefinitelyWritable(2));
 
-      assertThrowsContains(SQLException.class, () -> rsmd.isReadOnly(3), "wrong column index 3");
-      assertThrowsContains(SQLException.class, () -> rsmd.isWritable(3), "wrong column index 3");
-      assertThrowsContains(
+      Common.assertThrowsContains(
+          SQLException.class, () -> rsmd.isReadOnly(3), "wrong column index 3");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rsmd.isWritable(3), "wrong column index 3");
+      Common.assertThrowsContains(
           SQLException.class, () -> rsmd.isDefinitelyWritable(3), "wrong column index 3");
     }
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM UpdateWithoutPrimary");
@@ -310,26 +311,26 @@ public class UpdateResultSetTest extends Common {
       rs.updateInt(1, -1);
       rs.updateString(2, "0-1");
       rs.updateString(3, "0-2");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class, () -> rs.updateObject(10, "val"), "No such column: 10");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateObject(2, new SQLException("dd")),
           "not supported type");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateObject(2, new SQLException("dd"), null, 20),
           "not supported type");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateObject("t2", new SQLException("dd"), null),
           "not supported type");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateObject("t2", new SQLException("dd"), null, 20),
           "not supported type");
 
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLSyntaxErrorException.class, () -> rs.updateObject(-10, "val"), "No such column: -10");
       rs.insertRow();
       assertTrue(rs.rowInserted());
@@ -547,7 +548,7 @@ public class UpdateResultSetTest extends Common {
 
     rs.absolute(1);
     rs.deleteRow();
-    assertThrowsContains(SQLException.class, () -> rs.getInt(1), "wrong row position");
+    Common.assertThrowsContains(SQLException.class, () -> rs.getInt(1), "wrong row position");
   }
 
   @Test
@@ -851,7 +852,7 @@ public class UpdateResultSetTest extends Common {
       rs.moveToInsertRow();
       rs.updateInt("id", 3);
       rs.updateString("t1", "other-t1-value");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::refreshRow, "Cannot call refreshRow() when inserting a new row");
 
       rs.insertRow();
@@ -999,13 +1000,13 @@ public class UpdateResultSetTest extends Common {
             ResultSet.CONCUR_UPDATABLE)) {
 
       ResultSet rs = preparedStatement.executeQuery();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateInt(1, 20),
           "Current position is before the first row");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::updateRow, "Current position is before the first row");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Current position is before the first row");
 
       assertTrue(rs.next());
@@ -1014,11 +1015,11 @@ public class UpdateResultSetTest extends Common {
       rs.updateRow();
       rs.deleteRow();
       assertFalse(rs.next());
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> rs.updateInt(1, 20), "Current position is after the last row");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::updateRow, "Current position is after the last row");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Current position is after the last row");
     }
   }
@@ -1094,17 +1095,24 @@ public class UpdateResultSetTest extends Common {
       pstmt.execute();
       ResultSet rs = pstmt.getResultSet();
       rs.moveToInsertRow();
-      assertThrowsContains(SQLException.class, () -> rs.updateRef(2, null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateRef("t1", null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateArray(2, null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateArray("t1", null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateRowId(2, null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateRowId("t1", null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
-      assertThrowsContains(SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(SQLException.class, () -> rs.updateRef(2, null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateRef("t1", null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateArray(2, null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateArray("t1", null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateRowId(2, null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateRowId("t1", null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateSQLXML(2, null), "not supported");
+      Common.assertThrowsContains(
+          SQLException.class, () -> rs.updateSQLXML("t1", null), "not supported");
+      Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Cannot call deleteRow() when inserting a new row");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, rs::updateRow, "Cannot call updateRow() when inserting a new row");
     }
   }
