@@ -783,7 +783,7 @@ public class StandardClient implements Client, AutoCloseable {
 
     if (!this.closed) {
       this.closed = true;
-
+      logger.debug("aborting connection {}", context.getThreadId());
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection

@@ -262,6 +262,7 @@
                         --add-opens org.mariadb.jdbc/org.mariadb.jdbc.unit.util.constant=ALL-UNNAMED
                         --add-opens org.mariadb.jdbc/org.mariadb.jdbc.unit.util.log=ALL-UNNAMED
                         --add-reads org.mariadb.jdbc=ALL-UNNAMED
+                        --add-opens=java.base/java.util=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>

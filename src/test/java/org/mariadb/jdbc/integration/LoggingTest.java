@@ -128,17 +128,19 @@ public class LoggingTest extends Common {
       }
 
       Assertions.assertTrue(
-          contents.contains(
-              "pool MariaDB-pool new physical connection created (total:1, active:0, pending:0)"),
+          contents.contains("pool MariaDB-pool new physical connection ")
+              && contents.contains("created (total:1, active:0, pending:0)"),
           contents);
       Assertions.assertTrue(
-          contents.contains("pool MariaDB-pool connection removed due to inactivity"), contents);
-
-      logger.setLevel(initialLevel);
-      logger.detachAppender(fa);
+          contents.contains("pool MariaDB-pool connection ")
+              && contents.contains("removed due to inactivity"),
+          contents);
     } catch (IOException e) {
       e.printStackTrace();
       Assertions.fail();
+    } finally {
+      logger.setLevel(initialLevel);
+      logger.detachAppender(fa);
     }
   }
 

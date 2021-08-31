@@ -23,7 +23,7 @@ import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
+@SuppressWarnings({"unchecked"})
 public class Pool implements AutoCloseable, PoolMBean {
 
   private static final Logger logger = Loggers.getLogger(Pool.class);
@@ -107,17 +107,18 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       // ensure to have one worker if was timeout
       connectionAppender.prestartCoreThread();
-      connectionAppenderQueue.offer(
-          () -> {
-            if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
-                && totalConnection.get() < conf.maxPoolSize()) {
-              try {
-                addConnection();
-              } catch (SQLException sqle) {
-                logger.error("error adding connection to pool", sqle);
-              }
-            }
-          });
+      boolean unused =
+          connectionAppenderQueue.offer(
+              () -> {
+                if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
+                    && totalConnection.get() < conf.maxPoolSize()) {
+                  try {
+                    addConnection();
+                  } catch (SQLException sqle) {
+                    logger.error("error adding connection to pool", sqle);
+                  }
+                }
+              });
     }
   }
 
@@ -163,8 +164,9 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed due to inactivity (total:{}, active:{}, pending:{})",
               poolTag,
+              con.getThreadId(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -226,7 +228,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             MariaDbInnerPoolConnection item = ((MariaDbInnerPoolConnection) event.getSource());
             totalConnection.decrementAndGet();
-            idleConnections.remove(item);
+            boolean unused = idleConnections.remove(item);
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
@@ -249,8 +251,9 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       if (logger.isDebugEnabled()) {
         logger.debug(
-            "pool {} new physical connection created (total:{}, active:{}, pending:{})",
+            "pool {} new physical connection {} created (total:{}, active:{}, pending:{})",
             poolTag,
+            connection.getThreadId(),
             totalConnection.get(),
             getActiveConnections(),
             pendingRequestNumber.get());
@@ -302,8 +305,9 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed from pool due to failed validation (total:{}, active:{}, pending:{})",
               poolTag,
+              item.getConnection().getThreadId(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -422,7 +426,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         connectionAppender.shutdown();
 
         try {
-          connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+          boolean unused = connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException i) {
           // eat
         }
@@ -466,7 +470,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         } catch (Exception exception) {
           // eat
         }
-        connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+        boolean unused = connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
       }
     } catch (Exception e) {
       // eat
