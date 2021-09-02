@@ -33,7 +33,7 @@ public enum HaMode {
       // use in order not blacklisted server
       List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
       loopAddress.removeAll(denyList.keySet());
-      Collections.shuffle(loopAddress);
+      Collections.shuffle(loopAddress, new Random());
 
       return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
     }

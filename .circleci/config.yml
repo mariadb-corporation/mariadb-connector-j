@@ -1,0 +1,129 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+commands:
+  setup_environment:
+    description: "Setup the machine environment"
+    parameters:
+      sbt_version:
+        type: string
+        default: 1.3.5
+    steps:
+      - run:
+          name: Setup Machine
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y sbt python-pip git mysql-client-core-5.5
+            sudo apt-get clean
+            sudo apt-get autoclean
+jobs:
+  test:
+    parameters:
+      singlestore_image:
+        type: string
+      singlestore_password:
+        type: string
+      machine_class:
+        type: string
+    working_directory: ~/singlestore-jdbc-client
+    machine: true
+    resource_class: << parameters.machine_class >>
+    environment:
+      SINGLESTORE_IMAGE: << parameters.singlestore_image >>
+      SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
+    steps:
+      - setup_environment
+      - checkout
+      - run:
+          name: Setup test cluster
+          command: |
+            if [ "$SINGLESTORE_PASSWORD" = "" ]
+            then
+              ./scripts/ensure-test-singlestore-cluster.sh
+            else
+              ./scripts/ensure-test-singlestore-cluster-password.sh
+            fi
+      - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
+      - run: mvn dependency:go-offline # gets the project dependencies
+      - save_cache: # saves the project dependencies
+          paths:
+            - ~/.m2
+          key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
+      - run: mvn package # run the actual tests
+      - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
+          # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: target/surefire-reports
+      - store_artifacts: # store the uberjar as an artifact
+          # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: target/singlestore-jdbc-client-1.0.1.jar
+      # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
+  publish:
+    machine: true
+    environment:
+      JAVA_HOME: /usr/lib/jvm/jdk1.8.0
+      SONATYPE_USERNAME: memsql
+    steps:
+      - setup_environment
+      - checkout
+      - run:
+          name: Import GPG key
+          command: |
+            openssl enc -d -aes-256-cbc -K ${ENCRYPTION_KEY} -iv ${ENCRYPTION_IV} -in ci/secring.asc.enc -out ci/secring.asc
+            gpg --import ci/secring.asc
+      - run:
+          name: Maven Settings
+          command: |
+            mkdir -p ~/.m2
+            cp ci/settings.xml ~/.m2/settings.xml
+      - run:
+          name: Publish
+          command: |
+            mvn clean deploy -DskipTests
+workflows:
+  test:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /^v.*/
+          matrix:
+            parameters:
+              machine_class:
+                - medium
+              singlestore_password:
+                - ""
+              singlestore_image:
+                - memsql/cluster-in-a-box:centos-7.0.15-619d118712-1.9.5-1.5.0
+                - memsql/cluster-in-a-box:centos-6.8.15-029542cbf3-1.9.3-1.4.1
+                - memsql/cluster-in-a-box:6.7.18-db1caffe94-1.6.1-1.1.1
+      - test:
+          filters:
+            tags:
+              only: /^v.*/
+          matrix:
+            parameters:
+              machine_class:
+                - large
+              singlestore_password:
+                - password
+              singlestore_image:
+                - memsql/cluster-in-a-box:centos-7.3.2-a364d4b31f-3.0.0-1.9.3
+                - memsql/cluster-in-a-box:centos-7.1.13-11ddea2a3a-3.0.0-1.9.3
+  publish:
+    jobs:
+      - approve-publish:
+          type: approval
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish:
+          requires:
+            - approve-publish
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

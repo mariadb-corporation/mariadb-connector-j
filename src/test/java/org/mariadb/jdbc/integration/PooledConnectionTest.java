@@ -162,6 +162,57 @@ public class PooledConnectionTest extends Common {
     }
   }
 
+  private int countQueries(String hostPort, String database) throws Exception {
+    Connection con = getConnection(hostPort, database);
+    ResultSet rs = con.createStatement().executeQuery("SHOW STATUS extended LIKE 'Successful_write_queries'");
+    int sum = 0;
+    while (rs.next()) {
+      sum += Integer.parseInt(rs.getString(2));
+    }
+    return sum;
+  }
+
+  private Connection getConnection(String hostPort, String database) throws Exception {
+    String url = String.format("jdbc:mariadb://%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
+            hostPort, database, user, password);
+    return DriverManager.getConnection(url);
+  }
+
+  @Test
+  public void testPooledConnectionLoadBalance() throws Exception {
+
+    String host = "localhost", portMaster = "5506", portChild = "5508", database = "testj";
+    String url = String.format("jdbc:mariadb:loadbalance//%s:%s,%s:%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
+            host, portMaster, host, portChild, database, "root", "");
+    ConnectionPoolDataSource ds = new MariaDbPoolDataSource(url);
+
+    try (Connection conn = getConnection(host + ":" + portMaster, database)) {
+      conn.createStatement().execute("DROP TABLE IF EXISTS loadbalance");
+      conn.createStatement().execute("CREATE TABLE loadbalance (id int)");
+    }
+
+    int host1QueriesBefore = countQueries(host + ":" + portMaster, database);
+    int host2QueriesBefore = countQueries(host + ":" + portChild, database);
+
+    for (int i = 0; i < 100; i++) {
+      try (Connection conn = ds.getPooledConnection().getConnection()) {
+        PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO loadbalance VALUES (?)");
+        preparedStatement.setInt(1, i);
+        preparedStatement.execute();
+      }
+    }
+
+    int host1QueriesAfter = countQueries(host + ":" + portMaster, database);
+    int host2QueriesAfter = countQueries(host + ":" + portChild, database);
+
+    try (Connection conn = getConnection(host + ":" + portMaster, database)) {
+      conn.createStatement().execute("DROP TABLE IF EXISTS loadbalance");
+    }
+
+    assertTrue(host1QueriesAfter >= host1QueriesBefore);
+    assertTrue(host2QueriesAfter >= host2QueriesBefore);
+  }
+
   @Test
   public void testPooledConnectionException() throws Exception {
     Assumptions.assumeTrue(
@@ -177,7 +228,10 @@ public class PooledConnectionTest extends Common {
 
       /* Ask server to abort the connection */
       try {
-        connection.createStatement().execute("KILL CONNECTION_ID()");
+        ResultSet rs = connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
+        assertTrue(rs.next());
+        Integer connectionId = rs.getInt(1);
+        connection.createStatement().execute(String.format("KILL %s", connectionId));
       } catch (Exception e) {
         /* exception is expected here, server sends query aborted */
       }

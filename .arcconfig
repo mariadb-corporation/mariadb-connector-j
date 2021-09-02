@@ -1,0 +1,4 @@
+{
+  "project_id" : "singlestore-jdbc-client",
+  "conduit_uri" : "https:\/\/grizzly.internal.memcompute.com\/api\/"
+}
