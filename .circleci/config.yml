@@ -12,7 +12,7 @@ commands:
           name: Setup Machine
           command: |
             sudo apt-get update
-            sudo apt-get install -y sbt python-pip git mysql-client-core-5.5
+            sudo apt-get install -y sbt python3-pip git mariadb-client-core-10.3
             sudo apt-get clean
             sudo apt-get autoclean
 jobs:
