@@ -25,7 +25,8 @@ jobs:
       machine_class:
         type: string
     working_directory: ~/singlestore-jdbc-client
-    machine: true
+    machine:
+      image: ubuntu-2004:202008-01
     resource_class: << parameters.machine_class >>
     environment:
       SINGLESTORE_IMAGE: << parameters.singlestore_image >>
@@ -50,7 +51,7 @@ jobs:
           paths:
             - ~/.m2
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
-      - run: mvn package # run the actual tests
+      - run: mvn package -P bench -Dmaven.test.skip -Dmaven.javadoc.skip=true # run the actual tests
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
@@ -59,9 +60,10 @@ jobs:
           path: target/singlestore-jdbc-client-1.0.1.jar
       # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
   publish:
-    machine: true
+    machine:
+      image: ubuntu-2004:202008-01
     environment:
-      JAVA_HOME: /usr/lib/jvm/jdk1.8.0
+#      JAVA_HOME: /usr/lib/jvm/jdk1.8.0
       SONATYPE_USERNAME: memsql
     steps:
       - setup_environment
