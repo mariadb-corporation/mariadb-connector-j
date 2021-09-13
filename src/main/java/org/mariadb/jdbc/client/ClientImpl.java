@@ -289,11 +289,11 @@ public class ClientImpl implements Client, AutoCloseable {
       commands.add("show status like 'wsrep_local_state'");
     }
 
-    if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      commands.add(
-          "SET SESSION TRANSACTION "
-              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE"));
-    }
+    //    if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+    //      commands.add(
+    //          "SET SESSION TRANSACTION "
+    //              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE"));
+    //    }
 
     try {
       List<Completion> res;
