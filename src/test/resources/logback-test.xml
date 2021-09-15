@@ -9,7 +9,7 @@
     </layout>
   </appender>
 
-<!--  <logger name="org.mariadb.jdbc" level="trace" additivity="false">-->
+<!--  <logger name="com.singlestore.jdbc" level="trace" additivity="false">-->
 <!--    <appender-ref ref="CONSOLE"/>-->
 <!--  </logger>-->
 

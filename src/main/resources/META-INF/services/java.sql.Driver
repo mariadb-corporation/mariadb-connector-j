@@ -1,1 +1,1 @@
-org.mariadb.jdbc.Driver
+com.singlestore.jdbc.Driver

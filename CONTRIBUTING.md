@@ -41,7 +41,7 @@ You can change those parameter by adding -DdbUrl parameter. like :
 You can launch a specific test by adding -Dtest
 
 ```script
-    mvn test -Dtest=org.mariadb.jdbc.JdbcParserTest
+    mvn test -Dtest=com.singlestore.jdbc.JdbcParserTest
 ```
     
 When all test are passing, you can package project.

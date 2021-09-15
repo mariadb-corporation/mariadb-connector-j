@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
+
+package com.singlestore.jdbc.pool;
+
+import com.singlestore.jdbc.Connection;
+import com.singlestore.jdbc.MariaDbPoolConnection;
+import java.util.concurrent.atomic.AtomicLong;
+import javax.sql.*;
+
+public class InternalPoolConnection extends MariaDbPoolConnection {
+  private final AtomicLong lastUsed;
+
+  /**
+   * Constructor.
+   *
+   * @param connection connection to retrieve connection options
+   */
+  public InternalPoolConnection(Connection connection) {
+    super(connection);
+    lastUsed = new AtomicLong(System.nanoTime());
+  }
+
+  public void close() {
+    fireConnectionClosed(new ConnectionEvent(this));
+  }
+
+  /**
+   * Indicate last time this pool connection has been used.
+   *
+   * @return current last used time (nano).
+   */
+  public AtomicLong getLastUsed() {
+    return lastUsed;
+  }
+
+  /** Set last poolConnection use to now. */
+  public void lastUsedToNow() {
+    lastUsed.set(System.nanoTime());
+  }
+}

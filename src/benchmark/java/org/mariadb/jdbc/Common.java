@@ -2,7 +2,7 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
 
-package org.mariadb.jdbc;
+package com.singlestore.jdbc;
 
 import org.openjdk.jmh.annotations.*;
 
@@ -45,7 +45,7 @@ public class Common {
           className = "com.mysql.cj.jdbc.Driver";
           break;
         case "mariadb":
-          className = "org.mariadb.jdbc.Driver";
+          className = "com.singlestore.jdbc.Driver";
           break;
         default:
           throw new RuntimeException("wrong param");

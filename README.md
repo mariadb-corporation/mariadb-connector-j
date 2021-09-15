@@ -13,7 +13,7 @@ SingleStore java connector is a JDBC 4.2 compatible driver, used to connect appl
 ## Status
 [![Linux Build](https://circleci.com/gh/memsql/S2-JDBC-Connector/tree/master.svg?branch=master)](https://circleci.com/gh/memsql/S2-JDBC-Connector)
 
-[comment]: <> ([![Maven Central]&#40;https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg&#41;]&#40;https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client&#41;)
+[comment]: <> ([![Maven Central]&#40;https://maven-badges.herokuapp.com/maven-central/com.singlestore.jdbc/mariadb-java-client/badge.svg&#41;]&#40;https://maven-badges.herokuapp.com/maven-central/com.singlestore.jdbc/mariadb-java-client&#41;)
 
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 
