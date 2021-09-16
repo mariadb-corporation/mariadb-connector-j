@@ -901,7 +901,7 @@ public class ConnectionTest extends Common {
         // connection without host name
         try (java.sql.Connection connection =
             DriverManager.getConnection(
-                "jdbc:mariadb:///"
+                "jdbc:singlestore:///"
                     + sharedConn.getCatalog()
                     + mDefUrl.substring(mDefUrl.indexOf("?user="))
                     + "&pipe="
@@ -934,7 +934,7 @@ public class ConnectionTest extends Common {
 
     try (java.sql.Connection connection =
         DriverManager.getConnection(
-            "jdbc:mariadb:///"
+            "jdbc:singlestore:///"
                 + sharedConn.getCatalog()
                 + "?user=testSocket&password=MySup5%rPassw@ord&localSocket="
                 + path)) {
@@ -946,7 +946,7 @@ public class ConnectionTest extends Common {
         SQLException.class,
         () ->
             DriverManager.getConnection(
-                "jdbc:mariadb:///"
+                "jdbc:singlestore:///"
                     + sharedConn.getCatalog()
                     + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=/wrongPath"),
         "Socket fail to connect to host");
@@ -956,7 +956,7 @@ public class ConnectionTest extends Common {
       if (serverCertPath != null) {
         try (Connection con =
             DriverManager.getConnection(
-                "jdbc:mariadb:///"
+                "jdbc:singlestore:///"
                     + sharedConn.getCatalog()
                     + "?sslMode=verify-full&user=testSocket&password=MySup5%rPassw@ord"
                     + "&serverSslCert="

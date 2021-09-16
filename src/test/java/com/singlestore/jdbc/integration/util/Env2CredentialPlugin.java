@@ -12,7 +12,7 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
  *
  * <p>default implementation use environment variable MARIADB_USER and MARIADB_PWD
  *
- * <p>example : `jdbc:mariadb://host/db?credentialType=ENV`
+ * <p>example : `jdbc:singlestore://host/db?credentialType=ENV`
  *
  * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
  */

@@ -721,7 +721,7 @@ public class ClobCodecTest extends CommonCodecTest {
     sendParam(sharedConn);
     sendParam(sharedConnBinary);
     String urlWithHaMode =
-        mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:")
+        mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:sequential:")
             + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
             + "useServerPrepStmts=true";
     try (Connection con = DriverManager.getConnection(urlWithHaMode)) {

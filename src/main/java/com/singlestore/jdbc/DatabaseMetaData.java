@@ -742,12 +742,22 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " TYPE_NAME, "
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+            /* SingleStore DB information_schema.columns does not have DATETIME_PRECISION column.
+              MariaDb jdbc used to check if such column exists and use it to calculate metadata,
+              otherwise use defaults. For some reason this was changed to always getting DATETIME_PRECISION, which does
+              not work with SingleStore.
+              For now we use the default values used previously.
+              Relevant places are marked if we want to review how COLUMN_SIZE is calculated later
+            */
+            // TODO: DATETIME_PRECISION
+            + "10"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + "  WHEN 'timestamp' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
@@ -2011,12 +2021,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "DATA_TYPE TYPE_NAME,"
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "10"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + "  WHEN 'timestamp' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
@@ -2024,23 +2037,22 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " END `PRECISION`,"
             + " CASE DATA_TYPE"
             + "  WHEN 'time' THEN "
-            + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "10"
             + "  WHEN 'date' THEN 10"
             + "  WHEN 'datetime' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + "  WHEN 'timestamp' THEN "
-            + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+            // TODO: DATETIME_PRECISION
+            + "19"
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
             + "), NUMERIC_PRECISION) "
             + " END `LENGTH`,"
-            + " CASE DATA_TYPE"
-            + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-            + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-            + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-            + "  ELSE NUMERIC_SCALE "
-            + " END `SCALE`,"
+            // TODO: DATETIME_PRECISION
+            + " NUMERIC_SCALE `SCALE`,"
             + "10 RADIX,"
             + procedureNullableUnknown
             + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"

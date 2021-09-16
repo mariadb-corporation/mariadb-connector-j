@@ -18,7 +18,7 @@ public class AuthenticationPluginLoaderTest extends Common {
 
   @Test
   public void AuthenticationPluginLoaderTest() throws SQLException {
-    Configuration conf = Configuration.parse("jdbc:mariadb://localhost/");
+    Configuration conf = Configuration.parse("jdbc:singlestore://localhost/");
     AuthenticationPlugin authenticationPlugin =
         AuthenticationPluginLoader.get("mysql_native_password", conf);
     assertTrue(authenticationPlugin instanceof NativePasswordPlugin);

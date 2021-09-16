@@ -19,7 +19,7 @@ correction:
 * CONJ-858 Properties parameter that differ from string not taken in account
 
 ### Easy logging
-If using log4j, just enabled package "com.singlestore.jdbc" log.
+If using log4j, just enabled package "org.mariadb.jdbc" log.
 
 level ERROR will log connection error
 level WARNING will log query errors
@@ -830,8 +830,8 @@ See [load-data-infile documentation](./documentation/use-mariadb-connector-j-dri
 
 Interceptors can now filter LOAD DATA LOCAL INFILE query's file location to validate path / file name.
 Those interceptors:
-* Must implement interface {{{com.singlestore.jdbc.LocalInfileInterceptor}}}.
-* Use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/com.singlestore.jdbc.LocalInfileInterceptor.
+* Must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+* Use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
 
 Example:
 {{{
@@ -846,7 +846,7 @@ return filePath.equals("/var/tmp/exchanges");
 }
 }
 }}}
-file META-INF/services/com.singlestore.jdbc.LocalInfileInterceptor must exist with content {{{org.project.LocalInfileInterceptorImpl}}}.
+file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor must exist with content {{{org.project.LocalInfileInterceptorImpl}}}.
 
 You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.
 

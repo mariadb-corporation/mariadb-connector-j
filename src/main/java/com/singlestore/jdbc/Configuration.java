@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  *
  * <p>basic syntax :<br>
  * {@code
- * jdbc:mariadb:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
+ * jdbc:singlestore:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }
  *
  * <p>hostDescription:<br>
@@ -38,12 +38,12 @@ import java.util.regex.Pattern;
  *
  * <p>host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * exemple : {@code jdbc:singlestore://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  *
  * <p>Some examples :<br>
- * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:singlestore://localhost:3306/database?user=greg&password=pass}<br>
  * {@code
- * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
+ * jdbc:singlestore://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
  * <br>
  */
 public class Configuration {
@@ -463,7 +463,7 @@ public class Configuration {
    * @return true if url string correspond.
    */
   public static boolean acceptsUrl(String url) {
-    return url != null && url.startsWith("jdbc:mariadb:");
+    return url != null && url.startsWith("jdbc:singlestore:");
   }
 
   public static Configuration parse(final String url) throws SQLException {
@@ -633,7 +633,7 @@ public class Configuration {
   }
 
   private static HaMode parseHaMode(String url, int separator) {
-    // parser is sure to have at least 2 colon, since jdbc:[mysql|mariadb]: is tested.
+    // parser is sure to have at least 2 colon, since jdbc:[mysql|singlestore]: is tested.
     int firstColonPos = url.indexOf(':');
     int secondColonPos = url.indexOf(':', firstColonPos + 1);
     int thirdColonPos = url.indexOf(':', secondColonPos + 1);
@@ -1016,7 +1016,7 @@ public class Configuration {
   protected static String buildUrl(Configuration conf) {
     Configuration defaultConf = new Configuration();
     StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb:");
+    sb.append("jdbc:singlestore:");
     if (conf.haMode != HaMode.NONE) {
       sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }

@@ -44,4 +44,4 @@ build_script:
   - mvn clean
   - mvn test -Dmaven.test.skip=true
 test_script:
-  - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root"
+  - mvn test -DdbUrl="jdbc:singlestore://localhost/testj?user=root"

@@ -49,7 +49,7 @@ public class DriverTest extends Common {
     Properties properties = new Properties();
     properties.put("password", "myPwd");
     DriverPropertyInfo[] driverPropertyInfos =
-        driver.getPropertyInfo("jdbc:mariadb://localhost/db?user=root", properties);
+        driver.getPropertyInfo("jdbc:singlestore://localhost/db?user=root", properties);
     for (DriverPropertyInfo driverPropertyInfo : driverPropertyInfos) {
       if (!"$jacocoData".equals(driverPropertyInfo.name)) {
         assertNotNull(

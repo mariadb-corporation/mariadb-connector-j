@@ -176,7 +176,7 @@ public class PooledConnectionTest extends Common {
   private Connection getConnection(String hostPort, String database) throws Exception {
     String url =
         String.format(
-            "jdbc:mariadb://%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
+            "jdbc:singlestore://%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
             hostPort, database, user, password);
     return DriverManager.getConnection(url);
   }
@@ -184,10 +184,10 @@ public class PooledConnectionTest extends Common {
   @Test
   public void testPooledConnectionLoadBalance() throws Exception {
 
-    String host = "localhost", portMaster = "5506", portChild = "5508", database = "testj";
+    String host = "localhost", portMaster = "3306", portChild = "3308", database = "testj";
     String url =
         String.format(
-            "jdbc:mariadb:loadbalance//%s:%s,%s:%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
+            "jdbc:singlestore:loadbalance//%s:%s,%s:%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
             host, portMaster, host, portChild, database, "root", "");
     ConnectionPoolDataSource ds = new MariaDbPoolDataSource(url);
 

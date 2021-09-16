@@ -14,7 +14,7 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
  *
  * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
  *
- * <p>example : `jdbc:mariadb://host/db?identityType=PROPERTY` will use environment variable
+ * <p>example : `jdbc:singlestore://host/db?identityType=PROPERTY` will use environment variable
  * MARIADB_USER and MARIADB_PWD
  *
  * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
@@ -24,7 +24,7 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
  *
  * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
  *
- * <p>example : `jdbc:mariadb://host/db?credentialType=PROPERTY`
+ * <p>example : `jdbc:singlestore://host/db?credentialType=PROPERTY`
  *
  * <p>2 options `userKey` and `pwdKey` permits to indicate which system properties to use .
  */

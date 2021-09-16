@@ -35,7 +35,7 @@ so you can run
 You can change those parameter by adding -DdbUrl parameter. like : 
  
 ```script
-    mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****
+    mvn test -DdbUrl=jdbc:singlestore://127.0.0.1:3306/testj?user=root&password=*****
 ```
     
 You can launch a specific test by adding -Dtest

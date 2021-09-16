@@ -519,7 +519,7 @@ public class PoolDataSourceTest extends Common {
   public void wrongUrlHandling() throws SQLException {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
-            "jdbc:mariadb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
+            "jdbc:singlestore://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
       long start = System.currentTimeMillis();
       try {
         pool.getConnection();
