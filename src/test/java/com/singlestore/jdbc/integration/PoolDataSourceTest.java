@@ -603,7 +603,7 @@ public class PoolDataSourceTest extends Common {
     assertThrowsContains(
         SQLException.class,
         () -> new MariaDbPoolDataSource("jdbc:notMariadb"),
-        "Wrong mariaDB url");
+        "Wrong SingleStoreDB url");
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
       assertNotNull(pool.unwrap(com.singlestore.jdbc.MariaDbPoolDataSource.class));

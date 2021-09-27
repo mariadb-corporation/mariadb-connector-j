@@ -74,7 +74,7 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeInt(0);
 
     writeStringLengthAscii(writer, _CLIENT_NAME);
-    writeStringLength(writer, "MariaDB Connector/J");
+    writeStringLength(writer, "SingleStore JDBC");
 
     writeStringLengthAscii(writer, _CLIENT_VERSION);
     writeStringLength(writer, VersionFactory.getInstance().getVersion());

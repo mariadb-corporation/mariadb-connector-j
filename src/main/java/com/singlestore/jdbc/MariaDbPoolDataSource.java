@@ -29,7 +29,7 @@ public class MariaDbPoolDataSource
       Configuration conf = Configuration.parse(url);
       pool = Pools.retrievePool(conf);
     } else {
-      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
+      throw new SQLException(String.format("Wrong SingleStoreDB url: %s", url));
     }
   }
 

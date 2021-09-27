@@ -100,7 +100,7 @@ public class DataSourceTest extends Common {
     assertThrowsContains(
         SQLException.class,
         () -> new MariaDbDataSource("jdbc:wrongUrl"),
-        "Wrong mariaDB url: jdbc:wrongUrl");
+        "Wrong SingleStoreDB url: jdbc:wrongUrl");
     assertNull(ds.getLogWriter());
     assertNull(ds.getParentLogger());
     ds.setLogWriter(null);

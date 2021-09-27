@@ -19,7 +19,7 @@ import java.util.Locale;
 
 public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
-  public static final String DRIVER_NAME = "MariaDB Connector/J";
+  public static final String DRIVER_NAME = "SingleStore JDBC";
 
   private final com.singlestore.jdbc.Connection connection;
   private final Configuration conf;

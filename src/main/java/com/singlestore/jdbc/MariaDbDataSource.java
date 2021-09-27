@@ -18,7 +18,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     if (Configuration.acceptsUrl(url)) {
       conf = Configuration.parse(url);
     } else {
-      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
+      throw new SQLException(String.format("Wrong SingleStoreDB url: %s", url));
     }
   }
 
