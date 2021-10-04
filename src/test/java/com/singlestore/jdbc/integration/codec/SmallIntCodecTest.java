@@ -30,14 +30,14 @@ public class SmallIntCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE SmallIntCodec (t1 SMALLINT, t2 SMALLINT, t3 SMALLINT, t4 SMALLINT)");
+    stmt.execute("CREATE TABLE SmallIntCodec (t1 SMALLINT, t2 SMALLINT, t3 SMALLINT, t4 SMALLINT, id INT)");
     stmt.execute(
         "CREATE TABLE SmallIntCodec2 (id int not null primary key auto_increment, t1 SMALLINT)");
     stmt.execute(
         "CREATE TABLE SmallIntCodecUnsigned (t1 SMALLINT UNSIGNED, t2 SMALLINT UNSIGNED, t3 SMALLINT UNSIGNED, t4 SMALLINT "
-            + "UNSIGNED)");
-    stmt.execute("INSERT INTO SmallIntCodec VALUES (0, 1, -1, null)");
-    stmt.execute("INSERT INTO SmallIntCodecUnsigned VALUES (0, 1, 65535, null)");
+            + "UNSIGNED, id INT)");
+    stmt.execute("INSERT INTO SmallIntCodec VALUES (0, 1, -1, null, 1)");
+    stmt.execute("INSERT INTO SmallIntCodecUnsigned VALUES (0, 1, 65535, null, 1)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -61,7 +61,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table);
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -71,7 +71,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -935,21 +935,26 @@ public class SmallIntCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE SmallIntCodec2");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO SmallIntCodec2(t1) VALUES (?)")) {
-      prep.setShort(1, (short) 1);
+        con.prepareStatement("INSERT INTO SmallIntCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setShort(2, (short) 1);
       prep.execute();
-      prep.setObject(1, 2);
+      prep.setInt(1, 2);
+      prep.setObject(2, 2);
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 3);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, 3, Types.SMALLINT);
+      prep.setInt(1, 4);
+      prep.setObject(2, 3, Types.SMALLINT);
       prep.execute();
-      prep.setObject(1, null, Types.SMALLINT);
+      prep.setInt(1, 5);
+      prep.setObject(2, null, Types.SMALLINT);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM SmallIntCodec2");
+            .executeQuery("SELECT * FROM SmallIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getShort(2));
     rs.updateShort("t1", (short) 45);
@@ -985,7 +990,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
 
-    rs = stmt.executeQuery("SELECT * FROM SmallIntCodec2");
+    rs = stmt.executeQuery("SELECT * FROM SmallIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals((short) 45, rs.getShort(2));
 

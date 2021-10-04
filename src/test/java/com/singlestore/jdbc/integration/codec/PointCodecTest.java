@@ -33,10 +33,10 @@ public class PointCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
+    stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT, id INT)");
     stmt.execute(
         "INSERT INTO PointCodec VALUES "
-            + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
+            + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null, 1)");
     stmt.execute("CREATE TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
     stmt.execute("FLUSH TABLES");
 
@@ -49,7 +49,7 @@ public class PointCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PointCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PointCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -58,7 +58,7 @@ public class PointCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PointCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -212,22 +212,25 @@ public class PointCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE PointCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, new Point(52.1, 12.8));
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, new Point(52.1, 12.8));
       prep.execute();
-      prep.setObject(1, (Point) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (Point) null);
       prep.execute();
 
-      prep.setObject(1, new Point(2.2, 3.3));
+      prep.setInt(1, 3);
+      prep.setObject(2, new Point(2.2, 3.3));
       prep.addBatch();
-      prep.setObject(1, new Point(2, 3));
+      prep.setObject(2, new Point(2, 3));
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM PointCodec2");
+            .executeQuery("SELECT * FROM PointCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(new Point(52.1, 12.8), rs.getObject(2, Point.class));
     rs.updateNull(2);

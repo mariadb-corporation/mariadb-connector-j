@@ -117,12 +117,12 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4 MultiPolygon)");
+        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4 MultiPolygon, id INT)");
     stmt.execute(
         "INSERT INTO MultiPolygonCodec VALUES "
             + "(ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), "
             + "ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
-            + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null)");
+            + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null, 1)");
     stmt.execute(
         "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
     stmt.execute("FLUSH TABLES");
@@ -136,7 +136,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -145,7 +145,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -300,22 +300,25 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE MultiPolygonCodec2");
 
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO MultiPolygonCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, ls1);
+        con.prepareStatement("INSERT INTO MultiPolygonCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, ls1);
       prep.execute();
-      prep.setObject(1, (MultiPolygon) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (MultiPolygon) null);
       prep.execute();
 
-      prep.setObject(1, ls2);
+      prep.setInt(1, 3);
+      prep.setObject(2, ls2);
       prep.addBatch();
-      prep.setObject(1, ls1);
+      prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM MultiPolygonCodec2");
+            .executeQuery("SELECT * FROM MultiPolygonCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiPolygon.class));
     rs.updateNull(2);

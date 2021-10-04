@@ -37,11 +37,11 @@ public class BinaryCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE BinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4 BINARY(20)) CHARACTER "
+        "CREATE TABLE BinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4 BINARY(20), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO BinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO BinaryCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+            + " '23:54:51.840010', null, 2)");
     stmt.execute(
         "CREATE TABLE BinaryCodec2 (id int not null primary key auto_increment, t1 VARBINARY(20))");
     stmt.execute("FLUSH TABLES");
@@ -51,7 +51,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BinaryCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BinaryCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -60,7 +60,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BinaryCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -739,24 +739,30 @@ public class BinaryCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BinaryCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BinaryCodec2(t1) VALUES (?)")) {
-      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BinaryCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
-      prep.setClob(1, (Clob) null);
+      prep.setInt(1, 2);
+      prep.setClob(2, (Clob) null);
       prep.execute();
-      prep.setObject(1, new MariaDbClob("e🌟2".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 3);
+      prep.setObject(2, new MariaDbClob("e🌟2".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, new MariaDbClob("e🌟3".getBytes(StandardCharsets.UTF_8)), Types.CLOB);
+      prep.setInt(1, 5);
+      prep.setObject(2, new MariaDbClob("e🌟3".getBytes(StandardCharsets.UTF_8)), Types.CLOB);
       prep.execute();
-      prep.setObject(1, null, Types.CLOB);
+      prep.setInt(1, 6);
+      prep.setObject(2, null, Types.CLOB);
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM BinaryCodec2");
+            .executeQuery("SELECT * FROM BinaryCodec2 ORDER BY id");
 
     assertTrue(rs.next());
     assertEquals("e🌟1", rs.getClob(2).toString());
@@ -791,7 +797,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertNull(rs.getClob(2));
 
-    rs = stmt.executeQuery("SELECT * FROM BinaryCodec2");
+    rs = stmt.executeQuery("SELECT * FROM BinaryCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals("f🌟1", rs.getClob(2).toString());
     assertTrue(rs.next());

@@ -35,11 +35,11 @@ public class CharCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE CharCodec (t1 CHAR(25), t2 CHAR(25), t3 CHAR(25), t4 CHAR(25)) CHARACTER "
+        "CREATE TABLE CharCodec (t1 CHAR(25), t2 CHAR(25), t3 CHAR(25), t4 CHAR(25), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+            + " '23:54:51.840010', null, 2)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -47,7 +47,7 @@ public class CharCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from CharCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from CharCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -56,7 +56,7 @@ public class CharCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from CharCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();

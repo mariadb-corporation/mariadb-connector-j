@@ -38,11 +38,11 @@ public class EnumCodecTest extends CommonCodecTest {
         "CREATE TABLE EnumCodec (t1 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'),"
             + " t2 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'), "
             + " t3 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'),"
-            + " t4 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'))"
+            + " t4 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'), id INT)"
             + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO EnumCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO EnumCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+            + " '23:54:51.840010', null, 2)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -50,7 +50,7 @@ public class EnumCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from EnumCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from EnumCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -59,7 +59,7 @@ public class EnumCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from EnumCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();

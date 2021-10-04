@@ -33,12 +33,12 @@ public class DateTimeCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
+        "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6), id INT)");
     stmt.execute(
         "INSERT INTO DateTimeCodec VALUES "
-            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null)"
+            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null, 1)"
             + (isMariaDBServer()
-                ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
+                ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null, 1)"
                 : ""));
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
@@ -49,7 +49,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -58,7 +58,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -710,54 +710,70 @@ public class DateTimeCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateTimeCodec2");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO DateTimeCodec2(t1) VALUES (?)")) {
-      prep.setDate(1, Date.valueOf("2010-01-12"));
+        con.prepareStatement("INSERT INTO DateTimeCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setDate(2, Date.valueOf("2010-01-12"));
       prep.execute();
-      prep.setDate(1, null);
+      prep.setInt(1, 2);
+      prep.setDate(2, null);
       prep.execute();
-      prep.setObject(1, Date.valueOf("2010-01-13"));
+      prep.setInt(1, 3);
+      prep.setObject(2, Date.valueOf("2010-01-13"));
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, Date.valueOf("2010-01-14"), Types.DATE);
+      prep.setInt(1, 5);
+      prep.setObject(2, Date.valueOf("2010-01-14"), Types.DATE);
       prep.execute();
-      prep.setObject(1, null, Types.DATE);
+      prep.setInt(1, 6);
+      prep.setObject(2, null, Types.DATE);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12"), Types.TIMESTAMP);
+      prep.setInt(1, 7);
+      prep.setObject(2, LocalDateTime.parse("2010-01-12T01:55:12"), Types.TIMESTAMP);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
+      prep.setInt(1, 8);
+      prep.setObject(2, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
       prep.execute();
+      prep.setInt(1, 9);
       prep.setObject(
-          1,
+          2,
           LocalDateTime.parse("2011-01-12T01:55:12").atZone(ZoneId.systemDefault()),
           Types.TIMESTAMP);
       prep.execute();
+      prep.setInt(1, 10);
       prep.setObject(
-          1,
+          2,
           LocalDateTime.parse("2011-01-12T01:55:12.456").atZone(ZoneId.systemDefault()),
           Types.TIMESTAMP);
       prep.execute();
+      prep.setInt(1, 11);
       prep.setObject(
-          1, LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
+          2, LocalDateTime.parse("2012-01-12T01:55:12").atZone(ZoneId.of("UTC")), Types.TIMESTAMP);
       prep.execute();
+      prep.setInt(1, 12);
       prep.setObject(
-          1,
+          2,
           LocalDateTime.parse("2012-01-12T01:55:12.456").atZone(ZoneId.of("UTC")),
           Types.TIMESTAMP);
       prep.execute();
-      prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12"));
+      prep.setInt(1, 13);
+      prep.setTimestamp(2, Timestamp.valueOf("2015-12-12 01:55:12"));
       prep.execute();
-      prep.setTimestamp(1, Timestamp.valueOf("2015-12-12 01:55:12.654"));
+      prep.setInt(1, 14);
+      prep.setTimestamp(2, Timestamp.valueOf("2015-12-12 01:55:12.654"));
       prep.execute();
-      prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12"));
+      prep.setInt(1, 15);
+      prep.setObject(2, Timestamp.valueOf("2016-12-12 01:55:12"));
       prep.execute();
-      prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12.654"));
+      prep.setInt(1, 16);
+      prep.setObject(2, Timestamp.valueOf("2016-12-12 01:55:12.654"));
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM DateTimeCodec2");
+            .executeQuery("SELECT * FROM DateTimeCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
     rs.updateDate(2, null);
@@ -798,7 +814,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
 
-    rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
+    rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());

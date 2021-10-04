@@ -87,12 +87,12 @@ public class PolygonCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon)");
+    stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon, id INT)");
     stmt.execute(
         "INSERT INTO PolygonCodec VALUES "
             + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
             + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
+            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null, 1)");
     stmt.execute(
         "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");
@@ -106,7 +106,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PolygonCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PolygonCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -115,7 +115,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from PolygonCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -377,22 +377,25 @@ public class PolygonCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE PolygonCodec2");
 
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO PolygonCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, ls1);
+        con.prepareStatement("INSERT INTO PolygonCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, ls1);
       prep.execute();
-      prep.setObject(1, (Polygon) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (Polygon) null);
       prep.execute();
 
-      prep.setObject(1, ls2);
+      prep.setInt(1, 3);
+      prep.setObject(2, ls2);
       prep.addBatch();
-      prep.setObject(1, ls1);
+      prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM PolygonCodec2");
+            .executeQuery("SELECT * FROM PolygonCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, Polygon.class));
     rs.updateNull(2);

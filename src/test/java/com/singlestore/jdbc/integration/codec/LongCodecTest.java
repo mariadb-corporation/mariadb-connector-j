@@ -31,12 +31,12 @@ public class LongCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE LongCodec (t1 BIGINT, t2 BIGINT, t3 BIGINT, t4 BIGINT)");
+    stmt.execute("CREATE TABLE LongCodec (t1 BIGINT, t2 BIGINT, t3 BIGINT, t4 BIGINT, id INT)");
     stmt.execute(
         "CREATE TABLE LongCodecUnsigned (t1 BIGINT UNSIGNED, t2 BIGINT UNSIGNED, t3 BIGINT UNSIGNED, t4 BIGINT "
-            + "UNSIGNED)");
-    stmt.execute("INSERT INTO LongCodec VALUES (0, 1, -1, null)");
-    stmt.execute("INSERT INTO LongCodecUnsigned VALUES (0, 1, 18446744073709551615, null)");
+            + "UNSIGNED, id INT)");
+    stmt.execute("INSERT INTO LongCodec VALUES (0, 1, -1, null, 1)");
+    stmt.execute("INSERT INTO LongCodecUnsigned VALUES (0, 1, 18446744073709551615, null, 1)");
     stmt.execute("CREATE TABLE LongCodec2 (id int not null primary key auto_increment, t1 BIGINT)");
     stmt.execute("FLUSH TABLES");
   }
@@ -61,7 +61,7 @@ public class LongCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table);
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -71,7 +71,7 @@ public class LongCodecTest extends CommonCodecTest {
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -964,25 +964,32 @@ public class LongCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LongCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO LongCodec2(t1) VALUES (?)")) {
-      prep.setLong(1, 1L);
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO LongCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setLong(2, 1L);
       prep.execute();
-      prep.setObject(1, 2L);
+      prep.setInt(1, 2);
+      prep.setObject(2, 2L);
       prep.execute();
-      prep.setObject(1, BigInteger.TEN);
+      prep.setInt(1, 3);
+      prep.setObject(2, BigInteger.TEN);
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, 3L, Types.BIGINT);
+      prep.setInt(1, 5);
+      prep.setObject(2, 3L, Types.BIGINT);
       prep.execute();
-      prep.setObject(1, BigInteger.valueOf(4), Types.BIGINT);
+      prep.setInt(1, 6);
+      prep.setObject(2, BigInteger.valueOf(4), Types.BIGINT);
       prep.execute();
-      prep.setObject(1, null, Types.BIGINT);
+      prep.setInt(1, 7);
+      prep.setObject(2, null, Types.BIGINT);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM LongCodec2");
+            .executeQuery("SELECT * FROM LongCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(2));
     rs.updateLong(2, 50L);
@@ -1032,7 +1039,7 @@ public class LongCodecTest extends CommonCodecTest {
     assertEquals(180L, rs.getLong(2));
     assertFalse(rs.wasNull());
 
-    rs = stmt.executeQuery("SELECT * FROM LongCodec2");
+    rs = stmt.executeQuery("SELECT * FROM LongCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(50L, rs.getLong(2));
 

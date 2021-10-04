@@ -36,10 +36,10 @@ public class MultiPointCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiPointCodec (t1 MultiPoint, t2 MultiPoint, t3 MultiPoint, t4 MultiPoint)");
+        "CREATE TABLE MultiPointCodec (t1 MultiPoint, t2 MultiPoint, t3 MultiPoint, t4 MultiPoint, id INT)");
     stmt.execute(
         "INSERT INTO MultiPointCodec VALUES "
-            + "(ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null)");
+            + "(ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null, 1)");
     stmt.execute(
         "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
     stmt.execute("FLUSH TABLES");
@@ -53,7 +53,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPointCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPointCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -62,7 +62,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPointCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -305,22 +305,25 @@ public class MultiPointCodecTest extends CommonCodecTest {
               new Point(10, 10)
             });
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO MultiPointCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, ls1);
+        con.prepareStatement("INSERT INTO MultiPointCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, ls1);
       prep.execute();
-      prep.setObject(1, (MultiPoint) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (MultiPoint) null);
       prep.execute();
 
-      prep.setObject(1, ls2);
+      prep.setInt(1, 3);
+      prep.setObject(2, ls2);
       prep.addBatch();
-      prep.setObject(1, ls1);
+      prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM MultiPointCodec2");
+            .executeQuery("SELECT * FROM MultiPointCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiPoint.class));
     rs.updateNull(2);

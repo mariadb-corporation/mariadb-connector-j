@@ -31,14 +31,14 @@ public class TinyIntCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE TinyIntCodec (t1 TINYINT, t2 TINYINT, t3 TINYINT, t4 TINYINT)");
+    stmt.execute("CREATE TABLE TinyIntCodec (t1 TINYINT, t2 TINYINT, t3 TINYINT, t4 TINYINT, id INT)");
     stmt.execute(
         "CREATE TABLE TinyIntCodec2 (id int not null primary key auto_increment, t1 TINYINT)");
     stmt.execute(
         "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT UNSIGNED, t4 TINYINT "
-            + "UNSIGNED)");
-    stmt.execute("INSERT INTO TinyIntCodec VALUES (0, 1, -1, null)");
-    stmt.execute("INSERT INTO TinyIntCodecUnsigned VALUES (0, 1, 255, null)");
+            + "UNSIGNED, id INT)");
+    stmt.execute("INSERT INTO TinyIntCodec VALUES (0, 1, -1, null, 1)");
+    stmt.execute("INSERT INTO TinyIntCodecUnsigned VALUES (0, 1, 255, null, 1)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -62,7 +62,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table);
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -72,7 +72,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -954,31 +954,41 @@ public class TinyIntCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE TinyIntCodec2");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO TinyIntCodec2(t1) VALUES (?)")) {
-      prep.setByte(1, (byte) 1);
+        con.prepareStatement("INSERT INTO TinyIntCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setByte(2, (byte) 1);
       prep.execute();
-      prep.setBoolean(1, true);
+      prep.setInt(1, 2);
+      prep.setBoolean(2, true);
       prep.execute();
-      prep.setBoolean(1, false);
+      prep.setInt(1, 3);
+      prep.setBoolean(2, false);
       prep.execute();
-      prep.setBoolean(1, true);
+      prep.setInt(1, 4);
+      prep.setBoolean(2, true);
       prep.execute();
-      prep.setBoolean(1, false);
+      prep.setInt(1, 5);
+      prep.setBoolean(2, false);
       prep.execute();
-      prep.setObject(1, Byte.valueOf("2"));
+      prep.setInt(1, 6);
+      prep.setObject(2, Byte.valueOf("2"));
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 7);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, (byte) 3, Types.TINYINT);
+      prep.setInt(1, 8);
+      prep.setObject(2, (byte) 3, Types.TINYINT);
       prep.execute();
-      prep.setObject(1, Byte.valueOf("4"), Types.TINYINT);
+      prep.setInt(1, 9);
+      prep.setObject(2, Byte.valueOf("4"), Types.TINYINT);
       prep.execute();
-      prep.setObject(1, null, Types.TINYINT);
+      prep.setInt(1, 10);
+      prep.setObject(2, null, Types.TINYINT);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM TinyIntCodec2");
+            .executeQuery("SELECT * FROM TinyIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getByte(2));
     rs.updateByte("t1", (byte) 10);
@@ -1031,7 +1041,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getByte(2));
     assertTrue(rs.wasNull());
 
-    rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2");
+    rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals((byte) 10, rs.getByte(2));
 

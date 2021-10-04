@@ -124,13 +124,13 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE GeometryCollectionCodec (t1 GeometryCollection, t2 GeometryCollection, t3 GeometryCollection, t4 GeometryCollection)");
+        "CREATE TABLE GeometryCollectionCodec (t1 GeometryCollection, t2 GeometryCollection, t3 GeometryCollection, t4 GeometryCollection, id INT)");
     stmt.execute(
         "INSERT INTO GeometryCollectionCodec VALUES "
             + "(ST_GeomFromText('GeometryCollection(POINT (0 0), LINESTRING(10 10,20 10,20 20,10 20,10 10))'), "
             + "ST_GeomFromText('GeometryCollection(POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)), MULTIPOINT(0 0,0 10,10 0))'), "
             + "ST_GeomFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), "
-            + "null)");
+            + "null, 1)");
     stmt.execute(
         "CREATE TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1 GeometryCollection)");
     stmt.execute("FLUSH TABLES");
@@ -151,7 +151,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from GeometryCollectionCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from GeometryCollectionCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -160,7 +160,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from GeometryCollectionCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -289,22 +289,25 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE GeometryCollectionCodec2");
 
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO GeometryCollectionCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, geo1);
+        con.prepareStatement("INSERT INTO GeometryCollectionCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, geo1);
       prep.execute();
-      prep.setObject(1, (GeometryCollection) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (GeometryCollection) null);
       prep.execute();
 
-      prep.setObject(1, geo2);
+      prep.setInt(1, 3);
+      prep.setObject(2, geo2);
       prep.addBatch();
-      prep.setObject(1, geo3);
+      prep.setObject(2, geo3);
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM GeometryCollectionCodec2");
+            .executeQuery("SELECT * FROM GeometryCollectionCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(geo1, rs.getObject(2, GeometryCollection.class));
     rs.updateNull(2);

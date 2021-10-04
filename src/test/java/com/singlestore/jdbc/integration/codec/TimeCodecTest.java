@@ -31,19 +31,19 @@ public class TimeCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE TimeCodec (t1 TIME(3), t2 TIME(6), t3 TIME(6), t4 TIME)");
+    stmt.execute("CREATE TABLE TimeCodec (t1 TIME(0), t2 TIME(6), t3 TIME(6), t4 TIME, id INT)");
     stmt.execute(
-        "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(3))");
+        "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(0))");
     stmt.execute(
-        "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null), "
-            + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00')");
+        "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null, 1), "
+            + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00', 2)");
   }
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from TimeCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from TimeCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -52,7 +52,7 @@ public class TimeCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from TimeCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -641,31 +641,42 @@ public class TimeCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE TimeCodec2");
     Time tt = Time.valueOf("01:55:12");
     tt.setTime(tt.getTime() + 120);
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(t1) VALUES (?)")) {
-      prep.setTime(1, tt);
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setTime(2, tt);
       prep.execute();
-      prep.setTime(1, null);
+      prep.setInt(1, 2);
+      prep.setTime(2, null);
       prep.execute();
-      prep.setObject(1, Time.valueOf("01:55:13"));
+      prep.setInt(1, 3);
+      prep.setObject(2, Time.valueOf("01:55:13"));
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, Time.valueOf("01:55:14"), Types.TIME);
+      prep.setInt(1, 5);
+      prep.setObject(2, Time.valueOf("01:55:14"), Types.TIME);
       prep.execute();
-      prep.setObject(1, null, Types.TIME);
+      prep.setInt(1, 6);
+      prep.setObject(2, null, Types.TIME);
       prep.execute();
-      prep.setObject(1, Duration.parse("PT23H54M51.84001S"), Types.TIME);
+      prep.setInt(1, 7);
+      prep.setObject(2, Duration.parse("PT23H54M51.84001S"), Types.TIME);
       prep.execute();
-      prep.setObject(1, Duration.parse("PT23H54M52S"), Types.TIME);
+      prep.setInt(1, 8);
+      prep.setObject(2, Duration.parse("PT23H54M52S"), Types.TIME);
       prep.execute();
-      prep.setObject(1, LocalTime.parse("05:29:47.450"), Types.TIME);
+      prep.setInt(1, 9);
+      prep.setObject(2, LocalTime.parse("05:29:47.450"), Types.TIME);
       prep.execute();
-      prep.setObject(1, LocalTime.parse("05:29:57"), Types.TIME);
+
+      prep.setInt(1, 10);
+      prep.setObject(2, LocalTime.parse("05:29:57"), Types.TIME);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM TimeCodec2");
+            .executeQuery("SELECT * FROM TimeCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(tt.getTime(), rs.getTime(2).getTime());
     rs.updateTime("t1", null);
@@ -703,7 +714,7 @@ public class TimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
 
-    rs = stmt.executeQuery("SELECT * FROM TimeCodec2");
+    rs = stmt.executeQuery("SELECT * FROM TimeCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertNull(rs.getTime(2));
 

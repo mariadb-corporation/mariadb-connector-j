@@ -36,10 +36,10 @@ public class LineStringCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE LineStringCodec (t1 LineString, t2 LineString, t3 LineString, t4 LineString)");
+        "CREATE TABLE LineStringCodec (t1 LineString, t2 LineString, t3 LineString, t4 LineString, id INT)");
     stmt.execute(
         "INSERT INTO LineStringCodec VALUES "
-            + "( ST_LineStringFromText('LINESTRING(0 0,0 10,10 0)'), ST_LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), ST_LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null)");
+            + "( ST_LineStringFromText('LINESTRING(0 0,0 10,10 0)'), ST_LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), ST_LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null, 1)");
     stmt.execute(
         "CREATE TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 LineString)");
     stmt.execute("FLUSH TABLES");
@@ -52,7 +52,7 @@ public class LineStringCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from LineStringCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from LineStringCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -61,7 +61,7 @@ public class LineStringCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from LineStringCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -294,22 +294,25 @@ public class LineStringCodecTest extends CommonCodecTest {
             },
             true);
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO LineStringCodec2(t1) VALUES (?)")) {
-      prep.setObject(1, ls1);
+        con.prepareStatement("INSERT INTO LineStringCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setObject(2, ls1);
       prep.execute();
-      prep.setObject(1, (LineString) null);
+      prep.setInt(1, 2);
+      prep.setObject(2, (LineString) null);
       prep.execute();
 
-      prep.setObject(1, ls2);
+      prep.setInt(1, 3);
+      prep.setObject(2, ls2);
       prep.addBatch();
-      prep.setObject(1, ls1);
+      prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM LineStringCodec2");
+            .executeQuery("SELECT * FROM LineStringCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, LineString.class));
     rs.updateNull(2);

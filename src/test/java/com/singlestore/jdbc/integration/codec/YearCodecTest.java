@@ -31,13 +31,13 @@ public class YearCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     if (isMariaDBServer()) {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
+      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
       stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (80, '1901', '2155', null)");
+          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null, 1), (80, '1901', '2155', null, 2)");
     } else {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
+      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
       stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155', null)");
+          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null, 1), (1980, '1901', '2155', null, 2)");
     }
     stmt.execute("FLUSH TABLES");
   }
@@ -46,7 +46,7 @@ public class YearCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -55,7 +55,7 @@ public class YearCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -67,7 +67,7 @@ public class YearCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         sharedConn.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from YearCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();

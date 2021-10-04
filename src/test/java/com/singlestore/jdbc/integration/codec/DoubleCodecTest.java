@@ -29,8 +29,8 @@ public class DoubleCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE DoubleCodec (t1 DOUBLE, t2 DOUBLE, t3 DOUBLE, t4 DOUBLE)");
-    stmt.execute("INSERT INTO DoubleCodec VALUES (0, 105.21, -1.6, null)");
+    stmt.execute("CREATE TABLE DoubleCodec (t1 DOUBLE, t2 DOUBLE, t3 DOUBLE, t4 DOUBLE, id INT)");
+    stmt.execute("INSERT INTO DoubleCodec VALUES (0, 105.21, -1.6, null, 1)");
     stmt.execute(
         "CREATE TABLE DoubleCodec2 (id int not null primary key auto_increment, t1 DOUBLE)");
     stmt.execute("FLUSH TABLES");
@@ -40,7 +40,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DoubleCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DoubleCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -49,7 +49,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DoubleCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -668,22 +668,27 @@ public class DoubleCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DoubleCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2(t1) VALUES (?)")) {
-      prep.setDouble(1, 1D);
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setDouble(2, 1D);
       prep.execute();
-      prep.setObject(1, 2D);
+      prep.setInt(1, 2);
+      prep.setObject(2, 2D);
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 3);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, 3D, Types.DECIMAL);
+      prep.setInt(1, 4);
+      prep.setObject(2, 3D, Types.DECIMAL);
       prep.execute();
-      prep.setObject(1, null, Types.DECIMAL);
+      prep.setInt(1, 5);
+      prep.setObject(2, null, Types.DECIMAL);
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM DoubleCodec2");
+            .executeQuery("SELECT * FROM DoubleCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1D, rs.getDouble(2));
     rs.updateDouble("t1", 10D);
@@ -714,7 +719,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals(30D, rs.getDouble(2));
 
-    rs = stmt.executeQuery("SELECT * FROM DoubleCodec2");
+    rs = stmt.executeQuery("SELECT * FROM DoubleCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(10D, rs.getDouble(2));
 

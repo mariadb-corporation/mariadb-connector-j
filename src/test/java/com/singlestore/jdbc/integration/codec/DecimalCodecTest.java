@@ -31,10 +31,10 @@ public class DecimalCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0))");
+        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
     stmt.execute(
-        "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0))");
-    stmt.execute("INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null)");
+        "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
+    stmt.execute("INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null, 1)");
     stmt.execute(
         "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
     stmt.execute("FLUSH TABLES");
@@ -44,7 +44,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -53,7 +53,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -702,14 +702,15 @@ public class DecimalCodecTest extends CommonCodecTest {
   @Test
   public void setParameter() throws SQLException {
     try (PreparedStatement prep =
-        sharedConn.prepareStatement("INSERT INTO DecimalCodec2 VALUE (?, ?, ?, ?)")) {
+        sharedConn.prepareStatement("INSERT INTO DecimalCodec2 VALUE (?, ?, ?, ?, ?)")) {
       prep.setBigDecimal(1, new BigDecimal("789.123"));
       prep.setBigDecimal(2, new BigDecimal("1789.123456"));
       prep.setNull(3, Types.DECIMAL);
       prep.setObject(4, new BigDecimal("-211789.987987"));
+      prep.setInt(5, 1);
       prep.execute();
       Statement stmt = sharedConn.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM DecimalCodec2");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM DecimalCodec2 ORDER BY id");
       rs.next();
       assertEquals(new BigDecimal("789"), rs.getBigDecimal(1));
       assertEquals(new BigDecimal("1789.123456"), rs.getBigDecimal(2));
@@ -732,24 +733,30 @@ public class DecimalCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DecimalCodec3");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO DecimalCodec3(t1) VALUES (?)")) {
-      prep.setBigDecimal(1, BigDecimal.valueOf(1));
+        con.prepareStatement("INSERT INTO DecimalCodec3(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setBigDecimal(2, BigDecimal.valueOf(1));
       prep.execute();
-      prep.setBigDecimal(1, null);
+      prep.setInt(1, 2);
+      prep.setBigDecimal(2, null);
       prep.execute();
-      prep.setObject(1, BigDecimal.valueOf(2));
+      prep.setInt(1, 3);
+      prep.setObject(2, BigDecimal.valueOf(2));
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, BigDecimal.valueOf(3), Types.DECIMAL);
+      prep.setInt(1, 5);
+      prep.setObject(2, BigDecimal.valueOf(3), Types.DECIMAL);
       prep.execute();
-      prep.setObject(1, null, Types.DECIMAL);
+      prep.setInt(1, 6);
+      prep.setObject(2, null, Types.DECIMAL);
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM DecimalCodec3");
+            .executeQuery("SELECT * FROM DecimalCodec3 ORDER BY id");
 
     assertTrue(rs.next());
     assertEquals("1", rs.getBigDecimal(2).toString());
@@ -787,7 +794,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
 
-    rs = stmt.executeQuery("SELECT * FROM DecimalCodec3");
+    rs = stmt.executeQuery("SELECT * FROM DecimalCodec3 ORDER BY id");
 
     assertTrue(rs.next());
     assertNull(rs.getBigDecimal(2));

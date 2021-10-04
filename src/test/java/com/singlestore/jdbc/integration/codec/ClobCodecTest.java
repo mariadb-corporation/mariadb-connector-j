@@ -36,11 +36,11 @@ public class ClobCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE ClobCodec (t1 TINYTEXT, t2 TEXT, t3 MEDIUMTEXT, t4 LONGTEXT) CHARACTER "
+        "CREATE TABLE ClobCodec (t1 TINYTEXT, t2 TEXT, t3 MEDIUMTEXT, t4 LONGTEXT, id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+            + " '23:54:51.840010', null, 2)");
     stmt.execute(
         "CREATE TABLE ClobParamCodec(id int not null primary key auto_increment, t1 TEXT) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -52,7 +52,7 @@ public class ClobCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -61,7 +61,7 @@ public class ClobCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -746,71 +746,96 @@ public class ClobCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO ClobParamCodec(t1) VALUES (?)")) {
-      prep.setClob(1, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));
+        con.prepareStatement("INSERT INTO ClobParamCodec(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setClob(2, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
-      prep.setClob(1, (Clob) null);
+      prep.setInt(1, 2);
+      prep.setClob(2, (Clob) null);
       prep.execute();
-      prep.setObject(1, "e🌟2");
+      prep.setInt(1, 3);
+      prep.setObject(2, "e🌟2");
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, "e🌟3", Types.VARCHAR);
+      prep.setInt(1, 5);
+      prep.setObject(2, "e🌟3", Types.VARCHAR);
       prep.execute();
-      prep.setObject(1, null, Types.VARCHAR);
+      prep.setInt(1,6);
+      prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
-      prep.setObject(1, null, Types.VARCHAR);
+      prep.setInt(1,7);
+      prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
-      prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.setInt(1, 8);
+      prep.setObject(2, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
       prep.execute();
-      prep.setObject(1, longData);
+      prep.setInt(1, 9);
+      prep.setObject(2, longData);
 
-      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
-      prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 10);
+      prep.setClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
-      prep.setClob(1, longData);
+      prep.setInt(1, 11);
+      prep.setClob(2, longData);
       prep.addBatch();
-      prep.setClob(1, (Clob) null);
+      prep.setInt(1, 12);
+      prep.setClob(2, (Clob) null);
       prep.addBatch();
-      prep.setObject(1, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.setInt(1, 13);
+      prep.setObject(2, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
       prep.addBatch();
       prep.executeBatch();
 
-      prep.setCharacterStream(1, new StringReader("e🌟789"));
+      prep.setInt(1, 14);
+      prep.setCharacterStream(2, new StringReader("e🌟789"));
       prep.execute();
-      prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.setInt(1, 15);
+      prep.setCharacterStream(2, new StringReader("e🌟890"), 4);
       prep.execute();
-      prep.setObject(1, new StringReader(longDataSb.toString()), Types.CLOB);
+      prep.setInt(1, 16);
+      prep.setObject(2, new StringReader(longDataSb.toString()), Types.CLOB);
       prep.execute();
-      prep.setObject(1, new StringReader("e🌟568"), Types.CLOB, 4);
+      prep.setInt(1, 17);
+      prep.setObject(2, new StringReader("e🌟568"), Types.CLOB, 4);
       prep.execute();
 
-      prep.setCharacterStream(1, new StringReader("e🌟789"));
+      prep.setInt(1, 18);
+      prep.setCharacterStream(2, new StringReader("e🌟789"));
       prep.addBatch();
-      prep.setCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.setInt(1, 19);
+      prep.setCharacterStream(2, new StringReader("e🌟890"), 4);
       prep.addBatch();
       prep.executeBatch();
 
-      prep.setNClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 20);
+      prep.setNClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
 
-      prep.setNClob(1, new MariaDbClob("e🌟145".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 21);
+      prep.setNClob(2, new MariaDbClob("e🌟145".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
 
-      prep.setNCharacterStream(1, new StringReader("e🌟789"));
+      prep.setInt(1, 22);
+      prep.setNCharacterStream(2, new StringReader("e🌟789"));
       prep.execute();
-      prep.setNCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.setInt(1, 23);
+      prep.setNCharacterStream(2, new StringReader("e🌟890"), 4);
       prep.execute();
-      prep.setNCharacterStream(1, new StringReader("e🌟789"));
+      prep.setInt(1, 24);
+      prep.setNCharacterStream(2, new StringReader("e🌟789"));
       prep.execute();
-      prep.setNCharacterStream(1, new StringReader("e🌟890"), 4);
+      prep.setInt(1, 25);
+      prep.setNCharacterStream(2, new StringReader("e🌟890"), 4);
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM ClobParamCodec");
+            .executeQuery("SELECT * FROM ClobParamCodec ORDER BY id");
     assertTrue(rs.next());
     assertEquals("e🌟£1", rs.getString(2));
     rs.updateClob(2, new MariaDbClob("f🌟10".getBytes(StandardCharsets.UTF_8)));
@@ -929,7 +954,7 @@ public class ClobCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals("e🌟57", rs.getString(2));
 
-    rs = stmt.executeQuery("SELECT * FROM ClobParamCodec");
+    rs = stmt.executeQuery("SELECT * FROM ClobParamCodec ORDER BY id");
     assertTrue(rs.next());
     assertEquals("f🌟10", rs.getString(2));
     assertTrue(rs.next());

@@ -39,18 +39,18 @@ public class VarcharCodecTest extends CommonCodecTest {
     after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20)) CHARACTER "
+        "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), "
-            + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null), "
-            + "('aaaa-bb-cc', '0000-00-00 00:00:00', '23:54:51.840010', null),"
-            + "('', '', '', null)");
+        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null, 1), "
+            + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null, 2), "
+            + "('aaaa-bb-cc', '0000-00-00 00:00:00', '23:54:51.840010', null, 3),"
+            + "('', '', '', null, 4)");
     stmt.execute(
         "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE StringCodecWrong (t1 VARCHAR(20), id INT) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -59,7 +59,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -68,7 +68,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -860,44 +860,58 @@ public class VarcharCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE StringParamCodec");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO StringParamCodec(t1) VALUES (?)")) {
-      prep.setString(1, "e'\\n🌟'\\'1Ã");
+        con.prepareStatement("INSERT INTO StringParamCodec(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, "e'\\n🌟'\\'1Ã");
       prep.execute();
-      prep.setString(1, null);
+      prep.setInt(1, 2);
+      prep.setString(2, null);
       prep.execute();
-      prep.setObject(1, "e🌟2");
+      prep.setInt(1, 3);
+      prep.setObject(2, "e🌟2");
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 4);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, "e🌟3", Types.VARCHAR);
+      prep.setInt(1, 5);
+      prep.setObject(2, "e🌟3", Types.VARCHAR);
       prep.execute();
-      prep.setObject(1, null, Types.VARCHAR);
+      prep.setInt(1, 6);
+      prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
-      prep.setAsciiStream(1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 7);
+      prep.setAsciiStream(2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
+      prep.setInt(1, 8);
       prep.setAsciiStream(
-          1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+          2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
       prep.execute();
+      prep.setInt(1, 9);
       prep.setAsciiStream(
-          1, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+          2, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
       prep.execute();
-      prep.setAsciiStream(1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 10);
+      prep.setAsciiStream(2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
+      prep.setInt(1, 11);
       prep.setAsciiStream(
-          1, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+          2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
       prep.execute();
+      prep.setInt(1, 12);
       prep.setAsciiStream(
-          1, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+          2, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
       prep.execute();
-      prep.setNString(1, "e🌟13");
+      prep.setInt(1, 13);
+      prep.setNString(2, "e🌟13");
       prep.execute();
-      prep.setNString(1, "e🌟12");
+      prep.setInt(1, 14);
+      prep.setNString(2, "e🌟12");
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM StringParamCodec");
+            .executeQuery("SELECT * FROM StringParamCodec ORDER BY id");
     assertTrue(rs.next());
     assertEquals("e'\\n🌟'\\'1Ã", rs.getString(2));
     rs.updateString("t1", "f🌟12");
@@ -981,7 +995,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals("http://f🌟15", rs.getString(2));
 
-    rs = stmt.executeQuery("SELECT * FROM StringParamCodec");
+    rs = stmt.executeQuery("SELECT * FROM StringParamCodec ORDER BY id");
     assertTrue(rs.next());
     assertEquals("f🌟12", rs.getString(2));
 
@@ -1035,14 +1049,14 @@ public class VarcharCodecTest extends CommonCodecTest {
         new byte[] {(byte) 0xc2, (byte) 0f, (byte) 0xDB, (byte) 00, (byte) 0xE1, (byte) 00};
     String st = new String(utf8WrongBytes);
 
-    wrongUtf8(sharedConn, st);
-    wrongUtf8(sharedConnBinary, st);
+    wrongUtf8(sharedConn, st, 1);
+    wrongUtf8(sharedConnBinary, st, 2);
   }
 
-  private void wrongUtf8(Connection con, String wrong) throws SQLException {
+  private void wrongUtf8(Connection con, String wrong, int id) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
-    stmt.execute("INSERT INTO StringCodecWrong VALUES ('" + wrong + "')");
-    ResultSet rs = stmt.executeQuery("SELECT * FROM StringCodecWrong");
+    stmt.execute("INSERT INTO StringCodecWrong VALUES ('" + wrong + "', " + id + ")");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM StringCodecWrong ORDER BY id");
     rs.next();
     assertEquals(wrong, rs.getString(1));
   }

@@ -35,11 +35,11 @@ public class BlobCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB)");
+    stmt.execute("CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB, id INT)");
     stmt.execute(
-        "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null), "
-            + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null),"
-            + "('', '2010-12-31 23:59:59.152', '23:54:51.840010', null)");
+        "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null, 1), "
+            + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null, 2),"
+            + "('', '2010-12-31 23:59:59.152', '23:54:51.840010', null, 3)");
     stmt.execute("CREATE TABLE BlobCodec2 (id int not null primary key auto_increment, t1 BLOB)");
     stmt.execute("FLUSH TABLES");
 
@@ -57,7 +57,7 @@ public class BlobCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -66,7 +66,7 @@ public class BlobCodecTest extends CommonCodecTest {
     PreparedStatement stmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec"
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     CompleteResult rs = (CompleteResult) stmt.executeQuery();
@@ -667,91 +667,118 @@ public class BlobCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2(t1) VALUES (?)")) {
-      prep.setBlob(1, (Blob) null);
+    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2(id, t1) VALUES (?, ?)")) {
+      prep.setInt(1, 1);
+      prep.setBlob(2, (Blob) null);
       prep.execute();
-      prep.setBlob(1, new MariaDbBlob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 2);
+      prep.setBlob(2, new MariaDbBlob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
-      prep.setBlob(1, (Blob) null);
+      prep.setInt(1, 3);
+      prep.setBlob(2, (Blob) null);
       prep.execute();
-      prep.setNull(1, Types.BLOB);
-      prep.execute();
-
-      prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)));
-      prep.execute();
-      prep.setObject(1, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 5);
-      prep.execute();
-      prep.setObject(1, null);
-      prep.execute();
-      prep.setObject(1, new MariaDbBlob("e🌟3".getBytes(StandardCharsets.UTF_8)), Types.BLOB);
-      prep.execute();
-      prep.setObject(1, null, Types.BLOB);
+      prep.setInt(1, 4);
+      prep.setNull(2, Types.BLOB);
       prep.execute();
 
-      prep.setObject(1, new MariaDbBlob("e🌟4".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 5);
+      prep.setObject(2, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)));
+      prep.execute();
+      prep.setInt(1, 6);
+      prep.setObject(2, new MariaDbBlob("e🌟2".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 5);
+      prep.execute();
+      prep.setInt(1, 7);
+      prep.setObject(2, null);
+      prep.execute();
+      prep.setInt(1, 8);
+      prep.setObject(2, new MariaDbBlob("e🌟3".getBytes(StandardCharsets.UTF_8)), Types.BLOB);
+      prep.execute();
+      prep.setInt(1, 9);
+      prep.setObject(2, null, Types.BLOB);
+      prep.execute();
+
+      prep.setInt(1, 10);
+      prep.setObject(2, new MariaDbBlob("e🌟4".getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
-      prep.setObject(1, new MariaDbBlob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 6);
+      prep.setInt(1, 11);
+      prep.setObject(2, new MariaDbBlob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.BLOB, 6);
       prep.addBatch();
       prep.executeBatch();
 
       try (FileInputStream fis = new FileInputStream(tmpFile)) {
-        prep.setObject(1, fis, Types.BLOB);
+        prep.setInt(1, 12);
+        prep.setObject(2, fis, Types.BLOB);
         prep.execute();
       }
       try (FileInputStream fis = new FileInputStream(tmpFile)) {
-        prep.setObject(1, fis, Types.BLOB, 5000);
+        prep.setInt(1, 13);
+        prep.setObject(2, fis, Types.BLOB, 5000);
         prep.execute();
       }
       try (FileInputStream fis = new FileInputStream(tmpFile)) {
         try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
-          prep.setObject(1, fis, Types.BLOB);
+          prep.setInt(1, 14);
+          prep.setObject(2, fis, Types.BLOB);
           prep.addBatch();
-          prep.setObject(1, fis2, Types.BLOB, 5000);
+          prep.setInt(1, 15);
+          prep.setObject(2, fis2, Types.BLOB, 5000);
           prep.addBatch();
           prep.executeBatch();
         }
       }
       try (FileInputStream fis = new FileInputStream(tmpFile)) {
-        prep.setBlob(1, new BlobInputStream(fis));
+        prep.setInt(1, 16);
+        prep.setBlob(2, new BlobInputStream(fis));
         prep.addBatch();
         prep.executeBatch();
       }
       try (FileInputStream fis = new FileInputStream(tmpFile)) {
-        prep.setObject(1, new BlobInputStream(fis), Types.BLOB, 5000);
+        prep.setInt(1, 17);
+        prep.setObject(2, new BlobInputStream(fis), Types.BLOB, 5000);
         prep.addBatch();
         prep.executeBatch();
       }
 
-      prep.setObject(1, "e🌟6''".getBytes(StandardCharsets.UTF_8));
+      prep.setInt(1, 18);
+      prep.setObject(2, "e🌟6''".getBytes(StandardCharsets.UTF_8));
       prep.addBatch();
-      prep.setObject(1, "e🌟76".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
+      prep.setInt(1, 19);
+      prep.setObject(2, "e🌟76".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
       prep.addBatch();
       prep.executeBatch();
-      prep.setObject(1, "e🌟85".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
+      prep.setInt(1, 20);
+      prep.setObject(2, "e🌟85".getBytes(StandardCharsets.UTF_8), Types.BLOB, 6);
       prep.execute();
-      prep.setBytes(1, "e🌟9''\\n".getBytes(StandardCharsets.UTF_8));
+      prep.setInt(1, 21);
+      prep.setBytes(2, "e🌟9''\\n".getBytes(StandardCharsets.UTF_8));
       prep.execute();
-      prep.setBinaryStream(1, new ByteArrayInputStream("e🌟9".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 22);
+      prep.setBinaryStream(2, new ByteArrayInputStream("e🌟9".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
+      prep.setInt(1, 23);
       prep.setBinaryStream(
-          1, new ByteArrayInputStream("e🌟123".getBytes(StandardCharsets.UTF_8)), 6);
+          2, new ByteArrayInputStream("e🌟123".getBytes(StandardCharsets.UTF_8)), 6);
       prep.execute();
+      prep.setInt(1, 24);
       prep.setBinaryStream(
-          1, new ByteArrayInputStream("e🌟456".getBytes(StandardCharsets.UTF_8)), 6L);
+          2, new ByteArrayInputStream("e🌟456".getBytes(StandardCharsets.UTF_8)), 6L);
       prep.execute();
-      prep.setBinaryStream(1, new ByteArrayInputStream("e🌟9".getBytes(StandardCharsets.UTF_8)));
+      prep.setInt(1, 25);
+      prep.setBinaryStream(2, new ByteArrayInputStream("e🌟9".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
+      prep.setInt(1, 26);
       prep.setBinaryStream(
-          1, new ByteArrayInputStream("e🌟123".getBytes(StandardCharsets.UTF_8)), 6);
+          2, new ByteArrayInputStream("e🌟123".getBytes(StandardCharsets.UTF_8)), 6);
       prep.execute();
+      prep.setInt(1, 27);
       prep.setBinaryStream(
-          1, new ByteArrayInputStream("e🌟456".getBytes(StandardCharsets.UTF_8)), 6L);
+          2, new ByteArrayInputStream("e🌟456".getBytes(StandardCharsets.UTF_8)), 6L);
       prep.execute();
     }
 
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM BlobCodec2");
+            .executeQuery("SELECT * FROM BlobCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertNull(rs.getBlob(2));
 
@@ -894,7 +921,7 @@ public class BlobCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertArrayEquals("2g🌟4".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
 
-    rs = stmt.executeQuery("SELECT * FROM BlobCodec2");
+    rs = stmt.executeQuery("SELECT * FROM BlobCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertTrue(rs.next());
     assertNull(rs.getBlob(2));

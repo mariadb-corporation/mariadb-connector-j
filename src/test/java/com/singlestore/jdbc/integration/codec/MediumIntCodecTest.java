@@ -32,12 +32,12 @@ public class MediumIntCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MediumIntCodec (t1 MEDIUMINT, t2 MEDIUMINT, t3 MEDIUMINT, t4 MEDIUMINT)");
+        "CREATE TABLE MediumIntCodec (t1 MEDIUMINT, t2 MEDIUMINT, t3 MEDIUMINT, t4 MEDIUMINT, id INT)");
     stmt.execute(
         "CREATE TABLE MediumIntCodecUnsigned (t1 MEDIUMINT UNSIGNED, t2 MEDIUMINT UNSIGNED, t3 MEDIUMINT UNSIGNED, t4 MEDIUMINT "
-            + "UNSIGNED)");
-    stmt.execute("INSERT INTO MediumIntCodec VALUES (0, 1, -1, null)");
-    stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null)");
+            + "UNSIGNED, id INT)");
+    stmt.execute("INSERT INTO MediumIntCodec VALUES (0, 1, -1, null, 1)");
+    stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null, 1)");
     stmt.execute(
         "CREATE TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
     stmt.execute("FLUSH TABLES");
@@ -63,7 +63,7 @@ public class MediumIntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table);
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -73,7 +73,7 @@ public class MediumIntCodecTest extends CommonCodecTest {
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
-                + " WHERE 1 > ?");
+                + " WHERE 1 > ? ORDER BY id");
     stmt.closeOnCompletion();
     stmt.setInt(1, 0);
     ResultSet rs = stmt.executeQuery();
@@ -925,21 +925,26 @@ public class MediumIntCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MediumIntCodec2");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO MediumIntCodec2(t1) VALUES (?)")) {
+        con.prepareStatement("INSERT INTO MediumIntCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
+      prep.setInt(2, 1);
       prep.execute();
-      prep.setObject(1, 2);
+      prep.setInt(1, 2);
+      prep.setObject(2, 2);
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 3);
+      prep.setObject(2, null);
       prep.execute();
-      prep.setObject(1, 3, Types.INTEGER);
+      prep.setInt(1, 4);
+      prep.setObject(2, 3, Types.INTEGER);
       prep.execute();
-      prep.setObject(1, null, Types.INTEGER);
+      prep.setInt(1, 5);
+      prep.setObject(2, null, Types.INTEGER);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM MediumIntCodec2");
+            .executeQuery("SELECT * FROM MediumIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(2));
     rs.updateInt("t1", 10);
@@ -974,7 +979,7 @@ public class MediumIntCodecTest extends CommonCodecTest {
     assertEquals(85, rs.getInt(2));
     assertFalse(rs.wasNull());
 
-    rs = stmt.executeQuery("SELECT * FROM MediumIntCodec2");
+    rs = stmt.executeQuery("SELECT * FROM MediumIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(2));
 
