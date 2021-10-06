@@ -407,14 +407,8 @@ public class UpdatableResult extends CompleteResult {
                 .setParameter(paramPos++, Parameter.NULL_PARAMETER);
           }
         }
-        ResultSet insertRs = insertPreparedStatement.executeQuery();
-        if (context.getVersion().isMariaDBServer()
-            && context.getVersion().versionGreaterOrEqual(10, 5, 1)) {
-          if (insertRs.next()) {
-            byte[] rowByte = ((Result) insertRs).getCurrentRowData();
-            addRowData(rowByte);
-          }
-        } else if (isAutoincrementPk) {
+        insertPreparedStatement.executeQuery();
+        if (isAutoincrementPk) {
           // primary is auto_increment (only one field)
           ResultSet rsKey = insertPreparedStatement.getGeneratedKeys();
           if (rsKey.next()) {
@@ -445,17 +439,11 @@ public class UpdatableResult extends CompleteResult {
   private String buildInsertQuery() throws SQLException {
     StringBuilder insertSql = new StringBuilder("INSERT `" + database + "`.`" + table + "` ( ");
     StringBuilder valueClause = new StringBuilder();
-    StringBuilder returningClause = new StringBuilder();
 
     boolean firstParam = true;
 
     for (int pos = 0; pos < metadataList.length; pos++) {
       ColumnDefinitionPacket colInfo = metadataList[pos];
-
-      if (pos != 0) {
-        returningClause.append(", ");
-      }
-      returningClause.append("`").append(colInfo.getColumn()).append("`");
 
       Parameter<?> param = parameters.size() > pos ? parameters.get(pos) : null;
       if (param != null) {
@@ -468,24 +456,10 @@ public class UpdatableResult extends CompleteResult {
         firstParam = false;
       } else {
         if (colInfo.isPrimaryKey()) {
-          if (colInfo.isAutoIncrement() || colInfo.hasDefault()) {
-            if (!colInfo.isAutoIncrement()
-                && (!context.getVersion().isMariaDBServer()
-                    || !context.getVersion().versionGreaterOrEqual(10, 5, 1))) {
-              // driver cannot know generated default value like uuid().
-              // but for server 10.5+, will use RETURNING to know primary key
-              throw exceptionFactory.create(
-                  String.format(
-                      "Cannot call insertRow() not setting value for primary key %s "
-                          + "with default value before server 10.5",
-                      colInfo.getColumn()));
-            }
-          } else {
-            throw exceptionFactory.create(
-                String.format(
-                    "Cannot call insertRow() not setting value for primary key %s",
-                    colInfo.getColumn()));
-          }
+          throw exceptionFactory.create(
+              String.format(
+                  "Cannot call insertRow() not setting value for primary key %s",
+                  colInfo.getColumn()));
         } else if (!colInfo.hasDefault()) {
           if (!firstParam) {
             insertSql.append(",");
@@ -498,10 +472,6 @@ public class UpdatableResult extends CompleteResult {
       }
     }
     insertSql.append(") VALUES (").append(valueClause).append(")");
-    if (context.getVersion().isMariaDBServer()
-        && context.getVersion().versionGreaterOrEqual(10, 5, 1)) {
-      insertSql.append(" RETURNING ").append(returningClause);
-    }
     return insertSql.toString();
   }
 

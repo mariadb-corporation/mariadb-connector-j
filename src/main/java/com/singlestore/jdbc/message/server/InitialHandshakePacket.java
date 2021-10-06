@@ -5,12 +5,9 @@
 package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.ServerVersion;
 import com.singlestore.jdbc.util.constants.Capabilities;
 
 public final class InitialHandshakePacket implements ServerMessage {
-
-  private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
 
   private final long threadId;
   private final byte[] seed;
@@ -18,16 +15,13 @@ public final class InitialHandshakePacket implements ServerMessage {
   private final short defaultCollation;
   private final short serverStatus;
   private final String authenticationPluginType;
-  private final ServerVersion version;
 
   private InitialHandshakePacket(
-      String serverVersion,
       long threadId,
       byte[] seed,
       long capabilities,
       short defaultCollation,
       short serverStatus,
-      boolean mariaDBServer,
       String authenticationPluginType) {
 
     this.threadId = threadId;
@@ -36,7 +30,6 @@ public final class InitialHandshakePacket implements ServerMessage {
     this.defaultCollation = defaultCollation;
     this.serverStatus = serverStatus;
     this.authenticationPluginType = authenticationPluginType;
-    this.version = new ServerVersion(serverVersion, mariaDBServer);
   }
 
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {
@@ -46,7 +39,7 @@ public final class InitialHandshakePacket implements ServerMessage {
           String.format("Unexpected initial handshake protocol value [%s]", protocolVersion));
     }
 
-    String serverVersion = reader.readStringNullEnd();
+    reader.readStringNullEnd();
     long threadId = reader.readInt();
     final byte[] seed1 = new byte[8];
     reader.readBytes(seed1);
@@ -84,24 +77,11 @@ public final class InitialHandshakePacket implements ServerMessage {
     }
     reader.skip();
 
-    /*
-     * check for MariaDB 10.x replication hack , remove fake prefix if needed
-     *  (see comments about MARIADB_RPL_HACK_PREFIX)
-     */
-    boolean serverMariaDb;
-    if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
-      serverMariaDb = true;
-      serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
-    } else {
-      serverMariaDb = serverVersion.contains("MariaDB");
-    }
-
     // since MariaDB 10.2
     long serverCapabilities;
     if ((serverCapabilities4FirstBytes & Capabilities.CLIENT_MYSQL) == 0) {
       serverCapabilities =
           (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
-      serverMariaDb = true;
     } else {
       serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
     }
@@ -112,18 +92,12 @@ public final class InitialHandshakePacket implements ServerMessage {
     }
 
     return new InitialHandshakePacket(
-        serverVersion,
         threadId,
         seed,
         serverCapabilities,
         defaultCollation,
         serverStatus,
-        serverMariaDb,
         authenticationPluginType);
-  }
-
-  public ServerVersion getVersion() {
-    return version;
   }
 
   public long getThreadId() {
@@ -144,10 +118,6 @@ public final class InitialHandshakePacket implements ServerMessage {
 
   public short getServerStatus() {
     return serverStatus;
-  }
-
-  public boolean isMariaDBServer() {
-    return version.isMariaDBServer();
   }
 
   public String getAuthenticationPluginType() {

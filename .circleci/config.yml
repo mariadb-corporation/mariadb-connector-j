@@ -36,13 +36,7 @@ jobs:
       - checkout
       - run:
           name: Setup test cluster
-          command: |
-            if [ "$SINGLESTORE_PASSWORD" = "" ]
-            then
-              ./scripts/ensure-test-singlestore-cluster.sh
-            else
-              ./scripts/ensure-test-singlestore-cluster-password.sh
-            fi
+          command: ./scripts/ensure-test-singlestore-cluster-password.sh
       - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
@@ -51,7 +45,9 @@ jobs:
           paths:
             - ~/.m2
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
-      - run: mvn package -P bench -Dmaven.test.skip -Dmaven.javadoc.skip=true # run the actual tests
+      - run: mvn package -Dmaven.test.skip -Dmaven.javadoc.skip=true
+      - run: javac Test_SingleStore.java
+      - run: CLASSPATH="target/singlestore-jdbc-client-0.0.1.jar:." java Test_SingleStore
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
@@ -92,26 +88,13 @@ workflows:
           matrix:
             parameters:
               machine_class:
-                - medium
-              singlestore_password:
-                - ""
-              singlestore_image:
-                - memsql/cluster-in-a-box:centos-7.0.15-619d118712-1.9.5-1.5.0
-                - memsql/cluster-in-a-box:centos-6.8.15-029542cbf3-1.9.3-1.4.1
-                - memsql/cluster-in-a-box:6.7.18-db1caffe94-1.6.1-1.1.1
-      - test:
-          filters:
-            tags:
-              only: /^v.*/
-          matrix:
-            parameters:
-              machine_class:
                 - large
               singlestore_password:
                 - password
               singlestore_image:
-                - memsql/cluster-in-a-box:centos-7.3.2-a364d4b31f-3.0.0-1.9.3
                 - memsql/cluster-in-a-box:centos-7.1.13-11ddea2a3a-3.0.0-1.9.3
+                - singlestore/cluster-in-a-box:centos-7.3.13-761e3259b3-3.2.11-1.11.9
+                - singlestore/cluster-in-a-box:centos-7.5.10-d6401ae628-4.0.0-1.12.2
   publish:
     jobs:
       - approve-publish:

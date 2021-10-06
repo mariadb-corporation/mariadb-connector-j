@@ -87,11 +87,13 @@ public class Common {
   }
 
   public static boolean isMariaDBServer() {
-    return sharedConn.getContext().getVersion().isMariaDBServer();
+    // TODO PLAT-5820
+    return false;
   }
 
   public static boolean minVersion(int major, int minor, int patch) {
-    return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
+    // TODO PLAT-5820
+    return false;
   }
 
   public static Connection createCon() throws SQLException {
@@ -131,11 +133,6 @@ public class Common {
     rs = stmt.executeQuery("select @@have_ssl");
     assertTrue(rs.next());
     return "YES".equals(rs.getString(1));
-  }
-
-  public void cancelForVersion(int major, int minor) {
-    String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
-    Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
   }
 
   public static Connection createCon(String option) throws SQLException {

@@ -6,7 +6,6 @@ package com.singlestore.jdbc.client.context;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.PrepareCache;
-import com.singlestore.jdbc.client.ServerVersion;
 import com.singlestore.jdbc.message.server.InitialHandshakePacket;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
@@ -16,7 +15,6 @@ public class BaseContext implements Context {
   private final long threadId;
   private final long serverCapabilities;
   private final byte[] seed;
-  private final ServerVersion version;
   private final boolean eofDeprecated;
   private final boolean skipMeta;
   private final boolean extendedInfo;
@@ -39,7 +37,6 @@ public class BaseContext implements Context {
     this.seed = handshake.getSeed();
     this.serverCapabilities = handshake.getCapabilities();
     this.serverStatus = handshake.getServerStatus();
-    this.version = handshake.getVersion();
     this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
     this.skipMeta = (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
     this.extendedInfo = (serverCapabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0;
@@ -75,10 +72,6 @@ public class BaseContext implements Context {
 
   public void setDatabase(String database) {
     this.database = database;
-  }
-
-  public ServerVersion getVersion() {
-    return version;
   }
 
   public boolean isEofDeprecated() {

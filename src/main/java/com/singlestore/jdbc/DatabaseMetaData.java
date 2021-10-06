@@ -7,6 +7,7 @@ package com.singlestore.jdbc;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.codec.DataType;
+import com.singlestore.jdbc.util.Version;
 import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.sql.*;
@@ -23,6 +24,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   private final com.singlestore.jdbc.Connection connection;
   private final Configuration conf;
+  private Version version;
 
   /**
    * Constructor.
@@ -33,6 +35,18 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public DatabaseMetaData(com.singlestore.jdbc.Connection connection, Configuration conf) {
     this.connection = connection;
     this.conf = conf;
+    this.version = null;
+  }
+
+  public Version getVersion() throws java.sql.SQLException {
+    if (this.version == null) {
+      String sql = "SELECT @@memsql_version;";
+      ResultSet rs = executeQuery(sql);
+      rs.next();
+      this.version = new Version(rs.getString(1));
+    }
+
+    return this.version;
   }
 
   private static String DataTypeClause(Configuration conf) {
@@ -1010,9 +1024,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     if (table == null) {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
-    boolean hasIsGeneratedCol =
-        (connection.getContext().getVersion().isMariaDBServer()
-            && connection.getContext().getVersion().versionGreaterOrEqual(10, 2, 0));
 
     String sql =
         "SELECT "
@@ -1022,9 +1033,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
             + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
             + " NUMERIC_SCALE DECIMAL_DIGITS,"
-            + (hasIsGeneratedCol
-                ? ("IF(IS_GENERATED='NEVER'," + bestRowNotPseudo + "," + bestRowPseudo + ")")
-                : bestRowNotPseudo)
+            + bestRowNotPseudo
             + " PSEUDO_COLUMN"
             + " FROM INFORMATION_SCHEMA.COLUMNS"
             + " WHERE (COLUMN_KEY  = 'PRI'"
@@ -1163,14 +1172,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @return server type
    */
   public String getDatabaseProductName() {
-    if (connection.getContext().getVersion().isMariaDBServer()) {
-      return "MariaDB";
-    }
-    return "MySQL";
+    return "SingleStore";
   }
 
-  public String getDatabaseProductVersion() {
-    return connection.getContext().getVersion().getVersion();
+  public String getDatabaseProductVersion() throws SQLException {
+    return getVersion().getVersion();
   }
 
   public String getDriverName() {
@@ -3599,12 +3605,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
-  public int getDatabaseMajorVersion() {
-    return connection.getContext().getVersion().getMajorVersion();
+  public int getDatabaseMajorVersion() throws SQLException {
+    return getVersion().getMajorVersion();
   }
 
-  public int getDatabaseMinorVersion() {
-    return connection.getContext().getVersion().getMinorVersion();
+  public int getDatabaseMinorVersion() throws SQLException {
+    return getVersion().getMinorVersion();
   }
 
   @Override

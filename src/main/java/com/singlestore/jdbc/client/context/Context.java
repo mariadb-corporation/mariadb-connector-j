@@ -6,7 +6,6 @@ package com.singlestore.jdbc.client.context;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.PrepareCache;
-import com.singlestore.jdbc.client.ServerVersion;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 
 public interface Context {
@@ -24,8 +23,6 @@ public interface Context {
   String getDatabase();
 
   void setDatabase(String database);
-
-  ServerVersion getVersion();
 
   boolean isEofDeprecated();
 

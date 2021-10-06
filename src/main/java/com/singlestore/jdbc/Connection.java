@@ -53,12 +53,9 @@ public class Connection implements java.sql.Connection {
     this.exceptionFactory = client.getExceptionFactory().setConnection(this);
     this.client = client;
     Context context = this.client.getContext();
-    this.canUseServerTimeout =
-        context.getVersion().isMariaDBServer()
-            && context.getVersion().versionGreaterOrEqual(10, 1, 2);
-    this.canUseServerMaxRows =
-        context.getVersion().isMariaDBServer()
-            && context.getVersion().versionGreaterOrEqual(10, 3, 0);
+    // TODO PLAT-5818
+    this.canUseServerTimeout = false;
+    this.canUseServerMaxRows = false;
     this.defaultFetchSize = context.getConf().defaultFetchSize();
   }
 
@@ -290,15 +287,6 @@ public class Connection implements java.sql.Connection {
   public int getTransactionIsolation() throws SQLException {
 
     String sql = "SELECT @@tx_isolation";
-
-    if (!client.getContext().getVersion().isMariaDBServer()) {
-      if ((client.getContext().getVersion().getMajorVersion() >= 8
-              && client.getContext().getVersion().versionGreaterOrEqual(8, 0, 3))
-          || (client.getContext().getVersion().getMajorVersion() < 8
-              && client.getContext().getVersion().versionGreaterOrEqual(5, 7, 20))) {
-        sql = "SELECT @@transaction_isolation";
-      }
-    }
 
     ResultSet rs = createStatement().executeQuery(sql);
     if (rs.next()) {
@@ -789,17 +777,8 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException if resetting operation failed
    */
   public void reset() throws SQLException {
-    // COM_RESET_CONNECTION exist since mysql 5.7.3 and mariadb 10.2.4
-    // but not possible to use it with mysql waiting for https://bugs.mysql.com/bug.php?id=97633
-    // correction.
-    // and mariadb only since https://jira.mariadb.org/browse/MDEV-18281
     boolean useComReset =
-        conf.useResetConnection()
-            && getContext().getVersion().isMariaDBServer()
-            && (getContext().getVersion().versionGreaterOrEqual(10, 3, 13)
-                || (getContext().getVersion().getMajorVersion() == 10
-                    && getContext().getVersion().getMinorVersion() == 2
-                    && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
+        conf.useResetConnection() && getMetaData().getVersion().versionGreaterOrEqual(7, 5, 2);
 
     if (useComReset) {
       client.execute(ResetPacket.INSTANCE);

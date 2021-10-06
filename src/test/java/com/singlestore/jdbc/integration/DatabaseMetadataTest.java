@@ -1147,7 +1147,6 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsBasic() throws SQLException {
-    cancelForVersion(10, 1); // due to server error MDEV-8984
     if (minVersion(10, 2, 0)) {
       testResultSetColumns(
           sharedConn.getMetaData().getColumns(null, null, null, null),

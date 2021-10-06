@@ -289,12 +289,6 @@ public class ClientImpl implements Client, AutoCloseable {
       commands.add("show status like 'wsrep_local_state'");
     }
 
-    //    if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-    //      commands.add(
-    //          "SET SESSION TRANSACTION "
-    //              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE"));
-    //    }
-
     try {
       List<Completion> res;
       ClientMessage[] msgs = new ClientMessage[commands.size()];
@@ -383,16 +377,7 @@ public class ClientImpl implements Client, AutoCloseable {
       }
     }
 
-    sb.append(",");
-    int major = context.getVersion().getMajorVersion();
-    if (!context.getVersion().isMariaDBServer()
-        && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
-            || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
-      sb.append("transaction_isolation");
-    } else {
-      sb.append("tx_isolation");
-    }
-    sb.append("='").append(conf.transactionIsolation().getValue()).append("'");
+    sb.append(",tx_isolation='").append(conf.transactionIsolation().getValue()).append("'");
 
     return "set " + sb;
   }

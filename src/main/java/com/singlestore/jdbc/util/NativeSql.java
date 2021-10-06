@@ -298,11 +298,7 @@ public final class NativeSql {
 
           case "DOUBLE":
           case "FLOAT":
-            if (context.getVersion().isMariaDBServer()
-                || context.getVersion().versionGreaterOrEqual(8, 0, 17)) {
-              typeParam = "DOUBLE";
-              break;
-            }
+            // SingleStore does not support converting to DOUBLE or FLOAT
             return "0.0+" + value;
 
           case "REAL":

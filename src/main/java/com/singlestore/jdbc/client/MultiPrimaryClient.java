@@ -200,12 +200,6 @@ public class MultiPrimaryClient implements Client {
       currentClient.setSocketTimeout(oldCli.getSocketTimeout());
     }
 
-    if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
-        && !currentClient.getHostAddress().primary
-        && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"));
-    }
-
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
         && currentClient.getContext().getTransactionIsolationLevel()
             != oldCtx.getTransactionIsolationLevel()) {
