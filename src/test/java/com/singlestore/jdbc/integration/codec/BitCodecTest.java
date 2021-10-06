@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -647,7 +648,8 @@ public class BitCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BitCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BitCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BitCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setObject(2, BitSet.valueOf(new byte[] {0x00, 0x01}));
       prep.execute();

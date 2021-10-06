@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -87,7 +88,8 @@ public class PolygonCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon, id INT)");
+    stmt.execute(
+        "CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon, id INT)");
     stmt.execute(
         "INSERT INTO PolygonCodec VALUES "
             + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "

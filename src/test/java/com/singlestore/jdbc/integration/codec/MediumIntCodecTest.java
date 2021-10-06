@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -63,7 +64,9 @@ public class MediumIntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
+                + table
+                + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }

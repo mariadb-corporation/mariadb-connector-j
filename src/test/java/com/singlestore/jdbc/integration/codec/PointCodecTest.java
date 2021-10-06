@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -212,7 +213,8 @@ public class PointCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE PointCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO PointCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setObject(2, new Point(52.1, 12.8));
       prep.execute();

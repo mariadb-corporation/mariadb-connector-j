@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -35,7 +36,8 @@ public class BlobCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB, id INT)");
+    stmt.execute(
+        "CREATE TABLE BlobCodec (t1 TINYBLOB, t2 TINYBLOB, t3 TINYBLOB, t4 TINYBLOB, id INT)");
     stmt.execute(
         "INSERT INTO BlobCodec VALUES ('0', '1', 'some🌟', null, 1), "
             + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null, 2),"
@@ -667,7 +669,8 @@ public class BlobCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BlobCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setBlob(2, (Blob) null);
       prep.execute();

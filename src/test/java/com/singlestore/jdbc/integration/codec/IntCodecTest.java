@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -53,7 +54,9 @@ public class IntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from " + table + " ORDER BY id");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
+                + table
+                + " ORDER BY id");
     assertTrue(rs.next());
     return rs;
   }
@@ -968,7 +971,8 @@ public class IntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE IntCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO IntCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO IntCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setInt(2, 1);
       prep.execute();

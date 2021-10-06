@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -668,7 +669,8 @@ public class DoubleCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DoubleCodec2");
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO DoubleCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setDouble(2, 1D);
       prep.execute();

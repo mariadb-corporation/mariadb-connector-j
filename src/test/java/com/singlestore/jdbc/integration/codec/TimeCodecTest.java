@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -641,7 +642,8 @@ public class TimeCodecTest extends CommonCodecTest {
     stmt.execute("TRUNCATE TABLE TimeCodec2");
     Time tt = Time.valueOf("01:55:12");
     tt.setTime(tt.getTime() + 120);
-    try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(id, t1) VALUES (?, ?)")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO TimeCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setTime(2, tt);
       prep.execute();

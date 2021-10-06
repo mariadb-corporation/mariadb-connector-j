@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -31,11 +32,13 @@ public class YearCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     if (isMariaDBServer()) {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
+      stmt.execute(
+          "CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
       stmt.execute(
           "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null, 1), (80, '1901', '2155', null, 2)");
     } else {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
+      stmt.execute(
+          "CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4), id INT)");
       stmt.execute(
           "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null, 1), (1980, '1901', '2155', null, 2)");
     }

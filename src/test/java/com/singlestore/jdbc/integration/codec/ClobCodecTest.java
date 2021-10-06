@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2021 SingleStore, Inc.
 
 package com.singlestore.jdbc.integration.codec;
 
@@ -762,10 +763,10 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.setInt(1, 5);
       prep.setObject(2, "e🌟3", Types.VARCHAR);
       prep.execute();
-      prep.setInt(1,6);
+      prep.setInt(1, 6);
       prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
-      prep.setInt(1,7);
+      prep.setInt(1, 7);
       prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
       prep.setInt(1, 8);
