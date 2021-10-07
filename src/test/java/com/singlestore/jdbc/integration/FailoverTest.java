@@ -204,13 +204,13 @@ public class FailoverTest extends Common {
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    for (int i = 0; i < 8; i++) {
-      transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
+    for (int i = 0; i < 4; i++) {
+      transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0);
     }
   }
 
-  private void transactionReplayPreparedStatementBatch(
-      boolean text, boolean useBulk, boolean transactionReplay) throws SQLException {
+  private void transactionReplayPreparedStatementBatch(boolean text, boolean transactionReplay)
+      throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_2");
     stmt.execute(
@@ -221,12 +221,7 @@ public class FailoverTest extends Common {
     try (Connection con =
         createProxyCon(
             HaMode.SEQUENTIAL,
-            "&useServerPrepStmts="
-                + !text
-                + "&useBulkStmts="
-                + useBulk
-                + "&transactionReplay="
-                + transactionReplay)) {
+            "&useServerPrepStmts=" + !text + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();

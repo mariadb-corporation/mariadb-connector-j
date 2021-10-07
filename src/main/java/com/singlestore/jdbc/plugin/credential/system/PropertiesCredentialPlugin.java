@@ -16,18 +16,9 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
  * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
  *
  * <p>example : `jdbc:singlestore://host/db?identityType=PROPERTY` will use environment variable
- * MARIADB_USER and MARIADB_PWD
+ * SINGLESTORE_USER and SINGLESTORE_PWD
  *
  * <p>2 options `userKey` and `pwdKey` permits to indicate which environment variable to use.
- */
-/**
- * Authentication using java system properties.
- *
- * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
- *
- * <p>example : `jdbc:singlestore://host/db?credentialType=PROPERTY`
- *
- * <p>2 options `userKey` and `pwdKey` permits to indicate which system properties to use .
  */
 public class PropertiesCredentialPlugin implements CredentialPlugin {
 
@@ -51,10 +42,10 @@ public class PropertiesCredentialPlugin implements CredentialPlugin {
 
     String userKey = this.conf.nonMappedOptions().getProperty("userKey");
     String pwdKey = this.conf.nonMappedOptions().getProperty("pwdKey");
-    String propUser = System.getProperty(userKey != null ? userKey : "mariadb.user");
+    String propUser = System.getProperty(userKey != null ? userKey : "singlestore.user");
 
     return new Credential(
         propUser == null ? userName : propUser,
-        System.getProperty(pwdKey != null ? pwdKey : "mariadb.pwd"));
+        System.getProperty(pwdKey != null ? pwdKey : "singlestore.pwd"));
   }
 }

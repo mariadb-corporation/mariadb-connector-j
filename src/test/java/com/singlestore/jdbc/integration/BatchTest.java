@@ -82,23 +82,10 @@ public class BatchTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       differentParameterType(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
-      differentParameterType(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con);
-    }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
       differentParameterType(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
-      differentParameterType(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
-      differentParameterType(con);
-    }
-    try (Connection con =
-        createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
+    try (Connection con = createCon("&useServerPrepStmts&disablePipeline=true")) {
       differentParameterType(con);
     }
   }
@@ -132,17 +119,16 @@ public class BatchTest extends Common {
 
   @Test
   public void largeBatch() throws SQLException {
-    for (int i = 0; i < 32; i++) {
-      boolean useServerPrepStmts = (i & 2) > 0;
-      boolean useBulkStmts = (i & 4) > 0;
-      boolean allowLocalInfile = (i & 8) > 0;
-      boolean useCompression = (i & 16) > 0;
+    for (int i = 0; i < 8; i++) {
+      boolean useServerPrepStmts = (i & 1) > 0;
+      boolean allowLocalInfile = (i & 2) > 0;
+      boolean useCompression = (i & 4) > 0;
 
       try (Connection con =
           createCon(
               String.format(
-                  "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s",
-                  useServerPrepStmts, useBulkStmts, allowLocalInfile, useCompression))) {
+                  "&useServerPrepStmts=%s&allowLocalInfile=%s&useCompression=%s",
+                  useServerPrepStmts, allowLocalInfile, useCompression))) {
         largeBatch(con);
       }
     }
@@ -178,102 +164,17 @@ public class BatchTest extends Common {
   }
 
   @Test
-  public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
-    int maxAllowedPacket = getMaxAllowedPacket();
-    bulkPacketSplit(2, maxAllowedPacket - 40);
-  }
-
-  @Test
-  public void bulkPacketSplitMultiplePacket() throws SQLException {
-    bulkPacketSplit(4, getMaxAllowedPacket() / 3);
-  }
-
-  @Test
-  public void bulkPacketSplitHugeNbPacket() throws SQLException {
-    bulkPacketSplit(getMaxAllowedPacket() / 8000, 20);
-  }
-
-  public void bulkPacketSplit(int nb, int len) throws SQLException {
-    byte[] arr = new byte[Math.min(16 * 1024 * 1024, len)];
-    for (int pos = 0; pos < arr.length; pos++) {
-      arr[pos] = (byte) ((pos % 60) + 65);
-    }
-
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("TRUNCATE BatchTest");
-      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-      try (PreparedStatement prep =
-          con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
-        for (int i = 1; i <= nb; i++) {
-          prep.setInt(1, i);
-          prep.setBytes(2, arr);
-          prep.addBatch();
-        }
-
-        int[] res = prep.executeBatch();
-        assertEquals(nb, res.length);
-        for (int i = 0; i < nb; i++) {
-          assertTrue(res[i] == 1 || res[i] == Statement.SUCCESS_NO_INFO);
-        }
-      }
-      ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
-      for (int i = 1; i <= nb; i++) {
-        assertTrue(rs.next());
-        assertEquals(i, rs.getInt(1));
-        assertArrayEquals(arr, rs.getBytes(2));
-      }
-      assertFalse(rs.next());
-
-      // check same ending with error
-      stmt.execute("TRUNCATE BatchTest");
-      try (PreparedStatement prep =
-          con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
-        for (int i = 1; i <= nb; i++) {
-          prep.setInt(1, i);
-          prep.setBytes(2, arr);
-          prep.addBatch();
-        }
-        prep.setInt(1, nb);
-        prep.setBytes(2, arr);
-        prep.addBatch();
-
-        BatchUpdateException e =
-            Assertions.assertThrows(BatchUpdateException.class, () -> prep.executeBatch());
-        int[] updateCounts = e.getUpdateCounts();
-        assertEquals(nb + 1, updateCounts.length);
-      }
-      con.rollback();
-      con.rollback();
-    }
-  }
-
-  @Test
   public void batchWithError() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=false")) {
+    try (Connection con = createCon("&useServerPrepStmts=false")) {
       batchWithError(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
+    try (Connection con = createCon("&useServerPrepStmts")) {
       batchWithError(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
+    try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
       batchWithError(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true")) {
-      batchWithError(con);
-    }
-    try (Connection con =
-        createCon("&useServerPrepStmts=false&useBulkStmts=false&allowLocalInfile")) {
-      batchWithError(con);
-    }
-    try (Connection con =
-        createCon("&useServerPrepStmts=false&useBulkStmts=true&allowLocalInfile")) {
-      batchWithError(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
-      batchWithError(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=true&allowLocalInfile")) {
+    try (Connection con = createCon("&useServerPrepStmts&allowLocalInfile")) {
       batchWithError(con);
     }
   }

@@ -131,10 +131,11 @@ public class LoggingTest extends Common {
 
       Assertions.assertTrue(
           contents.contains(
-              "pool MariaDB-pool new physical connection created (total:1, active:0, pending:0)"),
+              "pool SingleStore-pool new physical connection created (total:1, active:0, pending:0)"),
           contents);
       Assertions.assertTrue(
-          contents.contains("pool MariaDB-pool connection removed due to inactivity"), contents);
+          contents.contains("pool SingleStore-pool connection removed due to inactivity"),
+          contents);
 
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
@@ -175,32 +176,32 @@ public class LoggingTest extends Common {
     String certString =
         ""
             + "-----BEGIN CERTIFICATE-----\n"
-            + "MIIDfDCCAmSgAwIBAgIURZJQVOWv+oaj+MLlHWc1B0TnOaowDQYJKoZIhvcNAQEL\n"
-            + "BQAwUjELMAkGA1UEBhMCQ04xCzAJBgNVBAgMAkdEMQswCQYDVQQHDAJTWjESMBAG\n"
-            + "A1UECgwJQWNtZSxJbmMuMRUwEwYDVQQDDAxBY21lIFJvb3QgQ0EwIBcNMjEwMzMw\n"
-            + "MDkwODAxWhgPMjEyMTAzMDYwOTA4MDFaMFMxCzAJBgNVBAYTAkNOMQswCQYDVQQI\n"
-            + "DAJHRDELMAkGA1UEBwwCU1oxEjAQBgNVBAoMCUFjbWUsSW5jLjEWMBQGA1UEAwwN\n"
-            + "Ki5tYXJpYWRiLm9yZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANAJ\n"
-            + "xqbqTGmwO5n3kVd6QJPRSh+0M1HIQacyM/tkE7jLw3725/KtknuwuFbPpxKyTCLC\n"
-            + "IoNx4yaBbmx783OPP3pokXTWiMdrVZdLltBNamNzekNFN4YhR5oN479M5cKgrk94\n"
-            + "Ud+ql0NN5FscrSQ0fSdJf0idJMqThro1MJVp9rp5cdCba6/lKyDbdOybe5f7rmrg\n"
-            + "+37J+src67+rqwVT8ZwZgLTGDf4X9OSIzyw6+PCWYWr89aurrOuOyqA3QqXVRZa/\n"
-            + "IxOMHIdzXMgLN6+HduwdZ+DNv1NPT2MDlRQvOnDop3NoEVKWekOTv50LbKRgWTYO\n"
-            + "TK/dfcsDpZmdyHv7pb8CAwEAAaNHMEUwQwYDVR0RBDwwOoIVbG9jYWxob3N0Lmxv\n"
-            + "Y2FsZG9tYWlugglsb2NhbGhvc3SHBH8AAAGHECABDbg5AjRoAAAAAAAABEMwDQYJ\n"
-            + "KoZIhvcNAQELBQADggEBAHsiJz9cpmL8BTa/o10S+pmap3iOnYYuJT0llCRLJ+Ji\n"
-            + "msO2niyIwqCJHMLcEABCENJt0HDOEKlnunVgc+X/6K8DnPrYhfWQbYI/dwUBoSIQ\n"
-            + "siK/yKW0q+S+YjCVpNMA3iMfhJ9Qe9LDO+xdCBhzplgrV8YwG+J2FUNbZfvl5cML\n"
-            + "TjKLWrWo9dgZyH/7mjwryRzswfUfr/lRARCyrMotaXfYmjPjwTSRc0aPGrEjs3ns\n"
-            + "WMtimgh7Zw3Tbxc51miz9CRy767lq/9BGTdeBLmW0EXssIJb9uO0Ht3C/Pqy0ojk\n"
-            + "8e1eYtofjTsqWHZ1s2LhtT0HvXdL6BnWP9GWc/zxiKM=\n"
+            + "MIIDgjCCAmqgAwIBAgIUa5fj2ylHRanZ8B1vxNLDoUn3YfwwDQYJKoZIhvcNAQEL\n"
+            + "BQAwUzELMAkGA1UEBhMCQ04xCzAJBgNVBAgMAkdEMQswCQYDVQQHDAJTWjETMBEG\n"
+            + "A1UECgwKQWNtZSwgSW5jLjEVMBMGA1UEAwwMQWNtZSBSb290IENBMCAXDTIxMTAw\n"
+            + "NzE0MTY1NVoYDzIxMjEwOTEzMTQxNjU1WjBYMQswCQYDVQQGEwJDTjELMAkGA1UE\n"
+            + "CAwCR0QxCzAJBgNVBAcMAlNaMRMwEQYDVQQKDApBY21lLCBJbmMuMRowGAYDVQQD\n"
+            + "DBEqLnNpbmdsZXN0b3JlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC\n"
+            + "ggEBAN/WPxXQzFFSIdyeBqn76rZoHRvW+iAEK/y4lxnIWP3wus71GzcO4rFuISQO\n"
+            + "ofRTIiIFzzCcNCyF478rddiuNeTlqsJgeC9pNPTrOr77T2qgTzyGTfImtnj1SU4Z\n"
+            + "ef1QWoIOaQm52cM3T2H+UPkVrnOy7G5gbYyzCmOwx2SCD3XoVz/oDqVW6QCFNIIw\n"
+            + "nq6dNuvLU65mGjInQVpeB4x0uWkm5Q5xHESTu8gsxKJOeuW5ehq9AN3ohid/Pr6R\n"
+            + "ohRbtQlGv9xKOzrYZczYt27RmT+MrGLrWMGCrMR72zzm6bST3OXMPIDZKDkb32Jx\n"
+            + "5r/9xqfhq2N+AwlKbHpqeBWM4YkCAwEAAaNHMEUwQwYDVR0RBDwwOoIVbG9jYWxo\n"
+            + "b3N0LmxvY2FsZG9tYWlugglsb2NhbGhvc3SHBH8AAAGHECABDbg5AjRoAAAAAAAA\n"
+            + "BEMwDQYJKoZIhvcNAQELBQADggEBAE9Jo5LGT/c8dVAKIsInk+9SsSkaR7bPLdKU\n"
+            + "pbBttV9flKDvD6JvAmfw+snUp7Zcrm0IVnxFCP3uKCcLXCyFA0eu6w7CrNAfI8a2\n"
+            + "Aw9zKDTq0MaawCmQ0wjCOoHTQn/3tewGTAToppDA++q7HgpEeC+6zyz3iP/mPk0d\n"
+            + "rfKVTFH9hVtimUnR16uN/P1zVemnQ/1zqsRhfQ1ua9fjKaLRweUvygdiz2uhsHDY\n"
+            + "EQFky1SW+gJhLJCqVxx6k4SdbymZNHn/SV0Fj/gt1H4UndM12S9JxSq8fbdL2mHi\n"
+            + "CWSKz9FrVwpCcX0v7XpSIzJhvM9isgF6IA90UkExmmpOwuyKuH0=\n"
             + "-----END CERTIFICATE-----\n";
     CertificateFactory cf = CertificateFactory.getInstance("X.509");
     X509Certificate cert =
         (X509Certificate) cf.generateCertificate(new ByteArrayInputStream(certString.getBytes()));
 
     assertEquals(
-        new X500Principal("CN=*.mariadb.org, O=\"Acme,Inc.\", L=SZ, ST=GD, C=CN"),
+        new X500Principal("CN=*.singlestore.com, O=\"Acme, Inc.\", L=SZ, ST=GD, C=CN"),
         cert.getSubjectX500Principal());
     HostnameVerifier.verify("localhost", cert, -1);
     HostnameVerifier.verify("localhost.localdomain", cert, -1);
@@ -208,21 +209,21 @@ public class LoggingTest extends Common {
         "local.host",
         cert,
         "DNS host \"local.host\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+            + "CN \"*.singlestore.com\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("127.0.0.1", cert, -1);
     verifyExceptionEqual(
         "127.0.0.2",
         cert,
         "IPv4 host \"127.0.0.2\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+            + "CN \"*.singlestore.com\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("2001:db8:3902:3468:0:0:0:443", cert, -1);
     verifyExceptionEqual(
         "2001:db8:1::",
         cert,
         "IPv6 host \"2001:db8:1::\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+            + "CN \"*.singlestore.com\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
 

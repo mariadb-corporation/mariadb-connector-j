@@ -3,14 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.singlestore.jdbc</groupId>
+  <groupId>com.singlestore</groupId>
   <artifactId>singlestore-jdbc-client</artifactId>
   <packaging>jar</packaging>
   <name>singlestore-jdbc-client</name>
   <version>0.1.0</version>
-  <description>JDBC driver for SingleStore and MySQL</description>
-<!--  TODO add description url-->
-<!--  <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>-->
+  <description>JDBC driver for SingleStore</description>
+  <url>https://https://github.com/memsql/S2-JDBC-Connector</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,7 +20,7 @@
     <osgi.compendium.version>5.0.0</osgi.compendium.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <logback.version>1.2.3</logback.version>
-    <jacoco.version>0.8.5</jacoco.version>
+    <jacoco.version>0.8.7</jacoco.version>
   </properties>
 
   <licenses>

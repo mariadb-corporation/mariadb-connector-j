@@ -147,10 +147,6 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
 
-    if (configuration.useBulkStmts()) {
-      capabilities |= Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
-    }
-
     if (!configuration.useAffectedRows()) {
       capabilities |= Capabilities.FOUND_ROWS;
     }

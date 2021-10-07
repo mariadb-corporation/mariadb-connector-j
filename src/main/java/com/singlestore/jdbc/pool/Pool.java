@@ -391,7 +391,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
   private String generatePoolTag(int poolIndex) {
     if (conf.poolName() == null) {
-      return "MariaDB-pool";
+      return "SingleStore-pool";
     }
     return conf.poolName() + "-" + poolIndex;
   }

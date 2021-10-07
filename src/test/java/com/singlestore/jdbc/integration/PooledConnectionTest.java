@@ -154,10 +154,11 @@ public class PooledConnectionTest extends Common {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
       assertTrue(
           contents.contains(
-              "removed from pool MariaDB-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
+              "removed from pool SingleStore-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
       assertTrue(
-          contents.contains("connection removed from pool MariaDB-pool due to error during reset"));
-      assertTrue(contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"));
+          contents.contains(
+              "connection removed from pool SingleStore-pool due to error during reset"));
+      assertTrue(contents.contains("closing pool SingleStore-pool (total:1, active:0, pending:0)"));
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
     }

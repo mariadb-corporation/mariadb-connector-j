@@ -364,7 +364,7 @@ public class PreparedStatementTest extends Common {
   public void executeWrongBatch() throws SQLException {
     //    executeWrongBatch(sharedConn);
     //    executeWrongBatch(sharedConnBinary);
-    try (Connection con = createCon("useBulkStmts=false&useServerPrepStmts=true")) {
+    try (Connection con = createCon("useServerPrepStmts=true")) {
       executeWrongBatch(con);
     }
   }
@@ -392,7 +392,7 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatchMultiple() throws SQLException {
-    try (Connection con = createCon("allowMultiQueries&useBulkStmts=false")) {
+    try (Connection con = createCon("allowMultiQueries")) {
       executeBatchMultiple(con);
     }
   }

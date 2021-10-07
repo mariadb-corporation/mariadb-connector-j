@@ -31,7 +31,7 @@ public final class Pools {
           if (poolExecutor == null) {
             poolExecutor =
                 new ScheduledThreadPoolExecutor(
-                    1, new PoolThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
+                    1, new PoolThreadFactory("SingleStorePool-maxTimeoutIdle-checker"));
           }
           Pool pool = new Pool(conf, poolIndex.incrementAndGet(), poolExecutor);
           poolMap.put(conf, pool);

@@ -799,6 +799,7 @@ public class ConnectionTest extends Common {
     stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
   }
 
+  // TODO: PLAT-5845
   @Test
   public void pamAuthPlugin() throws Throwable {
     // https://mariadb.com/kb/en/authentication-plugin-pam/
@@ -819,7 +820,7 @@ public class ConnectionTest extends Common {
       // might be already set
     }
     stmt.execute("DROP USER IF EXISTS 'testPam'@'%'");
-    stmt.execute("CREATE USER 'testPam'@'%' IDENTIFIED VIA pam USING 'mariadb'");
+    //    stmt.execute("CREATE USER 'testPam'@'%' IDENTIFIED VIA pam USING 'mariadb'");
     stmt.execute("GRANT SELECT ON *.* TO 'testPam'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
 
@@ -1038,19 +1039,5 @@ public class ConnectionTest extends Common {
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-  }
-
-  @Test
-  public void timezone() throws SQLException {
-    try (Connection con = createCon("timezone=GMT-8")) {
-      Statement statement = con.createStatement();
-      ResultSet rs = statement.executeQuery("SELECT @@time_zone");
-      rs.next();
-      assertEquals("-08:00", rs.getString(1));
-    }
-
-    try (Connection con = createCon("timezone=disable")) {
-      con.isValid(1);
-    }
   }
 }

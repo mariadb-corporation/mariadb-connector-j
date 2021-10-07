@@ -75,7 +75,7 @@ public class CredentialPluginTest extends Common {
         () -> createCon("credentialType=PROPERTY&user=identityUser"),
         "Access denied");
 
-    System.setProperty("mariadb.user", "identityUser");
+    System.setProperty("singlestore.user", "identityUser");
     assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=PROPERTY&pwdKey=myPwdKey"),
@@ -89,7 +89,7 @@ public class CredentialPluginTest extends Common {
       assertEquals("5", rs.getString(1));
     }
 
-    System.setProperty("mariadb.pwd", "!Passw0rd3Works");
+    System.setProperty("singlestore.pwd", "!Passw0rd3Works");
 
     try (Connection conn = createCon("credentialType=PROPERTY")) {
       Statement stmt = conn.createStatement();
@@ -151,7 +151,7 @@ public class CredentialPluginTest extends Common {
       assertEquals("5", rs.getString(1));
     }
 
-    tmpEnv.put("MARIADB_USER", "identityUser");
+    tmpEnv.put("SINGLESTORE_USER", "identityUser");
     setEnv(tmpEnv);
 
     try (Connection conn = createCon("credentialType=ENV&pwdKey=myPwdKey")) {
@@ -161,7 +161,7 @@ public class CredentialPluginTest extends Common {
       assertEquals("5", rs.getString(1));
     }
 
-    tmpEnv.put("MARIADB_PWD", "!Passw0rd3Works");
+    tmpEnv.put("SINGLESTORE_PWD", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
     try (Connection conn = createCon("credentialType=ENV")) {
@@ -193,8 +193,8 @@ public class CredentialPluginTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(isMariaDBServer() && haveSsl());
     Map<String, String> tmpEnv = new HashMap<>();
-    tmpEnv.put("MARIADB2_USER", "identityUser");
-    tmpEnv.put("MARIADB2_PWD", "!Passw0rd3Works");
+    tmpEnv.put("SINGLESTORE2_USER", "identityUser");
+    tmpEnv.put("SINGLESTORE2_PWD", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
     assertThrows(SQLException.class, () -> createCon("credentialType=ENVTEST&sslMode=DISABLE"));

@@ -21,7 +21,8 @@ public final class VersionFactory {
           try (InputStream inputStream =
               Version.class.getClassLoader().getResourceAsStream("singlestore.properties")) {
             if (inputStream == null) {
-              System.out.println("property file 'singlestore.properties' not found in the classpath");
+              System.out.println(
+                  "property file 'singlestore.properties' not found in the classpath");
             }
             Properties prop = new Properties();
             prop.load(inputStream);

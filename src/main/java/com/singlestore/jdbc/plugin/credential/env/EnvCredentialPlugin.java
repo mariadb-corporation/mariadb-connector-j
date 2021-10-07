@@ -13,7 +13,7 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
 /**
  * Authentication using environment variable.
  *
- * <p>default implementation use environment variable MARIADB_USER and MARIADB_PWD
+ * <p>default implementation use environment variable SINGLESTORE_USER and SINGLESTORE_PWD
  *
  * <p>example : `jdbc:singlestore://host/db?credentialType=ENV`
  *
@@ -41,9 +41,9 @@ public class EnvCredentialPlugin implements CredentialPlugin {
 
     String userKey = this.conf.nonMappedOptions().getProperty("userKey");
     String pwdKey = this.conf.nonMappedOptions().getProperty("pwdKey");
-    String envUser = System.getenv(userKey != null ? userKey : "MARIADB_USER");
+    String envUser = System.getenv(userKey != null ? userKey : "SINGLESTORE_USER");
     return new Credential(
         envUser == null ? userName : envUser,
-        System.getenv(pwdKey != null ? pwdKey : "MARIADB_PWD"));
+        System.getenv(pwdKey != null ? pwdKey : "SINGLESTORE_PWD"));
   }
 }

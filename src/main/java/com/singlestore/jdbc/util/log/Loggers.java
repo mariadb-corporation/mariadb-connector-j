@@ -9,9 +9,9 @@ import java.util.HashMap;
 
 public final class Loggers {
 
-  public static final String FALLBACK_PROPERTY = "mariadb.logging.fallback";
-  public static final String CONSOLE_DEBUG_PROPERTY = "mariadb.logging.fallback.console.debug";
-  public static final String TEST_ENABLE_SLF4J = "mariadb.logging.slf4j.enable";
+  public static final String FALLBACK_PROPERTY = "singlestore.logging.fallback";
+  public static final String CONSOLE_DEBUG_PROPERTY = "singlestore.logging.fallback.console.debug";
+  public static final String TEST_ENABLE_SLF4J = "singlestore.logging.slf4j.enable";
 
   private static LoggerFactory LOGGER_FACTORY;
 
