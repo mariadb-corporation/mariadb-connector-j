@@ -1,8 +1,8 @@
-# SingleStore java connector
+# SingleStore JDBC Driver (Preview)
 
-## Version: 0.1.0
+## Version: 0.1.0-preview
 
-SingleStore java connector is a JDBC 4.2 compatible driver, used to connect applications developed in Java to SingleStore and MySQL databases. SingleStore Connector/J is LGPL licensed.
+SingleStore JDBC Driver is a JDBC 4.2 compatible driver, used to connect applications developed in Java to SingleStore and MySQL databases. SingleStore JDBC Driver is LGPL licensed.
 
 ## Status
 [![Linux Build](https://circleci.com/gh/memsql/S2-JDBC-Connector/tree/master.svg?branch=master)](https://circleci.com/gh/memsql/S2-JDBC-Connector)
@@ -18,7 +18,7 @@ The driver (jar) can be downloaded from maven :
 <dependency>
 	<groupId>com.singlestore</groupId>
 	<artifactId>singlestore-jdbc-client</artifactId>
-	<version>0.1.0</version>
+	<version>0.1.0-preview</version>
 </dependency>
 ```
 
