@@ -400,11 +400,7 @@ public class Pool implements AutoCloseable, PoolMBean {
     return conf;
   }
 
-  /**
-   * Close pool and underlying connections.
-   *
-   * @throws Exception if interrupted
-   */
+  /** Close pool and underlying connections. */
   @Override
   public void close() {
     try {
