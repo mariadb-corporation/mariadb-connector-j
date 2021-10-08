@@ -96,7 +96,8 @@ public class PolygonCodecTest extends CommonCodecTest {
             + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
             + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null, 1)");
     stmt.execute(
-        "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
+        createRowstore()
+            + " TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =

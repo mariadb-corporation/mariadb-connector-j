@@ -42,7 +42,8 @@ public class LineStringCodecTest extends CommonCodecTest {
         "INSERT INTO LineStringCodec VALUES "
             + "( ST_LineStringFromText('LINESTRING(0 0,0 10,10 0)'), ST_LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), ST_LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null, 1)");
     stmt.execute(
-        "CREATE TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 LineString)");
+        createRowstore()
+            + " TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 LineString)");
     stmt.execute("FLUSH TABLES");
     String binUrl =
         mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";

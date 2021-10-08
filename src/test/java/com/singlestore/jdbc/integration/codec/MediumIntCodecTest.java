@@ -40,7 +40,8 @@ public class MediumIntCodecTest extends CommonCodecTest {
     stmt.execute("INSERT INTO MediumIntCodec VALUES (0, 1, -1, null, 1)");
     stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null, 1)");
     stmt.execute(
-        "CREATE TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
+        createRowstore()
+            + " TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
     stmt.execute("FLUSH TABLES");
   }
 

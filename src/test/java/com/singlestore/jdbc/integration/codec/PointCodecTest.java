@@ -38,7 +38,9 @@ public class PointCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO PointCodec VALUES "
             + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null, 1)");
-    stmt.execute("CREATE TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
+    stmt.execute(
+        createRowstore()
+            + " TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =

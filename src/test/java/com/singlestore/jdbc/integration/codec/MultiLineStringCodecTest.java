@@ -83,7 +83,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
             + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20))'), "
             + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'), null, 1)");
     stmt.execute(
-        "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
+        createRowstore()
+            + " TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =

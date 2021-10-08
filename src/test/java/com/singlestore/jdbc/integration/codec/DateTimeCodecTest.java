@@ -42,7 +42,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
                 ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null, 1)"
                 : ""));
     stmt.execute(
-        "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
+        createRowstore()
+            + " TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
     stmt.execute("FLUSH TABLES");
   }
 

@@ -25,6 +25,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class CharCodecTest extends CommonCodecTest {
+  static String fourByteUnicode = minVersion(7, 5, 0) ? "🌟" : "";
+
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -39,7 +41,9 @@ public class CharCodecTest extends CommonCodecTest {
         "CREATE TABLE CharCodec (t1 CHAR(25), t2 CHAR(25), t3 CHAR(25), t4 CHAR(25), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+        "INSERT INTO CharCodec VALUES ('0', '1', 'some"
+            + fourByteUnicode
+            + "', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null, 2)");
     stmt.execute("FLUSH TABLES");
   }
@@ -82,7 +86,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getObject(2));
     assertEquals("1", rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getObject(3));
+    assertEquals("some" + fourByteUnicode, rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -150,7 +154,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getString(2));
     assertEquals("1", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getString(3));
+    assertEquals("some" + fourByteUnicode, rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -173,7 +177,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getNString(2));
     assertEquals("1", rs.getNString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getNString(3));
+    assertEquals("some" + fourByteUnicode, rs.getNString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -222,7 +226,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (STRING) cannot be decoded as Byte");
+        "value 'some" + fourByteUnicode + "' (STRING) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -246,7 +250,9 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getShort("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getShort(3), "value 'some🌟' cannot be decoded as Short");
+        SQLDataException.class,
+        () -> rs.getShort(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Short");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
     assertTrue(rs.wasNull());
@@ -270,7 +276,9 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getInt("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getInt(3), "value 'some🌟' cannot be decoded as Integer");
+        SQLDataException.class,
+        () -> rs.getInt(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Integer");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getInt(4));
     assertTrue(rs.wasNull());
@@ -296,7 +304,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getLong(3),
-        "value 'some\uD83C\uDF1F' cannot be decoded as Long");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Long");
     assertFalse(rs.wasNull());
     assertEquals(0L, rs.getLong(4));
     assertTrue(rs.wasNull());
@@ -320,7 +328,9 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(1F, rs.getFloat("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getFloat(3), "value 'some🌟' cannot be decoded as Float");
+        SQLDataException.class,
+        () -> rs.getFloat(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Float");
     assertFalse(rs.wasNull());
     assertEquals(0F, rs.getFloat(4));
     assertTrue(rs.wasNull());
@@ -346,7 +356,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(3),
-        "value 'some🌟' cannot be decoded as Double");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Double");
     assertFalse(rs.wasNull());
     assertEquals(0D, rs.getDouble(4));
     assertTrue(rs.wasNull());
@@ -372,7 +382,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(3),
-        "value 'some🌟' cannot be decoded as BigDecimal");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as BigDecimal");
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
     assertTrue(rs.wasNull());
@@ -452,12 +462,12 @@ public class CharCodecTest extends CommonCodecTest {
     rs.next();
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
@@ -466,7 +476,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
@@ -474,7 +484,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
   }
@@ -497,7 +507,8 @@ public class CharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getAsciiStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getAsciiStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getAsciiStream(4));
     assertTrue(rs.wasNull());
@@ -522,7 +533,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)),
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
         rs.getUnicodeStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getUnicodeStream(4));
@@ -547,7 +558,8 @@ public class CharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBinaryStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getBinaryStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBinaryStream(4));
     assertTrue(rs.wasNull());
@@ -570,7 +582,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertArrayEquals("1".getBytes(), rs.getBytes(2));
     assertArrayEquals("1".getBytes(), rs.getBytes("t2alias"));
     assertFalse(rs.wasNull());
-    assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
+    assertArrayEquals(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBytes(4));
     assertTrue(rs.wasNull());
@@ -593,7 +605,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -616,7 +628,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getNCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getNCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -657,7 +669,9 @@ public class CharCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getClob(4));
     assertTrue(rs.wasNull());
@@ -680,7 +694,9 @@ public class CharCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getNClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getNClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNClob(4));
     assertTrue(rs.wasNull());

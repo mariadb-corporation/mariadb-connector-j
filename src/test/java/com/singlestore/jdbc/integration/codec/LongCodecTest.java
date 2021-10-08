@@ -38,7 +38,9 @@ public class LongCodecTest extends CommonCodecTest {
             + "UNSIGNED, id INT)");
     stmt.execute("INSERT INTO LongCodec VALUES (0, 1, -1, null, 1)");
     stmt.execute("INSERT INTO LongCodecUnsigned VALUES (0, 1, 18446744073709551615, null, 1)");
-    stmt.execute("CREATE TABLE LongCodec2 (id int not null primary key auto_increment, t1 BIGINT)");
+    stmt.execute(
+        createRowstore()
+            + " TABLE LongCodec2 (id int not null primary key auto_increment, t1 BIGINT)");
     stmt.execute("FLUSH TABLES");
   }
 

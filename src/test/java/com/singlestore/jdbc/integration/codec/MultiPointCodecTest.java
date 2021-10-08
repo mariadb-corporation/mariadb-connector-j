@@ -42,7 +42,8 @@ public class MultiPointCodecTest extends CommonCodecTest {
         "INSERT INTO MultiPointCodec VALUES "
             + "(ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null, 1)");
     stmt.execute(
-        "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
+        createRowstore()
+            + " TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =

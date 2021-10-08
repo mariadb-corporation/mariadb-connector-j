@@ -6,6 +6,7 @@
 package com.singlestore.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import com.singlestore.jdbc.util.constants.HaMode;
@@ -94,6 +95,12 @@ public class Common {
 
   public static boolean minVersion(int major, int minor, int patch) {
     // TODO PLAT-5820
+    try {
+      return sharedConn.getMetaData().getVersion().versionGreaterOrEqual(major, minor, patch);
+    } catch (SQLException e) {
+      fail();
+    }
+
     return false;
   }
 
@@ -148,6 +155,10 @@ public class Common {
       }
     }
     return Driver.connect(conf);
+  }
+
+  public static String createRowstore() {
+    return minVersion(7, 3, 0) ? "CREATE ROWSTORE" : "CREATE";
   }
 
   @AfterEach

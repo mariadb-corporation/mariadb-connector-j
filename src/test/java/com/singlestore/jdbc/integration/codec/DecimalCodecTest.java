@@ -37,7 +37,8 @@ public class DecimalCodecTest extends CommonCodecTest {
         "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
     stmt.execute("INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null, 1)");
     stmt.execute(
-        "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
+        createRowstore()
+            + " TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
     stmt.execute("FLUSH TABLES");
   }
 

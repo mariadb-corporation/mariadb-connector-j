@@ -34,7 +34,8 @@ public class TimeCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE TimeCodec (t1 TIME(0), t2 TIME(6), t3 TIME(6), t4 TIME, id INT)");
     stmt.execute(
-        "CREATE TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(0))");
+        createRowstore()
+            + " TABLE TimeCodec2 (id int not null primary key auto_increment, t1 TIME(0))");
     stmt.execute(
         "INSERT INTO TimeCodec VALUES ('01:55:12', '01:55:13.2', '-18:30:12.55', null, 1), "
             + "('-838:59:58.999', '838:59:58.999999', '00:00:00', '00:00:00', 2)");
@@ -103,7 +104,7 @@ public class TimeCodecTest extends CommonCodecTest {
 
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
-    testObject(rs, String.class, "01:55:12.000");
+    testObject(rs, String.class, "01:55:12");
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
@@ -141,7 +142,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertEquals("01:55:12.000", rs.getString(1));
+    assertEquals("01:55:12", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("01:55:13.200000", rs.getString(2));
     assertEquals("01:55:13.200000", rs.getString("t2alias"));
@@ -151,8 +152,7 @@ public class TimeCodecTest extends CommonCodecTest {
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertTrue(
-        "-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
+    assertTrue("-838:59:58".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
     assertFalse(rs.wasNull());
     assertEquals("838:59:58.999999", rs.getString(2));
     assertEquals("838:59:58.999999", rs.getString("t2alias"));
@@ -174,7 +174,7 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("01:55:12.000", rs.getNString(1));
+    assertEquals("01:55:12", rs.getNString(1));
     assertFalse(rs.wasNull());
     assertEquals("01:55:13.200000", rs.getNString(2));
     assertEquals("01:55:13.200000", rs.getNString("t2alias"));
@@ -383,7 +383,7 @@ public class TimeCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
 
     rs.next();
-    assertEquals(Duration.parse("PT-838H-59M-58.999S"), rs.getObject(1, Duration.class));
+    assertEquals(Duration.parse("PT-838H-59M-58S"), rs.getObject(1, Duration.class));
     assertFalse(rs.wasNull());
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
@@ -417,7 +417,7 @@ public class TimeCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
 
     rs.next();
-    assertEquals(Duration.parse("PT-838H-59M-58.999S"), rs.getObject(1, Duration.class));
+    assertEquals(Duration.parse("PT-838H-59M-58S"), rs.getObject(1, Duration.class));
     assertFalse(rs.wasNull());
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
@@ -641,7 +641,7 @@ public class TimeCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE TimeCodec2");
     Time tt = Time.valueOf("01:55:12");
-    tt.setTime(tt.getTime() + 120);
+    tt.setTime(tt.getTime() + 120000);
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO TimeCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -663,13 +663,13 @@ public class TimeCodecTest extends CommonCodecTest {
       prep.setObject(2, null, Types.TIME);
       prep.execute();
       prep.setInt(1, 7);
-      prep.setObject(2, Duration.parse("PT23H54M51.84001S"), Types.TIME);
+      prep.setObject(2, Duration.parse("PT23H54M51S"), Types.TIME);
       prep.execute();
       prep.setInt(1, 8);
       prep.setObject(2, Duration.parse("PT23H54M52S"), Types.TIME);
       prep.execute();
       prep.setInt(1, 9);
-      prep.setObject(2, LocalTime.parse("05:29:47.450"), Types.TIME);
+      prep.setObject(2, LocalTime.parse("05:29:47"), Types.TIME);
       prep.execute();
 
       prep.setInt(1, 10);
@@ -708,11 +708,11 @@ public class TimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertNull(rs.getTime(2));
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(2).getTime());
+    assertEquals(Time.valueOf("23:54:51").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
+    assertEquals(Time.valueOf("05:29:47").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
 
@@ -734,11 +734,11 @@ public class TimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertNull(rs.getTime(2));
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(2).getTime());
+    assertEquals(Time.valueOf("23:54:51").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("23:54:52").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
-    assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
+    assertEquals(Time.valueOf("05:29:47").getTime(), rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
   }

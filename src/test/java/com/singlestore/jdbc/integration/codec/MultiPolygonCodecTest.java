@@ -125,7 +125,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
             + "ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
             + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null, 1)");
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
+        createRowstore()
+            + " TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =

@@ -36,7 +36,9 @@ public class DateCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null, 1)"
             + (isMariaDBServer() ? ",('0000-00-00', '1000-01-01', '9999-12-31', null, 1)" : ""));
-    stmt.execute("CREATE TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
+    stmt.execute(
+        createRowstore()
+            + " TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
     stmt.execute("FLUSH TABLES");
   }
 

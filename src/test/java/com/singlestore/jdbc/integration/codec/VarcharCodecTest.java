@@ -27,6 +27,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class VarcharCodecTest extends CommonCodecTest {
+  static String fourByteUnicode = minVersion(7, 5, 0) ? "🌟" : "";
+
   @AfterAll
   public static void after2() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -43,12 +45,15 @@ public class VarcharCodecTest extends CommonCodecTest {
         "CREATE TABLE StringCodec (t1 VARCHAR(20), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null, 1), "
+        "INSERT INTO StringCodec VALUES ('0', '1', 'some"
+            + fourByteUnicode
+            + "', null, 1), "
             + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null, 2), "
             + "('aaaa-bb-cc', '0000-00-00 00:00:00', '23:54:51.840010', null, 3),"
             + "('', '', '', null, 4)");
     stmt.execute(
-        "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
+        createRowstore()
+            + " TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
         "CREATE TABLE StringCodecWrong (t1 VARCHAR(20), id INT) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -94,7 +99,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getObject(2));
     assertEquals("1", rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getObject(3));
+    assertEquals("some" + fourByteUnicode, rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -164,7 +169,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getString(2));
     assertEquals("1", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getString(3));
+    assertEquals("some" + fourByteUnicode, rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -187,7 +192,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getNString(2));
     assertEquals("1", rs.getNString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getNString(3));
+    assertEquals("some" + fourByteUnicode, rs.getNString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -236,7 +241,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (VARSTRING) cannot be decoded as Byte");
+        "value 'some" + fourByteUnicode + "' (VARSTRING) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -267,7 +272,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getShort("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getShort(3), "value 'some🌟' cannot be decoded as Short");
+        SQLDataException.class,
+        () -> rs.getShort(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Short");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
     assertTrue(rs.wasNull());
@@ -291,7 +298,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getInt("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getInt(3), "value 'some🌟' cannot be decoded as Integer");
+        SQLDataException.class,
+        () -> rs.getInt(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Integer");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getInt(4));
     assertTrue(rs.wasNull());
@@ -317,7 +326,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getLong(3),
-        "value 'some\uD83C\uDF1F' cannot be decoded as Long");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Long");
     assertFalse(rs.wasNull());
     assertEquals(0L, rs.getLong(4));
     assertTrue(rs.wasNull());
@@ -341,7 +350,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(1F, rs.getFloat("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getFloat(3), "value 'some🌟' cannot be decoded as Float");
+        SQLDataException.class,
+        () -> rs.getFloat(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Float");
     assertFalse(rs.wasNull());
     assertEquals(0F, rs.getFloat(4));
     assertTrue(rs.wasNull());
@@ -367,7 +378,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(3),
-        "value 'some🌟' cannot be decoded as Double");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Double");
     assertFalse(rs.wasNull());
     assertEquals(0D, rs.getDouble(4));
     assertTrue(rs.wasNull());
@@ -393,7 +404,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(3),
-        "value 'some🌟' cannot be decoded as BigDecimal");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as BigDecimal");
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
     assertTrue(rs.wasNull());
@@ -538,12 +549,12 @@ public class VarcharCodecTest extends CommonCodecTest {
 
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
@@ -552,7 +563,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
@@ -560,7 +571,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
   }
@@ -640,7 +651,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getAsciiStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getAsciiStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getAsciiStream(4));
     assertTrue(rs.wasNull());
@@ -665,7 +677,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)),
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
         rs.getUnicodeStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getUnicodeStream(4));
@@ -690,7 +702,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBinaryStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getBinaryStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBinaryStream(4));
     assertTrue(rs.wasNull());
@@ -713,7 +726,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertArrayEquals("1".getBytes(), rs.getBytes(2));
     assertArrayEquals("1".getBytes(), rs.getBytes("t2alias"));
     assertFalse(rs.wasNull());
-    assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
+    assertArrayEquals(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBytes(4));
     assertTrue(rs.wasNull());
@@ -736,7 +749,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -759,7 +772,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getNCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getNCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -800,7 +813,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getClob(4));
     assertTrue(rs.wasNull());
@@ -823,7 +838,9 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getNClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getNClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNClob(4));
     assertTrue(rs.wasNull());
@@ -863,50 +880,68 @@ public class VarcharCodecTest extends CommonCodecTest {
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO StringParamCodec(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
-      prep.setString(2, "e'\\n🌟'\\'1Ã");
+      prep.setString(2, "e'\\n" + fourByteUnicode + "'\\'1Ã");
       prep.execute();
       prep.setInt(1, 2);
       prep.setString(2, null);
       prep.execute();
       prep.setInt(1, 3);
-      prep.setObject(2, "e🌟2");
+      prep.setObject(2, "e" + fourByteUnicode + "2");
       prep.execute();
       prep.setInt(1, 4);
       prep.setObject(2, null);
       prep.execute();
       prep.setInt(1, 5);
-      prep.setObject(2, "e🌟3", Types.VARCHAR);
+      prep.setObject(2, "e" + fourByteUnicode + "3", Types.VARCHAR);
       prep.execute();
       prep.setInt(1, 6);
       prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
       prep.setInt(1, 7);
-      prep.setAsciiStream(2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.setAsciiStream(
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setInt(1, 8);
       prep.setAsciiStream(
-          2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)),
+          3 + 2 * fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 9);
       prep.setAsciiStream(
-          2, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "4654").getBytes(StandardCharsets.UTF_8)),
+          3L + 2 * fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 10);
-      prep.setAsciiStream(2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)));
+      prep.setAsciiStream(
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setInt(1, 11);
       prep.setAsciiStream(
-          2, new ByteArrayInputStream("e🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)),
+          3 + 2 * fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 12);
       prep.setAsciiStream(
-          2, new ByteArrayInputStream("e🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+          2,
+          new ByteArrayInputStream(
+              ("e" + fourByteUnicode + "4654").getBytes(StandardCharsets.UTF_8)),
+          3L + 2 * fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 13);
-      prep.setNString(2, "e🌟13");
+      prep.setNString(2, "e" + fourByteUnicode + "13");
       prep.execute();
       prep.setInt(1, 14);
-      prep.setNString(2, "e🌟12");
+      prep.setNString(2, "e" + fourByteUnicode + "12");
       prep.execute();
     }
 
@@ -914,134 +949,150 @@ public class VarcharCodecTest extends CommonCodecTest {
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM StringParamCodec ORDER BY id");
     assertTrue(rs.next());
-    assertEquals("e'\\n🌟'\\'1Ã", rs.getString(2));
-    rs.updateString("t1", "f🌟12");
+    assertEquals("e'\\n" + fourByteUnicode + "'\\'1Ã", rs.getString(2));
+    rs.updateString("t1", "f" + fourByteUnicode + "12");
     rs.updateRow();
-    assertEquals("f🌟12", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "12", rs.getString(2));
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertNull(rs.getURL(2));
-    rs.updateString(2, "f🌟125");
+    rs.updateString(2, "f" + fourByteUnicode + "125");
     rs.updateRow();
-    assertEquals("f🌟125", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "125", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟2", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "2", rs.getString(2));
     rs.updateString(2, null);
     rs.updateRow();
     assertNull(rs.getString(2));
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
-    rs.updateObject(2, "f🌟125", JDBCType.VARCHAR, 5);
+    rs.updateObject(
+        2, "f" + fourByteUnicode + "125", JDBCType.VARCHAR, 3 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟12", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "12", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "3", rs.getString(2));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟3654", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "3654", rs.getString(2));
     rs.updateAsciiStream(
-        "t1", new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)));
+        "t1",
+        new ByteArrayInputStream(
+            ("f" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("f🌟3654", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "3654", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟36", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "36", rs.getString(2));
     rs.updateAsciiStream(
-        "t1", new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+        "t1",
+        new ByteArrayInputStream(("f" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)),
+        3 + 2 * fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟36", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "36", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟46", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "46", rs.getString(2));
     rs.updateAsciiStream(
-        "t1", new ByteArrayInputStream("f🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+        "t1",
+        new ByteArrayInputStream(("f" + fourByteUnicode + "4654").getBytes(StandardCharsets.UTF_8)),
+        3L + 2 * fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟46", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "46", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟3654", rs.getString(2));
-    rs.updateAsciiStream(2, new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)));
-    rs.updateRow();
-    assertEquals("f🌟3654", rs.getString(2));
-
-    assertTrue(rs.next());
-    assertEquals("e🌟36", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "3654", rs.getString(2));
     rs.updateAsciiStream(
-        2, new ByteArrayInputStream("f🌟3654".getBytes(StandardCharsets.UTF_8)), 7);
+        2,
+        new ByteArrayInputStream(
+            ("f" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("f🌟36", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "3654", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟46", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "36", rs.getString(2));
     rs.updateAsciiStream(
-        2, new ByteArrayInputStream("f🌟4654".getBytes(StandardCharsets.UTF_8)), 7L);
+        2,
+        new ByteArrayInputStream(("f" + fourByteUnicode + "3654").getBytes(StandardCharsets.UTF_8)),
+        3 + 2 * fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟46", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "36", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟13", rs.getString(2));
-    rs.updateNString(2, "f🌟14");
+    assertEquals("e" + fourByteUnicode + "46", rs.getString(2));
+    rs.updateAsciiStream(
+        2,
+        new ByteArrayInputStream(("f" + fourByteUnicode + "4654").getBytes(StandardCharsets.UTF_8)),
+        3L + 2 * fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟14", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "46", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟12", rs.getString(2));
-    rs.updateNString("t1", "http://f🌟15");
+    assertEquals("e" + fourByteUnicode + "13", rs.getString(2));
+    rs.updateNString(2, "f" + fourByteUnicode + "14");
     rs.updateRow();
-    assertEquals("http://f🌟15", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "14", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e" + fourByteUnicode + "12", rs.getString(2));
+    rs.updateNString("t1", "http://f" + fourByteUnicode + "15");
+    rs.updateRow();
+    assertEquals("http://f" + fourByteUnicode + "15", rs.getString(2));
 
     rs = stmt.executeQuery("SELECT * FROM StringParamCodec ORDER BY id");
     assertTrue(rs.next());
-    assertEquals("f🌟12", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "12", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟125", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "125", rs.getString(2));
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟12", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "12", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "3", rs.getString(2));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("f🌟3654", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "3654", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟36", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "36", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟46", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "46", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟3654", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "3654", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟36", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "36", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟46", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "46", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("f🌟14", rs.getString(2));
-    assertEquals("f🌟14", rs.getObject(2, (Class<String>) null));
+    assertEquals("f" + fourByteUnicode + "14", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "14", rs.getObject(2, (Class<String>) null));
 
     assertTrue(rs.next());
-    assertEquals("http://f🌟15", rs.getObject(2, (Map<String, Class<?>>) null));
-    assertEquals("http://f🌟15", rs.getObject("t1", (Map<String, Class<?>>) null));
+    assertEquals(
+        "http://f" + fourByteUnicode + "15", rs.getObject(2, (Map<String, Class<?>>) null));
+    assertEquals(
+        "http://f" + fourByteUnicode + "15", rs.getObject("t1", (Map<String, Class<?>>) null));
     Map<String, Class<?>> empty = new HashMap<>();
-    assertEquals("http://f🌟15", rs.getObject("t1", empty));
-    assertEquals("http://f🌟15", rs.getURL(2).toString());
-    assertEquals("http://f🌟15", rs.getURL("t1").toString());
+    assertEquals("http://f" + fourByteUnicode + "15", rs.getObject("t1", empty));
+    assertEquals("http://f" + fourByteUnicode + "15", rs.getURL(2).toString());
+    assertEquals("http://f" + fourByteUnicode + "15", rs.getURL("t1").toString());
   }
 
   @Test

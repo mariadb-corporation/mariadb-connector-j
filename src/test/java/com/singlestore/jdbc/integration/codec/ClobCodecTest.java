@@ -25,6 +25,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class ClobCodecTest extends CommonCodecTest {
+  static String fourByteUnicode = minVersion(7, 5, 0) ? "🌟" : "";
+
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
@@ -40,10 +42,13 @@ public class ClobCodecTest extends CommonCodecTest {
         "CREATE TABLE ClobCodec (t1 TINYTEXT, t2 TEXT, t3 MEDIUMTEXT, t4 LONGTEXT, id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+        "INSERT INTO ClobCodec VALUES ('0', '1', 'some"
+            + fourByteUnicode
+            + "', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null, 2)");
     stmt.execute(
-        "CREATE TABLE ClobParamCodec(id int not null primary key auto_increment, t1 TEXT) "
+        createRowstore()
+            + " TABLE ClobParamCodec(id int not null primary key auto_increment, t1 TEXT) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
@@ -87,7 +92,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(new MariaDbClob("1".getBytes()), rs.getObject(2));
     assertEquals(new MariaDbClob("1".getBytes()), rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getObject(3));
+    assertEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -157,7 +164,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getString(2));
     assertEquals("1", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getString(3));
+    assertEquals("some" + fourByteUnicode, rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -180,7 +187,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("1", rs.getNString(2));
     assertEquals("1", rs.getNString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("some🌟", rs.getNString(3));
+    assertEquals("some" + fourByteUnicode, rs.getNString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -229,7 +236,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (BLOB) cannot be decoded as Byte");
+        "value 'some" + fourByteUnicode + "' (MEDIUMBLOB) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -253,7 +260,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getShort("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getShort(3), "value 'some🌟' cannot be decoded as Short");
+        SQLDataException.class,
+        () -> rs.getShort(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Short");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
     assertTrue(rs.wasNull());
@@ -277,7 +286,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(1, rs.getInt("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getInt(3), "value 'some🌟' cannot be decoded as Integer");
+        SQLDataException.class,
+        () -> rs.getInt(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Integer");
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getInt(4));
     assertTrue(rs.wasNull());
@@ -303,7 +314,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getLong(3),
-        "value 'some\uD83C\uDF1F' cannot be decoded as Long");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Long");
     assertFalse(rs.wasNull());
     assertEquals(0L, rs.getLong(4));
     assertTrue(rs.wasNull());
@@ -327,7 +338,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(1F, rs.getFloat("t2alias"));
     assertFalse(rs.wasNull());
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getFloat(3), "value 'some🌟' cannot be decoded as Float");
+        SQLDataException.class,
+        () -> rs.getFloat(3),
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Float");
     assertFalse(rs.wasNull());
     assertEquals(0F, rs.getFloat(4));
     assertTrue(rs.wasNull());
@@ -353,7 +366,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDouble(3),
-        "value 'some🌟' cannot be decoded as Double");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as Double");
     assertFalse(rs.wasNull());
     assertEquals(0D, rs.getDouble(4));
     assertTrue(rs.wasNull());
@@ -379,7 +392,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBigDecimal(3),
-        "value 'some🌟' cannot be decoded as BigDecimal");
+        "value 'some" + fourByteUnicode + "' cannot be decoded as BigDecimal");
     assertFalse(rs.wasNull());
     assertNull(rs.getBigDecimal(4));
     assertTrue(rs.wasNull());
@@ -398,7 +411,9 @@ public class ClobCodecTest extends CommonCodecTest {
 
   public void getDate(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getDate(1), "value '0' (BLOB) cannot be decoded as Date");
+        SQLDataException.class,
+        () -> rs.getDate(1),
+        "value '0' (TINYBLOB) cannot be decoded as Date");
     rs.next();
     assertEquals("2011-01-01", rs.getDate(1).toString());
     assertFalse(rs.wasNull());
@@ -409,7 +424,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
-        "value '23:54:51.840010' (BLOB) cannot be decoded as Date");
+        "value '23:54:51.840010' (MEDIUMBLOB) cannot be decoded as Date");
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
@@ -462,12 +477,12 @@ public class ClobCodecTest extends CommonCodecTest {
 
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
@@ -476,7 +491,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
@@ -484,7 +499,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
-            + TimeZone.getDefault().getDSTSavings(),
+            + TimeZone.getDefault().getOffset(0),
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
@@ -511,7 +526,8 @@ public class ClobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getAsciiStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getAsciiStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getAsciiStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getAsciiStream(4));
     assertTrue(rs.wasNull());
@@ -536,7 +552,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getUnicodeStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)),
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
         rs.getUnicodeStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getUnicodeStream(4));
@@ -561,7 +577,8 @@ public class ClobCodecTest extends CommonCodecTest {
     assertStreamEquals(new ByteArrayInputStream("1".getBytes()), rs.getBinaryStream("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new ByteArrayInputStream("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBinaryStream(3));
+        new ByteArrayInputStream(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getBinaryStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBinaryStream(4));
     assertTrue(rs.wasNull());
@@ -584,7 +601,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertArrayEquals("1".getBytes(), rs.getBytes(2));
     assertArrayEquals("1".getBytes(), rs.getBytes("t2alias"));
     assertFalse(rs.wasNull());
-    assertArrayEquals("some🌟".getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
+    assertArrayEquals(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8), rs.getBytes(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBytes(4));
     assertTrue(rs.wasNull());
@@ -607,7 +624,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -630,7 +647,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream(2));
     assertReaderEquals(new StringReader("1"), rs.getNCharacterStream("t2alias"));
     assertFalse(rs.wasNull());
-    assertReaderEquals(new StringReader("some🌟"), rs.getNCharacterStream(3));
+    assertReaderEquals(new StringReader("some" + fourByteUnicode), rs.getNCharacterStream(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNCharacterStream(4));
     assertTrue(rs.wasNull());
@@ -651,7 +668,7 @@ public class ClobCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),
-        "Data type BLOB (not binary) cannot be decoded as Blob");
+        "Data type TINYBLOB (not binary) cannot be decoded as Blob");
   }
 
   @Test
@@ -671,7 +688,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getClob(4));
     assertTrue(rs.wasNull());
@@ -694,7 +713,9 @@ public class ClobCodecTest extends CommonCodecTest {
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob(2));
     assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob("t2alias"));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getNClob(3));
+    assertStreamEquals(
+        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getNClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNClob(4));
     assertTrue(rs.wasNull());
@@ -704,7 +725,7 @@ public class ClobCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("BLOB", meta.getColumnTypeName(1));
+    assertEquals("TINYBLOB", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.sql.Clob", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
@@ -749,19 +770,20 @@ public class ClobCodecTest extends CommonCodecTest {
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO ClobParamCodec(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
-      prep.setClob(2, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));
+      prep.setClob(
+          2, new MariaDbClob(("e" + fourByteUnicode + "£1").getBytes(StandardCharsets.UTF_8)));
       prep.execute();
       prep.setInt(1, 2);
       prep.setClob(2, (Clob) null);
       prep.execute();
       prep.setInt(1, 3);
-      prep.setObject(2, "e🌟2");
+      prep.setObject(2, "e" + fourByteUnicode + "2");
       prep.execute();
       prep.setInt(1, 4);
       prep.setObject(2, null);
       prep.execute();
       prep.setInt(1, 5);
-      prep.setObject(2, "e🌟3", Types.VARCHAR);
+      prep.setObject(2, "e" + fourByteUnicode + "3", Types.VARCHAR);
       prep.execute();
       prep.setInt(1, 6);
       prep.setObject(2, null, Types.VARCHAR);
@@ -770,15 +792,21 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.setObject(2, null, Types.VARCHAR);
       prep.execute();
       prep.setInt(1, 8);
-      prep.setObject(2, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.setObject(
+          2,
+          new MariaDbClob(("e" + fourByteUnicode + "56").getBytes(StandardCharsets.UTF_8)),
+          Types.CLOB,
+          2 + fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 9);
       prep.setObject(2, longData);
 
-      prep.setClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setClob(
+          2, new MariaDbClob(("e" + fourByteUnicode + "1").getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
       prep.setInt(1, 10);
-      prep.setClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setClob(
+          2, new MariaDbClob(("e" + fourByteUnicode + "1").getBytes(StandardCharsets.UTF_8)));
       prep.addBatch();
       prep.setInt(1, 11);
       prep.setClob(2, longData);
@@ -787,50 +815,64 @@ public class ClobCodecTest extends CommonCodecTest {
       prep.setClob(2, (Clob) null);
       prep.addBatch();
       prep.setInt(1, 13);
-      prep.setObject(2, new MariaDbClob("e🌟56".getBytes(StandardCharsets.UTF_8)), Types.CLOB, 4);
+      prep.setObject(
+          2,
+          new MariaDbClob(("e" + fourByteUnicode + "56").getBytes(StandardCharsets.UTF_8)),
+          Types.CLOB,
+          2 + fourByteUnicode.length());
       prep.addBatch();
       prep.executeBatch();
 
       prep.setInt(1, 14);
-      prep.setCharacterStream(2, new StringReader("e🌟789"));
+      prep.setCharacterStream(2, new StringReader("e" + fourByteUnicode + "789"));
       prep.execute();
       prep.setInt(1, 15);
-      prep.setCharacterStream(2, new StringReader("e🌟890"), 4);
+      prep.setCharacterStream(
+          2, new StringReader("e" + fourByteUnicode + "890"), 2 + fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 16);
       prep.setObject(2, new StringReader(longDataSb.toString()), Types.CLOB);
       prep.execute();
       prep.setInt(1, 17);
-      prep.setObject(2, new StringReader("e🌟568"), Types.CLOB, 4);
+      prep.setObject(
+          2,
+          new StringReader("e" + fourByteUnicode + "568"),
+          Types.CLOB,
+          2 + fourByteUnicode.length());
       prep.execute();
 
       prep.setInt(1, 18);
-      prep.setCharacterStream(2, new StringReader("e🌟789"));
+      prep.setCharacterStream(2, new StringReader("e" + fourByteUnicode + "789"));
       prep.addBatch();
       prep.setInt(1, 19);
-      prep.setCharacterStream(2, new StringReader("e🌟890"), 4);
+      prep.setCharacterStream(
+          2, new StringReader("e" + fourByteUnicode + "890"), 2 + fourByteUnicode.length());
       prep.addBatch();
       prep.executeBatch();
 
       prep.setInt(1, 20);
-      prep.setNClob(2, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
+      prep.setNClob(
+          2, new MariaDbClob(("e" + fourByteUnicode + "1").getBytes(StandardCharsets.UTF_8)));
       prep.execute();
 
       prep.setInt(1, 21);
-      prep.setNClob(2, new MariaDbClob("e🌟145".getBytes(StandardCharsets.UTF_8)));
+      prep.setNClob(
+          2, new MariaDbClob(("e" + fourByteUnicode + "145").getBytes(StandardCharsets.UTF_8)));
       prep.execute();
 
       prep.setInt(1, 22);
-      prep.setNCharacterStream(2, new StringReader("e🌟789"));
+      prep.setNCharacterStream(2, new StringReader("e" + fourByteUnicode + "789"));
       prep.execute();
       prep.setInt(1, 23);
-      prep.setNCharacterStream(2, new StringReader("e🌟890"), 4);
+      prep.setNCharacterStream(
+          2, new StringReader("e" + fourByteUnicode + "890"), 2 + fourByteUnicode.length());
       prep.execute();
       prep.setInt(1, 24);
-      prep.setNCharacterStream(2, new StringReader("e🌟789"));
+      prep.setNCharacterStream(2, new StringReader("e" + fourByteUnicode + "789"));
       prep.execute();
       prep.setInt(1, 25);
-      prep.setNCharacterStream(2, new StringReader("e🌟890"), 4);
+      prep.setNCharacterStream(
+          2, new StringReader("e" + fourByteUnicode + "890"), 2 + fourByteUnicode.length());
       prep.execute();
     }
 
@@ -838,19 +880,21 @@ public class ClobCodecTest extends CommonCodecTest {
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
             .executeQuery("SELECT * FROM ClobParamCodec ORDER BY id");
     assertTrue(rs.next());
-    assertEquals("e🌟£1", rs.getString(2));
-    rs.updateClob(2, new MariaDbClob("f🌟10".getBytes(StandardCharsets.UTF_8)));
+    assertEquals("e" + fourByteUnicode + "£1", rs.getString(2));
+    rs.updateClob(
+        2, new MariaDbClob(("f" + fourByteUnicode + "10").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("f🌟10", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "10", rs.getString(2));
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
-    rs.updateClob("t1", new MariaDbClob("f🌟15".getBytes(StandardCharsets.UTF_8)));
+    rs.updateClob(
+        "t1", new MariaDbClob(("f" + fourByteUnicode + "15").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("f🌟15", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "15", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟2", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "2", rs.getString(2));
     rs.updateClob("t1", (Clob) null);
     rs.updateRow();
     assertNull(rs.getString(2));
@@ -858,45 +902,52 @@ public class ClobCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
-    rs.updateObject("t1", new MariaDbClob("f🌟56".getBytes(StandardCharsets.UTF_8)), 4);
+    rs.updateObject(
+        "t1",
+        new MariaDbClob(("f" + fourByteUnicode + "56").getBytes(StandardCharsets.UTF_8)),
+        2 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("f🌟5", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "5", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟3", rs.getString(2));
-    rs.updateCharacterStream(2, new StringReader("e🌟789"));
+    assertEquals("e" + fourByteUnicode + "3", rs.getString(2));
+    rs.updateCharacterStream(2, new StringReader("e" + fourByteUnicode + "789"));
     rs.updateRow();
-    assertEquals("e🌟789", rs.getString(2));
-
-    assertTrue(rs.next());
-    assertNull(rs.getString(2));
-    rs.updateCharacterStream(2, new StringReader("e🌟789"), 4);
-    rs.updateRow();
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
-    rs.updateCharacterStream(2, new StringReader("e🌟789"), 4L);
+    rs.updateCharacterStream(
+        2, new StringReader("e" + fourByteUnicode + "789"), 2 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(2));
-    rs.updateCharacterStream("t1", new StringReader("e🌟789"));
+    assertNull(rs.getString(2));
+    rs.updateCharacterStream(
+        2, new StringReader("e" + fourByteUnicode + "789"), 2L + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(2));
-    rs.updateCharacterStream("t1", new StringReader("e🌟789"), 4);
+    assertEquals("e" + fourByteUnicode + "5", rs.getString(2));
+    rs.updateCharacterStream("t1", new StringReader("e" + fourByteUnicode + "789"));
     rs.updateRow();
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(2));
-    rs.updateCharacterStream("t1", new StringReader("e🌟789"), 4L);
+    assertEquals("e" + fourByteUnicode + "1", rs.getString(2));
+    rs.updateCharacterStream(
+        "t1", new StringReader("e" + fourByteUnicode + "789"), 2 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals("e" + fourByteUnicode + "1", rs.getString(2));
+    rs.updateCharacterStream(
+        "t1", new StringReader("e" + fourByteUnicode + "789"), 2L + fourByteUnicode.length());
+    rs.updateRow();
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
 
     assertTrue(rs.next());
     assertEquals(longDataSb.toString(), rs.getString(2));
@@ -904,108 +955,112 @@ public class ClobCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
     assertTrue(rs.next());
     assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟1", rs.getString(2));
-    rs.updateNClob(2, new MariaDbClob("g🌟14".getBytes(StandardCharsets.UTF_8)));
+    assertEquals("e" + fourByteUnicode + "1", rs.getString(2));
+    rs.updateNClob(
+        2, new MariaDbClob(("g" + fourByteUnicode + "14").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("g🌟14", rs.getString(2));
+    assertEquals("g" + fourByteUnicode + "14", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟145", rs.getString(2));
-    rs.updateNClob("t1", new MariaDbClob("h🌟14".getBytes(StandardCharsets.UTF_8)));
+    assertEquals("e" + fourByteUnicode + "145", rs.getString(2));
+    rs.updateNClob(
+        "t1", new MariaDbClob(("h" + fourByteUnicode + "14").getBytes(StandardCharsets.UTF_8)));
     rs.updateRow();
-    assertEquals("h🌟14", rs.getString(2));
+    assertEquals("h" + fourByteUnicode + "14", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
-    rs.updateNCharacterStream("t1", new StringReader("e🌟5789"));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
+    rs.updateNCharacterStream("t1", new StringReader("e" + fourByteUnicode + "5789"));
     rs.updateRow();
-    assertEquals("e🌟5789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5789", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
-    rs.updateNCharacterStream("t1", new StringReader("e🌟5789"), 5);
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
+    rs.updateNCharacterStream(
+        "t1", new StringReader("e" + fourByteUnicode + "5789"), 3 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("e🌟57", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "57", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
-    rs.updateNCharacterStream(2, new StringReader("e🌟5789"));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
+    rs.updateNCharacterStream(2, new StringReader("e" + fourByteUnicode + "5789"));
     rs.updateRow();
-    assertEquals("e🌟5789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5789", rs.getString(2));
 
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
-    rs.updateNCharacterStream(2, new StringReader("e🌟5789"), 5);
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
+    rs.updateNCharacterStream(
+        2, new StringReader("e" + fourByteUnicode + "5789"), 3 + fourByteUnicode.length());
     rs.updateRow();
-    assertEquals("e🌟57", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "57", rs.getString(2));
 
     rs = stmt.executeQuery("SELECT * FROM ClobParamCodec ORDER BY id");
     assertTrue(rs.next());
-    assertEquals("f🌟10", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "10", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("f🌟15", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "15", rs.getString(2));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.wasNull());
     assertTrue(rs.next());
-    assertEquals("f🌟5", rs.getString(2));
+    assertEquals("f" + fourByteUnicode + "5", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟7", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "7", rs.getString(2));
     assertTrue(rs.next());
     assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
     assertTrue(rs.next());
     assertEquals(longDataSb.toString(), rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟8", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "8", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("g🌟14", rs.getString(2));
+    assertEquals("g" + fourByteUnicode + "14", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("h🌟14", rs.getString(2));
+    assertEquals("h" + fourByteUnicode + "14", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟57", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "57", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟5789", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "5789", rs.getString(2));
     assertTrue(rs.next());
-    assertEquals("e🌟57", rs.getString(2));
+    assertEquals("e" + fourByteUnicode + "57", rs.getString(2));
   }
 }

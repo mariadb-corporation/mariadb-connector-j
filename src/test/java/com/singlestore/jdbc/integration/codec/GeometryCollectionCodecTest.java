@@ -133,7 +133,8 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
             + "ST_GeomFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), "
             + "null, 1)");
     stmt.execute(
-        "CREATE TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1 GeometryCollection)");
+        createRowstore()
+            + " TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1 GeometryCollection)");
     stmt.execute("FLUSH TABLES");
     String binUrl =
         mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";

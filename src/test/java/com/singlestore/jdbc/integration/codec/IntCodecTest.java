@@ -38,7 +38,8 @@ public class IntCodecTest extends CommonCodecTest {
             + "UNSIGNED, id INT)");
     stmt.execute("INSERT INTO IntCodec VALUES (0, 1, -1, null, 1)");
     stmt.execute("INSERT INTO IntCodecUnsigned VALUES (0, 1, 4294967295, null, 1)");
-    stmt.execute("CREATE TABLE IntCodec2 (id int not null primary key auto_increment, t1 int)");
+    stmt.execute(
+        createRowstore() + " TABLE IntCodec2 (id int not null primary key auto_increment, t1 int)");
     stmt.execute("FLUSH TABLES");
   }
 

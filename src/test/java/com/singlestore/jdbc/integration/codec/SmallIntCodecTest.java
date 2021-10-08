@@ -34,7 +34,8 @@ public class SmallIntCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE SmallIntCodec (t1 SMALLINT, t2 SMALLINT, t3 SMALLINT, t4 SMALLINT, id INT)");
     stmt.execute(
-        "CREATE TABLE SmallIntCodec2 (id int not null primary key auto_increment, t1 SMALLINT)");
+        createRowstore()
+            + " TABLE SmallIntCodec2 (id int not null primary key auto_increment, t1 SMALLINT)");
     stmt.execute(
         "CREATE TABLE SmallIntCodecUnsigned (t1 SMALLINT UNSIGNED, t2 SMALLINT UNSIGNED, t3 SMALLINT UNSIGNED, t4 SMALLINT "
             + "UNSIGNED, id INT)");

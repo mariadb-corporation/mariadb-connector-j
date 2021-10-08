@@ -33,7 +33,9 @@ public class FloatCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE FloatCodec (t1 FLOAT, t2 FLOAT, t3 FLOAT, t4 FLOAT, id INT)");
     stmt.execute("INSERT INTO FloatCodec VALUES (0, 105.21, -1.6, null, 1)");
-    stmt.execute("CREATE TABLE FloatCodec2 (id int not null primary key auto_increment, t1 FLOAT)");
+    stmt.execute(
+        createRowstore()
+            + " TABLE FloatCodec2 (id int not null primary key auto_increment, t1 FLOAT)");
     stmt.execute("FLUSH TABLES");
   }
 

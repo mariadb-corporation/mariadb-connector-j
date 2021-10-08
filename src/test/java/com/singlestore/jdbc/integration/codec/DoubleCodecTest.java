@@ -33,7 +33,8 @@ public class DoubleCodecTest extends CommonCodecTest {
     stmt.execute("CREATE TABLE DoubleCodec (t1 DOUBLE, t2 DOUBLE, t3 DOUBLE, t4 DOUBLE, id INT)");
     stmt.execute("INSERT INTO DoubleCodec VALUES (0, 105.21, -1.6, null, 1)");
     stmt.execute(
-        "CREATE TABLE DoubleCodec2 (id int not null primary key auto_increment, t1 DOUBLE)");
+        createRowstore()
+            + " TABLE DoubleCodec2 (id int not null primary key auto_increment, t1 DOUBLE)");
     stmt.execute("FLUSH TABLES");
   }
 

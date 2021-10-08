@@ -34,7 +34,9 @@ public class BitCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE BitCodec (t1 BIT(1), t2 BIT(4), t3 BIT(16), t4 BIT(24), id INT)");
     stmt.execute("INSERT INTO BitCodec VALUES (b'0000', b'0001', b'0000111100000100', null, 1)");
-    stmt.execute("CREATE TABLE BitCodec2 (id int not null primary key auto_increment, t1 BIT(16))");
+    stmt.execute(
+        createRowstore()
+            + " TABLE BitCodec2 (id int not null primary key auto_increment, t1 BIT(16))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -206,10 +208,10 @@ public class BitCodecTest extends CommonCodecTest {
   public void getByte(ResultSet rs) throws SQLException {
     assertEquals((byte) 0, rs.getByte(1));
     assertFalse(rs.wasNull());
-    assertEquals((byte) 1, rs.getByte(2));
-    assertEquals((byte) 1, rs.getByte("t2alias"));
+    assertEquals((byte) 0, rs.getByte(2));
+    assertEquals((byte) 0, rs.getByte("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals((byte) 15, rs.getByte(3));
+    assertEquals((byte) 0, rs.getByte(3));
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -552,13 +554,19 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) throws SQLException {
-
-    assertEquals(new MariaDbBlob(new byte[] {(byte) 0x00}), rs.getBlob(1));
+    assertEquals(
+        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}),
+        rs.getBlob(1));
     assertFalse(rs.wasNull());
-    assertEquals(new MariaDbBlob(new byte[] {(byte) 0x01}), rs.getBlob(2));
-    assertEquals(new MariaDbBlob(new byte[] {0x01}), rs.getBlob("t2alias"));
+    assertEquals(
+        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
+        rs.getBlob(2));
+    assertEquals(
+        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
+        rs.getBlob("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(new MariaDbBlob(new byte[] {(byte) 15, (byte) 4}), rs.getBlob(3));
+    assertEquals(
+        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 15, 4}), rs.getBlob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBlob(4));
     assertTrue(rs.wasNull());
