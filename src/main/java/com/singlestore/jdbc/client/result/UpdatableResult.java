@@ -456,19 +456,23 @@ public class UpdatableResult extends CompleteResult {
         valueClause.append("?");
         firstParam = false;
       } else {
-        if (colInfo.isPrimaryKey()) {
+        if (colInfo.isPrimaryKey() && !colInfo.isAutoIncrement()) {
           throw exceptionFactory.create(
               String.format(
                   "Cannot call insertRow() not setting value for primary key %s",
                   colInfo.getColumn()));
-        } else if (!colInfo.hasDefault()) {
+        } else {
           if (!firstParam) {
             insertSql.append(",");
             valueClause.append(", ");
           }
           firstParam = false;
           insertSql.append("`").append(colInfo.getColumn()).append("`");
-          valueClause.append("?");
+          if (!colInfo.hasDefault()) {
+            valueClause.append("?");
+          } else {
+            valueClause.append("DEFAULT");
+          }
         }
       }
     }

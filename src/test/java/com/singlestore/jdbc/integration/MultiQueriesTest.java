@@ -52,7 +52,8 @@ public class MultiQueriesTest extends Common {
   public void checkMultiGeneratedKeys() throws SQLException {
     try (Connection connection = createCon("&allowMultiQueries=true")) {
       Statement stmt = connection.createStatement();
-      stmt.execute("SELECT 1; SET @TOTO=3; SELECT 2", java.sql.Statement.RETURN_GENERATED_KEYS);
+      stmt.execute(
+          "SELECT 1; SELECT 3 INTO @TOTO; SELECT 2", java.sql.Statement.RETURN_GENERATED_KEYS);
       ResultSet rs = stmt.getResultSet();
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));

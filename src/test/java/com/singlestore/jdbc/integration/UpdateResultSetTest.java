@@ -30,8 +30,8 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP DATABASE IF EXISTS testConnectorJ");
     stmt.execute("DROP TABLE IF EXISTS testUpdateWhenFetch");
     stmt.execute("DROP TABLE IF EXISTS testExpError");
-    stmt.execute("DROP TABLE IF EXISTS `testDefaultUUID`");
     stmt.execute("DROP TABLE IF EXISTS `test_update_max`");
+    stmt.execute("DROP TABLE IF EXISTS `testDefaultDATETIME`");
     stmt.execute("DROP TABLE IF EXISTS `testAutoIncrement`");
   }
 
@@ -41,37 +41,44 @@ public class UpdateResultSetTest extends Common {
     com.singlestore.jdbc.Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
     stmt.execute(
-        "CREATE TABLE testbasicprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL, CONSTRAINT pk PRIMARY KEY (id))");
+        createRowstore()
+            + " TABLE testbasicprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL, CONSTRAINT pk PRIMARY KEY (id))");
     stmt.execute(
-        "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        createRowstore()
+            + " TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+        createRowstore()
+            + " TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
     stmt.execute(
-        "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        createRowstore()
+            + " TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testAutoIncrement(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        createRowstore()
+            + " TABLE testAutoIncrement(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
 
     stmt.execute(
-        "CREATE TABLE testUpdateWhenFetch("
+        createRowstore()
+            + " TABLE testUpdateWhenFetch("
             + "`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL,"
             + "`t2` VARCHAR(50) NULL default 'default-value',"
             + "PRIMARY KEY (`id`))"
             + "DEFAULT CHARSET=utf8");
     stmt.execute(
-        "CREATE TABLE testExpError ("
+        createRowstore()
+            + " TABLE testExpError ("
             + " `id1` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,"
             + "`t1` varchar(100) DEFAULT NULL,"
             + "`t2` varchar(100) DEFAULT NULL)");
-    if (isMariaDBServer() && minVersion(10, 2, 0)) {
-      stmt.execute(
-          "CREATE TABLE `testDefaultUUID` ("
-              + "`column1` varchar(40) NOT NULL DEFAULT uuid(),"
-              + "`column2` varchar(100) DEFAULT NULL,"
-              + " PRIMARY KEY (`column1`))");
-    }
     stmt.execute(
-        "CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
+        createRowstore()
+            + " TABLE `testDefaultDATETIME` ("
+            + "`column1` DATETIME NOT NULL DEFAULT NOW(),"
+            + "`column2` varchar(100) DEFAULT NULL,"
+            + " PRIMARY KEY (`column1`))");
+    stmt.execute(
+        createRowstore()
+            + " TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
   }
 
   /**
@@ -181,7 +188,7 @@ public class UpdateResultSetTest extends Common {
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
-            "SELECT id1, t1 FROM testAutoIncrement",
+            "SELECT id1, t1 FROM testAutoIncrement ORDER BY id1",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
@@ -191,7 +198,7 @@ public class UpdateResultSetTest extends Common {
       rs.insertRow();
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM testAutoIncrement");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testAutoIncrement ORDER BY id1");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("1", rs.getString(2));
@@ -212,9 +219,11 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("CREATE DATABASE testConnectorJ");
     stmt.execute("DROP TABLE IF EXISTS testMultipleDatabase");
     stmt.execute(
-        "CREATE TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        createRowstore()
+            + " TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testConnectorJ.testMultipleDatabase(`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+        createRowstore()
+            + " TABLE testConnectorJ.testMultipleDatabase(`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
     stmt.executeQuery("INSERT INTO testMultipleDatabase(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
 
@@ -238,7 +247,8 @@ public class UpdateResultSetTest extends Common {
   public void testMeta() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE UpdateWithoutPrimary(`id` INT NOT NULL AUTO_INCREMENT,"
+        createRowstore()
+            + " TABLE UpdateWithoutPrimary(`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL,"
             + "`t2` VARCHAR(50) NULL default 'default-value',"
             + "PRIMARY KEY (`id`))");
@@ -299,7 +309,7 @@ public class UpdateResultSetTest extends Common {
     String utf8escapeQuote = "你好 '' \" \\";
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
-            "SELECT id, t1, t2 FROM testUpdateWhenFetch",
+            "SELECT id, t1, t2 FROM testUpdateWhenFetch ORDER BY id",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
       preparedStatement.setFetchSize(2);
@@ -346,7 +356,7 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.rowUpdated());
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWhenFetch");
+    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWhenFetch ORDER BY id");
     assertTrue(rs.next());
     assertEquals(-1, rs.getInt(1));
     assertEquals("0-1", rs.getString(2));
@@ -375,7 +385,8 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS PrimaryGenerated");
     stmt.execute(
-        "CREATE TABLE PrimaryGenerated("
+        createRowstore()
+            + " TABLE PrimaryGenerated("
             + "`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL,"
             + "`t2` VARCHAR(50) NULL default 'default-value',"
@@ -383,7 +394,7 @@ public class UpdateResultSetTest extends Common {
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
-            "SELECT t1, t2, id FROM PrimaryGenerated",
+            "SELECT t1, t2, id FROM PrimaryGenerated ORDER BY id",
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
@@ -415,7 +426,7 @@ public class UpdateResultSetTest extends Common {
       assertFalse(rs.next());
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
+    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("1-1", rs.getString(2));
@@ -434,10 +445,11 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS testPrimaryGeneratedDefault");
     stmt.execute(
-        "CREATE TABLE testPrimaryGeneratedDefault("
+        createRowstore()
+            + " TABLE testPrimaryGeneratedDefault("
             + "`id` INT NOT NULL AUTO_INCREMENT,"
             + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
-            + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+            + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),"
             + "PRIMARY KEY (`id`))");
 
     try (PreparedStatement preparedStatement =
@@ -493,7 +505,8 @@ public class UpdateResultSetTest extends Common {
       assertFalse(rs.next());
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault");
+    ResultSet rs =
+        stmt.executeQuery("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault ORDER BY id");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("default-value1", rs.getString(2));
@@ -512,7 +525,8 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS testDelete");
     stmt.execute(
-        "CREATE TABLE testDelete("
+        createRowstore()
+            + " TABLE testDelete("
             + "`id` INT NOT NULL,"
             + "`id2` INT NOT NULL,"
             + "`t1` VARCHAR(50),"
@@ -523,7 +537,9 @@ public class UpdateResultSetTest extends Common {
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
-            "SELECT * FROM testDelete", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            "SELECT * FROM testDelete ORDER BY id, id2",
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_UPDATABLE)) {
       ResultSet rs = preparedStatement.executeQuery();
       assertThrows(SQLException.class, () -> rs.deleteRow());
       assertTrue(rs.next());
@@ -552,61 +568,10 @@ public class UpdateResultSetTest extends Common {
   }
 
   @Test
-  public void testUpdateChangingMultiplePrimaryKey() throws Exception {
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS testUpdateChangingMultiplePrimaryKey");
-    stmt.execute(
-        "CREATE TABLE testUpdateChangingMultiplePrimaryKey("
-            + "`id` INT NOT NULL,"
-            + "`id2` INT NOT NULL,"
-            + "`t1` VARCHAR(50),"
-            + "PRIMARY KEY (`id`,`id2`))");
-    stmt.execute(
-        "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
-    try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement(
-            "SELECT * FROM testUpdateChangingMultiplePrimaryKey",
-            ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-
-      assertTrue(rs.next());
-      assertTrue(rs.next());
-      rs.updateInt(1, 4);
-      rs.updateInt(2, -4);
-      rs.updateString(3, "4");
-      rs.updateRow();
-
-      assertEquals(4, rs.getInt(1));
-      assertEquals(-4, rs.getInt(2));
-      assertEquals("4", rs.getString(3));
-    }
-
-    ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdateChangingMultiplePrimaryKey");
-
-    assertTrue(rs.next());
-    assertEquals(1, rs.getInt(1));
-    assertEquals(-1, rs.getInt(2));
-    assertEquals("1", rs.getString(3));
-
-    assertTrue(rs.next());
-    assertEquals(3, rs.getInt(1));
-    assertEquals(-3, rs.getInt(2));
-    assertEquals("3", rs.getString(3));
-
-    assertTrue(rs.next());
-    assertEquals(4, rs.getInt(1));
-    assertEquals(-4, rs.getInt(2));
-    assertEquals("4", rs.getString(3));
-
-    assertFalse(rs.next());
-  }
-
-  @Test
   public void updateBlobClob() throws SQLException, IOException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS updateBlob");
-    stmt.execute("CREATE TABLE updateBlob(id int not null primary key, strm blob)");
+    stmt.execute(createRowstore() + " TABLE updateBlob(id int not null primary key, strm blob)");
     PreparedStatement prep =
         sharedConn.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
     byte[] theBlob = {1, 2, 3, 4, 5, 6};
@@ -749,7 +714,7 @@ public class UpdateResultSetTest extends Common {
   public void insertNoRow() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS insertNoRow");
-    stmt.execute("CREATE TABLE insertNoRow(id int not null primary key, strm blob)");
+    stmt.execute(createRowstore() + " TABLE insertNoRow(id int not null primary key, strm blob)");
     java.sql.Statement st =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = st.executeQuery("select * from insertNoRow");
@@ -777,7 +742,7 @@ public class UpdateResultSetTest extends Common {
   private void refreshRow(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS refreshRow");
-    stmt.execute("CREATE TABLE refreshRow(id int not null primary key, strm text)");
+    stmt.execute(createRowstore() + " TABLE refreshRow(id int not null primary key, strm text)");
 
     java.sql.Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
@@ -829,7 +794,8 @@ public class UpdateResultSetTest extends Common {
   private void testMoveToInsertRow(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS testMoveToInsertRow");
-    stmt.execute("CREATE TABLE testMoveToInsertRow(t2 text, t1 text, id int primary key)");
+    stmt.execute(
+        createRowstore() + " TABLE testMoveToInsertRow(t2 text, t1 text, id int primary key)");
 
     try (PreparedStatement preparedStatement =
         con.prepareStatement(
@@ -848,12 +814,10 @@ public class UpdateResultSetTest extends Common {
       rs.first();
       assertEquals(1, rs.getRow());
 
-      rs.updateInt("id", 2);
       rs.updateString("t1", "t1-bis-value");
       rs.updateRow();
       assertEquals(1, rs.getRow());
 
-      assertEquals(2, rs.getInt("id"));
       assertEquals("t1-bis-value", rs.getString("t1"));
       assertEquals("t2-value", rs.getString("t2"));
 
@@ -931,7 +895,7 @@ public class UpdateResultSetTest extends Common {
   private void cancelRowUpdatesTest(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS cancelRowUpdatesTest");
-    stmt.execute("CREATE TABLE cancelRowUpdatesTest(c text, id int primary key)");
+    stmt.execute(createRowstore() + " TABLE cancelRowUpdatesTest(c text, id int primary key)");
     stmt.execute("INSERT INTO cancelRowUpdatesTest(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
     try (PreparedStatement preparedStatement =
@@ -973,7 +937,7 @@ public class UpdateResultSetTest extends Common {
   private void deleteRowsTest(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS deleteRows");
-    stmt.execute("CREATE TABLE deleteRows(c text, id int primary key)");
+    stmt.execute(createRowstore() + " TABLE deleteRows(c text, id int primary key)");
     stmt.execute("INSERT INTO deleteRows(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
     try (PreparedStatement preparedStatement =
@@ -1003,7 +967,7 @@ public class UpdateResultSetTest extends Common {
   public void updatePosTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS updatePosTest");
-    stmt.execute("CREATE TABLE updatePosTest(c text, id int primary key)");
+    stmt.execute(createRowstore() + " TABLE updatePosTest(c text, id int primary key)");
     stmt.execute("INSERT INTO updatePosTest(id,c) values (1,'1')");
 
     try (PreparedStatement preparedStatement =
@@ -1025,7 +989,10 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.next());
       rs.updateInt(1, 20);
       rs.updateNull(2);
-      rs.updateRow();
+      assertThrowsContains(
+          SQLException.class,
+          rs::updateRow,
+          "Column 'id' affects the shard key. Shard-key-affecting columns cannot be updated.");
       rs.deleteRow();
       assertFalse(rs.next());
       assertThrowsContains(
@@ -1047,7 +1014,8 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS repeatedFieldUpdatable");
     stmt.execute(
-        "CREATE TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1))");
+        createRowstore()
+            + " TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1))");
     stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
     PreparedStatement preparedStatement =
@@ -1063,45 +1031,30 @@ public class UpdateResultSetTest extends Common {
 
   @Test
   public void updatableDefaultPrimaryField() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
-    String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
+    String sql = "SELECT * FROM testDefaultDATETIME WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
       pstmt.execute();
       ResultSet rs = pstmt.getResultSet();
       rs.moveToInsertRow();
       rs.updateString("column2", "x");
-      try {
-        rs.insertRow();
-        if (!isMariaDBServer() || !minVersion(10, 5, 3)) {
-          fail("Must have thrown exception");
-        }
-        rs.next();
-        assertEquals(36, rs.getString(1).length());
-        assertEquals("x", rs.getString(2));
-      } catch (SQLException e) {
-        if (isMariaDBServer() && minVersion(10, 5, 3)) {
-          fail("Must have succeed");
-        }
-        assertTrue(
-            e.getMessage()
-                .contains(
-                    "Cannot call insertRow() not setting value for primary key column1 with "
-                        + "default value before server 10.5"));
-      }
+      assertThrows(
+          SQLException.class,
+          rs::insertRow,
+          "Cannot call insertRow() not setting value for primary key column1");
+
       rs.moveToInsertRow();
-      rs.updateString("column1", "de6f7774-e399-11ea-aa68-c8348e0fed44");
+      rs.updateString("column1", "2020-12-31 23:59:59");
       rs.updateString("column2", "x");
       rs.insertRow();
       rs.next();
-      assertEquals("de6f7774-e399-11ea-aa68-c8348e0fed44", rs.getString(1));
+      assertEquals("2020-12-31 23:59:59", rs.getString(1));
       assertEquals("x", rs.getString(2));
     }
   }
 
   @Test
   public void expectedErrorField() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
     String sql = "SELECT * FROM testExpError t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {

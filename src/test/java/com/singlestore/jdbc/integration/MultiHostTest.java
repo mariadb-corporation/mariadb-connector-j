@@ -133,7 +133,7 @@ public class MultiHostTest extends Common {
                 url
                     + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
-      stmt.execute("SET @con=1");
+      stmt.execute("SELECT 1 INTO @con");
       proxy.restart(50);
 
       ResultSet rs = stmt.executeQuery("SELECT @con");
@@ -281,7 +281,7 @@ public class MultiHostTest extends Common {
                 url
                     + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
-      stmt.execute("SET @con=1");
+      stmt.execute("SELECT 1 INTO @con");
       con.setReadOnly(true);
       con.isValid(1);
       proxy.restart(50);
@@ -300,7 +300,7 @@ public class MultiHostTest extends Common {
                 url
                     + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
-      stmt.execute("SET @con=1");
+      stmt.execute("SELECT 1 INTO @con");
       con.setReadOnly(true);
       con.isValid(1);
       proxy.stop();

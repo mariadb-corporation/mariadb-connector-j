@@ -64,7 +64,7 @@ public class Configuration {
 
   // various
   private boolean autocommit = true;
-  private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
+  private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
   private String geometryDefaultType = null;
