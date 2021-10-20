@@ -140,7 +140,7 @@ public class Common {
 
     rs = stmt.executeQuery("select @@have_ssl");
     assertTrue(rs.next());
-    return "YES".equals(rs.getString(1));
+    return "1".equals(rs.getString(1));
   }
 
   public static Connection createCon(String option) throws SQLException {
@@ -178,6 +178,23 @@ public class Common {
       Class<? extends Exception> expectedType, Executable executable, String expected) {
     Exception e = Assertions.assertThrows(expectedType, executable);
     Assertions.assertTrue(e.getMessage().contains(expected), "real message:" + e.getMessage());
+  }
+
+  public void ensureRange(Statement stmt) throws SQLException {
+    stmt.execute("DROP TABLE IF EXISTS range_1_100;");
+    stmt.execute("CREATE TABLE range_1_100 (n int key);");
+    stmt.execute(
+        "insert into range_1_100 values\n"
+            + "(1), (2), (3), (4), (5), (6), (7), (8), (9), (10),\n"
+            + "(11), (12), (13), (14), (15), (16), (17), (18), (19), (20),\n"
+            + "(21), (22), (23), (24), (25), (26), (27), (28), (29), (30),\n"
+            + "(31), (32), (33), (34), (35), (36), (37), (38), (39), (40),\n"
+            + "(41), (42), (43), (44), (45), (46), (47), (48), (49), (50),\n"
+            + "(51), (52), (53), (54), (55), (56), (57), (58), (59), (60),\n"
+            + "(61), (62), (63), (64), (65), (66), (67), (68), (69), (70),\n"
+            + "(71), (72), (73), (74), (75), (76), (77), (78), (79), (80),\n"
+            + "(81), (82), (83), (84), (85), (86), (87), (88), (89), (90),\n"
+            + "(91), (92), (93), (94), (95), (96), (97), (98), (99), (100);");
   }
 
   @RegisterExtension public Extension watcher = new Follow();

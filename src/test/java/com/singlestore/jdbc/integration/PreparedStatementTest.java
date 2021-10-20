@@ -131,20 +131,19 @@ public class PreparedStatementTest extends Common {
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
       assertEquals(10, rs.getInt(2));
-      if (isMariaDBServer()) {
-        // setMaxRows() has no effect for mysql, since not supporting SET STATEMENT SQL_SELECT_LIMIT
-        assertFalse(rs.next());
-      }
+      // TODO: PLAT-5818
+      // setMaxRows() has no effect for mysql, since not supporting SET STATEMENT SQL_SELECT_LIMIT
+      assertFalse(rs.next());
     }
   }
 
   @Test
   public void executeWithoutAllParameters() throws SQLException {
-    executeWithoutAllParameters(sharedConn);
-    executeWithoutAllParameters(sharedConnBinary);
+    executeWithoutAllParameters(sharedConn, 1);
+    executeWithoutAllParameters(sharedConnBinary, 2);
   }
 
-  public void executeWithoutAllParameters(Connection con) throws SQLException {
+  public void executeWithoutAllParameters(Connection con, int expectValue) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
     try (PreparedStatement preparedStatement =
@@ -157,9 +156,9 @@ public class PreparedStatementTest extends Common {
 
       preparedStatement.setNull(1, Types.VARBINARY);
       preparedStatement.executeUpdate();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1 order by t1, t2");
       assertTrue(rs.next());
-      assertEquals(1, rs.getInt(1));
+      assertEquals(expectValue, rs.getInt(1));
       assertEquals(10, rs.getInt(2));
       assertFalse(rs.next());
     }
@@ -218,7 +217,8 @@ public class PreparedStatementTest extends Common {
   private void executeQuery(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute(
-        "CREATE TEMPORARY TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
+        createRowstore()
+            + " TEMPORARY TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO prepare10(t1, t2) VALUES (5,10), (40,20), (127,45)");
     try (PreparedStatement preparedStatement =
         con.prepareStatement("SELECT * FROM prepare10 WHERE t1 > ?")) {
@@ -242,13 +242,6 @@ public class PreparedStatementTest extends Common {
       assertFalse(rs.next());
       assertThrowsContains(
           SQLException.class, () -> preparedStatement.setInt(-20, 2), "wrong parameter index -20");
-      stmt.execute("ALTER TABLE prepare10 ADD COLUMN t3 varchar(20) default 'tt'");
-      preparedStatement.setInt(1, 20);
-      rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(40, rs.getInt(1));
-      assertEquals(20, rs.getInt(2));
-      assertEquals("tt", rs.getString(3));
     }
 
     try (PreparedStatement preparedStatement =
@@ -401,7 +394,7 @@ public class PreparedStatementTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
     try (PreparedStatement preparedStatement =
-        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);DO 1")) {
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);SELECT 1")) {
       int[] res = preparedStatement.executeBatch();
       assertEquals(0, res.length);
       preparedStatement.setInt(1, 5);
@@ -414,7 +407,7 @@ public class PreparedStatementTest extends Common {
     }
 
     try (PreparedStatement preparedStatement =
-        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);DO 1")) {
+        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);SELECT 1")) {
       preparedStatement.setInt(1, 40);
       preparedStatement.setInt(2, 20);
       preparedStatement.addBatch();
@@ -593,21 +586,27 @@ public class PreparedStatementTest extends Common {
     }
   }
 
+  // TODO: PLAT-5852
   private void moreResults(Connection con) throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
+    Assumptions.assumeTrue(false);
     Statement stmt = con.createStatement();
+    ensureRange(stmt);
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from seq_1_to_10; SELECT * FROM seq_1_to_1000;SELECT 2; END");
-    stmt.execute("CALL multi()");
+        "CREATE PROCEDURE multi() RETURNS QUERY(n int)"
+            + " AS DECLARE q QUERY(n int) = SELECT * from range_1_100 order by n;"
+            + "BEGIN"
+            + " RETURN q; "
+            + "END;");
+    stmt.execute("ECHO multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
     int i = 1;
     while (rs.next()) {
       Assertions.assertEquals(i++, rs.getInt(1));
     }
-    Assertions.assertEquals(1001, i);
+    Assertions.assertEquals(101, i);
     stmt.setFetchSize(3);
     PreparedStatement prep = con.prepareStatement("CALL multi()");
     rs = prep.executeQuery();
@@ -644,6 +643,7 @@ public class PreparedStatementTest extends Common {
     assertTrue(rs.isClosed());
   }
 
+  // TODO: PLAT-5852
   @Test
   public void moreRowLimitedResults() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
@@ -655,13 +655,19 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreRowLimitedResults(Connection con) throws SQLException {
+    Assumptions.assumeTrue(false);
     Statement stmt = con.createStatement();
+    ensureRange(stmt);
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.setMaxRows(5);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from prepare4; SELECT * FROM prepare4;SELECT 2; END");
-    stmt.execute("CALL multi()");
+        "CREATE PROCEDURE multi() RETURNS QUERY(n int)"
+            + " AS DECLARE q QUERY(n int) = SELECT * from range_1_100 order by n;"
+            + "BEGIN"
+            + " RETURN q; "
+            + "END;");
+    stmt.execute("ECHO multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
     int i = 1;
@@ -718,7 +724,6 @@ public class PreparedStatementTest extends Common {
   }
 
   private void prepareWithError(Connection con) throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepareError");
     stmt.setFetchSize(3);
@@ -739,10 +744,10 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void streamNotFinished() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
+    ensureRange(stmt);
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM range_1_100 order by n");
 
     Statement stmt2 = sharedConn.createStatement();
     ResultSet rs2 = stmt2.executeQuery("SELECT 1");
@@ -838,7 +843,7 @@ public class PreparedStatementTest extends Common {
       }
     }
 
-    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM largeMaxRows")) {
+    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM largeMaxRows order by id")) {
       assertEquals(0L, prep.getLargeMaxRows());
       ResultSet rs = prep.executeQuery();
       int i = 0;
@@ -1018,9 +1023,7 @@ public class PreparedStatementTest extends Common {
         st.setInt(i, rnds[i - 1]);
       }
       assertThrowsContains(
-          SQLException.class,
-          () -> st.executeQuery(),
-          "Prepared statement contains too many placeholders");
+          SQLException.class, () -> st.executeQuery(), "Target lists can have at most");
     }
     assertTrue(sharedConnBinary.isValid(1));
   }

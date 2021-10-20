@@ -76,7 +76,7 @@ public class StatementTest extends Common {
     assertEquals(-1, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
     assertEquals(-1, stmt.getUpdateCount());
-    assertFalse(stmt.execute("DO 1"));
+    assertFalse(stmt.execute("SELECT 1 into @test"));
     Assertions.assertNull(stmt.getResultSet());
     assertEquals(0, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
@@ -155,7 +155,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeUpdate("DO 1"));
+    assertEquals(0, stmt.executeUpdate("SELECT 1 INTO @test"));
   }
 
   @Test
@@ -187,7 +187,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeLargeUpdate("DO 1"));
+    assertEquals(0, stmt.executeLargeUpdate("SELECT 1 INTO @test"));
   }
 
   @Test
@@ -196,7 +196,7 @@ public class StatementTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
 
-    rs = stmt.executeQuery("DO 1");
+    rs = stmt.executeQuery("SELECT 1 INTO @test");
     assertFalse(rs.next());
   }
 

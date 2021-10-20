@@ -3,4 +3,3 @@ com.singlestore.jdbc.plugin.authentication.addon.SendGssApiAuthPacket
 com.singlestore.jdbc.plugin.authentication.standard.Ed25519PasswordPlugin
 com.singlestore.jdbc.plugin.authentication.standard.NativePasswordPlugin
 com.singlestore.jdbc.plugin.authentication.standard.SendPamAuthPacket
-com.singlestore.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin

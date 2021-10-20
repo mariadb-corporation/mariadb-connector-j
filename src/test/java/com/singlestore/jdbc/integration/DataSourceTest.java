@@ -43,22 +43,10 @@ public class DataSourceTest extends Common {
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
-    if (minVersion(8, 0, 0)) {
-      if (isMariaDBServer()) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      } else {
-        stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      }
-    } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-    }
+    stmt.execute(
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl + "allowPublicKeyRetrieval");
@@ -77,10 +65,9 @@ public class DataSourceTest extends Common {
       stmt.execute("DROP USER IF EXISTS 'dsUser'");
     }
 
-    // mysql has issue when creating new user with native password
-    if (haveSsl() && !isMariaDBServer() && minVersion(8, 0, 0)) {
+    if (haveSsl()) {
       try (Connection con = createCon("sslMode=trust")) {
-        con.createStatement().execute("DO 1");
+        con.createStatement().execute("SELECT 1");
       }
     }
   }

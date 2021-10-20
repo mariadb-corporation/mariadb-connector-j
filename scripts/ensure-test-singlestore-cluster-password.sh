@@ -105,4 +105,8 @@ if [[ ${CONTAINER_IP} != "${CURRENT_AGG_IP}" ]]; then
     # add aggregator with correct ip
     mysql -u root -h 127.0.0.1 -P 5506 -p"${SINGLESTORE_PASSWORD}" --batch -N -e "add aggregator root:'${SINGLESTORE_PASSWORD}'@'${CONTAINER_IP}':3308"
 fi
+
+# create the database used in tests
+mysql -u root -h 127.0.0.1 -P 5506 -p"${SINGLESTORE_PASSWORD}" -e 'create database if not exists test'
+
 echo "Done!"

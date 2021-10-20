@@ -10,14 +10,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import java.sql.*;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 public class EofTest extends Common {
 
   @Test
   public void basicResultset() throws Exception {
-    Assumptions.assumeTrue(isMariaDBServer());
     try (Connection con = createCon("useEof=false")) {
       basicResultset(con);
     }
@@ -27,7 +25,8 @@ public class EofTest extends Common {
   }
 
   public void basicResultset(Connection con) throws Exception {
-    try (PreparedStatement prep = con.prepareStatement("SELECT * FROM seq_1_to_10 where 1 = ?")) {
+    try (PreparedStatement prep =
+        con.prepareStatement("SELECT * FROM (SELECT 1,2,3,4,5,6,7,8,9,10) where 1 = ?")) {
       prep.setFetchSize(2);
       prep.setMaxRows(4);
       prep.setInt(1, 1);

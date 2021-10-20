@@ -14,14 +14,13 @@ import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.*;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.Locale;
 import org.junit.jupiter.api.*;
 
+// TODO: PLAT-5855
 @DisplayName("SSL tests")
 public class SslTest extends Common {
   private static Integer sslPort;
   private static String baseOptions = "&user=serverAuthUser&password=!Passw0rd3Works";
-  private static String baseMutualOptions = "&user=mutualAuthUser&password=!Passw0rd3Works";
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -34,7 +33,6 @@ public class SslTest extends Common {
     drop();
     Assumptions.assumeTrue(haveSsl());
     createSslUser("serverAuthUser", "REQUIRE SSL");
-    createSslUser("mutualAuthUser", "REQUIRE X509");
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute("FLUSH PRIVILEGES");
@@ -46,35 +44,9 @@ public class SslTest extends Common {
   }
 
   private static void createSslUser(String user, String requirement) throws SQLException {
-    boolean useOldNotation = true;
-    if ((isMariaDBServer() && minVersion(10, 2, 0))
-        || (!isMariaDBServer() && minVersion(8, 0, 0))) {
-      useOldNotation = false;
-    }
     Statement stmt = sharedConn.createStatement();
-    if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS '" + user + "'@'%' " + requirement);
-      stmt.execute(
-          "GRANT SELECT ON *.* TO '"
-              + user
-              + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
-              + requirement);
-    } else {
-      if (!isMariaDBServer() && minVersion(8, 0, 0)) {
-        stmt.execute(
-            "CREATE USER IF NOT EXISTS '"
-                + user
-                + "'@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works' "
-                + requirement);
-      } else {
-        stmt.execute(
-            "CREATE USER IF NOT EXISTS '"
-                + user
-                + "'@'%' IDENTIFIED BY '!Passw0rd3Works' "
-                + requirement);
-      }
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'@'%' ");
-    }
+    stmt.execute(
+        "GRANT SELECT ON *.* TO '" + user + "'@'%' IDENTIFIED BY '!Passw0rd3Works' " + requirement);
   }
 
   private String getSslVersion(Connection con) throws SQLException {
@@ -98,15 +70,10 @@ public class SslTest extends Common {
 
   @Test
   public void mandatorySsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createCon(baseOptions + "&sslMode=trust", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
     assertThrows(SQLException.class, () -> createCon(baseOptions + "&sslMode=disable"));
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
   }
 
   @Test
@@ -118,27 +85,14 @@ public class SslTest extends Common {
             baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrowsContains(
-        SQLNonTransientConnectionException.class,
-        () ->
-            createCon(baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=SSLv3", sslPort),
-        "No appropriate protocol");
-    assertThrowsContains(
-        SQLException.class,
-        () ->
-            createCon(
-                baseMutualOptions + "&sslMode=trust&enabledSslProtocolSuites=unknown", sslPort),
-        "Unsupported SSL protocol 'unknown'");
   }
 
   @Test
   public void enabledSslCipherSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con =
         createCon(
             baseOptions
-                + "&sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                + "&sslMode=trust&enabledSslCipherSuites=TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256",
             sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -146,98 +100,8 @@ public class SslTest extends Common {
         SQLException.class,
         () ->
             createCon(
-                baseMutualOptions + "&sslMode=trust&enabledSslCipherSuites=UNKNOWN_CIPHER",
-                sslPort),
+                baseOptions + "&sslMode=trust&enabledSslCipherSuites=UNKNOWN_CIPHER", sslPort),
         "Unsupported SSL cipher");
-  }
-
-  @Test
-  public void mutualAuthSsl() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
-
-    // without password
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS"),
-                sslPort));
-    // with password
-    try (Connection con =
-        createCon(
-            baseMutualOptions
-                + "&sslMode=trust&keyStore="
-                + System.getenv("TEST_DB_CLIENT_PKCS")
-                + "&keyStorePassword=kspass",
-            sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    // with URL
-    boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
-    try (Connection con =
-        createCon(
-            baseMutualOptions
-                + "&sslMode=trust&keyStore="
-                + "file://"
-                + (isWin ? "/" : "")
-                + System.getenv("TEST_DB_CLIENT_PKCS")
-                + "&keyStorePassword=kspass",
-            sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    // wrong keystore type
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&keyStoreType=JKS&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS"),
-                sslPort));
-    // good keystore type
-    try (Connection con =
-        createCon(
-            baseMutualOptions
-                + "&sslMode=trust&keyStoreType=pkcs12&keyStore="
-                + System.getenv("TEST_DB_CLIENT_PKCS")
-                + "&keyStorePassword=kspass",
-            sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    // with system properties
-    System.setProperty("javax.net.ssl.keyStore", System.getenv("TEST_DB_CLIENT_PKCS"));
-    System.setProperty("javax.net.ssl.keyStorePassword", "kspass");
-    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    // wrong keystore type
-    System.setProperty("javax.net.ssl.keyStoreType", "JKS");
-    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-    try (Connection con = createCon(baseMutualOptions + "&sslMode=trust", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    System.clearProperty("javax.net.ssl.keyStoreType");
-    try (Connection con =
-        createCon(baseMutualOptions + "&sslMode=trust&keyStoreType=JKS", sslPort)) {
-      assertNotNull(getSslVersion(con));
-    }
-
-    // without password
-    System.clearProperty("javax.net.ssl.keyStorePassword");
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () -> createCon(baseMutualOptions + "&sslMode=trust", sslPort));
   }
 
   @Test
@@ -288,15 +152,6 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-
-    assertThrows(
-        SQLNonTransientConnectionException.class,
-        () -> createCon(baseOptions + "&sslMode=VERIFY_CA", sslPort));
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {
@@ -328,7 +183,7 @@ public class SslTest extends Common {
       }
     }
     if (serverCertificatePath == null) {
-      serverCertificatePath = checkFileExists("../../ssl/server.crt");
+      serverCertificatePath = checkFileExists("scripts/ssl/test-ca-cert.pem");
     }
     return serverCertificatePath;
   }
