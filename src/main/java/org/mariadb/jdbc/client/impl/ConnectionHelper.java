@@ -144,8 +144,8 @@ public final class ConnectionHelper {
             | Capabilities.CLIENT_SESSION_TRACK
             | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
 
-    if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
+    if (Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))
+        && (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) != 0) {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
 
