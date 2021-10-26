@@ -83,6 +83,7 @@ public abstract class Result implements ResultSet, Completion {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
+    this.loaded = true;
     this.exceptionFactory = context.getExceptionFactory();
     this.context = context;
     this.data = data;
