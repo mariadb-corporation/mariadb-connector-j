@@ -11,22 +11,23 @@ How to run :
 mvn clean package -P bench -DskipTests
 
 # run all benchmarks
-java -Duser.country=US -Duser.language=en -jar target/benchmarks.jar
+nohup java -Duser.country=US -Duser.language=en -jar target/benchmarks.jar > log.txt
 
 # run a specific benchmark
 java -Duser.country=US -Duser.language=en -jar target/benchmarks.jar "Select_100_cols"
 ```
 
 Configuration by system properties :
-* TEST_HOST: localhost
-* TEST_PORT: 3306
-* TEST_USERNAME: root
-* TEST_PASSWORD: ""
-* TEST_DATABASE: "testj"
+* TEST_HOST: Hostname. default "localhost"
+* TEST_PORT: port. default 3306
+* TEST_USERNAME: user name. default "root"
+* TEST_PASSWORD: password. default ""
+* TEST_DATABASE: database. default "testj"
+* TEST_OTHER: permit adding connection string options. default ""
 
 example: 
 ```script
 mvn clean package -P bench -Dmaven.test.skip
-java -DTEST_PORT=3307 -Duser.country=US -Duser.language=en -jar target/benchmarks.jar "Select_1_user"
+java -DTEST_PORT=3307 -Duser.country=US -Duser.language=en -jar target/benchmarks.jar "Select_100_cols"
 ```
 
