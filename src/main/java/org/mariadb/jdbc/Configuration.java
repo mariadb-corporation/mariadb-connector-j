@@ -1032,19 +1032,25 @@ public class Configuration {
       sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }
     sb.append("//");
-
     for (int i = 0; i < conf.addresses.size(); i++) {
       HostAddress hostAddress = conf.addresses.get(i);
       if (i > 0) {
         sb.append(",");
       }
-      sb.append("address=(host=")
-          .append(hostAddress.host)
-          .append(")")
-          .append("(port=")
-          .append(hostAddress.port)
-          .append(")");
-      sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
+          || (conf.haMode == HaMode.REPLICATION
+              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
+        sb.append(hostAddress.host);
+        if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
+      } else {
+        sb.append("address=(host=")
+            .append(hostAddress.host)
+            .append(")")
+            .append("(port=")
+            .append(hostAddress.port)
+            .append(")");
+        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      }
     }
 
     sb.append("/");
