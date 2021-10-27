@@ -481,25 +481,25 @@ public class StandardClient implements Client, AutoCloseable {
           responseMsg[i] = sendQuery(messages[i]);
         }
         while (readCounter < messages.length) {
-          readCounter++;
-          for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
+          for (int j = 0; j < responseMsg[readCounter]; j++) {
             results.addAll(
                 readResponse(
                     stmt,
-                    messages[readCounter - 1],
+                    messages[readCounter],
                     fetchSize,
                     maxRows,
                     resultSetConcurrency,
                     resultSetType,
                     closeOnCompletion));
           }
+          readCounter++;
         }
       }
       return results;
     } catch (SQLException sqlException) {
 
       // read remaining results
-      for (int i = readCounter; i < messages.length; i++) {
+      for (int i = readCounter + 1; i < messages.length; i++) {
         for (int j = 0; j < responseMsg[i]; j++) {
           try {
             results.addAll(
@@ -546,9 +546,35 @@ public class StandardClient implements Client, AutoCloseable {
       int resultSetType,
       boolean closeOnCompletion)
       throws SQLException {
-    sendQuery(message);
-    return readResponse(
-        stmt, message, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+    int nbResp = sendQuery(message);
+    if (nbResp == 1) {
+      return readResponse(
+          stmt,
+          message,
+          fetchSize,
+          maxRows,
+          resultSetConcurrency,
+          resultSetType,
+          closeOnCompletion);
+    } else {
+      if (streamStmt != null) {
+        streamStmt.fetchRemaining();
+        streamStmt = null;
+      }
+      List<Completion> completions = new ArrayList<>();
+      while (nbResp-- > 0) {
+        readResults(
+            stmt,
+            message,
+            completions,
+            fetchSize,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion);
+      }
+      return completions;
+    }
   }
 
   public List<Completion> readResponse(

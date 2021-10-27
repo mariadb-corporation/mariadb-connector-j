@@ -18,6 +18,6 @@ public final class PingPacket implements ClientMessage {
     writer.initPacket();
     writer.writeByte(0x0e);
     writer.flush();
-    return 0;
+    return 1;
   }
 }

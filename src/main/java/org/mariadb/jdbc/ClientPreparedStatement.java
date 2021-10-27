@@ -416,7 +416,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < Math.min(results.size(), batchParameters.size()); i++) {
+        for (int i = 0; i < updates.length; i++) {
           if (results.get(i) instanceof OkPacket) {
             updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
           } else {

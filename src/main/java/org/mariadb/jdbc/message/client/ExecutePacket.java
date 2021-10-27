@@ -128,7 +128,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   }
 
   public String description() {
-    return command;
+    return "EXECUTE " + command;
   }
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {

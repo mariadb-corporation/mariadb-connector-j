@@ -550,12 +550,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
-      if (results.size() != batchParameters.size()) {
-        for (int i = 0; i < batchParameters.size(); i++) {
+      if (results.size() != updates.length) {
+        for (int i = 0; i < updates.length; i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < Math.min(results.size(), batchParameters.size()); i++) {
+        for (int i = 0; i < updates.length; i++) {
           if (results.get(i) instanceof OkPacket) {
             updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
           } else {
@@ -581,13 +581,17 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       executeInternalPreparedBatch();
 
       long[] updates = new long[batchParameters.size()];
-      if (results.size() != batchParameters.size()) {
-        for (int i = 0; i < batchParameters.size(); i++) {
+      if (results.size() != updates.length) {
+        for (int i = 0; i < updates.length; i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < results.size(); i++) {
-          updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
+        for (int i = 0; i < updates.length; i++) {
+          if (results.get(i) instanceof OkPacket) {
+            updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
+          } else {
+            updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
+          }
         }
       }
 
