@@ -260,11 +260,7 @@ public class MariaDbPoolDataSource
 
   /** Close datasource. */
   public void close() {
-    try {
-      if (pool != null) pool.close();
-    } catch (Exception interrupted) {
-      // eat
-    }
+    pool.close();
   }
 
   public String getPoolName() {

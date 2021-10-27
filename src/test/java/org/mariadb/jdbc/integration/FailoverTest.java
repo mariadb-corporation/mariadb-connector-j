@@ -223,49 +223,94 @@ public class FailoverTest extends Common {
                 + useBulk
                 + "&transactionReplay="
                 + transactionReplay)) {
-      stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
+      execute(con, transactionReplay, threadId);
+      threadId = con.getContext().getThreadId();
+      execute(con, transactionReplay, threadId);
+    }
+  }
 
-      stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test0')");
-      con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test1')");
-      try (PreparedStatement p =
-          con.prepareStatement("INSERT INTO transaction_failover_2 (test) VALUES (?)")) {
-        p.setString(1, "test2");
-        p.execute();
-        p.setString(1, "test3");
-        p.addBatch();
-        p.setString(1, "test4");
-        p.addBatch();
+  private void execute(Connection con, boolean transactionReplay, long threadId) throws SQLException {
+    Statement stmt = con.createStatement();
+
+    stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test0')");
+    con.setAutoCommit(false);
+    stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test1')");
+    try (PreparedStatement p =
+                 con.prepareStatement("INSERT INTO transaction_failover_2 (test) VALUES (?)")) {
+      p.setString(1, "test2");
+      p.execute();
+      p.setString(1, "test3");
+      p.addBatch();
+      p.setString(1, "test4");
+      p.addBatch();
+      p.executeBatch();
+
+      proxy.restart(300);
+      p.setString(1, "test5");
+      p.addBatch();
+      p.setString(1, "test6");
+      p.addBatch();
+
+      if (transactionReplay) {
         p.executeBatch();
+        con.commit();
 
-        proxy.restart(300);
-        p.setString(1, "test5");
-        p.addBatch();
-        p.setString(1, "test6");
-        p.addBatch();
-
-        if (transactionReplay) {
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
+        for (int i = 0; i < 6; i++) {
+          assertTrue(rs.next());
+          assertEquals("test" + i, rs.getString("test"));
+        }
+        con.commit();
+        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        assertFalse(con.getAutoCommit());
+      } else {
+        try {
           p.executeBatch();
-          con.commit();
+          Assertions.fail();
+        } catch (SQLException e) {
+          Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
+          assertTrue(ee.getMessage().contains("In progress transaction was lost"));
+        }
+      }
+    }
+    stmt.execute("TRUNCATE transaction_failover_2");
+    stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test0')");
+    con.setAutoCommit(false);
+    stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test1')");
+    try (PreparedStatement p =
+                 con.prepareStatement("INSERT INTO transaction_failover_2 (test)  VALUES (?)")) {
 
-          ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
-          for (int i = 0; i < 6; i++) {
-            assertTrue(rs.next());
-            assertEquals("test" + i, rs.getString("test"));
-          }
-          con.commit();
-          Assertions.assertTrue(con.getContext().getThreadId() != threadId);
-          assertFalse(con.getAutoCommit());
-        } else {
-          try {
-            p.executeBatch();
-            Assertions.fail();
-          } catch (SQLException e) {
-            Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
-            assertTrue(ee.getMessage().contains("In progress transaction was lost"));
-          }
+      proxy.restart(300);
+      p.setString(1, "test2");
+      p.addBatch();
+      p.setString(1, "test3");
+      p.addBatch();
+      p.setString(1, "test4");
+      p.addBatch();
+      p.setString(1, "test5");
+      p.addBatch();
+
+      if (transactionReplay) {
+        p.executeBatch();
+        con.commit();
+
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
+        for (int i = 0; i < 5; i++) {
+          assertTrue(rs.next());
+          assertEquals("test" + i, rs.getString("test"));
+        }
+        con.commit();
+        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        assertFalse(con.getAutoCommit());
+      } else {
+        try {
+          p.executeBatch();
+          Assertions.fail();
+        } catch (SQLException e) {
+          Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
+          assertTrue(ee.getMessage().contains("In progress transaction was lost"));
         }
       }
     }

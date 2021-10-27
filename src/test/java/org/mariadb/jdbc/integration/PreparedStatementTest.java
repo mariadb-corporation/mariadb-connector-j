@@ -213,6 +213,26 @@ public class PreparedStatementTest extends Common {
     }
   }
 
+  @Test
+  public void tryMaybeNotPreparable() throws SQLException {
+    try (Connection con = createCon("useServerPrepStmts")) {
+      try (PreparedStatement prep = con.prepareStatement("CREATE TABLE maybeCreate(id int)")) {
+        prep.execute();
+      }
+    } finally{
+      sharedConn.createStatement().execute("DROP TABLE IF EXISTS maybeCreate");
+    }
+    try (Connection con = createCon("useServerPrepStmts")) {
+      try (PreparedStatement prep =
+                   con.prepareStatement(
+                           "CREATE PROCEDURE maybeProc(IN  I date) BEGIN SELECT I; END")) {
+        prep.execute();
+      }
+    } finally{
+      sharedConn.createStatement().execute("DROP PROCEDURE IF EXISTS maybeProc");
+    }
+  }
+
   private void executeQuery(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute(

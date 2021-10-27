@@ -51,10 +51,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         resultSetConcurrency,
         defaultFetchSize);
     if (!PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
-      prepareResult = con.getContext().getPrepareCache().get(sql, this);
-      if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(sql), this);
-      }
+      prepareIfNotAlready(sql);
     }
     parameters = new ParameterList();
   }
