@@ -7,30 +7,48 @@ package org.mariadb.jdbc;
 import java.io.Closeable;
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.SQLTimeoutException;
 import java.util.List;
 import java.util.logging.Logger;
-import javax.sql.ConnectionPoolDataSource;
-import javax.sql.DataSource;
-import javax.sql.XAConnection;
-import javax.sql.XADataSource;
-import org.mariadb.jdbc.pool.MariaDbInnerPoolConnection;
+import javax.sql.*;
 import org.mariadb.jdbc.pool.Pool;
 import org.mariadb.jdbc.pool.Pools;
 
 public class MariaDbPoolDataSource
     implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
 
-  private final Pool pool;
+  private Pool pool;
+  private Configuration conf = null;
+  private String url = null;
+  private String user = null;
+  private String password = null;
+  private Integer loginTimeout = null;
+
+  public MariaDbPoolDataSource() {}
 
   public MariaDbPoolDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
-      Configuration conf = Configuration.parse(url);
+      this.url = url;
+      conf = Configuration.parse(url);
       pool = Pools.retrievePool(conf);
     } else {
       throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     }
+  }
+
+  private void config() throws SQLException {
+    if (url == null) throw new SQLException("url not set");
+    conf = Configuration.parse(url);
+    if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
+    if (user != null) {
+      conf = conf.clone(user, password);
+    } else {
+      user = conf.user();
+      password = conf.password();
+    }
+    pool = Pools.retrievePool(conf);
   }
 
   /**
@@ -45,6 +63,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection() throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection().getConnection();
   }
 
@@ -62,6 +81,7 @@ public class MariaDbPoolDataSource
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection(username, password).getConnection();
   }
 
@@ -139,7 +159,9 @@ public class MariaDbPoolDataSource
    */
   @Override
   public int getLoginTimeout() {
-    return pool.getConf().connectTimeout() / 1000;
+    if (loginTimeout != null) return loginTimeout;
+    if (conf != null) return conf.connectTimeout() / 1000;
+    return DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() : 30;
   }
 
   /**
@@ -149,12 +171,13 @@ public class MariaDbPoolDataSource
    * is created, the login timeout is initially 30s.
    *
    * @param seconds the data source login time limit
+   * @throws SQLException if wrong configuration set
    * @see #getLoginTimeout
-   * @since 1.4
    */
   @Override
-  public void setLoginTimeout(int seconds) {
-    pool.getConf().connectTimeout(seconds * 1000);
+  public void setLoginTimeout(int seconds) throws SQLException {
+    loginTimeout = seconds;
+    if (conf != null) config();
   }
 
   /**
@@ -168,37 +191,84 @@ public class MariaDbPoolDataSource
   }
 
   @Override
-  public MariaDbInnerPoolConnection getPooledConnection() throws SQLException {
+  public PooledConnection getPooledConnection() throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection();
   }
 
   @Override
-  public MariaDbInnerPoolConnection getPooledConnection(String username, String password)
+  public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection(username, password);
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection();
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     return pool.getPoolConnection(username, password);
+  }
+
+  /**
+   * Sets the URL for this datasource
+   *
+   * @param url connection string
+   * @throws SQLException if url is not accepted
+   */
+  public void setUrl(String url) throws SQLException {
+    if (Configuration.acceptsUrl(url)) {
+      this.url = url;
+      config();
+    } else {
+      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
+    }
+  }
+
+  /**
+   * Returns the URL for this datasource
+   *
+   * @return the URL for this datasource
+   */
+  public String getUrl() {
+    if (conf == null) return url;
+    return conf.initialUrl();
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public void setUser(String user) throws SQLException {
+    this.user = user;
+    if (conf != null) config();
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) throws SQLException {
+    this.password = password;
+    if (conf != null) config();
   }
 
   /** Close datasource. */
   public void close() {
     try {
-      pool.close();
+      if (pool != null) pool.close();
     } catch (Exception interrupted) {
       // eat
     }
   }
 
   public String getPoolName() {
-    return pool.getPoolTag();
+    return (pool != null) ? pool.getPoolTag() : null;
   }
 
   /**
@@ -207,6 +277,6 @@ public class MariaDbPoolDataSource
    * @return current thread id's
    */
   public List<Long> testGetConnectionIdleThreadIds() {
-    return pool.testGetConnectionIdleThreadIds();
+    return (pool != null) ? pool.testGetConnectionIdleThreadIds() : null;
   }
 }
