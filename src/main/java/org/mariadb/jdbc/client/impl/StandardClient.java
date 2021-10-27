@@ -481,49 +481,50 @@ public class StandardClient implements Client, AutoCloseable {
           responseMsg[i] = sendQuery(messages[i]);
         }
         while (readCounter < messages.length) {
-          for (int j = 0; j < responseMsg[readCounter]; j++) {
+          readCounter++;
+          for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
             results.addAll(
                 readResponse(
                     stmt,
-                    messages[readCounter],
+                    messages[readCounter - 1],
                     fetchSize,
                     maxRows,
                     resultSetConcurrency,
                     resultSetType,
                     closeOnCompletion));
           }
-          readCounter++;
         }
       }
       return results;
     } catch (SQLException sqlException) {
-
-      // read remaining results
-      for (int i = readCounter + 1; i < messages.length; i++) {
-        for (int j = 0; j < responseMsg[i]; j++) {
-          try {
-            results.addAll(
-                readResponse(
-                    stmt,
-                    messages[i],
-                    fetchSize,
-                    maxRows,
-                    resultSetConcurrency,
-                    resultSetType,
-                    closeOnCompletion));
-          } catch (SQLException e) {
-            // eat
+      if (!closed) {
+        // read remaining results
+        for (int i = readCounter; i < messages.length; i++) {
+          for (int j = 0; j < responseMsg[i]; j++) {
+            try {
+              results.addAll(
+                  readResponse(
+                      stmt,
+                      messages[i],
+                      fetchSize,
+                      maxRows,
+                      resultSetConcurrency,
+                      resultSetType,
+                      closeOnCompletion));
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
-      }
 
-      // prepare associated to PrepareStatement need to be uncached
-      for (Completion result : results) {
-        if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
-          try {
-            ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
-          } catch (SQLException e) {
-            // eat
+        // prepare associated to PrepareStatement need to be uncached
+        for (Completion result : results) {
+          if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
+            try {
+              ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
       }
