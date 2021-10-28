@@ -231,14 +231,15 @@ public class FailoverTest extends Common {
     }
   }
 
-  private void execute(Connection con, boolean transactionReplay, long threadId) throws SQLException {
+  private void execute(Connection con, boolean transactionReplay, long threadId)
+      throws SQLException {
     Statement stmt = con.createStatement();
 
     stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test0')");
     con.setAutoCommit(false);
     stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test1')");
     try (PreparedStatement p =
-                 con.prepareStatement("INSERT INTO transaction_failover_2 (test) VALUES (?)")) {
+        con.prepareStatement("INSERT INTO transaction_failover_2 (test) VALUES (?)")) {
       p.setString(1, "test2");
       p.execute();
       p.setString(1, "test3");
@@ -280,7 +281,7 @@ public class FailoverTest extends Common {
     con.setAutoCommit(false);
     stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test1')");
     try (PreparedStatement p =
-                 con.prepareStatement("INSERT INTO transaction_failover_2 (test)  VALUES (?)")) {
+        con.prepareStatement("INSERT INTO transaction_failover_2 (test)  VALUES (?)")) {
 
       proxy.restart(300);
       p.setString(1, "test2");

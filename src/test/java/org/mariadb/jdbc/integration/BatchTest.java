@@ -164,10 +164,9 @@ public class BatchTest extends Common {
     assertEquals("2", rs.getString(2));
     assertFalse(rs.next());
 
-
     stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =
-                 con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+        con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
       prep.setInt(1, 1);
       prep.setInt(2, 1);
       prep.addBatch();
