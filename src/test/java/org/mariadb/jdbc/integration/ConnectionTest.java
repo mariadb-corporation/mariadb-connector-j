@@ -16,6 +16,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.integration.util.SocketFactoryBasicTest;
 import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 
 @DisplayName("Connection Test")
@@ -37,6 +38,18 @@ public class ConnectionTest extends Common {
     } catch (SQLException e) {
       assertTrue(e.getMessage().contains("the value supplied for timeout is negative"));
     }
+  }
+
+  @Test
+  void missingHost() {
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:mariadb:///db"),
+        "hostname must be set to connect socket if not using local socket or pipe");
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:mariadb:///db?socketFactory=test"),
+        "hostname must be set to connect socket");
   }
 
   @Test
@@ -882,30 +895,29 @@ public class ConnectionTest extends Common {
     if (rs != null) {
       assertTrue(rs.next());
       System.out.println("named_pipe:" + rs.getString(1));
-      if (rs.getBoolean(1)) {
-        String namedPipeName = rs.getString(2);
-        System.out.println("namedPipeName:" + namedPipeName);
+      Assumptions.assumeTrue(rs.getBoolean(1));
+      String namedPipeName = rs.getString(2);
+      System.out.println("namedPipeName:" + namedPipeName);
 
-        // skip test if no namedPipeName was obtained because then we do not use a socket connection
-        Assumptions.assumeTrue(namedPipeName != null);
-        try (Connection connection = createCon("pipe=" + namedPipeName)) {
-          java.sql.Statement stmt = connection.createStatement();
-          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-            assertTrue(rs2.next());
-          }
+      // skip test if no namedPipeName was obtained because then we do not use a socket connection
+      Assumptions.assumeTrue(namedPipeName != null);
+      try (Connection connection = createCon("pipe=" + namedPipeName)) {
+        java.sql.Statement stmt = connection.createStatement();
+        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+          assertTrue(rs2.next());
         }
-        // connection without host name
-        try (java.sql.Connection connection =
-            DriverManager.getConnection(
-                "jdbc:mariadb:///"
-                    + sharedConn.getCatalog()
-                    + mDefUrl.substring(mDefUrl.indexOf("?user="))
-                    + "&pipe="
-                    + namedPipeName)) {
-          java.sql.Statement stmt = connection.createStatement();
-          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-            assertTrue(rs2.next());
-          }
+      }
+      // connection without host name
+      try (java.sql.Connection connection =
+          DriverManager.getConnection(
+              "jdbc:mariadb:///"
+                  + sharedConn.getCatalog()
+                  + mDefUrl.substring(mDefUrl.indexOf("?user="))
+                  + "&pipe="
+                  + namedPipeName)) {
+        java.sql.Statement stmt = connection.createStatement();
+        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+          assertTrue(rs2.next());
         }
       }
     }
@@ -969,9 +981,14 @@ public class ConnectionTest extends Common {
 
   @Test
   public void socketFactoryTest() throws SQLException {
+    try (Connection conn = createCon("socketFactory=" + SocketFactoryBasicTest.class.getName())) {
+      conn.isValid(1);
+    }
+
     try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
       conn.isValid(1);
     }
+
     Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> createCon("socketFactory=wrongClass"),

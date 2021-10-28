@@ -17,6 +17,7 @@ import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -120,7 +121,12 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
                     closeOnCompletion);
-        results = res.subList(1, res.size());
+        // in case of failover, prepare is done in failover, skipping prepare result
+        if (res.get(0) instanceof PrepareResultPacket) {
+          results = res.subList(1, res.size());
+        } else {
+          results = res;
+        }
       } else {
         results =
             con.getClient()

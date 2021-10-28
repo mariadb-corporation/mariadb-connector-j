@@ -108,6 +108,9 @@ public final class ConnectionHelper {
       throws SQLException {
     Socket socket;
     try {
+      if (conf.pipe() == null && conf.localSocket() == null && hostAddress == null)
+        throw new SQLException(
+            "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
       SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
@@ -192,16 +195,12 @@ public final class ConnectionHelper {
   public static byte decideLanguage(InitialHandshakePacket handshake) {
     short serverLanguage = handshake.getDefaultCollation();
     // return current server utf8mb4 collation
-    if (serverLanguage == 45 // utf8mb4_general_ci
-        || serverLanguage == 46 // utf8mb4_bin
-        || (serverLanguage >= 224 && serverLanguage <= 247)) {
-      return (byte) serverLanguage;
-    }
-    if (!handshake.getVersion().versionGreaterOrEqual(5, 5, 0)) {
-      // 5.1 version doesn't know 4 bytes utf8
-      return (byte) 33; // utf8_general_ci
-    }
-    return (byte) 224; // UTF8MB4_UNICODE_CI;
+    return (byte)
+        ((serverLanguage == 45 // utf8mb4_general_ci
+                || serverLanguage == 46 // utf8mb4_bin
+                || (serverLanguage >= 224 && serverLanguage <= 247))
+            ? serverLanguage
+            : 224); // UTF8MB4_UNICODE_CI;
   }
 
   public static void authenticationHandler(

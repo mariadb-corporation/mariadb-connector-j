@@ -18,26 +18,21 @@ public class SocketUtility {
    */
   @SuppressWarnings("unchecked")
   public static SocketHandlerFunction getSocketHandler() {
-    try {
-      // forcing use of JNA to ensure AOT compilation
-      Platform.getOSType();
+    // forcing use of JNA to ensure AOT compilation
+    Platform.getOSType();
 
-      return (conf, hostAddress) -> {
-        if (conf.pipe() != null) {
-          return new NamedPipeSocket(hostAddress != null ? hostAddress.host : null, conf.pipe());
-        } else if (conf.localSocket() != null) {
-          try {
-            return new UnixDomainSocket(conf.localSocket());
-          } catch (RuntimeException re) {
-            throw new IOException(re.getMessage(), re.getCause());
-          }
-        } else {
-          return ConnectionHelper.standardSocket(conf, hostAddress);
+    return (conf, hostAddress) -> {
+      if (conf.pipe() != null) {
+        return new NamedPipeSocket(hostAddress != null ? hostAddress.host : null, conf.pipe());
+      } else if (conf.localSocket() != null) {
+        try {
+          return new UnixDomainSocket(conf.localSocket());
+        } catch (RuntimeException re) {
+          throw new IOException(re.getMessage(), re.getCause());
         }
-      };
-    } catch (Throwable cle) {
-      // jna jar's are not in classpath
-    }
-    return ConnectionHelper::standardSocket;
+      } else {
+        return ConnectionHelper.standardSocket(conf, hostAddress);
+      }
+    };
   }
 }

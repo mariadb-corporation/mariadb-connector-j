@@ -239,7 +239,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   }
 
   @Override
-  public void close() {
+  public void close() throws SQLException {
     if (!closed) {
       closed = true;
       try {

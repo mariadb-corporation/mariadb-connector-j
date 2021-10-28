@@ -60,7 +60,7 @@ public class MultiPrimaryClient implements Client {
    * searching in temporary denied host if not succeed, until reaching `retriesAllDown` attempts.
    *
    * @param readOnly must connect a replica / primary
-   * @param failFast must try only not denyed server
+   * @param failFast must try only not denied server
    * @return a valid connection client
    * @throws SQLException if not succeed to create a connection.
    */
@@ -86,7 +86,7 @@ public class MultiPrimaryClient implements Client {
     if (failFast) {
       throw (lastSqle != null)
           ? lastSqle
-          : new SQLNonTransientConnectionException("No host not blacklisted");
+          : new SQLNonTransientConnectionException("all hosts are blacklisted");
     }
 
     // All server corresponding to type are in deny list
@@ -224,8 +224,6 @@ public class MultiPrimaryClient implements Client {
         case java.sql.Connection.TRANSACTION_SERIALIZABLE:
           query += " SERIALIZABLE";
           break;
-        default:
-          throw new SQLException("Unsupported transaction isolation level");
       }
       currentClient
           .getContext()
@@ -395,9 +393,6 @@ public class MultiPrimaryClient implements Client {
 
   @Override
   public void close() throws SQLException {
-    if (closed) {
-      throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
-    }
     closed = true;
     currentClient.close();
   }

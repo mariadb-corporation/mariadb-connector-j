@@ -470,6 +470,9 @@ public class PreparedStatementParametersTest extends Common {
     String st = new String(arr);
     bigSendError(sharedConn, st);
     bigSendError(sharedConnBinary, st);
+    try (Connection con = createCon("transactionReplay")) {
+      bigSendError(con, st);
+    }
   }
 
   public void bigSendError(Connection con, String st) throws SQLException {

@@ -161,34 +161,45 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @throws SQLException if IOException / Command error
    */
   private void executeBatchBulk(String cmd) throws SQLException {
-    ClientMessage[] packets;
+    List<Completion> res;
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-    if (prepareResult == null) {
-      packets =
-          new ClientMessage[] {
-            new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
-          };
-    } else {
-      packets =
-          new ClientMessage[] {new BulkExecutePacket(prepareResult, batchParameters, cmd, this)};
-    }
     try {
-      List<Completion> res =
-          con.getClient()
-              .executePipeline(
-                  packets,
-                  this,
-                  0,
-                  maxRows,
-                  ResultSet.CONCUR_READ_ONLY,
-                  ResultSet.TYPE_FORWARD_ONLY,
-                  closeOnCompletion);
-      // in case of failover, prepare is done in failover, skipping prepare result
-      if (res.get(0) instanceof PrepareResultPacket) {
-        results = res.subList(1, res.size());
+      if (prepareResult == null) {
+        ClientMessage[] packets;
+        packets =
+            new ClientMessage[] {
+              new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
+            };
+        res =
+            con.getClient()
+                .executePipeline(
+                    packets,
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion);
+
+        // in case of failover, prepare is done in failover, skipping prepare result
+        if (res.get(0) instanceof PrepareResultPacket) {
+          results = res.subList(1, res.size());
+        } else {
+          results = res;
+        }
       } else {
-        results = res;
+        results =
+            con.getClient()
+                .execute(
+                    new BulkExecutePacket(prepareResult, batchParameters, cmd, this),
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion);
       }
+
     } catch (SQLException bue) {
       results = null;
       throw exceptionFactory()

@@ -211,6 +211,9 @@ public class PreparedStatementTest extends Common {
     try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=false")) {
       executeQuery(con);
     }
+    try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=true")) {
+      executeQuery(con);
+    }
   }
 
   @Test

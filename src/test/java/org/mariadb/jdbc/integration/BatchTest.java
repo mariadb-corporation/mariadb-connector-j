@@ -134,8 +134,8 @@ public class BatchTest extends Common {
     assertEquals(2, rs.getInt(1));
     assertEquals("2", rs.getString(2));
     assertFalse(rs.next());
-
     stmt.execute("TRUNCATE BatchTest");
+
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
       prep.setInt(1, 1);
@@ -192,6 +192,24 @@ public class BatchTest extends Common {
       prep.setInt(2, 2);
       prep.addBatch();
       int[] res = prep.executeBatch();
+      assertEquals(2, res.length);
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
+
+      stmt.execute("TRUNCATE BatchTest");
+      if (isMariaDBServer()) {
+        stmt.setFetchSize(1);
+        rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
+        rs.next();
+      }
+      prep.setInt(1, 1);
+      prep.setString(2, "1");
+      prep.addBatch();
+
+      prep.setInt(1, 2);
+      prep.setInt(2, 2);
+      prep.addBatch();
+      res = prep.executeBatch();
       assertEquals(2, res.length);
       assertEquals(1, res[0]);
       assertEquals(1, res[1]);

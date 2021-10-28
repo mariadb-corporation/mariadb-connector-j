@@ -104,6 +104,81 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void closedConnectionMulti() throws Exception {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && isMariaDBServer());
+
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
+                hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+
+    url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//%s:%s,%s,%s/",
+                hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+  }
+
+  private void testClosedConn(Connection con) throws SQLException {
+    PreparedStatement prep = con.prepareStatement("SELECT ?");
+    PreparedStatement prep2 = con.prepareStatement("SELECT 1, ?");
+    prep2.setString(1, "1");
+    prep2.execute();
+    Statement stmt = con.createStatement();
+    stmt.setFetchSize(1);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_1000");
+    rs.next();
+
+    con.close();
+
+    prep.setString(1, "1");
+    assertThrowsContains(SQLException.class, () -> prep.execute(), "Connection is closed");
+    assertThrowsContains(SQLException.class, () -> prep2.execute(), "Connection is closed");
+    assertThrowsContains(
+        SQLException.class, () -> rs.next(), "Error while streaming resultSet data");
+    assertThrowsContains(SQLException.class, () -> prep2.close(), "Connection is closed");
+    con.close();
+    assertThrowsContains(SQLException.class, () -> con.abort(null), "Connection is closed");
+    assertNotNull(con.getWaitTimeout());
+    assertNotNull(con.getClient().getHostAddress());
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.getClient().readStreamingResults(null, 0, 0, 0, 0, true),
+        "Connection is closed");
+    con.getClient().reset();
+  }
+
+  @Test
   public void masterFailover() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
