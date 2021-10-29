@@ -910,11 +910,12 @@ public class ConnectionTest extends Common {
       // connection without host name
       try (java.sql.Connection connection =
           DriverManager.getConnection(
-              "jdbc:mariadb:///"
-                  + sharedConn.getCatalog()
-                  + mDefUrl.substring(mDefUrl.indexOf("?user="))
-                  + "&pipe="
-                  + namedPipeName)) {
+              String.format(
+                  "jdbc:mariadb:///%s?%s&pipe=%s&tcpAbortiveClose&tcpKeepAlive",
+                  sharedConn.getCatalog(),
+                  mDefUrl.substring(mDefUrl.indexOf("?user=") + 1),
+                  namedPipeName))) {
+        connection.setNetworkTimeout(null, 300);
         java.sql.Statement stmt = connection.createStatement();
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
           assertTrue(rs2.next());
@@ -942,10 +943,10 @@ public class ConnectionTest extends Common {
 
     try (java.sql.Connection connection =
         DriverManager.getConnection(
-            "jdbc:mariadb:///"
-                + sharedConn.getCatalog()
-                + "?user=testSocket&password=MySup5%rPassw@ord&localSocket="
-                + path)) {
+            String.format(
+                "jdbc:mariadb:///%s?user=testSocket&password=%s&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+                sharedConn.getCatalog(), "MySup5%rPassw@ord", path))) {
+      connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }

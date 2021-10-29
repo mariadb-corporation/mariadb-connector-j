@@ -702,9 +702,6 @@ public class PacketWriter implements Writer {
   public void setMaxAllowedPacket(int maxAllowedPacket) {
     this.maxAllowedPacket = maxAllowedPacket;
     maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 4);
-    if (out instanceof CompressOutputStream) {
-      ((CompressOutputStream) out).setMaxAllowedPacket(maxAllowedPacket);
-    }
   }
 
   public void permitTrace(boolean permitTrace) {

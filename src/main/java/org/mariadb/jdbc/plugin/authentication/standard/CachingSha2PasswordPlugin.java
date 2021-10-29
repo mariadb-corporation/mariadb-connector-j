@@ -160,14 +160,9 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 }
               }
 
-              try {
-                byte[] cipherBytes = encrypt(publicKey, authenticationData, seed);
-                out.writeBytes(cipherBytes);
-                out.flush();
-              } catch (Exception ex) {
-                throw new SQLException(
-                    "Could not connect using SHA256 plugin : " + ex.getMessage(), "S1009", ex);
-              }
+              byte[] cipherBytes = encrypt(publicKey, authenticationData, seed);
+              out.writeBytes(cipherBytes);
+              out.flush();
             }
 
             return in.readPacket(true);

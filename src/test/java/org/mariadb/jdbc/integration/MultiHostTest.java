@@ -206,16 +206,47 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
-
       ResultSet rs = stmt.executeQuery("SELECT @con");
       rs.next();
       assertNull(rs.getString(1));
     }
     Thread.sleep(50);
+    // same in transaction
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=100")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION");
+      stmt.execute("SET @con=1");
+
+      proxy.restart(50);
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "In progress transaction was lost");
+    }
+    Thread.sleep(50);
+    // testing blacklisted
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION");
+      stmt.execute("SET @con=1");
+
+      proxy.restart(50);
+      ResultSet rs = stmt.executeQuery("SELECT @con");
+      rs.next();
+      assertEquals(1, rs.getInt(1));
+    }
 
     // with transaction replay
     try (Connection con =

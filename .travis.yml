@@ -44,14 +44,16 @@ jobs:
     - env: srv=mariadb v=10.2 local=1
     - env: srv=mariadb v=10.3 local=1
     - env: srv=mariadb v=10.4 local=1
-    - env: srv=mariadb v=10.6 local=1
-    - env: srv=mariadb v=10.5 packet=40
-    - env: srv=mariadb v=10.5 packet=8
-    - env: srv=mariadb v=10.5 BENCH=1
+    - env: srv=mariadb v=10.5 local=1
+    - env: srv=mariadb v=10.6 packet=40
+    - env: srv=mariadb v=10.6 packet=8
+    - env: srv=mariadb v=10.6 BENCH=1
     - if: type = push AND fork = false
       env: srv=maxscale
     - if: type = push AND fork = false
       env: srv=build v=10.6
+    - if: type = push AND fork = false
+      env: srv=mariadb-es v=10.6
     - if: type = push AND fork = false
       env: srv=mysql v=5.7
     - if: type = push AND fork = false

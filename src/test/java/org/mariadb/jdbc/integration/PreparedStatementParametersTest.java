@@ -468,14 +468,14 @@ public class PreparedStatementParametersTest extends Common {
       arr[pos] = (char) ('A' + (pos % 60));
     }
     String st = new String(arr);
-    bigSendError(sharedConn, st);
-    bigSendError(sharedConnBinary, st);
+    bigSendError(sharedConn, st, true);
+    bigSendError(sharedConnBinary, st, true);
     try (Connection con = createCon("transactionReplay")) {
-      bigSendError(con, st);
+      bigSendError(con, st, false);
     }
   }
 
-  public void bigSendError(Connection con, String st) throws SQLException {
+  public void bigSendError(Connection con, String st, boolean expectClose) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE bigTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
@@ -486,9 +486,9 @@ public class PreparedStatementParametersTest extends Common {
           SQLException.class,
           prep::execute,
           "Packet too big for current server max_allowed_packet value");
-      assertFalse(con.isClosed());
+      assertEquals(expectClose, con.isClosed());
     }
-    con.commit();
+    if (!con.isClosed()) con.commit();
   }
 
   @Test
@@ -507,14 +507,17 @@ public class PreparedStatementParametersTest extends Common {
     }
     String st = new String(arr);
     try (Connection con = createCon()) {
-      bigSendErrorMax(con, st);
+      bigSendErrorMax(con, st, true);
     }
     try (Connection con = createCon("useServerPrepStmts=true")) {
-      bigSendErrorMax(con, st);
+      bigSendErrorMax(con, st, true);
+    }
+    try (Connection con = createCon("transactionReplay")) {
+      bigSendError(con, st, true);
     }
   }
 
-  public void bigSendErrorMax(Connection con, String st) throws SQLException {
+  public void bigSendErrorMax(Connection con, String st, boolean expectClose) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE bigTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
@@ -525,7 +528,7 @@ public class PreparedStatementParametersTest extends Common {
           SQLNonTransientConnectionException.class,
           prep::execute,
           "Packet too big for current server max_allowed_packet value");
-      assertTrue(con.isClosed());
+      assertEquals(expectClose, con.isClosed());
     }
   }
 

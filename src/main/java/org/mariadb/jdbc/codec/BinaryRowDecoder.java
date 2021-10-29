@@ -118,9 +118,6 @@ public class BinaryRowDecoder extends RowDecoder {
           default:
             int type = this.readBuf.readUnsignedByte();
             switch (type) {
-              case 251:
-                break;
-
               case 252:
                 this.readBuf.skip(this.readBuf.readUnsignedShort());
                 break;
@@ -174,13 +171,6 @@ public class BinaryRowDecoder extends RowDecoder {
         // field with variable length
         int len = this.readBuf.readUnsignedByte();
         switch (len) {
-          case 251:
-            // null length field
-            // must never occur
-            // null value are set in NULL-Bitmap, not send with a null length indicator.
-            throw new IllegalStateException(
-                "null data is encoded in binary protocol but NULL-Bitmap is not set");
-
           case 252:
             // length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
             length = this.readBuf.readUnsignedShort();

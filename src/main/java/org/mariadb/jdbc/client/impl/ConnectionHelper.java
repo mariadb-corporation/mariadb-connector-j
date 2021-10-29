@@ -169,9 +169,9 @@ public final class ConnectionHelper {
     }
 
     // useEof is a technical option
-    boolean useEof =
-        Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("useEof", "true"));
-    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0 && useEof) {
+    boolean deprecateEof =
+        Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("deprecateEof", "true"));
+    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0 && deprecateEof) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }
 

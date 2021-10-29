@@ -137,36 +137,24 @@ public interface ClientMessage {
         int fieldCount = buf.readLengthNotNull();
 
         Column[] ci;
-        if (context.canSkipMeta() && this.canSkipMeta()) {
-          boolean skipMeta = buf.readByte() == 0;
-          if (skipMeta) {
-            ci = ((BasePreparedStatement) stmt).getMeta();
-          } else {
-            // read columns information's
-            ci = new Column[fieldCount];
-            for (int i = 0; i < fieldCount; i++) {
-              ci[i] =
-                  new ColumnDefinitionPacket(
-                      reader.readPacket(false, traceEnable), context.isExtendedInfo());
-            }
-            ((BasePreparedStatement) stmt).updateMeta(ci);
-            if (!context.isEofDeprecated()) {
-              // skip intermediate EOF
-              reader.readPacket(true, traceEnable);
-            }
-          }
+        boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
+        boolean skipMeta = canSkipMeta ? buf.readByte() == 0 : false;
+        if (canSkipMeta && skipMeta) {
+          ci = ((BasePreparedStatement) stmt).getMeta();
         } else {
           // read columns information's
-          ci = new ColumnDefinitionPacket[fieldCount];
+          ci = new Column[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
                 new ColumnDefinitionPacket(
                     reader.readPacket(false, traceEnable), context.isExtendedInfo());
           }
-          if (!context.isEofDeprecated()) {
-            // skip intermediate EOF
-            reader.readPacket(true, traceEnable);
-          }
+        }
+        if (canSkipMeta && !skipMeta) ((BasePreparedStatement) stmt).updateMeta(ci);
+
+        // intermediate EOF
+        if (!context.isEofDeprecated()) {
+          reader.readPacket(true, traceEnable);
         }
 
         // read resultSet

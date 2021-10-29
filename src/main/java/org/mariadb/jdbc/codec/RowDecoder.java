@@ -183,16 +183,9 @@ public abstract class RowDecoder {
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
           mapper.putIfAbsent(columnAlias, i + 1);
-
           String tableAlias = ci.getTableAlias();
-          if (tableAlias != null) {
-            mapper.putIfAbsent(tableAlias.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-          } else {
-            String table = ci.getTable();
-            if (table != null) {
-              mapper.putIfAbsent(table.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-            }
-          }
+          String tableLabel = tableAlias != null ? tableAlias : ci.getTable();
+          mapper.putIfAbsent(tableLabel.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
         }
       }
     }

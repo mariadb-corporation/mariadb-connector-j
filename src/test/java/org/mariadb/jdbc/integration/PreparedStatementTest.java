@@ -134,6 +134,42 @@ public class PreparedStatementTest extends Common {
         assertFalse(rs.next());
       }
     }
+
+    // prepare not cached (length > 8K)
+    StringBuilder sql = new StringBuilder("INSERT INTO prepare1(t1, t2) VALUES (?,?) /*");
+    for (int i = 0; i < 900; i++) {
+      sql.append("1234567890");
+    }
+    sql.append("*/");
+    stmt.execute("TRUNCATE prepare1");
+    try (PreparedStatement preparedStatement = conn.prepareStatement(sql.toString())) {
+      preparedStatement.setInt(1, 5);
+      preparedStatement.setInt(2, 10);
+      assertFalse(preparedStatement.execute());
+
+      ParameterMetaData paramMeta = preparedStatement.getParameterMetaData();
+      paramMeta.getParameterTypeName(1);
+      paramMeta = preparedStatement.getParameterMetaData();
+      paramMeta.getParameterTypeName(1);
+
+      // verification
+      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
+      assertTrue(rs.next());
+      assertEquals(5, rs.getInt(1));
+      assertEquals(10, rs.getInt(2));
+      assertFalse(rs.next());
+
+      // prepare is already done. must only execute.
+      preparedStatement.setInt(1, 7);
+      preparedStatement.setInt(2, 12);
+      assertFalse(preparedStatement.execute());
+
+      rs = stmt.executeQuery("SELECT * FROM prepare1 WHERE t1 > 5");
+      assertTrue(rs.next());
+      assertEquals(7, rs.getInt(1));
+      assertEquals(12, rs.getInt(2));
+      assertFalse(rs.next());
+    }
   }
 
   @Test

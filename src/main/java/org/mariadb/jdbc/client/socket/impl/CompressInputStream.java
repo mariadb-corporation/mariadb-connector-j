@@ -78,22 +78,19 @@ public class CompressInputStream extends InputStream {
     }
 
     int totalReads = 0;
-    while (true) {
 
+    do {
       if (end - pos <= 0) {
         retrieveBuffer();
       }
-
       // copy internal value to buf.
       int copyLength = Math.min(len - totalReads, end - pos);
       System.arraycopy(buf, pos, b, off + totalReads, copyLength);
       pos += copyLength;
       totalReads += copyLength;
+    } while (totalReads < len && super.available() > 0);
 
-      if (totalReads >= len || super.available() <= 0) {
-        return totalReads;
-      }
-    }
+    return totalReads;
   }
 
   private void retrieveBuffer() throws IOException {
