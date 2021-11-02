@@ -31,7 +31,7 @@ public abstract class RowDecoder {
   }
 
   public void setRow(byte[] buf) {
-    this.readBuf.buf(buf, buf == null ? 0 : buf.length).pos(0);
+    this.readBuf.buf(buf, buf == null ? 0 : buf.length, 0);
     index = -1;
   }
 

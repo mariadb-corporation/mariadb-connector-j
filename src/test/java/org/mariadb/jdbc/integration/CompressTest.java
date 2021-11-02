@@ -10,7 +10,6 @@ import java.sql.*;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class CompressTest extends Common {
   private static Connection shareCompressCon;
@@ -43,7 +42,8 @@ public class CompressTest extends Common {
   }
 
   public void bigSend(Connection con, int maxLen) throws SQLException {
-    char[] arr2 = new char[Math.min(maxLen, Math.min(16 * 1024 * 1024, (getMaxAllowedPacket() / 2) - 1000))];
+    char[] arr2 =
+        new char[Math.min(maxLen, Math.min(16 * 1024 * 1024, (getMaxAllowedPacket() / 2) - 1000))];
     for (int pos = 0; pos < arr2.length; pos++) {
       arr2[pos] = (char) ('A' + (pos % 60));
     }

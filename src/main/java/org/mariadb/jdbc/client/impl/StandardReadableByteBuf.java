@@ -14,14 +14,12 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   private int limit;
   private byte[] buf;
   private int pos;
-  private int mark;
 
   public StandardReadableByteBuf(MutableInt sequence, byte[] buf, int limit) {
     this.sequence = sequence;
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
-    this.mark = -1;
   }
 
   public int readableBytes() {
@@ -36,23 +34,14 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return buf;
   }
 
-  public StandardReadableByteBuf buf(byte[] buf, int limit) {
+  public void buf(byte[] buf, int limit, int pos) {
     this.buf = buf;
     this.limit = limit;
-    return this;
+    this.pos = pos;
   }
 
   public void pos(int pos) {
     this.pos = pos;
-  }
-
-  public void mark() {
-    mark = pos;
-  }
-
-  public void reset() {
-    if (mark == -1) throw new IllegalStateException("mark was not set");
-    pos = mark;
   }
 
   public void skip() {
@@ -202,10 +191,9 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
         + (buf[pos++] & 0xffL));
   }
 
-  public StandardReadableByteBuf readBytes(byte[] dst) {
+  public void readBytes(byte[] dst) {
     System.arraycopy(buf, pos, dst, 0, dst.length);
     pos += dst.length;
-    return this;
   }
 
   public byte[] readBytesNullEnd() {

@@ -77,28 +77,35 @@ public class TextRowDecoder extends RowDecoder {
     }
 
     while (index < newIndex) {
-      short type = this.readBuf.readUnsignedByte();
-      switch (type) {
-        case 252:
-          readBuf.skip(readBuf.readUnsignedShort());
-          break;
-        case 253:
-          readBuf.skip(readBuf.readUnsignedMedium());
-          break;
-        case 254:
-          readBuf.skip((int) (4 + readBuf.readUnsignedInt()));
-          break;
-        case 251:
-          break;
-        default:
-          readBuf.skip(type);
-          break;
+      short len = this.readBuf.readUnsignedByte();
+      if (len < 251) {
+        // length is encoded on 1 bytes (is then less than 251)
+        readBuf.skip(len);
+      } else {
+        switch (len) {
+          case 252:
+            readBuf.skip(readBuf.readUnsignedShort());
+            break;
+          case 253:
+            readBuf.skip(readBuf.readUnsignedMedium());
+            break;
+          case 254:
+            readBuf.skip((int) (4 + readBuf.readUnsignedInt()));
+            break;
+          case 251:
+            break;
+        }
       }
       index++;
     }
 
-    short type = this.readBuf.readUnsignedByte();
-    switch (type) {
+    short len = this.readBuf.readUnsignedByte();
+    if (len < 251) {
+      // length is encoded on 1 bytes (is then less than 251)
+      length = len;
+      return;
+    }
+    switch (len) {
       case 251:
         length = NULL_LENGTH;
         break;
@@ -111,9 +118,6 @@ public class TextRowDecoder extends RowDecoder {
       case 254:
         length = (int) readBuf.readUnsignedInt();
         readBuf.skip(4);
-        break;
-      default:
-        length = type;
         break;
     }
   }
