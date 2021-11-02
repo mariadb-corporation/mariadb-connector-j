@@ -198,7 +198,8 @@ public class Test_SingleStore
         try
         {
             Savepoint sp = conn.setSavepoint();
-            throw new Exception("Should fail");
+            // should fail
+            ASSERT(false);
         } catch (SQLFeatureNotSupportedException ignored) {
 
         }
@@ -282,7 +283,14 @@ public class Test_SingleStore
         res1.close();
         res2.close();
 
-        res1 = meta.getImportedKeys("","","x");
+        try
+        {
+            res1 = meta.getImportedKeys("","","x");
+            // should fail
+            ASSERT(false);
+        } catch (SQLFeatureNotSupportedException ignored) {
+
+        }
         // ASSERT(res1.next());
         res2 = meta.getPrimaryKeys("","","x");
         // tables are columnstore by default starting from 7.5 and primary keys are not displayed correctly there
