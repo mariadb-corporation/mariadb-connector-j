@@ -462,16 +462,21 @@ public class PreparedStatementParametersTest extends Common {
   @Test
   public void bigSendError() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();
-    Assumptions.assumeTrue(maxAllowedPacket < 10 * 1024 * 1024);
-    char[] arr = new char[10 * 1024 * 1024];
+    Assumptions.assumeTrue(maxAllowedPacket < 32 * 1024 * 1024);
+    char[] arr = new char[maxAllowedPacket];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
+    boolean expectClosed = maxAllowedPacket > 16 * 1024 * 1024;
     String st = new String(arr);
-    bigSendError(sharedConn, st, true);
-    bigSendError(sharedConnBinary, st, true);
+    try (Connection con = createCon()) {
+      bigSendError(con, st, expectClosed);
+    }
+    try (Connection con = createCon("useServerPrepStmts=true")) {
+      bigSendError(con, st, expectClosed);
+    }
     try (Connection con = createCon("transactionReplay")) {
-      bigSendError(con, st, false);
+      bigSendError(con, st, expectClosed);
     }
   }
 

@@ -15,6 +15,7 @@ public class CompressOutputStream extends OutputStream {
   private final OutputStream out;
   private final MutableInt sequence;
   private final byte[] header = new byte[7];
+  private byte[] longPacketBuffer = null;
 
   public CompressOutputStream(OutputStream out, MutableInt compressionSequence) {
     this.out = out;
@@ -46,10 +47,25 @@ public class CompressOutputStream extends OutputStream {
    */
   @Override
   public void write(byte[] b, int off, int len) throws IOException {
-    if (len < MIN_COMPRESSION_SIZE) {
+    if (len + ((longPacketBuffer != null) ? longPacketBuffer.length : 0) < MIN_COMPRESSION_SIZE) {
       // *******************************************************************************
       // small packet, no compression
       // *******************************************************************************
+
+      if (longPacketBuffer != null) {
+        header[0] = (byte) (len + longPacketBuffer.length);
+        header[1] = (byte) ((len + longPacketBuffer.length) >>> 8);
+        header[2] = 0;
+        header[3] = sequence.incrementAndGet();
+        header[4] = 0;
+        header[5] = 0;
+        header[6] = 0;
+        out.write(header, 0, 7);
+        out.write(longPacketBuffer, 0, longPacketBuffer.length);
+        out.write(b, off, len);
+        longPacketBuffer = null;
+        return;
+      }
 
       header[0] = (byte) len;
       header[1] = (byte) (len >>> 8);
@@ -62,31 +78,51 @@ public class CompressOutputStream extends OutputStream {
       out.write(b, off, len);
 
     } else {
+        // *******************************************************************************
+        // compressing packet
+        // *******************************************************************************
+        int sent = 0;
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+          try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
 
-      // *******************************************************************************
-      // compressing packet
-      // *******************************************************************************
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-        try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
-          deflater.write(b, off, len);
-          deflater.finish();
+            /**
+             * For multi packet, len will be 0x00ffffff + 4 bytes for header.
+             * but compression can only compress up to 0x00ffffff bytes (header initial length size cannot be > 3 bytes)
+             * so, for this specific case, a buffer will be
+             */
+
+            if (longPacketBuffer != null) {
+              deflater.write(longPacketBuffer, 0, longPacketBuffer.length);
+              sent = longPacketBuffer.length;
+              longPacketBuffer = null;
+            }
+            if ( len + sent > 0x00ffffff) {
+              int remaining = len + sent - 0x00ffffff;
+              longPacketBuffer = new byte[remaining];
+              System.arraycopy(b, off + 0x00ffffff - sent, longPacketBuffer, 0, remaining);
+            }
+
+            int bufLenSent = Math.min(0x00ffffff - sent, len);
+            deflater.write(b, off, bufLenSent);
+            sent += bufLenSent;
+            deflater.finish();
+          }
+
+          byte[] compressedBytes = baos.toByteArray();
+
+          int compressLen = compressedBytes.length;
+
+          header[0] = (byte) compressLen;
+          header[1] = (byte) (compressLen >>> 8);
+          header[2] = (byte) (compressLen >>> 16);
+          header[3] = sequence.incrementAndGet();
+          header[4] = (byte) sent;
+          header[5] = (byte) (sent >>> 8);
+          header[6] = (byte) (sent >>> 16);
+
+          out.write(header, 0, 7);
+          out.write(compressedBytes, 0, compressLen);
         }
-
-        byte[] compressedBytes = baos.toByteArray();
-
-        int compressLen = compressedBytes.length;
-
-        header[0] = (byte) compressLen;
-        header[1] = (byte) (compressLen >>> 8);
-        header[2] = (byte) (compressLen >>> 16);
-        header[3] = sequence.incrementAndGet();
-        header[4] = (byte) len;
-        header[5] = (byte) (len >>> 8);
-        header[6] = (byte) (len >>> 16);
-
-        out.write(header, 0, 7);
-        out.write(compressedBytes, 0, compressLen);
-      }
     }
   }
 
@@ -107,6 +143,11 @@ public class CompressOutputStream extends OutputStream {
    */
   @Override
   public void flush() throws IOException {
+    if (longPacketBuffer != null) {
+      byte[] b = longPacketBuffer;
+      longPacketBuffer = null;
+      write(b, 0, b.length);
+    }
     out.flush();
     sequence.set((byte) -1);
   }
