@@ -21,8 +21,8 @@ import org.junit.jupiter.api.*;
 
 public class XaTest extends Common {
 
-  private static MariaDbDataSource dataSource;
-  private static MariaDbPoolDataSource poolDataSource;
+  private static SingleStoreDataSource dataSource;
+  private static SingleStorePoolDataSource poolDataSource;
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -40,8 +40,8 @@ public class XaTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE xatable(i int)");
     stmt.execute("FLUSH TABLES");
-    dataSource = new MariaDbDataSource(mDefUrl);
-    poolDataSource = new MariaDbPoolDataSource(mDefUrl);
+    dataSource = new SingleStoreDataSource(mDefUrl);
+    poolDataSource = new SingleStorePoolDataSource(mDefUrl);
   }
 
   @Test
@@ -68,8 +68,8 @@ public class XaTest extends Common {
 
   @Test
   public void xaRmTest() throws Exception {
-    MariaDbDataSource dataSource1 = new MariaDbDataSource(mDefUrl);
-    MariaDbDataSource dataSource2 = new MariaDbDataSource(mDefUrl + "&test=t");
+    SingleStoreDataSource dataSource1 = new SingleStoreDataSource(mDefUrl);
+    SingleStoreDataSource dataSource2 = new SingleStoreDataSource(mDefUrl + "&test=t");
     XAConnection con1 = dataSource1.getXAConnection();
     XAConnection con2 = dataSource1.getXAConnection();
     XAConnection con3 = dataSource2.getXAConnection();
@@ -248,7 +248,7 @@ public class XaTest extends Common {
   @Test
   public void resumeAndJoinTest() throws Exception {
     Connection conn1;
-    MariaDbDataSource ds = new MariaDbDataSource(mDefUrl);
+    SingleStoreDataSource ds = new SingleStoreDataSource(mDefUrl);
 
     XAConnection xaConn1 = null;
     Xid xid = newXid();

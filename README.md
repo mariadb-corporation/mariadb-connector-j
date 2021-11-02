@@ -22,6 +22,45 @@ The driver (jar) can be downloaded from maven :
 </dependency>
 ```
 
+## Usage
+To get a connection using SingleStore JDBC Driver, you need a connection string of the following format:
+```script
+jdbc:singlestore:[replication:|loadbalance:|sequential:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]] 
+```
+The full list of parameters that can be used in the connection string is coming soon
+
+Example:
+```script
+"jdbc:singlestore://localhost:3306/test?user=root&password=myPassword"
+```
+
+You can then get a connection by using the [Driver manager](https://docs.oracle.com/javase/8/docs/api/java/sql/DriverManager.html) class:
+```script
+Connection connection = DriverManager.getConnection("jdbc:singlestore://localhost:3306/test?user=root&password=myPassword");
+Statement stmt = connection.createStatement();
+
+ResultSet rs = stmt.executeQuery("SELECT NOW()");
+rs.next();
+System.out.println(rs.getTimestamp(1));
+```
+
+Another way to get a connection with SingleStore JDBC Driver is to use a connection pool.
+* `SingleStorePoolDataSource` is an implementation that maintains a pool of connections. When a new connection is requested, one is borrowed from the pool.
+* `SingleStoreDataSource` is a basic implementation that just returns a new connection each time the `getConnection()` method is called.
+
+Example:
+```script
+SingleStorePoolDataSource pool = new SingleStorePoolDataSource("jdbc:singlestore://server/db?user=myUser&maxPoolSize=10");
+
+    try (Connection connection = pool.getConnection()) {
+        try (Statement stmt = connection.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT NOW()");
+            rs.next();
+            System.out.println(rs.getTimestamp(1));
+        }
+    }
+```
+
 ## Documentation
 
 For a Getting started guide, API docs, recipes,  etc. see the 

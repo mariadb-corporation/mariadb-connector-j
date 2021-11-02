@@ -34,7 +34,7 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionClosed() throws Exception {
-    ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
+    ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
     PooledConnection pc = ds.getPooledConnection();
     Connection connection = pc.getConnection();
     MyEventListener listener = new MyEventListener();
@@ -49,8 +49,8 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolWait() throws Exception {
-    try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(
             mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMinRemovalDelay=2")) {
       Thread.sleep(4000);
       PooledConnection pc = ds.getPooledConnection();
@@ -61,7 +61,8 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolWaitWithValidation() throws Exception {
-    try (MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl + "&poolValidMinDelay=1")) {
+    try (SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(mDefUrl + "&poolValidMinDelay=1")) {
       Thread.sleep(100);
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
@@ -87,8 +88,9 @@ public class PooledConnectionTest extends Common {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
-    try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(url + "poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(
+            url + "poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
 
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
@@ -134,8 +136,8 @@ public class PooledConnectionTest extends Common {
 
     logger.addAppender(fa);
 
-    try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
+    try (SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
       InternalPoolConnection pc = ds.getPooledConnection();
       com.singlestore.jdbc.Connection conn = pc.getConnection();
       long threadId = conn.getThreadId();
@@ -190,7 +192,7 @@ public class PooledConnectionTest extends Common {
         String.format(
             "jdbc:singlestore:loadbalance//%s:%s,%s:%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
             host, portMaster, host, portChild, database, "root", password);
-    ConnectionPoolDataSource ds = new MariaDbPoolDataSource(url);
+    ConnectionPoolDataSource ds = new SingleStorePoolDataSource(url);
 
     try (Connection conn = getConnection(host + ":" + portMaster, database)) {
       conn.createStatement().execute("DROP TABLE IF EXISTS loadbalance");
@@ -225,7 +227,7 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
-    ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
+    ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
     PooledConnection pc = null;
     try {
       pc = ds.getPooledConnection();
@@ -282,7 +284,7 @@ public class PooledConnectionTest extends Common {
             + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     stmt.execute("FLUSH PRIVILEGES");
 
-    ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
+    ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
     PooledConnection pc = ds.getPooledConnection("dsUser", "MySup8%rPassw@ord");
     MyEventListener listener = new MyEventListener();
     pc.addStatementEventListener(listener);

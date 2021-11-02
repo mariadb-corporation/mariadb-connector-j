@@ -16,7 +16,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
 import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
-import com.singlestore.jdbc.MariaDbPoolDataSource;
+import com.singlestore.jdbc.SingleStorePoolDataSource;
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.client.tls.HostnameVerifier;
 import java.io.ByteArrayInputStream;
@@ -74,8 +74,8 @@ public class LoggingTest extends Common {
       stmt.execute("SELECT 1");
     }
 
-    MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(
+    SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(
             mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMinRemovalDelay=2");
     Thread.sleep(4000);
     PooledConnection pc = ds.getPooledConnection();

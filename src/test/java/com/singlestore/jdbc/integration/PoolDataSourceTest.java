@@ -8,7 +8,7 @@ package com.singlestore.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Common;
-import com.singlestore.jdbc.MariaDbPoolDataSource;
+import com.singlestore.jdbc.SingleStorePoolDataSource;
 import com.singlestore.jdbc.pool.PoolThreadFactory;
 import com.singlestore.jdbc.pool.Pools;
 import java.lang.management.ManagementFactory;
@@ -59,8 +59,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testDataSource() throws SQLException {
-    try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(mDefUrl + "&allowPublicKeyRetrieval")) {
+    try (SingleStorePoolDataSource ds =
+        new SingleStorePoolDataSource(mDefUrl + "&allowPublicKeyRetrieval")) {
       try (Connection connection = ds.getConnection()) {
         assertEquals(connection.isValid(0), true);
       }
@@ -80,7 +80,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testResetDatabase() throws SQLException {
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         statement.execute("CREATE DATABASE IF NOT EXISTS testingReset");
@@ -104,8 +105,8 @@ public class PoolDataSourceTest extends Common {
   }
 
   private void testResetSessionVariable(boolean useResetConnection) throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
 
       long nowMillis;
@@ -168,8 +169,8 @@ public class PoolDataSourceTest extends Common {
   }
 
   private void testResetUserVariable(boolean useResetConnection) throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl
                 + "&maxPoolSize=1&useResetConnection="
                 + useResetConnection
@@ -209,8 +210,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testNetworkTimeout() throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&socketTimeout=10000")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&socketTimeout=10000")) {
       try (Connection connection = pool.getConnection()) {
         assertEquals(10_000, connection.getNetworkTimeout());
         connection.setNetworkTimeout(null, 5_000);
@@ -224,7 +225,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testResetReadOnly() throws SQLException {
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         assertFalse(connection.isReadOnly());
         connection.setReadOnly(true);
@@ -239,7 +241,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testResetAutoCommit() throws SQLException {
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         assertTrue(connection.getAutoCommit());
         connection.setAutoCommit(false);
@@ -254,8 +257,9 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testResetAutoCommitOption() throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&autocommit=false&poolName=PoolTest")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
+            mDefUrl + "&maxPoolSize=1&autocommit=false&poolName=PoolTest")) {
       assertTrue(pool.getPoolName().startsWith("PoolTest-"));
       try (Connection connection = pool.getConnection()) {
         // This may or may not be a bug, but seems weird to me:
@@ -280,7 +284,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testResetTransactionIsolation() throws SQLException {
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
         assertEquals(Connection.TRANSACTION_READ_COMMITTED, connection.getTransactionIsolation());
@@ -298,8 +303,9 @@ public class PoolDataSourceTest extends Common {
   public void testJmx() throws Exception {
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("com.singlestore.jdbc.pool:type=PoolTestJmx-*");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=5&minPoolSize=0&poolName=PoolTestJmx")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
+            mDefUrl + "&maxPoolSize=5&minPoolSize=0&poolName=PoolTestJmx")) {
       try (Connection connection = pool.getConnection()) {
         connection.isValid(1);
         Set<ObjectName> objectNames = server.queryNames(filter, null);
@@ -324,8 +330,8 @@ public class PoolDataSourceTest extends Common {
   public void testNoMinConnection() throws Exception {
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("com.singlestore.jdbc.pool:type=testNoMinConnection-*");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=5&poolName=testNoMinConnection")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=5&poolName=testNoMinConnection")) {
       try (Connection connection = pool.getConnection()) {
         connection.isValid(1);
         Set<ObjectName> objectNames = server.queryNames(filter, null);
@@ -360,8 +366,8 @@ public class PoolDataSourceTest extends Common {
 
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("com.singlestore.jdbc.pool:type=testIdleTimeout-*");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl
                 + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout&testMinRemovalDelay=50&maxIdleTime=100")) {
       // wait to ensure pool has time to create 3 connections
@@ -383,8 +389,8 @@ public class PoolDataSourceTest extends Common {
   public void testMinConnection() throws Throwable {
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("com.singlestore.jdbc.pool:type=testMinConnection-*");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl
                 + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection&testMinRemovalDelay=30&maxIdleTime=100")) {
       try (Connection connection = pool.getConnection()) {
@@ -431,8 +437,8 @@ public class PoolDataSourceTest extends Common {
   public void testJmxDisable() throws Exception {
     MBeanServer server = ManagementFactory.getPlatformMBeanServer();
     ObjectName filter = new ObjectName("com.singlestore.jdbc.pool:type=PoolTest-*");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl + "&maxPoolSize=2&registerJmxPool=false&poolName=PoolTest")) {
       try (Connection connection = pool.getConnection()) {
         connection.isValid(1);
@@ -445,7 +451,8 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void testResetRollback() throws SQLException {
     sharedConn.createStatement().execute("FLUSH TABLES");
-    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       try (Connection connection = pool.getConnection()) {
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("INSERT INTO testResetRollback (test) VALUES ('heja')");
@@ -504,8 +511,8 @@ public class PoolDataSourceTest extends Common {
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
 
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
         connection.isValid(10_000);
@@ -527,8 +534,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void wrongUrlHandling() throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             "jdbc:singlestore://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
       long start = System.currentTimeMillis();
       try {
@@ -550,8 +557,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testPrepareReset() throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection")) {
       try (Connection connection = pool.getConnection()) {
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
@@ -588,8 +595,8 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void poolWithUser() throws SQLException {
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
             mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
       long threadId = 0;
       try (Connection conn = pool.getConnection()) {
@@ -612,17 +619,18 @@ public class PoolDataSourceTest extends Common {
   public void various() throws SQLException {
     assertThrowsContains(
         SQLException.class,
-        () -> new MariaDbPoolDataSource("jdbc:notSingleStore"),
+        () -> new SingleStorePoolDataSource("jdbc:notSingleStore"),
         "Wrong SingleStoreDB url");
-    try (MariaDbPoolDataSource pool =
-        new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
-      assertNotNull(pool.unwrap(com.singlestore.jdbc.MariaDbPoolDataSource.class));
+    try (SingleStorePoolDataSource pool =
+        new SingleStorePoolDataSource(
+            mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
+      assertNotNull(pool.unwrap(com.singlestore.jdbc.SingleStorePoolDataSource.class));
       assertNotNull(pool.unwrap(ConnectionPoolDataSource.class));
       assertThrowsContains(
           SQLException.class,
           () -> pool.unwrap(String.class),
           "Datasource is not a wrapper for java.lang.String");
-      assertTrue(pool.isWrapperFor(com.singlestore.jdbc.MariaDbPoolDataSource.class));
+      assertTrue(pool.isWrapperFor(com.singlestore.jdbc.SingleStorePoolDataSource.class));
       assertTrue(pool.isWrapperFor(ConnectionPoolDataSource.class));
       assertFalse(pool.isWrapperFor(String.class));
       pool.setLogWriter(null);
@@ -639,9 +647,9 @@ public class PoolDataSourceTest extends Common {
     // ensure all are closed
     Pools.close();
     Pools.close(null);
-    new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
+    new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
     Pools.close("myPool");
-    new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
+    new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool");
     Pools.close();
   }
 }

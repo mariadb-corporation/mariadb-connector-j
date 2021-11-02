@@ -20,12 +20,12 @@ import javax.sql.DataSource;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 
-public class MariaDbPoolDataSource
+public class SingleStorePoolDataSource
     implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
 
   private final Pool pool;
 
-  public MariaDbPoolDataSource(String url) throws SQLException {
+  public SingleStorePoolDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
       Configuration conf = Configuration.parse(url);
       pool = Pools.retrievePool(conf);

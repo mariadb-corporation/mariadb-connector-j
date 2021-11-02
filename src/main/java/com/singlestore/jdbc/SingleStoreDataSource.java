@@ -11,11 +11,11 @@ import java.sql.Connection;
 import java.util.logging.Logger;
 import javax.sql.*;
 
-public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
+public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
   private final Configuration conf;
 
-  public MariaDbDataSource(String url) throws SQLException {
+  public SingleStoreDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
       conf = Configuration.parse(url);
     } else {
