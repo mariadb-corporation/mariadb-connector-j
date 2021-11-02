@@ -13,11 +13,6 @@ import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.sql.*;
 import java.sql.Statement;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
 
 public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
@@ -51,10 +46,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private static String DataTypeClause(Configuration conf) {
-    String upperCaseWithoutSize =
-        " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
-            + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
-            + "COLUMN_TYPE))";
+    String upperCaseWithoutSize = " UCASE(COLUMN_TYPE)";
 
     if (conf.tinyInt1isBit()) {
       upperCaseWithoutSize =
@@ -68,89 +60,94 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return upperCaseWithoutSize;
   }
 
-  // Extract identifier quoted string from input String.
-  // Return new position, or -1 on error
-  private static int skipWhiteSpace(char[] part, int startPos) {
-    for (int i = startPos; i < part.length; i++) {
-      if (!Character.isWhitespace(part[i])) {
-        return i;
-      }
-    }
-    return part.length;
+  private static String DateTimeSizeClause(String fullTypeColumnName) {
+    return "  WHEN 'time' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'time(6)%',"
+        + "17"
+        + ","
+        + "10"
+        + ")"
+        + "  WHEN 'date' THEN 10"
+        + "  WHEN 'datetime' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'datetime(6)%',"
+        + "26"
+        + ","
+        + "19"
+        + ")"
+        + "  WHEN 'timestamp' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'timestamp(6)%',"
+        + "26"
+        + ","
+        + "19"
+        + ")";
   }
 
-  private static int parseIdentifier(char[] part, int startPos, Identifier identifier)
-      throws ParseException {
-    int pos = skipWhiteSpace(part, startPos);
-    if (part[pos] != '`') {
-      throw new ParseException(new String(part), pos);
-    }
-    pos++;
-    StringBuilder sb = new StringBuilder();
-    int quotes = 0;
-    for (; pos < part.length; pos++) {
-      char ch = part[pos];
-      if (ch == '`') {
-        quotes++;
-      } else {
-        for (int j = 0; j < quotes / 2; j++) {
-          sb.append('`');
-        }
-        if (quotes % 2 == 1) {
-          if (ch == '.') {
-            if (identifier.schema != null) {
-              throw new ParseException(new String(part), pos);
-            }
-            identifier.schema = sb.toString();
-            return parseIdentifier(part, pos + 1, identifier);
-          }
-          identifier.name = sb.toString();
-          return pos;
-        }
-        quotes = 0;
-        sb.append(ch);
-      }
-    }
-    throw new ParseException(new String(part), startPos);
+  private static String DateTimeScaleClause(String fullTypeColumnName) {
+    return "  WHEN 'time' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'time(6)%',"
+        + "6"
+        + ","
+        + "0"
+        + ")"
+        + "  WHEN 'datetime' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'datetime(6)%',"
+        + "6"
+        + ","
+        + "0"
+        + ")"
+        + "  WHEN 'timestamp' THEN "
+        + "IF("
+        + fullTypeColumnName
+        + " like 'timestamp(6)%',"
+        + "6"
+        + ","
+        + "0"
+        + ")";
   }
 
-  private static int skipKeyword(char[] part, int startPos, String keyword) throws ParseException {
-    int pos = skipWhiteSpace(part, startPos);
-    for (int i = 0; i < keyword.length(); i++, pos++) {
-      if (part[pos] != keyword.charAt(i)) {
-        throw new ParseException(new String(part), pos);
-      }
-    }
-    return pos;
+  private String returnTypeClause() {
+    return " CASE PARAMETER_MODE "
+        + "  WHEN 'IN' THEN "
+        + functionColumnIn
+        + "  WHEN 'OUT' THEN "
+        + functionColumnOut
+        + "  WHEN 'INOUT' THEN "
+        + functionColumnInOut
+        + "  ELSE "
+        + functionReturn
+        + " END";
   }
 
-  private static int getImportedKeyAction(String actionKey) {
-    if (actionKey == null) {
-      return java.sql.DatabaseMetaData.importedKeyRestrict;
-    }
-    switch (actionKey) {
-      case "NO ACTION":
-        return java.sql.DatabaseMetaData.importedKeyNoAction;
-
-      case "CASCADE":
-        return java.sql.DatabaseMetaData.importedKeyCascade;
-
-      case "SET NULL":
-        return java.sql.DatabaseMetaData.importedKeySetNull;
-
-      case "SET DEFAULT":
-        return java.sql.DatabaseMetaData.importedKeySetDefault;
-
-      case "RESTRICT":
-        return java.sql.DatabaseMetaData.importedKeyRestrict;
-
-      default:
-        throw new IllegalArgumentException("Illegal key action '" + actionKey + "' specified.");
-    }
-  }
-
-  private static String quoteIdentifier(String string) {
-    return "`" + string.replaceAll("`", "``") + "`";
+  private String parameterClause(
+      String catColumn, String columnName, String columnType, String ordinal) {
+    return "SELECT "
+        + catColumn
+        + " `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
+        + columnName
+        + " COLUMN_NAME, "
+        + columnType
+        + " COLUMN_TYPE,"
+        + dataTypeClause("DTD_IDENTIFIER")
+        + " DATA_TYPE,"
+        + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,"
+        + "CASE DATA_TYPE "
+        + DateTimeScaleClause("DTD_IDENTIFIER")
+        + " ELSE NUMERIC_SCALE END `SCALE`,10 RADIX,"
+        + procedureNullableUnknown
+        + " NULLABLE,NULL REMARKS,"
+        + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,"
+        + ordinal
+        + " ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME ";
   }
 
   /**
@@ -169,143 +166,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         .replace("'", "\\'")
         .replace("\0", "\\0")
         .replace("\"", "\\\"");
-  }
-
-  private int parseIdentifierList(char[] part, int startPos, List<Identifier> list)
-      throws ParseException {
-    int pos = skipWhiteSpace(part, startPos);
-    if (part[pos] != '(') {
-      throw new ParseException(new String(part), pos);
-    }
-    pos++;
-    for (; ; ) {
-      pos = skipWhiteSpace(part, pos);
-      char ch = part[pos];
-      switch (ch) {
-        case ')':
-          return pos + 1;
-        case '`':
-          Identifier id = new Identifier();
-          pos = parseIdentifier(part, pos, id);
-          list.add(id);
-          break;
-        case ',':
-          pos++;
-          break;
-        default:
-          throw new ParseException(new String(part, startPos, part.length - startPos), startPos);
-      }
-    }
-  }
-
-  /**
-   * Get imported keys.
-   *
-   * @param tableDef table definition
-   * @param tableName table name
-   * @param catalog catalog
-   * @param connection connection
-   * @return resultset resultset
-   * @throws ParseException exception
-   */
-  private ResultSet getImportedKeys(
-      String tableDef, String tableName, String catalog, com.singlestore.jdbc.Connection connection)
-      throws ParseException {
-    String[] columnNames = {
-      "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
-      "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
-      "FKTABLE_NAME", "FKCOLUMN_NAME", "KEY_SEQ",
-      "UPDATE_RULE", "DELETE_RULE", "FK_NAME",
-      "PK_NAME", "DEFERRABILITY"
-    };
-    DataType[] dataTypes = {
-      DataType.VARCHAR, DataType.NULL, DataType.VARCHAR,
-      DataType.VARCHAR, DataType.VARCHAR, DataType.NULL,
-      DataType.VARCHAR, DataType.VARCHAR, DataType.SMALLINT,
-      DataType.SMALLINT, DataType.SMALLINT, DataType.VARCHAR,
-      DataType.VARCHAR, DataType.SMALLINT
-    };
-
-    String[] parts = tableDef.split("\n");
-
-    List<String[]> data = new ArrayList<>();
-
-    for (String part : parts) {
-      part = part.trim();
-      if (!part.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT")
-          && !part.contains("FOREIGN KEY")) {
-        continue;
-      }
-      char[] partChar = part.toCharArray();
-
-      Identifier constraintName = new Identifier();
-
-      int pos = skipKeyword(partChar, 0, "CONSTRAINT");
-      pos = parseIdentifier(partChar, pos, constraintName);
-      pos = skipKeyword(partChar, pos, "FOREIGN KEY");
-      List<Identifier> foreignKeyCols = new ArrayList<>();
-      pos = parseIdentifierList(partChar, pos, foreignKeyCols);
-      pos = skipKeyword(partChar, pos, "REFERENCES");
-      Identifier pkTable = new Identifier();
-      pos = parseIdentifier(partChar, pos, pkTable);
-      List<Identifier> primaryKeyCols = new ArrayList<>();
-      parseIdentifierList(partChar, pos, primaryKeyCols);
-
-      int onUpdateReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
-      int onDeleteReferenceAction = java.sql.DatabaseMetaData.importedKeyRestrict;
-
-      for (String referenceAction :
-          new String[] {"RESTRICT", "CASCADE", "SET NULL", "NO ACTION", "SET DEFAULT"}) {
-        if (part.toUpperCase(Locale.ROOT).contains("ON UPDATE " + referenceAction)) {
-          onUpdateReferenceAction = getImportedKeyAction(referenceAction);
-        }
-        if (part.toUpperCase(Locale.ROOT).contains("ON DELETE " + referenceAction)) {
-          onDeleteReferenceAction = getImportedKeyAction(referenceAction);
-        }
-      }
-
-      for (int i = 0; i < primaryKeyCols.size(); i++) {
-
-        String[] row = new String[columnNames.length];
-        row[0] = pkTable.schema; // PKTABLE_CAT
-        if (row[0] == null) {
-          row[0] = catalog;
-        }
-        row[1] = null; // PKTABLE_SCHEM
-        row[2] = pkTable.name; // PKTABLE_NAME
-        row[3] = primaryKeyCols.get(i).name; // PKCOLUMN_NAME
-        row[4] = catalog; // FKTABLE_CAT
-        row[5] = null; // FKTABLE_SCHEM
-        row[6] = tableName; // FKTABLE_NAME
-        row[7] = foreignKeyCols.get(i).name; // FKCOLUMN_NAME
-        row[8] = Integer.toString(i + 1); // KEY_SEQ
-        row[9] = Integer.toString(onUpdateReferenceAction); // UPDATE_RULE
-        row[10] = Integer.toString(onDeleteReferenceAction); // DELETE_RULE
-        row[11] = constraintName.name; // FK_NAME
-        row[12] = null; // PK_NAME - unlike using information_schema, cannot know constraint name
-        row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable); // DEFERRABILITY
-        data.add(row);
-      }
-    }
-    String[][] arr = data.toArray(new String[0][]);
-
-    /* Sort array by PKTABLE_CAT, PKTABLE_NAME, and KEY_SEQ.*/
-    Arrays.sort(
-        arr,
-        (row1, row2) -> {
-          int result = row1[0].compareTo(row2[0]); // PKTABLE_CAT
-          if (result == 0) {
-            result = row1[2].compareTo(row2[2]); // PKTABLE_NAME
-            if (result == 0) {
-              result = row1[8].length() - row2[8].length(); // KEY_SEQ
-              if (result == 0) {
-                result = row1[8].compareTo(row2[8]);
-              }
-            }
-          }
-          return result;
-        });
-    return CompleteResult.createResultSet(columnNames, dataTypes, arr, connection.getContext());
   }
 
   /**
@@ -376,23 +236,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getImportedKeys(String catalog, String schema, String table)
       throws SQLException {
-
-    // We avoid using information schema queries by default, because this appears to be an expensive
-    // query (CONJ-41).
-    if (table == null) {
-      throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-    }
-
-    if (catalog == null || catalog.isEmpty()) {
-      return getImportedKeysUsingInformationSchema(catalog, table);
-    }
-
-    try {
-      return getImportedKeysUsingShowCreateTable(catalog, table);
-    } catch (Exception e) {
-      // Likely, parsing failed, try out I_S query.
-      return getImportedKeysUsingInformationSchema(catalog, table);
-    }
+    throw new SQLFeatureNotSupportedException(
+        "SingleStore does not support foreign keys and referential integrity");
   }
 
   private String dataTypeClause(String fullTypeColumnName) {
@@ -565,8 +410,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
     // MySQL 8 now use 'PRI' in place of 'pri'
     String sql =
-        "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
-            + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
+        "SELECT DISTINCT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
+            + " FROM INFORMATION_SCHEMA.COLUMNS A JOIN INFORMATION_SCHEMA.STATISTICS B ON"
+            + " (A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME)"
             + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
             + " AND "
             + catalogCond("A.TABLE_SCHEMA", catalog)
@@ -574,7 +420,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + catalogCond("B.TABLE_SCHEMA", catalog)
             + patternCond("A.TABLE_NAME", table)
             + patternCond("B.TABLE_NAME", table)
-            + " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME "
             + " ORDER BY A.COLUMN_NAME";
 
     return executeQuery(sql);
@@ -748,31 +593,16 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getColumns(
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
+    String fullTypeColumnName = "COLUMN_TYPE";
 
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-            + dataTypeClause("COLUMN_TYPE")
+            + dataTypeClause(fullTypeColumnName)
             + " DATA_TYPE,"
             + DataTypeClause(conf)
             + " TYPE_NAME, "
             + " CASE DATA_TYPE"
-            + "  WHEN 'time' THEN "
-            /* SingleStore DB information_schema.columns does not have DATETIME_PRECISION column.
-              MariaDb jdbc used to check if such column exists and use it to calculate metadata,
-              otherwise use defaults. For some reason this was changed to always getting DATETIME_PRECISION, which does
-              not work with SingleStore.
-              For now we use the default values used previously.
-              Relevant places are marked if we want to review how COLUMN_SIZE is calculated later
-            */
-            // TODO: DATETIME_PRECISION
-            + "10"
-            + "  WHEN 'date' THEN 10"
-            + "  WHEN 'datetime' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
-            + "  WHEN 'timestamp' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
+            + DateTimeSizeClause(fullTypeColumnName)
             + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
@@ -793,7 +623,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + ") CHAR_OCTET_LENGTH,"
             + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
             + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
+            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED', 'COMPUTED') ,'YES','NO') IS_GENERATEDCOLUMN "
             + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
             + catalogCond("TABLE_SCHEMA", catalog)
             + patternCond("TABLE_NAME", tableNamePattern)
@@ -870,104 +700,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   public ResultSet getExportedKeys(String catalog, String schema, String table)
       throws SQLException {
-    String sql =
-        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-            + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-            + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-            + " CASE update_rule "
-            + "   WHEN 'RESTRICT' THEN 1"
-            + "   WHEN 'NO ACTION' THEN 3"
-            + "   WHEN 'CASCADE' THEN 0"
-            + "   WHEN 'SET NULL' THEN 2"
-            + "   WHEN 'SET DEFAULT' THEN 4"
-            + " END UPDATE_RULE,"
-            + " CASE DELETE_RULE"
-            + "  WHEN 'RESTRICT' THEN 1"
-            + "  WHEN 'NO ACTION' THEN 3"
-            + "  WHEN 'CASCADE' THEN 0"
-            + "  WHEN 'SET NULL' THEN 2"
-            + "  WHEN 'SET DEFAULT' THEN 4"
-            + " END DELETE_RULE,"
-            + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
-            + importedKeyNotDeferrable
-            + " DEFERRABILITY"
-            + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-            + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-            + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-            + " WHERE "
-            + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", catalog)
-            + patternCond("KCU.REFERENCED_TABLE_NAME", table)
-            + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-
-    return executeQuery(sql);
-  }
-
-  /**
-   * GetImportedKeysUsingInformationSchema.
-   *
-   * @param catalog catalog
-   * @param table table
-   * @return resultset
-   * @throws SQLException exception
-   */
-  public ResultSet getImportedKeysUsingInformationSchema(String catalog, String table)
-      throws SQLException {
-    String sql =
-        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-            + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-            + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-            + " CASE UPDATE_RULE "
-            + "   WHEN 'RESTRICT' THEN 1"
-            + "   WHEN 'NO ACTION' THEN 3"
-            + "   WHEN 'CASCADE' THEN 0"
-            + "   WHEN 'SET NULL' THEN 2"
-            + "   WHEN 'SET DEFAULT' THEN 4"
-            + " END UPDATE_RULE,"
-            + " CASE DELETE_RULE"
-            + "  WHEN 'RESTRICT' THEN 1"
-            + "  WHEN 'NO ACTION' THEN 3"
-            + "  WHEN 'CASCADE' THEN 0"
-            + "  WHEN 'SET NULL' THEN 2"
-            + "  WHEN 'SET DEFAULT' THEN 4"
-            + " END DELETE_RULE,"
-            + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
-            + importedKeyNotDeferrable
-            + " DEFERRABILITY"
-            + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-            + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-            + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME"
-            + " WHERE "
-            + catalogCond("KCU.TABLE_SCHEMA", catalog)
-            + " AND "
-            + " KCU.TABLE_NAME = "
-            + escapeQuote(table)
-            + " ORDER BY PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, KEY_SEQ";
-
-    return executeQuery(sql);
-  }
-
-  /**
-   * GetImportedKeysUsingShowCreateTable.
-   *
-   * @param catalog catalog
-   * @param table table
-   * @return resultset
-   * @throws Exception exception
-   */
-  public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String table)
-      throws Exception {
-    ResultSet rs =
-        connection
-            .createStatement()
-            .executeQuery(
-                "SHOW CREATE TABLE " + quoteIdentifier(catalog) + "." + quoteIdentifier(table));
-    rs.next();
-    String tableDef = rs.getString(2);
-    return getImportedKeys(tableDef, table, catalog, connection);
+    throw new SQLFeatureNotSupportedException(
+        "SingleStore does not support foreign keys and referential integrity");
   }
 
   /**
@@ -2003,6 +1737,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getProcedureColumns(
       String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern)
       throws SQLException {
+    String fullTypeColumnName = "DTD_IDENTIFIER";
 
     /*
      *  Get info from information_schema.parameters
@@ -2027,39 +1762,22 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " DATA_TYPE,"
             + "DATA_TYPE TYPE_NAME,"
             + " CASE DATA_TYPE"
-            + "  WHEN 'time' THEN "
-            // TODO: DATETIME_PRECISION
-            + "10"
-            + "  WHEN 'date' THEN 10"
-            + "  WHEN 'datetime' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
-            + "  WHEN 'timestamp' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
+            + DateTimeSizeClause(fullTypeColumnName)
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
             + "), NUMERIC_PRECISION) "
             + " END `PRECISION`,"
             + " CASE DATA_TYPE"
-            + "  WHEN 'time' THEN "
-            // TODO: DATETIME_PRECISION
-            + "10"
-            + "  WHEN 'date' THEN 10"
-            + "  WHEN 'datetime' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
-            + "  WHEN 'timestamp' THEN "
-            // TODO: DATETIME_PRECISION
-            + "19"
+            + DateTimeSizeClause(fullTypeColumnName)
             + "  ELSE "
             + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
             + "), NUMERIC_PRECISION) "
             + " END `LENGTH`,"
-            // TODO: DATETIME_PRECISION
-            + " NUMERIC_SCALE `SCALE`,"
+            + "CASE DATA_TYPE "
+            + DateTimeScaleClause(fullTypeColumnName)
+            + " ELSE NUMERIC_SCALE END `SCALE`,"
             + "10 RADIX,"
             + procedureNullableUnknown
             + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
@@ -2165,24 +1883,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
-            + " PARAMETER_NAME COLUMN_NAME, "
-            + " CASE PARAMETER_MODE "
-            + "  WHEN 'IN' THEN "
-            + functionColumnIn
-            + "  WHEN 'OUT' THEN "
-            + functionColumnOut
-            + "  WHEN 'INOUT' THEN "
-            + functionColumnInOut
-            + "  ELSE "
-            + functionReturn
-            + " END COLUMN_TYPE,"
-            + dataTypeClause("DTD_IDENTIFIER")
-            + " DATA_TYPE,"
-            + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
-            + procedureNullableUnknown
-            + " NULLABLE,NULL REMARKS,"
-            + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
+        parameterClause("ROUTINE_SCHEMA", "NULL", String.valueOf(functionReturn), "0")
+            + " FROM INFORMATION_SCHEMA.ROUTINES "
+            + " WHERE "
+            + catalogCond("ROUTINE_SCHEMA", catalog)
+            + patternCond("SPECIFIC_NAME", functionNamePattern)
+            + patternCond("ROUTINE_NAME", columnNamePattern)
+            + " AND ROUTINE_TYPE='FUNCTION'"
+            + " ORDER BY FUNCTION_CAT, SPECIFIC_NAME"
+            + " UNION "
+            + parameterClause(
+                "SPECIFIC_SCHEMA", "PARAMETER_NAME", returnTypeClause(), "ORDINAL_POSITION")
             + " FROM INFORMATION_SCHEMA.PARAMETERS "
             + " WHERE "
             + catalogCond("SPECIFIC_SCHEMA", catalog)
@@ -2447,42 +2158,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String foreignSchema,
       String foreignTable)
       throws SQLException {
-
-    String sql =
-        "SELECT KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM,  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
-            + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM, "
-            + " KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-            + " CASE update_rule "
-            + "   WHEN 'RESTRICT' THEN 1"
-            + "   WHEN 'NO ACTION' THEN 3"
-            + "   WHEN 'CASCADE' THEN 0"
-            + "   WHEN 'SET NULL' THEN 2"
-            + "   WHEN 'SET DEFAULT' THEN 4"
-            + " END UPDATE_RULE,"
-            + " CASE DELETE_RULE"
-            + "  WHEN 'RESTRICT' THEN 1"
-            + "  WHEN 'NO ACTION' THEN 3"
-            + "  WHEN 'CASCADE' THEN 0"
-            + "  WHEN 'SET NULL' THEN 2"
-            + "  WHEN 'SET DEFAULT' THEN 4"
-            + " END DELETE_RULE,"
-            + " RC.CONSTRAINT_NAME FK_NAME,"
-            + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
-            + importedKeyNotDeferrable
-            + " DEFERRABILITY "
-            + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
-            + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
-            + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
-            + " AND KCU.CONSTRAINT_NAME = RC.CONSTRAINT_NAME "
-            + "WHERE "
-            + catalogCond("KCU.REFERENCED_TABLE_SCHEMA", parentCatalog)
-            + " AND "
-            + catalogCond("KCU.TABLE_SCHEMA", foreignCatalog)
-            + patternCond("KCU.REFERENCED_TABLE_NAME", parentTable)
-            + patternCond("KCU.TABLE_NAME", foreignTable)
-            + " ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ";
-
-    return executeQuery(sql);
+    throw new SQLFeatureNotSupportedException(
+        "SingleStore does not support foreign keys and referential integrity");
   }
 
   /**
@@ -3418,7 +3095,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsSavepoints() {
-    return true;
+    return false;
   }
 
   public boolean supportsNamedParameters() {

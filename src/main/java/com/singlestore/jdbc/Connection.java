@@ -20,7 +20,6 @@ import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,7 +40,6 @@ public class Connection implements java.sql.Connection {
   private final Client client;
   private final Properties clientInfo = new Properties();
   private int lowercaseTableNames = -1;
-  private final AtomicInteger savepointId = new AtomicInteger();
   private boolean readOnly;
   private final boolean canUseServerTimeout;
   private final boolean canUseServerMaxRows;
@@ -473,54 +471,22 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint() throws SQLException {
-    Savepoint savepoint = new Savepoint(savepointId.incrementAndGet());
-    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
-    return savepoint;
+    throw new SQLFeatureNotSupportedException();
   }
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
-    Savepoint savepoint = new Savepoint(name.replace("`", "``"));
-    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
-    return savepoint;
+    throw new SQLFeatureNotSupportedException();
   }
 
   @Override
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
-    checkNotClosed();
-    lock.lock();
-    try {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.Savepoint) {
-          client.execute(
-              new QueryPacket(
-                  "ROLLBACK TO SAVEPOINT `" + ((Connection.Savepoint) savepoint).rawValue() + "`"));
-        } else {
-          throw exceptionFactory.create("Unknown savepoint type");
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
+    throw new SQLFeatureNotSupportedException();
   }
 
   @Override
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
-    checkNotClosed();
-    lock.lock();
-    try {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        if (savepoint instanceof Connection.Savepoint) {
-          client.execute(
-              new QueryPacket(
-                  "RELEASE SAVEPOINT `" + ((Connection.Savepoint) savepoint).rawValue() + "`"));
-        } else {
-          throw exceptionFactory.create("Unknown savepoint type");
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
+    throw new SQLFeatureNotSupportedException();
   }
 
   @Override
@@ -717,55 +683,6 @@ public class Connection implements java.sql.Connection {
 
   public Client getClient() {
     return client;
-  }
-
-  /** Internal Savepoint implementation */
-  class Savepoint implements java.sql.Savepoint {
-
-    private final String name;
-    private final Integer id;
-
-    public Savepoint(final String name) {
-      this.name = name;
-      this.id = null;
-    }
-
-    public Savepoint(final int savepointId) {
-      this.id = savepointId;
-      this.name = null;
-    }
-
-    /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
-     * represents.
-     *
-     * @return the numeric ID of this savepoint
-     */
-    public int getSavepointId() throws SQLException {
-      if (name != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
-      }
-      return id;
-    }
-
-    /**
-     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the name of this savepoint
-     */
-    public String getSavepointName() throws SQLException {
-      if (id != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint name of an unnamed savepoint");
-      }
-      return name;
-    }
-
-    public String rawValue() {
-      if (id != null) {
-        return "_jid_" + id;
-      }
-      return name;
-    }
   }
 
   /**

@@ -107,7 +107,7 @@ public class BatchTest extends Common {
       assertEquals(1, res[0]);
       assertEquals(1, res[1]);
     }
-    ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest ORDER BY t1, t2");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("1", rs.getString(2));
@@ -152,7 +152,7 @@ public class BatchTest extends Common {
       assertEquals(1, res[0]);
       assertEquals(1, res[1]);
     }
-    ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest ORDER BY t1, t2");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("1", rs.getString(2));
@@ -180,7 +180,6 @@ public class BatchTest extends Common {
   }
 
   private void batchWithError(Connection con) throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepareError");
     stmt.setFetchSize(3);

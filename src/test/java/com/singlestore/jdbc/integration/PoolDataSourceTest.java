@@ -98,7 +98,7 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void testResetSessionVariable() throws SQLException {
     testResetSessionVariable(false);
-    if (isMariaDBServer() && minVersion(10, 2, 0)) {
+    if (minVersion(7, 3, 0)) {
       testResetSessionVariable(true);
     }
   }

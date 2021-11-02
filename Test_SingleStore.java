@@ -198,13 +198,9 @@ public class Test_SingleStore
         try
         {
             Savepoint sp = conn.setSavepoint();
-            conn.rollback(sp);
+            throw new Exception("Should fail");
+        } catch (SQLFeatureNotSupportedException ignored) {
 
-            sp = conn.setSavepoint();
-            conn.releaseSavepoint(sp);
-        } catch (SQLException e) {
-            // Some clients don't support it
-            //
         }
 
         conn.getTransactionIsolation();

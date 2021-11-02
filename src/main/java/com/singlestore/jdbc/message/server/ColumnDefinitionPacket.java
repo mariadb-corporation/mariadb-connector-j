@@ -172,6 +172,9 @@ public class ColumnDefinitionPacket implements ServerMessage {
   }
 
   public byte getDecimals() {
+    if (dataType == DataType.DATE) {
+      return 0;
+    }
     return decimals;
   }
 
@@ -250,6 +253,20 @@ public class ColumnDefinitionPacket implements ServerMessage {
           return length;
         }
         return length / maxWidth;
+      case FLOAT:
+        return 6;
+      case DOUBLE:
+        return 14;
+      case DATE:
+        return 10;
+      case DATETIME:
+      case TIMESTAMP:
+        // S2 sends the same length of DATETIME(6) for both DATETIME(0) and DATETIME(6)
+        // However in reality DATETIME(0) is 7 symbols shorter as it is missing ".000000"
+        return (decimals == 0) ? length - 7 : length;
+      case TIME:
+        // same as above, but S2 returns 18 instead 17 for some reason
+        return (decimals == 0) ? 10 : 17;
 
       default:
         return length;
@@ -259,7 +276,8 @@ public class ColumnDefinitionPacket implements ServerMessage {
   public int getColumnType(Configuration conf) {
     switch (dataType) {
       case TINYINT:
-        if (length == 1) {
+        // S2 always returns length 4 for TINYINT, so can't check it here
+        if (conf.tinyInt1isBit()) {
           return Types.BIT;
         }
         return isSigned() ? Types.TINYINT : Types.SMALLINT;

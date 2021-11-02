@@ -185,12 +185,11 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionLoadBalance() throws Exception {
-
-    String host = "localhost", portMaster = "3306", portChild = "3308", database = "testj";
+    String host = "localhost", portMaster = "5506", portChild = "5508", database = "test";
     String url =
         String.format(
             "jdbc:singlestore:loadbalance//%s:%s,%s:%s/%s?user=%s&password=%s&restrictedAuth=none&maxPoolSize=10",
-            host, portMaster, host, portChild, database, "root", "");
+            host, portMaster, host, portChild, database, "root", password);
     ConnectionPoolDataSource ds = new MariaDbPoolDataSource(url);
 
     try (Connection conn = getConnection(host + ":" + portMaster, database)) {
@@ -275,24 +274,12 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'dsUser'");
 
-    if (minVersion(8, 0, 0)) {
-      if (isMariaDBServer()) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      } else {
-        stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      }
-    } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-    }
+    stmt.execute("DROP USER IF EXISTS 'dsUser'");
+    stmt.execute(
+        "GRANT SELECT ON "
+            + sharedConn.getCatalog()
+            + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);

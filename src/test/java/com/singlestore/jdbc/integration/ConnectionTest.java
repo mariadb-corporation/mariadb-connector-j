@@ -173,72 +173,39 @@ public class ConnectionTest extends Common {
 
   @Test
   public void nativeSqlTest() throws SQLException {
-    String exp;
-    if (isMariaDBServer() || minVersion(8, 0, 17)) {
-      exp =
-          "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
-              + ", convert(convert(?, CHAR), SIGNED INTEGER)"
-              + ", 1=?"
-              + ", 1=?"
-              + ", convert(?,   SIGNED INTEGER   )"
-              + ",  convert (?,   SIGNED INTEGER   )"
-              + ", convert(?, UNSIGNED INTEGER)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, DOUBLE)"
-              + ", convert(?, DOUBLE)"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DATETIME)"
-              + ", convert(?, DATETIME)";
-    } else {
-      exp =
-          "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
-              + ", convert(convert(?, CHAR), SIGNED INTEGER)"
-              + ", 1=?"
-              + ", 1=?"
-              + ", convert(?,   SIGNED INTEGER   )"
-              + ",  convert (?,   SIGNED INTEGER   )"
-              + ", convert(?, UNSIGNED INTEGER)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, BINARY)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", convert(?, CHAR)"
-              + ", 0.0+?"
-              + ", 0.0+?"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DECIMAL)"
-              + ", convert(?, DATETIME)"
-              + ", convert(?, DATETIME)";
-    }
+    // TODO: PLAT-5859
+    // Extend with additional test cases if :> is implemented
+    String exp =
+        "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
+            + ", convert(convert(?, CHAR), SIGNED INTEGER)"
+            + ", 1=?"
+            + ", 1=?"
+            + ", convert(?,   SIGNED INTEGER   )"
+            + ",  convert (?,   SIGNED INTEGER   )"
+            + ", convert(?, UNSIGNED INTEGER)"
+            + ", convert(?, BINARY)"
+            + ", convert(?, BINARY)"
+            + ", convert(?, BINARY)"
+            + ", convert(?, BINARY)"
+            + ", convert(?, BINARY)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", convert(?, CHAR)"
+            + ", 0.0+?"
+            + ", 0.0+?"
+            + ", convert(?, DECIMAL)"
+            + ", convert(?, DECIMAL)"
+            + ", convert(?, DECIMAL)"
+            + ", convert(?, DATETIME)"
+            + ", convert(?, DATETIME)";
 
     assertEquals(
         exp,
@@ -292,8 +259,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void databaseStateChange() throws SQLException {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() && minVersion(10, 2, 0)) || (!isMariaDBServer() && minVersion(5, 7, 0)));
     try (Connection connection = createCon()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute("drop database if exists _test_db");
@@ -310,8 +275,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void catalog() throws SQLException {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() && minVersion(10, 2, 0)) || (!isMariaDBServer() && minVersion(5, 7, 0)));
     try (Connection connection = createCon()) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute("drop database if exists _test_db");
@@ -458,26 +421,6 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void testConnectionAttributes() throws Exception {
-    // check if performance_schema is ON
-    Statement stmt = sharedConn.createStatement();
-    ResultSet res = stmt.executeQuery("show variables like 'performance_schema'");
-    res.next();
-    Assumptions.assumeFalse(res.getString("Value").equals("OFF"));
-
-    try (Connection connection = createCon()) {
-      Statement attributeStatement = connection.createStatement();
-      ResultSet result =
-          attributeStatement.executeQuery(
-              "select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
-      while (result.next()) {
-        String strVal = result.getString("ATTR_VALUE");
-        assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
-      }
-    }
-  }
-
-  @Test
   public void isolationLevel() throws SQLException {
     java.sql.Connection connection = createCon();
     int[] levels =
@@ -506,36 +449,41 @@ public class ConnectionTest extends Common {
     }
   }
 
+  static class MySavepoint implements Savepoint {
+    @Override
+    public int getSavepointId() throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public String getSavepointName() throws SQLException {
+      return null;
+    }
+  }
+
   @Test
   public void savepointTest() throws SQLException {
-    try (Connection con = createCon()) {
-      Statement stmt = con.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
-      con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO spt values('hej1')");
-      stmt.executeUpdate("INSERT INTO spt values('hej2')");
-      Savepoint savepoint = con.setSavepoint("ye`\\\\`p");
-      stmt.executeUpdate("INSERT INTO spt  values('hej3')");
-      stmt.executeUpdate("INSERT INTO spt values('hej4')");
-      assertEquals("ye``\\\\``p", savepoint.getSavepointName());
-      assertThrowsContains(
-          SQLException.class,
-          () -> savepoint.getSavepointId(),
-          "Cannot retrieve savepoint id of a named savepoint");
+    Connection con = createCon();
+    try {
+      con.setSavepoint();
+    } catch (SQLFeatureNotSupportedException ignored) {
+    }
+
+    try {
+      con.setSavepoint("test");
+    } catch (SQLFeatureNotSupportedException ignored) {
+    }
+
+    try {
+      MySavepoint savepoint = new MySavepoint();
+      con.releaseSavepoint(savepoint);
+    } catch (SQLFeatureNotSupportedException ignored) {
+    }
+
+    try {
+      MySavepoint savepoint = new MySavepoint();
       con.rollback(savepoint);
-      stmt.executeUpdate("INSERT INTO spt values('hej5')");
-      stmt.executeUpdate("INSERT INTO spt values('hej6')");
-      con.commit();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM spt");
-      assertTrue(rs.next());
-      assertEquals("hej1", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej2", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej5", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej6", rs.getString(1));
-      assertFalse(rs.next());
+    } catch (SQLFeatureNotSupportedException ignored) {
     }
   }
 
@@ -553,123 +501,9 @@ public class ConnectionTest extends Common {
         "Connection.setNetworkTimeout cannot be called on a closed connection");
   }
 
-  @Test
-  public void savepointUnname() throws SQLException {
-    try (Connection con = createCon()) {
-      Statement stmt = con.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
-      con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO spt values('hej1')");
-      stmt.executeUpdate("INSERT INTO spt values('hej2')");
-      Savepoint savepoint = con.setSavepoint();
-      stmt.executeUpdate("INSERT INTO spt  values('hej3')");
-      stmt.executeUpdate("INSERT INTO spt values('hej4')");
-      assertTrue(savepoint.getSavepointId() > 0);
-      assertThrowsContains(
-          SQLException.class,
-          () -> savepoint.getSavepointName(),
-          "Cannot retrieve savepoint name of an unnamed savepoint");
-      con.rollback(savepoint);
-      assertThrowsContains(
-          SQLException.class, () -> con.rollback(new MySavepoint()), "Unknown savepoint type");
-      stmt.executeUpdate("INSERT INTO spt values('hej5')");
-      stmt.executeUpdate("INSERT INTO spt values('hej6')");
-      con.commit();
-      con.commit();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM spt");
-      assertTrue(rs.next());
-      assertEquals("hej1", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej2", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej5", rs.getString(1));
-      assertTrue(rs.next());
-      assertEquals("hej6", rs.getString(1));
-      assertFalse(rs.next());
-    }
-  }
-
-  @Test
-  public void releaseSavepoint() throws SQLException {
-    try (Connection con = createCon()) {
-      Statement stmt = con.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
-      con.setAutoCommit(false);
-      stmt.executeUpdate("INSERT INTO spt values('hej1')");
-      stmt.executeUpdate("INSERT INTO spt values('hej2')");
-      Savepoint savepoint = con.setSavepoint();
-      stmt.executeUpdate("INSERT INTO spt  values('hej3')");
-      stmt.executeUpdate("INSERT INTO spt values('hej4')");
-      con.releaseSavepoint(savepoint);
-      assertThrowsContains(
-          SQLException.class,
-          () -> con.releaseSavepoint(new MySavepoint()),
-          "Unknown savepoint type");
-      stmt.executeUpdate("INSERT INTO spt values('hej5')");
-      stmt.executeUpdate("INSERT INTO spt values('hej6')");
-      con.commit();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM spt");
-      for (int i = 1; i < 7; i++) {
-        assertTrue(rs.next());
-        assertEquals("hej" + i, rs.getString(1));
-      }
-      assertFalse(rs.next());
-    }
-  }
-
-  class MySavepoint implements Savepoint {
-    @Override
-    public int getSavepointId() throws SQLException {
-      return 0;
-    }
-
-    @Override
-    public String getSavepointName() throws SQLException {
-      return null;
-    }
-  }
-
   @Nested
   @DisplayName("Transaction Test")
   class Transaction {
-
-    @Test
-    public void testProperRollback() throws Exception {
-      java.sql.Statement stmt = sharedConn.createStatement();
-      try {
-        stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key) engine=innodb");
-        stmt.execute(
-            "CREATE TABLE tx_fore_key (id int not null primary key, id_ref int not null, "
-                + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict) "
-                + "engine=innodb");
-        stmt.executeUpdate("insert into tx_prim_key(id) values(32)");
-        stmt.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
-
-        // 2. try to delete entry in Primary table in a transaction - which will fail due
-        // foreign key.
-        sharedConn.setAutoCommit(false);
-        try (java.sql.Statement st = sharedConn.createStatement()) {
-          st.executeUpdate("delete from tx_prim_key where id = 32");
-          sharedConn.commit();
-          fail("Expected SQLException");
-        } catch (SQLException e) {
-          // This exception is expected
-          assertTrue(e.getMessage().contains("a foreign key constraint fails"));
-          sharedConn.rollback();
-        }
-
-        try (java.sql.Connection conn2 = createCon();
-            java.sql.Statement st = conn2.createStatement()) {
-          st.setQueryTimeout(30000);
-          st.executeUpdate("delete from tx_fore_key where id = 42");
-          st.executeUpdate("delete from tx_prim_key where id = 32");
-        }
-
-      } finally {
-        stmt.execute("drop table if exists tx_fore_key");
-        stmt.execute("drop table if exists tx_prim_key");
-      }
-    }
 
     @Test
     public void transactionTest() throws SQLException {
@@ -677,13 +511,12 @@ public class ConnectionTest extends Common {
       try {
         stmt.execute(
             "CREATE TABLE transaction_test "
-                + "(id int not null primary key auto_increment, test varchar(20)) "
-                + "engine=innodb");
+                + "(id int not null primary key auto_increment, test varchar(20))");
         sharedConn.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('heja')");
         stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('japp')");
         sharedConn.commit();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_test");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_test ORDER BY id");
         assertEquals(true, rs.next());
         assertEquals("heja", rs.getString("test"));
         assertEquals(true, rs.next());
@@ -760,80 +593,25 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void verificationEd25519AuthPlugin() throws Throwable {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && isMariaDBServer()
-            && minVersion(10, 2, 0));
+  public void pamAuthPlugin() throws Throwable {
+
     Statement stmt = sharedConn.createStatement();
 
-    try {
-      stmt.execute("INSTALL SONAME 'auth_ed25519'");
-    } catch (SQLException sqle) {
-      Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
-    }
-    stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
-    try {
-      if (minVersion(10, 4, 0)) {
-        stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
-                + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
-      } else {
-        stmt.execute(
-            "CREATE USER IF NOT EXISTS verificationEd25519AuthPlugin@'%' IDENTIFIED "
-                + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
-      }
-    } catch (SQLException sqle) {
-      // already existing
-    }
+    stmt.execute("DROP USER IF EXISTS 'test_pam'");
     stmt.execute(
-        "GRANT SELECT on " + sharedConn.getCatalog() + ".* to verificationEd25519AuthPlugin");
+        "GRANT SELECT ON *.* TO 'test_pam' IDENTIFIED WITH "
+            + "authentication_pam as 's2_pam_test'");
 
     try (Connection connection =
-        createCon("user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord")) {
-      // must have succeed
-      connection.getCatalog();
-    }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
-  }
-
-  // TODO: PLAT-5845
-  @Test
-  public void pamAuthPlugin() throws Throwable {
-    // https://mariadb.com/kb/en/authentication-plugin-pam/
-    // only test on travis, because only work on Unix-like operating systems.
-    // /etc/pam.d/mariadb pam configuration is created beforehand
-
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && System.getenv("TEST_PAM_USER") != null
-            && !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
-    Statement stmt = sharedConn.createStatement();
-    try {
-      stmt.execute("INSTALL PLUGIN pam SONAME 'auth_pam'");
-    } catch (SQLException sqle) {
-      // might be already set
-    }
-    stmt.execute("DROP USER IF EXISTS 'testPam'@'%'");
-    //    stmt.execute("CREATE USER 'testPam'@'%' IDENTIFIED VIA pam USING 'mariadb'");
-    stmt.execute("GRANT SELECT ON *.* TO 'testPam'@'%' IDENTIFIED VIA pam");
-    stmt.execute("FLUSH PRIVILEGES");
-
-    try (Connection connection = createCon("user=testPam&password=myPwd&restrictedAuth=dialog")) {
-      // must have succeed
+        createCon("user=test_pam&password=test_pass&restrictedAuth=mysql_clear_password")) {
       connection.getCatalog();
     }
     assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=testPam&password=myPwd&restrictedAuth=other"),
+        () -> createCon("user=test_pam&password=test_pass&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
 
-    stmt.execute("drop user testPam@'%'");
+    stmt.execute("drop user test_pam@'%'");
   }
 
   @Nested
@@ -854,7 +632,7 @@ public class ConnectionTest extends Common {
     try (Connection connection = createCon("useReadAheadInput=false")) {
       // must have succeed
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.users");
       int i = 0;
       while (rs.next()) i++;
       assertTrue(i > 0);
@@ -917,6 +695,8 @@ public class ConnectionTest extends Common {
     }
   }
 
+  // TODO: PLAT-5887
+  // we cannot really run this test since we run S2 in container
   @Test
   public void localSocket() throws Exception {
     Assumptions.assumeTrue(
@@ -1008,15 +788,6 @@ public class ConnectionTest extends Common {
     try (Connection con = createCon("tcpKeepAlive=true&tcpAbortiveClose=true")) {
       con.isValid(1);
     }
-  }
-
-  @Test
-  public void sslNotSet() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeFalse(haveSsl());
-    assertThrowsContains(
-        SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
   }
 
   @Test

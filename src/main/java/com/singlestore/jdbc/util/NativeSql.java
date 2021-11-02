@@ -300,6 +300,7 @@ public final class NativeSql {
           case "DOUBLE":
           case "FLOAT":
             // SingleStore does not support converting to DOUBLE or FLOAT
+            // TODO: PLAT-5859
             return "0.0+" + value;
 
           case "REAL":
