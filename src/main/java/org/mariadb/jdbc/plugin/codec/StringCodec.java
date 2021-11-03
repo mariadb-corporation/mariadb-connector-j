@@ -87,17 +87,6 @@ public class StringCodec implements Codec<String> {
         sb.append("'");
         return sb.toString();
 
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as String", column.getType()));
-        }
-        return buf.readString(length);
-
       default:
         return buf.readString(length);
     }
@@ -252,17 +241,6 @@ public class StringCodec implements Codec<String> {
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss" + microSecPattern);
         return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().format(formatter);
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as String", column.getType()));
-        }
-        return buf.readString(length);
 
       default:
         return buf.readString(length);

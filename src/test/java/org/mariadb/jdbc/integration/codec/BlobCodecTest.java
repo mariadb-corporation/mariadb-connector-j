@@ -112,7 +112,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
+    testObject(rs, String.class, "0");
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
@@ -151,19 +151,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(1),
-        "Data type BLOB cannot be decoded as String");
+    assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(2),
-        "Data type BLOB cannot be decoded as String");
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString("t2alias"),
-        "Data type BLOB cannot be decoded as String");
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("some🌟", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -181,19 +174,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(1),
-        "Data type BLOB cannot be decoded as String");
+    assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(2),
-        "Data type BLOB cannot be decoded as String");
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString("t2alias"),
-        "Data type BLOB cannot be decoded as String");
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("some🌟", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
