@@ -58,7 +58,7 @@ public class Common {
           throw new RuntimeException("wrong param");
       }
       try {
-        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC&%s";
+        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC&trackSessionState=TRUE%s";
         String jdbcUrlText =
                 String.format(
                         jdbcBase,
@@ -67,6 +67,7 @@ public class Common {
                 String.format(
                         jdbcBase,
                         driver, host, port, database, username, password, true, true, other);
+
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
