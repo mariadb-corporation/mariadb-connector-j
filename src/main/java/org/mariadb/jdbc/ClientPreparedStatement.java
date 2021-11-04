@@ -324,7 +324,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
 
   protected void validParameters() throws SQLException {
     for (int i = 0; i < parser.getParamCount(); i++) {
-      if (parameters.containsKey(i)) {
+      if (!parameters.containsKey(i)) {
         throw exceptionFactory()
             .create("Parameter at position " + (i + 1) + " is not set", "07004");
       }

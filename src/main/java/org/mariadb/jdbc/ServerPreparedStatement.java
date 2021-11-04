@@ -467,7 +467,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   protected void validParameters() throws SQLException {
     if (prepareResult != null) {
       for (int i = 0; i < prepareResult.getParameters().length; i++) {
-        if (parameters.containsKey(i)) {
+        if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");
         }
@@ -486,7 +486,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
       // ensure all parameters are set
       for (int i = 0; i < parameters.size(); i++) {
-        if (parameters.containsKey(i)) {
+        if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");
         }

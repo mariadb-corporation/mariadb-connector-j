@@ -23,16 +23,16 @@ public class ParameterList implements Parameters, Cloneable {
   }
 
   public Parameter get(int index) {
-    if (index + 1 > length)
+    if (index >= length)
       throw new ArrayIndexOutOfBoundsException("wrong index " + index + " length:" + length);
     return elementData[index];
   }
 
   public boolean containsKey(int index) {
     if (index >= 0 && length > index) {
-      return elementData[index] == null;
+      return elementData[index] != null;
     }
-    return true;
+    return false;
   }
 
   public void set(int index, Parameter element) {
