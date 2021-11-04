@@ -461,7 +461,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     validParameters();
     if (batchParameters == null) batchParameters = new ArrayList<>();
     batchParameters.add(parameters);
-    parameters = new ParameterList(parameters.size());
+    parameters = parameters.clone();
   }
 
   protected void validParameters() throws SQLException {

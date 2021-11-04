@@ -319,7 +319,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     validParameters();
     if (batchParameters == null) batchParameters = new ArrayList<>();
     batchParameters.add(parameters);
-    parameters = new ParameterList();
+    parameters = parameters.clone();
   }
 
   protected void validParameters() throws SQLException {

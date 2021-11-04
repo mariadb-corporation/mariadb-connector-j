@@ -68,10 +68,7 @@ public class BatchTest extends Common {
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
-      Common.assertThrowsContains(
-          SQLTransientConnectionException.class,
-          prep::addBatch,
-          "Parameter at " + "position 1 is not set");
+      prep.addBatch();
     }
   }
 
