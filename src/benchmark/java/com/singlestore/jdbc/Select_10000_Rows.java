@@ -13,7 +13,7 @@ import java.sql.ResultSet;
 
 public class Select_10000_Rows extends Common {
   private static final String sql =
-      "SELECT lpad(conv(floor(rand()*pow(36,8)), 10, 36), 8, 0) as rnd_str_8 FROM seq_1_to_10000";
+      "SELECT lpad(conv(floor(rand()*pow(36,8)), 10, 36), 8, 0) as rnd_str_8 FROM range_1_10000";
 
 
   @Benchmark

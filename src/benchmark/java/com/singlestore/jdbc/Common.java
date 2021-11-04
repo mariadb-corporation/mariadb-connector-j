@@ -9,6 +9,8 @@ import org.openjdk.jmh.annotations.*;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -26,10 +28,10 @@ public class Common {
 
     // conf
     public final String host = System.getProperty("TEST_HOST", "localhost");
-    public final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
+    public final int port = Integer.parseInt(System.getProperty("TEST_PORT", "5506"));
     public final String username = System.getProperty("TEST_USERNAME", "root");
-    public final String password = System.getProperty("TEST_PASSWORD", "");
-    public final String database = System.getProperty("TEST_DATABASE", "testj");
+    public final String password = System.getProperty("TEST_PASSWORD", "password");
+    public final String database = System.getProperty("TEST_DATABASE", "test");
     // connections
     protected Connection connectionText;
     protected Connection connectionBinary;
@@ -67,6 +69,20 @@ public class Common {
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect("jdbc:" + driver + "://" + jdbcUrlBinary, new Properties());
+        try (Statement st = connectionText.createStatement()) {
+          st.execute("CREATE TABLE range_1_10000(n int)");
+          st.execute("CREATE OR REPLACE PROCEDURE fill_range() AS BEGIN " +
+                  "FOR i IN 1 .. 10000 LOOP" +
+                  " INSERT INTO range_1_10000 VALUES (i);" +
+                  "END LOOP;" +
+                  "END");
+          st.execute("CALL fill_range()");
+        } catch (SQLSyntaxErrorException e) {
+          if (!e.getMessage().contains("Table 'range_1_10000' already exists"))
+          {
+            throw e;
+          }
+        }
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
