@@ -96,7 +96,20 @@ public class Common {
                                      "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
                                      host, port, database, username, password))) {
           Statement stmt = conn.createStatement();
+          try {
+            stmt.executeQuery("INSTALL SONAME 'ha_blackhole'");
+          } catch (SQLException e) {
+            // eat
+          }
+          stmt.executeUpdate("DROP TABLE IF EXISTS testBlackHole");
           stmt.executeUpdate("DROP TABLE IF EXISTS test100");
+
+          try {
+            stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256)) ENGINE = BLACKHOLE");
+          } catch (SQLException e) {
+            stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256))");
+          }
+
           StringBuilder sb = new StringBuilder("CREATE TABLE test100 (i1 int");
           StringBuilder sb2 = new StringBuilder("INSERT INTO test100 value (1");
           for (int i = 2; i <= 100; i++) {
