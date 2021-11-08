@@ -1,51 +1,41 @@
-/*
- * MariaDB Client for Java
- *
- * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2020 MariaDB Corporation Ab.
- *
- * This library is free software; you can redistribute it and/or modify it under
- * the terms of the GNU Lesser General Public License as published by the Free
- * Software Foundation; either version 2.1 of the License, or (at your option)
- * any later version.
- *
- * This library is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
- * for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License along
- * with this library; if not, write to Monty Program Ab info@montyprogram.com.
- *
- */
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
 
 package org.mariadb.jdbc;
 
 import org.openjdk.jmh.annotations.*;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
 @Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
-@Fork(value = 2)
+@Fork(value = 5)
 @Threads(value = -1) // detecting CPU count
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class Common {
 
+  // conf
+  public final static String host = System.getProperty("TEST_HOST", "localhost");
+  public final static int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
+  public final static String username = System.getProperty("TEST_USERNAME", "root");
+  public final static String password = System.getProperty("TEST_PASSWORD", "");
+  public final static String database = System.getProperty("TEST_DATABASE", "testj");
+  public final static String other = System.getProperty("TEST_OTHER", "");
+  static {
+    new SetupData();
+  }
+
   @State(Scope.Thread)
   public static class MyState {
 
-    // conf
-    public final String host = System.getProperty("TEST_HOST", "localhost");
-    public final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
-    public final String username = System.getProperty("TEST_USERNAME", "root");
-    public final String password = System.getProperty("TEST_PASSWORD", "");
-    public final String database = System.getProperty("TEST_DATABASE", "testj");
     // connections
     protected Connection connectionText;
     protected Connection connectionBinary;
@@ -54,7 +44,7 @@ public class Common {
     String driver;
 
     @Setup(Level.Trial)
-    public void doSetup() throws Exception {
+    public void createConnections() throws Exception {
 
       String className;
       switch (driver) {
@@ -68,21 +58,22 @@ public class Common {
           throw new RuntimeException("wrong param");
       }
       try {
-        String jdbcBase = "%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC";
+        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC&trackSessionState=TRUE%s";
         String jdbcUrlText =
                 String.format(
                         jdbcBase,
-                        host, port, database, username, password, false, false);
+                        driver, host, port, database, username, password, false, false, other);
         String jdbcUrlBinary =
                 String.format(
                         jdbcBase,
-                        host, port, database, username, password, true, true);
+                        driver, host, port, database, username, password, true, true, other);
+
         connectionText =
-            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                .connect("jdbc:" + driver + "://" + jdbcUrlText, new Properties());
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlText, new Properties());
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect("jdbc:" + driver + "://" + jdbcUrlBinary, new Properties());
+                        .connect(jdbcUrlBinary, new Properties());
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -95,4 +86,45 @@ public class Common {
       connectionBinary.close();
     }
   }
+
+  public static class SetupData {
+    static {
+      try {
+        try (Connection conn =
+                     DriverManager.getConnection(
+                             String.format(
+                                     "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
+                                     host, port, database, username, password))) {
+          Statement stmt = conn.createStatement();
+          try {
+            stmt.executeQuery("INSTALL SONAME 'ha_blackhole'");
+          } catch (SQLException e) {
+            // eat
+          }
+          stmt.executeUpdate("DROP TABLE IF EXISTS testBlackHole");
+          stmt.executeUpdate("DROP TABLE IF EXISTS test100");
+
+          try {
+            stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256)) ENGINE = BLACKHOLE");
+          } catch (SQLException e) {
+            stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256))");
+          }
+
+          StringBuilder sb = new StringBuilder("CREATE TABLE test100 (i1 int");
+          StringBuilder sb2 = new StringBuilder("INSERT INTO test100 value (1");
+          for (int i = 2; i <= 100; i++) {
+            sb.append(",i").append(i).append(" int");
+            sb2.append(",").append(i);
+          }
+          sb.append(")");
+          sb2.append(")");
+          stmt.executeUpdate(sb.toString());
+          stmt.executeUpdate(sb2.toString());
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
 }
