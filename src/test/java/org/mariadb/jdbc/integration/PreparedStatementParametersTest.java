@@ -467,7 +467,7 @@ public class PreparedStatementParametersTest extends Common {
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
-    boolean expectClosed = maxAllowedPacket > 16 * 1024 * 1024;
+    boolean expectClosed = maxAllowedPacket >= 16 * 1024 * 1024;
     String st = new String(arr);
     try (Connection con = createCon()) {
       bigSendError(con, st, expectClosed);
