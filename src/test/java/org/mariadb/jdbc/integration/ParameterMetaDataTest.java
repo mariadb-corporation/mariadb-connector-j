@@ -60,25 +60,76 @@ public class ParameterMetaDataTest extends Common {
   @Test
   public void parameterMetaDataNotPreparable() throws Exception {
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
-      parameterMetaDataNotPreparable(con);
+      // statement that cannot be prepared
+      try (PreparedStatement pstmt =
+          con.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
+        ParameterMetaData meta = pstmt.getParameterMetaData();
+        assertEquals(1, meta.getParameterCount());
+        assertEquals(ParameterMetaData.parameterModeIn, meta.getParameterMode(1));
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterTypeName(1),
+            "Unknown parameter metadata type name");
+        Common.assertThrowsContains(
+            SQLFeatureNotSupportedException.class,
+            () -> meta.getParameterClassName(1),
+            "Unknown parameter metadata class name");
+        Common.assertThrowsContains(
+            SQLFeatureNotSupportedException.class,
+            () -> meta.getParameterType(1),
+            "Getting parameter type metadata is not supported");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getPrecision(1),
+            "Unknown parameter metadata precision");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getScale(1),
+            "Unknown parameter metadata scale");
+
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterMode(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterTypeName(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterMode(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterClassName(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getParameterType(2),
+            "Wrong index position. Is 2 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getPrecision(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> meta.getScale(0),
+            "Wrong index position. Is 0 but must be in 1-1 range");
+      }
     }
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts")) {
-      parameterMetaDataNotPreparable(con);
-    }
-  }
-
-  private void parameterMetaDataNotPreparable(org.mariadb.jdbc.Connection con) throws SQLException {
-    // statement that cannot be prepared
-    try (PreparedStatement pstmt =
-        con.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
-      try {
-        pstmt.getParameterMetaData();
-        fail();
+      // statement that cannot be prepared
+      try (PreparedStatement pstmt =
+          con.prepareStatement("select  TMP.field1 from (select ? from dual) TMP")) {
+        try {
+          pstmt.getParameterMetaData();
+          fail();
+        } catch (SQLSyntaxErrorException e) {
+          // eat
+        }
       } catch (SQLSyntaxErrorException e) {
         // eat
       }
-    } catch (SQLSyntaxErrorException e) {
-      // eat
     }
   }
 

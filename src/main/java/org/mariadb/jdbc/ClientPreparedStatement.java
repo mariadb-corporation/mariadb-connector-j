@@ -401,10 +401,14 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    * @since 1.4
    */
   @Override
-  public ParameterMetaData getParameterMetaData() throws SQLException {
+  public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      try {
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      } catch (SQLException e) {
+        return new SimpleParameterMetaData(exceptionFactory(), parser.getParamCount());
+      }
     }
     return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());
   }
