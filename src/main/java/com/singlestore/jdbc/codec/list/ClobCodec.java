@@ -169,7 +169,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   public boolean canEncodeLongData() {
-    return true;
+    return false;
   }
 
   public int getBinaryEncodeType() {

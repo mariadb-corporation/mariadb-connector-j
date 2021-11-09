@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.*;
 import com.singlestore.jdbc.integration.util.SocketFactoryTest;
+import com.singlestore.jdbc.util.constants.Capabilities;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
@@ -44,9 +45,6 @@ public class ConnectionTest extends Common {
 
   @Test
   void socketTimeout() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
       Statement stmt = con.createStatement();
@@ -792,8 +790,6 @@ public class ConnectionTest extends Common {
 
   @Test
   public void localSocketAddress() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {
@@ -810,5 +806,43 @@ public class ConnectionTest extends Common {
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
+  }
+
+  @Test
+  public void connectionCapabilities() {
+    com.singlestore.jdbc.Connection con = sharedConn;
+    long capabilities = con.getContext().getServerCapabilities();
+    assertTrue((capabilities & Capabilities.CLIENT_MYSQL) > 0);
+    assertTrue((capabilities & Capabilities.FOUND_ROWS) > 0);
+    assertTrue((capabilities & Capabilities.LONG_FLAG) > 0);
+    assertTrue((capabilities & Capabilities.CONNECT_WITH_DB) > 0);
+    assertTrue((capabilities & Capabilities.NO_SCHEMA) > 0);
+    assertTrue((capabilities & Capabilities.ODBC) > 0);
+    assertTrue((capabilities & Capabilities.LOCAL_FILES) > 0);
+    assertTrue((capabilities & Capabilities.IGNORE_SPACE) > 0);
+    assertTrue((capabilities & Capabilities.CLIENT_PROTOCOL_41) > 0);
+    assertTrue((capabilities & Capabilities.CLIENT_INTERACTIVE) > 0);
+    assertTrue((capabilities & Capabilities.SSL) > 0);
+    assertTrue((capabilities & Capabilities.IGNORE_SIGPIPE) > 0);
+    assertTrue((capabilities & Capabilities.TRANSACTIONS) > 0);
+    assertTrue((capabilities & Capabilities.RESERVED) > 0);
+    assertTrue((capabilities & Capabilities.SECURE_CONNECTION) > 0);
+    assertTrue((capabilities & Capabilities.MULTI_STATEMENTS) > 0);
+    assertTrue((capabilities & Capabilities.MULTI_RESULTS) > 0);
+    assertTrue((capabilities & Capabilities.PS_MULTI_RESULTS) > 0);
+    assertTrue((capabilities & Capabilities.PLUGIN_AUTH) > 0);
+
+    assertEquals(0, (capabilities & Capabilities.COMPRESS));
+    assertEquals(0, (capabilities & Capabilities.CONNECT_ATTRS));
+    assertEquals(0, (capabilities & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA));
+    assertEquals(0, (capabilities & Capabilities.CLIENT_SESSION_TRACK));
+    assertEquals(0, (capabilities & Capabilities.CLIENT_DEPRECATE_EOF));
+    assertEquals(0, (capabilities & Capabilities.COMPRESS));
+
+    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_PROGRESS));
+    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_COM_MULTI));
+    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS));
+    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO));
+    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA));
   }
 }

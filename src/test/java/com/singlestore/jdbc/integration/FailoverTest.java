@@ -11,18 +11,14 @@ import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.util.constants.HaMode;
-import java.io.ByteArrayInputStream;
 import java.sql.*;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 public class FailoverTest extends Common {
 
   @Test
   public void simpleFailoverTransactionReplay() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
       con.setNetworkTimeout(Runnable::run, 200);
       long threadId = con.getContext().getThreadId();
@@ -40,8 +36,6 @@ public class FailoverTest extends Common {
   }
 
   private void transactionReplay(boolean transactionReplay) throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement st = sharedConn.createStatement();
     st.execute("DROP TABLE IF EXISTS transaction_failover");
     st.execute(
@@ -51,7 +45,7 @@ public class FailoverTest extends Common {
 
     try (Connection con =
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
-      assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+      assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
@@ -66,7 +60,7 @@ public class FailoverTest extends Common {
         stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
         con.commit();
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover order by id");
         for (int i = 0; i < 4; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));
@@ -91,8 +85,6 @@ public class FailoverTest extends Common {
   }
 
   private void transactionReplayDuringCommit(boolean transactionReplay) throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement st = sharedConn.createStatement();
     st.execute("DROP TABLE IF EXISTS transaction_failover");
     st.execute(
@@ -102,7 +94,7 @@ public class FailoverTest extends Common {
 
     try (Connection con =
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
-      assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
+      assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
@@ -119,7 +111,7 @@ public class FailoverTest extends Common {
             () -> con.commit(),
             "Driver has reconnect connection after a communications failure");
 
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover order by id");
         for (int i = 0; i < 1; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));
@@ -139,8 +131,6 @@ public class FailoverTest extends Common {
 
   @Test
   public void transactionReplayPreparedStatement() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     transactionReplayPreparedStatement(true, true);
     transactionReplayPreparedStatement(false, true);
     transactionReplayPreparedStatement(true, false);
@@ -171,11 +161,9 @@ public class FailoverTest extends Common {
           con.prepareStatement("INSERT INTO transaction_failover_3 (test) VALUES (?)")) {
         p.setString(1, "test2");
         p.execute();
-        p.setAsciiStream(1, new ByteArrayInputStream("test3".getBytes()));
-        p.execute();
 
         proxy.restart(300);
-        p.setString(1, "test4");
+        p.setString(1, "test3");
         if (transactionReplay) {
           p.execute();
         } else {
@@ -187,9 +175,9 @@ public class FailoverTest extends Common {
       }
       if (transactionReplay) {
         con.commit();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3 order by id");
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
           assertTrue(rs.next());
           assertEquals("test" + i, rs.getString("test"));
         }
@@ -202,8 +190,6 @@ public class FailoverTest extends Common {
 
   @Test
   public void transactionReplayPreparedStatementBatch() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     for (int i = 0; i < 4; i++) {
       transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0);
     }
@@ -249,7 +235,7 @@ public class FailoverTest extends Common {
           p.executeBatch();
           con.commit();
 
-          ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2");
+          ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_2 order by id");
           for (int i = 0; i < 6; i++) {
             assertTrue(rs.next());
             assertEquals("test" + i, rs.getString("test"));

@@ -17,9 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.function.Executable;
@@ -167,8 +165,8 @@ public class Common {
     sharedConnBinary.isValid(2000);
   }
 
-  public static int getMaxAllowedPacket() throws SQLException {
-    java.sql.Statement st = sharedConn.createStatement();
+  public static int getMaxAllowedPacket(Connection con) throws SQLException {
+    java.sql.Statement st = con.createStatement();
     ResultSet rs = st.executeQuery("select @@max_allowed_packet");
     assertTrue(rs.next());
     return rs.getInt(1);
@@ -195,6 +193,16 @@ public class Common {
             + "(71), (72), (73), (74), (75), (76), (77), (78), (79), (80),\n"
             + "(81), (82), (83), (84), (85), (86), (87), (88), (89), (90),\n"
             + "(91), (92), (93), (94), (95), (96), (97), (98), (99), (100);");
+  }
+  // Calculates offset in milliseconds that would need to be added to timestamp in UTC time to get
+  // timestamp in the current time zone.
+  // These timestamps are compared against values from db converted from UTC to local timezone using
+  // Calendar (Calendar is set to UTC timezone and then set to a UTC timestamp when parsing results.
+  // When getTime is called, Calendar returns timestamp in local timezone)
+  // See function usages for an example
+  public int getOffsetAtDate(int year, int month, int day) {
+    return TimeZone.getDefault()
+        .getOffset(new GregorianCalendar(year, month, day).getTimeInMillis());
   }
 
   @RegisterExtension public Extension watcher = new Follow();

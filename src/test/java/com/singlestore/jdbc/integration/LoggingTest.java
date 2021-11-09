@@ -30,7 +30,7 @@ import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import javax.sql.PooledConnection;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -38,8 +38,8 @@ import org.slf4j.LoggerFactory;
 public class LoggingTest extends Common {
 
   @Test
+  @Disabled
   void basicLogging() throws Exception {
-    Assumptions.assumeTrue(false);
     File tempFile = File.createTempFile("log", ".tmp");
 
     Logger logger = (Logger) LoggerFactory.getLogger("com.singlestore.jdbc");

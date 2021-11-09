@@ -45,22 +45,15 @@ public class ConfigurationTest extends Common {
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertTrue(rs.next());
-      assertEquals(5, rs.getInt(1));
+      assertEquals(3, rs.getInt(1));
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
       rs.clearWarnings();
     }
 
-    try (Connection connection =
-        createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
+    try (Connection connection = createCon("sessionVariables=net_read_timeout=50000")) {
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-      assertTrue(rs.next());
-    }
-    try (Connection connection =
-        createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+      ResultSet rs = stmt.executeQuery("SELECT @@net_read_timeout");
       assertTrue(rs.next());
     }
   }

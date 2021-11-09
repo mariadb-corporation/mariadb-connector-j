@@ -223,7 +223,8 @@ public class ResultSetTest extends Common {
   public void testAliases() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs =
-        stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias");
+        stmt.executeQuery(
+            "SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias order by t1alias");
     rs.next();
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t1alias"));
@@ -232,7 +233,9 @@ public class ResultSetTest extends Common {
     assertEquals(1, rs.getInt("t2alias"));
     assertEquals(1, rs.getInt("tablealias.t2alias"));
 
-    rs = stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest");
+    rs =
+        stmt.executeQuery(
+            "SELECT t1 as t1alias, t2 as t2alias FROM resultsettest order by t1alias");
     rs.next();
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t1alias"));
@@ -241,7 +244,7 @@ public class ResultSetTest extends Common {
     assertEquals(1, rs.getInt("t2alias"));
     assertEquals(1, rs.getInt("resultsettest.t2alias"));
 
-    rs = stmt.executeQuery("SELECT t1, t2 FROM resultsettest");
+    rs = stmt.executeQuery("SELECT t1, t2 FROM resultsettest order by t1");
     rs.next();
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t1"));

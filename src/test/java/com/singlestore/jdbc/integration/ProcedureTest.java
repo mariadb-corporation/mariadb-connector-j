@@ -20,9 +20,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 public class ProcedureTest extends Common {
 
@@ -50,7 +48,7 @@ public class ProcedureTest extends Common {
     Statement st = sharedConn.createStatement();
     st.execute("DROP PROCEDURE IF EXISTS prep_proc2");
     st.execute(
-        "CREATE PROCEDURE prep_proc2 (IN t1 INT) BEGIN \n"
+        "CREATE PROCEDURE prep_proc2 (t1 INT) AS BEGIN \n"
             + "INSERT INTO procedure_test(t0) VALUE (t1);\n"
             + "END");
 
@@ -64,7 +62,7 @@ public class ProcedureTest extends Common {
   public void prep() throws SQLException {
     Statement st = sharedConn.createStatement();
     st.execute("DROP PROCEDURE IF EXISTS prep_proc");
-    st.execute("CREATE PROCEDURE prep_proc (IN t1 INT) BEGIN \n" + "SELECT t1;\n" + "END");
+    st.execute("CREATE PROCEDURE prep_proc (t1 INT) AS BEGIN \n" + "ECHO SELECT t1;\n" + "END");
 
     try (PreparedStatement stmt = sharedConn.prepareCall("CALL prep_proc(?)")) {
       assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
@@ -98,6 +96,8 @@ public class ProcedureTest extends Common {
 
   @Test
   @SuppressWarnings("deprecated")
+  // TODO: PLAT-5881
+  @Disabled
   public void basicProcedure() throws Throwable {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
@@ -457,12 +457,14 @@ public class ProcedureTest extends Common {
         SQLException.class, () -> callableStatement.getInt(4), "index 4 not declared as output");
   }
 
+  @Disabled
   @Test
+  // TODO: PLAT-5881
   public void setProcedureTest() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (IN t1 VARCHAR(20), INOUT t2 VARCHAR(20)) BEGIN \n"
+        "CREATE PROCEDURE basic_proc (IN t1 VARCHAR(20), INOUT t2 VARCHAR(20)) AS BEGIN \n"
             + "set t2 = CONCAT(t1, t2);\n"
             + "END");
     try (CallableStatement callableStatement = sharedConn.prepareCall("{call basic_proc(?,?)}")) {

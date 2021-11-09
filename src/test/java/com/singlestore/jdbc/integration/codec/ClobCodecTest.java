@@ -473,33 +473,30 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getTimestamp(ResultSet rs) throws SQLException {
+    int offset = getOffsetAtDate(2011, 1, 1);
     rs.next();
 
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + offset,
         rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
-        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getOffset(0),
+        Timestamp.valueOf("2011-01-01 00:00:00").getTime() + offset,
         rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152, rs.getTimestamp(2).getTime());
     assertEquals(
-        Timestamp.valueOf("2010-12-31 23:59:59").getTime()
-            + 152
-            + TimeZone.getDefault().getOffset(0),
+        Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152 + offset,
         rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
         rs.getTimestamp("t2alias").getTime());
     assertEquals(
-        Timestamp.valueOf("2010-12-31 23:59:59").getTime()
-            + 152
-            + TimeZone.getDefault().getOffset(0),
+        Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152 + offset,
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
 

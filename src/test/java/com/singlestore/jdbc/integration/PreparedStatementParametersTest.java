@@ -20,10 +20,11 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.TimeZone;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
+import org.junit.jupiter.api.extension.BeforeTestExecutionCallback;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class PreparedStatementParametersTest extends Common {
 
@@ -91,7 +92,7 @@ public class PreparedStatementParametersTest extends Common {
 
   @SuppressWarnings("deprecation")
   public void checkParameters(com.singlestore.jdbc.Connection con, boolean text) throws Exception {
-    Calendar utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    Calendar localCal = Calendar.getInstance(TimeZone.getDefault());
     checkSendBlob(
         ps -> ps.setBlob(1, new MariaDbBlob("0123".getBytes(), 1, 2)),
         rs -> assertArrayEquals("12".getBytes(), rs.getBytes(1)),
@@ -148,37 +149,18 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
         rs -> assertEquals(Date.valueOf("2010-05-25"), rs.getDate(1)),
         con);
-    boolean minus = TimeZone.getDefault().getOffset(System.currentTimeMillis()) > 0;
     checkSendTimestamp(
-        ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs ->
-            assertEquals(minus ? 1263164400000L : 1263254400000L, rs.getDate(1, utcCal).getTime()),
+        ps -> ps.setDate(1, Date.valueOf("2010-01-12"), localCal),
+        rs -> assertEquals(1263247200000L, rs.getDate(1, localCal).getTime()),
         con);
     checkSendTimestamp(
-        ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
-        rs -> assertEquals(minus ? "2010-01-11" : "2010-01-12", rs.getDate(1, utcCal).toString()),
+        ps -> ps.setDate(1, Date.valueOf("2010-01-12"), localCal),
+        rs -> assertEquals("2010-01-12", rs.getDate(1, localCal).toString()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
         rs -> assertEquals(Date.valueOf("2010-05-25").getTime(), rs.getDate(1).getTime()),
         con);
-    if (text) {
-      assertThrowsContains(
-          SQLException.class,
-          () ->
-              checkSendTimestamp(
-                  ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-                  rs ->
-                      assertEquals(
-                          Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-                  con),
-          "Incorrect datetime value: '18:16:01.123'");
-    } else {
-      checkSendTimestamp(
-          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-          rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-          con);
-    }
 
     checkSendTimestamp(
         ps -> ps.setTimestamp(1, Timestamp.valueOf("2010-05-25 18:16:01.987")),
@@ -192,15 +174,18 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals("2010-05-25 18:16:01.987", rs.getTimestamp(1).toString()),
         con);
     checkSendTimestamp(
-        ps -> ps.setTimestamp(1, Timestamp.valueOf("2010-05-25 18:16:01.987"), utcCal),
+        ps -> ps.setTimestamp(1, Timestamp.valueOf("2010-05-25 18:16:01.987"), localCal),
         rs ->
             assertEquals(
                 Timestamp.valueOf("2010-05-25 18:16:01.987").getTime(),
-                rs.getTimestamp(1, utcCal).getTime()),
+                rs.getTimestamp(1, localCal).getTime()),
         con);
-
     checkSendTimestamp(
-        ps -> ps.setTimestamp(1, Timestamp.valueOf("2010-05-25 18:16:01.987"), utcCal),
+        ps ->
+            ps.setTimestamp(
+                1,
+                Timestamp.valueOf("2010-05-25 18:16:01.987"),
+                Calendar.getInstance(TimeZone.getTimeZone("UTC"))),
         rs ->
             assertEquals(
                 Timestamp.valueOf("2010-05-25 18:16:01.987").getTime()
@@ -432,7 +417,7 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void bigSend() throws SQLException {
-    int maxAllowedPacket = getMaxAllowedPacket();
+    int maxAllowedPacket = getMaxAllowedPacket(sharedConn);
     Assumptions.assumeTrue(maxAllowedPacket > 21 * 1024 * 1024);
     char[] arr = new char[20 * 1024 * 1024];
     for (int pos = 0; pos < arr.length; pos++) {
@@ -462,17 +447,53 @@ public class PreparedStatementParametersTest extends Common {
     con.commit();
   }
 
+  public static class SetMaxPacketExtension
+      implements BeforeTestExecutionCallback, AfterTestExecutionCallback {
+    private int originalMaxPacket;
+    public static final int smallMaxPacket = 5 * 1024 * 1024;
+    public static final int mediumMaxPacket = 20 * 1024 * 1024;
+
+    @Override
+    public void beforeTestExecution(ExtensionContext context) throws Exception {
+      originalMaxPacket = getMaxAllowedPacket(sharedConn);
+      int newMaxPacket;
+      switch (context.getRequiredTestMethod().getName()) {
+        case "bigSendError":
+          newMaxPacket = smallMaxPacket;
+          break;
+        case "bigSendErrorMax":
+          newMaxPacket = mediumMaxPacket;
+          break;
+        default:
+          throw new Exception("Incorrect usage of SetMaxPacketExtension");
+      }
+      try (Statement stmt = sharedConn.createStatement()) {
+        stmt.execute("SET GLOBAL max_allowed_packet=" + newMaxPacket);
+      }
+    }
+
+    @Override
+    public void afterTestExecution(ExtensionContext context) throws Exception {
+      try (Statement stmt = sharedConn.createStatement()) {
+        stmt.execute("SET GLOBAL max_allowed_packet=" + originalMaxPacket);
+      }
+    }
+  }
+
   @Test
+  @ExtendWith(SetMaxPacketExtension.class)
   public void bigSendError() throws SQLException {
-    int maxAllowedPacket = getMaxAllowedPacket();
-    Assumptions.assumeTrue(maxAllowedPacket < 10 * 1024 * 1024);
+    Connection con = createCon();
+    Connection binaryCon = createCon("useServerPrepStmts=true");
+    assertEquals(getMaxAllowedPacket(con), SetMaxPacketExtension.smallMaxPacket);
+    assertEquals(getMaxAllowedPacket(binaryCon), SetMaxPacketExtension.smallMaxPacket);
     char[] arr = new char[10 * 1024 * 1024];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
     String st = new String(arr);
-    bigSendError(sharedConn, st);
-    bigSendError(sharedConnBinary, st);
+    bigSendError(con, st);
+    bigSendError(binaryCon, st);
   }
 
   public void bigSendError(Connection con, String st) throws SQLException {
@@ -492,16 +513,13 @@ public class PreparedStatementParametersTest extends Common {
   }
 
   @Test
+  @ExtendWith(SetMaxPacketExtension.class)
   public void bigSendErrorMax() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con = createCon()) {
+      assertEquals(getMaxAllowedPacket(con), SetMaxPacketExtension.mediumMaxPacket);
+    }
 
-    int maxAllowedPacket = getMaxAllowedPacket();
-    Assumptions.assumeTrue(
-        maxAllowedPacket > 16 * 1024 * 1024 && maxAllowedPacket < 100 * 1024 * 1024);
-    char[] arr = new char[maxAllowedPacket + 100];
+    char[] arr = new char[SetMaxPacketExtension.mediumMaxPacket + 100];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }

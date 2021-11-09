@@ -72,48 +72,48 @@ public class LoggersTest {
     logger.trace("Test trace 3 {}", "param");
 
     BufferedReader reader = new BufferedReader(new FileReader(tempfile.getCanonicalPath()));
-    assertEquals("ERROR o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err1", reader.readLine());
-    assertEquals("ERROR o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err2", reader.readLine());
+    assertEquals("ERROR c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err1", reader.readLine());
+    assertEquals("ERROR c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err2", reader.readLine());
     assertEquals("java.sql.SQLException: test exception", reader.readLine());
     String line;
     do {
       line = reader.readLine();
     } while (line != null && line.startsWith("\tat "));
 
-    assertEquals("ERROR o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err3 param", line);
-    assertEquals("WARN o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 1", reader.readLine());
-    assertEquals("WARN o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 2", reader.readLine());
+    assertEquals("ERROR c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test err3 param", line);
+    assertEquals("WARN c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 1", reader.readLine());
+    assertEquals("WARN c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 2", reader.readLine());
     assertEquals("java.sql.SQLException: test exception", reader.readLine());
 
     do {
       line = reader.readLine();
     } while (line != null && line.startsWith("\tat "));
 
-    assertEquals("WARN o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 3 param", line);
-    assertEquals("INFO o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 1", reader.readLine());
-    assertEquals("INFO o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 2", reader.readLine());
+    assertEquals("WARN c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test warn 3 param", line);
+    assertEquals("INFO c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 1", reader.readLine());
+    assertEquals("INFO c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 2", reader.readLine());
     assertEquals("java.sql.SQLException: test exception", reader.readLine());
 
     do {
       line = reader.readLine();
     } while (line != null && line.startsWith("\tat "));
 
-    assertEquals("INFO o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 3 param", line);
+    assertEquals("INFO c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test info 3 param", line);
     assertEquals(
-        "DEBUG o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 1", reader.readLine());
+        "DEBUG c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 1", reader.readLine());
     assertEquals(
-        "DEBUG o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 2", reader.readLine());
+        "DEBUG c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 2", reader.readLine());
     assertEquals("java.sql.SQLException: test exception", reader.readLine());
 
     do {
       line = reader.readLine();
     } while (line != null && line.startsWith("\tat "));
 
-    assertEquals("DEBUG o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 3 param", line);
+    assertEquals("DEBUG c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test debug 3 param", line);
     assertEquals(
-        "TRACE o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test trace 1", reader.readLine());
+        "TRACE c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test trace 1", reader.readLine());
     assertEquals(
-        "TRACE o.m.j.u.u.l.LoggersTest [Slf4JLogger.java] Test trace 2", reader.readLine());
+        "TRACE c.s.j.u.u.l.LoggersTest [Slf4JLogger.java] Test trace 2", reader.readLine());
     assertEquals("java.sql.SQLException: test exception", reader.readLine());
 
     reader.close();

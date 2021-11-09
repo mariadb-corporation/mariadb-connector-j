@@ -35,8 +35,6 @@ public class PoolDataSourceTest extends Common {
   @BeforeAll
   public static void beforeClassDataSourceTest() throws SQLException {
     drop();
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
 
     stmt.execute(

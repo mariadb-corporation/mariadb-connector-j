@@ -59,7 +59,7 @@ public class RowChangeTest extends Common {
   @Test
   public void next() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -70,7 +70,7 @@ public class RowChangeTest extends Common {
   @Test
   public void isAfterLast() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertFalse(rs.isAfterLast());
@@ -84,7 +84,7 @@ public class RowChangeTest extends Common {
   @Test
   public void isFirst() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isFirst());
     assertTrue(rs.next());
     assertTrue(rs.isFirst());
@@ -102,7 +102,7 @@ public class RowChangeTest extends Common {
   @Test
   public void isLast() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isLast());
     for (int i = 1; i < 8; i++) {
       assertTrue(rs.next());
@@ -124,7 +124,7 @@ public class RowChangeTest extends Common {
   @Test
   public void isBeforeFirst() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.isBeforeFirst());
     while (rs.next()) {
       assertFalse(rs.isBeforeFirst());
@@ -136,7 +136,7 @@ public class RowChangeTest extends Common {
   public void beforeFirst() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.isBeforeFirst());
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -157,7 +157,7 @@ public class RowChangeTest extends Common {
   public void afterLast() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.afterLast();
     assertFalse(rs.next());
     assertTrue(rs.previous());
@@ -168,7 +168,7 @@ public class RowChangeTest extends Common {
   public void first() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.afterLast();
     assertTrue(rs.first());
     assertEquals(1, rs.getInt(1));
@@ -181,7 +181,7 @@ public class RowChangeTest extends Common {
   public void last() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.last());
     assertEquals(8, rs.getInt(1));
 
@@ -192,7 +192,7 @@ public class RowChangeTest extends Common {
   @Test
   public void getRow() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertEquals(0, rs.getRow());
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -211,7 +211,7 @@ public class RowChangeTest extends Common {
   public void absolute() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.absolute(0));
     assertFalse(rs.absolute(9));
     assertTrue(rs.absolute(4));
@@ -236,7 +236,7 @@ public class RowChangeTest extends Common {
   public void relative() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.relative(2);
     assertEquals(2, rs.getInt(1));
     rs.relative(2);
@@ -253,7 +253,7 @@ public class RowChangeTest extends Common {
   public void previous() throws SQLException {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.afterLast();
     for (int i = 8; i > 0; i--) {
       assertTrue(rs.previous());
@@ -266,7 +266,7 @@ public class RowChangeTest extends Common {
   @Test
   public void getFetchSize() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertEquals(0, rs.getFetchSize());
     rs.setFetchSize(0);
     assertEquals(0, rs.getFetchSize());

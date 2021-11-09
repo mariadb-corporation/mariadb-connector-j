@@ -28,7 +28,7 @@ public class MultiPacketTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
-    Assumptions.assumeTrue(getMaxAllowedPacket() > 19 * 1024 * 1024);
+    Assumptions.assumeTrue(getMaxAllowedPacket(sharedConn) > 19 * 1024 * 1024);
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS multiPacketTest");
     stmt.execute("CREATE TABLE multiPacketTest (t1 MEDIUMTEXT, t2 LONGTEXT)");
@@ -50,7 +50,7 @@ public class MultiPacketTest extends Common {
       prep.setByte(2, (byte) 2);
       prep.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals("2", rs.getString(1));
   }
@@ -66,7 +66,7 @@ public class MultiPacketTest extends Common {
       prep.setByte(2, (byte) 2);
       prep.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals("2", rs.getString(1));
   }
@@ -82,7 +82,7 @@ public class MultiPacketTest extends Common {
       prep.setShort(2, (short) 2);
       prep.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals("2", rs.getString(1));
   }
@@ -98,7 +98,7 @@ public class MultiPacketTest extends Common {
       prep.setInt(2, 2);
       prep.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals("2", rs.getString(1));
   }
@@ -114,7 +114,7 @@ public class MultiPacketTest extends Common {
       prep.setLong(2, 2L);
       prep.execute();
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals("2", rs.getString(1));
   }
@@ -133,19 +133,19 @@ public class MultiPacketTest extends Common {
       prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
       prep.setString(2, new String(arr2, 0, 70_000));
       prep.execute();
-      if (getMaxAllowedPacket() > 34 * 1024 * 1024) {
+      if (getMaxAllowedPacket(sharedConn) > 34 * 1024 * 1024) {
         prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
         prep.setString(2, new String(arr2, 0, 17 * 1024 * 1024));
         prep.execute();
       }
     }
-    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
+    ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest ORDER BY LENGTH(t2)");
     rs.next();
     assertEquals(new String(arr2, 0, 30_000), rs.getString(1));
     rs.next();
     assertEquals(new String(arr2, 0, 70_000), rs.getString(1));
     rs.next();
-    if (getMaxAllowedPacket() > 34 * 1024 * 1024) {
+    if (getMaxAllowedPacket(sharedConn) > 34 * 1024 * 1024) {
       assertEquals(new String(arr2, 0, 17 * 1024 * 1024), rs.getString(1));
     }
   }

@@ -78,8 +78,6 @@ public class SslTest extends Common {
 
   @Test
   public void enabledSslProtocolSuites() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con =
         createCon(
             baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {
@@ -173,9 +171,7 @@ public class SslTest extends Common {
     String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
 
     // try local server
-    if (serverCertificatePath == null
-        && !"skysql".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (serverCertificatePath == null) {
 
       try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
         assertTrue(rs.next());

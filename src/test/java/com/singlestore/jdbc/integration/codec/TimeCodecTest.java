@@ -625,10 +625,10 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.TIME, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(14, meta.getPrecision(1));
-    assertEquals(3, meta.getScale(1));
+    assertEquals(10, meta.getPrecision(1));
+    assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(14, meta.getColumnDisplaySize(1));
+    assertEquals(10, meta.getColumnDisplaySize(1));
   }
 
   @Test

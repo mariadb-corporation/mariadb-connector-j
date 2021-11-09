@@ -172,6 +172,6 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   public boolean canEncodeLongData() {
-    return true;
+    return false;
   }
 }

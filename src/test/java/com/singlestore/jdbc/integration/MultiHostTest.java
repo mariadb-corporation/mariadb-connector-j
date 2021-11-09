@@ -13,15 +13,13 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.IOException;
 import java.sql.*;
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MultiHostTest extends Common {
 
   @Test
   public void failoverReadonlyToMaster() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
       long primaryThreadId = con.getThreadId();
       con.setReadOnly(true);
@@ -40,28 +38,7 @@ public class MultiHostTest extends Common {
   }
 
   @Test
-  public void readOnly() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("DROP TABLE IF EXISTS testReadOnly");
-      stmt.execute("CREATE TABLE testReadOnly(id int)");
-      con.setAutoCommit(false);
-      con.setReadOnly(true);
-      assertThrowsContains(
-          SQLException.class,
-          () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
-          "Cannot execute statement in a READ ONLY transaction");
-      con.setReadOnly(false);
-      stmt.execute("DROP TABLE testReadOnly");
-    }
-  }
-
-  @Test
   public void syncState() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("")) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
@@ -89,9 +66,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void replicaNotSet() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     String url = mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:replication:");
     try (java.sql.Connection con = DriverManager.getConnection(url + "&waitReconnectTimeout=20")) {
       con.isValid(1);
@@ -105,8 +79,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -136,9 +108,10 @@ public class MultiHostTest extends Common {
       stmt.execute("SELECT 1 INTO @con");
       proxy.restart(50);
 
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Unknown user-defined variable");
     }
     Thread.sleep(50);
 
@@ -167,7 +140,7 @@ public class MultiHostTest extends Common {
         prep.execute();
       }
 
-      ResultSet rs = stmt.executeQuery("SELECT * from testReplay");
+      ResultSet rs = stmt.executeQuery("SELECT * from testReplay ORDER BY id");
       rs.next();
       assertEquals(1, rs.getInt(1));
       rs.next();
@@ -182,14 +155,10 @@ public class MultiHostTest extends Common {
       stmt.execute("DROP TABLE IF EXISTS testReplay");
     }
   }
-
+  // TODO: PLAT-5875
+  @Disabled
   @Test
   public void masterStreamingFailover() throws Exception {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -216,8 +185,9 @@ public class MultiHostTest extends Common {
                     + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
+    ensureRange(stmt);
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM range_1_100; SELECT seq_1_50000");
     rs.next();
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
@@ -254,9 +224,6 @@ public class MultiHostTest extends Common {
 
   @Test
   public void masterReplicationFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -288,9 +255,10 @@ public class MultiHostTest extends Common {
       Thread.sleep(20);
       con.setReadOnly(false);
 
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+      assertThrowsContains(
+          SQLException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Unknown user-defined variable");
     }
 
     // never reconnect
@@ -311,13 +279,10 @@ public class MultiHostTest extends Common {
     }
   }
 
+  // TODO: PLAT-5875
+  @Disabled
   @Test
   public void masterReplicationStreamingFailover() throws Exception {
-    Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {

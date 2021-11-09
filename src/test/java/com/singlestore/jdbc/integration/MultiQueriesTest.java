@@ -50,19 +50,21 @@ public class MultiQueriesTest extends Common {
 
   @Test
   public void checkMultiGeneratedKeys() throws SQLException {
-    try (Connection connection = createCon("&allowMultiQueries=true")) {
-      Statement stmt = connection.createStatement();
-      stmt.execute(
-          "SELECT 1; SELECT 3 INTO @TOTO; SELECT 2", java.sql.Statement.RETURN_GENERATED_KEYS);
-      ResultSet rs = stmt.getResultSet();
-      assertTrue(rs.next());
-      assertEquals(1, rs.getInt(1));
-      assertFalse(stmt.getMoreResults());
-      stmt.getGeneratedKeys();
-      assertTrue(stmt.getMoreResults());
-      rs = stmt.getResultSet();
-      assertTrue(rs.next());
-      assertEquals(2, rs.getInt(1));
+    if (minVersion(7, 3, 0)) {
+      try (Connection connection = createCon("&allowMultiQueries=true")) {
+        Statement stmt = connection.createStatement();
+        stmt.execute(
+            "SELECT 1; SELECT 3 INTO @TOTO; SELECT 2", java.sql.Statement.RETURN_GENERATED_KEYS);
+        ResultSet rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertFalse(stmt.getMoreResults());
+        stmt.getGeneratedKeys();
+        assertTrue(stmt.getMoreResults());
+        rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+      }
     }
   }
 
@@ -71,7 +73,8 @@ public class MultiQueriesTest extends Common {
     try (Connection connection = createCon("&allowMultiQueries=true")) {
       try (Statement stmt = connection.createStatement()) {
         stmt.setFetchSize(1);
-        stmt.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+        stmt.execute(
+            "SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT * from AllowMultiQueriesTest ORDER BY id;");
         do {
           ResultSet resultSet = stmt.getResultSet();
           assertEquals(-1, stmt.getUpdateCount());
@@ -80,7 +83,7 @@ public class MultiQueriesTest extends Common {
         } while (stmt.getMoreResults());
 
         stmt.executeQuery(
-            "SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+            "SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT * from AllowMultiQueriesTest ORDER BY id;");
         ResultSet rs = stmt.executeQuery("SELECT 1");
         rs.next();
         assertEquals(1, rs.getInt(1));
@@ -97,13 +100,13 @@ public class MultiQueriesTest extends Common {
     Statement stmt = connection.createStatement();
     stmt.setFetchSize(1);
     stmt.executeQuery(
-        "SELECT 2;SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest; SELECT 1; SELECT 2");
+        "SELECT 2;SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT * from AllowMultiQueriesTest ORDER BY id; SELECT 1; SELECT 2");
     connection.abort(Runnable::run);
 
     connection = createCon("&allowMultiQueries=true");
     stmt = connection.createStatement();
     stmt.setFetchSize(1);
-    stmt.executeQuery("SELECT 2;SELECT 1;SELECT * from AllowMultiQueriesTest");
+    stmt.executeQuery("SELECT 2;SELECT 1;SELECT * from AllowMultiQueriesTest ORDER BY id");
     connection.abort(Runnable::run);
   }
 
@@ -112,7 +115,7 @@ public class MultiQueriesTest extends Common {
     try (Connection connection = createCon("&allowMultiQueries=true")) {
       try (Statement stmt = connection.createStatement()) {
         stmt.setFetchSize(1);
-        stmt.execute("SELECT * from AllowMultiQueriesTest;SELECT 3;");
+        stmt.execute("SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT 3;");
         ResultSet rs1 = stmt.getResultSet();
         assertTrue(stmt.getMoreResults(java.sql.Statement.KEEP_CURRENT_RESULT));
         assertTrue(rs1.next());
@@ -131,7 +134,7 @@ public class MultiQueriesTest extends Common {
       try (Statement statement = connection.createStatement()) {
         statement.setFetchSize(1);
         statement.execute(
-            "SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;SELECT 3;");
+            "SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT * from AllowMultiQueriesTest ORDER BY id;SELECT 3;");
         ResultSet rs1 = statement.getResultSet();
         assertTrue(statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
         try {

@@ -38,7 +38,7 @@ public class StreamingRowChangeTest extends Common {
   public void closedRes() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.close();
     assertThrowsContains(sqle, () -> rs.next(), NOT_SUPPORTED);
     assertThrowsContains(sqle, () -> rs.isBeforeFirst(), NOT_SUPPORTED);
@@ -59,7 +59,7 @@ public class StreamingRowChangeTest extends Common {
   public void next() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -68,7 +68,7 @@ public class StreamingRowChangeTest extends Common {
 
     // next fetching no result
     stmt.setFetchSize(8);
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -78,7 +78,7 @@ public class StreamingRowChangeTest extends Common {
     // next fetching no result keeping all results
     stmt = sharedConn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(8);
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -97,7 +97,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   public void isAfterLast(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertFalse(rs.isAfterLast());
@@ -107,7 +107,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.next());
     assertTrue(rs.isAfterLast());
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 < 0");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 < 0 ORDER BY t1");
     assertFalse(rs.isAfterLast());
     assertFalse(rs.next());
     assertFalse(rs.isAfterLast());
@@ -130,7 +130,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void isFirst(Statement stmt, Statement stmt2) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isFirst());
     assertTrue(rs.next());
     assertTrue(rs.isFirst());
@@ -139,12 +139,12 @@ public class StreamingRowChangeTest extends Common {
     }
     assertFalse(rs.isFirst());
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1 ORDER BY t1");
     assertFalse(rs.isFirst());
     assertFalse(rs.next());
     assertFalse(rs.isFirst());
 
-    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isFirst());
     assertTrue(rs.next());
     assertTrue(rs.isFirst());
@@ -153,7 +153,7 @@ public class StreamingRowChangeTest extends Common {
     }
     assertFalse(rs.isFirst());
 
-    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    rs = stmt2.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1 ORDER BY t1");
     assertFalse(rs.isFirst());
     assertFalse(rs.next());
     assertFalse(rs.isFirst());
@@ -170,7 +170,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void isLast(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isLast());
     for (int i = 1; i < 8; i++) {
       assertTrue(rs.next());
@@ -183,7 +183,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.next());
     assertFalse(rs.isLast());
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1 ORDER BY t1");
     rs.isLast();
     assertFalse(rs.isLast());
     assertFalse(rs.next());
@@ -191,7 +191,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.isLast());
     for (int i = 1; i < 8; i++) {
       assertTrue(rs.next());
@@ -204,7 +204,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.next());
     assertFalse(rs.isLast());
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest Where 1 = -1 ORDER BY t1");
     assertFalse(rs.isLast());
     assertFalse(rs.next());
     assertFalse(rs.isLast());
@@ -219,7 +219,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void isBeforeFirst(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.isBeforeFirst());
     while (rs.next()) {
       assertFalse(rs.isBeforeFirst());
@@ -228,7 +228,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.isBeforeFirst());
     while (rs.next()) {
       assertFalse(rs.isBeforeFirst());
@@ -246,7 +246,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void beforeFirst(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
@@ -260,7 +260,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.beforeFirst(), NOT_FORWARD);
   }
 
@@ -274,7 +274,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void afterLast(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.afterLast();
     assertFalse(rs.next());
     assertTrue(rs.previous());
@@ -282,7 +282,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.afterLast(), NOT_FORWARD);
   }
 
@@ -296,17 +296,17 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void first(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.afterLast();
     assertTrue(rs.first());
     assertEquals(1, rs.getInt(1));
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1 ORDER BY t1");
     assertFalse(rs.first());
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.first(), NOT_FORWARD);
   }
 
@@ -320,20 +320,20 @@ public class StreamingRowChangeTest extends Common {
   }
 
   private void last(Statement stmt) throws SQLException {
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.last());
     assertEquals(8, rs.getInt(1));
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1 ORDER BY t1");
     assertFalse(rs.last());
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertTrue(rs.last());
     assertEquals(8, rs.getInt(1));
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1 ORDER BY t1");
     assertFalse(rs.last());
   }
 
@@ -341,7 +341,7 @@ public class StreamingRowChangeTest extends Common {
   public void getRow() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertEquals(0, rs.getRow());
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -350,7 +350,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.next());
     assertEquals(0, rs.getRow());
 
-    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1");
+    rs = stmt.executeQuery("SELECT * FROM ResultSetTest WHERE t1 = -1 ORDER BY t1");
     assertEquals(0, rs.getRow());
     assertFalse(rs.next());
     assertEquals(0, rs.getRow());
@@ -361,7 +361,7 @@ public class StreamingRowChangeTest extends Common {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.absolute(0));
     assertTrue(rs.absolute(2));
     assertEquals(2, rs.getRow());
@@ -390,7 +390,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.absolute(0), NOT_FORWARD);
   }
 
@@ -399,7 +399,7 @@ public class StreamingRowChangeTest extends Common {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     rs.relative(2);
     assertEquals(2, rs.getInt(1));
     rs.relative(2);
@@ -413,7 +413,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.relative(0), NOT_FORWARD);
   }
 
@@ -422,7 +422,7 @@ public class StreamingRowChangeTest extends Common {
     Statement stmt =
         sharedConn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     stmt.setFetchSize(3);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertFalse(rs.previous());
     rs.afterLast();
     for (int i = 8; i > 0; i--) {
@@ -433,7 +433,7 @@ public class StreamingRowChangeTest extends Common {
 
     stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs2 = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertThrowsContains(sqle, () -> rs2.previous(), NOT_FORWARD);
   }
 
@@ -441,7 +441,7 @@ public class StreamingRowChangeTest extends Common {
   public void getFetchSize() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertEquals(3, rs.getFetchSize());
 
     assertTrue(rs.next());
@@ -464,7 +464,7 @@ public class StreamingRowChangeTest extends Common {
   public void removeStreaming() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(3);
-    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
+    final ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest ORDER BY t1");
     assertEquals(3, rs.getFetchSize());
     rs.setFetchSize(0);
     assertEquals(0, rs.getFetchSize());

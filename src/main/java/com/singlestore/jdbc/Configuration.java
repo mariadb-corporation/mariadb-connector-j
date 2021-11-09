@@ -117,7 +117,6 @@ public class Configuration {
   private boolean tinyInt1isBit = true;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
-  private boolean includeInnodbStatusInDeadlockExceptions = false;
   private boolean includeThreadDumpInDeadlockExceptions = false;
 
   // HA options
@@ -191,7 +190,6 @@ public class Configuration {
       boolean tinyInt1isBit,
       boolean yearIsDateType,
       boolean dumpQueriesOnException,
-      boolean includeInnodbStatusInDeadlockExceptions,
       boolean includeThreadDumpInDeadlockExceptions,
       int retriesAllDown,
       String galeraAllowedState,
@@ -253,7 +251,6 @@ public class Configuration {
     this.tinyInt1isBit = tinyInt1isBit;
     this.yearIsDateType = yearIsDateType;
     this.dumpQueriesOnException = dumpQueriesOnException;
-    this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
     this.retriesAllDown = retriesAllDown;
     this.galeraAllowedState = galeraAllowedState;
@@ -306,7 +303,6 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean autocommit,
-      Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
       Integer defaultFetchSize,
@@ -377,8 +373,6 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (autocommit != null) this.autocommit = autocommit;
-    if (includeInnodbStatusInDeadlockExceptions != null)
-      this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
     if (servicePrincipalName != null) this.servicePrincipalName = servicePrincipalName;
@@ -697,7 +691,6 @@ public class Configuration {
         this.tinyInt1isBit,
         this.yearIsDateType,
         this.dumpQueriesOnException,
-        this.includeInnodbStatusInDeadlockExceptions,
         this.includeThreadDumpInDeadlockExceptions,
         this.retriesAllDown,
         this.galeraAllowedState,
@@ -873,10 +866,6 @@ public class Configuration {
 
   public boolean autocommit() {
     return autocommit;
-  }
-
-  public boolean includeInnodbStatusInDeadlockExceptions() {
-    return includeInnodbStatusInDeadlockExceptions;
   }
 
   public boolean includeThreadDumpInDeadlockExceptions() {
@@ -1189,7 +1178,6 @@ public class Configuration {
     private Boolean tinyInt1isBit;
     private Boolean yearIsDateType;
     private Boolean dumpQueriesOnException;
-    private Boolean includeInnodbStatusInDeadlockExceptions;
     private Boolean includeThreadDumpInDeadlockExceptions;
 
     // HA options
@@ -1546,12 +1534,6 @@ public class Configuration {
       return this;
     }
 
-    public Builder includeInnodbStatusInDeadlockExceptions(
-        Boolean includeInnodbStatusInDeadlockExceptions) {
-      this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
-      return this;
-    }
-
     public Builder includeThreadDumpInDeadlockExceptions(
         Boolean includeThreadDumpInDeadlockExceptions) {
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
@@ -1690,7 +1672,6 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.autocommit,
-              this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,
               this.defaultFetchSize,

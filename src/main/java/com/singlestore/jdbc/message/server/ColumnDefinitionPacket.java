@@ -183,19 +183,37 @@ public class ColumnDefinitionPacket implements ServerMessage {
   }
 
   public int getDisplaySize() {
-    if (dataType == DataType.VARCHAR
-        || dataType == DataType.JSON
-        || dataType == DataType.ENUM
-        || dataType == DataType.SET
-        || dataType == DataType.VARSTRING
-        || dataType == DataType.STRING) {
-      Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
-      if (maxWidth == null) {
+    switch (dataType) {
+      case VARCHAR:
+      case JSON:
+      case ENUM:
+      case SET:
+      case VARSTRING:
+      case STRING:
+      case DATE:
+        Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+        if (maxWidth == null) {
+          return (int) length;
+        }
+        return (int) length / maxWidth;
+
+      case DATETIME:
+      case TIMESTAMP:
+        // S2 sends the same length of DATETIME(6) for both DATETIME(0) and DATETIME(6)
+        // However in reality DATETIME(0) is 7 symbols shorter as it is missing ".000000"
+        return (decimals == 0) ? (int) length - 7 : (int) length;
+      case TIME:
+        // same as above, but S2 returns 18 instead 17 for some reason
+        return (decimals == 0) ? 10 : 17;
+
+      case FLOAT:
+        return 9;
+      case DOUBLE:
+        return 18;
+
+      default:
         return (int) length;
-      }
-      return (int) length / maxWidth;
     }
-    return (int) length;
   }
 
   public boolean isPrimaryKey() {

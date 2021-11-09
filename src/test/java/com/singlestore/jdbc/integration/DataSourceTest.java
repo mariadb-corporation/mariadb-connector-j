@@ -12,7 +12,6 @@ import com.singlestore.jdbc.SingleStoreDataSource;
 import java.io.*;
 import java.sql.*;
 import javax.sql.DataSource;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 public class DataSourceTest extends Common {
@@ -37,10 +36,6 @@ public class DataSourceTest extends Common {
 
   @Test
   public void switchUser() throws SQLException {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
     stmt.execute(

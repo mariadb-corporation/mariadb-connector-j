@@ -129,6 +129,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   public int getParameterType(int index) throws SQLException {
     setIndex(index);
     String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    boolean isBinary = isBinaryCharset();
     switch (str) {
       case "BIT":
         return Types.BIT;
@@ -153,12 +154,11 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "DECIMAL":
         return Types.DECIMAL;
       case "CHAR":
-        return Types.CHAR;
+        return isBinary ? Types.BINARY : Types.CHAR;
       case "VARCHAR":
       case "ENUM":
-      case "TINYTEXT":
       case "SET":
-        return Types.VARCHAR;
+        return isBinary ? Types.VARBINARY : Types.VARCHAR;
       case "DATE":
         return Types.DATE;
       case "TIME":
@@ -175,14 +175,20 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "MEDIUMBLOB":
       case "LONGBLOB":
       case "GEOMETRY":
-        return Types.BLOB;
       case "TEXT":
       case "MEDIUMTEXT":
       case "LONGTEXT":
-        return Types.CLOB;
+      case "TINYTEXT":
+      case "JSON":
+        return isBinary ? Types.BLOB : Types.CLOB;
       default:
         return Types.OTHER;
     }
+  }
+
+  private boolean isBinaryCharset() throws SQLException {
+    String charset = rs.getString("CHARACTER_SET_NAME");
+    return charset != null && charset.toUpperCase(Locale.ROOT).equals("BINARY");
   }
 
   /**
@@ -197,7 +203,15 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int index) throws SQLException {
     setIndex(index);
-    return rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    String datatype = rs.getString("DTD_IDENTIFIER").toUpperCase(Locale.ROOT);
+
+    for (int i = 0; i < datatype.length(); i++) {
+      if (datatype.charAt(i) == ' ' || datatype.charAt(i) == '(') {
+        return datatype.substring(0, i);
+      }
+    }
+
+    return datatype;
   }
 
   /**
@@ -215,6 +229,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   public String getParameterClassName(int index) throws SQLException {
     setIndex(index);
     String str = rs.getString("DATA_TYPE").toUpperCase(Locale.ROOT);
+    boolean isBinary = isBinaryCharset();
     switch (str) {
       case "BIT":
         return BitSet.class.getName();
@@ -246,12 +261,12 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "VARCHAR":
       case "ENUM":
       case "TINYTEXT":
-        return String.class.getName();
+        return isBinary ? byte[].class.getName() : String.class.getName();
       case "TEXT":
       case "MEDIUMTEXT":
       case "LONGTEXT":
-        return Clob.class.getName();
-
+      case "JSON":
+        return isBinary ? Blob.class.getName() : Clob.class.getName();
       case "DATE":
         return Date.class.getName();
       case "TIME":

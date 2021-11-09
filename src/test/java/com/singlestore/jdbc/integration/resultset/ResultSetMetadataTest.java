@@ -35,8 +35,9 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("CREATE TABLE ResultSetTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO ResultSetTest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
     stmt.execute(
-        "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, "
-            + "nullable_col varchar(20), unikey_col int unique, char_col char(10), us smallint unsigned)");
+        createRowstore()
+            + " TABLE test_rsmd(id_col int not null auto_increment, "
+            + "nullable_col varchar(20), unikey_col int , char_col char(10), us smallint unsigned, primary key (id_col, unikey_col))");
     stmt.execute("CREATE TABLE resultsetmetadatatest1(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest2(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest3(id int, name varchar(20))");
@@ -58,7 +59,8 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(ResultSetMetaData.columnNullable, rsmd.isNullable(2));
     assertEquals(ResultSetMetaData.columnNoNulls, rsmd.isNullable(1));
     assertEquals(String.class.getName(), rsmd.getColumnClassName(2));
-    assertEquals(Integer.class.getName(), rsmd.getColumnClassName(1));
+    // auto_increment is BIGINT even as declared as integer
+    assertEquals(Long.class.getName(), rsmd.getColumnClassName(1));
     assertEquals(Integer.class.getName(), rsmd.getColumnClassName(3));
     assertEquals("id_col", rsmd.getColumnLabel(1));
     assertEquals("nullable_col", rsmd.getColumnLabel(2));
@@ -86,7 +88,8 @@ public class ResultSetMetadataTest extends Common {
     ResultSet cols = md.getColumns(null, null, "test\\_rsmd", null);
     cols.next();
     assertEquals("id_col", cols.getString("COLUMN_NAME"));
-    assertEquals(Types.INTEGER, cols.getInt("DATA_TYPE"));
+    // auto_increment is BIGINT even as declared as integer
+    assertEquals(Types.BIGINT, cols.getInt("DATA_TYPE"));
     cols.next(); /* nullable_col */
     cols.next(); /* unikey_col */
     cols.next(); /* char_col */
@@ -234,6 +237,6 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rs.next());
     ResultSetMetaData rsMeta = rs.getMetaData();
     assertEquals("TABLE_TYPE", rsMeta.getColumnName(1));
-    assertEquals("", rsMeta.getTableName(1));
+    assertEquals("SUB", rsMeta.getTableName(1));
   }
 }

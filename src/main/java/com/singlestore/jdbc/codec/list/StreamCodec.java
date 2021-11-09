@@ -197,6 +197,6 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   public boolean canEncodeLongData() {
-    return true;
+    return false;
   }
 }

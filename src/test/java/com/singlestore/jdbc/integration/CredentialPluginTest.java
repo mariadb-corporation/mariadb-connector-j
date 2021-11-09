@@ -107,11 +107,6 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void envsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
     Map<String, String> tmpEnv = new HashMap<>();
 
     assertThrowsContains(
@@ -170,10 +165,6 @@ public class CredentialPluginTest extends Common {
   @Test
   @SuppressWarnings("unchecked")
   public void envTestsIdentityTest() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(haveSsl());
     Map<String, String> tmpEnv = new HashMap<>();
     tmpEnv.put("SINGLESTORE2_USER", "identityUser");

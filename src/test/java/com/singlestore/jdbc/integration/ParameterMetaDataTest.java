@@ -98,13 +98,8 @@ public class ParameterMetaDataTest extends Common {
       prepStmt.executeQuery();
       ParameterMetaData meta = prepStmt.getParameterMetaData();
       assertEquals(3, meta.getParameterCount());
-      if (!isMariaDBServer() & minVersion(8, 0, 22)) {
-        assertEquals(16383, meta.getPrecision(1));
-        assertEquals(31, meta.getScale(1));
-      } else {
-        assertEquals(0, meta.getPrecision(1));
-        assertEquals(0, meta.getScale(1));
-      }
+      assertEquals(0, meta.getPrecision(1));
+      assertEquals(0, meta.getScale(1));
 
       assertTrue(meta.isSigned(1));
       assertEquals(ParameterMetaData.parameterNullable, meta.isNullable(1));

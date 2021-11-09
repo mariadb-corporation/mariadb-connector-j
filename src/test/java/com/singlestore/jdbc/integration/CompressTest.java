@@ -40,7 +40,7 @@ public class CompressTest extends Common {
   }
 
   public void bigSend(Connection con) throws SQLException {
-    char[] arr2 = new char[Math.min(16 * 1024 * 1024, getMaxAllowedPacket() / 2)];
+    char[] arr2 = new char[Math.min(16 * 1024 * 1024, getMaxAllowedPacket(sharedConn) / 2)];
     for (int pos = 0; pos < arr2.length; pos++) {
       arr2[pos] = (char) ('A' + (pos % 60));
     }

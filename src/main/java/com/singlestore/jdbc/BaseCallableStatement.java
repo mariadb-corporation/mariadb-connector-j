@@ -2753,7 +2753,13 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public CallableParameterMetaData getParameterMetaData() throws SQLException {
     String sql =
-        "SELECT * from information_schema.parameters WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?";
+        "SELECT NULL PARAMETER_NAME, 'OUT' PARAMETER_MODE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,"
+            + " NUMERIC_SCALE, CHARACTER_SET_NAME, DTD_IDENTIFIER from information_schema.routines "
+            + "WHERE SPECIFIC_NAME = ? and ROUTINE_SCHEMA = ? and DATA_TYPE != ''"
+            + " UNION"
+            + " SELECT PARAMETER_NAME, PARAMETER_MODE, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION,"
+            + " NUMERIC_SCALE, CHARACTER_SET_NAME, DTD_IDENTIFIER from information_schema.parameters "
+            + "WHERE SPECIFIC_NAME = ? and SPECIFIC_SCHEMA = ?";
     PreparedStatement prep =
         new ClientPreparedStatement(
             NativeSql.parse(sql, con.getContext()),
@@ -2767,6 +2773,8 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
             0);
     prep.setString(1, procedureName);
     prep.setString(2, databaseName);
+    prep.setString(3, procedureName);
+    prep.setString(4, databaseName);
     ResultSet rs = prep.executeQuery();
     parameterMetaData = new CallableParameterMetaData(rs, isFunction());
     return parameterMetaData;

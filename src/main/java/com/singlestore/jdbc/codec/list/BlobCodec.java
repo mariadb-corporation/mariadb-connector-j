@@ -242,6 +242,6 @@ public class BlobCodec implements Codec<Blob> {
   }
 
   public boolean canEncodeLongData() {
-    return true;
+    return false;
   }
 }

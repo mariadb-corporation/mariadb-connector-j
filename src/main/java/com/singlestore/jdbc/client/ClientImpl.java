@@ -22,6 +22,7 @@ import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.plugin.credential.Credential;
 import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
 import com.singlestore.jdbc.util.MutableInt;
+import com.singlestore.jdbc.util.Security;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
@@ -227,6 +228,11 @@ public class ClientImpl implements Client, AutoCloseable {
 
   private void postConnectionQueries() throws SQLException {
     List<String> commands = new ArrayList<>();
+    int resInd = 0;
+    if (conf.sessionVariables() != null) {
+      commands.add("set " + Security.parseSessionVariables(conf.sessionVariables()));
+      resInd++;
+    }
     commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
 
     List<String> galeraAllowedStates =
@@ -251,7 +257,7 @@ public class ClientImpl implements Client, AutoCloseable {
               msgs, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
 
       // read max allowed packet
-      Result result = (Result) res.get(0);
+      Result result = (Result) res.get(resInd++);
       result.next();
 
       waitTimeout = Integer.parseInt(result.getString(2));
@@ -260,7 +266,7 @@ public class ClientImpl implements Client, AutoCloseable {
       if (hostAddress != null
           && Boolean.TRUE.equals(hostAddress.primary)
           && !galeraAllowedStates.isEmpty()) {
-        ResultSet rs = (ResultSet) res.get(1);
+        ResultSet rs = (ResultSet) res.get(resInd);
         rs.next();
         if (!galeraAllowedStates.contains(rs.getString(2))) {
           throw exceptionFactory.create(

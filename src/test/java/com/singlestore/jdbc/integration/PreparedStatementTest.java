@@ -578,28 +578,21 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void moreResults() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
+    try (Connection con = createCon("&useServerPrepStmts=false&allowMultiQueries=true")) {
       moreResults(con);
     }
-    try (Connection con = createCon("&useServerPrepStmts")) {
+    try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries=true")) {
       moreResults(con);
     }
   }
 
-  // TODO: PLAT-5852
   private void moreResults(Connection con) throws SQLException {
-    Assumptions.assumeTrue(false);
     Statement stmt = con.createStatement();
     ensureRange(stmt);
-    stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
-    stmt.execute(
-        "CREATE PROCEDURE multi() RETURNS QUERY(n int)"
-            + " AS DECLARE q QUERY(n int) = SELECT * from range_1_100 order by n;"
-            + "BEGIN"
-            + " RETURN q; "
-            + "END;");
-    stmt.execute("ECHO multi()");
+    String query =
+        "SELECT * FROM range_1_100 ORDER BY n LIMIT 10;SELECT * from range_1_100 ORDER BY n;SELECT 2;";
+    stmt.execute(query);
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
     int i = 1;
@@ -608,7 +601,7 @@ public class PreparedStatementTest extends Common {
     }
     Assertions.assertEquals(101, i);
     stmt.setFetchSize(3);
-    PreparedStatement prep = con.prepareStatement("CALL multi()");
+    PreparedStatement prep = con.prepareStatement(query);
     rs = prep.executeQuery();
     Assertions.assertFalse(rs.isClosed());
     prep.setFetchSize(0); // force more result to load all remaining result-set
@@ -636,14 +629,15 @@ public class PreparedStatementTest extends Common {
     while (rs.next()) {
       Assertions.assertEquals(i++, rs.getInt(1));
     }
-    Assertions.assertEquals(1001, i);
+    Assertions.assertEquals(101, i);
 
     rs = prep.executeQuery();
     prep.close();
     assertTrue(rs.isClosed());
   }
 
-  // TODO: PLAT-5852
+  // TODO: PLAT-5877
+  @Disabled
   @Test
   public void moreRowLimitedResults() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
@@ -655,19 +649,13 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreRowLimitedResults(Connection con) throws SQLException {
-    Assumptions.assumeTrue(false);
     Statement stmt = con.createStatement();
-    ensureRange(stmt);
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.setMaxRows(5);
     stmt.execute(
-        "CREATE PROCEDURE multi() RETURNS QUERY(n int)"
-            + " AS DECLARE q QUERY(n int) = SELECT * from range_1_100 order by n;"
-            + "BEGIN"
-            + " RETURN q; "
-            + "END;");
-    stmt.execute("ECHO multi()");
+        "CREATE PROCEDURE multi() BEGIN SELECT * from prepare4; SELECT * FROM prepare4;SELECT 2; END");
+    stmt.execute("CALL multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
     int i = 1;
@@ -1041,7 +1029,7 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void skippingRes() throws SQLException {
-    int maxAllowedPacket = getMaxAllowedPacket();
+    int maxAllowedPacket = getMaxAllowedPacket(sharedConn);
     Assumptions.assumeTrue(maxAllowedPacket > 35_000_000);
     skippingRes(sharedConn);
     skippingRes(sharedConnBinary);

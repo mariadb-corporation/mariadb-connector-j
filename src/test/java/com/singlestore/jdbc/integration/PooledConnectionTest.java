@@ -72,9 +72,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolFailover() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     try {
@@ -106,11 +103,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolKillConnection() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-
     File tempFile = File.createTempFile("log", ".tmp");
 
     Logger logger = (Logger) LoggerFactory.getLogger("com.singlestore.jdbc");
@@ -144,12 +136,11 @@ public class PooledConnectionTest extends Common {
       try {
         conn.createStatement().execute("KILL " + threadId);
       } catch (SQLException e) {
-        // eat "Connection was killed" message
+        assertTrue(e.getMessage().contains("Socket error"));
       }
       pc.close();
       pc = ds.getPooledConnection();
       conn = pc.getConnection();
-      assertNotEquals(threadId, conn.getThreadId());
       pc.close();
     } finally {
 
@@ -157,9 +148,6 @@ public class PooledConnectionTest extends Common {
       assertTrue(
           contents.contains(
               "removed from pool SingleStore-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
-      assertTrue(
-          contents.contains(
-              "connection removed from pool SingleStore-pool due to error during reset"));
       assertTrue(contents.contains("closing pool SingleStore-pool (total:1, active:0, pending:0)"));
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
@@ -202,13 +190,16 @@ public class PooledConnectionTest extends Common {
     int host1QueriesBefore = countQueries(host + ":" + portMaster, database);
     int host2QueriesBefore = countQueries(host + ":" + portChild, database);
 
-    for (int i = 0; i < 100; i++) {
-      try (Connection conn = ds.getPooledConnection().getConnection()) {
-        PreparedStatement preparedStatement =
-            conn.prepareStatement("INSERT INTO loadbalance VALUES (?)");
-        preparedStatement.setInt(1, i);
-        preparedStatement.execute();
-      }
+    Connection[] cons = new Connection[10];
+    for (int i = 0; i < 10; i++) {
+      cons[i] = ds.getPooledConnection().getConnection();
+      PreparedStatement preparedStatement =
+          cons[i].prepareStatement("INSERT INTO loadbalance VALUES (?)");
+      preparedStatement.setInt(1, i);
+      preparedStatement.execute();
+    }
+    for (int i = 0; i < 10; i++) {
+      cons[i].close();
     }
 
     int host1QueriesAfter = countQueries(host + ":" + portMaster, database);
@@ -218,15 +209,12 @@ public class PooledConnectionTest extends Common {
       conn.createStatement().execute("DROP TABLE IF EXISTS loadbalance");
     }
 
-    assertTrue(host1QueriesAfter >= host1QueriesBefore);
-    assertTrue(host2QueriesAfter >= host2QueriesBefore);
+    assertTrue(host1QueriesAfter > host1QueriesBefore);
+    assertTrue(host2QueriesAfter > host2QueriesBefore);
   }
 
   @Test
   public void testPooledConnectionException() throws Exception {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
     ConnectionPoolDataSource ds = new SingleStoreDataSource(mDefUrl);
     PooledConnection pc = null;
     try {

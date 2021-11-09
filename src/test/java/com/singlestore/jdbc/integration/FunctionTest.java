@@ -21,7 +21,7 @@ public class FunctionTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS basic_function");
     stmt.execute(
-        "CREATE FUNCTION basic_function (t1 INT, t2 INT unsigned) RETURNS INT DETERMINISTIC RETURN t1 * t2;");
+        "CREATE FUNCTION basic_function (t1 INT, t2 INT unsigned) RETURNS INT AS BEGIN RETURN t1 * t2; END");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
       callableStatement.registerOutParameter(1, JDBCType.INTEGER);
@@ -49,7 +49,7 @@ public class FunctionTest extends Common {
   private void functionWithoutArg(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
-    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
+    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
     try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
       callableStatement.execute();
@@ -75,7 +75,7 @@ public class FunctionTest extends Common {
   public void parameterMeta() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS parameter_meta");
-    stmt.execute("CREATE FUNCTION parameter_meta () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
+    stmt.execute("CREATE FUNCTION parameter_meta () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call parameter_meta()}")) {
       assertThrowsContains(
@@ -89,6 +89,7 @@ public class FunctionTest extends Common {
       assertEquals(
           com.singlestore.jdbc.ParameterMetaData.parameterModeOut, meta.getParameterMode(1));
       assertNull(meta.getParameterName(1));
+      assertEquals(Types.DOUBLE, meta.getParameterType(1));
     } finally {
       stmt.execute("DROP FUNCTION IF EXISTS parameter_meta");
     }
@@ -103,7 +104,7 @@ public class FunctionTest extends Common {
   private void functionError(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS no_arg_function");
-    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE DETERMINISTIC RETURN RAND();");
+    stmt.execute("CREATE FUNCTION no_arg_function () RETURNS DOUBLE AS BEGIN RETURN RAND(); END");
     try (CallableStatement callableStatement = con.prepareCall("{? = call no_arg_function()}")) {
       assertThrowsContains(
           SQLSyntaxErrorException.class,

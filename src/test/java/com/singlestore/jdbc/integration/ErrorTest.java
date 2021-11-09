@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.singlestore.jdbc.Common;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -20,8 +19,8 @@ public class ErrorTest extends Common {
   public static void begin() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("CREATE TABLE deadlock(a int primary key)");
-    stmt.execute("CREATE TABLE deadlock2(a int primary key) ENGINE=InnoDB");
+    stmt.execute("CREATE TABLE deadlock(a int)");
+    stmt.execute("CREATE TABLE deadlock2(a int)");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -61,84 +60,33 @@ public class ErrorTest extends Common {
   }
 
   @Test
-  public void testPre41ErrorFormat() throws Exception {
-    testPre41ErrorFormat(sharedConn);
-    try (Connection con =
-        createCon("dumpQueriesOnException&includeInnodbStatusInDeadlockExceptions")) {
-      testPre41ErrorFormat(con);
-    }
-  }
-
-  private void testPre41ErrorFormat(Connection con) throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-    SQLException exception = null;
-    int max_connections;
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT @@max_connections");
-    rs.next();
-    max_connections = rs.getInt(1);
-    Assumptions.assumeTrue(max_connections < 1000);
-    Connection[] cons = new Connection[max_connections];
-    for (int i = 0; i < max_connections; i++) {
-      try {
-        cons[i] = createCon();
-      } catch (SQLException sqle) {
-        exception = sqle;
-      }
-    }
-
-    for (int i = 0; i < max_connections; i++) {
-      try {
-        if (cons[i] != null) cons[i].close();
-      } catch (SQLException sqle) {
-      }
-    }
-    assertNotNull(exception);
-    assertTrue(exception.getMessage().contains("Too many"));
-  }
-
-  @Test
   public void deadLockInformation() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("insert into deadlock(a) values(0), (1)");
+    stmt.execute("SET GLOBAL lock_wait_timeout=1");
 
-    try (Connection conn1 =
-        createCon(
-            "includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
+    try (Connection conn1 = createCon("includeThreadDumpInDeadlockExceptions")) {
 
       conn1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
       Statement stmt1 = conn1.createStatement();
-      try {
-        stmt1.execute("SET SESSION idle_transaction_timeout=2");
-      } catch (SQLException e) {
-        // eat ( for mariadb >= 10.3)
-      }
-      stmt.execute("start transaction");
-      stmt.execute("update deadlock set a = 2 where a <> 0");
+      stmt1.execute("start transaction");
+      stmt1.execute("update deadlock set a = 3 where a = 0");
 
-      try (Connection conn2 =
-          createCon(
-              "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
+      try (Connection conn2 = createCon("&includeThreadDumpInDeadlockExceptions")) {
 
         Statement stmt2 = conn2.createStatement();
         conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        try {
-          stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
-        } catch (SQLException e) {
-          // eat ( for mariadb >= 10.3)
-        }
+
         stmt2.execute("start transaction");
         try {
-          stmt2.execute("update deadlock set a = 3 where a <> 1");
+          stmt2.execute("update deadlock set a = 4 where a = 0");
           fail("Must have thrown deadlock exception");
         } catch (SQLException sqle) {
           assertTrue(sqle.getMessage().contains("current threads:"));
-          assertTrue(sqle.getMessage().contains("deadlock information"));
         }
       }
+    } finally {
+      stmt.execute("SET GLOBAL lock_wait_timeout=60");
     }
   }
 }

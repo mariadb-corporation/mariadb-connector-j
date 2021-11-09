@@ -10,10 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Statement;
 import java.sql.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 public class DatabaseMetadataTest extends Common {
 
@@ -585,9 +582,9 @@ public class DatabaseMetadataTest extends Common {
     }
   }
   // TODO: PLAT-5870
+  @Disabled
   @Test
   public void getBestRowIdentifier() throws SQLException {
-    Assumptions.assumeTrue(false);
     DatabaseMetaData meta = sharedConn.getMetaData();
     assertThrowsContains(
         SQLException.class,
