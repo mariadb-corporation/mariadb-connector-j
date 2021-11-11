@@ -147,7 +147,11 @@ public final class ConnectionHelper {
             | Capabilities.CLIENT_SESSION_TRACK
             | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
 
-    if (Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))
+    // since skipping metadata is only available when using binary protocol,
+    // only set it when server permit it and using binary protocol
+    if (configuration.useServerPrepStmts()
+        && Boolean.parseBoolean(
+            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))
         && (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) != 0) {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
