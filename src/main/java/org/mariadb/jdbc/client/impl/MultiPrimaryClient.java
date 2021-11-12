@@ -134,7 +134,7 @@ public class MultiPrimaryClient implements Client {
     throw lastSqle;
   }
 
-  protected void reConnect() throws SQLException {
+  protected Client reConnect() throws SQLException {
 
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
@@ -146,21 +146,7 @@ public class MultiPrimaryClient implements Client {
 
       currentClient = connectHost(false, false);
       syncNewState(oldClient);
-
-      if (conf.transactionReplay()) {
-        executeTransactionReplay(oldClient);
-      } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        // transaction is lost, but connection is now up again.
-        // changing exception to SQLTransientConnectionException
-        throw new SQLTransientConnectionException(
-            String.format(
-                "Driver has reconnect connection after a "
-                    + "communications "
-                    + "link "
-                    + "failure with %s. In progress transaction was lost",
-                oldClient.getHostAddress()),
-            "25S03");
-      }
+      return oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
       currentClient = null;
@@ -169,12 +155,45 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
+  protected void replayIfPossible(Client oldClient) throws SQLException {
+    // oldClient is only valued if this occurs on master.
+    if (oldClient != null) {
+      if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+        if (conf.transactionReplay()) {
+          executeTransactionReplay(oldClient);
+        } else {
+          // transaction is lost, but connection is now up again.
+          // changing exception to SQLTransientConnectionException
+          throw new SQLTransientConnectionException(
+              String.format(
+                  "Driver has reconnect connection after a communications link failure with %s. In progress transaction was lost",
+                  oldClient.getHostAddress()),
+              "25S03");
+        }
+      } else {
+        // no transaction, but connection is now up again.
+        // changing exception to SQLTransientConnectionException
+        throw new SQLTransientConnectionException(
+            String.format(
+                "Driver has reconnect connection after a communications link failure with %s",
+                oldClient.getHostAddress()),
+            "25S03");
+      }
+    }
+  }
+
   protected void executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
-    if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      RedoContext ctx = (RedoContext) oldCli.getContext();
-      ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+    RedoContext ctx = (RedoContext) oldCli.getContext();
+    if (ctx.getTransactionSaver().isDirty()) {
+      ctx.getTransactionSaver().clear();
+      throw new SQLTransientConnectionException(
+          String.format(
+              "Driver has reconnect connection after a communications link failure with %s. In progress transaction was too big to be replayed, and was lost",
+              oldCli.getHostAddress()),
+          "25S03");
     }
+    ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
   }
 
   public void syncNewState(Client oldCli) throws SQLException {
@@ -271,17 +290,17 @@ public class MultiPrimaryClient implements Client {
           closeOnCompletion);
     } catch (SQLNonTransientConnectionException e) {
       HostAddress hostAddress = currentClient.getHostAddress();
-      reConnect();
+      Client oldClient = reConnect();
 
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
             String.format(
-                "Driver has reconnect connection after a "
-                    + "communications "
-                    + "failure with %s during a COMMIT statement",
+                "Driver has reconnect connection after a communications failure with %s during a COMMIT statement",
                 hostAddress),
             "25S03");
       }
+
+      replayIfPossible(oldClient);
 
       if (message instanceof RedoableWithPrepareClientMessage) {
         ((RedoableWithPrepareClientMessage) message).rePrepare(currentClient);
@@ -323,7 +342,8 @@ public class MultiPrimaryClient implements Client {
     } catch (SQLException e) {
       if (e instanceof SQLNonTransientConnectionException
           || (e.getCause() != null && e.getCause() instanceof SQLNonTransientConnectionException)) {
-        reConnect();
+        Client oldClient = reConnect();
+        replayIfPossible(oldClient);
         Arrays.stream(messages)
             .filter(RedoableWithPrepareClientMessage.class::isInstance)
             .map(RedoableWithPrepareClientMessage.class::cast)
@@ -365,8 +385,13 @@ public class MultiPrimaryClient implements Client {
       currentClient.readStreamingResults(
           completions, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
     } catch (SQLNonTransientConnectionException e) {
-      reConnect();
-      throw getExceptionFactory().create("Socket error during result streaming", "HY000");
+      try {
+        reConnect();
+      } catch (SQLException e2) {
+        throw getExceptionFactory()
+            .create("Socket error during result streaming", e2.getSQLState(), e2);
+      }
+      throw getExceptionFactory().create("Socket error during result streaming", "HY000", e);
     }
   }
 

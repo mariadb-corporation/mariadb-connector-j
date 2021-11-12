@@ -210,10 +210,12 @@ public class MultiHostTest extends Common {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Driver has reconnect connection after a communications link failure with");
     }
+
     Thread.sleep(50);
     // same in transaction
     try (Connection con =
@@ -393,9 +395,10 @@ public class MultiHostTest extends Common {
       Thread.sleep(20);
       con.setReadOnly(false);
 
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Driver has reconnect connection after a communications link failure with");
     }
 
     // never reconnect

@@ -127,6 +127,7 @@ public class Configuration {
   private int retriesAllDown = 120;
   private String galeraAllowedState = null;
   private boolean transactionReplay = false;
+  private int transactionReplaySize = 64;
 
   // Pool options
   private boolean pool = false;
@@ -202,6 +203,7 @@ public class Configuration {
       int retriesAllDown,
       String galeraAllowedState,
       boolean transactionReplay,
+      int transactionReplaySize,
       boolean pool,
       String poolName,
       int maxPoolSize,
@@ -267,6 +269,7 @@ public class Configuration {
     this.retriesAllDown = retriesAllDown;
     this.galeraAllowedState = galeraAllowedState;
     this.transactionReplay = transactionReplay;
+    this.transactionReplaySize = transactionReplaySize;
     this.pool = pool;
     this.poolName = poolName;
     this.maxPoolSize = maxPoolSize;
@@ -343,6 +346,7 @@ public class Configuration {
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
+      Integer transactionReplaySize,
       String geometryDefaultType,
       String restrictedAuth,
       Properties nonMappedOptions)
@@ -421,6 +425,7 @@ public class Configuration {
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
     if (transactionReplay != null) this.transactionReplay = transactionReplay;
+    if (transactionReplaySize != null) this.transactionReplaySize = transactionReplaySize;
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
     if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
@@ -720,6 +725,7 @@ public class Configuration {
         this.retriesAllDown,
         this.galeraAllowedState,
         this.transactionReplay,
+        this.transactionReplaySize,
         this.pool,
         this.poolName,
         this.maxPoolSize,
@@ -993,6 +999,10 @@ public class Configuration {
     return transactionReplay;
   }
 
+  public int transactionReplaySize() {
+    return transactionReplaySize;
+  }
+
   public String geometryDefaultType() {
     return geometryDefaultType;
   }
@@ -1235,6 +1245,7 @@ public class Configuration {
     private Integer retriesAllDown;
     private String galeraAllowedState;
     private Boolean transactionReplay;
+    private Integer transactionReplaySize;
 
     // Pool options
     private Boolean pool;
@@ -1714,6 +1725,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder transactionReplaySize(Integer transactionReplaySize) {
+      this.transactionReplaySize = transactionReplaySize;
+      return this;
+    }
+
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1779,6 +1795,7 @@ public class Configuration {
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,
+              this.transactionReplaySize,
               this.geometryDefaultType,
               this.restrictedAuth,
               this._nonMappedOptions);

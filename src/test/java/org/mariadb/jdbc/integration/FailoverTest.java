@@ -26,7 +26,11 @@ public class FailoverTest extends Common {
       long threadId = con.getContext().getThreadId();
       Statement stmt = con.createStatement();
       proxy.restart(200);
-      stmt.executeQuery("SELECT 1");
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT 1"),
+          "Driver has reconnect connection after a communications link failure");
+      ;
       Assertions.assertTrue(con.getContext().getThreadId() != threadId);
     }
   }
@@ -128,7 +132,7 @@ public class FailoverTest extends Common {
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
         Common.assertThrowsContains(
-            SQLTransientConnectionException.class, con::commit, "In progress transaction was lost");
+            SQLTransientConnectionException.class, con::commit, "during a COMMIT statement");
       }
     }
   }

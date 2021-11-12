@@ -50,19 +50,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         resultSetType,
         resultSetConcurrency,
         defaultFetchSize);
-    if (!PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
-      prepareIfNotAlready(sql);
+    prepareResult = con.getContext().getPrepareCache().get(sql, this);
+    if (prepareResult == null && !PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
+      con.getClient().execute(new PreparePacket(sql), this);
     }
     parameters = new ParameterList();
-  }
-
-  private void prepareIfNotAlready(String cmd) throws SQLException {
-    if (prepareResult == null) {
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-      if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(cmd), this);
-      }
-    }
   }
 
   protected void executeInternal() throws SQLException {
@@ -119,7 +111,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
   private void executeStandard(String cmd) throws SQLException {
     // send COM_STMT_PREPARE
-    prepareIfNotAlready(cmd);
+    if (prepareResult == null) {
+      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      if (prepareResult == null) {
+        con.getClient().execute(new PreparePacket(cmd), this);
+      }
+    }
 
     // send COM_STMT_EXECUTE
     ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);

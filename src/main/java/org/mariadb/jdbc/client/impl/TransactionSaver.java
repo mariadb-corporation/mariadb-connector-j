@@ -4,22 +4,41 @@
 
 package org.mariadb.jdbc.client.impl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import org.mariadb.jdbc.message.client.RedoableClientMessage;
 
 public class TransactionSaver {
-  private final List<RedoableClientMessage> buffers = new ArrayList<>();
+  private final RedoableClientMessage[] buffers;
+  private int idx = 0;
+  private boolean dirty = false;
+
+  public TransactionSaver(int transactionReplaySize) {
+    buffers = new RedoableClientMessage[transactionReplaySize];
+  }
 
   public void add(RedoableClientMessage clientMessage) {
-    buffers.add(clientMessage);
+    if (idx < buffers.length) {
+      buffers[idx++] = clientMessage;
+    } else {
+      dirty = true;
+    }
   }
 
   public void clear() {
-    buffers.clear();
+    Arrays.fill(buffers, null);
+    dirty = false;
+    idx = 0;
   }
 
-  public List<RedoableClientMessage> getBuffers() {
+  public int getIdx() {
+    return idx;
+  }
+
+  public boolean isDirty() {
+    return dirty;
+  }
+
+  public RedoableClientMessage[] getBuffers() {
     return buffers;
   }
 }
