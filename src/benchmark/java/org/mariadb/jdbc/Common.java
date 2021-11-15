@@ -40,7 +40,7 @@ public class Common {
     protected Connection connectionText;
     protected Connection connectionBinary;
 
-    @Param({"mysql", "mariadb"})
+    @Param({"mariadb"})
     String driver;
 
     @Setup(Level.Trial)
