@@ -241,25 +241,31 @@ public class MultiHostTest extends Common {
                 url
                     + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
+      con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
 
       proxy.restart(50);
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertEquals(1, rs.getInt(1));
+      try {
+        ResultSet rs = stmt.executeQuery("SELECT @con");
+        rs.next();
+        assertEquals(1, rs.getInt(1));
+      } catch (SQLException e) {
+        assertTrue(e.getMessage().contains("In progress transaction was lost"));
+      }
     }
-
+    Thread.sleep(50);
     // with transaction replay
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
       stmt.execute("INSERT INTO testReplay VALUE (1)");
+      con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
       stmt.execute("INSERT INTO testReplay VALUE (2)");
       try (PreparedStatement prep = con.prepareStatement("INSERT INTO testReplay VALUE (?)")) {

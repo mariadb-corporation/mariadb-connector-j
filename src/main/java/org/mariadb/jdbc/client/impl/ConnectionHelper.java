@@ -157,7 +157,8 @@ public final class ConnectionHelper {
     }
 
     // remains for compatibility
-    if (Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("interactiveClient", "false"))) {
+    if (Boolean.parseBoolean(
+        configuration.nonMappedOptions().getProperty("interactiveClient", "false"))) {
       capabilities |= Capabilities.CLIENT_INTERACTIVE;
     }
 

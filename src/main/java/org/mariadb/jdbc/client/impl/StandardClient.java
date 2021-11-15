@@ -295,8 +295,7 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add("show status like 'wsrep_local_state'");
     }
 
-    if (!hostAddress.primary
-            && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+    if (!hostAddress.primary && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
       commands.add("SET SESSION TRANSACTION READ ONLY");
     }
 
