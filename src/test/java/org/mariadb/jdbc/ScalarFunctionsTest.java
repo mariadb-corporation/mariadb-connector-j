@@ -171,7 +171,11 @@ public class ScalarFunctionsTest extends BaseTest {
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 2147483648L, 2147483648L);
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", BigInteger.valueOf(2147483648L), 2147483648L);
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 20, new Object[] {20, 20L});
-    queryScalar("SELECT {fn convert(?, SQL_BOOLEAN)}", true, new Object[] {1, 1L});
+    if (!isMariadbServer() && minVersion(8,0,27)) {
+      queryScalar("SELECT {fn convert(?, SQL_BOOLEAN)}", true, new Object[] {BigInteger.ONE, BigInteger.ONE});
+    } else {
+      queryScalar("SELECT {fn convert(?, SQL_BOOLEAN)}", true, new Object[] {1, 1L});
+    }
     queryScalar("SELECT {fn convert(?, SQL_SMALLINT)}", 5000, new Object[] {5000, 5000L});
     queryScalar("SELECT {fn convert(?, SQL_TINYINT)}", 5000, new Object[] {5000, 5000L});
     queryScalar(
