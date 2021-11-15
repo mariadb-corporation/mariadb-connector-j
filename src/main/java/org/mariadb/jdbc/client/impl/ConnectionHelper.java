@@ -156,6 +156,11 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
 
+    // remains for compatibility
+    if (Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("interactiveClient", "false"))) {
+      capabilities |= Capabilities.CLIENT_INTERACTIVE;
+    }
+
     if (configuration.useBulkStmts()) {
       capabilities |= Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
     }
