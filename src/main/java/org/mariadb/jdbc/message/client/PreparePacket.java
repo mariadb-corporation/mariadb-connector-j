@@ -95,6 +95,6 @@ public final class PreparePacket implements ClientMessage {
 
   @Override
   public String description() {
-    return sql;
+    return "PREPARE " + sql;
   }
 }

@@ -148,10 +148,6 @@ public final class InitialHandshakePacket implements ServerMessage {
     return serverStatus;
   }
 
-  public boolean isMariaDBServer() {
-    return version.isMariaDBServer();
-  }
-
   public String getAuthenticationPluginType() {
     return authenticationPluginType;
   }

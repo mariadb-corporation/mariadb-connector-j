@@ -579,12 +579,12 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
-    return prepareStatement(sql);
+    return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
-    return prepareStatement(sql);
+    return prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
   }
 
   @Override

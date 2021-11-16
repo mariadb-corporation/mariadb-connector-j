@@ -91,12 +91,8 @@ public class ConfigurationTest {
             .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .build();
-    assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB",
-        conf.initialUrl());
-    assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB",
-        conf.toString());
+    assertEquals("jdbc:mariadb:replication://local/DB", conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB", conf.toString());
     assertEquals(
         Configuration.parse(
             "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB"),
@@ -110,9 +106,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .build();
 
-    assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary),address=(host=host2)(port=3307)(type=replica)/DB",
-        conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local,host2:3307/DB", conf.initialUrl());
 
     conf =
         new Configuration.Builder()
@@ -121,9 +115,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .socketTimeout(50)
             .build();
-    assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB?socketTimeout=50",
-        conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB?socketTimeout=50", conf.initialUrl());
 
     conf =
         new Configuration.Builder()
@@ -135,7 +127,7 @@ public class ConfigurationTest {
             .socketTimeout(50)
             .build();
     assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary),address=(host=local)(port=3307)(type=replica),address=(host=local)(port=3308)(type=replica)/DB?socketTimeout=50",
+        "jdbc:mariadb:replication://local,local:3307,local:3308/DB?socketTimeout=50",
         conf.initialUrl());
 
     conf =
@@ -158,9 +150,7 @@ public class ConfigurationTest {
             .haMode(HaMode.REPLICATION)
             .autocommit(false)
             .build();
-    assertEquals(
-        "jdbc:mariadb:replication://address=(host=local)(port=3306)(type=primary)/DB?autocommit=false",
-        conf.initialUrl());
+    assertEquals("jdbc:mariadb:replication://local/DB?autocommit=false", conf.initialUrl());
   }
 
   @Test
@@ -360,26 +350,23 @@ public class ConfigurationTest {
   public void testJdbcParserSimpleIpv4basic() throws SQLException {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database";
     Configuration conf = Configuration.parse(url);
-    assertEquals(
-        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=primary),address=(host=slave2)(port=3308)(type=primary)/database",
-        conf.initialUrl());
+    assertEquals("jdbc:mariadb://master,slave1:3307,slave2:3308/database", conf.initialUrl());
     url =
         "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        "jdbc:mariadb://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
         conf.initialUrl());
     url =
         "jdbc:mariadb://address=(host=master)(port=3306)(type=master),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:mariadb://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        "jdbc:mariadb://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
         conf.initialUrl());
     url = "jdbc:mariadb:replication://master:3306,slave1:3307,slave2:3308/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:mariadb:replication://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
-        conf.initialUrl());
+        "jdbc:mariadb:replication://master,slave1:3307,slave2:3308/database", conf.initialUrl());
   }
 
   @Test
@@ -404,6 +391,19 @@ public class ConfigurationTest {
   @Test
   public void testJdbcParserWithoutDatabaseWithProperties() throws SQLException {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true";
+    Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
+    assertNull(conf.database());
+    assertNull(conf.user());
+    assertNull(conf.password());
+    assertEquals(3, conf.addresses().size());
+    assertEquals(HostAddress.from("master", 3306, true), conf.addresses().get(0));
+    assertEquals(HostAddress.from("slave1", 3307, true), conf.addresses().get(1));
+    assertEquals(HostAddress.from("slave2", 3308, true), conf.addresses().get(2));
+  }
+
+  @Test
+  public void testJdbcParserWithoutDatabase2WithProperties() throws SQLException {
+    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/?autoReconnect=true";
     Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
     assertNull(conf.database());
     assertNull(conf.user());
@@ -814,7 +814,7 @@ public class ConfigurationTest {
             .allowPublicKeyRetrieval(true)
             .build();
     assertEquals(
-        "jdbc:mariadb://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
+        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&timezone=UTC&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=true&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&useBulkStmts=false&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
   }
 

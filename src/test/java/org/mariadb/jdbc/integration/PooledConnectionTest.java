@@ -128,7 +128,7 @@ public class PooledConnectionTest extends Common {
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
       Thread.sleep(100);
-      MariaDbInnerPoolConnection pc = ds.getPooledConnection();
+      MariaDbInnerPoolConnection pc = (MariaDbInnerPoolConnection) ds.getPooledConnection();
       org.mariadb.jdbc.Connection conn = pc.getConnection();
       long threadId = conn.getThreadId();
       try {
@@ -137,7 +137,7 @@ public class PooledConnectionTest extends Common {
         // eat "Connection was killed" message
       }
       pc.close();
-      pc = ds.getPooledConnection();
+      pc = (MariaDbInnerPoolConnection) ds.getPooledConnection();
       conn = pc.getConnection();
       assertNotEquals(threadId, conn.getThreadId());
       pc.close();

@@ -104,6 +104,81 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void closedConnectionMulti() throws Exception {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && isMariaDBServer());
+
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
+                hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+
+    url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//%s:%s,%s,%s/",
+                hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+  }
+
+  private void testClosedConn(Connection con) throws SQLException {
+    PreparedStatement prep = con.prepareStatement("SELECT ?");
+    PreparedStatement prep2 = con.prepareStatement("SELECT 1, ?");
+    prep2.setString(1, "1");
+    prep2.execute();
+    Statement stmt = con.createStatement();
+    stmt.setFetchSize(1);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_1000");
+    rs.next();
+
+    con.close();
+
+    prep.setString(1, "1");
+    assertThrowsContains(SQLException.class, () -> prep.execute(), "Connection is closed");
+    assertThrowsContains(SQLException.class, () -> prep2.execute(), "Connection is closed");
+    assertThrowsContains(
+        SQLException.class, () -> rs.next(), "Error while streaming resultSet data");
+    assertThrowsContains(SQLException.class, () -> prep2.close(), "Connection is closed");
+    con.close();
+    assertThrowsContains(SQLException.class, () -> con.abort(null), "Connection is closed");
+    assertNotNull(con.getWaitTimeout());
+    assertNotNull(con.getClient().getHostAddress());
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.getClient().readStreamingResults(null, 0, 0, 0, 0, true),
+        "Connection is closed");
+    con.getClient().reset();
+  }
+
+  @Test
   public void masterFailover() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -131,27 +206,66 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Driver has reconnect connection after a communications link failure with");
+    }
 
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+    Thread.sleep(50);
+    // same in transaction
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=100")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION");
+      stmt.execute("SET @con=1");
+
+      proxy.restart(50);
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "In progress transaction was lost");
     }
     Thread.sleep(50);
+    // testing blacklisted
+    try (Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
+      Statement stmt = con.createStatement();
+      con.setAutoCommit(false);
+      stmt.execute("START TRANSACTION");
+      stmt.execute("SET @con=1");
 
+      proxy.restart(50);
+      try {
+        ResultSet rs = stmt.executeQuery("SELECT @con");
+        rs.next();
+        assertEquals(1, rs.getInt(1));
+      } catch (SQLException e) {
+        assertTrue(e.getMessage().contains("In progress transaction was lost"));
+      }
+    }
+    Thread.sleep(50);
     // with transaction replay
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
       stmt.execute("INSERT INTO testReplay VALUE (1)");
+      con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
       stmt.execute("INSERT INTO testReplay VALUE (2)");
       try (PreparedStatement prep = con.prepareStatement("INSERT INTO testReplay VALUE (?)")) {
@@ -287,9 +401,10 @@ public class MultiHostTest extends Common {
       Thread.sleep(20);
       con.setReadOnly(false);
 
-      ResultSet rs = stmt.executeQuery("SELECT @con");
-      rs.next();
-      assertNull(rs.getString(1));
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> stmt.executeQuery("SELECT @con"),
+          "Driver has reconnect connection after a communications link failure with");
     }
 
     // never reconnect

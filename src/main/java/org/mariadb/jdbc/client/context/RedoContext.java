@@ -24,7 +24,7 @@ public class RedoContext extends BaseContext {
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
     super(handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
-    this.transactionSaver = new TransactionSaver();
+    this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 
   public void setServerStatus(int serverStatus) {

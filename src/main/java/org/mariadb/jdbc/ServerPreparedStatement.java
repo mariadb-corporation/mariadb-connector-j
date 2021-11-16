@@ -50,22 +50,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         resultSetType,
         resultSetConcurrency,
         defaultFetchSize);
-    if (!PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
-      prepareResult = con.getContext().getPrepareCache().get(sql, this);
-      if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(sql), this);
-      }
+    prepareResult = con.getContext().getPrepareCache().get(sql, this);
+    if (prepareResult == null && !PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
+      con.getClient().execute(new PreparePacket(sql), this);
     }
     parameters = new ParameterList();
-  }
-
-  private void prepareIfNotAlready(String cmd) throws SQLException {
-    if (prepareResult == null) {
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-      if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(cmd), this);
-      }
-    }
   }
 
   protected void executeInternal() throws SQLException {
@@ -122,7 +111,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
   private void executeStandard(String cmd) throws SQLException {
     // send COM_STMT_PREPARE
-    prepareIfNotAlready(cmd);
+    if (prepareResult == null) {
+      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      if (prepareResult == null) {
+        con.getClient().execute(new PreparePacket(cmd), this);
+      }
+    }
 
     // send COM_STMT_EXECUTE
     ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);
@@ -164,34 +158,45 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @throws SQLException if IOException / Command error
    */
   private void executeBatchBulk(String cmd) throws SQLException {
-    ClientMessage[] packets;
+    List<Completion> res;
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-    if (prepareResult == null) {
-      packets =
-          new ClientMessage[] {
-            new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
-          };
-    } else {
-      packets =
-          new ClientMessage[] {new BulkExecutePacket(prepareResult, batchParameters, cmd, this)};
-    }
     try {
-      List<Completion> res =
-          con.getClient()
-              .executePipeline(
-                  packets,
-                  this,
-                  0,
-                  maxRows,
-                  ResultSet.CONCUR_READ_ONLY,
-                  ResultSet.TYPE_FORWARD_ONLY,
-                  closeOnCompletion);
-      // in case of failover, prepare is done in failover, skipping prepare result
-      if (res.get(0) instanceof PrepareResultPacket) {
-        results = res.subList(1, res.size());
+      if (prepareResult == null) {
+        ClientMessage[] packets;
+        packets =
+            new ClientMessage[] {
+              new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
+            };
+        res =
+            con.getClient()
+                .executePipeline(
+                    packets,
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion);
+
+        // in case of failover, prepare is done in failover, skipping prepare result
+        if (res.get(0) instanceof PrepareResultPacket) {
+          results = res.subList(1, res.size());
+        } else {
+          results = res;
+        }
       } else {
-        results = res;
+        results =
+            con.getClient()
+                .execute(
+                    new BulkExecutePacket(prepareResult, batchParameters, cmd, this),
+                    this,
+                    0,
+                    maxRows,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    closeOnCompletion);
       }
+
     } catch (SQLException bue) {
       results = null;
       throw exceptionFactory()
@@ -453,13 +458,13 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     validParameters();
     if (batchParameters == null) batchParameters = new ArrayList<>();
     batchParameters.add(parameters);
-    parameters = new ParameterList(parameters.size());
+    parameters = parameters.clone();
   }
 
   protected void validParameters() throws SQLException {
     if (prepareResult != null) {
       for (int i = 0; i < prepareResult.getParameters().length; i++) {
-        if (parameters.containsKey(i)) {
+        if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");
         }
@@ -478,7 +483,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
       // ensure all parameters are set
       for (int i = 0; i < parameters.size(); i++) {
-        if (parameters.containsKey(i)) {
+        if (!parameters.containsKey(i)) {
           throw exceptionFactory()
               .create("Parameter at position " + (i + 1) + " is not set", "07004");
         }
@@ -550,12 +555,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
-      if (results.size() != batchParameters.size()) {
-        for (int i = 0; i < batchParameters.size(); i++) {
+      if (results.size() != updates.length) {
+        for (int i = 0; i < updates.length; i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < Math.min(results.size(), batchParameters.size()); i++) {
+        for (int i = 0; i < updates.length; i++) {
           if (results.get(i) instanceof OkPacket) {
             updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
           } else {
@@ -581,13 +586,17 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       executeInternalPreparedBatch();
 
       long[] updates = new long[batchParameters.size()];
-      if (results.size() != batchParameters.size()) {
-        for (int i = 0; i < batchParameters.size(); i++) {
+      if (results.size() != updates.length) {
+        for (int i = 0; i < updates.length; i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < results.size(); i++) {
-          updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
+        for (int i = 0; i < updates.length; i++) {
+          if (results.get(i) instanceof OkPacket) {
+            updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
+          } else {
+            updates[i] = org.mariadb.jdbc.Statement.SUCCESS_NO_INFO;
+          }
         }
       }
 

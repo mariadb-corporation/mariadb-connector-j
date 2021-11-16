@@ -5,17 +5,16 @@
 package org.mariadb.jdbc;
 
 import java.sql.SQLException;
-import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
-public class ParameterMetaData implements java.sql.ParameterMetaData {
+public class SimpleParameterMetaData implements java.sql.ParameterMetaData {
 
-  private final Column[] params;
+  private final int paramCount;
   private final ExceptionFactory exceptionFactory;
 
-  protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
-    this.params = params;
+  protected SimpleParameterMetaData(ExceptionFactory exceptionFactory, int paramCount) {
     this.exceptionFactory = exceptionFactory;
+    this.paramCount = paramCount;
   }
 
   /**
@@ -26,14 +25,14 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getParameterCount() {
-    return params.length;
+    return paramCount;
   }
 
   private void checkIndex(int index) throws SQLException {
-    if (index < 1 || index > params.length) {
-      throw new SQLException(
+    if (index < 1 || index > paramCount) {
+      throw exceptionFactory.create(
           String.format(
-              "Wrong index position. Is %s but must be in 1-%s range", index, params.length));
+              "Wrong index position. Is %s but must be in 1-%s range", index, paramCount));
     }
   }
 
@@ -61,7 +60,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public boolean isSigned(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].isSigned();
+    return true;
   }
 
   /**
@@ -81,7 +80,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getPrecision(int idx) throws SQLException {
     checkIndex(idx);
-    return (int) params[idx - 1].getPrecision();
+    throw exceptionFactory.create("Unknown parameter metadata precision");
   }
 
   /**
@@ -97,7 +96,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getScale(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getDecimals();
+    throw exceptionFactory.create("Unknown parameter metadata scale");
   }
 
   /**
@@ -111,7 +110,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getParameterType(int idx) throws SQLException {
     checkIndex(idx);
-    throw exceptionFactory.create("Getting parameter type metadata are not supported", "0A000", -1);
+    throw exceptionFactory.create("Getting parameter type metadata is not supported", "0A000", -1);
   }
 
   /**
@@ -125,7 +124,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getType().name();
+    throw exceptionFactory.create("Unknown parameter metadata type name");
   }
 
   /**

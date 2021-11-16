@@ -8,8 +8,6 @@ import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
@@ -48,9 +46,6 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  * <br>
  */
 public class Configuration {
-
-  private static final Pattern URL_PARAMETER =
-      Pattern.compile("(/([^?]*))?(\\?(.+))*", Pattern.DOTALL);
 
   // standard options
   private String user = null;
@@ -127,6 +122,7 @@ public class Configuration {
   private int retriesAllDown = 120;
   private String galeraAllowedState = null;
   private boolean transactionReplay = false;
+  private int transactionReplaySize = 64;
 
   // Pool options
   private boolean pool = false;
@@ -202,6 +198,7 @@ public class Configuration {
       int retriesAllDown,
       String galeraAllowedState,
       boolean transactionReplay,
+      int transactionReplaySize,
       boolean pool,
       String poolName,
       int maxPoolSize,
@@ -267,6 +264,7 @@ public class Configuration {
     this.retriesAllDown = retriesAllDown;
     this.galeraAllowedState = galeraAllowedState;
     this.transactionReplay = transactionReplay;
+    this.transactionReplaySize = transactionReplaySize;
     this.pool = pool;
     this.poolName = poolName;
     this.maxPoolSize = maxPoolSize;
@@ -343,6 +341,7 @@ public class Configuration {
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
+      Integer transactionReplaySize,
       String geometryDefaultType,
       String restrictedAuth,
       Properties nonMappedOptions)
@@ -421,6 +420,7 @@ public class Configuration {
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
     if (transactionReplay != null) this.transactionReplay = transactionReplay;
+    if (transactionReplaySize != null) this.transactionReplaySize = transactionReplaySize;
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
     if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
@@ -528,25 +528,31 @@ public class Configuration {
       }
 
       if (additionalParameters != null) {
-        //noinspection Annotator
-        Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-        matcher.find();
-        String database = matcher.group(2);
-        if (database != null && !database.isEmpty()) {
-          builder.database(database);
-        }
-        String urlParameters = matcher.group(4);
-        if (urlParameters != null && !urlParameters.isEmpty()) {
-          String[] parameters = urlParameters.split("&");
-          for (String parameter : parameters) {
-            int pos = parameter.indexOf('=');
-            if (pos == -1) {
-              properties.setProperty(parameter, "");
-            } else {
-              properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+        int optIndex = additionalParameters.indexOf("?");
+        String database;
+        if (optIndex < 0) {
+          database = (additionalParameters.length() > 1) ? additionalParameters.substring(1) : null;
+        } else {
+          if (optIndex == 0) {
+            database = null;
+          } else {
+            database = additionalParameters.substring(1, optIndex);
+            if (database.isEmpty()) database = null;
+          }
+          String urlParameters = additionalParameters.substring(optIndex + 1);
+          if (urlParameters != null && !urlParameters.isEmpty()) {
+            String[] parameters = urlParameters.split("&");
+            for (String parameter : parameters) {
+              int pos = parameter.indexOf('=');
+              if (pos == -1) {
+                properties.setProperty(parameter, "");
+              } else {
+                properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+              }
             }
           }
         }
+        builder.database(database);
       } else {
         builder.database(null);
       }
@@ -720,6 +726,7 @@ public class Configuration {
         this.retriesAllDown,
         this.galeraAllowedState,
         this.transactionReplay,
+        this.transactionReplaySize,
         this.pool,
         this.poolName,
         this.maxPoolSize,
@@ -993,6 +1000,10 @@ public class Configuration {
     return transactionReplay;
   }
 
+  public int transactionReplaySize() {
+    return transactionReplaySize;
+  }
+
   public String geometryDefaultType() {
     return geometryDefaultType;
   }
@@ -1032,19 +1043,25 @@ public class Configuration {
       sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }
     sb.append("//");
-
     for (int i = 0; i < conf.addresses.size(); i++) {
       HostAddress hostAddress = conf.addresses.get(i);
       if (i > 0) {
         sb.append(",");
       }
-      sb.append("address=(host=")
-          .append(hostAddress.host)
-          .append(")")
-          .append("(port=")
-          .append(hostAddress.port)
-          .append(")");
-      sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
+          || (conf.haMode == HaMode.REPLICATION
+              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
+        sb.append(hostAddress.host);
+        if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
+      } else {
+        sb.append("address=(host=")
+            .append(hostAddress.host)
+            .append(")")
+            .append("(port=")
+            .append(hostAddress.port)
+            .append(")");
+        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      }
     }
 
     sb.append("/");
@@ -1229,6 +1246,7 @@ public class Configuration {
     private Integer retriesAllDown;
     private String galeraAllowedState;
     private Boolean transactionReplay;
+    private Integer transactionReplaySize;
 
     // Pool options
     private Boolean pool;
@@ -1708,6 +1726,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder transactionReplaySize(Integer transactionReplaySize) {
+      this.transactionReplaySize = transactionReplaySize;
+      return this;
+    }
+
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1773,6 +1796,7 @@ public class Configuration {
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,
+              this.transactionReplaySize,
               this.geometryDefaultType,
               this.restrictedAuth,
               this._nonMappedOptions);

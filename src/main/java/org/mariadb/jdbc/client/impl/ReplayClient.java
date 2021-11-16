@@ -103,11 +103,12 @@ public class ReplayClient extends StandardClient {
   }
 
   public void transactionReplay(TransactionSaver transactionSaver) throws SQLException {
-    List<RedoableClientMessage> buffers = transactionSaver.getBuffers();
+    RedoableClientMessage[] buffers = transactionSaver.getBuffers();
     try {
       // replay all but last
       Prepare prepare;
-      for (RedoableClientMessage querySaver : buffers) {
+      for (int i = 0; i < transactionSaver.getIdx(); i++) {
+        RedoableClientMessage querySaver = buffers[i];
         int responseNo;
         if (querySaver instanceof RedoableWithPrepareClientMessage) {
           // command is a prepare statement query

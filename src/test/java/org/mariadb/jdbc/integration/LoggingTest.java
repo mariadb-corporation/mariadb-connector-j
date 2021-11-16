@@ -81,20 +81,6 @@ public class LoggingTest extends Common {
     ds.close();
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      String defaultRequest =
-          "+--------------------------------------------------+\n"
-              + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-              + "+--------------------------------------------------+------------------+\n"
-              + "| 23 00 00 00 03 53 45 54  20 53 45 53 53 49 4F 4E | #....SET SESSION |\n"
-              + "| 20 54 52 41 4E 53 41 43  54 49 4F 4E 20 52 45 41 |  TRANSACTION REA |\n"
-              + "| 44 20 57 52 49 54 45                             | D WRITE          |\n"
-              + "+--------------------------------------------------+------------------+";
-      if (!"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv"))) {
-        Assertions.assertTrue(
-            contents.contains(defaultRequest)
-                || contents.contains(defaultRequest.replace("\r\n", "\n")),
-            contents);
-      }
       String selectOne =
           "+--------------------------------------------------+\n"
               + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"

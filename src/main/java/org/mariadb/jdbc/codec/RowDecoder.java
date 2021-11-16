@@ -31,7 +31,7 @@ public abstract class RowDecoder {
   }
 
   public void setRow(byte[] buf) {
-    this.readBuf.buf(buf, buf == null ? 0 : buf.length).pos(0);
+    this.readBuf.buf(buf, buf == null ? 0 : buf.length, 0);
     index = -1;
   }
 
@@ -183,16 +183,9 @@ public abstract class RowDecoder {
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
           mapper.putIfAbsent(columnAlias, i + 1);
-
           String tableAlias = ci.getTableAlias();
-          if (tableAlias != null) {
-            mapper.putIfAbsent(tableAlias.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-          } else {
-            String table = ci.getTable();
-            if (table != null) {
-              mapper.putIfAbsent(table.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-            }
-          }
+          String tableLabel = tableAlias != null ? tableAlias : ci.getTable();
+          mapper.putIfAbsent(tableLabel.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
         }
       }
     }

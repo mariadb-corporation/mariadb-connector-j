@@ -17,6 +17,7 @@ import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ClientParser;
 import org.mariadb.jdbc.util.ParameterList;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -120,7 +121,12 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
                     closeOnCompletion);
-        results = res.subList(1, res.size());
+        // in case of failover, prepare is done in failover, skipping prepare result
+        if (res.get(0) instanceof PrepareResultPacket) {
+          results = res.subList(1, res.size());
+        } else {
+          results = res;
+        }
       } else {
         results =
             con.getClient()
@@ -313,12 +319,12 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     validParameters();
     if (batchParameters == null) batchParameters = new ArrayList<>();
     batchParameters.add(parameters);
-    parameters = new ParameterList();
+    parameters = parameters.clone();
   }
 
   protected void validParameters() throws SQLException {
     for (int i = 0; i < parser.getParamCount(); i++) {
-      if (parameters.containsKey(i)) {
+      if (!parameters.containsKey(i)) {
         throw exceptionFactory()
             .create("Parameter at position " + (i + 1) + " is not set", "07004");
       }
@@ -395,10 +401,14 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    * @since 1.4
    */
   @Override
-  public ParameterMetaData getParameterMetaData() throws SQLException {
+  public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      try {
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      } catch (SQLException e) {
+        return new SimpleParameterMetaData(exceptionFactory(), parser.getParamCount());
+      }
     }
     return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());
   }
@@ -416,7 +426,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < Math.min(results.size(), batchParameters.size()); i++) {
+        for (int i = 0; i < updates.length; i++) {
           if (results.get(i) instanceof OkPacket) {
             updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
           } else {

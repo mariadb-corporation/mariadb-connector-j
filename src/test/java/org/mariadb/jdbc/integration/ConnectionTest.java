@@ -16,6 +16,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.integration.util.SocketFactoryBasicTest;
 import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 
 @DisplayName("Connection Test")
@@ -37,6 +38,18 @@ public class ConnectionTest extends Common {
     } catch (SQLException e) {
       assertTrue(e.getMessage().contains("the value supplied for timeout is negative"));
     }
+  }
+
+  @Test
+  void missingHost() {
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:mariadb:///db"),
+        "hostname must be set to connect socket if not using local socket or pipe");
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:mariadb:///db?socketFactory=test"),
+        "hostname must be set to connect socket");
   }
 
   @Test
@@ -882,30 +895,30 @@ public class ConnectionTest extends Common {
     if (rs != null) {
       assertTrue(rs.next());
       System.out.println("named_pipe:" + rs.getString(1));
-      if (rs.getBoolean(1)) {
-        String namedPipeName = rs.getString(2);
-        System.out.println("namedPipeName:" + namedPipeName);
+      Assumptions.assumeTrue(rs.getBoolean(1));
+      String namedPipeName = rs.getString(2);
+      System.out.println("namedPipeName:" + namedPipeName);
 
-        // skip test if no namedPipeName was obtained because then we do not use a socket connection
-        Assumptions.assumeTrue(namedPipeName != null);
-        try (Connection connection = createCon("pipe=" + namedPipeName)) {
-          java.sql.Statement stmt = connection.createStatement();
-          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-            assertTrue(rs2.next());
-          }
+      // skip test if no namedPipeName was obtained because then we do not use a socket connection
+      Assumptions.assumeTrue(namedPipeName != null);
+      try (Connection connection = createCon("pipe=" + namedPipeName)) {
+        java.sql.Statement stmt = connection.createStatement();
+        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+          assertTrue(rs2.next());
         }
-        // connection without host name
-        try (java.sql.Connection connection =
-            DriverManager.getConnection(
-                "jdbc:mariadb:///"
-                    + sharedConn.getCatalog()
-                    + mDefUrl.substring(mDefUrl.indexOf("?user="))
-                    + "&pipe="
-                    + namedPipeName)) {
-          java.sql.Statement stmt = connection.createStatement();
-          try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-            assertTrue(rs2.next());
-          }
+      }
+      // connection without host name
+      try (java.sql.Connection connection =
+          DriverManager.getConnection(
+              String.format(
+                  "jdbc:mariadb:///%s?%s&pipe=%s&tcpAbortiveClose&tcpKeepAlive",
+                  sharedConn.getCatalog(),
+                  mDefUrl.substring(mDefUrl.indexOf("?user=") + 1),
+                  namedPipeName))) {
+        connection.setNetworkTimeout(null, 300);
+        java.sql.Statement stmt = connection.createStatement();
+        try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
+          assertTrue(rs2.next());
         }
       }
     }
@@ -919,21 +932,22 @@ public class ConnectionTest extends Common {
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
-    if (!rs.next()) {
+    if (!rs.next() || rs.getString(2) == null) {
       return;
     }
     String path = rs.getString(2);
-    stmt.execute("DROP USER IF EXISTS testSocket@'localhost'");
-    stmt.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
-    stmt.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    stmt.execute("DROP USER IF EXISTS testSocket");
+    stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
     stmt.execute("FLUSH PRIVILEGES");
 
-    try (java.sql.Connection connection =
-        DriverManager.getConnection(
-            "jdbc:mariadb:///"
-                + sharedConn.getCatalog()
-                + "?user=testSocket&password=MySup5%rPassw@ord&localSocket="
-                + path)) {
+    String url =
+        String.format(
+            "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+            sharedConn.getCatalog(), path);
+    System.out.println(url);
+    try (java.sql.Connection connection = DriverManager.getConnection(url)) {
+      connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
@@ -944,7 +958,7 @@ public class ConnectionTest extends Common {
             DriverManager.getConnection(
                 "jdbc:mariadb:///"
                     + sharedConn.getCatalog()
-                    + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=/wrongPath"),
+                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
         "Socket fail to connect to host");
 
     if (haveSsl()) {
@@ -954,7 +968,7 @@ public class ConnectionTest extends Common {
             DriverManager.getConnection(
                 "jdbc:mariadb:///"
                     + sharedConn.getCatalog()
-                    + "?sslMode=verify-full&user=testSocket&password=MySup5%rPassw@ord"
+                    + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
                     + "&serverSslCert="
                     + serverCertPath
                     + "&localSocket="
@@ -964,14 +978,19 @@ public class ConnectionTest extends Common {
         }
       }
     }
-    stmt.execute("DROP USER testSocket@'localhost'");
+    stmt.execute("DROP USER testSocket");
   }
 
   @Test
   public void socketFactoryTest() throws SQLException {
+    try (Connection conn = createCon("socketFactory=" + SocketFactoryBasicTest.class.getName())) {
+      conn.isValid(1);
+    }
+
     try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
       conn.isValid(1);
     }
+
     Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> createCon("socketFactory=wrongClass"),

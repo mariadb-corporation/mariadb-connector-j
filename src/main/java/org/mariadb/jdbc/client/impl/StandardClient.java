@@ -295,10 +295,10 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add("show status like 'wsrep_local_state'");
     }
 
-    if (context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      commands.add(
-          "SET SESSION TRANSACTION "
-              + ((hostAddress != null && !hostAddress.primary) ? "READ ONLY" : "READ WRITE"));
+    if (hostAddress != null
+        && !hostAddress.primary
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+      commands.add("SET SESSION TRANSACTION READ ONLY");
     }
 
     try {
@@ -497,33 +497,34 @@ public class StandardClient implements Client, AutoCloseable {
       }
       return results;
     } catch (SQLException sqlException) {
-
-      // read remaining results
-      for (int i = readCounter; i < messages.length; i++) {
-        for (int j = 0; j < responseMsg[i]; j++) {
-          try {
-            results.addAll(
-                readResponse(
-                    stmt,
-                    messages[i],
-                    fetchSize,
-                    maxRows,
-                    resultSetConcurrency,
-                    resultSetType,
-                    closeOnCompletion));
-          } catch (SQLException e) {
-            // eat
+      if (!closed) {
+        // read remaining results
+        for (int i = readCounter; i < messages.length; i++) {
+          for (int j = 0; j < responseMsg[i]; j++) {
+            try {
+              results.addAll(
+                  readResponse(
+                      stmt,
+                      messages[i],
+                      fetchSize,
+                      maxRows,
+                      resultSetConcurrency,
+                      resultSetType,
+                      closeOnCompletion));
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
-      }
 
-      // prepare associated to PrepareStatement need to be uncached
-      for (Completion result : results) {
-        if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
-          try {
-            ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
-          } catch (SQLException e) {
-            // eat
+        // prepare associated to PrepareStatement need to be uncached
+        for (Completion result : results) {
+          if (result instanceof PrepareResultPacket && stmt instanceof ServerPreparedStatement) {
+            try {
+              ((PrepareResultPacket) result).decrementUse(this, (ServerPreparedStatement) stmt);
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
       }
@@ -546,9 +547,35 @@ public class StandardClient implements Client, AutoCloseable {
       int resultSetType,
       boolean closeOnCompletion)
       throws SQLException {
-    sendQuery(message);
-    return readResponse(
-        stmt, message, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+    int nbResp = sendQuery(message);
+    if (nbResp == 1) {
+      return readResponse(
+          stmt,
+          message,
+          fetchSize,
+          maxRows,
+          resultSetConcurrency,
+          resultSetType,
+          closeOnCompletion);
+    } else {
+      if (streamStmt != null) {
+        streamStmt.fetchRemaining();
+        streamStmt = null;
+      }
+      List<Completion> completions = new ArrayList<>();
+      while (nbResp-- > 0) {
+        readResults(
+            stmt,
+            message,
+            completions,
+            fetchSize,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion);
+      }
+      return completions;
+    }
   }
 
   public List<Completion> readResponse(

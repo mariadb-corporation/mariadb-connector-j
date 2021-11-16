@@ -62,11 +62,13 @@ public class BinaryRowDecoder extends RowDecoder {
   @Override
   public void setRow(byte[] buf) {
     if (buf != null) {
-      this.readBuf.buf(buf, buf.length).pos(1); // skip 0x00 header
       nullBitmap = new byte[(columnCount + 9) / 8];
-      this.readBuf.readBytes(nullBitmap).mark();
+      for (int i = 0; i < nullBitmap.length; i++) {
+        nullBitmap[i] = buf[i + 1];
+      }
+      this.readBuf.buf(buf, buf.length, 1 + nullBitmap.length);
     } else {
-      this.readBuf.buf(null, 0);
+      this.readBuf.buf(null, 0, 0);
     }
     index = -1;
   }
@@ -86,7 +88,8 @@ public class BinaryRowDecoder extends RowDecoder {
 
     if (index >= newIndex) {
       index = 0;
-      readBuf.reset();
+      // skip header + null-bitmap
+      readBuf.pos(1 + ((columnCount + 9) / 8));
     } else {
       index++;
     }
@@ -116,11 +119,13 @@ public class BinaryRowDecoder extends RowDecoder {
             break;
 
           default:
-            int type = this.readBuf.readUnsignedByte();
-            switch (type) {
-              case 251:
-                break;
-
+            int len = this.readBuf.readUnsignedByte();
+            if (len < 251) {
+              // length is encoded on 1 bytes (is then less than 251)
+              this.readBuf.skip(len);
+              break;
+            }
+            switch (len) {
               case 252:
                 this.readBuf.skip(this.readBuf.readUnsignedShort());
                 break;
@@ -132,10 +137,6 @@ public class BinaryRowDecoder extends RowDecoder {
               case 254:
                 this.readBuf.skip((int) this.readBuf.readLong());
                 break;
-
-              default:
-                this.readBuf.skip(type);
-                break;
             }
             break;
         }
@@ -143,7 +144,7 @@ public class BinaryRowDecoder extends RowDecoder {
       index++;
     }
 
-    if ((nullBitmap[(index + 2) / 8] & (1 << ((index + 2) % 8))) > 0) {
+    if (wasNull()) {
       length = NULL_LENGTH;
       return;
     }
@@ -173,14 +174,12 @@ public class BinaryRowDecoder extends RowDecoder {
       default:
         // field with variable length
         int len = this.readBuf.readUnsignedByte();
+        if (len < 251) {
+          // length is encoded on 1 bytes (is then less than 251)
+          length = len;
+          return;
+        }
         switch (len) {
-          case 251:
-            // null length field
-            // must never occur
-            // null value are set in NULL-Bitmap, not send with a null length indicator.
-            throw new IllegalStateException(
-                "null data is encoded in binary protocol but NULL-Bitmap is not set");
-
           case 252:
             // length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
             length = this.readBuf.readUnsignedShort();
@@ -195,10 +194,6 @@ public class BinaryRowDecoder extends RowDecoder {
             // length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
             length = (int) this.readBuf.readLong();
             return;
-
-          default:
-            // length is encoded on 1 bytes (is then less than 251)
-            length = len;
         }
     }
   }

@@ -16,10 +16,17 @@ public class EofTest extends Common {
   @Test
   public void basicResultset() throws Exception {
     Assumptions.assumeTrue(isMariaDBServer());
-    try (Connection con = createCon("useEof=false")) {
+    basicResultset(sharedConn);
+    basicResultset(sharedConnBinary);
+    try (Connection con = createCon("deprecateEof=false")) {
       basicResultset(con);
     }
-    try (Connection con = createCon("useEof=true&useServerPrepStmts=true")) {
+    try (Connection con =
+        createCon("deprecateEof=false&useServerPrepStmts=true&enableSkipMeta=false")) {
+      basicResultset(con);
+    }
+    try (Connection con =
+        createCon("deprecateEof=false&useServerPrepStmts=true&enableSkipMeta=true")) {
       basicResultset(con);
     }
   }

@@ -15,13 +15,9 @@ public interface ReadableByteBuf {
 
   byte[] buf();
 
-  ReadableByteBuf buf(byte[] buf, int limit);
+  void buf(byte[] buf, int limit, int pos);
 
   void pos(int pos);
-
-  void mark();
-
-  void reset();
 
   void skip();
 
@@ -65,7 +61,7 @@ public interface ReadableByteBuf {
 
   long readLongBE();
 
-  ReadableByteBuf readBytes(byte[] dst);
+  void readBytes(byte[] dst);
 
   byte[] readBytesNullEnd();
 

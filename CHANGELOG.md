@@ -1,4 +1,18 @@
 # Change Log
+## [3.0.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.3) (17 Nov 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.2-rc...3.0.3)
+
+* CONJ-705 parameter metadata get parameter count even when query cannot be prepared
+* prepareStatement.addBatch must initialize with previous set
+* Connection.prepareStatement(String sql, int[] columnIndexes/String[] columnNames) must return generated keys
+* setting "transaction read only" only for replica
+* keeping option interactiveClient for compatibility
+* adding option `transactionReplaySize` to control redo cache size
+* only set skip metadata connection flag when using binary protocol
+* permit getString on a binary object
+* compression correction for multi-packet
+* COM_RESET_CONNECTION expect a response (ERR_Packet or OK_Packet)
+* [CONJ-901] ArrayIndexOutOfBoundsException on StandardReadableByteBuf.readByte error
 
 ## [3.0.2-rc](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.2-rc) (31 Aug 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.1-beta...3.0.2-rc)

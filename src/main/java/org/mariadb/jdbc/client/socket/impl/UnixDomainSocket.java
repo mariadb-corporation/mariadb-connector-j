@@ -88,11 +88,6 @@ public class UnixDomainSocket extends Socket {
     }
   }
 
-  @Override
-  public void connect(SocketAddress endpoint) throws IOException {
-    connect(endpoint, 0);
-  }
-
   public void connect(SocketAddress endpoint, int timeout) throws IOException {
     try {
       int ret = connect(fd, sockaddr, sockaddr.size());
@@ -120,14 +115,6 @@ public class UnixDomainSocket extends Socket {
   }
 
   public void setKeepAlive(boolean b) {
-    // do nothing
-  }
-
-  public void setReceiveBufferSize(int size) {
-    // do nothing
-  }
-
-  public void setSendBufferSize(int size) {
     // do nothing
   }
 
@@ -214,13 +201,6 @@ public class UnixDomainSocket extends Socket {
     }
 
     @Override
-    public void write(int value) throws IOException {
-      write(new byte[] {(byte) value});
-    }
-
-    @Override
-    public void write(byte[] bytes) throws IOException {
-      write(bytes, 0, bytes.length);
-    }
+    public void write(int value) throws IOException {}
   }
 }

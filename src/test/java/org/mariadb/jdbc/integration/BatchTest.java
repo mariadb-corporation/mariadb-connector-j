@@ -68,40 +68,45 @@ public class BatchTest extends Common {
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
-      Common.assertThrowsContains(
-          SQLTransientConnectionException.class,
-          prep::addBatch,
-          "Parameter at " + "position 1 is not set");
+      prep.addBatch();
     }
   }
 
   @Test
   public void differentParameterType() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
-      differentParameterType(con);
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=false")) {
+      differentParameterType(con, false);
+    }
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
+      differentParameterType(con, isMariaDBServer());
+    }
+    try (Connection con =
+        createCon("&useServerPrepStmts=false&useBulkStmts=true&disablePipeline")) {
+      differentParameterType(con, isMariaDBServer());
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
-      differentParameterType(con);
+      differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con);
+      differentParameterType(con, isMariaDBServer());
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      differentParameterType(con);
+      differentParameterType(con, isMariaDBServer());
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
-      differentParameterType(con);
+      differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile")) {
-      differentParameterType(con);
+      differentParameterType(con, false);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
-      differentParameterType(con);
+      differentParameterType(con, false);
     }
   }
 
-  public void differentParameterType(Connection con) throws SQLException {
+  public void differentParameterType(Connection con, boolean expectSuccessUnknown)
+      throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =
@@ -119,6 +124,94 @@ public class BatchTest extends Common {
       assertEquals(1, res[1]);
     }
     ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertEquals("1", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+    assertEquals("2", rs.getString(2));
+    assertFalse(rs.next());
+    stmt.execute("TRUNCATE BatchTest");
+
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+      prep.setInt(1, 1);
+      prep.setInt(2, 1);
+      prep.addBatch();
+
+      prep.setInt(1, 2);
+      prep.setInt(2, 2);
+      prep.addBatch();
+      int[] res = prep.executeBatch();
+      assertEquals(2, res.length);
+      if (expectSuccessUnknown) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(1, res[1]);
+      }
+    }
+    rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertEquals("1", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+    assertEquals("2", rs.getString(2));
+    assertFalse(rs.next());
+
+    stmt.execute("TRUNCATE BatchTest");
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+      prep.setInt(1, 1);
+      prep.setInt(2, 1);
+      prep.addBatch();
+
+      int[] res = prep.executeBatch();
+      assertEquals(1, res.length);
+      assertEquals(1, res[0]);
+    }
+    rs = stmt.executeQuery("SELECT * FROM BatchTest");
+    assertTrue(rs.next());
+    assertEquals(1, rs.getInt(1));
+    assertEquals("1", rs.getString(2));
+    assertFalse(rs.next());
+
+    stmt.execute("TRUNCATE BatchTest");
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
+      prep.setInt(1, 1);
+      prep.setString(2, "1");
+      prep.addBatch();
+
+      prep.setInt(1, 2);
+      prep.setInt(2, 2);
+      prep.addBatch();
+      int[] res = prep.executeBatch();
+      assertEquals(2, res.length);
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
+
+      stmt.execute("TRUNCATE BatchTest");
+      if (isMariaDBServer()) {
+        stmt.setFetchSize(1);
+        rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
+        rs.next();
+      }
+      prep.setInt(1, 1);
+      prep.setString(2, "1");
+      prep.addBatch();
+
+      prep.setInt(1, 2);
+      prep.setInt(2, 2);
+      prep.addBatch();
+      res = prep.executeBatch();
+      assertEquals(2, res.length);
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
+    }
+    rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
     assertEquals("1", rs.getString(2));

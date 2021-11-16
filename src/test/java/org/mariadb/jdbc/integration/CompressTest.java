@@ -32,23 +32,28 @@ public class CompressTest extends Common {
 
   @Test
   public void bigSend() throws SQLException {
-    bigSend(sharedConn);
-    bigSend(sharedConnBinary);
-    bigSend(shareCompressCon);
+    int[] maxSize = new int[] {8 * 1024, 128 * 1024, 1024 * 1024, 16 * 1024 * 1024};
+
+    for (int i = 0; i < maxSize.length; i++) {
+      bigSend(sharedConn, maxSize[i]);
+      bigSend(sharedConnBinary, maxSize[i]);
+      bigSend(shareCompressCon, maxSize[i]);
+    }
   }
 
-  public void bigSend(Connection con) throws SQLException {
-    char[] arr2 = new char[Math.min(16 * 1024 * 1024, getMaxAllowedPacket() / 2)];
+  public void bigSend(Connection con, int maxLen) throws SQLException {
+    char[] arr2 =
+        new char[Math.min(maxLen, Math.min(16 * 1024 * 1024, (getMaxAllowedPacket() / 2) - 1000))];
     for (int pos = 0; pos < arr2.length; pos++) {
       arr2[pos] = (char) ('A' + (pos % 60));
     }
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE compressTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    String st2 = new String(arr2, 0, 5000);
-    String st3 = new String(arr2, 0, 150000);
-    String st4 = new String(arr2, 0, 1100000);
-    String st5 = new String(arr2, 0, 1100000);
+    String st2 = new String(arr2, 0, 5_000);
+    String st3 = new String(arr2, 0, Math.min(maxLen, 150_000));
+    String st4 = new String(arr2, 0, Math.min(maxLen, 1_100_000));
+    String st5 = new String(arr2, 0, Math.min(maxLen, 1_100_000));
     String st6 = new String(arr2);
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO compressTest VALUES (?, ?, ?, ?, ?, ?)")) {

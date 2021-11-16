@@ -12,13 +12,31 @@ import javax.sql.*;
 
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
-  private final Configuration conf;
+  private Configuration conf = null;
+  private String url = null;
+  private String user = null;
+  private String password = null;
+  private Integer loginTimeout = null;
+
+  public MariaDbDataSource() {}
 
   public MariaDbDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
-      conf = Configuration.parse(url);
+      this.url = url;
     } else {
       throw new SQLException(String.format("Wrong mariaDB url: %s", url));
+    }
+  }
+
+  private void config() throws SQLException {
+    if (url == null) throw new SQLException("url not set");
+    conf = Configuration.parse(url);
+    if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
+    if (user != null) {
+      conf = conf.clone(user, password);
+    } else {
+      user = conf.user();
+      password = conf.password();
     }
   }
 
@@ -34,6 +52,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection() throws SQLException {
+    if (conf == null) config();
     return Driver.connect(conf);
   }
 
@@ -51,6 +70,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return Driver.connect(conf);
   }
@@ -129,7 +149,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    */
   @Override
   public int getLoginTimeout() {
-    return conf.connectTimeout() / 1000;
+    if (loginTimeout != null) return loginTimeout;
+    if (conf != null) return conf.connectTimeout() / 1000;
+    return DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() : 30;
   }
 
   /**
@@ -139,12 +161,13 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * is created, the login timeout is initially 30s.
    *
    * @param seconds the data source login time limit
+   * @throws SQLException if wrong configuration set
    * @see #getLoginTimeout
-   * @since 1.4
    */
   @Override
-  public void setLoginTimeout(int seconds) {
-    conf.connectTimeout(seconds * 1000);
+  public void setLoginTimeout(int seconds) throws SQLException {
+    loginTimeout = seconds;
+    if (conf != null) config();
   }
 
   /**
@@ -159,24 +182,71 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
+    if (conf == null) config();
     return new MariaDbPoolConnection(Driver.connect(conf));
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return new MariaDbPoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
+    if (conf == null) config();
     return new MariaDbPoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return new MariaDbPoolConnection(Driver.connect(conf));
+  }
+
+  /**
+   * Sets the URL for this datasource
+   *
+   * @param url connection string
+   * @throws SQLException if url is not accepted
+   */
+  public void setUrl(String url) throws SQLException {
+    if (Configuration.acceptsUrl(url)) {
+      this.url = url;
+      config();
+    } else {
+      throw new SQLException(String.format("Wrong mariaDB url: %s", url));
+    }
+  }
+
+  /**
+   * Returns the URL for this datasource
+   *
+   * @return the URL for this datasource
+   */
+  public String getUrl() {
+    if (conf == null) return url;
+    return conf.initialUrl();
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public void setUser(String user) throws SQLException {
+    this.user = user;
+    if (conf != null) config();
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) throws SQLException {
+    this.password = password;
+    if (conf != null) config();
   }
 }

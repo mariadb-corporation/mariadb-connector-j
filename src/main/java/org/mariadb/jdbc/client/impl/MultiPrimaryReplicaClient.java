@@ -6,7 +6,6 @@ package org.mariadb.jdbc.client.impl;
 
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,7 +18,6 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
-import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -91,7 +89,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    * @throws SQLException if exception
    */
   @Override
-  protected void reConnect() throws SQLException {
+  protected Client reConnect() throws SQLException {
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
     logger.info("Connection error on {}", currentClient.getHostAddress());
@@ -155,22 +153,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
       // if reconnect succeed on replica / use master, no problem, continuing without interruption
       // if reconnect primary, then replay transaction / throw exception if was in transaction.
-      if (!requestReadOnly) {
-        if (conf.transactionReplay()) {
-          executeTransactionReplay(oldClient);
-        } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-          // transaction is lost, but connection is now up again.
-          // changing exception to SQLTransientConnectionException
-          throw new SQLTransientConnectionException(
-              String.format(
-                  "Driver has reconnect connection after a "
-                      + "communications "
-                      + "link "
-                      + "failure with %s. In progress transaction was lost",
-                  oldClient.getHostAddress()),
-              "25S03");
-        }
-      }
+      return requestReadOnly ? null : oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
       currentClient = null;
@@ -239,7 +222,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   }
 
   @Override
-  public void close() {
+  public void close() throws SQLException {
     if (!closed) {
       closed = true;
       try {
