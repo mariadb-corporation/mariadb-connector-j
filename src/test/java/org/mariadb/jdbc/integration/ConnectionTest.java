@@ -932,20 +932,20 @@ public class ConnectionTest extends Common {
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("select @@version_compile_os,@@socket");
-    if (!rs.next()) {
+    if (!rs.next() || rs.getString(2) == null) {
       return;
     }
     String path = rs.getString(2);
-    stmt.execute("DROP USER IF EXISTS testSocket@'localhost'");
-    stmt.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
-    stmt.execute("GRANT SELECT on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    stmt.execute("DROP USER IF EXISTS testSocket");
+    stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
     stmt.execute("FLUSH PRIVILEGES");
 
-    try (java.sql.Connection connection =
-        DriverManager.getConnection(
-            String.format(
-                "jdbc:mariadb:///%s?user=testSocket&password=%s&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
-                sharedConn.getCatalog(), "MySup5%rPassw@ord", path))) {
+    String url = String.format(
+            "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+            sharedConn.getCatalog(), path);
+    System.out.println(url);
+    try (java.sql.Connection connection = DriverManager.getConnection(url)) {
       connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
@@ -957,7 +957,7 @@ public class ConnectionTest extends Common {
             DriverManager.getConnection(
                 "jdbc:mariadb:///"
                     + sharedConn.getCatalog()
-                    + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=/wrongPath"),
+                    + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
         "Socket fail to connect to host");
 
     if (haveSsl()) {
@@ -967,7 +967,7 @@ public class ConnectionTest extends Common {
             DriverManager.getConnection(
                 "jdbc:mariadb:///"
                     + sharedConn.getCatalog()
-                    + "?sslMode=verify-full&user=testSocket&password=MySup5%rPassw@ord"
+                    + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
                     + "&serverSslCert="
                     + serverCertPath
                     + "&localSocket="
@@ -977,7 +977,7 @@ public class ConnectionTest extends Common {
         }
       }
     }
-    stmt.execute("DROP USER testSocket@'localhost'");
+    stmt.execute("DROP USER testSocket");
   }
 
   @Test
