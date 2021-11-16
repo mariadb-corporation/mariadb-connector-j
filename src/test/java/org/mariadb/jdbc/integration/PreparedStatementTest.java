@@ -368,6 +368,7 @@ public class PreparedStatementTest extends Common {
   private void executeBatch(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
+    stmt.execute("START TRANSACTION");
     try (PreparedStatement preparedStatement =
         con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
 
@@ -414,6 +415,7 @@ public class PreparedStatementTest extends Common {
       assertEquals(45, rs.getInt(2));
       assertFalse(rs.next());
     }
+    con.commit();
   }
 
   @Test

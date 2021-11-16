@@ -38,6 +38,7 @@ public class ResultSetTest extends Common {
   @Test
   public void nonUpdatableFields() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     Assertions.assertNull(rs.getWarnings());
     rs.next();
@@ -148,11 +149,13 @@ public class ResultSetTest extends Common {
     Common.assertThrowsContains(ns, () -> rs.updateObject("t1", null, null, 0), NOT_SUPPORTED);
     Common.assertThrowsContains(ns, () -> rs.updateObject(1, null, null), NOT_SUPPORTED);
     Common.assertThrowsContains(ns, () -> rs.updateObject("t1", null, null), NOT_SUPPORTED);
+    sharedConn.rollback();
   }
 
   @Test
   public void notSupported() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     Common.assertThrowsContains(ns, () -> rs.getRowId(1), "RowId are not supported");
     Common.assertThrowsContains(ns, () -> rs.getRowId("t1"), "RowId are not supported");
@@ -167,11 +170,13 @@ public class ResultSetTest extends Common {
         () -> rs.getObject("t1", map),
         "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
     Common.assertThrowsContains(ns, rs::getCursorName, "Cursors are not supported");
+    sharedConn.rollback();
   }
 
   @Test
   public void staticMethod() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     Assertions.assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, rs.getHoldability());
     rs.unwrap(java.sql.ResultSet.class);
@@ -180,11 +185,13 @@ public class ResultSetTest extends Common {
         SQLException.class,
         () -> rs.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");
+    sharedConn.rollback();
   }
 
   @Test
   public void wrongIndex() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     rs.next();
     Common.assertThrowsContains(
@@ -201,11 +208,13 @@ public class ResultSetTest extends Common {
         SQLException.class,
         () -> rs.findColumn("yy"),
         "Unknown label 'yy'. Possible value [resultsettest.t1, t1, resultsettest.t2, t2]");
+    sharedConn.rollback();
   }
 
   @Test
   public void isBeforeFirstFetchTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     stmt.setFetchSize(1);
     ResultSet rs = stmt.executeQuery("SELECT * FROM resultsettest");
     assertTrue(rs.isBeforeFirst());
@@ -216,11 +225,13 @@ public class ResultSetTest extends Common {
     rs.close();
     Common.assertThrowsContains(
         SQLException.class, rs::isBeforeFirst, "Operation not permit on a closed resultSet");
+    sharedConn.rollback();
   }
 
   @Test
   public void testAliases() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION");
     ResultSet rs =
         stmt.executeQuery("SELECT t1 as t1alias, t2 as t2alias FROM resultsettest as tablealias");
     rs.next();
@@ -248,5 +259,6 @@ public class ResultSetTest extends Common {
     assertEquals(1, rs.getInt(1));
     assertEquals(1, rs.getInt("t2"));
     assertEquals(1, rs.getInt("resultsettest.t2"));
+    sharedConn.rollback();
   }
 }
