@@ -296,8 +296,8 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     if (hostAddress != null
-            && !hostAddress.primary
-            && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
+        && !hostAddress.primary
+        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
       commands.add("SET SESSION TRANSACTION READ ONLY");
     }
 

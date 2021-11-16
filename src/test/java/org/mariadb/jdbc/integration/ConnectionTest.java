@@ -941,7 +941,8 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
     stmt.execute("FLUSH PRIVILEGES");
 
-    String url = String.format(
+    String url =
+        String.format(
             "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
             sharedConn.getCatalog(), path);
     System.out.println(url);
