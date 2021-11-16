@@ -49,9 +49,6 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  */
 public class Configuration {
 
-  private static final Pattern URL_PARAMETER =
-      Pattern.compile("(/([^?]*))?(\\?(.+))*", Pattern.DOTALL);
-
   // standard options
   private String user = null;
   private String password = null;
@@ -533,25 +530,31 @@ public class Configuration {
       }
 
       if (additionalParameters != null) {
-        //noinspection Annotator
-        Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-        matcher.find();
-        String database = matcher.group(2);
-        if (database != null && !database.isEmpty()) {
-          builder.database(database);
-        }
-        String urlParameters = matcher.group(4);
-        if (urlParameters != null && !urlParameters.isEmpty()) {
-          String[] parameters = urlParameters.split("&");
-          for (String parameter : parameters) {
-            int pos = parameter.indexOf('=');
-            if (pos == -1) {
-              properties.setProperty(parameter, "");
-            } else {
-              properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+        int optIndex = additionalParameters.indexOf("?");
+        String database;
+        if (optIndex < 0) {
+          database = (additionalParameters.length() > 1) ? additionalParameters.substring(1) : null;
+        } else {
+          if (optIndex == 0) {
+            database = null;
+          } else {
+            database = additionalParameters.substring(1, optIndex);
+            if (database.isEmpty()) database = null;
+          }
+          String urlParameters = additionalParameters.substring(optIndex + 1);
+          if (urlParameters != null && !urlParameters.isEmpty()) {
+            String[] parameters = urlParameters.split("&");
+            for (String parameter : parameters) {
+              int pos = parameter.indexOf('=');
+              if (pos == -1) {
+                properties.setProperty(parameter, "");
+              } else {
+                properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+              }
             }
           }
         }
+        builder.database(database);
       } else {
         builder.database(null);
       }

@@ -402,6 +402,19 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void testJdbcParserWithoutDatabase2WithProperties() throws SQLException {
+    String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/?autoReconnect=true";
+    Configuration conf = org.mariadb.jdbc.Configuration.parse(url);
+    assertNull(conf.database());
+    assertNull(conf.user());
+    assertNull(conf.password());
+    assertEquals(3, conf.addresses().size());
+    assertEquals(HostAddress.from("master", 3306, true), conf.addresses().get(0));
+    assertEquals(HostAddress.from("slave1", 3307, true), conf.addresses().get(1));
+    assertEquals(HostAddress.from("slave2", 3308, true), conf.addresses().get(2));
+  }
+
+  @Test
   public void testJdbcParserSimpleIpv4Properties() throws SQLException {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
 
