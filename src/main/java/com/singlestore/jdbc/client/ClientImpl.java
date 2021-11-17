@@ -235,17 +235,6 @@ public class ClientImpl implements Client, AutoCloseable {
     }
     commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
 
-    List<String> galeraAllowedStates =
-        conf.galeraAllowedState() == null
-            ? Collections.emptyList()
-            : Arrays.asList(conf.galeraAllowedState().split(","));
-
-    if (hostAddress != null
-        && Boolean.TRUE.equals(hostAddress.primary)
-        && !galeraAllowedStates.isEmpty()) {
-      commands.add("show status like 'wsrep_local_state'");
-    }
-
     try {
       List<Completion> res;
       ClientMessage[] msgs = new ClientMessage[commands.size()];
@@ -257,22 +246,11 @@ public class ClientImpl implements Client, AutoCloseable {
               msgs, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
 
       // read max allowed packet
-      Result result = (Result) res.get(resInd++);
+      Result result = (Result) res.get(resInd);
       result.next();
 
       waitTimeout = Integer.parseInt(result.getString(2));
       writer.setMaxAllowedPacket(Integer.parseInt(result.getString(1)));
-
-      if (hostAddress != null
-          && Boolean.TRUE.equals(hostAddress.primary)
-          && !galeraAllowedStates.isEmpty()) {
-        ResultSet rs = (ResultSet) res.get(resInd);
-        rs.next();
-        if (!galeraAllowedStates.contains(rs.getString(2))) {
-          throw exceptionFactory.create(
-              String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
-        }
-      }
 
     } catch (SQLException sqlException) {
       throw exceptionFactory.create("Initialization command fail", "08000", sqlException);

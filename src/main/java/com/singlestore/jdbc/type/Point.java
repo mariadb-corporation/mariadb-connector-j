@@ -6,8 +6,10 @@
 package com.singlestore.jdbc.type;
 
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class Point implements Geometry {
+public class Point {
 
   private final double x;
   private final double y;
@@ -15,6 +17,18 @@ public class Point implements Geometry {
   public Point(double x, double y) {
     this.x = x;
     this.y = y;
+  }
+
+  private static final Pattern pointPattern = Pattern.compile("^POINT\\((.*) (.*)\\)$");
+
+  public Point(String s) throws IllegalArgumentException {
+    Matcher m = pointPattern.matcher(s);
+    if (!m.matches()) {
+      throw new IllegalArgumentException();
+    }
+
+    this.x = Double.parseDouble(m.group(1));
+    this.y = Double.parseDouble(m.group(2));
   }
 
   public double getX() {

@@ -17,7 +17,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
-public class MariaDbPoolConnection implements PooledConnection, XAConnection {
+public class SingleStorePoolConnection implements PooledConnection, XAConnection {
 
   private final Connection connection;
   private final List<ConnectionEventListener> connectionEventListeners;
@@ -28,7 +28,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
    *
    * @param connection connection to retrieve connection options
    */
-  public MariaDbPoolConnection(Connection connection) {
+  public SingleStorePoolConnection(Connection connection) {
     this.connection = connection;
     this.connection.setPoolConnection(this);
     statementEventListeners = new CopyOnWriteArrayList<>();
@@ -105,10 +105,10 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
 
   @Override
   public XAResource getXAResource() throws SQLException {
-    return new MariaDbXAResource();
+    return new SingleStoreXAResource();
   }
 
-  private class MariaDbXAResource implements XAResource {
+  private class SingleStoreXAResource implements XAResource {
 
     private String flagsToString(int flags) {
       switch (flags) {
@@ -200,8 +200,8 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
 
     @Override
     public boolean isSameRM(XAResource xaResource) throws XAException {
-      if (xaResource instanceof MariaDbXAResource) {
-        MariaDbXAResource other = (MariaDbXAResource) xaResource;
+      if (xaResource instanceof SingleStoreXAResource) {
+        SingleStoreXAResource other = (SingleStoreXAResource) xaResource;
         return other.getConf().equals(this.getConf());
       }
       return false;
@@ -220,12 +220,12 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
       }
 
       if ((flags & TMSTARTRSCAN) == 0) {
-        return new MariaDbXid[0];
+        return new SingleStoreXid[0];
       }
 
       try {
         ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
-        ArrayList<MariaDbXid> xidList = new ArrayList<>();
+        ArrayList<SingleStoreXid> xidList = new ArrayList<>();
 
         while (rs.next()) {
           int formatId = rs.getInt(1);
@@ -237,7 +237,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
           byte[] branchQualifier = new byte[len2];
           System.arraycopy(arr, 0, globalTransactionId, 0, len1);
           System.arraycopy(arr, len1, branchQualifier, 0, len2);
-          xidList.add(new MariaDbXid(formatId, globalTransactionId, branchQualifier));
+          xidList.add(new SingleStoreXid(formatId, globalTransactionId, branchQualifier));
         }
         Xid[] xids = new Xid[xidList.size()];
         xidList.toArray(xids);

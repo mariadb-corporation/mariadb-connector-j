@@ -18,7 +18,7 @@ import javax.security.auth.x500.X500Principal;
  * Key manager implementation that implement only client verification and rely only on private key
  * for mutual authentication, without Server Name Indication (SNI) verification.
  */
-public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
+public class SingleStoreX509KeyManager extends X509ExtendedKeyManager {
 
   private final Hashtable<String, KeyStore.PrivateKeyEntry> privateKeyHash = new Hashtable<>();
 
@@ -29,7 +29,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
    * @param pwd keyStore password
    * @throws KeyStoreException if keyStore hasn't been initialized.
    */
-  public MariaDbX509KeyManager(KeyStore keyStore, char[] pwd) throws KeyStoreException {
+  public SingleStoreX509KeyManager(KeyStore keyStore, char[] pwd) throws KeyStoreException {
     super();
     Enumeration<String> aliases = keyStore.aliases();
     while (aliases.hasMoreElements()) {

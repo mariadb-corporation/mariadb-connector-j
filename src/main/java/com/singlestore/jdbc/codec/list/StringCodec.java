@@ -15,7 +15,6 @@ import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -302,10 +301,7 @@ public class StringCodec implements Codec<String> {
 
   public void encodeBinary(PacketWriter writer, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
-    int len = maxLength != null ? Math.min(maxLength.intValue(), b.length) : b.length;
-    writer.writeLength(len);
-    writer.writeBytes(b, 0, len);
+    encodeBinaryAsString(writer, value, maxLength);
   }
 
   public int getBinaryEncodeType() {

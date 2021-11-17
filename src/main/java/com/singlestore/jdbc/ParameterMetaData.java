@@ -87,9 +87,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
 
   /**
    * Retrieves the designated parameter's number of digits to right of the decimal point. 0 is
-   * returned for data types where the scale is not applicable. Parameter type are not sent by
-   * server. See * https://jira.mariadb.org/browse/CONJ-568 and
-   * https://jira.mariadb.org/browse/MDEV-15031
+   * returned for data types where the scale is not applicable.
    *
    * @param idx the first parameter is 1, the second is 2, ...
    * @return scale
@@ -102,8 +100,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   }
 
   /**
-   * Retrieves the designated parameter's SQL type. Parameter type are not sent by server. See
-   * https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
+   * Retrieves the designated parameter's SQL type.
    *
    * @param param the first parameter is 1, the second is 2, ...
    * @return SQL type from <code>java.sql.Types</code>

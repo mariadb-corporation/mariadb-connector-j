@@ -6,11 +6,11 @@
 package com.singlestore.jdbc.pool;
 
 import com.singlestore.jdbc.Connection;
-import com.singlestore.jdbc.MariaDbPoolConnection;
+import com.singlestore.jdbc.SingleStorePoolConnection;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.sql.*;
 
-public class InternalPoolConnection extends MariaDbPoolConnection {
+public class InternalPoolConnection extends SingleStorePoolConnection {
   private final AtomicLong lastUsed;
 
   /**

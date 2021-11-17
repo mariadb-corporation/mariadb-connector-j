@@ -9,11 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.client.result.CompleteResult;
-import com.singlestore.jdbc.type.GeometryCollection;
 import com.singlestore.jdbc.type.LineString;
 import com.singlestore.jdbc.type.Point;
-import java.io.InputStream;
-import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
@@ -32,18 +29,28 @@ public class LineStringCodecTest extends CommonCodecTest {
     if (geoConn != null) geoConn.close();
   }
 
+  private static void assertEqualLineString(LineString expected, LineString actual) {
+    Point[] expectedPoints = expected.getPoints();
+    Point[] actualPoints = actual.getPoints();
+    for (int i = 0; i < expectedPoints.length; i++) {
+      assertEqualCoordinate(expectedPoints[i].getX(), actualPoints[i].getX());
+      assertEqualCoordinate(expectedPoints[i].getY(), actualPoints[i].getY());
+    }
+  }
+
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE LineStringCodec (t1 LineString, t2 LineString, t3 LineString, t4 LineString, id INT)");
+        createRowstore()
+            + " TABLE LineStringCodec (t1 Geography, t2 Geography, t3 Geography, t4 Geography, id INT)");
     stmt.execute(
         "INSERT INTO LineStringCodec VALUES "
-            + "( ST_LineStringFromText('LINESTRING(0 0,0 10,10 0)'), ST_LineStringFromText('LINESTRING(10 10,20 10,20 20,10 20,10 10)'), ST_LineStringFromText('LINESTRING(-1 0.55, 3 5, 1 1)'), null, 1)");
+            + "('LINESTRING(0 0,0 10,10 0)', 'LINESTRING(10 10,20 10,20 20,10 20,10 10)', 'LINESTRING(-1 0.55, 3 5, 1 1)', null, 1)");
     stmt.execute(
         createRowstore()
-            + " TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 LineString)");
+            + " TABLE LineStringCodec2 (id int not null primary key auto_increment, t1 Geography)");
     stmt.execute("FLUSH TABLES");
     String binUrl =
         mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";
@@ -73,68 +80,28 @@ public class LineStringCodecTest extends CommonCodecTest {
 
   @Test
   public void getObject() throws Exception {
-    getObject(get(), false);
+    getObject(get());
   }
 
   @Test
   public void getObjectPrepare() throws Exception {
-    getObject(getPrepare(sharedConn), false);
-    getObject(getPrepare(sharedConnBinary), false);
-    getObject(getPrepare(geoConn), true);
+    getObject(getPrepare(sharedConn));
+    //    getObject(getPrepare(sharedConnBinary), false);
   }
 
-  public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
-      assertEquals(
-          new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
-          rs.getObject(1));
-      assertFalse(rs.wasNull());
-      assertEquals(
-          new LineString(
-              new Point[] {
-                new Point(10, 10),
-                new Point(20, 10),
-                new Point(20, 20),
-                new Point(10, 20),
-                new Point(10, 10)
-              },
-              true),
-          rs.getObject(2));
-      assertFalse(rs.wasNull());
-      assertEquals(
-          new LineString(new Point[] {new Point(-1, 0.55), new Point(3, 5), new Point(1, 1)}, true),
-          rs.getObject(3));
-      assertFalse(rs.wasNull());
-      assertNull(rs.getObject(4));
-      assertTrue(rs.wasNull());
-    } else {
-      assertEquals(
-          new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
-          rs.getObject(1, LineString.class));
-      assertFalse(rs.wasNull());
-      assertEquals(
-          new LineString(
-              new Point[] {
-                new Point(10, 10),
-                new Point(20, 10),
-                new Point(20, 20),
-                new Point(10, 20),
-                new Point(10, 10)
-              },
-              true),
-          rs.getObject(2, LineString.class));
-      assertFalse(rs.wasNull());
-      assertEquals(
-          new LineString(new Point[] {new Point(-1, 0.55), new Point(3, 5), new Point(1, 1)}, true),
-          rs.getObject(3, LineString.class));
-      assertFalse(rs.wasNull());
-      assertNull(rs.getObject(4));
-      assertTrue(rs.wasNull());
-    }
+  public void getObject(ResultSet rs) throws SQLException {
+    assertEqualLineString(
+        new LineString("LINESTRING(0 0, 0 10, 10 0)"), rs.getObject(1, LineString.class));
+    assertFalse(rs.wasNull());
+    assertEqualLineString(
+        new LineString("LINESTRING(10 10,20 10,20 20,10 20,10 10)"),
+        rs.getObject(2, LineString.class));
+    assertFalse(rs.wasNull());
+    assertEqualLineString(
+        new LineString("LINESTRING(-1 0.55, 3 5, 1 1)"), rs.getObject(3, LineString.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -145,130 +112,45 @@ public class LineStringCodecTest extends CommonCodecTest {
   @Test
   public void getObjectTypePrepare() throws Exception {
     getObjectType(getPrepare(sharedConn));
-    getObjectType(getPrepare(sharedConnBinary));
+    //    getObjectType(getPrepare(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
     testErrObject(rs, BigInteger.class);
     testErrObject(rs, Double.class);
     testErrObject(rs, Float.class);
-    testErrObject(rs, GeometryCollection.class);
     testErrObject(rs, Byte.class);
-    testArrObject(
+    testObject(
         rs,
-        byte[].class,
-        new byte[] {
-          (byte) 0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x01,
-          0x02,
-          0x00,
-          0x00,
-          0x00,
-          0x03,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x24,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x24,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00
-        });
-
-    testErrObject(rs, Boolean.class);
-    testErrObject(rs, Clob.class);
-    testErrObject(rs, NClob.class);
-    testErrObject(rs, InputStream.class);
-    testErrObject(rs, Reader.class);
+        String.class,
+        "LINESTRING(0.00000000 0.00000000, 0.00000000 10.00000000, 10.00000000 0.00000000)");
+    testObject(rs, Boolean.class, true);
     testErrObject(rs, java.util.Date.class);
   }
 
   @Test
   public void getMetaData() throws SQLException {
     getMetaData(sharedConn, false);
-    try (com.singlestore.jdbc.Connection con = createCon("geometryDefaultType=default")) {
-      getMetaData(con, true);
-    }
+    //    try (com.singlestore.jdbc.Connection con = createCon("geometryDefaultType=default")) {
+    //      getMetaData(con, true);
+    //    }
   }
 
   private void getMetaData(com.singlestore.jdbc.Connection con, boolean geoDefault)
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
-      assertEquals("LINESTRING", meta.getColumnTypeName(1));
-    } else {
-      assertEquals("GEOMETRY", meta.getColumnTypeName(1));
-    }
+    assertEquals("STRING", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
 
-    assertEquals(
-        geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
-                ? LineString.class.getName()
-                : GeometryCollection.class.getName())
-            : byte[].class.getName(),
-        meta.getColumnClassName(1));
+    assertEquals(String.class.getName(), meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.VARBINARY, meta.getColumnType(1));
+    assertEquals(Types.CHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
@@ -277,36 +159,27 @@ public class LineStringCodecTest extends CommonCodecTest {
   @Test
   public void sendParam() throws Exception {
     sendParam(sharedConn);
-    sendParam(sharedConnBinary);
+    //    sendParam(sharedConnBinary);
   }
 
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LineStringCodec2");
-    LineString ls1 =
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true);
-    LineString ls2 =
-        new LineString(
-            new Point[] {
-              new Point(10, 10),
-              new Point(20, 10),
-              new Point(20, 20),
-              new Point(10, 20),
-              new Point(10, 10)
-            },
-            true);
+    LineString ls1 = new LineString("LINESTRING(0 0,0 10,10 0)");
+    LineString ls2 = new LineString("LINESTRING(10 10,20 10,20 20,10 20,10 10)");
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO LineStringCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setObject(2, ls1);
       prep.execute();
       prep.setInt(1, 2);
-      prep.setObject(2, (LineString) null);
+      prep.setObject(2, null);
       prep.execute();
 
       prep.setInt(1, 3);
       prep.setObject(2, ls2);
       prep.addBatch();
+      prep.setInt(1, 4);
       prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
@@ -335,29 +208,13 @@ public class LineStringCodecTest extends CommonCodecTest {
 
   @Test
   public void equal() {
-    LineString ls =
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true);
-    assertTrue(ls.isOpen());
+    LineString ls = new LineString("LINESTRING(0 0,0 10,10 0)");
     assertEquals(ls, ls);
-    assertEquals(
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
-        ls);
-    assertEquals(
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true)
-            .hashCode(),
-        ls.hashCode());
-    assertFalse(ls.equals(null));
-    assertFalse(ls.equals(""));
-    assertNotEquals(
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 20), new Point(20, 0)}, true),
-        ls);
-    assertNotEquals(
-        new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, false),
-        ls);
-    assertNotEquals(
-        new LineString(
-            new Point[] {new Point(0, 0), new Point(0, 20), new Point(20, 10), new Point(10, 0)},
-            true),
-        ls);
+    assertEquals(new LineString("LINESTRING(0 0,0 10,10 0)"), ls);
+    assertEquals(new LineString("LINESTRING(0 0,0 10,10 0)").hashCode(), ls.hashCode());
+    assertNotEquals(null, ls);
+    assertNotEquals("", ls);
+    assertNotEquals(new LineString("LINESTRING(0 0,0 20,10 0)"), ls);
+    assertNotEquals(new LineString("LINESTRING(0 0,0 10,10 0, 20 0)"), ls);
   }
 }

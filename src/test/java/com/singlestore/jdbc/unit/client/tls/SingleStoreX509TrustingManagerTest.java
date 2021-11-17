@@ -7,14 +7,14 @@ package com.singlestore.jdbc.unit.client.tls;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.client.tls.MariaDbX509TrustingManager;
+import com.singlestore.jdbc.client.tls.SingleStoreX509TrustingManager;
 import org.junit.jupiter.api.Test;
 
-public class MariaDbX509TrustingManagerTest {
+public class SingleStoreX509TrustingManagerTest {
 
   @Test
   public void check() throws Exception {
-    MariaDbX509TrustingManager trustingManager = new MariaDbX509TrustingManager();
+    SingleStoreX509TrustingManager trustingManager = new SingleStoreX509TrustingManager();
     assertNull(trustingManager.getAcceptedIssuers());
     trustingManager.checkClientTrusted(null, null);
     trustingManager.checkServerTrusted(null, null);

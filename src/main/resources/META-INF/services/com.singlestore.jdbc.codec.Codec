@@ -10,16 +10,12 @@ com.singlestore.jdbc.codec.list.DateCodec
 com.singlestore.jdbc.codec.list.DoubleCodec
 com.singlestore.jdbc.codec.list.DurationCodec
 com.singlestore.jdbc.codec.list.FloatCodec
-com.singlestore.jdbc.codec.list.GeometryCollectionCodec
 com.singlestore.jdbc.codec.list.IntCodec
 com.singlestore.jdbc.codec.list.LineStringCodec
 com.singlestore.jdbc.codec.list.LocalDateCodec
 com.singlestore.jdbc.codec.list.LocalDateTimeCodec
 com.singlestore.jdbc.codec.list.LocalTimeCodec
 com.singlestore.jdbc.codec.list.LongCodec
-com.singlestore.jdbc.codec.list.MultiLinestringCodec
-com.singlestore.jdbc.codec.list.MultiPointCodec
-com.singlestore.jdbc.codec.list.MultiPolygonCodec
 com.singlestore.jdbc.codec.list.PointCodec
 com.singlestore.jdbc.codec.list.PolygonCodec
 com.singlestore.jdbc.codec.list.ReaderCodec

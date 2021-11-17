@@ -65,13 +65,13 @@ public class CompleteResult extends Result {
 
   /**
    * Create a result set from given data. Useful for creating "fake" resultSets for
-   * DatabaseMetaData, (one example is MariaDbDatabaseMetaData.getTypeInfo())
+   * DatabaseMetaData, (one example is SingleStoreDatabaseMetaData.getTypeInfo())
    *
    * @param columnNames - string array of column names
    * @param columnTypes - column types
    * @param data - each element of this array represents a complete row in the ResultSet. Each value
-   *     is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
-   *     values that are represented as "1" or "0" strings
+   *     is given in its string representation, as in SingleStore text protocol, except boolean
+   *     (BIT(1)) values that are represented as "1" or "0" strings
    * @param context connection context
    * @return resultset
    */

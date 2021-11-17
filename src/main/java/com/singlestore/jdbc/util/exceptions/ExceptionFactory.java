@@ -8,7 +8,7 @@ package com.singlestore.jdbc.util.exceptions;
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.MariaDbPoolConnection;
+import com.singlestore.jdbc.SingleStorePoolConnection;
 import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.OkPacket;
 import java.sql.*;
@@ -24,7 +24,7 @@ public class ExceptionFactory {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private Connection connection;
-  private MariaDbPoolConnection poolConnection;
+  private SingleStorePoolConnection poolConnection;
   private long threadId;
   private Statement statement;
 
@@ -35,7 +35,7 @@ public class ExceptionFactory {
 
   private ExceptionFactory(
       Connection connection,
-      MariaDbPoolConnection poolConnection,
+      SingleStorePoolConnection poolConnection,
       Configuration conf,
       HostAddress hostAddress,
       long threadId,
@@ -103,7 +103,7 @@ public class ExceptionFactory {
     return this;
   }
 
-  public ExceptionFactory setPoolConnection(MariaDbPoolConnection internalPoolConnection) {
+  public ExceptionFactory setPoolConnection(SingleStorePoolConnection internalPoolConnection) {
     this.poolConnection = internalPoolConnection;
     return this;
   }
@@ -262,7 +262,7 @@ public class ExceptionFactory {
 
     public SqlExceptionFactory(
         Connection connection,
-        MariaDbPoolConnection poolConnection,
+        SingleStorePoolConnection poolConnection,
         Configuration conf,
         HostAddress hostAddress,
         long threadId,

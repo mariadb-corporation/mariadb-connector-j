@@ -128,8 +128,7 @@ public class PooledConnectionTest extends Common {
 
     logger.addAppender(fa);
 
-    try (SingleStorePoolDataSource ds =
-        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
+    try (SingleStorePoolDataSource ds = new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1")) {
       InternalPoolConnection pc = ds.getPooledConnection();
       com.singlestore.jdbc.Connection conn = pc.getConnection();
       long threadId = conn.getThreadId();

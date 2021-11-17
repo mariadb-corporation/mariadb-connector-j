@@ -2,6 +2,6 @@ This plugin uses public domain ed25519 code by str4d (https://github.com/str4d/e
 It is "ref10" java implementation from the SUPERCOP ed25519:
 
 ==============================
-MariaDB changes:
+Changes:
 - doesn't register ed25519 to global java providers
 - remove unused classes

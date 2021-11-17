@@ -8,7 +8,7 @@ package com.singlestore.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Common;
-import com.singlestore.jdbc.MariaDbClob;
+import com.singlestore.jdbc.SingleStoreClob;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
@@ -23,23 +23,23 @@ public class ClobTest extends Common {
 
   @Test
   public void length() throws SQLException {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assertEquals(11, clob.length());
 
-    MariaDbClob clob2 = new MariaDbClob(bytes, 2, 3);
+    SingleStoreClob clob2 = new SingleStoreClob(bytes, 2, 3);
     assertEquals(2, clob2.length());
   }
 
   @Test
   public void getSubString() throws SQLException {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assertEquals("abc£de🙏", clob.getSubString(1, 8));
     assertEquals("abc£de🙏fgh", clob.getSubString(1, 21));
     assertEquals("abc£de🙏fgh", clob.getSubString(1, (int) clob.length()));
     assertEquals("ab", clob.getSubString(1, 2));
     assertEquals("🙏", clob.getSubString(7, 2));
 
-    MariaDbClob clob2 = new MariaDbClob(bytes, 6, 6);
+    SingleStoreClob clob2 = new SingleStoreClob(bytes, 6, 6);
 
     assertEquals("e🙏f", clob2.getSubString(1, 20));
     assertEquals("🙏f", clob2.getSubString(2, 3));
@@ -54,7 +54,7 @@ public class ClobTest extends Common {
 
   @Test
   public void getCharacterStream() throws SQLException {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assureReaderEqual("abc£de🙏", clob.getCharacterStream(1, 8));
     assureReaderEqual("abc£de🙏fgh", clob.getCharacterStream(1, 11));
     try {
@@ -65,7 +65,7 @@ public class ClobTest extends Common {
     }
     assureReaderEqual("bc£de🙏", clob.getCharacterStream(2, 7));
 
-    MariaDbClob clob2 = new MariaDbClob(bytes, 2, 9);
+    SingleStoreClob clob2 = new SingleStoreClob(bytes, 2, 9);
     assureReaderEqual("c£de🙏", clob2.getCharacterStream(1, 6));
     try {
       assureReaderEqual("c£de🙏fg", clob2.getCharacterStream(1, 20));
@@ -92,7 +92,7 @@ public class ClobTest extends Common {
   @Test
   public void setCharacterStream() throws SQLException, IOException {
     final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
 
     Writer writer = clob.setCharacterStream(2);
@@ -100,7 +100,7 @@ public class ClobTest extends Common {
     writer.flush();
     assertEquals("avxye🙏", clob.getSubString(1, 7));
 
-    clob = new MariaDbClob(bytes);
+    clob = new SingleStoreClob(bytes);
 
     writer = clob.setCharacterStream(2);
     writer.write("1234567890lmnopqrstu", 1, 19);
@@ -110,25 +110,26 @@ public class ClobTest extends Common {
 
   @Test
   public void position() throws SQLException {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assertEquals(5, clob.position("de", 2));
-    assertEquals(5, clob.position((Clob) new MariaDbClob("de".getBytes()), 2));
+    assertEquals(5, clob.position((Clob) new SingleStoreClob("de".getBytes()), 2));
 
-    clob = new MariaDbClob(bytes, 2, 10);
+    clob = new SingleStoreClob(bytes, 2, 10);
     assertEquals(5, clob.position("🙏", 2));
   }
 
   @Test
   public void setString() throws SQLException {
     final byte[] bytes = "abcd£e🙏fgh".getBytes(StandardCharsets.UTF_8);
-    final MariaDbClob clob = new MariaDbClob(bytes);
+    final SingleStoreClob clob = new SingleStoreClob(bytes);
     assureReaderEqual("abcd£e🙏", clob.getCharacterStream(1, 8));
     clob.setString(2, "zuv");
     assertEquals("azuv£e🙏", clob.getSubString(1, 8));
     clob.setString(9, "zzz");
     assertEquals("azuv£e🙏fzzz", clob.getSubString(1, 12));
 
-    MariaDbClob clob2 = new MariaDbClob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
+    SingleStoreClob clob2 =
+        new SingleStoreClob("abcde🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 9);
     assureReaderEqual("cde🙏fg", clob2.getCharacterStream(1, 7));
     assertEquals("cde🙏fg", clob2.getSubString(1, 7));
 
@@ -181,7 +182,7 @@ public class ClobTest extends Common {
   @Test
   public void setAsciiStream() throws SQLException, IOException {
     final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
 
     OutputStream stream = clob.setAsciiStream(2);
@@ -190,14 +191,14 @@ public class ClobTest extends Common {
 
     assertEquals("avxye🙏", clob.getSubString(1, 7));
 
-    clob = new MariaDbClob(bytes);
+    clob = new SingleStoreClob(bytes);
 
     stream = clob.setAsciiStream(2);
     stream.write("1234567890lmnopqrstu".getBytes(), 1, 19);
     stream.flush();
     assertEquals("a234567890lmnopqrstu", clob.getSubString(1, 100));
 
-    MariaDbClob clob2 = new MariaDbClob(bytes);
+    SingleStoreClob clob2 = new SingleStoreClob(bytes);
     InputStream stream2 = clob2.getAsciiStream();
     byte[] b = new byte[12];
     stream2.read(b);
@@ -215,36 +216,36 @@ public class ClobTest extends Common {
 
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong2bytes).length(),
+        () -> new SingleStoreClob(utf8Wrong2bytes).length(),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(new byte[] {(byte) 225}).length(),
+        () -> new SingleStoreClob(new byte[] {(byte) 225}).length(),
         "invalid UTF8");
 
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong3bytes).length(),
+        () -> new SingleStoreClob(utf8Wrong3bytes).length(),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong4bytes).length(),
+        () -> new SingleStoreClob(utf8Wrong4bytes).length(),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(new byte[] {(byte) 225}).truncate(2),
+        () -> new SingleStoreClob(new byte[] {(byte) 225}).truncate(2),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong2bytes).truncate(2),
+        () -> new SingleStoreClob(utf8Wrong2bytes).truncate(2),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong3bytes).truncate(3),
+        () -> new SingleStoreClob(utf8Wrong3bytes).truncate(3),
         "invalid UTF8");
     assertThrowsContains(
         UncheckedIOException.class,
-        () -> new MariaDbClob(utf8Wrong4bytes2).truncate(4),
+        () -> new SingleStoreClob(utf8Wrong4bytes2).truncate(4),
         "invalid UTF8");
   }
 
@@ -253,28 +254,28 @@ public class ClobTest extends Common {
     final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
-    MariaDbClob blob = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
+    SingleStoreClob blob = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5});
     OutputStream out = blob.setBinaryStream(2);
     out.write(otherBytes);
     assertArrayEquals(new byte[] {0, 10, 11, 12, 13, 5}, blob.getBytes(1, 6));
 
-    MariaDbClob blob2 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
+    SingleStoreClob blob2 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5});
     OutputStream out2 = blob2.setBinaryStream(4);
     out2.write(otherBytes);
     assertArrayEquals(new byte[] {0, 1, 2, 10, 11, 12, 13}, blob2.getBytes(1, 7));
 
-    MariaDbClob blob3 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
+    SingleStoreClob blob3 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
     OutputStream out3 = blob3.setBinaryStream(2);
     out3.write(otherBytes);
     assertArrayEquals(new byte[] {2, 10, 11, 12, 13, 0, 0}, blob3.getBytes(1, 7));
 
-    MariaDbClob blob4 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
+    SingleStoreClob blob4 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
     OutputStream out4 = blob4.setBinaryStream(4);
     out4.write(otherBytes);
     assertArrayEquals(new byte[] {2, 3, 4, 10, 11, 12}, blob4.getBytes(1, 6));
 
     try {
-      MariaDbClob blob5 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
+      SingleStoreClob blob5 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
       blob5.setBinaryStream(0);
     } catch (SQLException sqle) {
       // normal exception
@@ -286,27 +287,27 @@ public class ClobTest extends Common {
     final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
     final byte[] otherBytes = new byte[] {10, 11, 12, 13};
 
-    MariaDbClob blob = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
+    SingleStoreClob blob = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5});
     OutputStream out = blob.setBinaryStream(2);
     out.write(otherBytes, 2, 3);
     assertArrayEquals(new byte[] {0, 12, 13, 3, 4, 5}, blob.getBytes(1, 6));
 
-    MariaDbClob blob2 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5});
+    SingleStoreClob blob2 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5});
     OutputStream out2 = blob2.setBinaryStream(4);
     out2.write(otherBytes, 3, 2);
     assertArrayEquals(new byte[] {0, 1, 2, 13, 4, 5, 0}, blob2.getBytes(1, 7));
 
-    MariaDbClob blob3 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 4);
+    SingleStoreClob blob3 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 4);
     OutputStream out3 = blob3.setBinaryStream(2);
     out3.write(otherBytes, 2, 3);
     assertArrayEquals(new byte[] {2, 12, 13, 5, 0, 0, 0}, blob3.getBytes(1, 7));
 
-    MariaDbClob blob4 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
+    SingleStoreClob blob4 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
     OutputStream out4 = blob4.setBinaryStream(4);
     out4.write(otherBytes, 2, 2);
     assertArrayEquals(new byte[] {2, 3, 4, 12, 13, 0}, blob4.getBytes(1, 6));
 
-    MariaDbClob blob5 = new MariaDbClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
+    SingleStoreClob blob5 = new SingleStoreClob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
     OutputStream out5 = blob5.setBinaryStream(4);
     out5.write(otherBytes, 2, 20);
     assertArrayEquals(new byte[] {2, 3, 4, 12, 13, 0}, blob5.getBytes(1, 6));
@@ -314,7 +315,7 @@ public class ClobTest extends Common {
 
   @Test
   public void truncate() throws SQLException {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     clob.truncate(20);
     assertEquals("abc£de🙏f", clob.getSubString(1, 9));
     clob.truncate(8);
@@ -331,7 +332,8 @@ public class ClobTest extends Common {
     clob.truncate(0);
     assertEquals("", clob.getSubString(1, 8));
 
-    MariaDbClob clob2 = new MariaDbClob("abc£de🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 10);
+    SingleStoreClob clob2 =
+        new SingleStoreClob("abc£de🙏fgh".getBytes(StandardCharsets.UTF_8), 2, 10);
     clob2.truncate(20);
     assertEquals("c£de🙏f", clob2.getSubString(1, 9));
     clob2.truncate(6);
@@ -346,7 +348,7 @@ public class ClobTest extends Common {
 
   @Test
   public void free() throws SQLException {
-    MariaDbClob blob = new MariaDbClob(bytes);
+    SingleStoreClob blob = new SingleStoreClob(bytes);
     blob.free();
     assertEquals(0, blob.length());
   }
@@ -397,13 +399,13 @@ public class ClobTest extends Common {
 
   @Test
   public void equal() {
-    MariaDbClob clob = new MariaDbClob(bytes);
+    SingleStoreClob clob = new SingleStoreClob(bytes);
     assertEquals(clob, clob);
-    assertEquals(new MariaDbClob(bytes), clob);
+    assertEquals(new SingleStoreClob(bytes), clob);
     assertFalse(clob.equals(null));
     assertFalse(clob.equals(""));
     byte[] bytes = "Abc£de🙏fgh".getBytes(StandardCharsets.UTF_8);
-    assertNotEquals(new MariaDbClob(bytes), clob);
-    assertNotEquals(new MariaDbClob("Abc".getBytes(StandardCharsets.UTF_8)), clob);
+    assertNotEquals(new SingleStoreClob(bytes), clob);
+    assertNotEquals(new SingleStoreClob("Abc".getBytes(StandardCharsets.UTF_8)), clob);
   }
 }

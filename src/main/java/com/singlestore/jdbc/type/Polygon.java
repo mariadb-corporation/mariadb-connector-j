@@ -6,10 +6,28 @@
 package com.singlestore.jdbc.type;
 
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class Polygon implements Geometry {
+public class Polygon {
 
   private final LineString[] lines;
+
+  private static final Pattern polygonPattern = Pattern.compile("^POLYGON\\((.*)\\)$");
+
+  public Polygon(String s) throws IllegalArgumentException {
+    Matcher m = polygonPattern.matcher(s);
+    if (!m.matches()) {
+      throw new IllegalArgumentException();
+    }
+    // split by "), (", but keep the parentheses by using lookahead and lookbehind
+    String[] ringStrings = m.group(1).split("(?<=\\)), (?=\\()");
+
+    lines = new LineString[ringStrings.length];
+    for (int i = 0; i < ringStrings.length; i++) {
+      lines[i] = LineString.FromRingString(ringStrings[i]);
+    }
+  }
 
   public Polygon(LineString[] lines) {
     this.lines = lines;
@@ -25,13 +43,13 @@ public class Polygon implements Geometry {
     int indexLine = 0;
     for (LineString ls : lines) {
       if (indexLine++ > 0) {
-        sb.append(",");
+        sb.append(", ");
       }
       sb.append("(");
       int index = 0;
       for (Point pt : ls.getPoints()) {
         if (index++ > 0) {
-          sb.append(",");
+          sb.append(", ");
         }
         sb.append(pt.getX()).append(" ").append(pt.getY());
       }

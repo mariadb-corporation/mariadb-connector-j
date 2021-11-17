@@ -15,6 +15,5 @@ public final class OptionAliases {
   static {
     OPTIONS_ALIASES = new HashMap<>();
     OPTIONS_ALIASES.put("enabledSSLCipherSuites", "enabledSslCipherSuites");
-    OPTIONS_ALIASES.put("serverRSAPublicKeyFile", "serverRsaPublicKeyFile");
   }
 }

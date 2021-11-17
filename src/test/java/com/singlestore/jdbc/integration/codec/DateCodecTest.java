@@ -34,8 +34,7 @@ public class DateCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE DateCodec (t1 DATE, t2 DATE, t3 DATE, t4 DATE, id INT)");
     stmt.execute(
-        "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null, 1)"
-            + (isMariaDBServer() ? ",('0000-00-00', '1000-01-01', '9999-12-31', null, 1)" : ""));
+        "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null, 1)");
     stmt.execute(
         createRowstore()
             + " TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
@@ -149,10 +148,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertTrue("0000-00-00".equals(rs.getString(1)));
-    }
   }
 
   @Test
@@ -338,10 +333,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getDate(1));
-    }
   }
 
   @Test
@@ -417,10 +408,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalDate.class));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDate.class));
-    }
   }
 
   @Test
@@ -459,10 +446,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("9999-12-31 00:00:00"), rs.getTimestamp(3));
     assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-    }
   }
 
   @Test
@@ -482,10 +465,6 @@ public class DateCodecTest extends CommonCodecTest {
         LocalDateTime.parse("2010-01-12T00:00:00"), rs.getObject("t1alias", LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDateTime.class));
-    }
   }
 
   @Test

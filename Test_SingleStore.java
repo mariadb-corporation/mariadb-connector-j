@@ -27,10 +27,6 @@ public class Test_SingleStore
     // The JDBC Connector Class.
     private static final String dbClassName = "com.singlestore.jdbc.Driver";
 
-    // Connection string. emotherearth is the database the program
-    // is connecting to. You can include user and password after this
-    // by adding (say) ?user=paulr&password=paulr. Not recommended!
-
     private static final String CONNECTION = "jdbc:singlestore://127.0.0.1:5506/";
     private static final String ROOT_PASSWORD = "password";
 

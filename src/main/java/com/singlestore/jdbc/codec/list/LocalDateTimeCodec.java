@@ -29,7 +29,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
   public static final DateTimeFormatter TIMESTAMP_FORMAT_NO_FRACTIONAL =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-  public static final DateTimeFormatter MARIADB_LOCAL_DATE_TIME;
+  public static final DateTimeFormatter SINGLESTORE_LOCAL_DATE_TIME;
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.DATETIME,
@@ -46,7 +46,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
           DataType.LONGBLOB);
 
   static {
-    MARIADB_LOCAL_DATE_TIME =
+    SINGLESTORE_LOCAL_DATE_TIME =
         new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)

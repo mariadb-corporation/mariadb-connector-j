@@ -5,8 +5,7 @@
 
 package com.singlestore.jdbc;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import com.singlestore.jdbc.util.constants.HaMode;
@@ -23,6 +22,7 @@ import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.function.Executable;
 
 public class Common {
+  public static final double geometryEpsilon = 1e-7;
 
   public static Connection sharedConn;
   public static Connection sharedConnBinary;
@@ -84,11 +84,6 @@ public class Common {
     if (proxy != null) {
       proxy.forceClose();
     }
-  }
-
-  public static boolean isMariaDBServer() {
-    // TODO PLAT-5820
-    return false;
   }
 
   public static boolean minVersion(int major, int minor, int patch) {
@@ -194,6 +189,23 @@ public class Common {
             + "(81), (82), (83), (84), (85), (86), (87), (88), (89), (90),\n"
             + "(91), (92), (93), (94), (95), (96), (97), (98), (99), (100);");
   }
+
+  public void ensureLargeRange(Statement stmt, int max) throws SQLException {
+    stmt.execute("DROP TABLE IF EXISTS large_range");
+    stmt.execute("CREATE TABLE large_range(n int key)");
+    int iters = max == 0 ? 0 : 32 - Integer.numberOfLeadingZeros(max - 1);
+    stmt.execute(
+        "CREATE OR REPLACE PROCEDURE fill_range() AS "
+            + "DECLARE cur_max int = 2;"
+            + " BEGIN "
+            + "INSERT INTO large_range VALUES (1);"
+            + String.format(" FOR i IN 1 .. %d LOOP", iters)
+            + " INSERT INTO large_range SELECT n + cur_max FROM large_range;"
+            + " cur_max = cur_max * 2;"
+            + "END LOOP;"
+            + "END");
+    stmt.execute("CALL fill_range()");
+  }
   // Calculates offset in milliseconds that would need to be added to timestamp in UTC time to get
   // timestamp in the current time zone.
   // These timestamps are compared against values from db converted from UTC to local timezone using
@@ -203,6 +215,10 @@ public class Common {
   public int getOffsetAtDate(int year, int month, int day) {
     return TimeZone.getDefault()
         .getOffset(new GregorianCalendar(year, month, day).getTimeInMillis());
+  }
+
+  public static void assertEqualCoordinate(double expected, double actual) {
+    assertEquals(expected, actual, geometryEpsilon);
   }
 
   @RegisterExtension public Extension watcher = new Follow();

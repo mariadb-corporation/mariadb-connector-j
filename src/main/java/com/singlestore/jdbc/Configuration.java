@@ -121,7 +121,6 @@ public class Configuration {
 
   // HA options
   private int retriesAllDown = 120;
-  private String galeraAllowedState = null;
   private boolean transactionReplay = false;
 
   // Pool options
@@ -133,10 +132,6 @@ public class Configuration {
   private boolean registerJmxPool = true;
   private int poolValidMinDelay = 1000;
   private boolean useResetConnection = false;
-
-  // MySQL sha authentication
-  private String serverRsaPublicKeyFile = null;
-  private boolean allowPublicKeyRetrieval = false;
 
   private Codec<?>[] codecs = null;
 
@@ -192,7 +187,6 @@ public class Configuration {
       boolean dumpQueriesOnException,
       boolean includeThreadDumpInDeadlockExceptions,
       int retriesAllDown,
-      String galeraAllowedState,
       boolean transactionReplay,
       boolean pool,
       String poolName,
@@ -201,9 +195,7 @@ public class Configuration {
       int maxIdleTime,
       boolean registerJmxPool,
       int poolValidMinDelay,
-      boolean useResetConnection,
-      String serverRsaPublicKeyFile,
-      boolean allowPublicKeyRetrieval) {
+      boolean useResetConnection) {
     this.user = user;
     this.password = password;
     this.database = database;
@@ -253,7 +245,6 @@ public class Configuration {
     this.dumpQueriesOnException = dumpQueriesOnException;
     this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
     this.retriesAllDown = retriesAllDown;
-    this.galeraAllowedState = galeraAllowedState;
     this.transactionReplay = transactionReplay;
     this.pool = pool;
     this.poolName = poolName;
@@ -263,8 +254,6 @@ public class Configuration {
     this.registerJmxPool = registerJmxPool;
     this.poolValidMinDelay = poolValidMinDelay;
     this.useResetConnection = useResetConnection;
-    this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
-    this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     this.initialUrl = buildUrl(this);
   }
 
@@ -309,7 +298,6 @@ public class Configuration {
       String tlsSocketType,
       Integer maxQuerySizeToLog,
       Integer retriesAllDown,
-      String galeraAllowedState,
       Boolean pool,
       String poolName,
       Integer maxPoolSize,
@@ -318,8 +306,6 @@ public class Configuration {
       Boolean registerJmxPool,
       Integer poolValidMinDelay,
       Boolean useResetConnection,
-      String serverRsaPublicKeyFile,
-      Boolean allowPublicKeyRetrieval,
       String serverSslCert,
       String keyStore,
       String keyStorePassword,
@@ -380,7 +366,6 @@ public class Configuration {
     if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
     if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
     if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
-    if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
     if (pool != null) this.pool = pool;
     if (poolName != null) this.poolName = poolName;
     if (maxPoolSize != null) this.maxPoolSize = maxPoolSize;
@@ -395,8 +380,6 @@ public class Configuration {
     if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
     if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
     if (useResetConnection != null) this.useResetConnection = useResetConnection;
-    if (serverRsaPublicKeyFile != null) this.serverRsaPublicKeyFile = serverRsaPublicKeyFile;
-    if (allowPublicKeyRetrieval != null) this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
     if (transactionReplay != null) this.transactionReplay = transactionReplay;
@@ -441,8 +424,8 @@ public class Configuration {
   }
 
   /**
-   * Tell if mariadb driver accept url string. (Correspond to interface
-   * java.jdbc.Driver.acceptsURL() method)
+   * Tell if the driver accepts url string. (Correspond to interface java.jdbc.Driver.acceptsURL()
+   * method)
    *
    * @param url url String
    * @return true if url string correspond.
@@ -693,7 +676,6 @@ public class Configuration {
         this.dumpQueriesOnException,
         this.includeThreadDumpInDeadlockExceptions,
         this.retriesAllDown,
-        this.galeraAllowedState,
         this.transactionReplay,
         this.pool,
         this.poolName,
@@ -702,9 +684,7 @@ public class Configuration {
         this.maxIdleTime,
         this.registerJmxPool,
         this.poolValidMinDelay,
-        this.useResetConnection,
-        this.serverRsaPublicKeyFile,
-        this.allowPublicKeyRetrieval);
+        this.useResetConnection);
   }
 
   public String database() {
@@ -896,10 +876,6 @@ public class Configuration {
     return retriesAllDown;
   }
 
-  public String galeraAllowedState() {
-    return galeraAllowedState;
-  }
-
   public boolean pool() {
     return pool;
   }
@@ -930,14 +906,6 @@ public class Configuration {
 
   public boolean useResetConnection() {
     return useResetConnection;
-  }
-
-  public String serverRsaPublicKeyFile() {
-    return serverRsaPublicKeyFile;
-  }
-
-  public boolean allowPublicKeyRetrieval() {
-    return allowPublicKeyRetrieval;
   }
 
   public boolean useReadAheadInput() {
@@ -1182,7 +1150,6 @@ public class Configuration {
 
     // HA options
     private Integer retriesAllDown;
-    private String galeraAllowedState;
     private Boolean transactionReplay;
 
     // Pool options
@@ -1194,10 +1161,6 @@ public class Configuration {
     private Boolean registerJmxPool;
     private Integer poolValidMinDelay;
     private Boolean useResetConnection;
-
-    // MySQL sha authentication
-    private String serverRsaPublicKeyFile;
-    private Boolean allowPublicKeyRetrieval;
 
     public Builder user(String user) {
       this.user = nullOrEmpty(user);
@@ -1374,7 +1337,7 @@ public class Configuration {
      *
      * <ul>
      *   <li>null or empty is WKB byte array
-     *   <li>'default' will return org.mariadb.mariadb.jdbc.type Object
+     *   <li>'default' will return com.singlestore.jdbc.type Object
      * </ul>
      *
      * In the future JTS might be implemented
@@ -1565,11 +1528,6 @@ public class Configuration {
       return this;
     }
 
-    public Builder galeraAllowedState(String galeraAllowedState) {
-      this.galeraAllowedState = nullOrEmpty(galeraAllowedState);
-      return this;
-    }
-
     public Builder pool(Boolean pool) {
       this.pool = pool;
       return this;
@@ -1607,16 +1565,6 @@ public class Configuration {
 
     public Builder useResetConnection(Boolean useResetConnection) {
       this.useResetConnection = useResetConnection;
-      return this;
-    }
-
-    public Builder serverRsaPublicKeyFile(String serverRsaPublicKeyFile) {
-      this.serverRsaPublicKeyFile = nullOrEmpty(serverRsaPublicKeyFile);
-      return this;
-    }
-
-    public Builder allowPublicKeyRetrieval(Boolean allowPublicKeyRetrieval) {
-      this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
       return this;
     }
 
@@ -1678,7 +1626,6 @@ public class Configuration {
               this.tlsSocketType,
               this.maxQuerySizeToLog,
               this.retriesAllDown,
-              this.galeraAllowedState,
               this.pool,
               this.poolName,
               this.maxPoolSize,
@@ -1687,8 +1634,6 @@ public class Configuration {
               this.registerJmxPool,
               this.poolValidMinDelay,
               this.useResetConnection,
-              this.serverRsaPublicKeyFile,
-              this.allowPublicKeyRetrieval,
               this.serverSslCert,
               this.keyStore,
               this.keyStorePassword,

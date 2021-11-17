@@ -12,7 +12,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 
-public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
+public class SingleStoreClob extends SingleStoreBlob implements Clob, NClob, Serializable {
 
   private static final long serialVersionUID = -3066501059817815286L;
 
@@ -21,7 +21,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    *
    * @param bytes the content for the Clob.
    */
-  public MariaDbClob(byte[] bytes) {
+  public SingleStoreClob(byte[] bytes) {
     super(bytes);
   }
 
@@ -32,12 +32,12 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    * @param offset offset
    * @param length length
    */
-  public MariaDbClob(byte[] bytes, int offset, int length) {
+  public SingleStoreClob(byte[] bytes, int offset, int length) {
     super(bytes, offset, length);
   }
 
   /** Creates an empty Clob. */
-  public MariaDbClob() {
+  public SingleStoreClob() {
     super();
   }
 
@@ -286,7 +286,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    MariaDbClob that = (MariaDbClob) o;
+    SingleStoreClob that = (SingleStoreClob) o;
 
     if (length != that.length) return false;
 

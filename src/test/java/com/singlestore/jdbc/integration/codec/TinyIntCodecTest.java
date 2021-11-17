@@ -62,7 +62,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   private ResultSet get(String table) throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    com.singlestore.jdbc.Connection conn = createCon("tinyInt1isBit=false");
+    Statement stmt = conn.createStatement();
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "

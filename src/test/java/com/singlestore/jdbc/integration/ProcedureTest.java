@@ -8,8 +8,8 @@ package com.singlestore.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Common;
-import com.singlestore.jdbc.MariaDbBlob;
-import com.singlestore.jdbc.MariaDbClob;
+import com.singlestore.jdbc.SingleStoreBlob;
+import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -567,7 +567,7 @@ public class ProcedureTest extends Common {
       assertEquals("aEc", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setBlob(1, new MariaDbBlob("0123".getBytes(), 1, 2));
+      callableStatement.setBlob(1, new SingleStoreBlob("0123".getBytes(), 1, 2));
       callableStatement.setString(2, "c");
       callableStatement.execute();
       assertEquals("12c", callableStatement.getString(2));
@@ -673,7 +673,7 @@ public class ProcedureTest extends Common {
       assertEquals("sebb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setClob(1, new MariaDbClob("sec".getBytes(), 0, 16));
+      callableStatement.setClob(1, new SingleStoreClob("sec".getBytes(), 0, 16));
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("secb", callableStatement.getString(2));
@@ -691,7 +691,7 @@ public class ProcedureTest extends Common {
       assertEquals("seb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNClob(1, new MariaDbClob("seg".getBytes(), 0, 16));
+      callableStatement.setNClob(1, new SingleStoreClob("seg".getBytes(), 0, 16));
       callableStatement.setString(2, "c");
       callableStatement.execute();
       assertEquals("segc", callableStatement.getString(2));
@@ -851,7 +851,7 @@ public class ProcedureTest extends Common {
       assertEquals("aEc", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setBlob("t1", new MariaDbBlob("0123".getBytes(), 1, 2));
+      callableStatement.setBlob("t1", new SingleStoreBlob("0123".getBytes(), 1, 2));
       callableStatement.setString(2, "c");
       callableStatement.execute();
       assertEquals("12c", callableStatement.getString(2));
@@ -1010,7 +1010,7 @@ public class ProcedureTest extends Common {
       assertNull(callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setClob("t1", new MariaDbClob("sef".getBytes(), 0, 16));
+      callableStatement.setClob("t1", new SingleStoreClob("sef".getBytes(), 0, 16));
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("sefb", callableStatement.getString(2));
@@ -1028,7 +1028,7 @@ public class ProcedureTest extends Common {
       assertEquals("seb", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setNClob("t1", new MariaDbClob("sef".getBytes(), 0, 16));
+      callableStatement.setNClob("t1", new SingleStoreClob("sef".getBytes(), 0, 16));
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("sefb", callableStatement.getString(2));

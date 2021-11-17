@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.codec.list;
 
-import com.singlestore.jdbc.MariaDbBlob;
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.context.Context;
 import com.singlestore.jdbc.client.socket.PacketWriter;
@@ -114,7 +114,7 @@ public class BlobCodec implements Codec<Blob> {
                   "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
         }
         buf.skip(length);
-        return new MariaDbBlob(buf.buf(), buf.pos() - length, length);
+        return new SingleStoreBlob(buf.buf(), buf.pos() - length, length);
 
       default:
         buf.skip(length);

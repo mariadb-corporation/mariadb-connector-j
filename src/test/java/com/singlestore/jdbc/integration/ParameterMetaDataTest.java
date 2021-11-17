@@ -88,9 +88,6 @@ public class ParameterMetaDataTest extends Common {
   @Test
   public void parameterMetaDataBasic() throws SQLException {
     String query = "SELECT * FROM parameter_meta WHERE test = ? and id = ? and t2 = ?";
-    // Parameter type are not sent by server.
-    // See https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
-    // so only basic info like parameter number are retrieved.
     try (PreparedStatement prepStmt = sharedConnBinary.prepareStatement(query)) {
       prepStmt.setString(1, "");
       prepStmt.setInt(2, 1);

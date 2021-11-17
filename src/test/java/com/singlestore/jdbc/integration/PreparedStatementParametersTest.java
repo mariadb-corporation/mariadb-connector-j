@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
-import com.singlestore.jdbc.MariaDbBlob;
-import com.singlestore.jdbc.MariaDbClob;
+import com.singlestore.jdbc.SingleStoreBlob;
+import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -94,19 +94,19 @@ public class PreparedStatementParametersTest extends Common {
   public void checkParameters(com.singlestore.jdbc.Connection con, boolean text) throws Exception {
     Calendar localCal = Calendar.getInstance(TimeZone.getDefault());
     checkSendBlob(
-        ps -> ps.setBlob(1, new MariaDbBlob("0123".getBytes(), 1, 2)),
+        ps -> ps.setBlob(1, new SingleStoreBlob("0123".getBytes(), 1, 2)),
         rs -> assertArrayEquals("12".getBytes(), rs.getBytes(1)),
         con);
     checkSendBlob(
-        ps -> ps.setBlob(1, new MariaDbBlob("0123".getBytes(), 1, 2).getBinaryStream()),
+        ps -> ps.setBlob(1, new SingleStoreBlob("0123".getBytes(), 1, 2).getBinaryStream()),
         rs -> assertArrayEquals("12".getBytes(), rs.getBytes(1)),
         con);
     checkSendBlob(
-        ps -> ps.setBlob(1, new MariaDbBlob("01234".getBytes(), 1, 3).getBinaryStream(), 2),
+        ps -> ps.setBlob(1, new SingleStoreBlob("01234".getBytes(), 1, 3).getBinaryStream(), 2),
         rs -> assertArrayEquals("12".getBytes(), rs.getBytes(1)),
         con);
     checkSendBlob(
-        ps -> ps.setBlob(1, new MariaDbBlob("01234".getBytes(), 1, 3).getBinaryStream(), 2L),
+        ps -> ps.setBlob(1, new SingleStoreBlob("01234".getBytes(), 1, 3).getBinaryStream(), 2L),
         rs -> assertArrayEquals("12".getBytes(), rs.getBytes(1)),
         con);
     checkSendBlob(ps -> ps.setNull(1, Types.VARBINARY), rs -> assertNull(rs.getObject(1)), con);
@@ -256,7 +256,7 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
         con);
     checkSendString(
-        ps -> ps.setClob(1, new MariaDbClob(unicodeBytes, 0, 16)),
+        ps -> ps.setClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
         rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
         con);
     checkSendString(
@@ -272,7 +272,7 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
         con);
     checkSendString(
-        ps -> ps.setNClob(1, new MariaDbClob(unicodeBytes, 0, 16)),
+        ps -> ps.setNClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
         rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
         con);
     checkSendString(

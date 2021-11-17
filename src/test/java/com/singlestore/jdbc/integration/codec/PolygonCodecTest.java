@@ -9,17 +9,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.client.result.CompleteResult;
-import com.singlestore.jdbc.type.GeometryCollection;
 import com.singlestore.jdbc.type.LineString;
 import com.singlestore.jdbc.type.Point;
 import com.singlestore.jdbc.type.Polygon;
-import java.io.InputStream;
-import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class PolygonCodecTest extends CommonCodecTest {
@@ -36,8 +34,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                   new Point(9, 3),
                   new Point(7, 2),
                   new Point(1, 1)
-                },
-                false)
+                })
           });
   private Polygon ls2 =
       new Polygon(
@@ -49,8 +46,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                   new Point(50, 50),
                   new Point(0, 50),
                   new Point(0, 0)
-                },
-                false),
+                }),
             new LineString(
                 new Point[] {
                   new Point(10, 10),
@@ -58,8 +54,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                   new Point(20, 20),
                   new Point(10, 20),
                   new Point(10, 10)
-                },
-                false)
+                })
           });
 
   private Polygon ls3 =
@@ -72,8 +67,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                   new Point(50, 50),
                   new Point(0, 50),
                   new Point(0, 0)
-                },
-                false)
+                })
           });
 
   @AfterAll
@@ -89,15 +83,16 @@ public class PolygonCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon, id INT)");
+        createRowstore()
+            + " TABLE PolygonCodec (t1 Geography, t2 Geography, t3 Geography, t4 Geography, id INT)");
     stmt.execute(
         "INSERT INTO PolygonCodec VALUES "
-            + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null, 1)");
+            + "('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))', "
+            + "'POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))', "
+            + "'POLYGON((0 0,50 0,50 50,0 50,0 0))', null, 1)");
     stmt.execute(
         createRowstore()
-            + " TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
+            + " TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Geography)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -126,43 +121,31 @@ public class PolygonCodecTest extends CommonCodecTest {
     return rs;
   }
 
+  // TODO: PLAT-5913
   @Test
+  @Disabled
   public void getObject() throws Exception {
     getObject(get(), false);
   }
 
+  // TODO: PLAT-5913
   @Test
+  @Disabled
   public void getObjectPrepare() throws Exception {
     getObject(getPrepare(sharedConn), false);
-    getObject(getPrepare(sharedConnBinary), false);
-    getObject(getPrepare(geoConn), true);
+    //    getObject(getPrepare(sharedConnBinary), false);
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
-      assertEquals(ls1, rs.getObject(1));
-      assertFalse(rs.wasNull());
-      assertEquals(ls2, rs.getObject(2));
-      assertFalse(rs.wasNull());
-      assertEquals(ls3, rs.getObject(3));
-      assertFalse(rs.wasNull());
-      assertNull(rs.getObject(4));
-      assertTrue(rs.wasNull());
-    } else {
-      assertEquals(ls1, rs.getObject(1, Polygon.class));
-      assertFalse(rs.wasNull());
-      // Polygon((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))
-      assertEquals(ls2, rs.getObject(2, Polygon.class));
-      assertFalse(rs.wasNull());
-      assertEquals(ls3, rs.getObject(3, Polygon.class));
-      assertFalse(rs.wasNull());
-      assertNull(rs.getObject(4));
-      assertTrue(rs.wasNull());
-    }
+    assertEquals(ls1, rs.getObject(1, Polygon.class));
+    assertFalse(rs.wasNull());
+    // Polygon((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))
+    assertEquals(ls2, rs.getObject(2, Polygon.class));
+    assertFalse(rs.wasNull());
+    assertEquals(ls3, rs.getObject(3, Polygon.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -173,12 +156,11 @@ public class PolygonCodecTest extends CommonCodecTest {
   @Test
   public void getObjectTypePrepare() throws Exception {
     getObjectType(getPrepare(sharedConn));
-    getObjectType(getPrepare(sharedConnBinary));
+    //    getObjectType(getPrepare(sharedConnBinary));
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
@@ -186,193 +168,40 @@ public class PolygonCodecTest extends CommonCodecTest {
     testErrObject(rs, Double.class);
     testErrObject(rs, Float.class);
     testErrObject(rs, Byte.class);
-    testArrObject(
+    testObject(
         rs,
-        byte[].class,
-        new byte[] {
-          (byte) 0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x01,
-          0x03,
-          0x00,
-          0x00,
-          0x00,
-          0x01,
-          0x00,
-          0x00,
-          0x00,
-          0x07,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          (byte) 0xF0,
-          0x3F,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          (byte) 0xF0,
-          0x3F,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          (byte) 0xF0,
-          0x3F,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x14,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x10,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x22,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x18,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x22,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x22,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x08,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x1C,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x40,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          (byte) 0xF0,
-          0x3F,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          0x00,
-          (byte) 0xF0,
-          0x3F
-        });
-
-    testErrObject(rs, Boolean.class);
-    testErrObject(rs, Clob.class);
-    testErrObject(rs, NClob.class);
-    testErrObject(rs, InputStream.class);
-    testErrObject(rs, Reader.class);
+        String.class,
+        "POLYGON((7.00000000 2.00000000, 9.00000000 3.00000000, 6.00000000 9.00000000, 4.00000000 9.00000000, 1.00000000 5.00000000, 1.00000000 1.00000000, 7.00000000 2.00000000))");
+    testObject(rs, Boolean.class, true);
     testErrObject(rs, java.util.Date.class);
   }
 
   @Test
   public void getMetaData() throws SQLException {
-    getMetaData(sharedConn, false);
-    try (com.singlestore.jdbc.Connection con = createCon("geometryDefaultType=default")) {
-      getMetaData(con, true);
-    }
+    getMetaData(sharedConn);
   }
 
-  private void getMetaData(com.singlestore.jdbc.Connection con, boolean geoDefault)
-      throws SQLException {
+  private void getMetaData(com.singlestore.jdbc.Connection con) throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
-      assertEquals("POLYGON", meta.getColumnTypeName(1));
-    } else {
-      assertEquals("GEOMETRY", meta.getColumnTypeName(1));
-    }
+    assertEquals("STRING", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals(
-        (geoDefault
-                ? ((isMariaDBServer()
-                        && minVersion(10, 5, 1)
-                        && !"maxscale".equals(System.getenv("srv"))
-                        && !"skysql-ha".equals(System.getenv("srv")))
-                    ? Polygon.class
-                    : GeometryCollection.class)
-                : byte[].class)
-            .getName(),
-        meta.getColumnClassName(1));
+
+    assertEquals(String.class.getName(), meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.VARBINARY, meta.getColumnType(1));
+    assertEquals(Types.CHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
   }
 
+  // TODO: PLAT-5913
   @Test
+  @Disabled
   public void sendParam() throws Exception {
     sendParam(sharedConn);
-    sendParam(sharedConnBinary);
+    //    sendParam(sharedConnBinary);
   }
 
   private void sendParam(Connection con) throws Exception {
@@ -391,6 +220,7 @@ public class PolygonCodecTest extends CommonCodecTest {
       prep.setInt(1, 3);
       prep.setObject(2, ls2);
       prep.addBatch();
+      prep.setInt(1, 4);
       prep.setObject(2, ls1);
       prep.addBatch();
       prep.executeBatch();
@@ -430,8 +260,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                     new Point(50, 50),
                     new Point(0, 50),
                     new Point(0, 0)
-                  },
-                  false),
+                  }),
               new LineString(
                   new Point[] {
                     new Point(10, 10),
@@ -439,8 +268,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                     new Point(20, 20),
                     new Point(10, 20),
                     new Point(10, 10)
-                  },
-                  false)
+                  })
             });
     assertEquals(testPoly, ls2);
     assertEquals(testPoly.hashCode(), ls2.hashCode());
@@ -456,8 +284,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                     new Point(50, 60),
                     new Point(0, 50),
                     new Point(0, 0)
-                  },
-                  false),
+                  }),
               new LineString(
                   new Point[] {
                     new Point(10, 10),
@@ -465,8 +292,7 @@ public class PolygonCodecTest extends CommonCodecTest {
                     new Point(20, 20),
                     new Point(10, 20),
                     new Point(10, 10)
-                  },
-                  false)
+                  })
             }),
         ls2);
   }

@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.codec.list;
 
-import com.singlestore.jdbc.MariaDbClob;
+import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.context.Context;
 import com.singlestore.jdbc.client.socket.PacketWriter;
@@ -74,7 +74,7 @@ public class ClobCodec implements Codec<Clob> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        Clob clob = new MariaDbClob(buf.buf(), buf.pos(), length);
+        Clob clob = new SingleStoreClob(buf.buf(), buf.pos(), length);
         buf.skip(length);
         return clob;
 

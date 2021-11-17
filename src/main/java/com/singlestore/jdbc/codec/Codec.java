@@ -10,6 +10,7 @@ import com.singlestore.jdbc.client.context.Context;
 import com.singlestore.jdbc.client.socket.PacketWriter;
 import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -53,6 +54,14 @@ public interface Codec<T> {
 
   default byte[] encodeData(T value, Long length) throws IOException, SQLException {
     throw new SQLException("Data is not supposed to be send in COM_STMT_LONG_DATA");
+  }
+
+  default void encodeBinaryAsString(PacketWriter encoder, Object value, Long length)
+      throws IOException {
+    byte[] b = value.toString().getBytes(StandardCharsets.UTF_8);
+    int len = length != null ? Math.min(length.intValue(), b.length) : b.length;
+    encoder.writeLength(len);
+    encoder.writeBytes(b, 0, len);
   }
 
   int getBinaryEncodeType();

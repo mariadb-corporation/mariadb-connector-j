@@ -212,9 +212,6 @@ public final class NativeSql {
    *       with HOUR
    * </ul>
    *
-   * <p>caution: this use MariaDB server conversion: 'SELECT CONVERT('2147483648', INTEGER)' will
-   * return a BIGINT. MySQL will throw a syntax error.
-   *
    * @param functionString input string
    * @return unescaped string
    */

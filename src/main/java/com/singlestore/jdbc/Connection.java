@@ -44,7 +44,7 @@ public class Connection implements java.sql.Connection {
   private final boolean canUseServerTimeout;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
-  private MariaDbPoolConnection poolConnection;
+  private SingleStorePoolConnection poolConnection;
 
   public Connection(Configuration conf, ReentrantLock lock, Client client) {
     this.conf = conf;
@@ -58,7 +58,7 @@ public class Connection implements java.sql.Connection {
     this.defaultFetchSize = context.getConf().defaultFetchSize();
   }
 
-  public void setPoolConnection(MariaDbPoolConnection poolConnection) {
+  public void setPoolConnection(SingleStorePoolConnection poolConnection) {
     this.poolConnection = poolConnection;
     this.exceptionFactory = exceptionFactory.setPoolConnection(poolConnection);
   }
@@ -190,7 +190,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public void close() throws SQLException {
     if (poolConnection != null) {
-      MariaDbPoolConnection poolConnection = this.poolConnection;
+      SingleStorePoolConnection poolConnection = this.poolConnection;
       poolConnection.close();
       return;
     }
@@ -540,17 +540,17 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Clob createClob() {
-    return new MariaDbClob();
+    return new SingleStoreClob();
   }
 
   @Override
   public Blob createBlob() {
-    return new MariaDbBlob();
+    return new SingleStoreBlob();
   }
 
   @Override
   public NClob createNClob() {
-    return new MariaDbClob();
+    return new SingleStoreClob();
   }
 
   @Override
@@ -627,7 +627,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public void abort(Executor executor) throws SQLException {
     if (poolConnection != null) {
-      MariaDbPoolConnection poolConnection = this.poolConnection;
+      SingleStorePoolConnection poolConnection = this.poolConnection;
       poolConnection.close();
       return;
     }

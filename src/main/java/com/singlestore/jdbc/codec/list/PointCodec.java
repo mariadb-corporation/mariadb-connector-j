@@ -25,7 +25,7 @@ public class PointCodec implements Codec<Point> {
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {
-    return column.getType() == DataType.GEOMETRY && type.isAssignableFrom(Point.class);
+    return column.getType() == DataType.STRING && type.isAssignableFrom(Point.class);
   }
 
   public boolean canEncode(Object value) {
@@ -43,12 +43,13 @@ public class PointCodec implements Codec<Point> {
   public Point decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
-    if (column.getType() == DataType.GEOMETRY) {
-      buf.skip(4); // SRID
-      Geometry geo = Geometry.getGeometry(buf, length - 4, column);
-      if (geo instanceof Point) return (Point) geo;
-      throw new SQLDataException(
-          String.format("Geometric type %s cannot be decoded as Point", geo.getClass().getName()));
+    if (column.getType() == DataType.STRING) {
+      String s = buf.readString(length);
+      try {
+        return new Point(s);
+      } catch (IllegalArgumentException ex) {
+        throw new SQLDataException(String.format("Failed to decode '%s' as Point", s));
+      }
     }
     buf.skip(length);
     throw new SQLDataException(
@@ -59,19 +60,13 @@ public class PointCodec implements Codec<Point> {
   public void encodeText(
       PacketWriter encoder, Context context, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    encoder.writeBytes(("ST_PointFromText('" + value.toString() + "')").getBytes());
+    encoder.writeBytes(("'" + value + "'").getBytes());
   }
 
   @Override
   public void encodeBinary(PacketWriter encoder, Object value, Calendar cal, Long maxLength)
       throws IOException {
-    Point pt = (Point) value;
-    encoder.writeLength(25);
-    encoder.writeInt(0); // SRID
-    encoder.writeByte(0x01); // LITTLE ENDIAN
-    encoder.writeInt(1); // wkbPoint
-    encoder.writeDouble(pt.getX());
-    encoder.writeDouble(pt.getY());
+    encodeBinaryAsString(encoder, value, maxLength);
   }
 
   public int getBinaryEncodeType() {

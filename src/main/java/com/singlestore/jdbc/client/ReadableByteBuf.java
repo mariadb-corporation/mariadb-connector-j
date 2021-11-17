@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.client;
 
-import com.singlestore.jdbc.MariaDbBlob;
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.util.MutableInt;
 import java.nio.charset.StandardCharsets;
 
@@ -64,9 +64,9 @@ public final class ReadableByteBuf {
     return this;
   }
 
-  public MariaDbBlob readBlob(int length) {
+  public SingleStoreBlob readBlob(int length) {
     pos += length;
-    return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
+    return SingleStoreBlob.safeSingleStoreBlob(buf, pos - length, length);
   }
 
   public MutableInt getSequence() {

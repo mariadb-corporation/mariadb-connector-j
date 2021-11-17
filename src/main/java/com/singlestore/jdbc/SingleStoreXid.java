@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import javax.transaction.xa.Xid;
 
-public class MariaDbXid implements Xid {
+public class SingleStoreXid implements Xid {
 
   private final int formatId;
   private final byte[] globalTransactionId;
@@ -17,7 +17,7 @@ public class MariaDbXid implements Xid {
    * @param globalTransactionId the global transaction identifier part of XID as an array of bytes.
    * @param branchQualifier the transaction branch identifier part of XID as an array of bytes.
    */
-  public MariaDbXid(int formatId, byte[] globalTransactionId, byte[] branchQualifier) {
+  public SingleStoreXid(int formatId, byte[] globalTransactionId, byte[] branchQualifier) {
     this.formatId = formatId;
     this.globalTransactionId = globalTransactionId;
     this.branchQualifier = branchQualifier;
@@ -27,7 +27,7 @@ public class MariaDbXid implements Xid {
    * Equal implementation.
    *
    * @param obj object to compare
-   * @return true if object is MariaDbXi and as same parameters
+   * @return true if object is SingleStoreXi and as same parameters
    */
   public boolean equals(Object obj) {
     if (obj instanceof Xid) {

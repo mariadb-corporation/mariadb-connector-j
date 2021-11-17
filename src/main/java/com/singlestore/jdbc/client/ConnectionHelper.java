@@ -321,9 +321,7 @@ public final class ConnectionHelper {
 
   /**
    * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to
-   * "TLSv1,TLSv1.1". MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled
-   * with openSSL (default). MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS
-   * is TLSv1.1.
+   * "TLSv1,TLSv1.1".
    *
    * @param sslSocket current sslSocket
    * @throws SQLException if protocol isn't a supported protocol

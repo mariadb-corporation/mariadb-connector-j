@@ -13,7 +13,7 @@ import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
 /**
  * Authentication using java system properties.
  *
- * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
+ * <p>default implementation use system properties `singlestore.user` and `singlestore.pwd`
  *
  * <p>example : `jdbc:singlestore://host/db?identityType=PROPERTY` will use environment variable
  * SINGLESTORE_USER and SINGLESTORE_PWD

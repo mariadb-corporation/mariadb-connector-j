@@ -160,24 +160,24 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
     Configuration conf = this.conf.clone(username, password);
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
     Configuration conf = this.conf.clone(username, password);
-    return new MariaDbPoolConnection(Driver.connect(conf));
+    return new SingleStorePoolConnection(Driver.connect(conf));
   }
 }

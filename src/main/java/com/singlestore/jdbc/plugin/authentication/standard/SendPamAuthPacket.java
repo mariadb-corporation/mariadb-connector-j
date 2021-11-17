@@ -40,7 +40,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
 
   /**
    * Process PAM plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-pam/
+   * https://docs.singlestore.com/db/v7.5/en/security/authentication/using-singlestore-db-and-pam.html
    *
    * @param out out stream
    * @param in in stream

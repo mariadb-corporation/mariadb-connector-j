@@ -7,7 +7,7 @@ package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.MariaDbBlob;
+import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.Statement;
 import java.io.InputStream;
 import java.io.Reader;
@@ -555,18 +555,18 @@ public class BitCodecTest extends CommonCodecTest {
 
   public void getBlob(ResultSet rs) throws SQLException {
     assertEquals(
-        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}),
+        new SingleStoreBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}),
         rs.getBlob(1));
     assertFalse(rs.wasNull());
     assertEquals(
-        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
+        new SingleStoreBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
         rs.getBlob(2));
     assertEquals(
-        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
+        new SingleStoreBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}),
         rs.getBlob("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals(
-        new MariaDbBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 15, 4}), rs.getBlob(3));
+        new SingleStoreBlob(new byte[] {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 15, 4}), rs.getBlob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getBlob(4));
     assertTrue(rs.wasNull());

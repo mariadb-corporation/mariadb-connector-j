@@ -551,8 +551,6 @@ public class ConnectionTest extends Common {
      * @param autoIncInit default increment
      * @param autoIncOffsetInit default increment offset
      * @throws SQLException if any error occur
-     * @see <a
-     *     href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
      */
     public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
 

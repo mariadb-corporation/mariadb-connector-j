@@ -341,13 +341,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   /**
    * Generate part of the information schema query that restricts catalog names In the driver,
-   * catalogs is the equivalent to MariaDB schemas.
+   * catalogs is the equivalent to SingleStore schemas.
    *
    * @param columnName - column name in the information schema table
    * @param catalog - catalog name. This driver does not (always) follow JDBC standard for following
    *     special values, due to ConnectorJ compatibility 1. empty string ("") - matches current
    *     catalog (i.e database). JDBC standard says only tables without catalog should be returned -
-   *     such tables do not exist in MariaDB. If there is no current catalog, then empty string
+   *     such tables do not exist in SingleStore. If there is no current catalog, then empty string
    *     matches any catalog. 2. null - if nullCatalogMeansCurrent=true (which is the default), then
    *     the handling is the same as for "" . i.e return current catalog.JDBC-conforming way would
    *     be to match any catalog with null parameter. This can be switched with
@@ -901,7 +901,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   /**
-   * Return Server type. MySQL or MariaDB. MySQL can be forced for compatibility with option
+   * Return Server type. MySQL or SingleStore. MySQL can be forced for compatibility with option
    * "useMysqlMetadata"
    *
    * @return server type

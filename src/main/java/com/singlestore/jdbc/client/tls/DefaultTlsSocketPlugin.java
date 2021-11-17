@@ -43,7 +43,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);
-        return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
+        return new SingleStoreX509KeyManager(ks, keyStorePasswordChars);
       }
     } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
@@ -72,7 +72,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     KeyManager[] keyManager = null;
 
     if (conf.sslMode() == SslMode.TRUST) {
-      trustManager = new X509TrustManager[] {new MariaDbX509TrustingManager()};
+      trustManager = new X509TrustManager[] {new SingleStoreX509TrustingManager()};
     } else { // if certificate is provided, load it.
       // if not, relying on default truststore
       if (conf.serverSslCert() != null) {

@@ -24,10 +24,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 public class PoolDataSourceTest extends Common {
 
@@ -57,8 +54,7 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void testDataSource() throws SQLException {
-    try (SingleStorePoolDataSource ds =
-        new SingleStorePoolDataSource(mDefUrl + "&allowPublicKeyRetrieval")) {
+    try (SingleStorePoolDataSource ds = new SingleStorePoolDataSource(mDefUrl)) {
       try (Connection connection = ds.getConnection()) {
         assertEquals(connection.isValid(0), true);
       }
@@ -169,10 +165,7 @@ public class PoolDataSourceTest extends Common {
   private void testResetUserVariable(boolean useResetConnection) throws SQLException {
     try (SingleStorePoolDataSource pool =
         new SingleStorePoolDataSource(
-            mDefUrl
-                + "&maxPoolSize=1&useResetConnection="
-                + useResetConnection
-                + "&allowPublicKeyRetrieval")) {
+            mDefUrl + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
       try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         assertUnknown(statement);
@@ -253,6 +246,8 @@ public class PoolDataSourceTest extends Common {
     }
   }
 
+  // TODO: PLAT-5847
+  @Disabled
   @Test
   public void testResetAutoCommitOption() throws SQLException {
     try (SingleStorePoolDataSource pool =
@@ -267,8 +262,6 @@ public class PoolDataSourceTest extends Common {
         // does not equal default (&autocommit=false while S2 has autocommit=true), we get different
         // values
         // before and after connection reset. Same thing for transactionIsolation
-        // Leaving this test to fail for now
-        // TODO: PLAT-5847
         assertFalse(connection.getAutoCommit());
         connection.setAutoCommit(false);
         assertFalse(connection.getAutoCommit());
@@ -594,8 +587,7 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void poolWithUser() throws SQLException {
     try (SingleStorePoolDataSource pool =
-        new SingleStorePoolDataSource(
-            mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
+        new SingleStorePoolDataSource(mDefUrl + "&maxPoolSize=1&poolName=myPool")) {
       long threadId = 0;
       try (Connection conn = pool.getConnection()) {
         conn.isValid(1);

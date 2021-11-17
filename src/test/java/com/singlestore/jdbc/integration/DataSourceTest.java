@@ -44,7 +44,7 @@ public class DataSourceTest extends Common {
             + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     stmt.execute("FLUSH PRIVILEGES");
 
-    DataSource ds = new SingleStoreDataSource(mDefUrl + "allowPublicKeyRetrieval");
+    DataSource ds = new SingleStoreDataSource(mDefUrl);
     try (Connection con1 = ds.getConnection()) {
       try (Connection con2 = ds.getConnection("dsUser", "MySup8%rPassw@ord")) {
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");

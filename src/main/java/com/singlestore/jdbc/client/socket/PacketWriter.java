@@ -43,7 +43,7 @@ public class PacketWriter {
   private boolean bufContainDataAfterMark = false;
 
   /**
-   * Common feature to write data into socket, creating MariaDB Packet.
+   * Common feature to write data into socket, creating SingleStore Packet.
    *
    * @param out output stream
    * @param maxQuerySizeToLog maximum query size to log

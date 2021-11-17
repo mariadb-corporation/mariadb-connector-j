@@ -37,10 +37,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6), id INT)");
     stmt.execute(
         "INSERT INTO DateTimeCodec VALUES "
-            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null, 1)"
-            + (isMariaDBServer()
-                ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null, 1)"
-                : ""));
+            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null, 1)");
     stmt.execute(
         createRowstore()
             + " TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
@@ -157,12 +154,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertEquals("0000-00-00 00:00:00", rs.getString(1));
-      assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
-      assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
-    }
   }
 
   @Test
@@ -365,11 +356,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-      assertNull(rs.getTime(2));
-    }
   }
 
   @Test
@@ -400,10 +386,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-    }
   }
 
   @Test
@@ -421,10 +403,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT265H55M12S"), rs.getObject(1, Duration.class));
     assertEquals(Duration.parse("PT1H55M13.2S"), rs.getObject(2, Duration.class));
     assertNull(rs.getObject(4, Duration.class));
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, Duration.class));
-    }
   }
 
   @Test
@@ -447,10 +425,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-    }
   }
 
   @Test
@@ -473,10 +447,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalTime.class));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDate.class));
-    }
   }
 
   @Test
@@ -502,13 +472,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
-    if (isMariaDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-      assertNull(rs.getTimestamp(2));
-      assertEquals(
-          Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
-    }
   }
 
   @Test

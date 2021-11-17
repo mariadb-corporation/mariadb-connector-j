@@ -13,7 +13,6 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.IOException;
 import java.sql.*;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MultiHostTest extends Common {
@@ -155,8 +154,7 @@ public class MultiHostTest extends Common {
       stmt.execute("DROP TABLE IF EXISTS testReplay");
     }
   }
-  // TODO: PLAT-5875
-  @Disabled
+
   @Test
   public void masterStreamingFailover() throws Exception {
     Configuration conf = Configuration.parse(mDefUrl);
@@ -171,8 +169,7 @@ public class MultiHostTest extends Common {
         mDefUrl.replaceAll(
             "//([^/]*)/",
             String.format(
-                "//address=(host=localhost)(port=%s)(type=master)/",
-                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
+                "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
     url = url.replaceAll("jdbc:singlestore:", "jdbc:singlestore:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
@@ -185,16 +182,19 @@ public class MultiHostTest extends Common {
                     + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
-    ensureRange(stmt);
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM range_1_100; SELECT seq_1_50000");
+    ensureRange(stmt);
+    ensureLargeRange(stmt, 50000);
+    ResultSet rs =
+        stmt.executeQuery(
+            "SELECT * FROM range_1_100 ORDER BY n; SELECT * FROM large_range ORDER BY n;");
+    rs.setFetchSize(0);
     rs.next();
-    assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
     assertThrowsContains(
         SQLException.class,
-        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        () -> stmt2.executeQuery("SHOW USERS"),
         "Socket error during result streaming");
     assertNotEquals(threadId, con.getThreadId());
 
@@ -279,8 +279,6 @@ public class MultiHostTest extends Common {
     }
   }
 
-  // TODO: PLAT-5875
-  @Disabled
   @Test
   public void masterReplicationStreamingFailover() throws Exception {
     Configuration conf = Configuration.parse(mDefUrl);
@@ -296,7 +294,7 @@ public class MultiHostTest extends Common {
             "//([^/]*)/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
-                proxy.getLocalPort(), hostAddress.host, hostAddress.port, hostname, port));
+                proxy.getLocalPort(), hostAddress.host, hostAddress.port));
     url = url.replaceAll("jdbc:singlestore:", "jdbc:singlestore:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
@@ -310,14 +308,19 @@ public class MultiHostTest extends Common {
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
+    ensureRange(stmt);
+    ensureLargeRange(stmt, 50000);
+    ResultSet rs =
+        stmt.executeQuery(
+            "SELECT * FROM range_1_100 ORDER BY n; SELECT * FROM large_range ORDER BY n");
+    rs.setFetchSize(0);
     rs.next();
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
     assertThrowsContains(
         SQLException.class,
-        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        () -> stmt2.executeQuery("SHOW USERS"),
         "Socket error during result streaming");
     assertNotEquals(threadId, con.getThreadId());
 

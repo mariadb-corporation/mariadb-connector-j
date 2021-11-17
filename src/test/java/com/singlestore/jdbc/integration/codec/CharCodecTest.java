@@ -7,7 +7,7 @@ package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.MariaDbClob;
+import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -115,9 +115,9 @@ public class CharCodecTest extends CommonCodecTest {
     testObject(rs, Byte.class, Byte.valueOf((byte) 0));
     testArrObject(rs, byte[].class, new byte[] {(byte) '0'});
     testObject(rs, Boolean.class, Boolean.FALSE);
-    testObject(rs, Clob.class, new MariaDbClob("0".getBytes()));
-    testObject(rs, NClob.class, new MariaDbClob("0".getBytes()));
-    testObject(rs, InputStream.class, new MariaDbClob("0".getBytes()).getBinaryStream());
+    testObject(rs, Clob.class, new SingleStoreClob("0".getBytes()));
+    testObject(rs, NClob.class, new SingleStoreClob("0".getBytes()));
+    testObject(rs, InputStream.class, new SingleStoreClob("0".getBytes()).getBinaryStream());
     testObject(rs, Reader.class, new StringReader("0"));
     rs.next();
     testObject(rs, LocalDate.class, LocalDate.parse("2011-01-01"));
@@ -661,13 +661,13 @@ public class CharCodecTest extends CommonCodecTest {
   }
 
   public void getClob(ResultSet rs) throws Exception {
-    assertStreamEquals(new MariaDbClob("0".getBytes()), rs.getClob(1));
+    assertStreamEquals(new SingleStoreClob("0".getBytes()), rs.getClob(1));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob(2));
-    assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getClob("t2alias"));
+    assertStreamEquals(new SingleStoreClob("1".getBytes()), rs.getClob(2));
+    assertStreamEquals(new SingleStoreClob("1".getBytes()), rs.getClob("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        new SingleStoreClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
         rs.getClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getClob(4));
@@ -686,13 +686,13 @@ public class CharCodecTest extends CommonCodecTest {
   }
 
   public void getNClob(ResultSet rs) throws Exception {
-    assertStreamEquals(new MariaDbClob("0".getBytes()), rs.getNClob(1));
+    assertStreamEquals(new SingleStoreClob("0".getBytes()), rs.getNClob(1));
     assertFalse(rs.wasNull());
-    assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob(2));
-    assertStreamEquals(new MariaDbClob("1".getBytes()), rs.getNClob("t2alias"));
+    assertStreamEquals(new SingleStoreClob("1".getBytes()), rs.getNClob(2));
+    assertStreamEquals(new SingleStoreClob("1".getBytes()), rs.getNClob("t2alias"));
     assertFalse(rs.wasNull());
     assertStreamEquals(
-        new MariaDbClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        new SingleStoreClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
         rs.getNClob(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNClob(4));
