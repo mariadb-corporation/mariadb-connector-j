@@ -48,22 +48,27 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement prepStmt =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateTimeCodec"
                 + " WHERE 1 > ?");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    prepStmt.closeOnCompletion();
+    prepStmt.setInt(1, 0);
+    ResultSet rs = prepStmt.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -76,6 +81,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getObjectPrepare() throws SQLException {
     getObject(getPrepare(sharedConn));
     getObject(getPrepare(sharedConnBinary));
+
   }
 
   public void getObject(ResultSet rs) throws SQLException {
