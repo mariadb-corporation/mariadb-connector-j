@@ -61,6 +61,25 @@ SingleStorePoolDataSource pool = new SingleStorePoolDataSource("jdbc:singlestore
     }
 ```
 
+## Building from source
+
+### Requirements
+* [Maven](https://maven.apache.org/download.cgi)
+* Java JDK
+
+Clone the respository:
+```script
+git clone https://github.com/memsql/S2-JDBC-Connector.git
+```
+
+Execute the following from the repository root to build SingleStore JDBC Driver from source:
+```script
+mvn -Dmaven.test.skip -Dmaven.javadoc.skip package
+```
+
+This generates a `singlestore-jdbc-client-<version>.jar` file in `target/` directory.
+Install this file to a directory in your `CLASSPATH` to use the driver.
+
 ## Documentation
 
 For a Getting started guide, API docs, recipes,  etc. see the 
