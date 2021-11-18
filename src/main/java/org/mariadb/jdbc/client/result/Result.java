@@ -102,14 +102,14 @@ public abstract class Result implements ResultSet, Completion {
       case (byte) 0xFF:
         loaded = true;
         ErrorPacket errorPacket =
-            new ErrorPacket(new StandardReadableByteBuf(null, buf, buf.length), context);
+            new ErrorPacket(new StandardReadableByteBuf(buf, buf.length), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
         if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = new StandardReadableByteBuf(null, buf, buf.length);
+          ReadableByteBuf readBuf = new StandardReadableByteBuf(buf, buf.length);
           readBuf.skip(); // skip header
           int serverStatus;
           int warnings;

@@ -57,7 +57,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (queryTimeout != 0 && canUseServerTimeout) {
       return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR ";
     }
-    return "";
+    return null;
   }
 
   private void executeInternal() throws SQLException {

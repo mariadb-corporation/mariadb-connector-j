@@ -82,7 +82,7 @@ public class IntCodecTest extends CommonCodecTest {
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       return rs;
-    } finally{
+    } finally {
       con.commit();
     }
   }

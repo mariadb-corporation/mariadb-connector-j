@@ -9,12 +9,12 @@
     </layout>
   </appender>
 
-<!--  <logger name="org.mariadb.jdbc" level="trace" additivity="false">-->
+<!--  <logger name="org.mariadb.jdbc" level="error" additivity="false">-->
 <!--    <appender-ref ref="CONSOLE"/>-->
 <!--  </logger>-->
 
-<!--  <root level="error">-->
-<!--    <appender-ref ref="CONSOLE"/>-->
-<!--  </root>-->
+  <root level="error">
+    <appender-ref ref="CONSOLE"/>
+  </root>
 
 </configuration>

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
-import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.type.*;
 
@@ -32,8 +31,7 @@ public class GeometryTest {
   @Test
   public void testPointEncoding() throws SQLException {
     byte[] ptBytes = hexStringToByteArray("000000000140000000000000004010000000000000");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, ptBytes.length, null);
     assertEquals("POINT(2.0 4.0)", geo.toString());
     assertEquals(geo, geo);
@@ -57,8 +55,7 @@ public class GeometryTest {
             + "40 24 00 00 00 00 00 00"
             + "00 00 00 00 00 00 00 00";
     byte[] lineBytes = hexStringToByteArray(lineBigEndian);
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), lineBytes, lineBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(lineBytes, lineBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, lineBytes.length, null);
     assertEquals("LINESTRING(0.0 0.0,0.0 10.0,10.0 0.0)", geo.toString());
     assertEquals(geo, geo);
@@ -97,8 +94,7 @@ public class GeometryTest {
             + "3F F0 00 00 00 00 00 00  "
             + "3F F0 00 00 00 00 00 00";
     byte[] lineBytes = hexStringToByteArray(polygonBigEndian);
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), lineBytes, lineBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(lineBytes, lineBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, lineBytes.length, null);
     assertEquals(
         "POLYGON((1.0 1.0,1.0 5.0,4.0 9.0,6.0 9.0,9.0 3.0,7.0 2.0,1.0 1.0))", geo.toString());
@@ -164,8 +160,7 @@ public class GeometryTest {
                 + "00 00 00 01"
                 + "40 24 00 00 00 00 00 00"
                 + "00 00 00 00 00 00 00 00 ");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, ptBytes.length, null);
     assertEquals("MULTIPOINT(0.0 0.0,0.0 10.0,10.0 0.0)", geo.toString());
     assertEquals(geo, geo);
@@ -196,8 +191,7 @@ public class GeometryTest {
                 + "40 24 00 00 00 00 00 00"
                 + "40 24 00 00 00 00 00 00"
                 + "00 00 00 00 00 00 00 00");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, ptBytes.length, null);
     assertEquals("MULTILINESTRING((0.0 0.0,0.0 10.0,10.0 0.0))", geo.toString());
     assertEquals(geo, geo);
@@ -237,8 +231,7 @@ public class GeometryTest {
                 + "40 00 00 00 00 00 00 00  "
                 + "3F F0 00 00 00 00 00 00  "
                 + "3F F0 00 00 00 00 00 00");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, ptBytes.length, null);
     assertEquals(
         "MULTIPOLYGON(((1.0 1.0,1.0 5.0,4.0 9.0,6.0 9.0,9.0 3.0,7.0 2.0,1.0 1.0)))",
@@ -287,8 +280,7 @@ public class GeometryTest {
                 + "40 24 00 00 00 00 00 00"
                 + "40 24 00 00 00 00 00 00"
                 + "00 00 00 00 00 00 00 00");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     Geometry geo = Geometry.getGeometry(readBuf, ptBytes.length, null);
     assertEquals(
         "GEOMETRYCOLLECTION(POINT(2.0 4.0),LINESTRING(0.0 0.0,0.0 10.0,10.0 0.0))", geo.toString());
@@ -305,15 +297,12 @@ public class GeometryTest {
   @Test
   public void testWrongEncoding() throws SQLException {
     byte[] ptBytes = hexStringToByteArray("00 00 00 00 08");
-    ReadableByteBuf readBuf =
-        new StandardReadableByteBuf(new MutableInt(), ptBytes, ptBytes.length);
+    ReadableByteBuf readBuf = new StandardReadableByteBuf(ptBytes, ptBytes.length);
     assertThrows(
         SQLException.class,
         () ->
             Geometry.getGeometry(
                 readBuf, ptBytes.length, ColumnDefinitionPacket.create("test", DataType.GEOMETRY)));
-    assertNull(
-        Geometry.getGeometry(
-            new StandardReadableByteBuf(new MutableInt(), new byte[0], 0), 0, null));
+    assertNull(Geometry.getGeometry(new StandardReadableByteBuf(new byte[0], 0), 0, null));
   }
 }

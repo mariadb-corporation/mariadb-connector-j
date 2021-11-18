@@ -125,7 +125,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     }
 
     return new ColumnDefinitionPacket(
-        new StandardReadableByteBuf(null, arr, arr.length), len, type, stringPos);
+        new StandardReadableByteBuf(arr, arr.length), len, type, stringPos);
   }
 
   public String getSchema() {

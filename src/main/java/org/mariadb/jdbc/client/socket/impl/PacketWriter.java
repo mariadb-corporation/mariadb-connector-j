@@ -663,7 +663,7 @@ public class PacketWriter implements Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
-    out.flush();
+
     // if buf is big, and last query doesn't use at least half of it, resize buf to default
     // value
     if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {

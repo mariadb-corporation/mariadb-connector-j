@@ -16,7 +16,7 @@ import org.mariadb.jdbc.plugin.Codec;
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private final Configuration conf;
-  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, null, 0);
+  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   protected final Column[] columns;
 
   protected int length;

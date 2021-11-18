@@ -5,7 +5,6 @@
 package org.mariadb.jdbc.client;
 
 import org.mariadb.jdbc.MariaDbBlob;
-import org.mariadb.jdbc.client.util.MutableInt;
 
 public interface ReadableByteBuf {
 
@@ -21,11 +20,9 @@ public interface ReadableByteBuf {
 
   void skip();
 
-  ReadableByteBuf skip(int length);
+  void skip(int length);
 
   MariaDbBlob readBlob(int length);
-
-  MutableInt getSequence();
 
   byte getByte();
 
