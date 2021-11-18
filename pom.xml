@@ -13,7 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jmh.version>1.29</jmh.version>
+        <jmh.version>1.33</jmh.version>
         <junit.version>5.7.1</junit.version>
         <junit-pioneer.version>1.4.2</junit-pioneer.version>
         <assertj.version>3.19.0</assertj.version>
