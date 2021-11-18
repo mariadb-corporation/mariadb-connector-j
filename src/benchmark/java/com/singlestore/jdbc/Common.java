@@ -13,6 +13,7 @@ import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.io.*;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
@@ -32,29 +33,38 @@ public class Common {
     public final String username = System.getProperty("TEST_USERNAME", "root");
     public final String password = System.getProperty("TEST_PASSWORD", "password");
     public final String database = System.getProperty("TEST_DATABASE", "test");
+    public final long fileSize = 16777216 * 2; // 32 MB
     // connections
     protected Connection connectionText;
     protected Connection connectionBinary;
 
-    @Param({"mysql", "singlestore"})
+    @Param({"singlestore", "mariadb", "mysql"})
     String driver;
+
+    protected File loadDataFile;
 
     @Setup(Level.Trial)
     public void doSetup() throws Exception {
 
       String className;
       switch (driver) {
+        case "singlestore":
+          className = "com.singlestore.jdbc.Driver";
+          break;
         case "mysql":
           className = "com.mysql.cj.jdbc.Driver";
           break;
-        case "singlestore":
-          className = "com.singlestore.jdbc.Driver";
+        case "mariadb":
+          className = "org.mariadb.jdbc.Driver";
           break;
         default:
           throw new RuntimeException("wrong param");
       }
       try {
-        String jdbcBase = "%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC";
+        // allowLoadLocalInfile is specified for mysql driver instead of allowLocalInfile,
+        // S2 and mariadb will just ignore it
+        String jdbcBase = "%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s" +
+                "&serverTimezone=UTC&allowLocalInfile&allowLoadLocalInfile=true";
         String jdbcUrlText =
                 String.format(
                         jdbcBase,
@@ -70,29 +80,48 @@ public class Common {
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect("jdbc:" + driver + "://" + jdbcUrlBinary, new Properties());
         try (Statement st = connectionText.createStatement()) {
-          st.execute("CREATE TABLE range_1_10000(n int)");
-          st.execute("CREATE OR REPLACE PROCEDURE fill_range() AS BEGIN " +
-                  "FOR i IN 1 .. 10000 LOOP" +
-                  " INSERT INTO range_1_10000 VALUES (i);" +
-                  "END LOOP;" +
-                  "END");
-          st.execute("CALL fill_range()");
-        } catch (SQLSyntaxErrorException e) {
-          if (!e.getMessage().contains("Table 'range_1_10000' already exists"))
-          {
-            throw e;
+          try {
+            st.execute("CREATE TABLE range_1_10000(n int)");
+            st.execute("CREATE OR REPLACE PROCEDURE fill_range() AS BEGIN " +
+                    "FOR i IN 1 .. 10000 LOOP" +
+                    " INSERT INTO range_1_10000 VALUES (i);" +
+                    "END LOOP;" +
+                    "END");
+            st.execute("CALL fill_range()");
+          } catch (SQLSyntaxErrorException e) {
+            if (!e.getMessage().contains("Table 'range_1_10000' already exists")) {
+              throw e;
+            }
           }
+          st.execute("CREATE TABLE IF NOT EXISTS `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL)");
         }
+
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
       }
+
+      loadDataFile = createTmpData(fileSize / 8);
+    }
+
+    private File createTmpData(long recordNumber) throws Exception {
+      File file = File.createTempFile("infile" + recordNumber, ".tmp");
+      // write it
+      try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+        // Every row is 8 bytes to make counting easier
+        for (long i = 0; i < recordNumber; i++) {
+          writer.write("\"a\",\"b\"");
+          writer.write("\n");
+        }
+      }
+      return file;
     }
 
     @TearDown(Level.Trial)
     public void doTearDown() throws SQLException {
       connectionText.close();
       connectionBinary.close();
+      loadDataFile.delete();
     }
   }
 }

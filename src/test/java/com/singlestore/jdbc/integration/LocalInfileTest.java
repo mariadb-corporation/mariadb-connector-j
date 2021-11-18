@@ -26,7 +26,7 @@ public class LocalInfileTest extends Common {
     stmt.execute("CREATE TABLE ttlocal(id int, test varchar(100))");
     stmt.execute("CREATE TABLE ldinfile(a varchar(10))");
     stmt.execute(
-        "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1");
+        "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL)");
     stmt.execute("FLUSH TABLES");
   }
 
