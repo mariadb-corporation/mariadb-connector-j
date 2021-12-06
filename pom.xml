@@ -8,7 +8,7 @@
   <packaging>jar</packaging>
   <name>singlestore-jdbc-client</name>
   <version>1.0.0</version>
-  <description>SingleStore JDBC Driver (Preview)</description>
+  <description>SingleStore JDBC Driver</description>
   <url>https://https://github.com/memsql/S2-JDBC-Connector</url>
 
   <properties>
