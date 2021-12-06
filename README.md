@@ -82,12 +82,8 @@ Install this file to a directory in your `CLASSPATH` to use the driver.
 
 ## Documentation
 
-For a Getting started guide, API docs, recipes,  etc. see the 
-
-[comment]: <> (TODO Add documentation links)
-[comment]: <> (* [About MariaDB connector/J]&#40;https://mariadb.com/kb/en/about-mariadb-connector-j/&#41;)
-[comment]: <> (* [Install driver]&#40;https://mariadb.com/kb/en/installing-mariadb-connectorj/&#41;)
-* [Changelog](/CHANGELOG.md)
+For the documentation and a getting started guide refer to
+[SingleStore Documentation](https://docs.singlestore.com/managed-service/en/developer-resources/connect-with-application-development-tools/connect-with-java-jdbc/the-singlestore-jdbc-driver.html)
 
 ## User agreement
 
