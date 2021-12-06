@@ -1,6 +1,6 @@
-# SingleStore JDBC Driver (Preview)
+# SingleStore JDBC Driver
 
-## Version: 0.1.0-preview
+## Version: 1.0.0
 
 SingleStore JDBC Driver is a JDBC 4.2 compatible driver, used to connect applications developed in Java to SingleStore and MySQL databases. SingleStore JDBC Driver is LGPL licensed.
 
@@ -18,7 +18,7 @@ The driver (jar) can be downloaded from maven :
 <dependency>
 	<groupId>com.singlestore</groupId>
 	<artifactId>singlestore-jdbc-client</artifactId>
-	<version>0.1.0-preview</version>
+	<version>1.0.0</version>
 </dependency>
 ```
 
