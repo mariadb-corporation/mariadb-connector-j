@@ -98,19 +98,21 @@ public class MultiHostTest extends Common {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
-    try (Connection con =
-        (Connection)
-            DriverManager.getConnection(
-                url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("SELECT 1 INTO @con");
-      proxy.restart(50);
+    if (minVersion(7, 3, 0)) {
+      try (Connection con =
+          (Connection)
+              DriverManager.getConnection(
+                  url
+                      + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+        Statement stmt = con.createStatement();
+        stmt.execute("SELECT 1 INTO @con");
+        proxy.restart(50);
 
-      assertThrowsContains(
-          SQLException.class,
-          () -> stmt.executeQuery("SELECT @con"),
-          "Unknown user-defined variable");
+        assertThrowsContains(
+            SQLException.class,
+            () -> stmt.executeQuery("SELECT @con"),
+            "Unknown user-defined variable");
+      }
     }
     Thread.sleep(50);
 
@@ -242,40 +244,44 @@ public class MultiHostTest extends Common {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
 
-    try (Connection con =
-        (Connection)
-            DriverManager.getConnection(
-                url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("SELECT 1 INTO @con");
-      con.setReadOnly(true);
-      con.isValid(1);
-      proxy.restart(50);
-      Thread.sleep(20);
-      con.setReadOnly(false);
+    if (minVersion(7, 3, 0)) {
+      try (Connection con =
+          (Connection)
+              DriverManager.getConnection(
+                  url
+                      + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+        Statement stmt = con.createStatement();
+        stmt.execute("SELECT 1 INTO @con");
+        con.setReadOnly(true);
+        con.isValid(1);
+        proxy.restart(50);
+        Thread.sleep(20);
+        con.setReadOnly(false);
 
-      assertThrowsContains(
-          SQLException.class,
-          () -> stmt.executeQuery("SELECT @con"),
-          "Unknown user-defined variable");
+        assertThrowsContains(
+            SQLException.class,
+            () -> stmt.executeQuery("SELECT @con"),
+            "Unknown user-defined variable");
+      }
     }
 
     // never reconnect
-    try (Connection con =
-        (Connection)
-            DriverManager.getConnection(
-                url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("SELECT 1 INTO @con");
-      con.setReadOnly(true);
-      con.isValid(1);
-      proxy.stop();
-      Thread.sleep(20);
-      con.setReadOnly(false);
-      assertFalse(con.isValid(1));
-      assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
+    if (minVersion(7, 3, 0)) {
+      try (Connection con =
+          (Connection)
+              DriverManager.getConnection(
+                  url
+                      + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+        Statement stmt = con.createStatement();
+        stmt.execute("SELECT 1 INTO @con");
+        con.setReadOnly(true);
+        con.isValid(1);
+        proxy.stop();
+        Thread.sleep(20);
+        con.setReadOnly(false);
+        assertFalse(con.isValid(1));
+        assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
+      }
     }
   }
 

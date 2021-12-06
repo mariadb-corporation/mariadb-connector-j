@@ -75,7 +75,7 @@ public class StatementTest extends Common {
     assertEquals(-1, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
     assertEquals(-1, stmt.getUpdateCount());
-    assertFalse(stmt.execute("SELECT 1 into @test"));
+    assertFalse(stmt.execute("CALL dummy_proc()"));
     Assertions.assertNull(stmt.getResultSet());
     assertEquals(0, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
@@ -154,7 +154,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeUpdate("SELECT 1 INTO @test"));
+    assertEquals(0, stmt.executeUpdate("CALL dummy_proc()"));
   }
 
   @Test
@@ -186,7 +186,7 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeLargeUpdate("SELECT 1 INTO @test"));
+    assertEquals(0, stmt.executeLargeUpdate("CALL dummy_proc()"));
   }
 
   @Test
@@ -195,7 +195,7 @@ public class StatementTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
 
-    rs = stmt.executeQuery("SELECT 1 INTO @test");
+    rs = stmt.executeQuery("CALL dummy_proc()");
     assertFalse(rs.next());
   }
 

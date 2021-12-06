@@ -16,12 +16,15 @@ import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Statement implements java.sql.Statement {
+  private static final Logger logger = Loggers.getLogger(Statement.class);
 
   protected final int resultSetType;
   protected final int resultSetConcurrency;
@@ -209,8 +212,7 @@ public class Statement implements java.sql.Statement {
    */
   @Override
   public int getMaxRows() throws SQLException {
-    checkNotClosed();
-    return (int) maxRows;
+    return (int) getLargeMaxRows();
   }
 
   /**
@@ -225,11 +227,7 @@ public class Statement implements java.sql.Statement {
    */
   @Override
   public void setMaxRows(int max) throws SQLException {
-    checkNotClosed();
-    if (max < 0) {
-      throw exceptionFactory().create("max rows cannot be negative : asked for " + max, "42000");
-    }
-    maxRows = max;
+    setLargeMaxRows(max);
   }
 
   /**
@@ -1355,6 +1353,10 @@ public class Statement implements java.sql.Statement {
   @Override
   public void setLargeMaxRows(long max) throws SQLException {
     checkNotClosed();
+    logger.warn(
+        "Setting maximum rows via setMaxRows() or setLargeMaxRows() is not supported. Please use the "
+            + "LIMIT <max> syntax in your SELECT query.\n"
+            + "Refer to https://docs.singlestore.com/db/latest/en/reference/sql-reference/data-manipulation-language-dml/select.html for more information");
     if (max < 0) {
       throw exceptionFactory().create("max rows cannot be negative : asked for " + max, "42000");
     }

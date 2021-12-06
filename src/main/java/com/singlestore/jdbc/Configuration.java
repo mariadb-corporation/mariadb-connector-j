@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  *
  * <p>basic syntax :<br>
  * {@code
- * jdbc:singlestore:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
+ * jdbc:singlestore:[replication:|failover|loadbalance:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }
  *
  * <p>hostDescription:<br>

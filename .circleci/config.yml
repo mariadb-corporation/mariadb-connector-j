@@ -114,6 +114,7 @@ workflows:
                 - memsql/cluster-in-a-box:centos-7.1.13-11ddea2a3a-3.0.0-1.9.3
                 - singlestore/cluster-in-a-box:centos-7.3.13-761e3259b3-3.2.11-1.11.9
                 - singlestore/cluster-in-a-box:centos-7.5.10-d6401ae628-4.0.0-1.12.2
+                - singlestore/cluster-in-a-box:centos-7.6.5-018454f4e3-4.0.1-1.13.0
   publish:
     jobs:
       - approve-publish:

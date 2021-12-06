@@ -204,89 +204,91 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setAsciiStream(1, new ByteArrayInputStream("abcdef".getBytes()), 5L),
         rs -> assertEquals("abcde", rs.getString(1)),
         con);
-    final String unicodeString =
-        ""
-            + "\uD83D\uDE0E" // 😎 unicode 6 smiling face with sunglasses
-            + "\uD83C\uDF36" // 🌶 unicode 7 hot pepper
-            + "\uD83C\uDFA4" // 🎤 unicode 8 no microphones
-            + "\uD83E\uDD42 "; // 🥂 unicode 9 clinking glasses
-    final byte[] unicodeBytes = unicodeString.getBytes(StandardCharsets.UTF_8);
-    checkSendString(
-        ps -> ps.setUnicodeStream(1, new ByteArrayInputStream(unicodeBytes), 16),
-        rs ->
-            assertEquals(
-                unicodeString.substring(0, 8),
-                rs.getString(1),
-                "expected " + unicodeString.substring(0, 8) + " but is " + rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes)),
-        rs -> assertEquals(unicodeString, rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes), 16),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes), 16L),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setCharacterStream(1, new StringReader(unicodeString)),
-        rs -> assertEquals(unicodeString, rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setCharacterStream(1, new StringReader(unicodeString), 8),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setCharacterStream(1, new StringReader(unicodeString), 8L),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNCharacterStream(1, new StringReader(unicodeString)),
-        rs -> assertEquals(unicodeString, rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNCharacterStream(1, new StringReader(unicodeString), 8),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNCharacterStream(1, new StringReader(unicodeString), 8L),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setClob(1, new StringReader(unicodeString)),
-        rs -> assertEquals(unicodeString, rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setClob(1, new StringReader(unicodeString), 8),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setClob(1, new StringReader(unicodeString), 8L),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNClob(1, new StringReader(unicodeString)),
-        rs -> assertEquals(unicodeString, rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNClob(1, new StringReader(unicodeString), 8),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
-    checkSendString(
-        ps -> ps.setNClob(1, new StringReader(unicodeString), 8L),
-        rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
-        con);
+    if (minVersion(7, 5, 0)) {
+      final String unicodeString =
+          ""
+              + "\uD83D\uDE0E" // 😎 unicode 6 smiling face with sunglasses
+              + "\uD83C\uDF36" // 🌶 unicode 7 hot pepper
+              + "\uD83C\uDFA4" // 🎤 unicode 8 no microphones
+              + "\uD83E\uDD42 "; // 🥂 unicode 9 clinking glasses
+      final byte[] unicodeBytes = unicodeString.getBytes(StandardCharsets.UTF_8);
+      checkSendString(
+          ps -> ps.setUnicodeStream(1, new ByteArrayInputStream(unicodeBytes), 16),
+          rs ->
+              assertEquals(
+                  unicodeString.substring(0, 8),
+                  rs.getString(1),
+                  "expected " + unicodeString.substring(0, 8) + " but is " + rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes)),
+          rs -> assertEquals(unicodeString, rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes), 16),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setBinaryStream(1, new ByteArrayInputStream(unicodeBytes), 16L),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setCharacterStream(1, new StringReader(unicodeString)),
+          rs -> assertEquals(unicodeString, rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setCharacterStream(1, new StringReader(unicodeString), 8),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setCharacterStream(1, new StringReader(unicodeString), 8L),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNCharacterStream(1, new StringReader(unicodeString)),
+          rs -> assertEquals(unicodeString, rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNCharacterStream(1, new StringReader(unicodeString), 8),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNCharacterStream(1, new StringReader(unicodeString), 8L),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setClob(1, new StringReader(unicodeString)),
+          rs -> assertEquals(unicodeString, rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setClob(1, new StringReader(unicodeString), 8),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setClob(1, new StringReader(unicodeString), 8L),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNClob(1, new SingleStoreClob(unicodeBytes, 0, 16)),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNClob(1, new StringReader(unicodeString)),
+          rs -> assertEquals(unicodeString, rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNClob(1, new StringReader(unicodeString), 8),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+      checkSendString(
+          ps -> ps.setNClob(1, new StringReader(unicodeString), 8L),
+          rs -> assertEquals(unicodeString.substring(0, 8), rs.getString(1)),
+          con);
+    }
     checkSendString(
         ps -> ps.setURL(1, new URL("http://www.someUrl.com")),
         rs -> assertEquals("http://www.someUrl.com", rs.getString(1)),

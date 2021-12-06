@@ -1238,6 +1238,23 @@ public class DatabaseMetadataTest extends Common {
     assertNull(rs.getString(12));
     assertNull(rs.getString(13));
 
+    if (!minVersion(7, 5, 0)) {
+      assertTrue(rs.next());
+      assertEquals(sharedConn.getCatalog(), rs.getString(1));
+      assertNull(rs.getString(2));
+      assertEquals("get_index_info", rs.getString(3));
+      assertFalse(rs.getBoolean(4));
+      assertEquals(sharedConn.getCatalog(), rs.getString(5));
+      assertEquals("PRIMARY", rs.getString(6));
+      assertEquals(DatabaseMetaData.tableIndexOther, rs.getShort(7));
+      assertEquals(1, rs.getShort(8));
+      assertEquals("no", rs.getString(9));
+      assertNull(rs.getString(10));
+      assertEquals(0l, rs.getLong(11));
+      assertNull(rs.getString(12));
+      assertNull(rs.getString(13));
+    }
+
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1));
     assertNull(rs.getString(2));

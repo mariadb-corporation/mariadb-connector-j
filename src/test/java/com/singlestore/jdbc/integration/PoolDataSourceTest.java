@@ -93,7 +93,7 @@ public class PoolDataSourceTest extends Common {
   @Test
   public void testResetSessionVariable() throws SQLException {
     testResetSessionVariable(false);
-    if (minVersion(7, 3, 0)) {
+    if (minVersion(7, 5, 0)) {
       testResetSessionVariable(true);
     }
   }

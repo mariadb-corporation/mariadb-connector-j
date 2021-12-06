@@ -73,6 +73,10 @@ public class Common {
     sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
     String binUrl = mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "useServerPrepStmts=true";
     sharedConnBinary = (Connection) DriverManager.getConnection(binUrl);
+
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("CREATE OR REPLACE PROCEDURE dummy_proc() AS BEGIN END");
+    }
   }
 
   @AfterAll

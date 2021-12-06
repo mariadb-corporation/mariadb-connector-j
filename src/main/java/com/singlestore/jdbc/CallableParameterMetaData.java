@@ -152,6 +152,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "FLOAT":
         return Types.FLOAT;
       case "DECIMAL":
+      case "NEWDECIMAL":
         return Types.DECIMAL;
       case "CHAR":
         return isBinary ? Types.BINARY : Types.CHAR;
@@ -253,6 +254,7 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
       case "FLOAT":
         return float.class.getName();
       case "DECIMAL":
+      case "NEWDECIMAL":
         return BigDecimal.class.getName();
       case "REAL":
       case "DOUBLE":
