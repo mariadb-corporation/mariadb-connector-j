@@ -18,6 +18,7 @@ import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
+import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,7 @@ public class Statement implements java.sql.Statement {
   protected boolean escape;
   protected List<Completion> results;
   protected Completion currResult;
+  protected InputStream localInfileInputStream;
 
   public Statement(
       Connection con,
@@ -295,6 +297,22 @@ public class Statement implements java.sql.Statement {
           .create("Query timeout cannot be negative : asked for " + seconds, "42000");
     }
     this.queryTimeout = seconds;
+  }
+
+  /**
+   * Sets the inputStream that will be used for the next execute that uses "LOAD DATA LOCAL INFILE".
+   * The name specified as local file/URL will be ignored.
+   *
+   * @param inputStream inputStream instance, that will be used to send data to server
+   * @throws SQLException if statement is closed
+   */
+  public void setNextLocalInfileInputStream(InputStream inputStream) throws SQLException {
+    checkNotClosed();
+    localInfileInputStream = inputStream;
+  }
+
+  public InputStream getNextLocalInfileInputStream() {
+    return localInfileInputStream;
   }
 
   /**
@@ -1413,7 +1431,7 @@ public class Statement implements java.sql.Statement {
     }
   }
 
-  public List<Completion> executeInternalBatchPipeline() throws SQLException {
+  private List<Completion> executeInternalBatchPipeline() throws SQLException {
     QueryPacket[] packets = new QueryPacket[batchQueries.size()];
     for (int i = 0; i < batchQueries.size(); i++) {
       String sql = batchQueries.get(i);
@@ -1430,7 +1448,7 @@ public class Statement implements java.sql.Statement {
             closeOnCompletion);
   }
 
-  public List<Completion> executeInternalBatchStandard() throws SQLException {
+  private List<Completion> executeInternalBatchStandard() throws SQLException {
     List<Completion> results = new ArrayList<>();
     try {
       for (int i = 0; i < batchQueries.size(); i++) {

@@ -105,6 +105,8 @@ public class LocalInfileTest extends Common {
 
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
       stmt.execute(
           "LOAD DATA LOCAL INFILE '"
               + temp.getCanonicalPath().replace("\\", "/")
@@ -218,5 +220,153 @@ public class LocalInfileTest extends Common {
     long maxAllowedPacket = rs.getLong(1);
     Assumptions.assumeTrue(maxAllowedPacket < 105_000_000);
     checkBigLocalInfile(maxAllowedPacket + 1024);
+  }
+
+  @Test
+  public void testInputStream() throws Exception {
+    byte[] data = "1\thello\n2\tworld\n".getBytes();
+    String fileName = "nonExistentFile";
+
+    try (com.singlestore.jdbc.Connection con = createCon("allowLocalInfile")) {
+      com.singlestore.jdbc.Statement stmt = con.createStatement();
+      stmt.setNextLocalInfileInputStream(new ByteArrayInputStream(data));
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.execute(
+          "LOAD DATA LOCAL INFILE '"
+              + fileName
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      assertFalse(rs.next());
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.setNextLocalInfileInputStream(new ByteArrayInputStream(data));
+      stmt.addBatch(
+          "LOAD DATA LOCAL INFILE '"
+              + fileName
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      stmt.addBatch("SET UNIQUE_CHECKS=1");
+      stmt.executeBatch();
+
+      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  public void testReplaceInputStream() throws Exception {
+    byte[] data = "1\thello\n2\tworld\n".getBytes();
+    byte[] data2 = "3\tfoo\n4\tbar\n".getBytes();
+    String fileName = "nonExistentFile";
+
+    try (com.singlestore.jdbc.Connection con = createCon("allowLocalInfile")) {
+      com.singlestore.jdbc.Statement stmt = con.createStatement();
+      stmt.setNextLocalInfileInputStream(new ByteArrayInputStream(data));
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.setNextLocalInfileInputStream(new ByteArrayInputStream(data2));
+      stmt.execute(
+          "LOAD DATA LOCAL INFILE '"
+              + fileName
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(3, rs.getInt(1));
+      assertEquals("foo", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(4, rs.getInt(1));
+      assertEquals("bar", rs.getString(2));
+      assertFalse(rs.next());
+    }
+  }
+
+  private class ErrorStream extends ByteArrayInputStream {
+    private int reads = 0;
+
+    public ErrorStream(byte[] buf) {
+      super(buf);
+    }
+
+    @Override
+    public int read(byte[] b) throws IOException {
+      if (reads++ < 5) {
+        return read(b, 0, 2);
+      }
+      throw new IOException("Test error");
+    }
+  }
+
+  @Test
+  public void testErrorInInputStream() throws Exception {
+    byte[] data = "1\thello\n2\tworld\n".getBytes();
+    String fileName = "nonExistentFile";
+
+    try (com.singlestore.jdbc.Connection con = createCon("allowLocalInfile")) {
+      com.singlestore.jdbc.Statement stmt = con.createStatement();
+      stmt.setNextLocalInfileInputStream(new ErrorStream(data));
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      assertThrowsContains(
+          SQLException.class,
+          () ->
+              stmt.execute(
+                  "LOAD DATA LOCAL INFILE '"
+                      + fileName
+                      + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
+          "Test error");
+    }
+  }
+
+  @Test
+  public void testBigInputStream() throws Exception {
+    int recordNumber = 16777216;
+    ByteArrayInputStream data;
+    try (StringWriter writer = new StringWriter()) {
+      // Every row is 8 bytes to make counting easier
+      for (long i = 0; i < recordNumber; i++) {
+        writer.write("\"a\",\"b\"");
+        writer.write("\n");
+      }
+      data = new ByteArrayInputStream(writer.toString().getBytes());
+    }
+
+    String fileName = "nonExistentFile";
+
+    try (com.singlestore.jdbc.Connection con = createCon("allowLocalInfile")) {
+      com.singlestore.jdbc.Statement stmt = con.createStatement();
+      stmt.setNextLocalInfileInputStream(data);
+
+      stmt.execute("TRUNCATE `infile`");
+      int insertNumber =
+          stmt.executeUpdate(
+              "LOAD DATA LOCAL INFILE '"
+                  + fileName
+                  + "' "
+                  + "INTO TABLE `infile` "
+                  + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
+                  + "LINES TERMINATED BY '\\n' (`a`, `b`)");
+      assertEquals(insertNumber, recordNumber);
+      stmt.setFetchSize(1000); // to avoid using too much memory for tests
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM `infile`")) {
+        for (int i = 0; i < recordNumber; i++) {
+          assertTrue(rs.next());
+          assertEquals("a", rs.getString(1));
+          assertEquals("b", rs.getString(2));
+        }
+        assertFalse(rs.next());
+      }
+    }
   }
 }

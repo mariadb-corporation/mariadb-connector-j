@@ -84,55 +84,74 @@ public interface ClientMessage {
             .withSql(this.description())
             .create(
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
+
+        // *********************************************************************************************************
+        // * LOCAL_INFILE response
+        // *********************************************************************************************************
       case 0xfb:
         buf.skip(1); // skip header
         String fileName = buf.readStringNullEnd();
-        InputStream is = null;
-        try {
-          is = new FileInputStream(fileName);
+        InputStream is = stmt.getNextLocalInfileInputStream();
+        stmt.setNextLocalInfileInputStream(null);
 
-          byte[] fileBuf = new byte[8192];
+        if (is == null) {
+          try {
+            is = new FileInputStream(fileName);
+          } catch (FileNotFoundException f) {
+            writer.writeEmptyPacket();
+            readPacket(
+                stmt,
+                fetchSize,
+                maxRows,
+                resultSetConcurrency,
+                resultSetType,
+                closeOnCompletion,
+                reader,
+                writer,
+                context,
+                exceptionFactory,
+                lock,
+                traceEnable);
+            throw exceptionFactory
+                .withSql(this.description())
+                .create("Could not send file : " + f.getMessage(), "HY000", f);
+          }
+        }
+
+        try {
+          byte[] streamBuf = new byte[8192];
           int len;
-          while ((len = is.read(fileBuf)) > 0) {
-            writer.writeBytes(fileBuf, 0, len);
+          while (true) {
+            try {
+              len = is.read(streamBuf);
+            } catch (IOException e) {
+              throw exceptionFactory
+                  .withSql(this.description())
+                  .create("Could not read the input stream : " + e.getMessage(), "HY000", e);
+            }
+            if (len <= 0) {
+              break;
+            }
+            writer.writeBytes(streamBuf, 0, len);
             writer.flush();
           }
-          writer.writeEmptyPacket();
-          return readPacket(
-              stmt,
-              fetchSize,
-              maxRows,
-              resultSetConcurrency,
-              resultSetType,
-              closeOnCompletion,
-              reader,
-              writer,
-              context,
-              exceptionFactory,
-              lock,
-              traceEnable);
-
-        } catch (FileNotFoundException f) {
-          writer.writeEmptyPacket();
-          readPacket(
-              stmt,
-              fetchSize,
-              maxRows,
-              resultSetConcurrency,
-              resultSetType,
-              closeOnCompletion,
-              reader,
-              writer,
-              context,
-              exceptionFactory,
-              lock,
-              traceEnable);
-          throw exceptionFactory
-              .withSql(this.description())
-              .create("Could not send file : " + f.getMessage(), "HY000", f);
         } finally {
-          if (is != null) is.close();
+          is.close();
         }
+        writer.writeEmptyPacket();
+        return readPacket(
+            stmt,
+            fetchSize,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion,
+            reader,
+            writer,
+            context,
+            exceptionFactory,
+            lock,
+            traceEnable);
 
         // *********************************************************************************************************
         // * ResultSet
