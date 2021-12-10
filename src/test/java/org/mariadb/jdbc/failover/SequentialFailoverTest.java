@@ -55,6 +55,7 @@ package org.mariadb.jdbc.failover;
 import static org.junit.Assert.*;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Set;
@@ -65,6 +66,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -80,7 +82,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxySequentialUrl;
-    Assume.assumeTrue(initialSequentialUrl != null);
   }
 
   /** Initialisation. */
@@ -91,7 +92,70 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
   }
 
   @Test
+  public void connectionSequenceAndBack() throws Throwable {
+    Assume.assumeTrue(
+            !"maxscale".equals(System.getenv("srv"))
+                    && !"skysql".equals(System.getenv("srv"))
+                    && !"skysql-ha".equals(System.getenv("srv")));
+    TcpProxy proxy1 = new TcpProxy(hostname, port);
+    TcpProxy proxy2 = new TcpProxy(hostname, port);
+    String connString =
+        String.format(
+            "jdbc:mariadb:sequential://localhost:%s,localhost:%s/%s?user=%s&password=%s&restrictedAuth=none&%s&retriesAllDown=2&connectTimeout=500",
+            proxy1.getLocalPort(),
+            proxy2.getLocalPort(),
+            database,
+            username,
+            password,
+            defaultOther);
+    try (MariaDbConnection con = (MariaDbConnection) DriverManager.getConnection(connString)) {
+      Statement stmt = con.createStatement();
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy1.getLocalPort(), con.__test_host().port);
+      proxy1.stop();
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy2.getLocalPort(), con.__test_host().port);
+      proxy1.restart();
+      proxy2.stop();
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy1.getLocalPort(), con.__test_host().port);
+    } finally {
+      proxy1.stop();
+      proxy2.stop();
+    }
+
+    proxy2.restart();
+    try (MariaDbConnection con = (MariaDbConnection) DriverManager.getConnection(connString)) {
+      Statement stmt = con.createStatement();
+
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy2.getLocalPort(), con.__test_host().port);
+
+      proxy1.restart();
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy2.getLocalPort(), con.__test_host().port);
+
+      proxy2.stop();
+      stmt.executeQuery("SELECT 1");
+      assertEquals(proxy1.getLocalPort(), con.__test_host().port);
+
+      proxy1.stop();
+      try {
+        stmt.executeQuery("SELECT 1");
+        fail("must have thrown error");
+      } catch (Exception e) {
+        // expected error
+      }
+
+    } finally {
+      proxy1.stop();
+      proxy2.stop();
+    }
+  }
+
+  @Test
   public void connectionOrder() throws Throwable {
+    Assume.assumeTrue(initialSequentialUrl != null);
 
     Assume.assumeTrue(!initialGaleraUrl.contains("failover"));
     UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
@@ -107,6 +171,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
   @Test
   public void checkStaticBlacklist() throws Throwable {
+    Assume.assumeTrue(initialSequentialUrl != null);
     assureProxy();
     try (Connection connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true)) {
       Statement st = connection.createStatement();
@@ -161,6 +226,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
   @Test
   public void testMultiHostWriteOnMaster() {
+    Assume.assumeTrue(initialSequentialUrl != null);
     Assume.assumeTrue(initialGaleraUrl != null);
     try (Connection connection = getNewConnection()) {
       Statement stmt = connection.createStatement();
@@ -174,6 +240,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
   @Test
   public void pingReconnectAfterRestart() throws Throwable {
+    Assume.assumeTrue(initialSequentialUrl != null);
     try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);

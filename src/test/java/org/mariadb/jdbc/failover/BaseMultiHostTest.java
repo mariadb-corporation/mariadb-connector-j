@@ -95,7 +95,11 @@ public class BaseMultiHostTest {
   protected static String proxyUrl;
   protected static String jobId;
   protected static String username;
-  private static String hostname;
+  protected static String database;
+  protected static String password;
+  protected static String defaultOther;
+  protected static String hostname;
+  protected static int port;
   public HaMode currentType;
 
   @Rule
@@ -131,7 +135,6 @@ public class BaseMultiHostTest {
         BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
       Properties prop = new Properties();
       prop.load(inputStream);
-      String defaultOther;
       String val = System.getenv("TEST_REQUIRE_TLS");
       if ("1".equals(val)) {
         String cert = System.getenv("TEST_DB_SERVER_CERT");
@@ -141,15 +144,13 @@ public class BaseMultiHostTest {
       }
       hostname = get("DB_HOST", prop);
       username = get("DB_USER", prop);
+      port = Integer.parseInt(get("DB_PORT", prop));
+      database = get("DB_DATABASE", prop);
+      password = get("DB_PASSWORD", prop);
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
-              hostname,
-              Integer.parseInt(get("DB_PORT", prop)),
-              get("DB_DATABASE", prop),
-              username,
-              get("DB_PASSWORD", prop),
-              defaultOther);
+              hostname, port, database, username, password, defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();

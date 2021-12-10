@@ -1776,4 +1776,8 @@ public class MariaDbConnection implements Connection {
   public boolean includeThreadsTraces() {
     return options.includeThreadDumpInDeadlockExceptions;
   }
+
+  public HostAddress __test_host() {
+    return protocol.getHostAddress();
+  }
 }
