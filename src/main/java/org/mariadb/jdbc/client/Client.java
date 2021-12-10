@@ -14,9 +14,9 @@ import org.mariadb.jdbc.message.ClientMessage;
 
 public interface Client extends AutoCloseable {
 
-  List<Completion> execute(ClientMessage message) throws SQLException;
+  List<Completion> execute(ClientMessage message, boolean canRedo) throws SQLException;
 
-  List<Completion> execute(ClientMessage message, org.mariadb.jdbc.Statement stmt)
+  List<Completion> execute(ClientMessage message, org.mariadb.jdbc.Statement stmt, boolean canRedo)
       throws SQLException;
 
   List<Completion> execute(
@@ -26,7 +26,8 @@ public interface Client extends AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException;
 
   List<Completion> executePipeline(
@@ -36,7 +37,8 @@ public interface Client extends AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException;
 
   void readStreamingResults(

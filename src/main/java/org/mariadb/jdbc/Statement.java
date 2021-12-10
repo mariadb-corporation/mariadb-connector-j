@@ -879,7 +879,8 @@ public class Statement implements java.sql.Statement {
                   maxRows,
                   this.resultSetConcurrency,
                   this.resultSetType,
-                  closeOnCompletion);
+                  closeOnCompletion,
+                  false);
     } finally {
       lock.unlock();
     }
@@ -1423,7 +1424,8 @@ public class Statement implements java.sql.Statement {
             0L,
             ResultSet.CONCUR_READ_ONLY,
             ResultSet.TYPE_FORWARD_ONLY,
-            closeOnCompletion);
+            closeOnCompletion,
+            false);
   }
 
   public List<Completion> executeInternalBatchStandard() throws SQLException {
@@ -1439,7 +1441,8 @@ public class Statement implements java.sql.Statement {
                     0L,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    closeOnCompletion));
+                    closeOnCompletion,
+                    false));
       }
       return results;
     } catch (SQLException sqle) {

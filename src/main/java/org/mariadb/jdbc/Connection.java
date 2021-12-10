@@ -75,7 +75,7 @@ public class Connection implements java.sql.Connection {
   public void cancelCurrentQuery() throws SQLException {
     try (Client cli =
         new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
-      cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()));
+      cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
     }
   }
 
@@ -161,7 +161,8 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       getContext().addStateFlag(ConnectionState.STATE_AUTOCOMMIT);
-      client.execute(new QueryPacket(((autoCommit) ? "set autocommit=1" : "set autocommit=0")));
+      client.execute(
+          new QueryPacket(((autoCommit) ? "set autocommit=1" : "set autocommit=0")), true);
     } finally {
       lock.unlock();
     }
@@ -172,7 +173,7 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        client.execute(new QueryPacket("COMMIT"));
+        client.execute(new QueryPacket("COMMIT"), false);
       }
     } finally {
       lock.unlock();
@@ -184,7 +185,7 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        client.execute(new QueryPacket("ROLLBACK"));
+        client.execute(new QueryPacket("ROLLBACK"), true);
       }
     } finally {
       lock.unlock();
@@ -279,7 +280,7 @@ public class Connection implements java.sql.Connection {
     lock.lock();
     try {
       getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      client.execute(new ChangeDbPacket(catalog));
+      client.execute(new ChangeDbPacket(catalog), true);
       client.getContext().setDatabase(catalog);
     } finally {
       lock.unlock();
@@ -349,7 +350,7 @@ public class Connection implements java.sql.Connection {
       checkNotClosed();
       getContext().addStateFlag(ConnectionState.STATE_TRANSACTION_ISOLATION);
       client.getContext().setTransactionIsolationLevel(level);
-      client.execute(new QueryPacket(query));
+      client.execute(new QueryPacket(query), true);
     } finally {
       lock.unlock();
     }
@@ -485,14 +486,14 @@ public class Connection implements java.sql.Connection {
   @Override
   public Savepoint setSavepoint() throws SQLException {
     MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
-    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
+    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
   }
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
     MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
-    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"));
+    client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
   }
 
@@ -507,7 +508,8 @@ public class Connection implements java.sql.Connection {
               new QueryPacket(
                   "ROLLBACK TO SAVEPOINT `"
                       + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                      + "`"));
+                      + "`"),
+              true);
         } else {
           throw exceptionFactory.create("Unknown savepoint type");
         }
@@ -528,7 +530,8 @@ public class Connection implements java.sql.Connection {
               new QueryPacket(
                   "RELEASE SAVEPOINT `"
                       + ((Connection.MariaDbSavepoint) savepoint).rawValue()
-                      + "`"));
+                      + "`"),
+              true);
         } else {
           throw exceptionFactory.create("Unknown savepoint type");
         }
@@ -620,7 +623,7 @@ public class Connection implements java.sql.Connection {
     }
     lock.lock();
     try {
-      client.execute(PingPacket.INSTANCE);
+      client.execute(PingPacket.INSTANCE, true);
       return true;
     } catch (SQLException sqle) {
       if (poolConnection != null) {
@@ -809,12 +812,12 @@ public class Connection implements java.sql.Connection {
                     && getContext().getVersion().versionGreaterOrEqual(10, 2, 22)));
 
     if (useComReset) {
-      client.execute(ResetPacket.INSTANCE);
+      client.execute(ResetPacket.INSTANCE, true);
     }
 
     // in transaction => rollback
     if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      client.execute(new QueryPacket("ROLLBACK"));
+      client.execute(new QueryPacket("ROLLBACK"), true);
     }
 
     int stateFlag = getContext().getStateFlag();

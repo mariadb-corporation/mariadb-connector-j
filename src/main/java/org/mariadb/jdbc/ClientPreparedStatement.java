@@ -76,7 +76,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   maxRows,
                   resultSetConcurrency,
                   resultSetType,
-                  closeOnCompletion);
+                  closeOnCompletion,
+                  false);
     } finally {
       lock.unlock();
     }
@@ -120,7 +121,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    closeOnCompletion);
+                    closeOnCompletion,
+                    false);
         // in case of failover, prepare is done in failover, skipping prepare result
         if (res.get(0) instanceof PrepareResultPacket) {
           results = res.subList(1, res.size());
@@ -137,7 +139,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                     maxRows,
                     resultSetConcurrency,
                     resultSetType,
-                    closeOnCompletion);
+                    closeOnCompletion,
+                    false);
       }
     } catch (SQLException bue) {
       results = null;
@@ -166,7 +169,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   maxRows,
                   ResultSet.CONCUR_READ_ONLY,
                   ResultSet.TYPE_FORWARD_ONLY,
-                  closeOnCompletion);
+                  closeOnCompletion,
+                  false);
     } catch (SQLException bue) {
       results = null;
       throw bue;
@@ -192,7 +196,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    closeOnCompletion));
+                    closeOnCompletion,
+                    false));
       }
     } catch (SQLException bue) {
       BatchUpdateException exception =
@@ -383,7 +388,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   public ResultSetMetaData getMetaData() throws SQLException {
 
     // send COM_STMT_PREPARE
-    if (prepareResult == null) con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+    if (prepareResult == null)
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
         exceptionFactory(), prepareResult.getColumns(), con.getContext().getConf(), false);
   }
@@ -405,7 +411,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
       try {
-        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+        con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
       } catch (SQLException e) {
         return new SimpleParameterMetaData(exceptionFactory(), parser.getParamCount());
       }

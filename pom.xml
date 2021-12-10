@@ -101,7 +101,7 @@
                 <configuration>
                     <showWarnings>true</showWarnings>
                     <compilerArgs>
-                        <arg>-Xlint:all,-options,-path,-processing,-requires-transitive-automatic,-requires-automatic</arg>
+                        <arg>-Xlint:all,-options,-path,-processing</arg>
                     </compilerArgs>
                     <source>1.8</source>
                     <target>1.8</target>

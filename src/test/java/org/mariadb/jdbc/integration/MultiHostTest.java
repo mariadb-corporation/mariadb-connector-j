@@ -210,10 +210,7 @@ public class MultiHostTest extends Common {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
-      assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> stmt.executeQuery("SELECT @con"),
-          "Driver has reconnect connection after a communications link failure with");
+      con.isValid(1000);
     }
 
     Thread.sleep(50);

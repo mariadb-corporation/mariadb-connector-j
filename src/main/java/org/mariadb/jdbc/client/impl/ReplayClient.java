@@ -64,7 +64,8 @@ public class ReplayClient extends StandardClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> res =
         super.executePipeline(
@@ -74,7 +75,8 @@ public class ReplayClient extends StandardClient {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
     ((RedoContext) context).saveRedo(messages);
     return res;
   }
@@ -87,7 +89,8 @@ public class ReplayClient extends StandardClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> completions =
         super.execute(
@@ -97,7 +100,8 @@ public class ReplayClient extends StandardClient {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
     ((RedoContext) context).saveRedo(message);
     return completions;
   }

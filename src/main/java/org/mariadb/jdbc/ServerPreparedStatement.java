@@ -52,7 +52,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         defaultFetchSize);
     prepareResult = con.getContext().getPrepareCache().get(sql, this);
     if (prepareResult == null && !PREPARABLE_STATEMENT_PATTERN.matcher(sql).find()) {
-      con.getClient().execute(new PreparePacket(sql), this);
+      con.getClient().execute(new PreparePacket(sql), this, true);
     }
     parameters = new ParameterList();
   }
@@ -101,7 +101,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                   maxRows,
                   resultSetConcurrency,
                   resultSetType,
-                  closeOnCompletion);
+                  closeOnCompletion,
+                  false);
       results = res.subList(1, res.size());
     } catch (SQLException ex) {
       results = null;
@@ -114,7 +115,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null) {
       prepareResult = con.getContext().getPrepareCache().get(cmd, this);
       if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(cmd), this);
+        con.getClient().execute(new PreparePacket(cmd), this, true);
       }
     }
 
@@ -129,7 +130,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                 maxRows,
                 resultSetConcurrency,
                 resultSetType,
-                closeOnCompletion);
+                closeOnCompletion,
+                false);
   }
 
   private void executeInternalPreparedBatch() throws SQLException {
@@ -176,7 +178,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    closeOnCompletion);
+                    closeOnCompletion,
+                    false);
 
         // in case of failover, prepare is done in failover, skipping prepare result
         if (res.get(0) instanceof PrepareResultPacket) {
@@ -194,7 +197,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                     maxRows,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    closeOnCompletion);
+                    closeOnCompletion,
+                    false);
       }
 
     } catch (SQLException bue) {
@@ -248,7 +252,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
             maxRows,
             ResultSet.CONCUR_READ_ONLY,
             ResultSet.TYPE_FORWARD_ONLY,
-            closeOnCompletion);
+            closeOnCompletion,
+            false);
   }
 
   private List<Completion> executeBunchPrepare(String cmd, int index, int maxCmd)
@@ -268,7 +273,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                 maxRows,
                 ResultSet.CONCUR_READ_ONLY,
                 ResultSet.TYPE_FORWARD_ONLY,
-                closeOnCompletion);
+                closeOnCompletion,
+                false);
     // in case of failover, prepare is done in failover, skipping prepare result
     if (res.get(0) instanceof PrepareResultPacket) {
       return res.subList(1, res.size());
@@ -293,12 +299,12 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       if (prepareResult == null) {
         prepareResult = con.getContext().getPrepareCache().get(cmd, this);
         if (prepareResult == null) {
-          con.getClient().execute(new PreparePacket(cmd), this);
+          con.getClient().execute(new PreparePacket(cmd), this, false);
         }
       }
       try {
         ExecutePacket execute = new ExecutePacket(prepareResult, batchParameter, cmd, this);
-        tmpResults.addAll(con.getClient().execute(execute, this));
+        tmpResults.addAll(con.getClient().execute(execute, this, false));
       } catch (SQLException e) {
         if (error == null) error = e;
       }
@@ -517,7 +523,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
     }
 
     return new org.mariadb.jdbc.client.result.ResultSetMetaData(
@@ -540,7 +546,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   public java.sql.ParameterMetaData getParameterMetaData() throws SQLException {
     // send COM_STMT_PREPARE
     if (prepareResult == null) {
-      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this);
+      con.getClient().execute(new PreparePacket(escapeTimeout(sql)), this, true);
     }
 
     return new ParameterMetaData(exceptionFactory(), prepareResult.getParameters());

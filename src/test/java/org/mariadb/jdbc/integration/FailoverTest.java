@@ -28,9 +28,24 @@ public class FailoverTest extends Common {
       proxy.restart(200);
       assertThrowsContains(
           SQLTransientConnectionException.class,
-          () -> stmt.executeQuery("SELECT 1"),
+          () -> stmt.execute("SELECT 1"),
           "Driver has reconnect connection after a communications link failure");
       ;
+      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+    }
+  }
+
+  @Test
+  public void simpleFailoverTransactionReplayNoQuery() throws SQLException {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
+      con.setNetworkTimeout(Runnable::run, 200);
+      long threadId = con.getContext().getThreadId();
+      Statement stmt = con.createStatement();
+      proxy.restart(200);
+
+      con.isValid(1000);
       Assertions.assertTrue(con.getContext().getThreadId() != threadId);
     }
   }

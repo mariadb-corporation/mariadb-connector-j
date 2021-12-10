@@ -245,7 +245,8 @@ public class StandardClient implements Client, AutoCloseable {
       String timeZone = null;
       try {
         Result res =
-            (Result) execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone")).get(0);
+            (Result)
+                execute(new QueryPacket("SELECT @@time_zone, @@system_time_zone"), true).get(0);
         res.next();
         timeZone = res.getString(1);
         if ("SYSTEM".equals(timeZone)) {
@@ -258,7 +259,8 @@ public class StandardClient implements Client, AutoCloseable {
                         new QueryPacket(
                             "SHOW VARIABLES WHERE Variable_name in ("
                                 + "'system_time_zone',"
-                                + "'time_zone')"))
+                                + "'time_zone')"),
+                        true)
                     .get(0);
         String systemTimeZone = null;
         while (res.next()) {
@@ -309,7 +311,14 @@ public class StandardClient implements Client, AutoCloseable {
       }
       res =
           executePipeline(
-              msgs, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+              msgs,
+              null,
+              0,
+              0L,
+              ResultSet.CONCUR_READ_ONLY,
+              ResultSet.TYPE_FORWARD_ONLY,
+              false,
+              true);
 
       // read max allowed packet
       Result result = (Result) res.get(1);
@@ -439,15 +448,29 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
-  public List<Completion> execute(ClientMessage message) throws SQLException {
+  public List<Completion> execute(ClientMessage message, boolean canRedo) throws SQLException {
     return execute(
-        message, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        null,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
-  public List<Completion> execute(ClientMessage message, org.mariadb.jdbc.Statement stmt)
-      throws SQLException {
+  public List<Completion> execute(
+      ClientMessage message, org.mariadb.jdbc.Statement stmt, boolean canRedo) throws SQLException {
     return execute(
-        message, stmt, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        stmt,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   public List<Completion> executePipeline(
@@ -457,7 +480,8 @@ public class StandardClient implements Client, AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> results = new ArrayList<>();
 
@@ -474,7 +498,8 @@ public class StandardClient implements Client, AutoCloseable {
                   maxRows,
                   resultSetConcurrency,
                   resultSetType,
-                  closeOnCompletion));
+                  closeOnCompletion,
+                  canRedo));
         }
       } else {
         for (int i = 0; i < messages.length; i++) {
@@ -545,7 +570,8 @@ public class StandardClient implements Client, AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     int nbResp = sendQuery(message);
     if (nbResp == 1) {
@@ -816,7 +842,7 @@ public class StandardClient implements Client, AutoCloseable {
         // force end by executing an KILL connection
         try (StandardClient cli =
             new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
-          cli.execute(new QueryPacket("KILL " + context.getThreadId()));
+          cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
         } catch (SQLException e) {
           // eat
         }
