@@ -62,7 +62,7 @@ public class DriverTest extends Common {
   @Test
   public void basicInfo() {
     Driver driver = new com.singlestore.jdbc.Driver();
-    assertEquals(0, driver.getMajorVersion());
+    assertEquals(1, driver.getMajorVersion());
     assertTrue(driver.getMinorVersion() > -1);
     assertTrue(driver.jdbcCompliant());
     assertThrows(SQLFeatureNotSupportedException.class, () -> driver.getParentLogger());

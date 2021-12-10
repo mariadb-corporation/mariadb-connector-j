@@ -74,11 +74,13 @@ public class TimestampCodec implements Codec<Timestamp> {
                 1970,
                 Calendar.JANUARY,
                 1,
-                parts[0] * parts[1],
-                parts[0] * parts[2],
-                parts[0] * parts[3] - 1);
+                -parts[1],
+                -parts[2],
+                -parts[3] - (parts[4] > 0 ? 1 : 0));
             t = new Timestamp(cal.getTimeInMillis());
-            t.setNanos(1_000_000_000 - parts[4]);
+            if (parts[4] > 0) {
+              t.setNanos(1_000_000_000 - parts[4]);
+            }
           } else {
             cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
             t = new Timestamp(cal.getTimeInMillis());

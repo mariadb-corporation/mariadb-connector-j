@@ -63,6 +63,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
+      case BIT:
       case STRING:
       case VARSTRING:
       case VARCHAR:

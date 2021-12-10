@@ -1358,7 +1358,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(meta.nullsAreSortedAtEnd());
     assertEquals("SingleStore", meta.getDatabaseProductName());
     assertEquals("SingleStore JDBC", meta.getDriverName());
-    assertTrue(meta.getDriverVersion().startsWith("0."));
+    assertTrue(meta.getDriverVersion().startsWith("1."));
     assertTrue(meta.getDriverMajorVersion() >= 0);
     assertTrue(meta.getDriverMinorVersion() >= 0);
     assertFalse(meta.usesLocalFiles());

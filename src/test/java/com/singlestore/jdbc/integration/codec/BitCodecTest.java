@@ -108,8 +108,8 @@ public class BitCodecTest extends CommonCodecTest {
 
     testErrObject(rs, Double.class);
     testErrObject(rs, Float.class);
-    testObject(rs, Byte.class, Byte.valueOf((byte) 0));
-    testErrObject(rs, byte[].class);
+    testObject(rs, Byte.class, (byte) 0);
+    testArrObject(rs, byte[].class, new byte[] {0, 0, 0, 0, 0, 0, 0, 0});
     testErrObject(rs, Date.class);
     testErrObject(rs, Time.class);
     testErrObject(rs, Timestamp.class);
@@ -490,12 +490,14 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getBytes(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLDataException.class, () -> rs.getBytes(1), "Data type BIT cannot be decoded as byte[]");
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBytes("t1alias"),
-        "Data type BIT cannot be decoded as byte[]");
+    assertArrayEquals(new byte[] {0, 0, 0, 0, 0, 0, 0, 0}, rs.getBytes(1));
+    assertFalse(rs.wasNull());
+    assertArrayEquals(new byte[] {0, 0, 0, 0, 0, 0, 0, 1}, rs.getBytes(2));
+    assertFalse(rs.wasNull());
+    assertArrayEquals(new byte[] {0, 0, 0, 0, 0, 0, 15, 4}, rs.getBytes(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBytes(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

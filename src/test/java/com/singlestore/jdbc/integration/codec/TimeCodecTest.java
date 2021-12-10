@@ -358,6 +358,24 @@ public class TimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(
+        -3020398000L, rs.getTime(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertFalse(rs.wasNull());
+    // Time.valueOf parses -838:59:58 as (starting_point - 838 hours + 59 minutes + 58 seconds),
+    // so pass -839:00:02 to get the correct value instead
+    Time t = Time.valueOf("-839:00:02");
+    assertEquals(Time.valueOf("-839:00:02").getTime(), rs.getTime(1).getTime());
+    assertFalse(rs.wasNull());
+    assertEquals(
+        3020398999L, rs.getTime(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertFalse(rs.wasNull());
+    assertEquals(Time.valueOf("838:59:58").getTime() + 999, rs.getTime(2).getTime());
+    assertFalse(rs.wasNull());
+    // TODO: PLAT-5956
+    // assertEquals(Time.valueOf("0:00:00").getTime(), rs.getTime(3).getTime());
+    // assertFalse(rs.wasNull());
   }
 
   @Test
@@ -457,6 +475,25 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("1969-12-31 05:29:47.45"), rs.getTimestamp(3));
     assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(Timestamp.valueOf("1969-11-27 01:00:02").getTime(), rs.getTimestamp(1).getTime());
+    assertEquals(
+        -3020398000L,
+        rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    assertFalse(rs.wasNull());
+    assertEquals(
+        3020398999L,
+        rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+
+    assertFalse(rs.wasNull());
+    assertEquals(
+        Timestamp.valueOf("1970-02-04 22:59:58.999").getTime(), rs.getTimestamp(2).getTime());
+
+    assertFalse(rs.wasNull());
+    // TODO: PLAT-5956
+    // assertEquals(Timestamp.valueOf("1970-01-01 00:00:00").getTime(), rs.getTime(3).getTime());
+    // assertFalse(rs.wasNull());
   }
 
   @Test
