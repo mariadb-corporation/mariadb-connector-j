@@ -77,7 +77,7 @@ public final class Loggers {
           loggerFactory = new Slf4JLoggerFactory();
         }
       } catch (ClassNotFoundException cle) {
-        // log4j not in the classpath
+        // slf4j not in the classpath
       }
       if (loggerFactory == null) {
         // default to console or use JDK logger if explicitly set by System property

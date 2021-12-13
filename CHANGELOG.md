@@ -66,14 +66,14 @@ correction:
 * CONJ-858 Properties parameter that differ from string not taken in account
 
 ### Easy logging
-If using log4j, just enabled package "org.mariadb.jdbc" log.
+If using slf4J, just enabled package "org.mariadb.jdbc" log.
 
 level ERROR will log connection error
 level WARNING will log query errors
 level DEBUG will log queries
 level TRACE will log all exchanges with server.
 
-If not using log4j, console will be used. 
+If not using slf4J, console will be used. 
 If really wanting to use JDK logger, System property "mariadb.logging.fallback" set to JDK will indicate to use common logging. 
 
 
