@@ -71,7 +71,7 @@ public class FailoverTest extends Common {
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
-            SQLTransientConnectionException.class,
+            SQLException.class,
             () -> stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')"),
             "In progress transaction was lost");
       }
@@ -107,7 +107,7 @@ public class FailoverTest extends Common {
       proxy.restart(300);
       if (transactionReplay) {
         assertThrowsContains(
-            SQLTransientConnectionException.class,
+            SQLException.class,
             () -> con.commit(),
             "Driver has reconnect connection after a communications failure");
 
@@ -122,9 +122,7 @@ public class FailoverTest extends Common {
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
-            SQLTransientConnectionException.class,
-            () -> con.commit(),
-            "In progress transaction was lost");
+            SQLException.class, () -> con.commit(), "In progress transaction was lost");
       }
     }
   }
@@ -168,9 +166,7 @@ public class FailoverTest extends Common {
           p.execute();
         } else {
           assertThrowsContains(
-              SQLTransientConnectionException.class,
-              () -> p.execute(),
-              "In progress transaction was lost");
+              SQLException.class, () -> p.execute(), "In progress transaction was lost");
         }
       }
       if (transactionReplay) {

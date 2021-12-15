@@ -643,11 +643,7 @@ public class ConnectionTest extends Common {
       stmt.execute("CREATE DATABASE someDb");
       con.setCatalog("someDb");
       stmt.execute("DROP DATABASE someDb");
-      if (minVersion(10, 4, 0)
-          && !"maxscale".equals(System.getenv("srv"))
-          && !"skysql-ha".equals(System.getenv("srv"))) {
-        assertNull(con.getCatalog());
-      }
+      assertNull(con.getCatalog());
     }
   }
 

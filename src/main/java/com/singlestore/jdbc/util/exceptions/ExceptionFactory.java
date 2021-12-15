@@ -212,11 +212,8 @@ public class ExceptionFactory {
       case "40":
         returnEx = new SQLTransactionRollbackException(msg, sqlState, errorCode, cause);
         break;
-      case "HY":
-        returnEx = new SQLException(msg, sqlState, errorCode, cause);
-        break;
       default:
-        returnEx = new SQLTransientConnectionException(msg, sqlState, errorCode, cause);
+        returnEx = new SQLException(msg, sqlState, errorCode, cause);
         break;
     }
 

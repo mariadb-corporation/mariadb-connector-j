@@ -78,9 +78,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.execute();
       prep.clearParameters();
       assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> prep.execute(),
-          "Parameter at position 1 is not set");
+          SQLException.class, () -> prep.execute(), "Parameter at position 1 is not set");
     }
   }
 

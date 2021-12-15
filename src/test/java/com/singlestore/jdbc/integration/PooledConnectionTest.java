@@ -26,7 +26,6 @@ import java.sql.*;
 import java.sql.Connection;
 import java.sql.Statement;
 import javax.sql.*;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -260,8 +259,6 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPooledConnectionStatementError() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
 
     stmt.execute("DROP USER IF EXISTS 'dsUser'");
@@ -283,7 +280,25 @@ public class PooledConnectionTest extends Common {
       assertTrue(listener.statementErrorOccured);
     }
     assertTrue(listener.statementClosed);
+    assertTrue(pc.getConnection().isValid(1));
     pc.close();
+  }
+
+  @Test
+  public void testPooledConnectionDBError() throws Exception {
+    Connection con =
+        DriverManager.getConnection(
+            String.format(
+                "jdbc:singlestore://localhost:5506/?user=%s&password=%s&pool=True&maxPoolSize=1",
+                user, password));
+
+    Statement stmt = con.createStatement();
+    try {
+      stmt.execute("SELECT * FROM t WHERE 1=0");
+    } catch (SQLException ignored) {
+    }
+
+    assertTrue(con.isValid(1));
   }
 
   public class MyEventListener implements ConnectionEventListener, StatementEventListener {

@@ -46,12 +46,12 @@ public class BatchTest extends Common {
       prep.setInt(1, 5);
       try {
         prep.addBatch();
-      } catch (SQLTransientConnectionException e) {
+      } catch (SQLException e) {
         assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
       }
       try {
         prep.addBatch();
-      } catch (SQLTransientConnectionException e) {
+      } catch (SQLException e) {
         assertTrue(
             e.getMessage().contains("Parameter at position 2 is not set")
                 || e.getMessage()
@@ -62,18 +62,14 @@ public class BatchTest extends Common {
       prep.setInt(1, 5);
       prep.setString(3, "wrong position");
       assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> prep.addBatch(),
-          "Parameter at position 2 is not set");
+          SQLException.class, () -> prep.addBatch(), "Parameter at position 2 is not set");
 
       prep.setInt(1, 5);
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
       assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> prep.addBatch(),
-          "Parameter at " + "position 1 is not set");
+          SQLException.class, () -> prep.addBatch(), "Parameter at " + "position 1 is not set");
     }
   }
 

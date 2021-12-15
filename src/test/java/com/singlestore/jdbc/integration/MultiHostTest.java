@@ -13,6 +13,7 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.IOException;
 import java.sql.*;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MultiHostTest extends Common {
@@ -77,6 +78,7 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  @Disabled
   public void masterFailover() throws Exception {
 
     Configuration conf = Configuration.parse(mDefUrl);
