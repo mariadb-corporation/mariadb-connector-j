@@ -7,7 +7,7 @@
   <artifactId>singlestore-jdbc-client</artifactId>
   <packaging>jar</packaging>
   <name>singlestore-jdbc-client</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>SingleStore JDBC Driver</description>
   <url>https://https://github.com/memsql/S2-JDBC-Connector</url>
 
@@ -48,7 +48,7 @@
     <url>git://git@github.com:memsql/S2-JDBC-Connector.git</url>
     <connection>scm:git:git@github.com:memsql/S2-JDBC-Connector.git</connection>
     <developerConnection>scm:git:git@github.com:memsql/S2-JDBC-Connector.git</developerConnection>
-    <tag>singlestore-jdbc-client-1.0.0</tag>
+    <tag>singlestore-jdbc-client-1.0.1</tag>
   </scm>
 
 <!--  TODO add issue tracker -->
