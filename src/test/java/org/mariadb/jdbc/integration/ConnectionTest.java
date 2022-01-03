@@ -31,6 +31,13 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void tcpKeepAlive() throws SQLException {
+    try (Connection con = createCon("&tcpKeepAlive=false")) {
+      con.isValid(1);
+    }
+  }
+
+  @Test
   void isValidWrongValue() {
     try {
       sharedConn.isValid(-2000);
