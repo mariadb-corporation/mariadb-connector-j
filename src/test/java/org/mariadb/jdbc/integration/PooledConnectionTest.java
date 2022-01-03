@@ -31,7 +31,7 @@ public class PooledConnectionTest extends Common {
     MyEventListener listener = new MyEventListener();
     pc.addConnectionEventListener(listener);
     pc.addStatementEventListener(listener);
-    connection.close();
+    pc.close();
     assertTrue(listener.closed);
     assertThrows(SQLException.class, () -> connection.createStatement().execute("select 1"));
     pc.removeConnectionEventListener(listener);

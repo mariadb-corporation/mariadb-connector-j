@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.sql.ConnectionEvent;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.impl.StandardClient;
@@ -195,8 +196,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public void close() throws SQLException {
     if (poolConnection != null) {
-      MariaDbPoolConnection poolConnection = this.poolConnection;
-      poolConnection.close();
+      poolConnection.fireConnectionClosed(new ConnectionEvent(poolConnection));
       return;
     }
     client.close();
