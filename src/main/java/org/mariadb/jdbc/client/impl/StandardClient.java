@@ -822,11 +822,6 @@ public class StandardClient implements Client, AutoCloseable {
 
   public void abort(Executor executor) throws SQLException {
 
-    SQLPermission sqlPermission = new SQLPermission("callAbort");
-    SecurityManager securityManager = System.getSecurityManager();
-    if (securityManager != null) {
-      securityManager.checkPermission(sqlPermission);
-    }
     if (executor == null) {
       throw exceptionFactory.create("Cannot abort the connection: null executor passed");
     }

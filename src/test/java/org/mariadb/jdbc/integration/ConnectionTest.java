@@ -449,16 +449,7 @@ public class ConnectionTest extends Common {
     try (Connection connection = createCon()) {
       assertEquals(0, connection.getNetworkTimeout());
       int timeout = 1000;
-      SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-      SecurityManager securityManager = System.getSecurityManager();
-      if (securityManager != null) {
-        try {
-          securityManager.checkPermission(sqlPermission);
-        } catch (SecurityException se) {
-          System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
-          return;
-        }
-      }
+
       Executor executor = Runnable::run;
       connection.setNetworkTimeout(executor, timeout);
       connection.isValid(2);

@@ -699,11 +699,6 @@ public class Connection implements java.sql.Connection {
       throw exceptionFactory.create(
           "Connection.setNetworkTimeout cannot be called with a negative timeout");
     }
-    SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-    SecurityManager securityManager = System.getSecurityManager();
-    if (securityManager != null) {
-      securityManager.checkPermission(sqlPermission);
-    }
     getContext().addStateFlag(ConnectionState.STATE_NETWORK_TIMEOUT);
 
     lock.lock();
