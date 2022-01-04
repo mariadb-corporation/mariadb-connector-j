@@ -721,6 +721,9 @@ public class StatementTest extends Common {
 
   @Test
   public void moreResults() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");

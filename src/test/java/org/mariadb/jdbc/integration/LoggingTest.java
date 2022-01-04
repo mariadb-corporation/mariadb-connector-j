@@ -102,16 +102,12 @@ public class LoggingTest extends Common {
               + "+--------------------------------------------------+------------------+\n"
               + "| 02 00 00 04 01 31                                | .....1           |\n"
               + "+--------------------------------------------------+------------------+\n";
-      if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
         Assertions.assertTrue(
-            contents.contains(rowResultWithEof)
-                || contents.contains(rowResultWithEof.replace("\r\n", "\n")),
+            contents.contains(rowResult)
+                    || contents.contains(rowResult.replace("\r\n", "\n"))
+                    || contents.contains(rowResultWithEof)
+                    || contents.contains(rowResultWithEof.replace("\r\n", "\n")),
             contents);
-      } else {
-        Assertions.assertTrue(
-            contents.contains(rowResult) || contents.contains(rowResult.replace("\r\n", "\n")),
-            contents);
-      }
 
       Assertions.assertTrue(
           contents.contains("pool MariaDB-pool new physical connection ")

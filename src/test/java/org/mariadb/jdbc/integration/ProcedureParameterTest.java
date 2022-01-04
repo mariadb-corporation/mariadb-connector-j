@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.BitSet;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
@@ -35,6 +36,10 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void callUseParameterName() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
     stmt.setInt("a", 1);
     ResultSet rs = stmt.executeQuery();
@@ -45,6 +50,10 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void callWithStrangeParameter() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
       double expected = 5.43;
       call.setDouble("a", expected);
@@ -65,6 +74,10 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void basicProcedure() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(

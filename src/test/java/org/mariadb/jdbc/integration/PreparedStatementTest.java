@@ -652,6 +652,10 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreResults(Connection con) throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
@@ -713,6 +717,10 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreRowLimitedResults(Connection con) throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Statement stmt = con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
