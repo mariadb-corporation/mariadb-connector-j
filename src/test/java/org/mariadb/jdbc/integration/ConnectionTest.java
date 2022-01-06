@@ -762,7 +762,6 @@ public class ConnectionTest extends Common {
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
     sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
-    assertNotEquals(0, sharedConn.getWaitTimeout());
   }
 
   @Test
@@ -814,7 +813,6 @@ public class ConnectionTest extends Common {
     Assumptions.assumeTrue(
         isMariaDBServer()
             && System.getenv("TEST_PAM_USER") != null
-            && !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
 
@@ -824,21 +822,40 @@ public class ConnectionTest extends Common {
     } catch (SQLException sqle) {
       // might be already set
     }
-    stmt.execute("DROP USER IF EXISTS 'testPam'@'%'");
-    stmt.execute("CREATE USER 'testPam'@'%' IDENTIFIED VIA pam USING 'mariadb'");
-    stmt.execute("GRANT SELECT ON *.* TO 'testPam'@'%' IDENTIFIED VIA pam");
+
+    String pamUser = System.getenv("TEST_PAM_USER");
+    String pamPwd = System.getenv("TEST_PAM_PWD");
+
+    stmt.execute("DROP USER IF EXISTS '" + pamUser + "'@'%'");
+    stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
+    stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
 
-    try (Connection connection = createCon("user=testPam&password=myPwd&restrictedAuth=dialog")) {
-      // must have succeeded
-      connection.getCatalog();
+    int testPort = this.port;
+    if (System.getenv("TEST_PAM_PORT") != null) {
+      testPort = Integer.parseInt(System.getenv("TEST_PAM_PORT"));
     }
+    String connStr =
+            String.format(
+                    "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+                    hostname, testPort, database, pamUser, pamPwd, defaultOther);
+    try {
+      try (Connection connection =
+          DriverManager.getConnection(connStr + "&restrictedAuth=dialog")) {
+        // must have succeeded
+        connection.getCatalog();
+      }
+    } catch (SQLException e) {
+      System.err.println("fail with connectionString : " + connStr + "&restrictedAuth=dialog");
+      throw e;
+    }
+
     Common.assertThrowsContains(
         SQLException.class,
-        () -> createCon("user=testPam&password=myPwd&restrictedAuth=other"),
+        () -> DriverManager.getConnection(connStr + "&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
 
-    stmt.execute("drop user testPam@'%'");
+    stmt.execute("drop user " + pamUser + "@'%'");
   }
 
   @Nested
@@ -943,7 +960,7 @@ public class ConnectionTest extends Common {
         String.format(
             "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
             sharedConn.getCatalog(), path);
-    System.out.println(url);
+
     try (java.sql.Connection connection = DriverManager.getConnection(url)) {
       connection.setNetworkTimeout(null, 300);
       rs = connection.createStatement().executeQuery("select 1");
