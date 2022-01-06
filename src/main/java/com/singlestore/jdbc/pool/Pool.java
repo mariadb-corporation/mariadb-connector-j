@@ -74,7 +74,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     idleConnections = new LinkedBlockingDeque<>();
     int minDelay =
-        Integer.parseInt(conf.nonMappedOptions().getProperty("testMinRemovalDelay", "30"));
+        Integer.parseInt(conf.nonMappedOptions().getProperty("testMaxRemovalDelay", "30"));
     int scheduleDelay = Math.min(minDelay, conf.maxIdleTime() / 2);
     this.poolExecutor = poolExecutor;
     scheduledFuture =

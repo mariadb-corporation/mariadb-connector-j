@@ -376,7 +376,13 @@ public class Configuration {
       this.minPoolSize = this.maxPoolSize;
     }
 
-    if (maxIdleTime != null) this.maxIdleTime = maxIdleTime;
+    if (maxIdleTime != null) {
+      if (maxIdleTime < 2) {
+        throw new IllegalArgumentException(
+            String.format("Wrong argument value '%d' for maxIdleTime, must be >= 2", maxIdleTime));
+      }
+      this.maxIdleTime = maxIdleTime;
+    }
     if (registerJmxPool != null) this.registerJmxPool = registerJmxPool;
     if (poolValidMinDelay != null) this.poolValidMinDelay = poolValidMinDelay;
     if (useResetConnection != null) this.useResetConnection = useResetConnection;

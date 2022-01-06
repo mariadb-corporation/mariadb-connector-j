@@ -76,7 +76,7 @@ public class LoggingTest extends Common {
 
     SingleStorePoolDataSource ds =
         new SingleStorePoolDataSource(
-            mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMinRemovalDelay=2");
+            mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMaxRemovalDelay=2");
     Thread.sleep(4000);
     PooledConnection pc = ds.getPooledConnection();
     pc.getConnection().isValid(1);

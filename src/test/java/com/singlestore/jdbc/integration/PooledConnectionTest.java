@@ -50,12 +50,22 @@ public class PooledConnectionTest extends Common {
   public void testPoolWait() throws Exception {
     try (SingleStorePoolDataSource ds =
         new SingleStorePoolDataSource(
-            mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMinRemovalDelay=2")) {
+            mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=2&testMaxRemovalDelay=2")) {
       Thread.sleep(4000);
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
       pc.close();
     }
+  }
+
+  @Test
+  public void testPoolInvalidIdleTime() {
+    assertThrowsContains(
+        SQLException.class,
+        () ->
+            new SingleStorePoolDataSource(
+                mDefUrl + "&sessionVariables=wait_timeout=1&maxIdleTime=1&testMaxRemovalDelay=2"),
+        "Wrong argument value '1' for maxIdleTime, must be >= 2");
   }
 
   @Test

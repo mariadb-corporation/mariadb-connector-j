@@ -360,7 +360,7 @@ public class PoolDataSourceTest extends Common {
     try (SingleStorePoolDataSource pool =
         new SingleStorePoolDataSource(
             mDefUrl
-                + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout&testMinRemovalDelay=50&maxIdleTime=100")) {
+                + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout&testMaxRemovalDelay=50&maxIdleTime=100")) {
       // wait to ensure pool has time to create 3 connections
       Thread.sleep(1_000);
 
@@ -383,7 +383,7 @@ public class PoolDataSourceTest extends Common {
     try (SingleStorePoolDataSource pool =
         new SingleStorePoolDataSource(
             mDefUrl
-                + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection&testMinRemovalDelay=30&maxIdleTime=100")) {
+                + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection&testMaxRemovalDelay=30&maxIdleTime=100")) {
       try (Connection connection = pool.getConnection()) {
         connection.isValid(1);
         Set<ObjectName> objectNames = server.queryNames(filter, null);
