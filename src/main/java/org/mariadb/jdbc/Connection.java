@@ -727,10 +727,6 @@ public class Connection implements java.sql.Connection {
     return iface.isInstance(this);
   }
 
-  public int getWaitTimeout() {
-    return client.getWaitTimeout();
-  }
-
   public Client getClient() {
     return client;
   }
@@ -822,7 +818,7 @@ public class Connection implements java.sql.Connection {
           setNetworkTimeout(null, conf.socketTimeout());
         }
         if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit());
+          setAutoCommit(conf.autocommit() == null ? true : conf.autocommit());
         }
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());
@@ -831,7 +827,10 @@ public class Connection implements java.sql.Connection {
           setReadOnly(false); // default to master connection
         }
         if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
-          setTransactionIsolation(conf.transactionIsolation().getLevel());
+          setTransactionIsolation(
+              conf.transactionIsolation() == null
+                  ? java.sql.Connection.TRANSACTION_REPEATABLE_READ
+                  : conf.transactionIsolation().getLevel());
         }
       } catch (SQLException sqle) {
         throw exceptionFactory.create("error resetting connection");

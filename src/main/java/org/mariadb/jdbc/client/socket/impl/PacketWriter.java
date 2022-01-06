@@ -35,7 +35,7 @@ public class PacketWriter implements Writer {
   protected byte[] buf;
   protected int pos = 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
-  private int maxAllowedPacket = Integer.MAX_VALUE;
+  private int maxAllowedPacket;
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
@@ -51,13 +51,18 @@ public class PacketWriter implements Writer {
    * @param compressSequence compressed packet sequence
    */
   public PacketWriter(
-      OutputStream out, int maxQuerySizeToLog, MutableInt sequence, MutableInt compressSequence) {
+      OutputStream out,
+      int maxQuerySizeToLog,
+      Integer maxAllowedPacket,
+      MutableInt sequence,
+      MutableInt compressSequence) {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
     this.cmdLength = 0;
     this.sequence = sequence;
     this.compressSequence = compressSequence;
+    this.maxAllowedPacket = maxAllowedPacket == null ? Integer.MAX_VALUE : maxAllowedPacket;
   }
 
   public int pos() {
@@ -697,11 +702,6 @@ public class PacketWriter implements Writer {
 
   public boolean throwMaxAllowedLength(int length) {
     return cmdLength + length >= maxAllowedPacket;
-  }
-
-  public void setMaxAllowedPacket(int maxAllowedPacket) {
-    this.maxAllowedPacket = maxAllowedPacket;
-    maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 4);
   }
 
   public void permitTrace(boolean permitTrace) {

@@ -59,11 +59,12 @@ public class Configuration {
 
   // various
   private String timezone = null;
-  private boolean autocommit = true;
+  private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
-  private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
+  private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
+  private Integer maxAllowedPacket = null;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
 
@@ -150,11 +151,12 @@ public class Configuration {
       HaMode haMode,
       Properties nonMappedOptions,
       String timezone,
-      boolean autocommit,
+      Boolean autocommit,
       boolean useMysqlMetadata,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       String geometryDefaultType,
       String restrictedAuth,
       String socketFactory,
@@ -221,6 +223,7 @@ public class Configuration {
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.maxAllowedPacket = maxAllowedPacket;
     this.geometryDefaultType = geometryDefaultType;
     this.restrictedAuth = restrictedAuth;
     this.socketFactory = socketFactory;
@@ -322,6 +325,7 @@ public class Configuration {
       Integer defaultFetchSize,
       String tlsSocketType,
       Integer maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       Integer retriesAllDown,
       String galeraAllowedState,
       Boolean pool,
@@ -399,6 +403,7 @@ public class Configuration {
     if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
     if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
     if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
+    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
     if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
     if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
     if (pool != null) this.pool = pool;
@@ -683,6 +688,7 @@ public class Configuration {
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
+        this.maxAllowedPacket,
         this.geometryDefaultType,
         this.restrictedAuth,
         this.socketFactory,
@@ -904,7 +910,7 @@ public class Configuration {
     return useBulkStmts;
   }
 
-  public boolean autocommit() {
+  public Boolean autocommit() {
     return autocommit;
   }
 
@@ -938,6 +944,10 @@ public class Configuration {
 
   public int maxQuerySizeToLog() {
     return maxQuerySizeToLog;
+  }
+
+  public Integer maxAllowedPacket() {
+    return maxAllowedPacket;
   }
 
   public int retriesAllDown() {
@@ -1188,6 +1198,7 @@ public class Configuration {
     private Boolean useMysqlMetadata;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
+    private Integer maxAllowedPacket;
     private String geometryDefaultType;
     private String restrictedAuth;
     private String transactionIsolation;
@@ -1651,6 +1662,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder maxAllowedPacket(Integer maxAllowedPacket) {
+      this.maxAllowedPacket = maxAllowedPacket;
+      return this;
+    }
+
     public Builder retriesAllDown(Integer retriesAllDown) {
       this.retriesAllDown = retriesAllDown;
       return this;
@@ -1777,6 +1793,7 @@ public class Configuration {
               this.defaultFetchSize,
               this.tlsSocketType,
               this.maxQuerySizeToLog,
+              this.maxAllowedPacket,
               this.retriesAllDown,
               this.galeraAllowedState,
               this.pool,

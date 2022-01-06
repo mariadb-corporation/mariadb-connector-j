@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.pool;
 
 import java.lang.management.ManagementFactory;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import javax.sql.ConnectionEventListener;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
@@ -44,6 +46,8 @@ public class Pool implements AutoCloseable, PoolMBean {
   private final String poolTag;
   private final ScheduledThreadPoolExecutor poolExecutor;
   private final ScheduledFuture<?> scheduledFuture;
+
+  private int waitTimeout;
 
   /**
    * Create pool from configuration.
@@ -90,8 +94,14 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     // create minimal connection in pool
     try {
-      for (int i = 0; i < conf.minPoolSize(); i++) {
+      for (int i = 0; i < Math.max(1, conf.minPoolSize()); i++) {
         addConnection();
+      }
+      waitTimeout = 28800;
+      if (!idleConnections.isEmpty()) {
+        Statement stmt = idleConnections.getFirst().getConnection().createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@wait_timeout");
+        if (rs.next()) waitTimeout = rs.getInt(1);
       }
     } catch (SQLException sqle) {
       logger.error("error initializing pool connection", sqle);
@@ -141,10 +151,10 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       boolean shouldBeReleased = false;
       Connection con = item.getConnection();
-      if (con.getWaitTimeout() > 0) {
+      if (waitTimeout > 0) {
 
         // idle time is reaching server @@wait_timeout
-        if (idleTime > TimeUnit.SECONDS.toNanos(con.getWaitTimeout() - 45)) {
+        if (idleTime > TimeUnit.SECONDS.toNanos(waitTimeout - 45)) {
           shouldBeReleased = true;
         }
 

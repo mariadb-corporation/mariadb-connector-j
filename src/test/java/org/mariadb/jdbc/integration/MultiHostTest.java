@@ -169,7 +169,6 @@ public class MultiHostTest extends Common {
     assertThrowsContains(SQLException.class, () -> prep2.close(), "Connection is closed");
     con.close();
     assertThrowsContains(SQLException.class, () -> con.abort(null), "Connection is closed");
-    assertNotNull(con.getWaitTimeout());
     assertNotNull(con.getClient().getHostAddress());
     assertThrowsContains(
         SQLException.class,

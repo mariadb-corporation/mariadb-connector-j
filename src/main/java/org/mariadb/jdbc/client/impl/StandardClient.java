@@ -13,7 +13,6 @@ import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLPermission;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -21,6 +20,7 @@ import java.time.zone.ZoneRulesException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import javax.net.ssl.SSLSocket;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
@@ -68,7 +68,6 @@ public class StandardClient implements Client, AutoCloseable {
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
-  private int waitTimeout;
   private final boolean disablePipeline;
   protected Context context;
 
@@ -208,7 +207,9 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
-    this.writer = new PacketWriter(out, conf.maxQuerySizeToLog(), sequence, compressionSequence);
+    this.writer =
+        new PacketWriter(
+            out, conf.maxQuerySizeToLog(), conf.maxAllowedPacket(), sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
 
     this.reader = new PacketReader(in, conf, sequence);
@@ -281,10 +282,6 @@ public class StandardClient implements Client, AutoCloseable {
 
   private void postConnectionQueries() throws SQLException {
     List<String> commands = new ArrayList<>();
-    String serverTz = conf.timezone() != null ? handleTimezone() : null;
-
-    commands.add(createSessionVariableQuery(serverTz));
-    commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
 
     List<String> galeraAllowedStates =
         conf.galeraAllowedState() == null
@@ -296,6 +293,10 @@ public class StandardClient implements Client, AutoCloseable {
         && !galeraAllowedStates.isEmpty()) {
       commands.add("show status like 'wsrep_local_state'");
     }
+
+    String serverTz = conf.timezone() != null ? handleTimezone() : null;
+    String sessionVariableQuery = createSessionVariableQuery(serverTz);
+    if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
 
     if (hostAddress != null
         && !hostAddress.primary
@@ -320,13 +321,6 @@ public class StandardClient implements Client, AutoCloseable {
               false,
               true);
 
-      // read max allowed packet
-      Result result = (Result) res.get(1);
-      result.next();
-
-      waitTimeout = Integer.parseInt(result.getString(2));
-      writer.setMaxAllowedPacket(Integer.parseInt(result.getString(1)));
-
       if (hostAddress != null
           && Boolean.TRUE.equals(hostAddress.primary)
           && !galeraAllowedStates.isEmpty()) {
@@ -336,6 +330,7 @@ public class StandardClient implements Client, AutoCloseable {
           throw exceptionFactory.create(
               String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
         }
+        res.remove(0);
       }
 
     } catch (SQLException sqlException) {
@@ -358,19 +353,14 @@ public class StandardClient implements Client, AutoCloseable {
     // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus
     // flag
     // after setting autocommit, we can rely on serverStatus value
-    StringBuilder sb = new StringBuilder();
-    sb.append("autocommit=")
-        .append(conf.autocommit() ? "1" : "0")
-        .append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
-
-    // force schema tracking if available
-    if ((context.getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0) {
-      sb.append(", session_track_schema=1");
+    List<String> sessionCommands = new ArrayList<>();
+    if (conf.autocommit() != null) {
+      sessionCommands.add("autocommit=" + (conf.autocommit() ? "1" : "0"));
     }
 
     // add configured session variable if configured
     if (conf.sessionVariables() != null) {
-      sb.append(",").append(Security.parseSessionVariables(conf.sessionVariables()));
+      sessionCommands.add(Security.parseSessionVariables(conf.sessionVariables()));
     }
 
     // force client timezone to connection to ensure result of now(), ...
@@ -391,25 +381,29 @@ public class StandardClient implements Client, AutoCloseable {
       if (mustSetTimezone) {
         if (clientZoneId.getRules().isFixedOffset()) {
           ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
-          sb.append(",time_zone='").append(zoneOffset.getId()).append("'");
+          sessionCommands.add("time_zone='" + zoneOffset.getId() + "'");
         } else {
-          sb.append(",time_zone='").append(conf.timezone()).append("'");
+          sessionCommands.add("time_zone='" + conf.timezone() + "'");
         }
       }
     }
 
-    sb.append(",");
-    int major = context.getVersion().getMajorVersion();
-    if (!context.getVersion().isMariaDBServer()
-        && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
-            || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
-      sb.append("transaction_isolation");
-    } else {
-      sb.append("tx_isolation");
+    if (conf.transactionIsolation() != null) {
+      int major = context.getVersion().getMajorVersion();
+      if (!context.getVersion().isMariaDBServer()
+          && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
+              || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
+        sessionCommands.add(
+            "transaction_isolation='" + conf.transactionIsolation().getValue() + "'");
+      } else {
+        sessionCommands.add("tx_isolation='" + conf.transactionIsolation().getValue() + "'");
+      }
     }
-    sb.append("='").append(conf.transactionIsolation().getValue()).append("'");
 
-    return "set " + sb;
+    if (!sessionCommands.isEmpty()) {
+      return "set " + sessionCommands.stream().collect(Collectors.joining(","));
+    }
+    return null;
   }
 
   public void setReadOnly(boolean readOnly) throws SQLException {
@@ -805,11 +799,6 @@ public class StandardClient implements Client, AutoCloseable {
         // socket closed, if any error, so not throwing error
       }
     }
-  }
-
-  @Override
-  public int getWaitTimeout() {
-    return waitTimeout;
   }
 
   public boolean isClosed() {
