@@ -35,7 +35,7 @@ public class PacketWriter implements Writer {
   protected byte[] buf;
   protected int pos = 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
-  private int maxAllowedPacket;
+  private Integer maxAllowedPacket;
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
@@ -62,7 +62,7 @@ public class PacketWriter implements Writer {
     this.cmdLength = 0;
     this.sequence = sequence;
     this.compressSequence = compressSequence;
-    this.maxAllowedPacket = maxAllowedPacket == null ? Integer.MAX_VALUE : maxAllowedPacket;
+    this.maxAllowedPacket = maxAllowedPacket;
   }
 
   public int pos() {
@@ -688,20 +688,24 @@ public class PacketWriter implements Writer {
    * @throws MaxAllowedPacketException if query has not to be sent.
    */
   private void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
-    if (cmdLength + length >= maxAllowedPacket) {
-      // launch exception only if no packet has been sent.
-      throw new MaxAllowedPacketException(
-          "query size ("
-              + (cmdLength + length)
-              + ") is >= to max_allowed_packet ("
-              + maxAllowedPacket
-              + ")",
-          cmdLength != 0);
+    if (maxAllowedPacket != null) {
+      if (cmdLength + length >= maxAllowedPacket) {
+        // launch exception only if no packet has been sent.
+        throw new MaxAllowedPacketException(
+            "query size ("
+                + (cmdLength + length)
+                + ") is >= to max_allowed_packet ("
+                + maxAllowedPacket
+                + ")",
+            cmdLength != 0);
+      }
     }
   }
 
   public boolean throwMaxAllowedLength(int length) {
-    return cmdLength + length >= maxAllowedPacket;
+    if (maxAllowedPacket != null)
+      return cmdLength + length >= maxAllowedPacket;
+    return false;
   }
 
   public void permitTrace(boolean permitTrace) {

@@ -272,27 +272,33 @@ public class BatchTest extends Common {
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(2, maxAllowedPacket - 40, null);
   }
 
   @Test
   public void bulkPacketSplitMultiplePacket() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(4, getMaxAllowedPacket() / 3, null);
   }
 
   @Test
   public void bulkPacketSplitHugeNbPacket() throws SQLException {
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket);
+    if (maxAllowedPacket >= 16 * 1024 * 1024)
+      bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, null);
   }
 
-  public void bulkPacketSplit(int nb, int len, int maxAllowedPacket) throws SQLException {
+  public void bulkPacketSplit(int nb, int len, Integer maxAllowedPacket) throws SQLException {
     byte[] arr = new byte[Math.min(16 * 1024 * 1024, len)];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (byte) ((pos % 60) + 65);
     }
 
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&maxAllowedPacket=" + maxAllowedPacket)) {
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts" + (maxAllowedPacket != null ? "&maxAllowedPacket=" + maxAllowedPacket: ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE BatchTest");
       stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
