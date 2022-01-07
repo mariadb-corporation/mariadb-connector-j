@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -65,7 +66,7 @@ public class ConfigurationTest extends Common {
 
   @Test
   public void connectionAttributes() throws SQLException {
-
+    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
     try (org.mariadb.jdbc.Connection conn =
         createCon("&connectionAttributes=test:test1,test2:test2Val,test3")) {
       Statement stmt = conn.createStatement();
