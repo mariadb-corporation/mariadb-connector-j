@@ -1,7 +1,14 @@
 # Change Log
-## [3.0.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.3) (17 Nov 2021)
+## [3.0.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.3) (Jan 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.2-rc...3.0.3)
 
+* [CONJ-908] correct Connection.prepareStatement(String sql, int[] columnIndexes/String[] columnNames) to return generated keys
+* [CONJ-909] adding createDatabaseIfNotExist option for 2.x compatibility
+* [CONJ-910] permit jdbc:mysql scheme when connection string contains "permitMysqlScheme" for compatibility
+* [CONJ-913] Avoid executing additional command on connection for faster connection creation
+* [CONJ-912] remove security manager code (JEP 411)
+* [CONJ-911] enable keep-alive by default
+* failover improvement. some specific commands not in transaction are considered to be replayed in case of failover, like PING, PREPARE, ROLLBACK, ...
 * CONJ-705 parameter metadata get parameter count even when query cannot be prepared
 * prepareStatement.addBatch must initialize with previous set
 * Connection.prepareStatement(String sql, int[] columnIndexes/String[] columnNames) must return generated keys
