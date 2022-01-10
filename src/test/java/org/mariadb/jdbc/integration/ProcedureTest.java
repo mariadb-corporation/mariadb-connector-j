@@ -16,6 +16,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbBlob;
@@ -97,6 +98,10 @@ public class ProcedureTest extends Common {
   @Test
   @SuppressWarnings("deprecated")
   public void basicProcedure() throws Throwable {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
@@ -458,6 +463,10 @@ public class ProcedureTest extends Common {
 
   @Test
   public void setProcedureTest() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(

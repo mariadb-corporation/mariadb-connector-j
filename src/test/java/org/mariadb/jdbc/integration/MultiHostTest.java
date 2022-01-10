@@ -169,7 +169,6 @@ public class MultiHostTest extends Common {
     assertThrowsContains(SQLException.class, () -> prep2.close(), "Connection is closed");
     con.close();
     assertThrowsContains(SQLException.class, () -> con.abort(null), "Connection is closed");
-    assertNotNull(con.getWaitTimeout());
     assertNotNull(con.getClient().getHostAddress());
     assertThrowsContains(
         SQLException.class,
@@ -210,10 +209,7 @@ public class MultiHostTest extends Common {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
-      assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> stmt.executeQuery("SELECT @con"),
-          "Driver has reconnect connection after a communications link failure with");
+      con.isValid(1000);
     }
 
     Thread.sleep(50);

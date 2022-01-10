@@ -173,11 +173,19 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     reconnectIfNeeded();
     return super.execute(
-        message, stmt, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+        message,
+        stmt,
+        fetchSize,
+        maxRows,
+        resultSetConcurrency,
+        resultSetType,
+        closeOnCompletion,
+        canRedo);
   }
 
   @Override
@@ -188,11 +196,19 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     reconnectIfNeeded();
     return super.executePipeline(
-        messages, stmt, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+        messages,
+        stmt,
+        fetchSize,
+        maxRows,
+        resultSetConcurrency,
+        resultSetType,
+        closeOnCompletion,
+        canRedo);
   }
 
   @Override

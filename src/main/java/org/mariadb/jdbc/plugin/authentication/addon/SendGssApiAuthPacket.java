@@ -64,7 +64,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    */
   public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws IOException, SQLException {
-    ReadableByteBuf buf = new StandardReadableByteBuf(in.getSequence(), seed, seed.length);
+    ReadableByteBuf buf = new StandardReadableByteBuf(seed, seed.length);
 
     final String serverSpn = buf.readStringNullEnd();
     // using provided connection string SPN if set, or if not, using to server information

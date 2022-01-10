@@ -32,6 +32,8 @@ public class Common {
   public static int port;
   public static String user;
   public static String password;
+  public static String database;
+  public static String defaultOther;
   public static TcpProxy proxy;
   public static String mDefUrl;
   private static Instant initialTest;
@@ -41,7 +43,6 @@ public class Common {
         Common.class.getClassLoader().getResourceAsStream("conf.properties")) {
       Properties prop = new Properties();
       prop.load(inputStream);
-      String defaultOther;
       String val = System.getenv("TEST_REQUIRE_TLS");
       if ("1".equals(val)) {
         String cert = System.getenv("TEST_DB_SERVER_CERT");
@@ -53,10 +54,11 @@ public class Common {
       user = get("DB_USER", prop);
       port = Integer.parseInt(get("DB_PORT", prop));
       password = get("DB_PASSWORD", prop);
+      database = get("DB_DATABASE", prop);
       mDefUrl =
           String.format(
               "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
-              hostname, port, get("DB_DATABASE", prop), user, password, defaultOther);
+              hostname, port, database, user, password, defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();

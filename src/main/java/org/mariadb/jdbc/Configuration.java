@@ -59,11 +59,13 @@ public class Configuration {
 
   // various
   private String timezone = null;
-  private boolean autocommit = true;
+  private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
-  private TransactionIsolation transactionIsolation = TransactionIsolation.REPEATABLE_READ;
+  private boolean createDatabaseIfNotExist = false;
+  private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
+  private Integer maxAllowedPacket = null;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
 
@@ -73,7 +75,7 @@ public class Configuration {
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
-  private boolean tcpKeepAlive = false;
+  private boolean tcpKeepAlive = true;
   private int tcpKeepIdle = 0;
   private int tcpKeepCount = 0;
   private int tcpKeepInterval = 0;
@@ -150,11 +152,13 @@ public class Configuration {
       HaMode haMode,
       Properties nonMappedOptions,
       String timezone,
-      boolean autocommit,
+      Boolean autocommit,
       boolean useMysqlMetadata,
+      boolean createDatabaseIfNotExist,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       String geometryDefaultType,
       String restrictedAuth,
       String socketFactory,
@@ -218,9 +222,11 @@ public class Configuration {
     this.timezone = timezone;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.maxAllowedPacket = maxAllowedPacket;
     this.geometryDefaultType = geometryDefaultType;
     this.restrictedAuth = restrictedAuth;
     this.socketFactory = socketFactory;
@@ -316,12 +322,14 @@ public class Configuration {
       Boolean useBulkStmts,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      Boolean createDatabaseIfNotExist,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
       Integer defaultFetchSize,
       String tlsSocketType,
       Integer maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       Integer retriesAllDown,
       String galeraAllowedState,
       Boolean pool,
@@ -391,6 +399,7 @@ public class Configuration {
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -399,6 +408,7 @@ public class Configuration {
     if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
     if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
     if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
+    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
     if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
     if (galeraAllowedState != null) this.galeraAllowedState = galeraAllowedState;
     if (pool != null) this.pool = pool;
@@ -469,7 +479,9 @@ public class Configuration {
    * @return true if url string correspond.
    */
   public static boolean acceptsUrl(String url) {
-    return url != null && url.startsWith("jdbc:mariadb:");
+    return url != null
+        && (url.startsWith("jdbc:mariadb:")
+            || (url.startsWith("jdbc:mysql:") && url.contains("permitMysqlScheme")));
   }
 
   public static Configuration parse(final String url) throws SQLException {
@@ -680,9 +692,11 @@ public class Configuration {
         this.timezone,
         this.autocommit,
         this.useMysqlMetadata,
+        this.createDatabaseIfNotExist,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
+        this.maxAllowedPacket,
         this.geometryDefaultType,
         this.restrictedAuth,
         this.socketFactory,
@@ -904,12 +918,16 @@ public class Configuration {
     return useBulkStmts;
   }
 
-  public boolean autocommit() {
+  public Boolean autocommit() {
     return autocommit;
   }
 
   public boolean useMysqlMetadata() {
     return useMysqlMetadata;
+  }
+
+  public boolean createDatabaseIfNotExist() {
+    return createDatabaseIfNotExist;
   }
 
   public boolean includeInnodbStatusInDeadlockExceptions() {
@@ -938,6 +956,10 @@ public class Configuration {
 
   public int maxQuerySizeToLog() {
     return maxQuerySizeToLog;
+  }
+
+  public Integer maxAllowedPacket() {
+    return maxAllowedPacket;
   }
 
   public int retriesAllDown() {
@@ -1186,8 +1208,10 @@ public class Configuration {
     private String timezone;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private Boolean createDatabaseIfNotExist;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
+    private Integer maxAllowedPacket;
     private String geometryDefaultType;
     private String restrictedAuth;
     private String transactionIsolation;
@@ -1619,6 +1643,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder createDatabaseIfNotExist(Boolean createDatabaseIfNotExist) {
+      this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+      return this;
+    }
+
     public Builder includeInnodbStatusInDeadlockExceptions(
         Boolean includeInnodbStatusInDeadlockExceptions) {
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
@@ -1648,6 +1677,11 @@ public class Configuration {
 
     public Builder maxQuerySizeToLog(Integer maxQuerySizeToLog) {
       this.maxQuerySizeToLog = maxQuerySizeToLog;
+      return this;
+    }
+
+    public Builder maxAllowedPacket(Integer maxAllowedPacket) {
+      this.maxAllowedPacket = maxAllowedPacket;
       return this;
     }
 
@@ -1771,12 +1805,14 @@ public class Configuration {
               this.useBulkStmts,
               this.autocommit,
               this.useMysqlMetadata,
+              this.createDatabaseIfNotExist,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,
               this.defaultFetchSize,
               this.tlsSocketType,
               this.maxQuerySizeToLog,
+              this.maxAllowedPacket,
               this.retriesAllDown,
               this.galeraAllowedState,
               this.pool,

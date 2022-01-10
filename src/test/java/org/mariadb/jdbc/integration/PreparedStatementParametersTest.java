@@ -469,13 +469,14 @@ public class PreparedStatementParametersTest extends Common {
     }
     boolean expectClosed = maxAllowedPacket >= 16 * 1024 * 1024;
     String st = new String(arr);
-    try (Connection con = createCon()) {
+    try (Connection con = createCon("maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendError(con, st, expectClosed);
     }
-    try (Connection con = createCon("useServerPrepStmts=true")) {
+    try (Connection con =
+        createCon("useServerPrepStmts=true&maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendError(con, st, expectClosed);
     }
-    try (Connection con = createCon("transactionReplay")) {
+    try (Connection con = createCon("transactionReplay&maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendError(con, st, expectClosed);
     }
   }
@@ -511,13 +512,14 @@ public class PreparedStatementParametersTest extends Common {
       arr[pos] = (char) ('A' + (pos % 60));
     }
     String st = new String(arr);
-    try (Connection con = createCon()) {
+    try (Connection con = createCon("maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendErrorMax(con, st, true);
     }
-    try (Connection con = createCon("useServerPrepStmts=true")) {
+    try (Connection con =
+        createCon("useServerPrepStmts=true&maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendErrorMax(con, st, true);
     }
-    try (Connection con = createCon("transactionReplay")) {
+    try (Connection con = createCon("transactionReplay&maxAllowedPacket=" + maxAllowedPacket)) {
       bigSendError(con, st, true);
     }
   }

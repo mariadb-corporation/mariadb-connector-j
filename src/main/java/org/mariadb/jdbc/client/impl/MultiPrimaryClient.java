@@ -155,7 +155,7 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
-  protected void replayIfPossible(Client oldClient) throws SQLException {
+  protected void replayIfPossible(Client oldClient, boolean canRedo) throws SQLException {
     // oldClient is only valued if this occurs on master.
     if (oldClient != null) {
       if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
@@ -170,7 +170,7 @@ public class MultiPrimaryClient implements Client {
                   oldClient.getHostAddress()),
               "25S03");
         }
-      } else {
+      } else if (!canRedo) {
         // no transaction, but connection is now up again.
         // changing exception to SQLTransientConnectionException
         throw new SQLTransientConnectionException(
@@ -206,14 +206,15 @@ public class MultiPrimaryClient implements Client {
         currentClient.execute(
             new QueryPacket(
                 "set autocommit="
-                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")));
+                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")),
+            true);
       }
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
         && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase())) {
       currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()));
+      currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_NETWORK_TIMEOUT) > 0) {
@@ -223,7 +224,7 @@ public class MultiPrimaryClient implements Client {
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
         && !currentClient.getHostAddress().primary
         && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"));
+      currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
@@ -247,21 +248,35 @@ public class MultiPrimaryClient implements Client {
       currentClient
           .getContext()
           .setTransactionIsolationLevel(oldCtx.getTransactionIsolationLevel());
-      currentClient.execute(new QueryPacket(query));
+      currentClient.execute(new QueryPacket(query), true);
     }
   }
 
   @Override
-  public List<Completion> execute(ClientMessage message) throws SQLException {
+  public List<Completion> execute(ClientMessage message, boolean canRedo) throws SQLException {
     return execute(
-        message, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        null,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   @Override
-  public List<Completion> execute(ClientMessage message, org.mariadb.jdbc.Statement stmt)
-      throws SQLException {
+  public List<Completion> execute(
+      ClientMessage message, org.mariadb.jdbc.Statement stmt, boolean canRedo) throws SQLException {
     return execute(
-        message, stmt, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        stmt,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   @Override
@@ -272,7 +287,8 @@ public class MultiPrimaryClient implements Client {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
 
     if (closed) {
@@ -287,7 +303,8 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     } catch (SQLNonTransientConnectionException e) {
       HostAddress hostAddress = currentClient.getHostAddress();
       Client oldClient = reConnect();
@@ -300,7 +317,7 @@ public class MultiPrimaryClient implements Client {
             "25S03");
       }
 
-      replayIfPossible(oldClient);
+      replayIfPossible(oldClient, canRedo);
 
       if (message instanceof RedoableWithPrepareClientMessage) {
         ((RedoableWithPrepareClientMessage) message).rePrepare(currentClient);
@@ -312,7 +329,8 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     }
   }
 
@@ -324,7 +342,8 @@ public class MultiPrimaryClient implements Client {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
@@ -338,12 +357,13 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     } catch (SQLException e) {
       if (e instanceof SQLNonTransientConnectionException
           || (e.getCause() != null && e.getCause() instanceof SQLNonTransientConnectionException)) {
         Client oldClient = reConnect();
-        replayIfPossible(oldClient);
+        replayIfPossible(oldClient, canRedo);
         Arrays.stream(messages)
             .filter(RedoableWithPrepareClientMessage.class::isInstance)
             .map(RedoableWithPrepareClientMessage.class::cast)
@@ -362,7 +382,8 @@ public class MultiPrimaryClient implements Client {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
       }
       throw e;
     }
@@ -446,11 +467,6 @@ public class MultiPrimaryClient implements Client {
       reConnect();
       currentClient.setSocketTimeout(milliseconds);
     }
-  }
-
-  @Override
-  public int getWaitTimeout() {
-    return currentClient.getWaitTimeout();
   }
 
   @Override

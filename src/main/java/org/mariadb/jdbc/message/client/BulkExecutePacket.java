@@ -124,6 +124,15 @@ public final class BulkExecutePacket implements RedoableWithPrepareClientMessage
           break;
         }
 
+        if (writer.isMarked() && writer.throwMaxAllowedLength(writer.pos())) {
+          // for max_allowed_packet < 16Mb
+          // packet length was ok at last mark, but won't with new data
+          writer.flushBufferStopAtMark();
+          writer.mark();
+          lastCmdData = writer.resetMark();
+          break;
+        }
+
         writer.mark();
 
         if (writer.bufIsDataAfterMark()) {

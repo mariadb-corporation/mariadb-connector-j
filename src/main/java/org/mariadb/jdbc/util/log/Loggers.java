@@ -11,6 +11,7 @@ public final class Loggers {
   public static final String FALLBACK_PROPERTY = "mariadb.logging.fallback";
   public static final String CONSOLE_DEBUG_PROPERTY = "mariadb.logging.fallback.console.debug";
   public static final String TEST_ENABLE_SLF4J = "mariadb.logging.slf4j.enable";
+  public static final String NO_LOGGER_PROPERTY = "mariadb.logging.disable";
 
   private static LoggerFactory LOGGER_FACTORY;
 
@@ -28,6 +29,13 @@ public final class Loggers {
 
   private interface LoggerFactory {
     Logger getLogger(String name);
+  }
+
+  private static class NoLoggerFactory implements LoggerFactory {
+    @Override
+    public Logger getLogger(String name) {
+      return new NoLogger();
+    }
   }
 
   private static class Slf4JLoggerFactory implements LoggerFactory {
@@ -59,26 +67,31 @@ public final class Loggers {
   public static void init() {
     String name = LoggerFactory.class.getName();
     LoggerFactory loggerFactory = null;
-    try {
-      if (Boolean.parseBoolean(System.getProperty(TEST_ENABLE_SLF4J, "true"))) {
-        Class.forName("org.slf4j.LoggerFactory");
-        loggerFactory = new Slf4JLoggerFactory();
+    if (Boolean.parseBoolean(System.getProperty(NO_LOGGER_PROPERTY, "false"))) {
+      loggerFactory = new NoLoggerFactory();
+    } else {
+
+      try {
+        if (Boolean.parseBoolean(System.getProperty(TEST_ENABLE_SLF4J, "true"))) {
+          Class.forName("org.slf4j.LoggerFactory");
+          loggerFactory = new Slf4JLoggerFactory();
+        }
+      } catch (ClassNotFoundException cle) {
+        // slf4j not in the classpath
       }
-    } catch (ClassNotFoundException cle) {
-      // log4j not in the classpath
-    }
-    if (loggerFactory == null) {
-      // default to console or use JDK logger if explicitly set by System property
-      if ("JDK".equalsIgnoreCase(System.getProperty(FALLBACK_PROPERTY))) {
-        loggerFactory = new JdkLoggerFactory();
-      } else {
-        loggerFactory = new ConsoleLoggerFactory();
+      if (loggerFactory == null) {
+        // default to console or use JDK logger if explicitly set by System property
+        if ("JDK".equalsIgnoreCase(System.getProperty(FALLBACK_PROPERTY))) {
+          loggerFactory = new JdkLoggerFactory();
+        } else {
+          loggerFactory = new ConsoleLoggerFactory();
+        }
       }
-    }
-    try {
-      loggerFactory.getLogger(name);
-    } catch (Throwable e) {
-      // eat
+      try {
+        loggerFactory.getLogger(name);
+      } catch (Throwable e) {
+        // eat
+      }
     }
     LOGGER_FACTORY = loggerFactory;
   }

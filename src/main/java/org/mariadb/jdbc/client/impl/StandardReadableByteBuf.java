@@ -7,16 +7,14 @@ package org.mariadb.jdbc.client.impl;
 import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.client.util.MutableInt;
 
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-  private final MutableInt sequence;
+
   private int limit;
   private byte[] buf;
   private int pos;
 
-  public StandardReadableByteBuf(MutableInt sequence, byte[] buf, int limit) {
-    this.sequence = sequence;
+  public StandardReadableByteBuf(byte[] buf, int limit) {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
@@ -48,18 +46,13 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     pos++;
   }
 
-  public StandardReadableByteBuf skip(int length) {
+  public void skip(int length) {
     pos += length;
-    return this;
   }
 
   public MariaDbBlob readBlob(int length) {
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
-  }
-
-  public MutableInt getSequence() {
-    return sequence;
   }
 
   public byte getByte() {
@@ -94,12 +87,8 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int type = (buf[pos++] & 0xff);
-    if (type == 252) {
-      pos += readUnsignedShort();
-      return pos;
-    }
-    pos += type;
+    int type = buf[pos++] & 0xff;
+    pos += (type == 252) ? readUnsignedShort() : type;
     return pos;
   }
 
@@ -211,7 +200,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     int len = readLengthNotNull();
     byte[] tmp = new byte[len];
     readBytes(tmp);
-    return new StandardReadableByteBuf(sequence, tmp, len);
+    return new StandardReadableByteBuf(tmp, len);
   }
 
   public String readString(int length) {

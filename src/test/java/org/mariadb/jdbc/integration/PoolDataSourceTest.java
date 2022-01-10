@@ -65,20 +65,21 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void basic() throws SQLException {
-    MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl);
+    MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=2");
     testDs(ds);
     ds.close();
 
     ds = new MariaDbPoolDataSource();
-    ds.setUrl(mDefUrl);
+    ds.setUrl(mDefUrl + "&maxPoolSize=2");
     testDs(ds);
     ds.close();
   }
 
   private void testDs(MariaDbPoolDataSource ds) throws SQLException {
     try (Connection con1 = ds.getConnection()) {
-      try (Connection con2 = ds.getConnection()) {
-
+      long threadId;
+      try (org.mariadb.jdbc.Connection con2 = (org.mariadb.jdbc.Connection) ds.getConnection()) {
+        threadId = con2.getThreadId();
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
         ResultSet rs2 = con2.createStatement().executeQuery("SELECT 2");
         while (rs1.next()) {
@@ -87,6 +88,9 @@ public class PoolDataSourceTest extends Common {
         while (rs2.next()) {
           assertEquals(2, rs2.getInt(1));
         }
+      }
+      try (org.mariadb.jdbc.Connection con2 = (org.mariadb.jdbc.Connection) ds.getConnection()) {
+        assertEquals(threadId, con2.getThreadId());
       }
     }
 
@@ -104,10 +108,13 @@ public class PoolDataSourceTest extends Common {
       while (rs2.next()) {
         assertEquals(2, rs2.getInt(1));
       }
-
+      long threadId = ((org.mariadb.jdbc.Connection) con2.getConnection()).getThreadId();
+      if (con2 != null) con2.getConnection().close();
+      con2 = ds.getPooledConnection();
+      assertEquals(threadId, ((org.mariadb.jdbc.Connection) con2.getConnection()).getThreadId());
     } finally {
-      if (con1 != null) con1.close();
-      if (con2 != null) con2.close();
+      if (con1 != null) con1.getConnection().close();
+      if (con2 != null) con2.getConnection().close();
     }
 
     XAConnection conx1 = null;

@@ -45,7 +45,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   public int encode(Writer encoder, Context context) throws IOException, SQLException {
     encoder.initPacket();
     encoder.writeByte(0x03);
-    if (!preSqlCmd.isEmpty()) encoder.writeAscii(preSqlCmd);
+    if (preSqlCmd != null) encoder.writeAscii(preSqlCmd);
     if (parser.getParamCount() == 0) {
       encoder.writeBytes(parser.getQueryParts().get(0));
     } else {

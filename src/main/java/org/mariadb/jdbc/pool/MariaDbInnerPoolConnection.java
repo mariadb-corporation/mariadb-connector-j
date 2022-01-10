@@ -22,10 +22,6 @@ public class MariaDbInnerPoolConnection extends MariaDbPoolConnection {
     lastUsed = new AtomicLong(System.nanoTime());
   }
 
-  public void close() {
-    fireConnectionClosed(new ConnectionEvent(this));
-  }
-
   /**
    * Indicate last time this pool connection has been used.
    *

@@ -35,8 +35,8 @@ public class XaTest extends Common {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
-    drop();
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS xatable");
     stmt.execute("CREATE TABLE xatable(i int)");
     stmt.execute("FLUSH TABLES");
     dataSource = new MariaDbDataSource(mDefUrl);
@@ -144,7 +144,7 @@ public class XaTest extends Common {
       for (int i = 0; i < connectionNumber; i++) {
         try {
           if (xaConnections[i] != null) {
-            xaConnections[i].close();
+            xaConnections[i].getConnection().close();
           }
         } catch (Exception e) {
           e.printStackTrace();

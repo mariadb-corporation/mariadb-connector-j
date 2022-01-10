@@ -81,7 +81,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getObjectPrepare() throws SQLException {
     getObject(getPrepare(sharedConn));
     getObject(getPrepare(sharedConnBinary));
-
   }
 
   public void getObject(ResultSet rs) throws SQLException {

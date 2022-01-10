@@ -112,8 +112,6 @@ public interface Writer {
 
   long getCmdLength();
 
-  void setMaxAllowedPacket(int maxAllowedPacket);
-
   void permitTrace(boolean permitTrace);
 
   /**

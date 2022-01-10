@@ -46,7 +46,8 @@ public interface RedoableWithPrepareClientMessage extends RedoableClientMessage 
                     0L,
                     ResultSet.CONCUR_READ_ONLY,
                     ResultSet.TYPE_FORWARD_ONLY,
-                    false)
+                    false,
+                    true)
                 .get(0));
   }
 }
