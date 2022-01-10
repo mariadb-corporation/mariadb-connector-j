@@ -836,9 +836,9 @@ public class ConnectionTest extends Common {
       testPort = Integer.parseInt(System.getenv("TEST_PAM_PORT"));
     }
     String connStr =
-            String.format(
-                    "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-                    hostname, testPort, database, pamUser, pamPwd, defaultOther);
+        String.format(
+            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+            hostname, testPort, database, pamUser, pamPwd, defaultOther);
     try {
       try (Connection connection =
           DriverManager.getConnection(connStr + "&restrictedAuth=dialog")) {

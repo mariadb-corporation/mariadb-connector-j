@@ -159,6 +159,7 @@ public class ConfigurationTest {
     assertFalse(driver.acceptsURL(null));
     assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
     assertFalse(driver.acceptsURL("jdbc:mysql://localhost/test"));
+    assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test?permitMysqlScheme"));
   }
 
   @Test
@@ -191,6 +192,14 @@ public class ConfigurationTest {
       assertTrue(
           e.getMessage().contains("Wrong argument value 'wrong_val' for TransactionIsolation"));
     }
+
+    Assertions.assertNull(
+        Configuration.parse("jdbc:mysql://localhost/test?transactionIsolation=wrong_val"));
+
+    conf =
+        Configuration.parse(
+            "jdbc:mysql://localhost/test?transactionIsolation=SERIALIZABLE&permitMysqlScheme");
+    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
   }
 
   @Test

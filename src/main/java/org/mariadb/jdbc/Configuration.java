@@ -474,7 +474,9 @@ public class Configuration {
    * @return true if url string correspond.
    */
   public static boolean acceptsUrl(String url) {
-    return url != null && url.startsWith("jdbc:mariadb:");
+    return url != null
+        && (url.startsWith("jdbc:mariadb:")
+            || (url.startsWith("jdbc:mysql:") && url.contains("permitMysqlScheme")));
   }
 
   public static Configuration parse(final String url) throws SQLException {

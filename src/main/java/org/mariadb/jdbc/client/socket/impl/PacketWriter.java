@@ -703,8 +703,7 @@ public class PacketWriter implements Writer {
   }
 
   public boolean throwMaxAllowedLength(int length) {
-    if (maxAllowedPacket != null)
-      return cmdLength + length >= maxAllowedPacket;
+    if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
     return false;
   }
 
