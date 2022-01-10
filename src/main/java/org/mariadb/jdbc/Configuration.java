@@ -61,6 +61,7 @@ public class Configuration {
   private String timezone = null;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
+  private boolean createDatabaseIfNotExist = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -153,6 +154,7 @@ public class Configuration {
       String timezone,
       Boolean autocommit,
       boolean useMysqlMetadata,
+      boolean createDatabaseIfNotExist,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -220,6 +222,7 @@ public class Configuration {
     this.timezone = timezone;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -319,6 +322,7 @@ public class Configuration {
       Boolean useBulkStmts,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      Boolean createDatabaseIfNotExist,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -395,6 +399,7 @@ public class Configuration {
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -687,6 +692,7 @@ public class Configuration {
         this.timezone,
         this.autocommit,
         this.useMysqlMetadata,
+        this.createDatabaseIfNotExist,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -918,6 +924,10 @@ public class Configuration {
 
   public boolean useMysqlMetadata() {
     return useMysqlMetadata;
+  }
+
+  public boolean createDatabaseIfNotExist() {
+    return createDatabaseIfNotExist;
   }
 
   public boolean includeInnodbStatusInDeadlockExceptions() {
@@ -1198,6 +1208,7 @@ public class Configuration {
     private String timezone;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private Boolean createDatabaseIfNotExist;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -1632,6 +1643,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder createDatabaseIfNotExist(Boolean createDatabaseIfNotExist) {
+      this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+      return this;
+    }
+
     public Builder includeInnodbStatusInDeadlockExceptions(
         Boolean includeInnodbStatusInDeadlockExceptions) {
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
@@ -1789,6 +1805,7 @@ public class Configuration {
               this.useBulkStmts,
               this.autocommit,
               this.useMysqlMetadata,
+              this.createDatabaseIfNotExist,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

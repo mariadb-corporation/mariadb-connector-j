@@ -304,6 +304,12 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add("SET SESSION TRANSACTION READ ONLY");
     }
 
+    if (conf.database() != null && conf.createDatabaseIfNotExist()) {
+      String escapedDb = conf.database().replace("`", "``");
+      commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
+      commands.add(String.format("USE `%s`", escapedDb));
+    }
+
     try {
       List<Completion> res;
       ClientMessage[] msgs = new ClientMessage[commands.size()];

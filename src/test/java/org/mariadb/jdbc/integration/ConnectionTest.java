@@ -1063,4 +1063,32 @@ public class ConnectionTest extends Common {
       con.isValid(1);
     }
   }
+
+  @Test
+  public void createDatabaseIfNotExist() throws SQLException {
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+
+    // ensure connecting without DB
+    String connStr =
+        String.format(
+            "jdbc:mariadb://%s:%s/?user=%s&password=%s&restrictedAuth=none&%s&createDatabaseIfNotExist",
+            hostname, port, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      con.createStatement().executeQuery("SELECT 1");
+    }
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
+    String nonExistentDatabase = "bla`f`l";
+    connStr =
+        String.format(
+            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s&createDatabaseIfNotExist",
+            hostname, port, nonExistentDatabase, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
+  }
 }

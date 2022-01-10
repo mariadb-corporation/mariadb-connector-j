@@ -189,7 +189,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.COMPRESS;
     }
 
-    if (configuration.database() != null) {
+    if (configuration.database() != null && !configuration.createDatabaseIfNotExist()) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
     return capabilities;
