@@ -94,9 +94,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
   @Test
   public void connectionSequenceAndBack() throws Throwable {
     Assume.assumeTrue(
-            !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     TcpProxy proxy1 = new TcpProxy(hostname, port);
     TcpProxy proxy2 = new TcpProxy(hostname, port);
     String connString =
