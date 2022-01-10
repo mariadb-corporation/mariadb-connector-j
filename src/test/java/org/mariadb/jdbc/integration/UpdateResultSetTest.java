@@ -920,6 +920,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS cancelRowUpdatesTest");
     stmt.execute("CREATE TABLE cancelRowUpdatesTest(c text, id int primary key)");
     stmt.execute("INSERT INTO cancelRowUpdatesTest(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
+    stmt.execute("FLUSH TABLES");
 
     try (PreparedStatement preparedStatement =
         con.prepareStatement(
