@@ -61,6 +61,10 @@ public class CallStatementTest extends BaseTest {
 
   @BeforeClass()
   public static void initClass() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     drop();
     try (Statement stmt = sharedConnection.createStatement()) {
       stmt.execute("CREATE PROCEDURE useParameterName(a int) begin select a; end");

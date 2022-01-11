@@ -26,7 +26,7 @@ public class BasicFailover extends BaseTest {
                 + ((password != null) ? "&password=" + password : "")
                 + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
                 + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-                + "&socketTimeout=1000")) {
+                + "&socketTimeout=2000")) {
       try (Statement stmt = connection.createStatement()) {
         stmt.execute("SELECT SLEEP(10)");
         fail();

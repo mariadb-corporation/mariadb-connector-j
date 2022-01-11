@@ -431,7 +431,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   @Test
   public void ensureUsingPool() throws Exception {
     Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     ThreadPoolExecutor connectionAppender =
         new ThreadPoolExecutor(
             50,

@@ -79,7 +79,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
   @Test
   public void relaunchWithoutError() throws Throwable {
     try (Connection connection =
-        getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
+        getNewConnection("&connectTimeout=2000&socketTimeout=2000", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
       long startTime = System.currentTimeMillis();
@@ -131,7 +131,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
   @Test
   public void failoverRelaunchedWhenSelect() throws Throwable {
     try (Connection connection =
-        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        getNewConnection("&connectTimeout=2000&socketTimeout=2000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
 
       final int masterServerId = getServerId(connection);
@@ -164,7 +164,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
   @Test
   public void failoverRelaunchedWhenInTransaction() throws Throwable {
     try (Connection connection =
-        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        getNewConnection("&connectTimeout=2000&socketTimeout=2000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
 
       final int masterServerId = getServerId(connection);
@@ -200,7 +200,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
   @Test
   public void pingReconnectAfterRestart() throws Throwable {
     try (Connection connection =
-        getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        getNewConnection("&connectTimeout=2000&socketTimeout=2000&retriesAllDown=6", true)) {
       Statement st = connection.createStatement();
       int masterServerId = getServerId(connection);
       stopProxy(masterServerId);

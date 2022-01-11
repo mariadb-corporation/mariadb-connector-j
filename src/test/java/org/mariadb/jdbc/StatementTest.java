@@ -766,6 +766,10 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void ensureStreamingState() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1));
     Statement stmt = sharedConnection.createStatement();
     PreparedStatement prep = sharedConnection.prepareCall("CALL ensureStreamingState(?)");

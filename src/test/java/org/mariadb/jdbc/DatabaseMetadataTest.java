@@ -1583,6 +1583,9 @@ public class DatabaseMetadataTest extends BaseTest {
    */
   @Test
   public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
 
     final int precisionField = 8;
     final int lengthField = 9;
@@ -1622,6 +1625,10 @@ public class DatabaseMetadataTest extends BaseTest {
    */
   @Test
   public void metaTimeProcedureResultSet() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Assume.assumeTrue(doPrecisionTest);
 
     final int precisionField = 8;

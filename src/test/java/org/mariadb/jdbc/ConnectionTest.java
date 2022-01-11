@@ -706,7 +706,7 @@ public class ConnectionTest extends BaseTest {
             + ((password != null) ? "&password=" + password : "")
             + ((options.useSsl != null) ? "&useSsl=" + options.useSsl : "")
             + ((options.serverSslCert != null) ? "&serverSslCert=" + options.serverSslCert : "")
-            + "&retriesAllDown=10&allowMasterDownConnection&connectTimeout=100&socketTimeout=100";
+            + "&retriesAllDown=10&allowMasterDownConnection&connectTimeout=2000&socketTimeout=2000";
     try (Connection connection = DriverManager.getConnection(url)) {
       Assert.assertFalse(connection.isReadOnly());
       connection.isValid(0);
@@ -784,7 +784,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void connectionUnexpectedClose() throws SQLException {
     Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection =
         DriverManager.getConnection(
             "jdbc:mariadb:failover//"

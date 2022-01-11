@@ -1069,6 +1069,10 @@ public class DriverTest extends BaseTest {
    */
   @Test
   public void testUpdateCountProcedure() throws SQLException {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     CallableStatement callableStatement = sharedConnection.prepareCall("{call multiUpdateCount()}");
     callableStatement.execute();
     assertTrue(-1 == callableStatement.getUpdateCount());
@@ -1583,6 +1587,10 @@ public class DriverTest extends BaseTest {
   /* Test that CLOSE_CURSORS_ON_COMMIT is silently ignored, and HOLD_CURSORS_OVER_COMMIT is actually used*/
   @Test
   public void resultSetHoldability() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assume.assumeTrue(
+        !sharedConnection.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
     Statement st =
         sharedConnection.createStatement(
             ResultSet.TYPE_FORWARD_ONLY,
