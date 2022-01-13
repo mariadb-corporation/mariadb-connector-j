@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.7.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.5) (Jan 2021)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.4...2.7.5)
+
+* CONJ-914  remove enabling session_track_schema on connection creation
+* CONJ-895  Wrong pattern for detection of aurora
+* CONJ-897  Include connection id in certain important log messages
+* CONJ-896  Fix regression in pooled connections
+ 
 ## [2.7.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.4) (29 Jul 2021)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.3...2.7.4)
 
