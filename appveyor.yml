@@ -21,7 +21,7 @@ environment:
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.1.46'
+    - DB: '10.6.4'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
