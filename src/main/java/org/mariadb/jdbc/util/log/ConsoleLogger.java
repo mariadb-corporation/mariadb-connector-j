@@ -7,6 +7,7 @@ package org.mariadb.jdbc.util.log;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
 
+/** Logger that will log to console */
 @SuppressWarnings("ALL")
 public class ConsoleLogger implements Logger {
 
@@ -15,6 +16,14 @@ public class ConsoleLogger implements Logger {
   private final PrintStream log;
   private final boolean logDebugLvl;
 
+  /**
+   * Constructor. All logs will be send to console.
+   *
+   * @param name name to log
+   * @param log log stream
+   * @param err error stream
+   * @param logDebugLvl log level
+   */
   public ConsoleLogger(String name, PrintStream log, PrintStream err, boolean logDebugLvl) {
     this.name = name;
     this.log = log;

@@ -17,8 +17,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Float codec */
 public class FloatCodec implements Codec<Float> {
 
+  /** default instance */
   public static final FloatCodec INSTANCE = new FloatCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -61,6 +63,15 @@ public class FloatCodec implements Codec<Float> {
     return decodeTextFloat(buffer, length, column);
   }
 
+  /**
+   * Decode a float text encoded
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return decoded float value
+   * @throws SQLDataException if decoding exception
+   */
   @SuppressWarnings("fallthrough")
   public float decodeTextFloat(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
@@ -113,6 +124,15 @@ public class FloatCodec implements Codec<Float> {
     return decodeBinaryFloat(buffer, length, column);
   }
 
+  /**
+   * Decode a float binary encoded
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return decoded float value
+   * @throws SQLDataException if decoding exception
+   */
   @SuppressWarnings("fallthrough")
   public float decodeBinaryFloat(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

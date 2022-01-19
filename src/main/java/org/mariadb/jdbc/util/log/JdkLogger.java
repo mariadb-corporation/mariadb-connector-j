@@ -7,10 +7,17 @@ package org.mariadb.jdbc.util.log;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 
+/** Logger using standard java logging */
 public class JdkLogger implements Logger {
 
+  /** logger implementation */
   private final java.util.logging.Logger logger;
 
+  /**
+   * Constructor
+   *
+   * @param logger java logger
+   */
   public JdkLogger(java.util.logging.Logger logger) {
     this.logger = logger;
   }

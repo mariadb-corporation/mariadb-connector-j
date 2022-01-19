@@ -9,6 +9,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 
+/** Packet Reader */
 public interface Reader {
 
   /**
@@ -32,8 +33,18 @@ public interface Reader {
    */
   ReadableByteBuf readPacket(boolean reUsable, boolean traceEnable) throws IOException;
 
+  /**
+   * Get current sequence object
+   *
+   * @return current sequence
+   */
   MutableInt getSequence();
 
+  /**
+   * Close stream
+   *
+   * @throws IOException if any error occurs
+   */
   void close() throws IOException;
 
   /**

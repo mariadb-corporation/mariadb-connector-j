@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.mariadb.jdbc.Configuration;
 
+/** Pools */
 public final class Pools {
 
   private static final AtomicInteger poolIndex = new AtomicInteger();

@@ -9,6 +9,7 @@ import java.util.ServiceLoader;
 import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.tls.main.DefaultTlsSocketPlugin;
 
+/** TLS plugin loader */
 public final class TlsSocketPluginLoader {
 
   /**

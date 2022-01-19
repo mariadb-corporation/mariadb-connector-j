@@ -18,13 +18,24 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
-/** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
+/** Prepare result packet See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion, Prepare {
+
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final Column[] parameters;
   private Column[] columns;
+
+  /** prepare statement id */
   protected int statementId;
 
+  /**
+   * Prepare packet constructor (parsing)
+   *
+   * @param buffer packet buffer
+   * @param reader packet reader
+   * @param context connection context
+   * @throws IOException if socket exception occurs
+   */
   public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     boolean trace = logger.isTraceEnabled();
@@ -60,15 +71,33 @@ public class PrepareResultPacket implements Completion, Prepare {
     }
   }
 
+  /**
+   * Close prepare packet
+   *
+   * @param con current connection
+   * @throws SQLException if exception occurs
+   */
   public void close(Client con) throws SQLException {
     con.closePrepare(this);
   }
 
+  /**
+   * Decrement use of prepare packet, so closing it if last used
+   *
+   * @param con connection
+   * @param preparedStatement current prepared statement that was using prepare object
+   * @throws SQLException if exception occurs
+   */
   public void decrementUse(Client con, ServerPreparedStatement preparedStatement)
       throws SQLException {
     close(con);
   }
 
+  /**
+   * Get statement id
+   *
+   * @return statement id
+   */
   public int getStatementId() {
     return statementId;
   }

@@ -18,10 +18,27 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
+/** Result-set that will retrieve all rows immediately before returning the result-set. */
 public class CompleteResult extends Result {
 
+  /** before first row position = initial position */
   protected static final int BEFORE_FIRST_POS = -1;
 
+  /**
+   * Constructor from exchanges
+   *
+   * @param stmt current statement
+   * @param binaryProtocol does exchanges uses binary protocol
+   * @param maxRows maximum number of rows
+   * @param metadataList metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param resultSetType result set type
+   * @param closeOnCompletion close statement on completion
+   * @param traceEnable network trace exchange possible
+   * @throws IOException if Socket error occurs
+   * @throws SQLException for all other kind of errors
+   */
   public CompleteResult(
       Statement stmt,
       boolean binaryProtocol,
@@ -54,10 +71,27 @@ public class CompleteResult extends Result {
     loaded = true;
   }
 
+  /**
+   * Specific constructor for internal build result-set, empty resultset, or generated key
+   * result-set.
+   *
+   * @param metadataList metadata
+   * @param data result-set data
+   * @param context connection context
+   */
   public CompleteResult(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
     super(metadataList, data, context);
   }
 
+  /**
+   * Specific constructor for generating generated key result-set.
+   *
+   * @param columnName column key
+   * @param columnType column key type
+   * @param data values
+   * @param context connection context
+   * @return result-set
+   */
   public static ResultSet createResultSet(
       String columnName, DataType columnType, String[][] data, Context context) {
     return createResultSet(new String[] {columnName}, new DataType[] {columnType}, data, context);

@@ -5,15 +5,39 @@
 package org.mariadb.jdbc.client;
 
 public interface ServerVersion {
-
+  /**
+   * Get server version string
+   *
+   * @return server version string
+   */
   String getVersion();
 
+  /**
+   * get server major version, parsed from server version string
+   *
+   * @return server major version
+   */
   int getMajorVersion();
 
+  /**
+   * get server minor version, parsed from server version string
+   *
+   * @return server minor version
+   */
   int getMinorVersion();
 
+  /**
+   * get server patch version, parsed from server version string
+   *
+   * @return server patch version
+   */
   int getPatchVersion();
 
+  /**
+   * get server qualifier, parsed from server version string
+   *
+   * @return server qualifier
+   */
   String getQualifier();
 
   /**
@@ -26,5 +50,10 @@ public interface ServerVersion {
    */
   boolean versionGreaterOrEqual(int major, int minor, int patch);
 
+  /**
+   * Is server mariadb
+   *
+   * @return true if server is a MariaDB server
+   */
   boolean isMariaDBServer();
 }

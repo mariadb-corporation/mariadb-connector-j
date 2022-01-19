@@ -8,11 +8,18 @@ import java.sql.SQLException;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
+/** Parameter metadata */
 public class ParameterMetaData implements java.sql.ParameterMetaData {
 
   private final Column[] params;
   private final ExceptionFactory exceptionFactory;
 
+  /**
+   * Constructor
+   *
+   * @param exceptionFactory exception factory
+   * @param params columns metadata
+   */
   protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
     this.params = params;
     this.exceptionFactory = exceptionFactory;

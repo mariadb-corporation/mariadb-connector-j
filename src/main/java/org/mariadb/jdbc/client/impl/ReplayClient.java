@@ -18,8 +18,18 @@ import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
+/** Replay client wrapper */
 public class ReplayClient extends StandardClient {
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @param lock thread lock object
+   * @param skipPostCommands must skip connection post commands
+   * @throws SQLException if connection fails
+   */
   public ReplayClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -106,6 +116,12 @@ public class ReplayClient extends StandardClient {
     return completions;
   }
 
+  /**
+   * Replay transaction, re-prepare server command if needed
+   *
+   * @param transactionSaver transaction cache
+   * @throws SQLException if any error occurs
+   */
   public void transactionReplay(TransactionSaver transactionSaver) throws SQLException {
     RedoableClientMessage[] buffers = transactionSaver.getBuffers();
     try {

@@ -10,8 +10,23 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.Result;
 
+/** Procedure callable statement */
 public class ProcedureStatement extends BaseCallableStatement implements CallableStatement {
 
+  /**
+   * Constructor
+   *
+   * @param con connection
+   * @param sql sql
+   * @param databaseName database
+   * @param procedureName procedure
+   * @param lock thread locker
+   * @param canUseServerTimeout can use server timeout
+   * @param canUseServerMaxRows can use server max rows
+   * @param resultSetType result-set type
+   * @param resultSetConcurrency concurrency
+   * @throws SQLException if any exception occurs
+   */
   public ProcedureStatement(
       Connection con,
       String sql,

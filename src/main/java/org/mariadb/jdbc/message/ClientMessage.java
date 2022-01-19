@@ -30,24 +30,72 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
 
+  /**
+   * Encode client message to socket.
+   *
+   * @param writer socket writer
+   * @param context connection context
+   * @return number of client message written
+   * @throws IOException if socket error occur
+   * @throws SQLException if any issue occurs
+   */
   int encode(Writer writer, Context context) throws IOException, SQLException;
 
+  /**
+   * Number of parameter rows, and so expected return length
+   *
+   * @return batch update length
+   */
   default int batchUpdateLength() {
     return 0;
   }
 
+  /**
+   * Message description
+   *
+   * @return description
+   */
   default String description() {
     return null;
   }
 
+  /**
+   * Are return value encoded in binary protocol
+   *
+   * @return use binary protocol
+   */
   default boolean binaryProtocol() {
     return false;
   }
 
+  /**
+   * Can skip metadata
+   *
+   * @return can skip metadata
+   */
   default boolean canSkipMeta() {
     return false;
   }
 
+  /**
+   * default packet resultset parser
+   *
+   * @param stmt caller
+   * @param fetchSize fetch size
+   * @param maxRows maximum number of rows
+   * @param resultSetConcurrency resultset concurrency
+   * @param resultSetType resultset type
+   * @param closeOnCompletion must close caller on result parsing end
+   * @param reader packet reader
+   * @param writer packet writer
+   * @param context connection context
+   * @param exceptionFactory connection exception factory
+   * @param lock thread safe locks
+   * @param traceEnable is loggind trace enable
+   * @return results
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for other kind of errors
+   */
   default Completion readPacket(
       Statement stmt,
       int fetchSize,

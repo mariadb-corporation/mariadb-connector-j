@@ -11,6 +11,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Server Error Packet see https://mariadb.com/kb/en/err_packet/ */
 public final class ErrorPacket implements ServerMessage {
   private static final Logger logger = Loggers.getLogger(ErrorPacket.class);
   private final short errorCode;
@@ -52,14 +53,29 @@ public final class ErrorPacket implements ServerMessage {
     }
   }
 
+  /**
+   * Error code
+   *
+   * @return error code
+   */
   public short getErrorCode() {
     return errorCode;
   }
 
+  /**
+   * Error message
+   *
+   * @return error message
+   */
   public String getMessage() {
     return message;
   }
 
+  /**
+   * SQL State
+   *
+   * @return SQLState
+   */
   public String getSqlState() {
     return sqlState;
   }

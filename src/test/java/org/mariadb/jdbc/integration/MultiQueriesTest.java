@@ -17,6 +17,7 @@ public class MultiQueriesTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE TABLE AllowMultiQueriesTest(id int not null primary key auto_increment, "
@@ -26,7 +27,7 @@ public class MultiQueriesTest extends Common {
 
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE AllowMultiQueriesTest");
+    sharedConn.createStatement().execute("DROP TABLE IF EXISTS AllowMultiQueriesTest");
   }
 
   @Test

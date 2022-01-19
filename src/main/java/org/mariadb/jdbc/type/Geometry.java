@@ -8,14 +8,31 @@ import java.sql.SQLDataException;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 
+/** Geometry parser */
 public interface Geometry {
 
+  /**
+   * Parse point from packet
+   *
+   * @param littleEndian encoding order
+   * @param buf packet buffer
+   * @return point value
+   */
   static Point parsePoint(boolean littleEndian, ReadableByteBuf buf) {
     double x = littleEndian ? buf.readDouble() : buf.readDoubleBE();
     double y = littleEndian ? buf.readDouble() : buf.readDoubleBE();
     return new Point(x, y);
   }
 
+  /**
+   * parse geometry object
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column meta
+   * @return geometry parsed object
+   * @throws SQLDataException if parsing exception occurs
+   */
   static Geometry getGeometry(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
     if (length == 0) return null;

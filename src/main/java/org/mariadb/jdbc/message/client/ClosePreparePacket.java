@@ -9,18 +9,24 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
 
+/**
+ * Client mysql COM_STMT_CLOSE packet COM_STMT_CLOSE packet. See
+ * https://mariadb.com/kb/en/3-binary-protocol-prepared-statements-com_stmt_close/
+ */
 public final class ClosePreparePacket implements ClientMessage {
 
   private final int statementId;
 
+  /**
+   * Constructor for a prepare statement id
+   *
+   * @param statementId statement identifier
+   */
   public ClosePreparePacket(int statementId) {
     this.statementId = statementId;
   }
 
-  /**
-   * COM_STMT_CLOSE packet. See
-   * https://mariadb.com/kb/en/3-binary-protocol-prepared-statements-com_stmt_close/
-   */
+  /** send packet to socket */
   @Override
   public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();

@@ -25,6 +25,13 @@ public final class LongDataPacket implements ClientMessage {
   private final Parameter parameter;
   private final int index;
 
+  /**
+   * Constructor
+   *
+   * @param statementId statement identifier
+   * @param parameter parameter
+   * @param index index
+   */
   public LongDataPacket(int statementId, Parameter parameter, int index) {
     this.statementId = statementId;
     this.parameter = parameter;

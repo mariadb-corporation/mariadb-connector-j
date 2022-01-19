@@ -16,6 +16,10 @@ import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
+/**
+ * Server handshake response builder. see
+ * https://mariadb.com/kb/en/connection/#client-handshake-response
+ */
 public final class HandshakeResponse implements ClientMessage {
 
   private static final String _CLIENT_NAME = "_client_name";
@@ -36,6 +40,17 @@ public final class HandshakeResponse implements ClientMessage {
   private final byte[] seed;
   private String authenticationPluginType;
 
+  /**
+   * Object with parsed results
+   *
+   * @param credential credential
+   * @param authenticationPluginType authentication plugin to use
+   * @param seed server seed
+   * @param conf configuration
+   * @param host current host
+   * @param clientCapabilities client capabilities
+   * @param exchangeCharset connection charset
+   */
   public HandshakeResponse(
       Credential credential,
       String authenticationPluginType,

@@ -18,12 +18,24 @@ import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
+/**
+ * batch execution. This relies on COM_STMT_BULK_EXECUTE see
+ * https://mariadb.com/kb/en/com_stmt_bulk_execute/
+ */
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
   private List<Parameters> batchParameterList;
   private final String command;
   private final ServerPreparedStatement prep;
   private Prepare prepareResult;
 
+  /**
+   * Constructor
+   *
+   * @param prepareResult prepare result
+   * @param batchParameterList batch parameter list
+   * @param command sql command
+   * @param prep object creator
+   */
   public BulkExecutePacket(
       Prepare prepareResult,
       List<Parameters> batchParameterList,

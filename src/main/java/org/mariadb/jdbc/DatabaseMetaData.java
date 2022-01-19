@@ -17,8 +17,10 @@ import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Mariadb Database metadata */
 public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
+  /** MariaDB driver name */
   public static final String DRIVER_NAME = "MariaDB Connector/J";
 
   private final org.mariadb.jdbc.Connection connection;
@@ -3811,12 +3813,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return 4294967295L;
   }
 
-  @Override
-  public boolean supportsRefCursors() {
-    return false;
-  }
-
-  public static class Identifier {
+  private static class Identifier {
     public String schema;
     public String name;
   }

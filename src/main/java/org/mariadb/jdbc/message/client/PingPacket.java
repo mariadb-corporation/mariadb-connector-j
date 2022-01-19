@@ -9,8 +9,10 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
 
+/** Ping packet see COM_PING (https://mariadb.com/kb/en/com_ping/) */
 public final class PingPacket implements ClientMessage {
 
+  /** default instance */
   public static final PingPacket INSTANCE = new PingPacket();
 
   @Override

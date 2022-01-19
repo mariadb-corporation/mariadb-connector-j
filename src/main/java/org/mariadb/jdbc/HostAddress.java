@@ -10,10 +10,16 @@ import java.util.List;
 import java.util.Objects;
 import org.mariadb.jdbc.export.HaMode;
 
+/** Host entry */
 public class HostAddress {
 
+  /** host address */
   public final String host;
+
+  /** port */
   public int port;
+
+  /** primary node */
   public Boolean primary;
 
   /**
@@ -29,10 +35,25 @@ public class HostAddress {
     this.primary = primary;
   }
 
+  /**
+   * Create a Host without knowledge of primary/replica goal
+   *
+   * @param host host (DNS/IP)
+   * @param port port
+   * @return host
+   */
   public static HostAddress from(String host, int port) {
     return new HostAddress(host, port, null);
   }
 
+  /**
+   * Create a Host
+   *
+   * @param host host (DNS/IP)
+   * @param port port
+   * @param primary is primary
+   * @return host
+   */
   public static HostAddress from(String host, int port, boolean primary) {
     return new HostAddress(host, port, primary);
   }

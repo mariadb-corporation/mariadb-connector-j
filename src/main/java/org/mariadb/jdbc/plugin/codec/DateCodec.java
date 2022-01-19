@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Date codec */
 public class DateCodec implements Codec<Date> {
 
+  /** default instance */
   public static final DateCodec INSTANCE = new DateCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

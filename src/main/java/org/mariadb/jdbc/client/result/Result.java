@@ -32,27 +32,69 @@ import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Result-set common */
 public abstract class Result implements ResultSet, Completion {
 
-  protected final int resultSetType;
-  protected final ExceptionFactory exceptionFactory;
-  protected final org.mariadb.jdbc.client.socket.Reader reader;
-  protected final Context context;
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  protected final Column[] metadataList;
-  protected final RowDecoder row;
-  protected int dataSize = 0;
-  protected byte[][] data;
-  protected boolean loaded;
-  protected boolean outputParameter;
-  protected int rowPointer = -1;
-  protected boolean closed;
-  protected Statement statement;
-  protected long maxRows;
   private boolean forceAlias;
   private final boolean traceEnable;
 
+  /** result-set type */
+  protected final int resultSetType;
+
+  /** connection exception factoy */
+  protected final ExceptionFactory exceptionFactory;
+
+  /** packet reader */
+  protected final org.mariadb.jdbc.client.socket.Reader reader;
+
+  /** connection context */
+  protected final Context context;
+
+  /** columns metadata */
+  protected final Column[] metadataList;
+
+  /** binary/text row decoder */
+  protected final RowDecoder row;
+
+  /** data size */
+  protected int dataSize = 0;
+
+  /** rows */
+  protected byte[][] data;
+
+  /** is fully loaded */
+  protected boolean loaded;
+
+  /** is an output parameter result-set */
+  protected boolean outputParameter;
+
+  /** current row pointer */
+  protected int rowPointer = -1;
+
+  /** is result-set closed */
+  protected boolean closed;
+
+  /** statement that initiate this result */
+  protected Statement statement;
+
+  /** row number limit */
+  protected long maxRows;
+
+  /**
+   * Constructor for server's data
+   *
+   * @param stmt statement that initiate this result
+   * @param binaryProtocol binary encoded rows
+   * @param maxRows row number limit
+   * @param metadataList columns metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on completion
+   * @param traceEnable logger enabled
+   */
   public Result(
       org.mariadb.jdbc.Statement stmt,
       boolean binaryProtocol,
@@ -79,6 +121,13 @@ public abstract class Result implements ResultSet, Completion {
             : new TextRowDecoder(this.maxIndex, metadataList, context.getConf());
   }
 
+  /**
+   * Internal constructed result-set
+   *
+   * @param metadataList column metadata
+   * @param data raw data
+   * @param context connection context
+   */
   public Result(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
@@ -95,8 +144,15 @@ public abstract class Result implements ResultSet, Completion {
     row = new TextRowDecoder(maxIndex, metadataList, context.getConf());
   }
 
+  /**
+   * Read new row
+   *
+   * @return true if fully loaded
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for all other type of errors
+   */
   @SuppressWarnings("fallthrough")
-  protected boolean readNext() throws SQLException, IOException {
+  protected boolean readNext() throws IOException, SQLException {
     byte[] buf = reader.readPacket(false, traceEnable).buf();
     switch (buf[0]) {
       case (byte) 0xFF:
@@ -143,8 +199,14 @@ public abstract class Result implements ResultSet, Completion {
     return true;
   }
 
+  /**
+   * Skip remaining rows to keep connection state ok, without needing remaining data.
+   *
+   * @throws IOException if socket error occurs
+   * @throws SQLException for other kind of error
+   */
   @SuppressWarnings("fallthrough")
-  protected void skipRemaining() throws SQLException, IOException {
+  protected void skipRemaining() throws IOException, SQLException {
     while (true) {
       ReadableByteBuf buf = reader.readPacket(true, traceEnable);
       switch (buf.getUnsignedByte()) {
@@ -189,21 +251,52 @@ public abstract class Result implements ResultSet, Completion {
     data = Arrays.copyOf(data, newCapacity);
   }
 
+  /**
+   * Position resultset to next row
+   *
+   * @return true if next row exists
+   * @throws SQLException if any error occurs
+   */
   @Override
   public abstract boolean next() throws SQLException;
 
+  /**
+   * Indicate of current result-set is a streaming result-set
+   *
+   * @return if streaming result-set
+   */
   public abstract boolean streaming();
 
+  /**
+   * Fetch remaining results.
+   *
+   * @throws SQLException if issue occurs during data retrieving
+   */
   public abstract void fetchRemaining() throws SQLException;
 
+  /**
+   * Is result-set fully loaded or still streaming
+   *
+   * @return true if fully loaded
+   */
   public boolean loaded() {
     return loaded;
   }
 
+  /**
+   * Does result-set contain output parameters
+   *
+   * @return true if containing output parameters
+   */
   public boolean isOutputParameter() {
     return outputParameter;
   }
 
+  /**
+   * Close current result-set
+   *
+   * @throws SQLException if socket error occurs
+   */
   @Override
   public void close() throws SQLException {
     if (!loaded) {
@@ -219,6 +312,12 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
+  /**
+   * Closing result-set due to closing statement that issue command.
+   *
+   * @param lock thread locker object
+   * @throws SQLException if any error occurs
+   */
   public void closeFromStmtClose(ReentrantLock lock) throws SQLException {
     lock.lock();
     try {
@@ -229,14 +328,25 @@ public abstract class Result implements ResultSet, Completion {
     }
   }
 
+  /** Aborting result-set, without any consideration for connection state. */
   public void abort() {
     this.closed = true;
   }
 
+  /**
+   * return current row RAW data
+   *
+   * @return current row RAW data
+   */
   protected byte[] getCurrentRowData() {
     return data[0];
   }
 
+  /**
+   * Add a row
+   *
+   * @param buf add row
+   */
   protected void addRowData(byte[] buf) {
     if (dataSize + 1 > data.length) {
       growDataArray();
@@ -244,11 +354,21 @@ public abstract class Result implements ResultSet, Completion {
     data[dataSize++] = buf;
   }
 
+  /**
+   * Update current row
+   *
+   * @param rawData new row
+   */
   protected void updateRowData(byte[] rawData) {
     data[rowPointer] = rawData;
     row.setRow(rawData);
   }
 
+  /**
+   * has last data getter return a null value
+   *
+   * @return true if was null
+   */
   @Override
   public boolean wasNull() {
     return row.wasNull();
@@ -284,10 +404,26 @@ public abstract class Result implements ResultSet, Completion {
     return row.getLongValue(columnIndex);
   }
 
+  /**
+   * Retrieves the value of the designated column in the current row of this ResultSet object as a
+   * BigInteger.
+   *
+   * @param columnIndex index
+   * @return BigInteger value
+   * @throws SQLException if cannot be decoded as a BigInteger
+   */
   public BigInteger getBigInteger(int columnIndex) throws SQLException {
     return row.getValue(columnIndex, BigIntegerCodec.INSTANCE, null);
   }
 
+  /**
+   * Retrieves the value of the designated column in the current row of this ResultSet object as a
+   * BigInteger.
+   *
+   * @param columnLabel column label
+   * @return BigInteger value
+   * @throws SQLException if cannot be decoded as a BigInteger
+   */
   public BigInteger getBigInteger(String columnLabel) throws SQLException {
     return row.getValue(columnLabel, BigIntegerCodec.INSTANCE, null);
   }
@@ -496,12 +632,22 @@ public abstract class Result implements ResultSet, Completion {
     return row.getValue(columnLabel, BigDecimalCodec.INSTANCE, null);
   }
 
+  /**
+   * Verify that result-set is not closed, throwing an exception if closed
+   *
+   * @throws SQLException if closed
+   */
   protected void checkClose() throws SQLException {
     if (closed) {
       throw exceptionFactory.create("Operation not permit on a closed resultSet", "HY000");
     }
   }
 
+  /**
+   * Throw an exception if result-set type is ResultSet.TYPE_FORWARD_ONLY
+   *
+   * @throws SQLException throw error if type is ResultSet.TYPE_FORWARD_ONLY
+   */
   protected void checkNotForwardOnly() throws SQLException {
     if (resultSetType == ResultSet.TYPE_FORWARD_ONLY) {
       throw exceptionFactory.create("Operation not permit on TYPE_FORWARD_ONLY resultSet", "HY000");
@@ -817,10 +963,16 @@ public abstract class Result implements ResultSet, Completion {
     return statement;
   }
 
+  /**
+   * Update statement that initiate this result-set
+   *
+   * @param stmt statement
+   */
   public void setStatement(Statement stmt) {
     statement = stmt;
   }
 
+  /** Force using alias as name */
   public void useAliasAsName() {
     for (Column packet : metadataList) {
       packet.useAliasAsName();

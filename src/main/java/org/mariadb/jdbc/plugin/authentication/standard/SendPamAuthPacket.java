@@ -14,6 +14,10 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
+/**
+ * PAM (dialog) authentication plugin. This is a multi-step exchange password. If more than one
+ * step, passwordX (password2, password3, ...) options must be set.
+ */
 public class SendPamAuthPacket implements AuthenticationPlugin {
 
   private String authenticationData;

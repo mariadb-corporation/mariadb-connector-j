@@ -484,6 +484,13 @@ public class Configuration {
             || (url.startsWith("jdbc:mysql:") && url.contains("permitMysqlScheme")));
   }
 
+  /**
+   * parse connection string
+   *
+   * @param url connection string
+   * @return configuration resulting object
+   * @throws SQLException if not supported driver or wrong connection string format.
+   */
   public static Configuration parse(final String url) throws SQLException {
     return parse(url, new Properties());
   }
@@ -681,6 +688,13 @@ public class Configuration {
     }
   }
 
+  /**
+   * Clone configuration with another user/password
+   *
+   * @param username new username
+   * @param password new password
+   * @return new cloned configuration object
+   */
   public Configuration clone(String username, String password) {
     return new Configuration(
         username != null && username.isEmpty() ? null : username,
@@ -753,287 +767,646 @@ public class Configuration {
         this.allowPublicKeyRetrieval);
   }
 
+  /**
+   * Connection default database
+   *
+   * @return database
+   */
   public String database() {
     return database;
   }
 
+  /**
+   * addresses
+   *
+   * @return addresses
+   */
   public List<HostAddress> addresses() {
     return addresses;
   }
 
+  /**
+   * High availability mode
+   *
+   * @return configuration HA mode
+   */
   public HaMode haMode() {
     return haMode;
   }
 
+  /**
+   * credential plugin to use
+   *
+   * @return credential plugin to use, null of none
+   */
   public CredentialPlugin credentialPlugin() {
     return credentialType;
   }
 
+  /**
+   * configuration user
+   *
+   * @return user
+   */
   public String user() {
     return user;
   }
 
+  /**
+   * configuration password
+   *
+   * @return password
+   */
   public String password() {
     return password;
   }
 
+  /**
+   * Configuration generated URL depending on current configuration option. Password will be hidden
+   * by "***"
+   *
+   * @return generated url
+   */
   public String initialUrl() {
     return initialUrl;
   }
 
+  /**
+   * server ssl certificate (file path / certificat content)
+   *
+   * @return server ssl certificate
+   */
   public String serverSslCert() {
     return serverSslCert;
   }
 
+  /**
+   * key store
+   *
+   * @return key store
+   */
   public String keyStore() {
     return keyStore;
   }
 
+  /**
+   * key store password
+   *
+   * @return key store password
+   */
   public String keyStorePassword() {
     return keyStorePassword;
   }
 
+  /**
+   * key store type (to replace default javax.net.ssl.keyStoreType system property)
+   *
+   * @return key store type
+   */
   public String keyStoreType() {
     return keyStoreType;
   }
 
+  /**
+   * permitted ssl protocol list (comma separated)
+   *
+   * @return enabled ssl protocol list
+   */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
   }
 
+  /**
+   * Socket factory class name
+   *
+   * @return socket factory
+   */
   public String socketFactory() {
     return socketFactory;
   }
 
+  /**
+   * socket connect timeout
+   *
+   * @return connect timeout
+   */
   public int connectTimeout() {
     return connectTimeout;
   }
 
+  /**
+   * Set connect timeout
+   *
+   * @param connectTimeout timeout value
+   * @return current configuration
+   */
   public Configuration connectTimeout(int connectTimeout) {
     this.connectTimeout = connectTimeout;
     return this;
   }
 
+  /**
+   * Pipe path
+   *
+   * @return pipe value
+   */
   public String pipe() {
     return pipe;
   }
 
+  /**
+   * local socket configuration
+   *
+   * @return local socket path
+   */
   public String localSocket() {
     return localSocket;
   }
 
+  /**
+   * socket tcp keep alive
+   *
+   * @return socket tcp keep alive value
+   */
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
   }
 
+  /**
+   * socket tcp keep idle (java 11+ only)
+   *
+   * @return socket tcp keep idle
+   */
   public int tcpKeepIdle() {
     return tcpKeepIdle;
   }
 
+  /**
+   * socket tcp keep count (java 11+ only)
+   *
+   * @return socket tcp keep count
+   */
   public int tcpKeepCount() {
     return tcpKeepCount;
   }
 
+  /**
+   * socket tcp keep interval (java 11+ only)
+   *
+   * @return socket tcp keep interval
+   */
   public int tcpKeepInterval() {
     return tcpKeepInterval;
   }
 
+  /**
+   * close using TCP abortive close (RST TCP packet, in place or FIN packet)
+   *
+   * @return close using TCP abortive close
+   */
   public boolean tcpAbortiveClose() {
     return tcpAbortiveClose;
   }
 
+  /**
+   * local socket address path
+   *
+   * @return local socket address
+   */
   public String localSocketAddress() {
     return localSocketAddress;
   }
 
+  /**
+   * socket timeout
+   *
+   * @return socket timeout
+   */
   public int socketTimeout() {
     return socketTimeout;
   }
 
+  /**
+   * permit using multi queries command
+   *
+   * @return permit using multi queries command
+   */
   public boolean allowMultiQueries() {
     return allowMultiQueries;
   }
 
+  /**
+   * permits LOAD LOCAL INFILE commands
+   *
+   * @return allow LOAD LOCAL INFILE
+   */
   public boolean allowLocalInfile() {
     return allowLocalInfile;
   }
 
+  /**
+   * Enable compression if server has compression capability
+   *
+   * @return use compression
+   */
   public boolean useCompression() {
     return useCompression;
   }
 
+  /**
+   * force returning blank table metadata (for old oracle compatibility)
+   *
+   * @return metadata table return blank
+   */
   public boolean blankTableNameMeta() {
     return blankTableNameMeta;
   }
 
+  /**
+   * SSl mode
+   *
+   * @return ssl mode
+   */
   public SslMode sslMode() {
     return sslMode;
   }
 
+  /**
+   * Default transaction isolation
+   *
+   * @return default transaction isolation.
+   */
   public TransactionIsolation transactionIsolation() {
     return transactionIsolation;
   }
 
+  /**
+   * autorized cipher list.
+   *
+   * @return list of permitted ciphers
+   */
   public String enabledSslCipherSuites() {
     return enabledSslCipherSuites;
   }
 
+  /**
+   * coma separated Session variable list
+   *
+   * @return session variable
+   */
   public String sessionVariables() {
     return sessionVariables;
   }
 
+  /**
+   * Must tinyint(1) be considered as Bit
+   *
+   * @return true if tinyint(1) must be considered as Bit
+   */
   public boolean tinyInt1isBit() {
     return tinyInt1isBit;
   }
 
+  /**
+   * Must year be return by default as Date in result-set
+   *
+   * @return year is Date type
+   */
   public boolean yearIsDateType() {
     return yearIsDateType;
   }
 
+  /**
+   * Set timezone
+   *
+   * @return timezone
+   */
   public String timezone() {
     return timezone;
   }
 
+  /**
+   * Must query by logged on exception.
+   *
+   * @return dump queries on exception
+   */
   public boolean dumpQueriesOnException() {
     return dumpQueriesOnException;
   }
 
+  /**
+   * Prepare statement cache size.
+   *
+   * @return Prepare statement cache size
+   */
   public int prepStmtCacheSize() {
     return prepStmtCacheSize;
   }
 
+  /**
+   * Use affected row
+   *
+   * @return use affected rows
+   */
   public boolean useAffectedRows() {
     return useAffectedRows;
   }
 
+  /**
+   * Use server prepared statement. IF false, using client prepared statement.
+   *
+   * @return use server prepared statement
+   */
   public boolean useServerPrepStmts() {
     return useServerPrepStmts;
   }
 
+  /**
+   * Connections attributes
+   *
+   * @return connection meta informations
+   */
   public String connectionAttributes() {
     return connectionAttributes;
   }
 
+  /**
+   * Use server COM_STMT_BULK for batching.
+   *
+   * @return use server bulk command.
+   */
   public boolean useBulkStmts() {
     return useBulkStmts;
   }
 
+  /**
+   * Force session autocommit on connection creation
+   *
+   * @return autocommit forced value
+   */
   public Boolean autocommit() {
     return autocommit;
   }
 
+  /**
+   * Force returning MySQL metadata information
+   *
+   * @return force returning MySQL in metadata
+   */
   public boolean useMysqlMetadata() {
     return useMysqlMetadata;
   }
 
+  /**
+   * create database if not exist
+   *
+   * @return create database if not exist
+   */
   public boolean createDatabaseIfNotExist() {
     return createDatabaseIfNotExist;
   }
 
+  /**
+   * On deadlock exception, must driver execute additional commands to show innodb status in error
+   * description.
+   *
+   * @return includeInnodbStatusInDeadlockExceptions
+   */
   public boolean includeInnodbStatusInDeadlockExceptions() {
     return includeInnodbStatusInDeadlockExceptions;
   }
 
+  /**
+   * On deadlock exception, must driver display threads information on error description.
+   *
+   * @return include Thread Dump In Deadlock Exceptions
+   */
   public boolean includeThreadDumpInDeadlockExceptions() {
     return includeThreadDumpInDeadlockExceptions;
   }
 
+  /**
+   * Service principal name (GSSAPI option)
+   *
+   * @return service principal name
+   */
   public String servicePrincipalName() {
     return servicePrincipalName;
   }
 
+  /**
+   * result-set streaming default fetch size
+   *
+   * @return Default fetch size.
+   */
   public int defaultFetchSize() {
     return defaultFetchSize;
   }
 
+  /**
+   * non standard options
+   *
+   * @return non standard options
+   */
   public Properties nonMappedOptions() {
     return nonMappedOptions;
   }
 
+  /**
+   * TLS socket type
+   *
+   * @return TLS socket type
+   */
   public String tlsSocketType() {
     return tlsSocketType;
   }
 
+  /**
+   * query maximum size to log (query will be truncated of more than this limit)
+   *
+   * @return max query log size
+   */
   public int maxQuerySizeToLog() {
     return maxQuerySizeToLog;
   }
 
+  /**
+   * max_allowed_packet value to avoid sending packet with non supported size, droping the
+   * connection without reason.
+   *
+   * @return max_allowed_packet value
+   */
   public Integer maxAllowedPacket() {
     return maxAllowedPacket;
   }
 
+  /**
+   * retry the maximum retry number of attempts to reconnect after a failover.
+   *
+   * @return the maximum retry number of attempts to reconnect after a failover.
+   */
   public int retriesAllDown() {
     return retriesAllDown;
   }
 
+  /**
+   * Galera comma separated allowed state
+   *
+   * @return galera allowed state
+   */
   public String galeraAllowedState() {
     return galeraAllowedState;
   }
 
+  /**
+   * Create pool
+   *
+   * @return create pool if don't exists
+   */
   public boolean pool() {
     return pool;
   }
 
+  /**
+   * pool name
+   *
+   * @return pool name.
+   */
   public String poolName() {
     return poolName;
   }
 
+  /**
+   * max pool size
+   *
+   * @return maximum pool size
+   */
   public int maxPoolSize() {
     return maxPoolSize;
   }
 
+  /**
+   * Minimum pool size
+   *
+   * @return minimum pool size
+   */
   public int minPoolSize() {
     return minPoolSize;
   }
 
+  /**
+   * Max idle time
+   *
+   * @return pool max idle time.
+   */
   public int maxIdleTime() {
     return maxIdleTime;
   }
 
+  /**
+   * register pool information to JMX
+   *
+   * @return register pool to JMX
+   */
   public boolean registerJmxPool() {
     return registerJmxPool;
   }
 
+  /**
+   * Pool mininum validation delay.
+   *
+   * @return pool validation delay
+   */
   public int poolValidMinDelay() {
     return poolValidMinDelay;
   }
 
+  /**
+   * Must connection returned to pool be RESET
+   *
+   * @return use RESET on connection
+   */
   public boolean useResetConnection() {
     return useResetConnection;
   }
 
+  /**
+   * Server RSA public key file for caching_sha2_password authentication
+   *
+   * @return server key file
+   */
   public String serverRsaPublicKeyFile() {
     return serverRsaPublicKeyFile;
   }
 
+  /**
+   * permit mysql authentication to retrieve server certificate
+   *
+   * @return is driver allowed to retrieve server certificate from server
+   */
   public boolean allowPublicKeyRetrieval() {
     return allowPublicKeyRetrieval;
   }
 
+  /**
+   * Read all data from socket in advance
+   *
+   * @return use read ahead buffer implementation
+   */
   public boolean useReadAheadInput() {
     return useReadAheadInput;
   }
 
+  /**
+   * Cache prepared statement result.
+   *
+   * @return cache prepare results
+   */
   public boolean cachePrepStmts() {
     return cachePrepStmts;
   }
 
+  /**
+   * implements transaction replay failover
+   *
+   * @return true if transaction must be replayed on failover.
+   */
   public boolean transactionReplay() {
     return transactionReplay;
   }
 
+  /**
+   * transaction replay maximum number of saved command.
+   *
+   * @return transaction replay buffer size.
+   */
   public int transactionReplaySize() {
     return transactionReplaySize;
   }
 
+  /**
+   * geometry default decoding implementation
+   *
+   * @return geometry default type
+   */
   public String geometryDefaultType() {
     return geometryDefaultType;
   }
 
+  /**
+   * Restrict authentication plugin to comma separated plugin list
+   *
+   * @return authorized authentication list
+   */
   public String restrictedAuth() {
     return restrictedAuth;
   }
 
+  /**
+   * datatype Encoder/decoder list
+   *
+   * @return codec list
+   */
   public Codec<?>[] codecs() {
     return codecs;
   }
@@ -1054,9 +1427,18 @@ public class Configuration {
 
     Configuration that = (Configuration) o;
 
-    return initialUrl.equals(that.initialUrl);
+    if (password == null) {
+      return initialUrl.equals(that.initialUrl) && that.password == null;
+    }
+    return initialUrl.equals(that.initialUrl) && password.equals(that.password);
   }
 
+  /**
+   * Generate initialURL property
+   *
+   * @param conf current configuration
+   * @return initialUrl value.
+   */
   protected static String buildUrl(Configuration conf) {
     Configuration defaultConf = new Configuration();
     StringBuilder sb = new StringBuilder();
@@ -1109,6 +1491,14 @@ public class Configuration {
         Object obj = field.get(conf);
 
         if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
+
+          if ("password".equals(field.getName())) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(field.getName()).append('=');
+            sb.append("***");
+            continue;
+          }
 
           if (field.getType().equals(String.class)) {
             sb.append(first ? '?' : '&');
@@ -1286,11 +1676,23 @@ public class Configuration {
     private String serverRsaPublicKeyFile;
     private Boolean allowPublicKeyRetrieval;
 
+    /**
+     * set user to authenticate to server
+     *
+     * @param user user
+     * @return this {@link Builder}
+     */
     public Builder user(String user) {
       this.user = nullOrEmpty(user);
       return this;
     }
 
+    /**
+     * Server SSL certificate (path or file content)
+     *
+     * @param serverSslCert set Server SSL certificate (path or file content)
+     * @return this {@link Builder}
+     */
     public Builder serverSslCert(String serverSslCert) {
       this.serverSslCert = nullOrEmpty(serverSslCert);
       return this;
@@ -1320,47 +1722,104 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Key store type
+     *
+     * @param keyStoreType key store type
+     * @return this {@link Builder}
+     */
     public Builder keyStoreType(String keyStoreType) {
       this.keyStoreType = nullOrEmpty(keyStoreType);
       return this;
     }
 
+    /**
+     * User password
+     *
+     * @param password password
+     * @return this {@link Builder}
+     */
     public Builder password(String password) {
       this.password = nullOrEmpty(password);
       return this;
     }
 
+    /**
+     * Set ssl protocol list to user (comma separated)
+     *
+     * @param enabledSslProtocolSuites set possible SSL(TLS) protocol to use
+     * @return this {@link Builder}
+     */
     public Builder enabledSslProtocolSuites(String enabledSslProtocolSuites) {
       this.enabledSslProtocolSuites = nullOrEmpty(enabledSslProtocolSuites);
       return this;
     }
 
+    /**
+     * Set default database
+     *
+     * @param database database
+     * @return this {@link Builder}
+     */
     public Builder database(String database) {
       this.database = database;
       return this;
     }
 
+    /**
+     * Set failover High-availability mode
+     *
+     * @param haMode High-availability mode
+     * @return this {@link Builder}
+     */
     public Builder haMode(HaMode haMode) {
       this._haMode = haMode;
       return this;
     }
 
+    /**
+     * Add Host to possible addresses to connect
+     *
+     * @param host hostname or IP
+     * @param port port
+     * @return this {@link Builder}
+     */
     public Builder addHost(String host, int port) {
       this._addresses.add(HostAddress.from(nullOrEmpty(host), port));
       return this;
     }
 
+    /**
+     * Add Host to possible addresses to connect
+     *
+     * @param host hostname or IP
+     * @param port port
+     * @param master is master or replica
+     * @return this {@link Builder}
+     */
     public Builder addHost(String host, int port, boolean master) {
       this._addresses.add(HostAddress.from(nullOrEmpty(host), port, master));
       return this;
     }
 
+    /**
+     * add host addresses
+     *
+     * @param hostAddress host addresses
+     * @return this {@link Builder}
+     */
     public Builder addresses(HostAddress... hostAddress) {
       this._addresses = new ArrayList<>();
       this._addresses.addAll(Arrays.asList(hostAddress));
       return this;
     }
 
+    /**
+     * Socket factory
+     *
+     * @param socketFactory socket factory
+     * @return this {@link Builder}
+     */
     public Builder socketFactory(String socketFactory) {
       this.socketFactory = socketFactory;
       return this;
@@ -1551,81 +2010,178 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Set blank table name for metadata (old oracle compatibility)
+     *
+     * @param blankTableNameMeta use blank table name
+     * @return this {@link Builder}
+     */
     public Builder blankTableNameMeta(Boolean blankTableNameMeta) {
       this.blankTableNameMeta = blankTableNameMeta;
       return this;
     }
 
+    /**
+     * set credential plugin type
+     *
+     * @param credentialType credential plugin type
+     * @return this {@link Builder}
+     */
     public Builder credentialType(String credentialType) {
       this.credentialType = nullOrEmpty(credentialType);
       return this;
     }
 
+    /**
+     * Set ssl model
+     *
+     * @param sslMode ssl requirement
+     * @return this {@link Builder}
+     */
     public Builder sslMode(String sslMode) {
       this.sslMode = sslMode;
       return this;
     }
 
+    /**
+     * force default transaction isolation, not using server default
+     *
+     * @param transactionIsolation indicate default transaction isolation
+     * @return this {@link Builder}
+     */
     public Builder transactionIsolation(String transactionIsolation) {
       this.transactionIsolation = nullOrEmpty(transactionIsolation);
       return this;
     }
 
+    /**
+     * set possible cipher list (comma separated), not using default java cipher list
+     *
+     * @param enabledSslCipherSuites ssl cipher list
+     * @return this {@link Builder}
+     */
     public Builder enabledSslCipherSuites(String enabledSslCipherSuites) {
       this.enabledSslCipherSuites = nullOrEmpty(enabledSslCipherSuites);
       return this;
     }
 
+    /**
+     * set connection session variables (comma separated)
+     *
+     * @param sessionVariables session variable list
+     * @return this {@link Builder}
+     */
     public Builder sessionVariables(String sessionVariables) {
       this.sessionVariables = nullOrEmpty(sessionVariables);
       return this;
     }
 
+    /**
+     * TinyInt(1) to be considered as bit
+     *
+     * @param tinyInt1isBit Indicate if Tinyint(1) to be considered as bit
+     * @return this {@link Builder}
+     */
     public Builder tinyInt1isBit(Boolean tinyInt1isBit) {
       this.tinyInt1isBit = tinyInt1isBit;
       return this;
     }
 
+    /**
+     * Year datatype to be considered as date
+     *
+     * @param yearIsDateType indicate if Year must be considered as Date
+     * @return this {@link Builder}
+     */
     public Builder yearIsDateType(Boolean yearIsDateType) {
       this.yearIsDateType = yearIsDateType;
       return this;
     }
 
+    /**
+     * Force timezone to use this timezone, not default java one
+     *
+     * @param timezone default timezone
+     * @return this {@link Builder}
+     */
     public Builder timezone(String timezone) {
       this.timezone = nullOrEmpty(timezone);
       return this;
     }
 
+    /**
+     * Must queries be dump on exception stracktrace.
+     *
+     * @param dumpQueriesOnException must queries be dump on exception
+     * @return this {@link Builder}
+     */
     public Builder dumpQueriesOnException(Boolean dumpQueriesOnException) {
       this.dumpQueriesOnException = dumpQueriesOnException;
       return this;
     }
 
+    /**
+     * If using server prepared statement, set LRU prepare cache size
+     *
+     * @param prepStmtCacheSize prepare cache size
+     * @return this {@link Builder}
+     */
     public Builder prepStmtCacheSize(Integer prepStmtCacheSize) {
       this.prepStmtCacheSize = prepStmtCacheSize;
       return this;
     }
 
+    /**
+     * Indicate server to return affected rows in place of found rows. This impact the return number
+     * of rows affected by update
+     *
+     * @param useAffectedRows Indicate to user affected rows in place of found rows
+     * @return this {@link Builder}
+     */
     public Builder useAffectedRows(Boolean useAffectedRows) {
       this.useAffectedRows = useAffectedRows;
       return this;
     }
 
+    /**
+     * Indicate to use Client or Server prepared statement
+     *
+     * @param useServerPrepStmts use Server prepared statement
+     * @return this {@link Builder}
+     */
     public Builder useServerPrepStmts(Boolean useServerPrepStmts) {
       this.useServerPrepStmts = useServerPrepStmts;
       return this;
     }
 
+    /**
+     * Additional connection attributes to identify connection
+     *
+     * @param connectionAttributes additional connection attributes
+     * @return this {@link Builder}
+     */
     public Builder connectionAttributes(String connectionAttributes) {
       this.connectionAttributes = nullOrEmpty(connectionAttributes);
       return this;
     }
 
+    /**
+     * Use server dedicated bulk batch command
+     *
+     * @param useBulkStmts use server bulk batch command.
+     * @return this {@link Builder}
+     */
     public Builder useBulkStmts(Boolean useBulkStmts) {
       this.useBulkStmts = useBulkStmts;
       return this;
     }
 
+    /**
+     * Permit to force autocommit connection value
+     *
+     * @param autocommit autocommit value
+     * @return this {@link Builder}
+     */
     public Builder autocommit(Boolean autocommit) {
       this.autocommit = autocommit;
       return this;
@@ -1643,128 +2199,287 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Create database if not exist. This is mainly for test, since does require an additional query
+     * after connection
+     *
+     * @param createDatabaseIfNotExist must driver create database if doesn't exist
+     * @return this {@link Builder}
+     */
     public Builder createDatabaseIfNotExist(Boolean createDatabaseIfNotExist) {
       this.createDatabaseIfNotExist = createDatabaseIfNotExist;
       return this;
     }
 
+    /**
+     * On dead-lock exception must add innodb status in exception error message. If enabled, an
+     * additional command will be done to retrieve innodb status when dead-lock occurs.
+     *
+     * @param includeInnodbStatusInDeadlockExceptions Must dead-lock exception must add innodb
+     *     status in exception error message
+     * @return this {@link Builder}
+     */
     public Builder includeInnodbStatusInDeadlockExceptions(
         Boolean includeInnodbStatusInDeadlockExceptions) {
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
       return this;
     }
 
+    /**
+     * Dead-lock error will contain threads information
+     *
+     * @param includeThreadDumpInDeadlockExceptions must dead-lock error contain treads informations
+     * @return this {@link Builder}
+     */
     public Builder includeThreadDumpInDeadlockExceptions(
         Boolean includeThreadDumpInDeadlockExceptions) {
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
       return this;
     }
 
+    /**
+     * set service principal name (GSSAPI)
+     *
+     * @param servicePrincipalName service principal name (GSSAPI)
+     * @return this {@link Builder}
+     */
     public Builder servicePrincipalName(String servicePrincipalName) {
       this.servicePrincipalName = nullOrEmpty(servicePrincipalName);
       return this;
     }
 
+    /**
+     * Set default fetch size
+     *
+     * @param defaultFetchSize default fetch size
+     * @return this {@link Builder}
+     */
     public Builder defaultFetchSize(Integer defaultFetchSize) {
       this.defaultFetchSize = defaultFetchSize;
       return this;
     }
 
+    /**
+     * Permit to defined default tls plugin type
+     *
+     * @param tlsSocketType default tls socket plugin to use
+     * @return this {@link Builder}
+     */
     public Builder tlsSocketType(String tlsSocketType) {
       this.tlsSocketType = nullOrEmpty(tlsSocketType);
       return this;
     }
 
+    /**
+     * Set the log size limit for query
+     *
+     * @param maxQuerySizeToLog set query size limit
+     * @return this {@link Builder}
+     */
     public Builder maxQuerySizeToLog(Integer maxQuerySizeToLog) {
       this.maxQuerySizeToLog = maxQuerySizeToLog;
       return this;
     }
 
+    /**
+     * Indicate to driver server max_allowed_packet. This permit to driver to avoid sending commands
+     * too big, that would have make server to drop connection
+     *
+     * @param maxAllowedPacket indicate server max_allowed_packet value
+     * @return this {@link Builder}
+     */
     public Builder maxAllowedPacket(Integer maxAllowedPacket) {
       this.maxAllowedPacket = maxAllowedPacket;
       return this;
     }
 
+    /**
+     * When failover occurs, how many connection attempt before throwing error when reconnecting
+     *
+     * @param retriesAllDown number of attemps to reconnect
+     * @return this {@link Builder}
+     */
     public Builder retriesAllDown(Integer retriesAllDown) {
       this.retriesAllDown = retriesAllDown;
       return this;
     }
 
+    /**
+     * Indicate galera allowed state (comma separated), permitting to validate if galera node is
+     * synchronized
+     *
+     * @param galeraAllowedState galera allowed state
+     * @return this {@link Builder}
+     */
     public Builder galeraAllowedState(String galeraAllowedState) {
       this.galeraAllowedState = nullOrEmpty(galeraAllowedState);
       return this;
     }
 
+    /**
+     * Create pool if not existing, or get a connection for the pool associate with this connection
+     * string if existing.
+     *
+     * @param pool use pool
+     * @return this {@link Builder}
+     */
     public Builder pool(Boolean pool) {
       this.pool = pool;
       return this;
     }
 
+    /**
+     * set pool name
+     *
+     * @param poolName pool name
+     * @return this {@link Builder}
+     */
     public Builder poolName(String poolName) {
       this.poolName = nullOrEmpty(poolName);
       return this;
     }
 
+    /**
+     * Set the limit number of connection in pool.
+     *
+     * @param maxPoolSize maximum connection size in pool.
+     * @return this {@link Builder}
+     */
     public Builder maxPoolSize(Integer maxPoolSize) {
       this.maxPoolSize = maxPoolSize;
       return this;
     }
 
+    /**
+     * Minimum pool size.
+     *
+     * @param minPoolSize minimum pool size
+     * @return this {@link Builder}
+     */
     public Builder minPoolSize(Integer minPoolSize) {
       this.minPoolSize = minPoolSize;
       return this;
     }
 
+    /**
+     * Set the maximum idle time of a connection indicating that connection must be released
+     *
+     * @param maxIdleTime maximum idle time of a connection in pool
+     * @return this {@link Builder}
+     */
     public Builder maxIdleTime(Integer maxIdleTime) {
       this.maxIdleTime = maxIdleTime;
       return this;
     }
 
+    /**
+     * Must pool register JMX information
+     *
+     * @param registerJmxPool register pool to JMX
+     * @return this {@link Builder}
+     */
     public Builder registerJmxPool(Boolean registerJmxPool) {
       this.registerJmxPool = registerJmxPool;
       return this;
     }
 
+    /**
+     * Pool will validate connection before giving it. This amount of time indicate that recently
+     * use connection can skip validation 0 means connection will be validated each time (even is
+     * just used)
+     *
+     * @param poolValidMinDelay time limit indicating that connection in pool must be validated
+     * @return this {@link Builder}
+     */
     public Builder poolValidMinDelay(Integer poolValidMinDelay) {
       this.poolValidMinDelay = poolValidMinDelay;
       return this;
     }
 
+    /**
+     * Indicate that connection returned to pool must be RESETed like having proper connection
+     * state.
+     *
+     * @param useResetConnection use reset connection when returning connection to pool.
+     * @return this {@link Builder}
+     */
     public Builder useResetConnection(Boolean useResetConnection) {
       this.useResetConnection = useResetConnection;
       return this;
     }
 
+    /**
+     * MySQL Authentication RSA server file, for mysql authentication
+     *
+     * @param serverRsaPublicKeyFile server RSA public key file
+     * @return this {@link Builder}
+     */
     public Builder serverRsaPublicKeyFile(String serverRsaPublicKeyFile) {
       this.serverRsaPublicKeyFile = nullOrEmpty(serverRsaPublicKeyFile);
       return this;
     }
 
+    /**
+     * Allow RSA server file retrieval from MySQL server
+     *
+     * @param allowPublicKeyRetrieval Allow RSA server file retrieval from MySQL server
+     * @return this {@link Builder}
+     */
     public Builder allowPublicKeyRetrieval(Boolean allowPublicKeyRetrieval) {
       this.allowPublicKeyRetrieval = allowPublicKeyRetrieval;
       return this;
     }
 
+    /**
+     * Cache all socket available information.
+     *
+     * @param useReadAheadInput cache available socket data when reading socket.
+     * @return this {@link Builder}
+     */
     public Builder useReadAheadInput(Boolean useReadAheadInput) {
       this.useReadAheadInput = useReadAheadInput;
       return this;
     }
 
+    /**
+     * Cache server prepare result
+     *
+     * @param cachePrepStmts cache server prepared result
+     * @return this {@link Builder}
+     */
     public Builder cachePrepStmts(Boolean cachePrepStmts) {
       this.cachePrepStmts = cachePrepStmts;
       return this;
     }
 
+    /**
+     * Must cache commands in transaction and replay transaction on failover.
+     *
+     * @param transactionReplay cache transaction and replay on failover
+     * @return this {@link Builder}
+     */
     public Builder transactionReplay(Boolean transactionReplay) {
       this.transactionReplay = transactionReplay;
       return this;
     }
 
+    /**
+     * Transaction replay cache size
+     *
+     * @param transactionReplaySize transaction replay cache size
+     * @return this {@link Builder}
+     */
     public Builder transactionReplaySize(Integer transactionReplaySize) {
       this.transactionReplaySize = transactionReplaySize;
       return this;
     }
 
+    /**
+     * Build a configuration
+     *
+     * @return a Configuration object
+     * @throws SQLException if option data type doesn't correspond
+     */
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(

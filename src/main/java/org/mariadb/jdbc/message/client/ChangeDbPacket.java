@@ -8,10 +8,16 @@ import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 
+/** change database. See https://mariadb.com/kb/en/com_init_db/ protocol */
 public final class ChangeDbPacket implements RedoableClientMessage {
 
   private final String database;
 
+  /**
+   * Constructor to encode COM_INIT_DB packet
+   *
+   * @param database database
+   */
   public ChangeDbPacket(String database) {
     this.database = database;
   }

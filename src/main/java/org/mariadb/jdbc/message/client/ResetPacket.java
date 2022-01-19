@@ -9,8 +9,10 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
 
+/** Reset packet COM_RESET_CONNECTION see https://mariadb.com/kb/en/com_reset_connection/ */
 public final class ResetPacket implements ClientMessage {
 
+  /** default instance */
   public static final ResetPacket INSTANCE = new ResetPacket();
 
   @Override

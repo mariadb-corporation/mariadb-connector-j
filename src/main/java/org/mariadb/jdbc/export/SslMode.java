@@ -4,17 +4,18 @@
 
 package org.mariadb.jdbc.export;
 
+/** SSl requirement */
 public enum SslMode {
-  // NO SSL
+  /** NO SSL */
   DISABLE("disable", new String[] {"DISABLED", "0", "false"}),
 
-  // Encryption only (no certificate and hostname validation) (DEVELOPMENT ONLY)
+  /** Encryption only (no certificate and hostname validation) (DEVELOPMENT ONLY) */
   TRUST("trust", new String[] {"REQUIRED"}),
 
-  // Encryption, certificates validation, BUT no hostname verification
+  /** Encryption, certificates validation, BUT no hostname verification */
   VERIFY_CA("verify-ca", new String[] {"VERIFY_CA"}),
 
-  // Standard SSL use: Encryption, certificate validation and hostname validation
+  /** Standard SSL use: Encryption, certificate validation and hostname validation */
   VERIFY_FULL("verify-full", new String[] {"VERIFY_IDENTITY", "1", "true"});
 
   private final String value;
@@ -25,6 +26,12 @@ public enum SslMode {
     this.aliases = aliases;
   }
 
+  /**
+   * Create SSLMode from enumeration value, or aliases
+   *
+   * @param value enumeration value or alias
+   * @return SSLMode if corresponding enumeration value or alias found
+   */
   public static SslMode from(String value) {
     for (SslMode sslMode : values()) {
       if (sslMode.value.equalsIgnoreCase(value) || sslMode.name().equalsIgnoreCase(value)) {

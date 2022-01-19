@@ -8,7 +8,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import org.mariadb.jdbc.HostAddress;
 
+/** Failover (High-availability) mode */
 public enum HaMode {
+  /** replication mode : first is primary, other are replica */
   REPLICATION("replication") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
@@ -17,6 +19,7 @@ public enum HaMode {
       return HaMode.getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
+  /** sequential: driver will always connect according to connection string order */
   SEQUENTIAL("sequential") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
@@ -25,6 +28,7 @@ public enum HaMode {
       return getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
+  /** load-balance: driver will randomly connect to any host, permitting balancing connections */
   LOADBALANCE("load-balance") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
@@ -38,6 +42,7 @@ public enum HaMode {
       return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
     }
   },
+  /** no ha-mode. Connect to first host only */
   NONE("") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
@@ -53,6 +58,12 @@ public enum HaMode {
     this.value = value;
   }
 
+  /**
+   * Get HAMode from values or aliases
+   *
+   * @param value value or alias
+   * @return HaMode if corresponding mode is found
+   */
   public static HaMode from(String value) {
     for (HaMode haMode : values()) {
       if (haMode.value.equalsIgnoreCase(value) || haMode.name().equalsIgnoreCase(value)) {
@@ -63,17 +74,25 @@ public enum HaMode {
         String.format("Wrong argument value '%s' for HaMode", value));
   }
 
+  /**
+   * return hosts of corresponding type (primary or not) without blacklisted hosts. hosts in
+   * blacklist reaching blacklist timeout will be present. order corresponds to connection string
+   * order.
+   *
+   * @param hostAddresses hosts
+   * @param denyList blacklist
+   * @param primary returns primary hosts or replica
+   * @return list without denied hosts
+   */
   public static Optional<HostAddress> getAvailableHostInOrder(
-      List<HostAddress> hostAddresses,
-      ConcurrentMap<HostAddress, Long> blacklist,
-      boolean primary) {
+      List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary) {
     // use in order not blacklisted server
     for (HostAddress hostAddress : hostAddresses) {
       if (hostAddress.primary == primary) {
-        if (!blacklist.containsKey(hostAddress)) return Optional.of(hostAddress);
-        if (blacklist.get(hostAddress) < System.currentTimeMillis()) {
+        if (!denyList.containsKey(hostAddress)) return Optional.of(hostAddress);
+        if (denyList.get(hostAddress) < System.currentTimeMillis()) {
           // timeout reached
-          blacklist.remove(hostAddress);
+          denyList.remove(hostAddress);
           return Optional.of(hostAddress);
         }
       }
@@ -81,6 +100,14 @@ public enum HaMode {
     return Optional.empty();
   }
 
+  /**
+   * List of hosts without blacklist entries, ordered according to HA mode
+   *
+   * @param hostAddresses hosts
+   * @param denyList hosts temporary denied
+   * @param primary type
+   * @return list without denied hosts
+   */
   public abstract Optional<HostAddress> getAvailableHost(
       List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary);
 }

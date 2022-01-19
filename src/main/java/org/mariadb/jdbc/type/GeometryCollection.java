@@ -6,14 +6,25 @@ package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
 
+/** Geometry collection implementation */
 public class GeometryCollection implements Geometry {
 
   private final Geometry[] geometries;
 
+  /**
+   * Constructor
+   *
+   * @param geometries geometry array
+   */
   public GeometryCollection(Geometry[] geometries) {
     this.geometries = geometries;
   }
 
+  /**
+   * Get objects
+   *
+   * @return geometry array
+   */
   public Geometry[] getGeometries() {
     return geometries;
   }

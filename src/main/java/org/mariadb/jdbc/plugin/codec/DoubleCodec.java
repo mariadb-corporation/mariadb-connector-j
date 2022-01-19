@@ -17,8 +17,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Double codec */
 public class DoubleCodec implements Codec<Double> {
 
+  /** default instance */
   public static final DoubleCodec INSTANCE = new DoubleCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -60,7 +62,15 @@ public class DoubleCodec implements Codec<Double> {
       throws SQLDataException {
     return decodeTextDouble(buf, length, column);
   }
-
+  /**
+   * Decode Double from text data
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column meta
+   * @return double value
+   * @throws SQLDataException if decoding error
+   */
   @SuppressWarnings("fallthrough")
   public double decodeTextDouble(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
@@ -113,6 +123,15 @@ public class DoubleCodec implements Codec<Double> {
     return decodeBinaryDouble(buf, length, column);
   }
 
+  /**
+   * Decode Double from binary data
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column meta
+   * @return double value
+   * @throws SQLDataException if decoding error
+   */
   @SuppressWarnings("fallthrough")
   public double decodeBinaryDouble(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

@@ -4,6 +4,7 @@
 
 package org.mariadb.jdbc.util.log;
 
+/** No logger implementation */
 public class NoLogger implements org.mariadb.jdbc.util.log.Logger {
 
   @Override

@@ -6,20 +6,37 @@ package org.mariadb.jdbc.type;
 
 import java.util.Objects;
 
+/** Point */
 public class Point implements Geometry {
 
   private final double x;
   private final double y;
 
+  /**
+   * Constructor
+   *
+   * @param x abscissa
+   * @param y ordinate
+   */
   public Point(double x, double y) {
     this.x = x;
     this.y = y;
   }
 
+  /**
+   * Get abscissa
+   *
+   * @return abscissa
+   */
   public double getX() {
     return x;
   }
 
+  /**
+   * get ordinate
+   *
+   * @return ordinate
+   */
   public double getY() {
     return y;
   }

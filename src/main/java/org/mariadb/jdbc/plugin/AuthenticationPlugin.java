@@ -12,6 +12,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 
+/** Authentication plugin descriptor */
 public interface AuthenticationPlugin {
 
   /**

@@ -11,6 +11,10 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import org.mariadb.jdbc.client.util.MutableInt;
 
+/**
+ * Compression handler, permitting decompression of mysql packet if needed. When compression is set,
+ * using a 7 byte header to identify is packet is compressed or not.
+ */
 public class CompressInputStream extends InputStream {
   private final InputStream in;
   private final MutableInt sequence;
@@ -21,6 +25,12 @@ public class CompressInputStream extends InputStream {
   private int pos;
   private byte[] buf;
 
+  /**
+   * Constructor. When this handler is used, driver expect packet with 7 byte compression header
+   *
+   * @param in socket input stream
+   * @param compressionSequence compression sequence
+   */
   public CompressInputStream(InputStream in, MutableInt compressionSequence) {
     this.in = in;
     this.sequence = compressionSequence;
