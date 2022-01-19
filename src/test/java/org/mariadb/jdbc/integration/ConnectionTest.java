@@ -831,7 +831,7 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
 
-    int testPort = this.port;
+    int testPort = port;
     if (System.getenv("TEST_PAM_PORT") != null) {
       testPort = Integer.parseInt(System.getenv("TEST_PAM_PORT"));
     }

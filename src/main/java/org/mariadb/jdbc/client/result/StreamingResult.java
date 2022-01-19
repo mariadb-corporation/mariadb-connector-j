@@ -12,12 +12,54 @@ import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Reader;
 
+/**
+ * Streaming result-set implementation. Implementation rely on reading as many rows than fetch size
+ * required, keeping remaining rows in TCP-IP buffer
+ *
+ * <p>The server usually expects clients to read off the result set relatively quickly. The
+ * net_write_timeout server variable controls this behavior (defaults to 60s).
+ *
+ * <p>If you don't expect results to be handled in this amount of time there is a different
+ * possibility:
+ *
+ * <ul>
+ *   <li>With >= MariaDB server, you can use the query "SET STATEMENT net_write_timeout=10000 FOR
+ *       XXX" with XXX your "normal" query. This will indicate that specifically for this query,
+ *       net_write_timeout will be set to a longer time (10000 in this example).
+ *   <li>for non mariadb servers, a specific query will have to temporarily set net_write_timeout
+ *       ("SET STATEMENT net_write_timeout=..."), and set it back afterward.
+ *   <li>if your application usually uses a lot of long queries with fetch size, the connection can
+ *       be set using option "sessionVariables=net_write_timeout=xxx"
+ * </ul>
+ *
+ * <p>Even using setFetchSize, the server will send all results to the client.
+ *
+ * <p>If another query is executed on the same connection when a streaming result-set has not been
+ * fully read, the connector will put the whole remaining streaming result-set in memory in order to
+ * execute the next query. This can lead to OutOfMemoryError if not handled.
+ */
 public class StreamingResult extends Result {
 
   private final ReentrantLock lock;
   private int dataFetchTime;
   private int fetchSize;
 
+  /**
+   * Constructor
+   *
+   * @param stmt statement that initiate this result
+   * @param binaryProtocol is result-set binary encoded
+   * @param maxRows maximum row number
+   * @param metadataList column metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param fetchSize fetch size
+   * @param lock thread safe locker
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on completion
+   * @param traceEnable can network log be logged
+   * @throws SQLException if any error occurs
+   */
   public StreamingResult(
       Statement stmt,
       boolean binaryProtocol,

@@ -16,8 +16,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Boolean codec */
 public class BooleanCodec implements Codec<Boolean> {
 
+  /** default instance */
   public static final BooleanCodec INSTANCE = new BooleanCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -60,6 +62,15 @@ public class BooleanCodec implements Codec<Boolean> {
     return decodeTextBoolean(buffer, length, column);
   }
 
+  /**
+   * Decode text data
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return decoded value
+   * @throws SQLDataException if decoding error
+   */
   @SuppressWarnings("fallthrough")
   public boolean decodeTextBoolean(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
@@ -110,6 +121,15 @@ public class BooleanCodec implements Codec<Boolean> {
     return decodeBinaryBoolean(buffer, length, column);
   }
 
+  /**
+   * Decode binary data
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return decoded value
+   * @throws SQLDataException if decoding error
+   */
   @SuppressWarnings("fallthrough")
   public boolean decodeBinaryBoolean(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

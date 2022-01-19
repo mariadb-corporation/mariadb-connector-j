@@ -21,9 +21,15 @@ import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
+/** Send a client COM_STMT_PREPARE packet see https://mariadb.com/kb/en/com_stmt_prepare/ */
 public final class PreparePacket implements ClientMessage {
   private final String sql;
 
+  /**
+   * Construct prepare packet
+   *
+   * @param sql sql command
+   */
   public PreparePacket(String sql) {
     this.sql = sql;
   }

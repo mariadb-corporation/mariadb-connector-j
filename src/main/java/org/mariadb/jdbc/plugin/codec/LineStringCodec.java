@@ -15,8 +15,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
+/** LineString codec */
 public class LineStringCodec implements Codec<LineString> {
 
+  /** default instance */
   public static final LineStringCodec INSTANCE = new LineStringCodec();
 
   public String className() {

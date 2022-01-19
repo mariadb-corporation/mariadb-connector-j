@@ -16,6 +16,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 
+/** Basic GSSAPI implementation if waffle is not on classpath */
 public class StandardGssapiAuthentication implements GssapiAuth {
 
   /**

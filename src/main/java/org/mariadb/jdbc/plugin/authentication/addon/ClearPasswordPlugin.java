@@ -13,8 +13,9 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
+/** Clear password plugin. */
 public class ClearPasswordPlugin implements AuthenticationPlugin {
-
+  /** plugin name */
   public static final String TYPE = "mysql_clear_password";
 
   private String authenticationData;

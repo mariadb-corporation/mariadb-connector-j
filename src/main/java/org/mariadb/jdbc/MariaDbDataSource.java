@@ -10,16 +10,33 @@ import java.sql.Connection;
 import java.util.logging.Logger;
 import javax.sql.*;
 
+/** MariaDB basic datasource */
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
+  /** configuration */
   private Configuration conf = null;
+
+  /** url permitting creating configuration */
   private String url = null;
+
+  /** username */
   private String user = null;
+
+  /** password */
   private String password = null;
+
+  /** connect timeout */
   private Integer loginTimeout = null;
 
+  /** Basic constructor */
   public MariaDbDataSource() {}
 
+  /**
+   * Constructor with URL
+   *
+   * @param url connection string
+   * @throws SQLException if url is not supported
+   */
   public MariaDbDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
       this.url = url;
@@ -28,6 +45,11 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     }
   }
 
+  /**
+   * Create configuration from url/user/password/loginTimeout
+   *
+   * @throws SQLException if not supported
+   */
   private void config() throws SQLException {
     if (url == null) throw new SQLException("url not set");
     conf = Configuration.parse(url);
@@ -232,19 +254,32 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     return conf.initialUrl();
   }
 
+  /**
+   * get User
+   *
+   * @return user
+   */
   public String getUser() {
     return user;
   }
 
+  /**
+   * Set user
+   *
+   * @param user user
+   * @throws SQLException if wrong resulting connection string
+   */
   public void setUser(String user) throws SQLException {
     this.user = user;
     if (conf != null) config();
   }
 
-  public String getPassword() {
-    return password;
-  }
-
+  /**
+   * Set password
+   *
+   * @param password password
+   * @throws SQLException if wrong configuration
+   */
   public void setPassword(String password) throws SQLException {
     this.password = password;
     if (conf != null) config();

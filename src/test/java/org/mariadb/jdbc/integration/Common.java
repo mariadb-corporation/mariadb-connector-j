@@ -127,9 +127,9 @@ public class Common {
   public static boolean haveSsl() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("show variables like '%ssl%'");
-    while (rs.next()) {
-      System.out.println(rs.getString(1) + ":" + rs.getString(2));
-    }
+    //    while (rs.next()) {
+    //      System.out.println(rs.getString(1) + ":" + rs.getString(2));
+    //    }
 
     rs = stmt.executeQuery("select @@have_ssl");
     assertTrue(rs.next());

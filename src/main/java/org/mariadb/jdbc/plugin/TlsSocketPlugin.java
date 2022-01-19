@@ -14,6 +14,7 @@ import javax.net.ssl.SSLSocketFactory;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
+/** TLS Socket interface plugin */
 public interface TlsSocketPlugin {
 
   /**

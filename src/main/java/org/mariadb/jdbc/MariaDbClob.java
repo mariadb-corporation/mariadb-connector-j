@@ -11,6 +11,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 
+/** MariaDB Clob implementation */
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 
   private static final long serialVersionUID = -3066501059817815286L;

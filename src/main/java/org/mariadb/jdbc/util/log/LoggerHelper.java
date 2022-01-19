@@ -4,6 +4,7 @@
 
 package org.mariadb.jdbc.util.log;
 
+/** Logger helper to display network exchange */
 public final class LoggerHelper {
 
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -36,6 +37,15 @@ public final class LoggerHelper {
     return hex(bytes, offset, dataLength, Integer.MAX_VALUE);
   }
 
+  /**
+   * Transform bytes into readable string format
+   *
+   * @param bytes bytes
+   * @param offset offset
+   * @param dataLength data length
+   * @param trunkLength truncation limit
+   * @return readable string format
+   */
   public static String hex(byte[] bytes, int offset, int dataLength, int trunkLength) {
 
     if (bytes == null || bytes.length == 0) {
@@ -98,6 +108,16 @@ public final class LoggerHelper {
     return sb.toString();
   }
 
+  /**
+   * return a string containing hexa displayable value of arrays
+   *
+   * @param header header array
+   * @param bytes data content
+   * @param offset data offset
+   * @param dataLength data length
+   * @param trunkLength data limit
+   * @return displayable value of arrays
+   */
   public static String hex(
       byte[] header, byte[] bytes, int offset, int dataLength, int trunkLength) {
     byte[] complete = new byte[dataLength + header.length];

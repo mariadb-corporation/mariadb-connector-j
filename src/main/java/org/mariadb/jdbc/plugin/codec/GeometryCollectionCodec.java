@@ -15,8 +15,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
+/** GeometryCollection codec */
 public class GeometryCollectionCodec implements Codec<GeometryCollection> {
 
+  /** default instance */
   public static final GeometryCollectionCodec INSTANCE = new GeometryCollectionCodec();
 
   public String className() {

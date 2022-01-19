@@ -7,8 +7,10 @@ package org.mariadb.jdbc.util.options;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Option alias name */
 public final class OptionAliases {
 
+  /** list of aliases */
   public static final Map<String, String> OPTIONS_ALIASES;
 
   static {

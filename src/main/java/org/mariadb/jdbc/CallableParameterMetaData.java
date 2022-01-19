@@ -9,11 +9,22 @@ import java.sql.*;
 import java.util.BitSet;
 import java.util.Locale;
 
+/**
+ * Callable parameter metadata. Server doesn't give detailled information about parameter, so even
+ * if driver return those information, they are not completely accurate.
+ */
 public class CallableParameterMetaData implements java.sql.ParameterMetaData {
   private final ResultSet rs;
   private final int parameterCount;
   private final boolean isFunction;
 
+  /**
+   * Constructor
+   *
+   * @param rs parameter result-set
+   * @param isFunction is command a function or a stored procedure
+   * @throws SQLException if any error occurs
+   */
   public CallableParameterMetaData(ResultSet rs, boolean isFunction) throws SQLException {
     this.rs = rs;
     int count = 0;
@@ -85,7 +96,6 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * @param index the first parameter is 1, the second is 2, ...
    * @return precision
    * @throws SQLException if a database access error occurs
-   * @since 1.4
    */
   @Override
   public int getPrecision(int index) throws SQLException {
@@ -102,7 +112,6 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
    * @param index the first parameter is 1, the second is 2, ...
    * @return scale
    * @throws SQLException if a database access error occurs
-   * @since 1.4
    */
   @Override
   public int getScale(int index) throws SQLException {
@@ -110,6 +119,13 @@ public class CallableParameterMetaData implements java.sql.ParameterMetaData {
     return rs.getInt("NUMERIC_SCALE");
   }
 
+  /**
+   * Return the parameter name corresponding to index.
+   *
+   * @param index index
+   * @return parameter name
+   * @throws SQLException if wrong index
+   */
   public String getParameterName(int index) throws SQLException {
     setIndex(index);
     return rs.getString("PARAMETER_NAME");

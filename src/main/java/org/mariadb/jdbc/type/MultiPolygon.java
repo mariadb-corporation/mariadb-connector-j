@@ -6,14 +6,25 @@ package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
 
+/** Multi polygon */
 public class MultiPolygon implements Geometry {
 
   private final Polygon[] polygons;
 
+  /**
+   * Constructor
+   *
+   * @param polygons polygons
+   */
   public MultiPolygon(Polygon[] polygons) {
     this.polygons = polygons;
   }
 
+  /**
+   * Get polygons
+   *
+   * @return polygons
+   */
   public Polygon[] getPolygons() {
     return polygons;
   }

@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Integer codec */
 public class IntCodec implements Codec<Integer> {
 
+  /** default instance */
   public static final IntCodec INSTANCE = new IntCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -64,6 +66,15 @@ public class IntCodec implements Codec<Integer> {
     return decodeTextInt(buffer, length, column);
   }
 
+  /**
+   * Decode int from text packet
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return int value
+   * @throws SQLDataException if any decoding exception occurs / wrong data type
+   */
   @SuppressWarnings("fallthrough")
   public int decodeTextInt(final ReadableByteBuf buf, final int length, final Column column)
       throws SQLDataException {
@@ -142,6 +153,15 @@ public class IntCodec implements Codec<Integer> {
     return decodeBinaryInt(buffer, length, column);
   }
 
+  /**
+   * Decode int from binary packet
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return int value
+   * @throws SQLDataException if any decoding exception occurs / wrong data type
+   */
   @SuppressWarnings("fallthrough")
   public int decodeBinaryInt(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

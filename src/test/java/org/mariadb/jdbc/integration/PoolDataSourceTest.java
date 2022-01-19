@@ -170,7 +170,7 @@ public class PoolDataSourceTest extends Common {
 
     ds.setUrl("jdbc:mariadb://myhost:5500/db?someOption=val");
     assertEquals(
-        "jdbc:mariadb://myhost:5500/db?user=dd&password=pwd&someOption=val&connectTimeout=50000",
+        "jdbc:mariadb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
         ds.getUrl());
     ds.close();
   }

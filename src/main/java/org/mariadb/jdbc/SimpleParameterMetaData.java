@@ -7,11 +7,18 @@ package org.mariadb.jdbc;
 import java.sql.SQLException;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
+/** Simple parameter metadata, when the only reliable think is the number of parameter */
 public class SimpleParameterMetaData implements java.sql.ParameterMetaData {
 
   private final int paramCount;
   private final ExceptionFactory exceptionFactory;
 
+  /**
+   * Constructor
+   *
+   * @param exceptionFactory connection exception factory
+   * @param paramCount parameter count
+   */
   protected SimpleParameterMetaData(ExceptionFactory exceptionFactory, int paramCount) {
     this.exceptionFactory = exceptionFactory;
     this.paramCount = paramCount;

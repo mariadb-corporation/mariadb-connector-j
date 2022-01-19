@@ -11,13 +11,22 @@ import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.CachedPrepareResultPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
+/** LRU prepare cache */
 public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResultPacket>
     implements org.mariadb.jdbc.client.PrepareCache {
 
   private static final long serialVersionUID = -8922905563713952695L;
+  /** cache maximum size */
   private final int maxSize;
+  /** client */
   private final StandardClient con;
 
+  /**
+   * LRU prepare cache constructor
+   *
+   * @param size cache size
+   * @param con client
+   */
   public PrepareCache(int size, StandardClient con) {
     super(size, .75f, true);
     this.maxSize = size;
@@ -63,6 +72,13 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     throw new IllegalStateException("not available method");
   }
 
+  /**
+   * NOT USED
+   *
+   * @param key key
+   * @param result results
+   * @return will throw an exception
+   */
   @SuppressWarnings("unused")
   public CachedPrepareResultPacket put(String key, PrepareResultPacket result) {
     throw new IllegalStateException("not available method");

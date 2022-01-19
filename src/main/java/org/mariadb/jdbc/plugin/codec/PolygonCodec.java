@@ -18,8 +18,10 @@ import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.Point;
 import org.mariadb.jdbc.type.Polygon;
 
+/** Polygon codec */
 public class PolygonCodec implements Codec<Polygon> {
 
+  /** default instance */
   public static final PolygonCodec INSTANCE = new PolygonCodec();
 
   public String className() {

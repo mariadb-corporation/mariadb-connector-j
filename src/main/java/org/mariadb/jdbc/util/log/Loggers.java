@@ -6,23 +6,44 @@ package org.mariadb.jdbc.util.log;
 
 import java.util.HashMap;
 
+/** Loggers factory */
 public final class Loggers {
 
+  /** defined if using JDK if sfl4j is not present. possible values: JDK/CONSOLE */
   public static final String FALLBACK_PROPERTY = "mariadb.logging.fallback";
+
+  /** set if console must log debug level */
   public static final String CONSOLE_DEBUG_PROPERTY = "mariadb.logging.fallback.console.debug";
+
+  /** !! testing only !! permit to disable SLF4J implementation even if SLF4j is present */
   public static final String TEST_ENABLE_SLF4J = "mariadb.logging.slf4j.enable";
+
+  /** disable logging */
   public static final String NO_LOGGER_PROPERTY = "mariadb.logging.disable";
 
+  /** factory */
   private static LoggerFactory LOGGER_FACTORY;
 
   static {
     init();
   }
 
+  /**
+   * Return default logger implementation
+   *
+   * @param name logger name
+   * @return logger implementation
+   */
   public static Logger getLogger(String name) {
     return LOGGER_FACTORY.getLogger(name);
   }
 
+  /**
+   * Return default logger implementation
+   *
+   * @param cls class
+   * @return logger implementation
+   */
   public static Logger getLogger(Class<?> cls) {
     return LOGGER_FACTORY.getLogger(cls.getName());
   }
@@ -64,6 +85,7 @@ public final class Loggers {
     }
   }
 
+  /** Initialize factory */
   public static void init() {
     String name = LoggerFactory.class.getName();
     LoggerFactory loggerFactory = null;

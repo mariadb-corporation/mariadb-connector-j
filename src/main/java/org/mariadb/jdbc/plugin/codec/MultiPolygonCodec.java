@@ -15,8 +15,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
+/** MultiPolygon codec */
 public class MultiPolygonCodec implements Codec<MultiPolygon> {
 
+  /** default instance */
   public static final MultiPolygonCodec INSTANCE = new MultiPolygonCodec();
 
   public String className() {

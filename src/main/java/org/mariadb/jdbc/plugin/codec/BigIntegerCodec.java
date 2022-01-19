@@ -17,9 +17,12 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** BigInteger codec */
 public class BigIntegerCodec implements Codec<BigInteger> {
 
+  /** default instance */
   public static final BigIntegerCodec INSTANCE = new BigIntegerCodec();
+
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.TINYINT,

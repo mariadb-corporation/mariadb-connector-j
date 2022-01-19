@@ -13,12 +13,23 @@ import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.util.ClientParser;
 
+/**
+ * Query client packet COM_QUERY see https://mariadb.com/kb/en/com_query/ same than QueryPacket, but
+ * with parameters that will be escaped
+ */
 public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   private final String preSqlCmd;
   private final ClientParser parser;
   private Parameters parameters;
 
+  /**
+   * Constructor
+   *
+   * @param preSqlCmd additional pre command
+   * @param parser command parser result
+   * @param parameters parameters
+   */
   public QueryWithParametersPacket(String preSqlCmd, ClientParser parser, Parameters parameters) {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;

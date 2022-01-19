@@ -30,13 +30,23 @@ import org.mariadb.jdbc.util.log.Loggers;
  */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryReplicaClient.class);
+
+  /** timeout before retrying to reconnect failing host */
   protected long waitTimeout;
+
   private Client replicaClient;
   private Client primaryClient;
   private boolean requestReadOnly;
   private long nextTryReplica = -1;
   private long nextTryPrimary = -1;
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param lock thread locker
+   * @throws SQLException if any error occurs
+   */
   public MultiPrimaryReplicaClient(Configuration conf, ReentrantLock lock) throws SQLException {
     super(conf, lock);
     primaryClient = currentClient;

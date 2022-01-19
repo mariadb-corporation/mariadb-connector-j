@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import javax.transaction.xa.Xid;
 
+/** MariaDB XID implementation */
 public class MariaDbXid implements Xid {
 
   private final int formatId;
@@ -47,14 +48,29 @@ public class MariaDbXid implements Xid {
     return result;
   }
 
+  /**
+   * Get format id from XID
+   *
+   * @return format id
+   */
   public int getFormatId() {
     return formatId;
   }
 
+  /**
+   * Get global transaction id from XID
+   *
+   * @return global transaction id
+   */
   public byte[] getGlobalTransactionId() {
     return globalTransactionId;
   }
 
+  /**
+   * Get branch qualifier from XID
+   *
+   * @return branch qualifier
+   */
   public byte[] getBranchQualifier() {
     return branchQualifier;
   }

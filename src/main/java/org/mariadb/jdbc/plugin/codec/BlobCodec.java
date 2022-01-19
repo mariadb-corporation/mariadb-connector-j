@@ -22,8 +22,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Blob codec */
 public class BlobCodec implements Codec<Blob> {
 
+  /** default instance */
   public static final BlobCodec INSTANCE = new BlobCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

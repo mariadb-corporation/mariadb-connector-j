@@ -53,6 +53,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Connection client */
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
   private final Socket socket;
@@ -62,15 +63,30 @@ public class StandardClient implements Client, AutoCloseable {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private boolean closed = false;
-  protected final ExceptionFactory exceptionFactory;
-  protected Writer writer;
   private Reader reader;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   private final boolean disablePipeline;
+
+  /** connection context */
   protected Context context;
 
+  /** connection exception factory */
+  protected final ExceptionFactory exceptionFactory;
+
+  /** packet writer */
+  protected Writer writer;
+
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @param lock thread locker
+   * @param skipPostCommands must connection post command be skipped
+   * @throws SQLException if connection fails
+   */
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -352,6 +368,12 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Create session variable if configuration requires additional commands.
+   *
+   * @param serverTz server timezone
+   * @return sql setting session command
+   */
   public String createSessionVariableQuery(String serverTz) {
     // In JDBC, connection must start in autocommit mode
     // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
@@ -418,6 +440,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Send client message to server
+   *
+   * @param message client message
+   * @return number of command send
+   * @throws SQLException if socket error occurs
+   */
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
@@ -604,6 +633,19 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read server responses for a client message
+   *
+   * @param stmt statement that issue the message
+   * @param message client message sent
+   * @param fetchSize fetch size
+   * @param maxRows maximum number of rows
+   * @param resultSetConcurrency concurrency
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on resultset completion
+   * @return list of result
+   * @throws SQLException if any error occurs
+   */
   public List<Completion> readResponse(
       org.mariadb.jdbc.Statement stmt,
       ClientMessage message,
@@ -631,6 +673,12 @@ public class StandardClient implements Client, AutoCloseable {
     return completions;
   }
 
+  /**
+   * Read server response
+   *
+   * @param message client message that was sent
+   * @throws SQLException if any error occurs
+   */
   public void readResponse(ClientMessage message) throws SQLException {
     checkNotClosed();
     if (streamStmt != null) {
@@ -716,6 +764,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read a MySQL packet from socket
+   *
+   * @param message client message issuing the result
+   * @return a mysql result
+   * @throws SQLException if any error occurs
+   */
   public Completion readPacket(ClientMessage message) throws SQLException {
     return readPacket(
         null, message, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
@@ -774,6 +829,11 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Throw an exception if client is closed
+   *
+   * @throws SQLException if closed
+   */
   protected void checkNotClosed() throws SQLException {
     if (closed) {
       throw exceptionFactory.create("Connection is closed", "08000", 1220);

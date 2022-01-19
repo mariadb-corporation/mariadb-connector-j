@@ -16,10 +16,13 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Byte array codec. */
 public class ByteArrayCodec implements Codec<byte[]> {
 
+  /** binary prefix */
   public static final byte[] BINARY_PREFIX = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
 
+  /** default instance */
   public static final ByteArrayCodec INSTANCE = new ByteArrayCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

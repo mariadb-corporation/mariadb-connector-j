@@ -15,8 +15,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
+/** Point codec */
 public class PointCodec implements Codec<Point> {
 
+  /** default instance */
   public static final PointCodec INSTANCE = new PointCodec();
 
   public String className() {

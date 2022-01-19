@@ -12,6 +12,7 @@ import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
+/** Context (current connection state) of a connection */
 public class BaseContext implements Context {
 
   private final long threadId;
@@ -23,13 +24,34 @@ public class BaseContext implements Context {
   private final boolean extendedInfo;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
+
+  /** Server status context */
   protected int serverStatus;
+
+  /** Server current database */
   private String database;
+
+  /** Server current transaction isolation level */
   private int transactionIsolationLevel;
+
+  /** Server current warning count */
   private int warning;
+
+  /** LRU prepare cache object */
   private final PrepareCache prepareCache;
+
+  /** Connection state use flag */
   private int stateFlag = 0;
 
+  /**
+   * Constructor of connection context
+   *
+   * @param handshake server handshake
+   * @param clientCapabilities client capabilities
+   * @param conf connection configuration
+   * @param exceptionFactory connection exception factory
+   * @param prepareCache LRU prepare cache
+   */
   public BaseContext(
       InitialHandshakePacket handshake,
       long clientCapabilities,

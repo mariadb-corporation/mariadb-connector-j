@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Byte codec */
 public class ByteCodec implements Codec<Byte> {
 
+  /** default instance */
   public static final ByteCodec INSTANCE = new ByteCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -44,6 +46,13 @@ public class ByteCodec implements Codec<Byte> {
           DataType.STRING,
           DataType.VARCHAR);
 
+  /**
+   * Parse Bits value to long value
+   *
+   * @param buf packet buffer
+   * @param length encoded length
+   * @return long value
+   */
   public static long parseBit(ReadableByteBuf buf, int length) {
     if (length == 1) {
       return buf.readUnsignedByte();
@@ -77,6 +86,15 @@ public class ByteCodec implements Codec<Byte> {
     return decodeTextByte(buffer, length, column);
   }
 
+  /**
+   * Decode byte from packet
+   *
+   * @param buf packet buffer
+   * @param length encoded length
+   * @param column column metadata
+   * @return byte value
+   * @throws SQLDataException if any decoding error occurs
+   */
   public byte decodeTextByte(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
 
@@ -154,6 +172,15 @@ public class ByteCodec implements Codec<Byte> {
     return decodeBinaryByte(buffer, length, column);
   }
 
+  /**
+   * Decode byte from packet
+   *
+   * @param buf packet buffer
+   * @param length encoded length
+   * @param column column metadata
+   * @return byte value
+   * @throws SQLDataException if any decoding error occurs
+   */
   public byte decodeBinaryByte(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
 

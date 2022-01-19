@@ -21,8 +21,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** LocalTime codec */
 public class LocalTimeCodec implements Codec<LocalTime> {
 
+  /** default instance */
   public static final LocalTimeCodec INSTANCE = new LocalTimeCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -38,6 +40,15 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
+  /**
+   * Parse text value into hour/minutes/seconds/microseconds array
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return hour/minutes/seconds/microseconds array
+   * @throws SQLDataException if parsing error occurs
+   */
   public static int[] parseTime(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
     int initialPos = buf.pos();

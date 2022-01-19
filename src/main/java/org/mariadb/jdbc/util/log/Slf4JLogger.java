@@ -6,10 +6,16 @@ package org.mariadb.jdbc.util.log;
 
 import org.slf4j.Logger;
 
+/** SLF4J logger wrapper */
 public class Slf4JLogger implements org.mariadb.jdbc.util.log.Logger {
 
   private final Logger logger;
 
+  /**
+   * Constructor
+   *
+   * @param logger SLF4J logger
+   */
   public Slf4JLogger(Logger logger) {
     this.logger = logger;
   }

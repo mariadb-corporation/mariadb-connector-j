@@ -9,10 +9,16 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
 
+/** plugin additional exchanges. raw data with mysql header packet */
 public final class AuthMoreRawPacket implements ClientMessage {
 
   private final byte[] raw;
 
+  /**
+   * Constructor
+   *
+   * @param raw plugin exchange raw data
+   */
   public AuthMoreRawPacket(byte[] raw) {
     this.raw = raw;
   }

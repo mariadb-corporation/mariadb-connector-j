@@ -18,6 +18,7 @@ import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
+/** Column metadata definition */
 public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   private final ReadableByteBuf buf;
@@ -30,6 +31,14 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   private final String extTypeName;
   private boolean useAliasAsName;
 
+  /**
+   * constructor for generated metadata
+   *
+   * @param buf buffer
+   * @param length length
+   * @param dataType server data type
+   * @param stringPos string information position
+   */
   private ColumnDefinitionPacket(
       ReadableByteBuf buf, long length, DataType dataType, int[] stringPos) {
     this.buf = buf;
@@ -42,6 +51,12 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.extTypeName = null;
   }
 
+  /**
+   * Generate object from mysql packet
+   *
+   * @param buf mysql packet buffer
+   * @param extendedInfo support extended information
+   */
   public ColumnDefinitionPacket(ReadableByteBuf buf, boolean extendedInfo) {
     // skip first strings
     stringPos = new int[5];
@@ -83,6 +98,13 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.decimals = buf.readByte();
   }
 
+  /**
+   * Generate column definition from name
+   *
+   * @param name column name
+   * @param type server type
+   * @return column definition
+   */
   public static ColumnDefinitionPacket create(String name, DataType type) {
     byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
     byte[] arr = new byte[9 + 2 * nameBytes.length];

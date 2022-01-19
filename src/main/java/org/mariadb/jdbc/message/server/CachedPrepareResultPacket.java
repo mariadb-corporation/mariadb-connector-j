@@ -15,17 +15,32 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 
+/** Prepare packet result with flag indicating use */
 public final class CachedPrepareResultPacket extends PrepareResultPacket {
 
   private final AtomicBoolean closing = new AtomicBoolean();
   private final AtomicBoolean cached = new AtomicBoolean();
   private final List<ServerPreparedStatement> statements = new ArrayList<>();
 
+  /**
+   * Cache prepare result with flag indicating use
+   *
+   * @param buffer prepare packet buffer
+   * @param reader packet reader
+   * @param context connection context
+   * @throws IOException if any socket error occurs
+   */
   public CachedPrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     super(buffer, reader, context);
   }
 
+  /**
+   * Indicate that a prepare statement must be closed (if not in LRU cache)
+   *
+   * @param con current connection
+   * @throws SQLException if SQL
+   */
   public void close(Client con) throws SQLException {
     if (!cached.get() && closing.compareAndSet(false, true)) {
       con.closePrepare(this);
@@ -40,6 +55,11 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     }
   }
 
+  /**
+   * Increment use of prepare statement.
+   *
+   * @param preparedStatement new statement using prepare result
+   */
   public void incrementUse(ServerPreparedStatement preparedStatement) {
     if (closing.get()) {
       return;
@@ -47,6 +67,11 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     if (preparedStatement != null) statements.add(preparedStatement);
   }
 
+  /**
+   * Indicate that Prepare command is not on LRU cache anymore. closing prepare command if not used
+   *
+   * @param con current connection
+   */
   public void unCache(Client con) {
     cached.set(false);
     if (statements.size() <= 0) {
@@ -58,6 +83,11 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     }
   }
 
+  /**
+   * indicate that result is in LRU cache
+   *
+   * @return true if cached
+   */
   public boolean cache() {
     if (closing.get()) {
       return false;
@@ -65,10 +95,16 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
     return cached.compareAndSet(false, true);
   }
 
+  /**
+   * Return prepare statement id.
+   *
+   * @return statement id
+   */
   public int getStatementId() {
     return statementId;
   }
 
+  /** Resetting cache in case of failover */
   public void reset() {
     statementId = -1;
     for (ServerPreparedStatement stmt : statements) {

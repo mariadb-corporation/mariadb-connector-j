@@ -20,15 +20,23 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** LocalDateTime codec */
 public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
+  /** default instance */
   public static final LocalDateTimeCodec INSTANCE = new LocalDateTimeCodec();
+
+  /** timestamp with fractional part formatter */
   public static final DateTimeFormatter TIMESTAMP_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+
+  /** timestamp without fractional part formatter */
   public static final DateTimeFormatter TIMESTAMP_FORMAT_NO_FRACTIONAL =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+  /** formatter */
   public static final DateTimeFormatter MARIADB_LOCAL_DATE_TIME;
+
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.DATETIME,
@@ -54,6 +62,13 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
             .toFormatter();
   }
 
+  /**
+   * Parse timestamp to date/month/year int array
+   *
+   * @param raw string data
+   * @return date/month/year int array
+   * @throws DateTimeException if wrong format
+   */
   public static int[] parseTimestamp(String raw) throws DateTimeException {
     int nanoLen = -1;
     int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};

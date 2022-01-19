@@ -15,6 +15,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.rds.RdsUtilities;
 
+/** AWS credential generator */
 public class AwsCredentialGenerator {
 
   private final String authenticationToken;
@@ -63,6 +64,11 @@ public class AwsCredentialGenerator {
             });
   }
 
+  /**
+   * Generate authentication token
+   *
+   * @return token
+   */
   public Credential getToken() {
     return new Credential(userName, authenticationToken);
   }

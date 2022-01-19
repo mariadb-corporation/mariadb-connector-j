@@ -16,6 +16,7 @@ import javax.sql.*;
 import org.mariadb.jdbc.pool.Pool;
 import org.mariadb.jdbc.pool.Pools;
 
+/** MariaDB pool datasource. This use mariadb internal pool. */
 public class MariaDbPoolDataSource
     implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
 
@@ -26,8 +27,15 @@ public class MariaDbPoolDataSource
   private String password = null;
   private Integer loginTimeout = null;
 
+  /** Constructor */
   public MariaDbPoolDataSource() {}
 
+  /**
+   * Constructor with url
+   *
+   * @param url connection string
+   * @throws SQLException if configuration fails
+   */
   public MariaDbPoolDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
       this.url = url;
@@ -240,19 +248,41 @@ public class MariaDbPoolDataSource
     return conf.initialUrl();
   }
 
+  /**
+   * return user
+   *
+   * @return user
+   */
   public String getUser() {
     return user;
   }
 
+  /**
+   * Set user
+   *
+   * @param user user
+   * @throws SQLException if configuration fails
+   */
   public void setUser(String user) throws SQLException {
     this.user = user;
     if (conf != null) config();
   }
 
+  /**
+   * get password
+   *
+   * @return password
+   */
   public String getPassword() {
     return password;
   }
 
+  /**
+   * set password
+   *
+   * @param password password
+   * @throws SQLException if configuration fails
+   */
   public void setPassword(String password) throws SQLException {
     this.password = password;
     if (conf != null) config();
@@ -263,6 +293,11 @@ public class MariaDbPoolDataSource
     pool.close();
   }
 
+  /**
+   * get pool name
+   *
+   * @return pool name
+   */
   public String getPoolName() {
     return (pool != null) ? pool.getPoolTag() : null;
   }
