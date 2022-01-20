@@ -325,46 +325,47 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
-
-    try {
-      List<Completion> res;
-      ClientMessage[] msgs = new ClientMessage[commands.size()];
-      for (int i = 0; i < commands.size(); i++) {
-        msgs[i] = new QueryPacket(commands.get(i));
-      }
-      res =
-          executePipeline(
-              msgs,
-              null,
-              0,
-              0L,
-              ResultSet.CONCUR_READ_ONLY,
-              ResultSet.TYPE_FORWARD_ONLY,
-              false,
-              true);
-
-      if (hostAddress != null
-          && Boolean.TRUE.equals(hostAddress.primary)
-          && !galeraAllowedStates.isEmpty()) {
-        ResultSet rs = (ResultSet) res.get(2);
-        rs.next();
-        if (!galeraAllowedStates.contains(rs.getString(2))) {
-          throw exceptionFactory.create(
-              String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
+    if (!commands.isEmpty()) {
+      try {
+        List<Completion> res;
+        ClientMessage[] msgs = new ClientMessage[commands.size()];
+        for (int i = 0; i < commands.size(); i++) {
+          msgs[i] = new QueryPacket(commands.get(i));
         }
-        res.remove(0);
-      }
+        res =
+            executePipeline(
+                msgs,
+                null,
+                0,
+                0L,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.TYPE_FORWARD_ONLY,
+                false,
+                true);
 
-    } catch (SQLException sqlException) {
+        if (hostAddress != null
+            && Boolean.TRUE.equals(hostAddress.primary)
+            && !galeraAllowedStates.isEmpty()) {
+          ResultSet rs = (ResultSet) res.get(2);
+          rs.next();
+          if (!galeraAllowedStates.contains(rs.getString(2))) {
+            throw exceptionFactory.create(
+                String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
+          }
+          res.remove(0);
+        }
 
-      if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-        // timezone is not valid
-        throw exceptionFactory.create(
-            String.format(
-                "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
-                conf.timezone()));
+      } catch (SQLException sqlException) {
+
+        if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+          // timezone is not valid
+          throw exceptionFactory.create(
+              String.format(
+                  "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
+                  conf.timezone()));
+        }
+        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
       }
-      throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
   }
 
