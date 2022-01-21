@@ -58,6 +58,10 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void validateParameters() throws Exception {
+    // error crashing maxscale 6.1.x
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1.")
+            && !"skysql-ha".equals(System.getenv("srv")));
     validateParameters(sharedConn);
     validateParameters(sharedConnBinary);
   }

@@ -8,13 +8,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
+
+import javax.net.ssl.SSLContext;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
@@ -110,6 +115,12 @@ public class SslTest extends Common {
   public void enabledSslProtocolSuites() throws SQLException {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    try {
+      List<String> protocols = Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
+      Assumptions.assumeTrue(protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2"));
+    } catch (NoSuchAlgorithmException e) {
+      // eat
+    }
     try (Connection con =
         createCon(
             baseOptions + "&sslMode=trust&enabledSslProtocolSuites=TLSv1.2,TLSv1.3", sslPort)) {

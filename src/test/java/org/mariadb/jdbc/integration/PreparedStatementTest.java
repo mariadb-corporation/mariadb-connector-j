@@ -316,6 +316,10 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void clearParameters() throws Exception {
+    // error crashing maxscale 6.1.x
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.1.")
+            && !"skysql-ha".equals(System.getenv("srv")));
     try (org.mariadb.jdbc.Connection con = createCon("&useServerPrepStmts=false")) {
       clearParameters(con);
     }

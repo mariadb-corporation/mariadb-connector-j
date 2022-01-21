@@ -193,8 +193,7 @@ public final class ConnectionHelper {
     // only set it when server permit it and using binary protocol
     if (configuration.useServerPrepStmts()
         && Boolean.parseBoolean(
-            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))
-        && (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) != 0) {
+            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
 
@@ -223,18 +222,19 @@ public final class ConnectionHelper {
     // useEof is a technical option
     boolean deprecateEof =
         Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("deprecateEof", "true"));
-    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0 && deprecateEof) {
+    if (deprecateEof) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }
 
-    if (configuration.useCompression() && ((serverCapabilities & Capabilities.COMPRESS) != 0)) {
+    if (configuration.useCompression()) {
       capabilities |= Capabilities.COMPRESS;
     }
 
     if (configuration.database() != null && !configuration.createDatabaseIfNotExist()) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
-    return capabilities;
+
+    return capabilities & serverCapabilities;
   }
 
   /**
