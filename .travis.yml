@@ -61,7 +61,7 @@ jobs:
     - if: type = push AND fork = false
       env: srv=mysql v=5.7
     - if: type = push AND fork = false
-      env: srv=mysql v=8.0
+      env: srv=mysql v=8.0 TEST_DB_OTHER=allowPublicKeyRetrieval
     - if: type = push AND fork = false
       env: srv=skysql
     - if: type = push AND fork = false

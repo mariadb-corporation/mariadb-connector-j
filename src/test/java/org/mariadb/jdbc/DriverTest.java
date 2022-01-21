@@ -1705,6 +1705,8 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void testAutoCommit() throws SQLException {
+    Assume.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection connection = setConnection()) {
       assertTrue(connection.getAutoCommit());
       Statement stmt = connection.createStatement();

@@ -817,7 +817,9 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void ensureSocketTimeoutState() throws Throwable {
     Assume.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv")));
 
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP TABLE IF EXISTS ensureSocketTimeoutState");

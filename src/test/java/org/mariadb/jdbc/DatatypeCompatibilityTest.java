@@ -234,6 +234,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
     String columnName =
         columnType.replace(" ", "_").replace("(", "_").replace(")", "").replace(",", "_");
     try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS my_table_" + columnName);
       stmt.execute("CREATE TABLE my_table_" + columnName + "(my_col " + columnType + ")");
       stmt.execute("FLUSH TABLES");
       stmt.execute("INSERT INTO my_table_" + columnName + "(my_col) VALUES (" + strValue + ")");
