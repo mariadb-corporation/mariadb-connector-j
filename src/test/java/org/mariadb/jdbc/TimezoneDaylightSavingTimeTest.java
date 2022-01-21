@@ -219,6 +219,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
   @Test
   public void testTimeStamp() throws SQLException {
     Assume.assumeTrue(System.getenv("AURORA") == null && !"skysql-ha".equals(System.getenv("srv")));
+    cancelForVersion(8, 0, 28);
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection =
         setConnection("&serverTimezone=Europe/Paris&useServerPrepStmts=true")) {
@@ -235,7 +236,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
   @Test
   public void testTimeStampUtc() throws SQLException {
-
+    cancelForVersion(8, 0, 28);
     TimeZone.setDefault(parisTimeZone);
     try (Connection connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true")) {
       setSessionTimeZone(connection, "+00:00");

@@ -59,10 +59,9 @@ import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 import java.util.*;
+import javax.net.ssl.SSLContext;
 import org.junit.*;
 import org.mariadb.jdbc.failover.TcpProxy;
-
-import javax.net.ssl.SSLContext;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
@@ -167,7 +166,8 @@ public class SslTest extends BaseTest {
   @Test
   public void enabledSslProtocolSuites() throws SQLException {
     try {
-      List<String> protocols = Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
+      List<String> protocols =
+          Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
       Assume.assumeTrue(protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2"));
     } catch (NoSuchAlgorithmException e) {
       // eat
