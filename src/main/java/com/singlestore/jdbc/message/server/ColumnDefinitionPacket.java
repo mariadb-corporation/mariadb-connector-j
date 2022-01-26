@@ -190,13 +190,14 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case SET:
       case VARSTRING:
       case STRING:
-      case DATE:
         Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
         if (maxWidth == null) {
           return (int) length;
         }
         return (int) length / maxWidth;
 
+      case DATE:
+        return 10;
       case DATETIME:
       case TIMESTAMP:
         // S2 sends the same length of DATETIME(6) for both DATETIME(0) and DATETIME(6)

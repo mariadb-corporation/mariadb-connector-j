@@ -194,6 +194,7 @@ public class Pool implements AutoCloseable, PoolMBean {
               try {
                 if (!idleConnections.contains(item)) {
                   item.getConnection().reset();
+                  item.lastUsedToNow();
                   idleConnections.addFirst(item);
                 }
               } catch (SQLException sqle) {
@@ -271,14 +272,12 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             // validate connection
             if (item.getConnection().isValid(10)) { // 10 seconds timeout
-              item.lastUsedToNow();
               return item;
             }
 
           } else {
 
             // connection has been retrieved recently -> skip connection validation
-            item.lastUsedToNow();
             return item;
           }
 

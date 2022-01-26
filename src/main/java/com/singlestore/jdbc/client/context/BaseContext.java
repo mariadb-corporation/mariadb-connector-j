@@ -9,6 +9,7 @@ import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.PrepareCache;
 import com.singlestore.jdbc.message.server.InitialHandshakePacket;
 import com.singlestore.jdbc.util.constants.Capabilities;
+import com.singlestore.jdbc.util.constants.ConnectionState;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 
 public class BaseContext implements Context {
@@ -108,6 +109,7 @@ public class BaseContext implements Context {
   }
 
   public void setTransactionIsolationLevel(int transactionIsolationLevel) {
+    this.addStateFlag(ConnectionState.STATE_TRANSACTION_ISOLATION);
     this.transactionIsolationLevel = transactionIsolationLevel;
   }
 

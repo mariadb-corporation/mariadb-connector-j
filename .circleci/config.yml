@@ -64,9 +64,7 @@ jobs:
           paths:
             - ~/.m2
           key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
-      - run: mvn package -Dmaven.test.skip -DjavadocExecutable=/usr/lib/jvm/java-8-openjdk-amd64/bin/javadoc
-      - run: javac Test_SingleStore.java
-      - run: CLASSPATH="target/singlestore-jdbc-client-1.0.1.jar:." java Test_SingleStore
+      - run: mvn package -DjavadocExecutable=/usr/lib/jvm/java-8-openjdk-amd64/bin/javadoc
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
@@ -114,7 +112,7 @@ workflows:
                 - memsql/cluster-in-a-box:centos-7.1.13-11ddea2a3a-3.0.0-1.9.3
                 - singlestore/cluster-in-a-box:centos-7.3.13-761e3259b3-3.2.11-1.11.9
                 - singlestore/cluster-in-a-box:centos-7.5.10-d6401ae628-4.0.0-1.12.2
-                - singlestore/cluster-in-a-box:centos-7.6.5-018454f4e3-4.0.1-1.13.0
+                - singlestore/cluster-in-a-box:centos-7.6.8-ad67e74046-4.0.1-1.13.2
   publish:
     jobs:
       - approve-publish:

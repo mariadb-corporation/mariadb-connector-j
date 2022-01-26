@@ -13,6 +13,7 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.util.constants.HaMode;
 import java.sql.*;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class FailoverTest extends Common {
@@ -29,6 +30,8 @@ public class FailoverTest extends Common {
     }
   }
 
+  // TODO: PLAT-6029
+  @Disabled
   @Test
   public void transactionReplay() throws SQLException {
     transactionReplay(true);
@@ -48,14 +51,14 @@ public class FailoverTest extends Common {
       assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 800);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(1000);
       if (transactionReplay) {
         stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')");
         con.commit();
@@ -97,14 +100,14 @@ public class FailoverTest extends Common {
       assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
       final Statement stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 800);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test1')");
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
-      proxy.restart(300);
+      proxy.restart(1000);
       if (transactionReplay) {
         assertThrowsContains(
             SQLException.class,
@@ -140,16 +143,16 @@ public class FailoverTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS transaction_failover_3");
     stmt.execute(
-        "CREATE TABLE transaction_failover_3 "
-            + "(id int not null primary key auto_increment, test varchar(20)) "
-            + "engine=innodb");
+        createRowstore()
+            + " TABLE transaction_failover_3 "
+            + "(id int not null primary key auto_increment, test varchar(20)) ");
 
     try (Connection con =
         createProxyCon(
             HaMode.SEQUENTIAL,
             "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 800);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover_3 (test) VALUES ('test0')");
@@ -160,18 +163,20 @@ public class FailoverTest extends Common {
         p.setString(1, "test2");
         p.execute();
 
-        proxy.restart(300);
+        proxy.restart(1000);
         p.setString(1, "test3");
         if (transactionReplay) {
           p.execute();
         } else {
           assertThrowsContains(
-              SQLException.class, () -> p.execute(), "In progress transaction was lost");
+              SQLTransientConnectionException.class,
+              p::execute,
+              "In progress transaction was lost");
         }
       }
       if (transactionReplay) {
         con.commit();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3 order by id");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_failover_3 ORDER BY id");
 
         for (int i = 0; i < 4; i++) {
           assertTrue(rs.next());
@@ -205,7 +210,7 @@ public class FailoverTest extends Common {
             HaMode.SEQUENTIAL,
             "&useServerPrepStmts=" + !text + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 800);
       long threadId = con.getContext().getThreadId();
 
       stmt.executeUpdate("INSERT INTO transaction_failover_2 (test) VALUES ('test0')");
@@ -221,7 +226,7 @@ public class FailoverTest extends Common {
         p.addBatch();
         p.executeBatch();
 
-        proxy.restart(300);
+        proxy.restart(1000);
         p.setString(1, "test5");
         p.addBatch();
         p.setString(1, "test6");

@@ -149,7 +149,9 @@ public class PreparedStatementParametersTest extends Common {
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), localCal),
-        rs -> assertEquals(1263247200000L, rs.getDate(1, localCal).getTime()),
+        rs ->
+            assertEquals(
+                1263254400000L - getOffsetAtDate(2010, 1, 12), rs.getDate(1, localCal).getTime()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), localCal),

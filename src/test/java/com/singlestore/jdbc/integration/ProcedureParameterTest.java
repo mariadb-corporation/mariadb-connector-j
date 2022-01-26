@@ -61,7 +61,9 @@ public class ProcedureParameterTest extends Common {
 
       assertEquals(10, meta.getPrecision(1));
       assertEquals(8, meta.getPrecision(3));
-      assertEquals(20, meta.getPrecision(4));
+      if (minVersion(7, 5, 0)) {
+        assertEquals(20, meta.getPrecision(4));
+      }
       assertEquals(5, meta.getPrecision(5));
       assertThrowsContains(
           SQLException.class, () -> meta.getPrecision(10), "invalid parameter index 10");
