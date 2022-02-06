@@ -1,0 +1,13 @@
+Export-Package: org.mariadb.jdbc
+
+Import-Package: \
+  com.sun.jna;\
+  com.sun.jna.platform.win32;resolution:=optional,\
+  software.amazon.awssdk.*;resolution:=optional,\
+  waffle.windows.auth;\
+  waffle.windows.auth.impl;resolution:=optional,\
+  org.slf4j;version="[1.7,2.0)";resolution:=optional, \
+  org.ietf.jgss;resolution:=optional, \
+  *
+
+-fixupmessages: "Classes found in the wrong directory:";is:=ignore

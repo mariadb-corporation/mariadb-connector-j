@@ -24,6 +24,7 @@
         <jacoco.version>0.8.7</jacoco.version>
         <waffle-jna.version>3.1.1</waffle-jna.version>
         <mysql-connector-java.version>8.0.28</mysql-connector-java.version>
+        <bnd-maven-plugin.version>6.1.0</bnd-maven-plugin.version>
     </properties>
 
     <licenses>
@@ -177,6 +178,7 @@
                         <manifestEntries>
                             <Multi-Release>true</Multi-Release>
                         </manifestEntries>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
             </plugin>
@@ -243,6 +245,22 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M5</version>
+            </plugin>
+
+            <plugin>
+                <groupId>biz.aQute.bnd</groupId>
+                <artifactId>bnd-maven-plugin</artifactId>
+                <version>${bnd-maven-plugin.version}</version>
+                <configuration>
+                    <bndfile>bnd.bnd</bndfile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>bnd-process</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
