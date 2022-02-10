@@ -127,9 +127,9 @@ public class IntCodec implements Codec<Integer> {
       case STRING:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
         }
 
@@ -241,9 +241,9 @@ public class IntCodec implements Codec<Integer> {
       case STRING:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
         }
 
