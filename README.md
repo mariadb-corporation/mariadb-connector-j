@@ -11,7 +11,7 @@ MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applicat
 Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
 
 ## Status
-[![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://travis-ci.com/mariadb-corporation/mariadb-connector-j)
+[![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://app.travis-ci.com/github/mariadb-corporation/mariadb-connector-j)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![codecov][codecov-image]][codecov-url]
@@ -27,17 +27,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.7.4</version>
-</dependency>
-```
-
-New version 3.0 is a complete rewrite with code simplification, reduced size (15%), more than 90% coverage tested, with performance gain.
-But still in RELEASE CANDIDATE for now:
-```script
-<dependency>
-    <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client</artifactId>
-    <version>3.0.2-rc</version>
+	<version>3.0.3</version>
 </dependency>
 ```
 
