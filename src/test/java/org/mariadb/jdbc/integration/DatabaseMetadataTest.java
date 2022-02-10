@@ -611,6 +611,10 @@ public class DatabaseMetadataTest extends Common {
 
     rs = dbmd.getTables("", null, "prim_key", new String[] {"TABLE", null});
     assertEquals(true, rs.next());
+
+    // ensure no regression CONJ-921
+    rs = dbmd.getTables(null, null, null, new String[] {"TABLE"});
+    assertEquals(true, rs.next());
   }
 
   @Test

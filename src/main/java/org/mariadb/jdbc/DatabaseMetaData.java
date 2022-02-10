@@ -635,7 +635,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     if (types != null && types.length > 0) {
       boolean mustAddType = false;
-      StringBuilder sqlType = new StringBuilder(" AND TABLE_TYPE IN (");
+
+      StringBuilder sqlType =
+          new StringBuilder(((firstCondition) ? " WHERE " : " AND ") + " TABLE_TYPE IN (");
       for (String s : types) {
         if (mustAddType) sqlType.append(",");
         mustAddType = true;
