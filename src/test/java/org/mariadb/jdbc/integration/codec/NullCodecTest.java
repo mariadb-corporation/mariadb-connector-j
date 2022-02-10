@@ -4,12 +4,7 @@
 
 package org.mariadb.jdbc.integration.codec;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.result.CompleteResult;
-import org.mariadb.jdbc.integration.Common;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -17,8 +12,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.time.*;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.integration.Common;
 
 public class NullCodecTest extends CommonCodecTest {
 
@@ -33,9 +30,7 @@ public class NullCodecTest extends CommonCodecTest {
   private ResultSet get(String table) throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    ResultSet rs =
-        stmt.executeQuery(
-            "select NULL as t1alias");
+    ResultSet rs = stmt.executeQuery("select NULL as t1alias");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -53,8 +48,7 @@ public class NullCodecTest extends CommonCodecTest {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
-        con.prepareStatement(
-            "select NULL as t1alias WHERE 1 > ?")) {
+        con.prepareStatement("select NULL as t1alias WHERE 1 > ?")) {
       preparedStatement.setInt(1, 0);
       ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
@@ -97,10 +91,9 @@ public class NullCodecTest extends CommonCodecTest {
     getObjectType(getPreparedSigned(sharedConnBinary));
   }
 
-
   void testNullObject(ResultSet rs, Class<?> objClass) throws Exception {
-      assertNull(rs.getObject(1, objClass));
-      assertNull(rs.getObject("t1alias", objClass));
+    assertNull(rs.getObject(1, objClass));
+    assertNull(rs.getObject("t1alias", objClass));
   }
 
   private void getObjectType(ResultSet rs) throws Exception {
@@ -435,7 +428,6 @@ public class NullCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
     assertNull(rs.getBigDecimal("t1alias"));
     assertTrue(rs.wasNull());
-
   }
 
   @Test
@@ -745,5 +737,4 @@ public class NullCodecTest extends CommonCodecTest {
     assertEquals("", meta.getSchemaName(1));
     assertEquals(0, meta.getColumnDisplaySize(1));
   }
-
 }

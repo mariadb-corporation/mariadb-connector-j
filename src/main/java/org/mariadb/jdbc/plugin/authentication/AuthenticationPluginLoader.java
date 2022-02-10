@@ -27,21 +27,19 @@ public final class AuthenticationPluginLoader {
 
     ServiceLoader<AuthenticationPlugin> loader =
         ServiceLoader.load(AuthenticationPlugin.class, Driver.class.getClassLoader());
-    String restrictedAuth =
-        conf.restrictedAuth() == null
-            ? "mysql_native_password,client_ed25519,auth_gssapi_client"
-            : conf.restrictedAuth();
-    String[] authList = restrictedAuth.split(",");
+
+    String[] authList = (conf.restrictedAuth() != null) ? conf.restrictedAuth().split(",") : null;
+
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
-        if ("none".equals(restrictedAuth) || Arrays.stream(authList).anyMatch(type::contains)) {
+        if (conf.restrictedAuth() == null || Arrays.stream(authList).anyMatch(type::contains)) {
           return implClass;
         } else {
           throw new SQLException(
               String.format(
                   "Client restrict authentication plugin to a limited set of authentication plugin and doesn't permit requested plugin ('%s'). "
                       + "Current list is `restrictedAuth=%s`",
-                  type, restrictedAuth),
+                  type, conf.restrictedAuth()),
               "08004",
               1251);
         }

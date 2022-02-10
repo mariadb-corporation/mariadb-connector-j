@@ -42,8 +42,10 @@ public class CompressTest extends Common {
   }
 
   public void bigSend(Connection con, int maxLen) throws SQLException {
+    int maxAllowed = getMaxAllowedPacket();
+    Assumptions.assumeTrue(maxAllowed > 16 * 1024 * 1024);
     char[] arr2 =
-        new char[Math.min(maxLen, Math.min(16 * 1024 * 1024, (getMaxAllowedPacket() / 2) - 1000))];
+        new char[Math.min(maxLen, Math.min(16 * 1024 * 1024, (maxAllowed / 2) - 1000))];
     for (int pos = 0; pos < arr2.length; pos++) {
       arr2[pos] = (char) ('A' + (pos % 60));
     }
