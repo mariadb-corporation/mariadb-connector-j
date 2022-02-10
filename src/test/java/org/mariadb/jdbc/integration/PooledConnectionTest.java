@@ -192,7 +192,7 @@ public class PooledConnectionTest extends Common {
   @Test
   public void testPooledConnectionException2() throws Exception {
     Assumptions.assumeTrue(
-            !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Pool pool = Pools.retrievePool(Configuration.parse(mDefUrl + "&maxPoolSize=2"))) {
       MariaDbInnerPoolConnection pooledConnection = pool.getPoolConnection();
       org.mariadb.jdbc.Connection con = pooledConnection.getConnection();

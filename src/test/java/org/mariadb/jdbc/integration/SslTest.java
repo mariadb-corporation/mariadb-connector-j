@@ -13,13 +13,12 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
-
-import javax.net.ssl.SSLContext;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
@@ -116,7 +115,8 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try {
-      List<String> protocols = Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
+      List<String> protocols =
+          Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
       Assumptions.assumeTrue(protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2"));
     } catch (NoSuchAlgorithmException e) {
       // eat
