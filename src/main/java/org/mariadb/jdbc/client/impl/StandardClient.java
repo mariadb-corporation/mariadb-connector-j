@@ -13,10 +13,10 @@ import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.time.zone.ZoneRulesException;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
@@ -399,11 +399,12 @@ public class StandardClient implements Client, AutoCloseable {
 
       // try to avoid timezone consideration if server use the same one
       try {
-        if (ZoneId.of(serverTz).normalized().equals(clientZoneId)
-            || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
+        ZoneId serverZoneId = ZoneId.of(serverTz);
+        if (serverZoneId.normalized().equals(clientZoneId)
+                || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
           mustSetTimezone = false;
         }
-      } catch (ZoneRulesException e) {
+      } catch (DateTimeException e) {
         // eat
       }
 
