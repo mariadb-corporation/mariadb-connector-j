@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import java.time.*;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
@@ -45,6 +46,8 @@ public class NullCodecTest extends CommonCodecTest {
   }
 
   private ResultSet getPrepare(Connection con, String table) throws SQLException {
+    Assumptions.assumeTrue(
+        (isMariaDBServer() && minVersion(10, 4, 0)) || (!isMariaDBServer() && minVersion(8, 0, 0)));
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =

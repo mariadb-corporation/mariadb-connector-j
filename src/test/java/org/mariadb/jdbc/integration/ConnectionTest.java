@@ -903,7 +903,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void windowsNamedPipe() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() || !minVersion(8,0,14));
+    Assumptions.assumeTrue(isMariaDBServer() || !minVersion(8, 0, 14));
     ResultSet rs = null;
     try {
       rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket");

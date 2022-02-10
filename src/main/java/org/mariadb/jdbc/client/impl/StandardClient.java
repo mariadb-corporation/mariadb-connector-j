@@ -401,7 +401,7 @@ public class StandardClient implements Client, AutoCloseable {
       try {
         ZoneId serverZoneId = ZoneId.of(serverTz);
         if (serverZoneId.normalized().equals(clientZoneId)
-                || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
+            || ZoneId.of(serverTz, ZoneId.SHORT_IDS).equals(clientZoneId)) {
           mustSetTimezone = false;
         }
       } catch (DateTimeException e) {
