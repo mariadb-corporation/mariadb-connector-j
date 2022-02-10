@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** ZonedDateTime codec */
 public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
+  /** default instance */
   public static final ZonedDateTimeCodec INSTANCE = new ZonedDateTimeCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

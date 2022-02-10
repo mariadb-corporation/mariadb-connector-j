@@ -39,6 +39,7 @@ import org.mariadb.jdbc.plugin.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.ConfigurableSocketFactory;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
+/** Connection creation helper class */
 public final class ConnectionHelper {
 
   private static final SocketHandlerFunction socketHandler;
@@ -104,6 +105,14 @@ public final class ConnectionHelper {
     return socketFactory.createSocket();
   }
 
+  /**
+   * Connect socket
+   *
+   * @param conf configuration
+   * @param hostAddress host to connect
+   * @return socket
+   * @throws SQLException if hostname is required and not provided, or socket cannot be created
+   */
   public static Socket connectSocket(final Configuration conf, final HostAddress hostAddress)
       throws SQLException {
     Socket socket;
@@ -112,7 +121,7 @@ public final class ConnectionHelper {
         throw new SQLException(
             "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
-      SocketHelper.setSocketOption(conf, socket);
+      setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null
@@ -132,6 +141,39 @@ public final class ConnectionHelper {
     }
   }
 
+  /**
+   * Set socket option
+   *
+   * @param conf configuration
+   * @param socket socket
+   * @throws IOException if any socket error occurs
+   */
+  public static void setSocketOption(final Configuration conf, final Socket socket)
+      throws IOException {
+    socket.setTcpNoDelay(true);
+    socket.setSoTimeout(conf.socketTimeout());
+    if (conf.tcpKeepAlive()) {
+      socket.setKeepAlive(true);
+    }
+    if (conf.tcpAbortiveClose()) {
+      socket.setSoLinger(true, 0);
+    }
+
+    // Bind the socket to a particular interface if the connection property
+    // localSocketAddress has been defined.
+    if (conf.localSocketAddress() != null) {
+      InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
+      socket.bind(localAddress);
+    }
+  }
+
+  /**
+   * Initialize client capability according to configuration and server capabilities.
+   *
+   * @param configuration configuration
+   * @param serverCapabilities server capabilities
+   * @return client capabilities
+   */
   public static long initializeClientCapabilities(
       final Configuration configuration, final long serverCapabilities) {
     long capabilities =
@@ -151,8 +193,7 @@ public final class ConnectionHelper {
     // only set it when server permit it and using binary protocol
     if (configuration.useServerPrepStmts()
         && Boolean.parseBoolean(
-            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))
-        && (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) != 0) {
+            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
       capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
     }
 
@@ -181,18 +222,19 @@ public final class ConnectionHelper {
     // useEof is a technical option
     boolean deprecateEof =
         Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("deprecateEof", "true"));
-    if ((serverCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) != 0 && deprecateEof) {
+    if (deprecateEof) {
       capabilities |= Capabilities.CLIENT_DEPRECATE_EOF;
     }
 
-    if (configuration.useCompression() && ((serverCapabilities & Capabilities.COMPRESS) != 0)) {
+    if (configuration.useCompression()) {
       capabilities |= Capabilities.COMPRESS;
     }
 
     if (configuration.database() != null && !configuration.createDatabaseIfNotExist()) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
-    return capabilities;
+
+    return capabilities & serverCapabilities;
   }
 
   /**
@@ -213,9 +255,19 @@ public final class ConnectionHelper {
             : 224); // UTF8MB4_UNICODE_CI;
   }
 
+  /**
+   * Authentication swtich handler
+   *
+   * @param credential credential
+   * @param writer socket writer
+   * @param reader socket reader
+   * @param context connection context
+   * @throws IOException if any socket error occurs
+   * @throws SQLException if any other kind of issue occurs
+   */
   public static void authenticationHandler(
       Credential credential, Writer writer, Reader reader, Context context)
-      throws SQLException, IOException {
+      throws IOException, SQLException {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
@@ -272,6 +324,15 @@ public final class ConnectionHelper {
     writer.permitTrace(true);
   }
 
+  /**
+   * Load user/password plugin if configured to.
+   *
+   * @param credentialPlugin configuration credential plugin
+   * @param configuration configuration
+   * @param hostAddress current connection host address
+   * @return credentials
+   * @throws SQLException if configured credential plugin fail
+   */
   public static Credential loadCredential(
       CredentialPlugin credentialPlugin, Configuration configuration, HostAddress hostAddress)
       throws SQLException {
@@ -281,6 +342,19 @@ public final class ConnectionHelper {
     return new Credential(configuration.user(), configuration.password());
   }
 
+  /**
+   * Create SSL wrapper
+   *
+   * @param hostAddress host
+   * @param socket socket
+   * @param clientCapabilities client capabilities
+   * @param exchangeCharset connection charset
+   * @param context connection context
+   * @param writer socket writer
+   * @return SSLsocket
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for any other kind of error
+   */
   public static SSLSocket sslWrapper(
       final HostAddress hostAddress,
       final Socket socket,
@@ -288,7 +362,7 @@ public final class ConnectionHelper {
       final byte exchangeCharset,
       Context context,
       Writer writer)
-      throws SQLException, IOException {
+      throws IOException, SQLException {
 
     Configuration conf = context.getConf();
     if (conf.sslMode() != SslMode.DISABLE) {

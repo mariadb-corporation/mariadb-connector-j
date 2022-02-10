@@ -7,6 +7,7 @@ package org.mariadb.jdbc.pool;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/** Pool thread factory */
 public class PoolThreadFactory implements java.util.concurrent.ThreadFactory {
 
   // start from DefaultThread factory to get security groups and what not
@@ -14,6 +15,11 @@ public class PoolThreadFactory implements java.util.concurrent.ThreadFactory {
   private final AtomicInteger threadId = new AtomicInteger();
   private final String threadName;
 
+  /**
+   * Constructor
+   *
+   * @param threadName thread name
+   */
   public PoolThreadFactory(String threadName) {
     this.threadName = threadName;
   }

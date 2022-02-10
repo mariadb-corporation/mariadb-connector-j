@@ -16,6 +16,10 @@ import org.mariadb.jdbc.MariaDbPoolConnection;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
 
+/**
+ * Exception factory. This permit common error logging, with thread id, dump query, and specific
+ * dead-lock additional information
+ */
 public class ExceptionFactory {
 
   private static final Set<Integer> LOCK_DEADLOCK_ERROR_CODES =
@@ -27,6 +31,12 @@ public class ExceptionFactory {
   private long threadId;
   private Statement statement;
 
+  /**
+   * Connection Exception factory constructor
+   *
+   * @param conf configuration
+   * @param hostAddress current host
+   */
   public ExceptionFactory(Configuration conf, HostAddress hostAddress) {
     this.conf = conf;
     this.hostAddress = hostAddress;
@@ -105,24 +115,54 @@ public class ExceptionFactory {
     return msg.toString();
   }
 
+  /**
+   * Set connection
+   *
+   * @param oldExceptionFactory previous connection exception factory
+   */
   public void setConnection(ExceptionFactory oldExceptionFactory) {
     this.connection = oldExceptionFactory.connection;
   }
 
+  /**
+   * Set connection to factory
+   *
+   * @param connection connection
+   * @return this {@link ExceptionFactory}
+   */
   public ExceptionFactory setConnection(Connection connection) {
     this.connection = connection;
     return this;
   }
 
+  /**
+   * Set pool connection to factory
+   *
+   * @param internalPoolConnection internal pool connection
+   * @return this {@link ExceptionFactory}
+   */
   public ExceptionFactory setPoolConnection(MariaDbPoolConnection internalPoolConnection) {
     this.poolConnection = internalPoolConnection;
     return this;
   }
 
+  /**
+   * Set connection thread id
+   *
+   * @param threadId connection thread id
+   */
   public void setThreadId(long threadId) {
     this.threadId = threadId;
   }
 
+  /**
+   * Create a BatchUpdateException, filling successful updates
+   *
+   * @param res completion list
+   * @param length expected size
+   * @param sqle exception
+   * @return BatchUpdateException object
+   */
   public BatchUpdateException createBatchUpdate(
       List<Completion> res, int length, SQLException sqle) {
     int[] updateCounts = new int[length];
@@ -140,6 +180,15 @@ public class ExceptionFactory {
     return new BatchUpdateException(updateCounts, sqle);
   }
 
+  /**
+   * Create a BatchUpdateException, filling successful updates
+   *
+   * @param res completion list
+   * @param length expected length
+   * @param responseMsg successful response
+   * @param sqle exception
+   * @return BatchUpdateException object
+   */
   public BatchUpdateException createBatchUpdate(
       List<Completion> res, int length, int[] responseMsg, SQLException sqle) {
     int[] updateCounts = new int[length];
@@ -164,6 +213,12 @@ public class ExceptionFactory {
     return new BatchUpdateException(updateCounts, sqle);
   }
 
+  /**
+   * Construct an Exception factory from this + adding current statement
+   *
+   * @param statement current statement
+   * @return new Exception factory
+   */
   public ExceptionFactory of(Statement statement) {
     return new ExceptionFactory(
         this.connection,
@@ -174,6 +229,12 @@ public class ExceptionFactory {
         statement);
   }
 
+  /**
+   * Construct an Exception factory from this + adding current SQL
+   *
+   * @param sql current sql command
+   * @return new Exception factory
+   */
   public ExceptionFactory withSql(String sql) {
     return new SqlExceptionFactory(
         this.connection,
@@ -243,33 +304,84 @@ public class ExceptionFactory {
     return returnEx;
   }
 
+  /**
+   * fast creation of SQLFeatureNotSupportedException exception
+   *
+   * @param message error message
+   * @return exception to be thrown
+   */
   public SQLException notSupported(String message) {
     return createException(message, "0A000", -1, null);
   }
 
+  /**
+   * Creation of an exception
+   *
+   * @param message error message
+   * @return exception to be thrown
+   */
   public SQLException create(String message) {
     return createException(message, "42000", -1, null);
   }
 
+  /**
+   * Creation of an exception
+   *
+   * @param message error message
+   * @param sqlState sql state
+   * @return exception to be thrown
+   */
   public SQLException create(String message, String sqlState) {
     return createException(message, sqlState, -1, null);
   }
 
+  /**
+   * Creation of an exception
+   *
+   * @param message error message
+   * @param sqlState sql state
+   * @param cause initial exception
+   * @return exception to be thrown
+   */
   public SQLException create(String message, String sqlState, Exception cause) {
     return createException(message, sqlState, -1, cause);
   }
-
+  /**
+   * Creation of an exception
+   *
+   * @param message error message
+   * @param sqlState sql state
+   * @param errorCode error code
+   * @return exception to be thrown
+   */
   public SQLException create(String message, String sqlState, int errorCode) {
     return createException(message, sqlState, errorCode, null);
   }
 
+  /**
+   * get SQL command
+   *
+   * @return sql command
+   */
   public String getSql() {
     return null;
   }
 
+  /** Exception with SQL command */
   public class SqlExceptionFactory extends ExceptionFactory {
     private final String sql;
 
+    /**
+     * Constructor of Exception factory with SQL
+     *
+     * @param connection connection
+     * @param poolConnection pool connection
+     * @param conf configuration
+     * @param hostAddress host
+     * @param threadId connection thread id
+     * @param statement statement
+     * @param sql sql
+     */
     public SqlExceptionFactory(
         Connection connection,
         MariaDbPoolConnection poolConnection,
@@ -282,6 +394,7 @@ public class ExceptionFactory {
       this.sql = sql;
     }
 
+    @Override
     public String getSql() {
       return sql;
     }

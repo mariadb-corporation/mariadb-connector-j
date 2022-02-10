@@ -18,8 +18,10 @@ import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.MultiLineString;
 import org.mariadb.jdbc.type.Point;
 
+/** MultiLineString codec */
 public class MultiLinestringCodec implements Codec<MultiLineString> {
 
+  /** default instance */
   public static final MultiLinestringCodec INSTANCE = new MultiLinestringCodec();
 
   public String className() {

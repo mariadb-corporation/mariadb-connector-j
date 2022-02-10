@@ -18,9 +18,12 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Big decimal codec */
 public class BigDecimalCodec implements Codec<BigDecimal> {
 
+  /** default instance */
   public static final BigDecimalCodec INSTANCE = new BigDecimalCodec();
+
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.TINYINT,

@@ -8,12 +8,19 @@ import java.nio.charset.StandardCharsets;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 
+/** Packet buffer */
 public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   private int limit;
   private byte[] buf;
   private int pos;
 
+  /**
+   * Packet buffer constructor
+   *
+   * @param buf buffer
+   * @param limit buffer limit
+   */
   public StandardReadableByteBuf(byte[] buf, int limit) {
     this.pos = 0;
     this.buf = buf;

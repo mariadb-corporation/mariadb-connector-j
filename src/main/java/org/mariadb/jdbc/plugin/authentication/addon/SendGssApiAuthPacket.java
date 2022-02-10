@@ -17,6 +17,7 @@ import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssUtility;
 import org.mariadb.jdbc.plugin.authentication.addon.gssapi.GssapiAuth;
 import org.mariadb.jdbc.plugin.authentication.addon.gssapi.StandardGssapiAuthentication;
 
+/** GSSAPI plugin */
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   private static final GssapiAuth gssapiAuth;

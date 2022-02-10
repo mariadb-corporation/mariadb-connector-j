@@ -10,6 +10,10 @@ import org.mariadb.jdbc.message.ServerMessage;
 import org.mariadb.jdbc.message.server.util.ServerVersionUtility;
 import org.mariadb.jdbc.util.constants.Capabilities;
 
+/**
+ * Server initial handshake parser. see
+ * https://mariadb.com/kb/en/connection/#initial-handshake-packet
+ */
 public final class InitialHandshakePacket implements ServerMessage {
 
   private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
@@ -22,6 +26,18 @@ public final class InitialHandshakePacket implements ServerMessage {
   private final String authenticationPluginType;
   private final ServerVersion version;
 
+  /**
+   * parse result
+   *
+   * @param serverVersion server version
+   * @param threadId server thread id
+   * @param seed seed
+   * @param capabilities server capabilities
+   * @param defaultCollation default server collation
+   * @param serverStatus server status flags
+   * @param mariaDBServer is a mariadb server
+   * @param authenticationPluginType default authentication plugin type
+   */
   private InitialHandshakePacket(
       String serverVersion,
       long threadId,
@@ -41,6 +57,12 @@ public final class InitialHandshakePacket implements ServerMessage {
     this.version = new ServerVersionUtility(serverVersion, mariaDBServer);
   }
 
+  /**
+   * parsing packet
+   *
+   * @param reader packet reader
+   * @return Parsed packet
+   */
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {
     byte protocolVersion = reader.readByte();
     if (protocolVersion != 0x0a) {
@@ -124,30 +146,65 @@ public final class InitialHandshakePacket implements ServerMessage {
         authenticationPluginType);
   }
 
+  /**
+   * Server Version object
+   *
+   * @return server version
+   */
   public ServerVersion getVersion() {
     return version;
   }
 
+  /**
+   * Server thread id
+   *
+   * @return thread id
+   */
   public long getThreadId() {
     return threadId;
   }
 
+  /**
+   * Seed for authentication plugin encryption
+   *
+   * @return seed
+   */
   public byte[] getSeed() {
     return seed;
   }
 
+  /**
+   * Server capabilities
+   *
+   * @return server capabilities
+   */
   public long getCapabilities() {
     return capabilities;
   }
 
+  /**
+   * Server default collation
+   *
+   * @return server default collation
+   */
   public short getDefaultCollation() {
     return defaultCollation;
   }
 
+  /**
+   * Server status flags
+   *
+   * @return server status
+   */
   public short getServerStatus() {
     return serverStatus;
   }
 
+  /**
+   * return authentication plugin type
+   *
+   * @return authentication plugin type
+   */
   public String getAuthenticationPluginType() {
     return authenticationPluginType;
   }

@@ -27,8 +27,10 @@ import org.mariadb.jdbc.message.client.AuthMoreRawPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
+/** Mysql caching sha2 password plugin */
 public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
+  /** plugin name */
   public static final String TYPE = "caching_sha2_password";
 
   private String authenticationData;

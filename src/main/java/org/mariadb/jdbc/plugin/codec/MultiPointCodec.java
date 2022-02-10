@@ -17,8 +17,10 @@ import org.mariadb.jdbc.type.Geometry;
 import org.mariadb.jdbc.type.MultiPoint;
 import org.mariadb.jdbc.type.Point;
 
+/** MultiPoint codec */
 public class MultiPointCodec implements Codec<MultiPoint> {
 
+  /** default instance */
   public static final MultiPointCodec INSTANCE = new MultiPointCodec();
 
   public String className() {

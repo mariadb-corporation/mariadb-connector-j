@@ -9,6 +9,10 @@ import javax.sql.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.MariaDbPoolConnection;
 
+/**
+ * MariaDB pool connection for internal pool permit to add a last used information, to remove
+ * connection after staying in pool for long time.
+ */
 public class MariaDbInnerPoolConnection extends MariaDbPoolConnection {
   private final AtomicLong lastUsed;
 
@@ -36,6 +40,7 @@ public class MariaDbInnerPoolConnection extends MariaDbPoolConnection {
     lastUsed.set(System.nanoTime());
   }
 
+  /** Reset last used time, to ensure next retrieval will validate connection before borrowing */
   public void ensureValidation() {
     lastUsed.set(0L);
   }

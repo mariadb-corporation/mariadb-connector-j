@@ -16,10 +16,13 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Packet writer */
 @SuppressWarnings("SameReturnValue")
 public class PacketWriter implements Writer {
 
+  /** initial buffer size */
   public static final int SMALL_BUFFER_SIZE = 8192;
+
   private static final Logger logger = Loggers.getLogger(PacketWriter.class);
   private static final byte QUOTE = (byte) '\'';
   private static final byte DBL_QUOTE = (byte) '"';
@@ -28,12 +31,8 @@ public class PacketWriter implements Writer {
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
   private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
-  protected final MutableInt sequence;
-  protected final MutableInt compressSequence;
   private final int maxQuerySizeToLog;
   private final OutputStream out;
-  protected byte[] buf;
-  protected int pos = 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
   private Integer maxAllowedPacket;
   private long cmdLength;
@@ -42,11 +41,21 @@ public class PacketWriter implements Writer {
   private int mark = -1;
   private boolean bufContainDataAfterMark = false;
 
+  /** internal buffer */
+  protected byte[] buf;
+  /** buffer position */
+  protected int pos = 4;
+  /** packet sequence */
+  protected final MutableInt sequence;
+  /** compressed packet sequence */
+  protected final MutableInt compressSequence;
+
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
    *
    * @param out output stream
    * @param maxQuerySizeToLog maximum query size to log
+   * @param maxAllowedPacket max allowed packet value if known
    * @param sequence packet sequence
    * @param compressSequence compressed packet sequence
    */
@@ -65,15 +74,31 @@ public class PacketWriter implements Writer {
     this.maxAllowedPacket = maxAllowedPacket;
   }
 
+  /**
+   * get current position
+   *
+   * @return current position
+   */
   public int pos() {
     return pos;
   }
 
+  /**
+   * position setter
+   *
+   * @param pos new position
+   * @throws IOException if buffer is not big enough to contains new position
+   */
   public void pos(int pos) throws IOException {
     if (pos > buf.length) growBuffer(pos);
     this.pos = pos;
   }
 
+  /**
+   * get current command length
+   *
+   * @return current command length
+   */
   public long getCmdLength() {
     return cmdLength;
   }

@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** LocalDate codec */
 public class LocalDateCodec implements Codec<LocalDate> {
 
+  /** default instance */
   public static final LocalDateCodec INSTANCE = new LocalDateCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -37,6 +39,13 @@ public class LocalDateCodec implements Codec<LocalDate> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
+  /**
+   * Parse text encoded Date
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @return date/month/year array
+   */
   public static int[] parseDate(ReadableByteBuf buf, int length) {
     int[] datePart = new int[] {0, 0, 0};
     int partIdx = 0;

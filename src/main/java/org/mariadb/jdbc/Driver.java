@@ -23,6 +23,7 @@ import org.mariadb.jdbc.client.impl.StandardClient;
 import org.mariadb.jdbc.pool.Pools;
 import org.mariadb.jdbc.util.VersionFactory;
 
+/** MariaDB Driver */
 public final class Driver implements java.sql.Driver {
 
   static {
@@ -33,6 +34,13 @@ public final class Driver implements java.sql.Driver {
     }
   }
 
+  /**
+   * Connect according to configuration
+   *
+   * @param configuration configuration
+   * @return a Connection
+   * @throws SQLException if connect fails
+   */
   public static Connection connect(Configuration configuration) throws SQLException {
     ReentrantLock lock = new ReentrantLock();
     Client client;

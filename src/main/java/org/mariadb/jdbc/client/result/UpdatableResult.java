@@ -19,6 +19,7 @@ import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.util.ParameterList;
 
+/** Updatable result implementation */
 public class UpdatableResult extends CompleteResult {
   private static final int STATE_STANDARD = 0;
   private static final int STATE_UPDATE = 1;
@@ -37,6 +38,21 @@ public class UpdatableResult extends CompleteResult {
   private int state = STATE_STANDARD;
   private ParameterList parameters;
 
+  /**
+   * Constructor
+   *
+   * @param stmt statement that initiate this result
+   * @param binaryProtocol are rows binary encoded
+   * @param maxRows maximum rows
+   * @param metadataList columns metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close on completion
+   * @param traceEnable must network exchanges be logged
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for other kind of error
+   */
   public UpdatableResult(
       Statement stmt,
       boolean binaryProtocol,

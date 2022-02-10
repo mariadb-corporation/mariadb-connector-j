@@ -38,13 +38,31 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
+  /** is socket close */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
+
+  /** denied timeout */
   protected final long deniedListTimeout;
+
+  /** configuration */
   protected final Configuration conf;
+
+  /** is connections explicitly closed */
   protected boolean closed = false;
+
+  /** thread locker */
   protected final ReentrantLock lock;
+
+  /** current client */
   protected Client currentClient;
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param lock thread locker
+   * @throws SQLException if fail to connect
+   */
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
@@ -134,6 +152,12 @@ public class MultiPrimaryClient implements Client {
     throw lastSqle;
   }
 
+  /**
+   * Connection loop
+   *
+   * @return client connection
+   * @throws SQLException if fail to connect
+   */
   protected Client reConnect() throws SQLException {
 
     denyList.putIfAbsent(
@@ -155,6 +179,13 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
+  /**
+   * Execute transaction replay if in transaction and configured for it, throw an exception if not
+   *
+   * @param oldClient previous client
+   * @param canRedo if command can be redo even if not in transaction
+   * @throws SQLException if not able to replay
+   */
   protected void replayIfPossible(Client oldClient, boolean canRedo) throws SQLException {
     // oldClient is only valued if this occurs on master.
     if (oldClient != null) {
@@ -182,6 +213,12 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
+  /**
+   * Execute transaction replay
+   *
+   * @param oldCli previous client
+   * @throws SQLException if not able to replay
+   */
   protected void executeTransactionReplay(Client oldCli) throws SQLException {
     // transaction replay
     RedoContext ctx = (RedoContext) oldCli.getContext();
@@ -196,6 +233,12 @@ public class MultiPrimaryClient implements Client {
     ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
   }
 
+  /**
+   * Synchronized previous and new client states.
+   *
+   * @param oldCli previous client
+   * @throws SQLException if error occurs
+   */
   public void syncNewState(Client oldCli) throws SQLException {
     Context oldCtx = oldCli.getContext();
     currentClient.getExceptionFactory().setConnection(oldCli.getExceptionFactory());

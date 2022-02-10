@@ -8,10 +8,16 @@ import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 
+/** Query client packet COM_QUERY see https://mariadb.com/kb/en/com_query/ */
 public final class QueryPacket implements RedoableClientMessage {
 
   private final String sql;
 
+  /**
+   * Constructor
+   *
+   * @param sql sql command
+   */
   public QueryPacket(String sql) {
     this.sql = sql;
   }
@@ -29,6 +35,11 @@ public final class QueryPacket implements RedoableClientMessage {
     return 1;
   }
 
+  /**
+   * Check that command is a COMMIT command
+   *
+   * @return true if a commit command
+   */
   public boolean isCommit() {
     return "COMMIT".equalsIgnoreCase(sql);
   }

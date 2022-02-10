@@ -6,14 +6,25 @@ package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
 
+/** Multiline */
 public class MultiLineString implements Geometry {
 
   private final LineString[] lines;
 
+  /**
+   * Constructor
+   *
+   * @param lines lines
+   */
   public MultiLineString(LineString[] lines) {
     this.lines = lines;
   }
 
+  /**
+   * get lines
+   *
+   * @return lines
+   */
   public LineString[] getLines() {
     return lines;
   }

@@ -6,6 +6,7 @@ package org.mariadb.jdbc.plugin.authentication.addon.gssapi;
 
 import com.sun.jna.Platform;
 
+/** GSSAPI utility */
 public class GssUtility {
 
   /**

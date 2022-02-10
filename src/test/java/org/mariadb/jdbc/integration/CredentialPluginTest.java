@@ -22,6 +22,10 @@ public class CredentialPluginTest extends Common {
    */
   @BeforeAll
   public static void beforeTest() throws SQLException {
+    String version = System.getProperty("java.version");
+    int majorVersion = Integer.parseInt(version.substring(0, version.indexOf(".")));
+    Assumptions.assumeTrue(majorVersion < 17);
+
     Assumptions.assumeTrue(isMariaDBServer());
     drop();
     boolean useOldNotation =

@@ -16,8 +16,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** InputStream codec */
 public class StreamCodec implements Codec<InputStream> {
 
+  /** default instance */
   public static final StreamCodec INSTANCE = new StreamCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

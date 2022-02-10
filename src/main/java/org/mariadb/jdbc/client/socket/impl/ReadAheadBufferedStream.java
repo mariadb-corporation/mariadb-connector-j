@@ -19,6 +19,11 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   private int end;
   private int pos;
 
+  /**
+   * Constructor
+   *
+   * @param in socket input stream
+   */
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
     buf = new byte[BUF_SIZE];

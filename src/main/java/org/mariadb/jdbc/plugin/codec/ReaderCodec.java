@@ -17,8 +17,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Reader codec */
 public class ReaderCodec implements Codec<Reader> {
 
+  /** default instance */
   public static final ReaderCodec INSTANCE = new ReaderCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

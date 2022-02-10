@@ -20,8 +20,12 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Time codec */
 public class TimeCodec implements Codec<Time> {
+
+  /** default instance */
   public static final TimeCodec INSTANCE = new TimeCodec();
+
   private static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(

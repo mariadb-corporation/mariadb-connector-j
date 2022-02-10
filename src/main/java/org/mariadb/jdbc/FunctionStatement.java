@@ -9,8 +9,22 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.util.ParameterList;
 
+/** Function callable statement implementation */
 public class FunctionStatement extends BaseCallableStatement implements CallableStatement {
-
+  /**
+   * Constructor of function callable statement
+   *
+   * @param con current connection
+   * @param databaseName database
+   * @param procedureName procedure
+   * @param arguments arguments
+   * @param lock thread lock object
+   * @param canUseServerTimeout can use server timeout
+   * @param canUseServerMaxRows can use server max rows
+   * @param resultSetType result set type
+   * @param resultSetConcurrency concurrency type
+   * @throws SQLException if any error occurs
+   */
   public FunctionStatement(
       Connection con,
       String databaseName,

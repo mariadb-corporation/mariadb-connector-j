@@ -14,6 +14,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class MariaDbX509TrustingManager implements X509TrustManager {
 
+  /** Constructor */
   public MariaDbX509TrustingManager() {}
 
   @Override

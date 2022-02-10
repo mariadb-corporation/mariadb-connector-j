@@ -20,8 +20,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Timestamp codec */
 public class TimestampCodec implements Codec<Timestamp> {
 
+  /** default instance */
   public static final TimestampCodec INSTANCE = new TimestampCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

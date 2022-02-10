@@ -25,6 +25,7 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** MariaDB Pool */
 @SuppressWarnings({"unchecked"})
 public class Pool implements AutoCloseable, PoolMBean {
 
@@ -419,6 +420,11 @@ public class Pool implements AutoCloseable, PoolMBean {
     return conf.poolName() + "-" + poolIndex;
   }
 
+  /**
+   * Get current configuration
+   *
+   * @return configuration
+   */
   public Configuration getConf() {
     return conf;
   }
@@ -497,6 +503,11 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
   }
 
+  /**
+   * return pool tag
+   *
+   * @return pool tag
+   */
   public String getPoolTag() {
     return poolTag;
   }

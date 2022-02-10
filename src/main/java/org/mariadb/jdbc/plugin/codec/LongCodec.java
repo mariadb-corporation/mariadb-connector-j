@@ -18,8 +18,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** LongCodec codec */
 public class LongCodec implements Codec<Long> {
 
+  /** default instance */
   public static final LongCodec INSTANCE = new LongCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -44,6 +46,13 @@ public class LongCodec implements Codec<Long> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
+  /**
+   * Fast long from text parsing
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @return long value
+   */
   public static long parseNotEmpty(ReadableByteBuf buf, int length) {
 
     boolean negate = false;
@@ -84,6 +93,15 @@ public class LongCodec implements Codec<Long> {
     return decodeTextLong(buffer, length, column);
   }
 
+  /**
+   * Decode long from text row.
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return long value
+   * @throws SQLDataException if type doesn't correspond / wrong data
+   */
   @SuppressWarnings("fallthrough")
   public long decodeTextLong(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
@@ -162,6 +180,15 @@ public class LongCodec implements Codec<Long> {
     return decodeBinaryLong(buffer, length, column);
   }
 
+  /**
+   * Decode long from binary row.
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return long value
+   * @throws SQLDataException if type doesn't correspond / wrong data
+   */
   @SuppressWarnings("fallthrough")
   public long decodeBinaryLong(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

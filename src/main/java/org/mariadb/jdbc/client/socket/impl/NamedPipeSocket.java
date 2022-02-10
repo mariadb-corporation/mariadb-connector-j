@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
+/** Windows named pipe socket implementation */
 @SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {
 
@@ -20,6 +21,12 @@ public class NamedPipeSocket extends Socket {
   private InputStream is;
   private OutputStream os;
 
+  /**
+   * Constructor
+   *
+   * @param host host
+   * @param name pipe name
+   */
   public NamedPipeSocket(String host, String name) {
     this.host = host;
     this.name = name;

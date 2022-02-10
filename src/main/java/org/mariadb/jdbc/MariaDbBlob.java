@@ -9,11 +9,18 @@ import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+/** MariaDB Blob implementation */
 public class MariaDbBlob implements Blob, Serializable {
 
   private static final long serialVersionUID = -4736603161284649490L;
+
+  /** content */
   protected byte[] data;
+
+  /** data offset */
   protected transient int offset;
+
+  /** data length */
   protected transient int length;
 
   /** Creates an empty blob. */
@@ -59,6 +66,14 @@ public class MariaDbBlob implements Blob, Serializable {
     this.length = length;
   }
 
+  /**
+   * Return a new Blob from blob data
+   *
+   * @param bytes data
+   * @param offset data offset
+   * @param length data length
+   * @return new Blob
+   */
   public static MariaDbBlob safeMariaDbBlob(byte[] bytes, int offset, int length) {
     return new MariaDbBlob(offset, length, bytes);
   }

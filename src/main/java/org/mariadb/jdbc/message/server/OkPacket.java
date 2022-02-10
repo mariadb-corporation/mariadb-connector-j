@@ -12,12 +12,19 @@ import org.mariadb.jdbc.util.constants.StateChange;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Ok packet parser see https://mariadb.com/kb/en/ok_packet/ */
 public class OkPacket implements Completion {
   private static final Logger logger = Loggers.getLogger(OkPacket.class);
 
   private final long affectedRows;
   private final long lastInsertId;
 
+  /**
+   * Parser
+   *
+   * @param buf packet buffer
+   * @param context connection context
+   */
   public OkPacket(ReadableByteBuf buf, Context context) {
     buf.skip(); // ok header
     this.affectedRows = buf.readLengthNotNull();
@@ -55,10 +62,20 @@ public class OkPacket implements Completion {
     }
   }
 
+  /**
+   * get affected rows
+   *
+   * @return affected rows
+   */
   public long getAffectedRows() {
     return affectedRows;
   }
 
+  /**
+   * Get last auto generated insert id
+   *
+   * @return last insert id
+   */
   public long getLastInsertId() {
     return lastInsertId;
   }

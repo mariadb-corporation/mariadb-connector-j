@@ -28,6 +28,7 @@ import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Default TLS socket plugin */
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static final Logger logger = Loggers.getLogger(DefaultTlsSocketPlugin.class);
 

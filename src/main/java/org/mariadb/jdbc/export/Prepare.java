@@ -9,16 +9,51 @@ import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Client;
 import org.mariadb.jdbc.client.Column;
 
+/** Prepare packet COM_STMT_PREPARE (see https://mariadb.com/kb/en/com_stmt_prepare/) */
 public interface Prepare {
+
+  /**
+   * Close Prepared command
+   *
+   * @param con current connection
+   * @throws SQLException if prepare close fails
+   */
   void close(Client con) throws SQLException;
 
+  /**
+   * Decrement use of prepare. In case not used anymore, and not in cache, will be close.
+   *
+   * @param con connection
+   * @param preparedStatement current prepared statement that was using prepare object
+   * @throws SQLException if close fails
+   */
   void decrementUse(Client con, ServerPreparedStatement preparedStatement) throws SQLException;
 
+  /**
+   * Get current prepare statement id
+   *
+   * @return statement id
+   */
   int getStatementId();
 
+  /**
+   * Prepare parameters
+   *
+   * @return parameters metadata
+   */
   Column[] getParameters();
 
+  /**
+   * Prepare result-set columns
+   *
+   * @return result-set columns metadata
+   */
   Column[] getColumns();
 
+  /**
+   * set prepare result-set columns
+   *
+   * @param columns set result-set columns metadata
+   */
   void setColumns(Column[] columns);
 }

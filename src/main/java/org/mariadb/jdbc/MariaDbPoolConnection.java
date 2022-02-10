@@ -16,6 +16,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import org.mariadb.jdbc.util.StringUtils;
 
+/** MariaDB pool connection implementation */
 public class MariaDbPoolConnection implements PooledConnection, XAConnection {
 
   private final Connection connection;
@@ -59,6 +60,11 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     statementEventListeners.remove(listener);
   }
 
+  /**
+   * Fire statement close event to registered listeners.
+   *
+   * @param statement closing statement
+   */
   public void fireStatementClosed(PreparedStatement statement) {
     StatementEvent event = new StatementEvent(this, statement);
     for (StatementEventListener listener : statementEventListeners) {
@@ -66,6 +72,12 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
   }
 
+  /**
+   * Fire statement error event to registered listeners.
+   *
+   * @param statement closing statement
+   * @param returnEx exception
+   */
   public void fireStatementErrorOccurred(PreparedStatement statement, SQLException returnEx) {
     StatementEvent event = new StatementEvent(this, statement, returnEx);
     for (StatementEventListener listener : statementEventListeners) {
@@ -73,12 +85,22 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
   }
 
+  /**
+   * Fire connection close event to registered listeners.
+   *
+   * @param event close connection event
+   */
   public void fireConnectionClosed(ConnectionEvent event) {
     for (ConnectionEventListener listener : connectionEventListeners) {
       listener.connectionClosed(event);
     }
   }
 
+  /**
+   * Fire connection error event to registered listeners.
+   *
+   * @param returnEx exception
+   */
   public void fireConnectionErrorOccurred(SQLException returnEx) {
     ConnectionEvent event = new ConnectionEvent(this, returnEx);
     for (ConnectionEventListener listener : connectionEventListeners) {
@@ -86,6 +108,11 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     }
   }
 
+  /**
+   * Close underlying connection
+   *
+   * @throws SQLException if close fails
+   */
   @Override
   public void close() throws SQLException {
     fireConnectionClosed(new ConnectionEvent(this));
@@ -93,6 +120,12 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     connection.close();
   }
 
+  /**
+   * Create XID string
+   *
+   * @param xid xid value
+   * @return XID string
+   */
   public static String xidToString(Xid xid) {
     return "0x"
         + StringUtils.byteArrayToHexString(xid.getGlobalTransactionId())

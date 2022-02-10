@@ -17,8 +17,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Short codec */
 public class ShortCodec implements Codec<Short> {
 
+  /** default instance */
   public static final ShortCodec INSTANCE = new ShortCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -62,7 +64,15 @@ public class ShortCodec implements Codec<Short> {
       throws SQLDataException {
     return decodeTextShort(buffer, length, column);
   }
-
+  /**
+   * Decode short from text packet
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column metadata column
+   * @return short value
+   * @throws SQLDataException if any decoding version occurs
+   */
   @SuppressWarnings("fallthrough")
   public short decodeTextShort(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {
@@ -133,6 +143,15 @@ public class ShortCodec implements Codec<Short> {
     return decodeBinaryShort(buffer, length, column);
   }
 
+  /**
+   * Decode short from binary packet
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column metadata column
+   * @return short value
+   * @throws SQLDataException if any decoding version occurs
+   */
   @SuppressWarnings("fallthrough")
   public short decodeBinaryShort(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

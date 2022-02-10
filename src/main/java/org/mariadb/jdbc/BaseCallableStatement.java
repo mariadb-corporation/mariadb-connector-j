@@ -17,14 +17,40 @@ import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
+/** Common methods for function/stored procedure */
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
+
+  /** Database name */
   protected final String databaseName;
+
+  /** Procedure name */
   protected final String procedureName;
+
+  /** parameter metadata */
   protected CallableParameterMetaData parameterMetaData = null;
+
+  /** Declared output parameters */
   protected final Set<Integer> outputParameters = new HashSet<>();
+
+  /** output parameter result */
   private Result outputResult = null;
 
+  /**
+   * Constructor
+   *
+   * @param sql sql command
+   * @param con connection
+   * @param lock thread safe lock
+   * @param databaseName database name
+   * @param procedureName procedure name
+   * @param canUseServerTimeout indicate if server support server timeout
+   * @param canUseServerMaxRows indicate if server support server max rows
+   * @param resultSetType resultset type
+   * @param resultSetConcurrency resultset concurrency
+   * @param defaultFetchSize default fetch size
+   * @throws SQLException if prepare fails
+   */
   public BaseCallableStatement(
       String sql,
       Connection con,
@@ -51,8 +77,19 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     this.procedureName = procedureName;
   }
 
+  /**
+   * Indicate if callable statement is a function or a stored procedure
+   *
+   * @return indicate if is a function
+   */
   public abstract boolean isFunction();
 
+  /**
+   * Output result without output parameters
+   *
+   * @param i index
+   * @throws SQLException if any exception
+   */
   protected void outputResultFromRes(int i) throws SQLException {
     this.outputResult = (Result) this.results.remove(this.results.size() - i);
     this.outputResult.next();

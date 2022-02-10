@@ -6,14 +6,25 @@ package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
 
+/** Multi-point */
 public class MultiPoint implements Geometry {
 
   private final Point[] points;
 
+  /**
+   * Constructor
+   *
+   * @param points points
+   */
   public MultiPoint(Point[] points) {
     this.points = points;
   }
 
+  /**
+   * Get points
+   *
+   * @return points
+   */
   public Point[] getPoints() {
     return points;
   }

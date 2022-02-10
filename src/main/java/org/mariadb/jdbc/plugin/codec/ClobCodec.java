@@ -20,8 +20,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** Clob codec */
 public class ClobCodec implements Codec<Clob> {
 
+  /** Default instance */
   public static final ClobCodec INSTANCE = new ClobCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

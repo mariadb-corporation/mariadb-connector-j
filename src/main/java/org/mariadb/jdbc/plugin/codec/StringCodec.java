@@ -20,8 +20,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
+/** String codec */
 public class StringCodec implements Codec<String> {
 
+  /** default instance */
   public static final StringCodec INSTANCE = new StringCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

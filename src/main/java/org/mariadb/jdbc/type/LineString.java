@@ -7,20 +7,37 @@ package org.mariadb.jdbc.type;
 import java.util.Arrays;
 import java.util.Objects;
 
+/** Linestring object */
 public class LineString implements Geometry {
 
   private final Point[] points;
   private final boolean open;
 
+  /**
+   * Constructor
+   *
+   * @param points point list
+   * @param open open linestring
+   */
   public LineString(Point[] points, boolean open) {
     this.points = points;
     this.open = open;
   }
 
+  /**
+   * get points
+   *
+   * @return points
+   */
   public Point[] getPoints() {
     return points;
   }
 
+  /**
+   * Is form open
+   *
+   * @return is open
+   */
   public boolean isOpen() {
     return open;
   }

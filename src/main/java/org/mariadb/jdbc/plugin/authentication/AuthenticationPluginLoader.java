@@ -11,6 +11,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
+/** permit loading authentication plugins */
 public final class AuthenticationPluginLoader {
 
   /**

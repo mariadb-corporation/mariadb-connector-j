@@ -13,6 +13,7 @@ import org.mariadb.jdbc.client.socket.Writer;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
+/** Waffle windows GSSAPI implementation */
 public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
   /**

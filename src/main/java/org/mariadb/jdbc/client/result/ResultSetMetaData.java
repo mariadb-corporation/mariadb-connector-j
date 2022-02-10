@@ -13,6 +13,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
+/** Result-set metadata */
 public class ResultSetMetaData implements java.sql.ResultSetMetaData {
 
   private final ExceptionFactory exceptionFactory;

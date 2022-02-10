@@ -16,8 +16,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** Duration codec */
 public class DurationCodec implements Codec<Duration> {
 
+  /** default instance */
   public static final DurationCodec INSTANCE = new DurationCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =

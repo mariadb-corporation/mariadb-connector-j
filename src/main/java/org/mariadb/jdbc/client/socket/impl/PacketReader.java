@@ -17,6 +17,7 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Packet reader */
 public class PacketReader implements Reader {
 
   private static final int REUSABLE_BUFFER_LENGTH = 1024;

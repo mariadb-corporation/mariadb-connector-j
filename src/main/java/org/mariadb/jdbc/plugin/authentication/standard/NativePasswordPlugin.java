@@ -16,8 +16,10 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 
+/** Native password implementation */
 public class NativePasswordPlugin implements AuthenticationPlugin {
 
+  /** plugin name */
   public static final String TYPE = "mysql_native_password";
 
   private String authenticationData;

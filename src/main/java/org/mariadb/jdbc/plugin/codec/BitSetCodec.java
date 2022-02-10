@@ -14,10 +14,19 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** BitSet Codec */
 public class BitSetCodec implements Codec<BitSet> {
 
+  /** default instance */
   public static final BitSetCodec INSTANCE = new BitSetCodec();
 
+  /**
+   * decode from mysql packet value to BitSet
+   *
+   * @param buf mysql packet buffer
+   * @param length encoded length
+   * @return BitSet value
+   */
   public static BitSet parseBit(ReadableByteBuf buf, int length) {
     byte[] arr = new byte[length];
     buf.readBytes(arr);
@@ -25,6 +34,11 @@ public class BitSetCodec implements Codec<BitSet> {
     return BitSet.valueOf(arr);
   }
 
+  /**
+   * Revert byte array order
+   *
+   * @param array array to revert
+   */
   public static void revertOrder(byte[] array) {
     int i = 0;
     int j = array.length - 1;

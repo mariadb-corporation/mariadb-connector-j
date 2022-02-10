@@ -9,7 +9,13 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
 
+/**
+ * ending connection packet COM_QUIT proper end of a connection. see
+ * https://mariadb.com/kb/en/com_quit/
+ */
 public final class QuitPacket implements ClientMessage {
+
+  /** default instance to encode packet */
   public static final QuitPacket INSTANCE = new QuitPacket();
 
   @Override

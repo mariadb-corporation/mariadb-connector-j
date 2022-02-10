@@ -6,14 +6,25 @@ package org.mariadb.jdbc.type;
 
 import java.util.Arrays;
 
+/** Polygon */
 public class Polygon implements Geometry {
 
   private final LineString[] lines;
 
+  /**
+   * polygon
+   *
+   * @param lines lines
+   */
   public Polygon(LineString[] lines) {
     this.lines = lines;
   }
 
+  /**
+   * get lines
+   *
+   * @return lines
+   */
   public LineString[] getLines() {
     return lines;
   }

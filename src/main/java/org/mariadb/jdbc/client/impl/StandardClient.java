@@ -53,6 +53,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
+/** Connection client */
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
   private final Socket socket;
@@ -62,15 +63,30 @@ public class StandardClient implements Client, AutoCloseable {
   private final Configuration conf;
   private final HostAddress hostAddress;
   private boolean closed = false;
-  protected final ExceptionFactory exceptionFactory;
-  protected Writer writer;
   private Reader reader;
   private org.mariadb.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   private final boolean disablePipeline;
+
+  /** connection context */
   protected Context context;
 
+  /** connection exception factory */
+  protected final ExceptionFactory exceptionFactory;
+
+  /** packet writer */
+  protected Writer writer;
+
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @param lock thread locker
+   * @param skipPostCommands must connection post command be skipped
+   * @throws SQLException if connection fails
+   */
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -309,49 +325,56 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
-
-    try {
-      List<Completion> res;
-      ClientMessage[] msgs = new ClientMessage[commands.size()];
-      for (int i = 0; i < commands.size(); i++) {
-        msgs[i] = new QueryPacket(commands.get(i));
-      }
-      res =
-          executePipeline(
-              msgs,
-              null,
-              0,
-              0L,
-              ResultSet.CONCUR_READ_ONLY,
-              ResultSet.TYPE_FORWARD_ONLY,
-              false,
-              true);
-
-      if (hostAddress != null
-          && Boolean.TRUE.equals(hostAddress.primary)
-          && !galeraAllowedStates.isEmpty()) {
-        ResultSet rs = (ResultSet) res.get(2);
-        rs.next();
-        if (!galeraAllowedStates.contains(rs.getString(2))) {
-          throw exceptionFactory.create(
-              String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
+    if (!commands.isEmpty()) {
+      try {
+        List<Completion> res;
+        ClientMessage[] msgs = new ClientMessage[commands.size()];
+        for (int i = 0; i < commands.size(); i++) {
+          msgs[i] = new QueryPacket(commands.get(i));
         }
-        res.remove(0);
-      }
+        res =
+            executePipeline(
+                msgs,
+                null,
+                0,
+                0L,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.TYPE_FORWARD_ONLY,
+                false,
+                true);
 
-    } catch (SQLException sqlException) {
+        if (hostAddress != null
+            && Boolean.TRUE.equals(hostAddress.primary)
+            && !galeraAllowedStates.isEmpty()) {
+          ResultSet rs = (ResultSet) res.get(2);
+          rs.next();
+          if (!galeraAllowedStates.contains(rs.getString(2))) {
+            throw exceptionFactory.create(
+                String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
+          }
+          res.remove(0);
+        }
 
-      if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-        // timezone is not valid
-        throw exceptionFactory.create(
-            String.format(
-                "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
-                conf.timezone()));
+      } catch (SQLException sqlException) {
+
+        if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+          // timezone is not valid
+          throw exceptionFactory.create(
+              String.format(
+                  "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
+                  conf.timezone()));
+        }
+        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
       }
-      throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
   }
 
+  /**
+   * Create session variable if configuration requires additional commands.
+   *
+   * @param serverTz server timezone
+   * @return sql setting session command
+   */
   public String createSessionVariableQuery(String serverTz) {
     // In JDBC, connection must start in autocommit mode
     // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
@@ -418,6 +441,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Send client message to server
+   *
+   * @param message client message
+   * @return number of command send
+   * @throws SQLException if socket error occurs
+   */
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
@@ -604,6 +634,19 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read server responses for a client message
+   *
+   * @param stmt statement that issue the message
+   * @param message client message sent
+   * @param fetchSize fetch size
+   * @param maxRows maximum number of rows
+   * @param resultSetConcurrency concurrency
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on resultset completion
+   * @return list of result
+   * @throws SQLException if any error occurs
+   */
   public List<Completion> readResponse(
       org.mariadb.jdbc.Statement stmt,
       ClientMessage message,
@@ -631,6 +674,12 @@ public class StandardClient implements Client, AutoCloseable {
     return completions;
   }
 
+  /**
+   * Read server response
+   *
+   * @param message client message that was sent
+   * @throws SQLException if any error occurs
+   */
   public void readResponse(ClientMessage message) throws SQLException {
     checkNotClosed();
     if (streamStmt != null) {
@@ -716,6 +765,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read a MySQL packet from socket
+   *
+   * @param message client message issuing the result
+   * @return a mysql result
+   * @throws SQLException if any error occurs
+   */
   public Completion readPacket(ClientMessage message) throws SQLException {
     return readPacket(
         null, message, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
@@ -774,6 +830,11 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Throw an exception if client is closed
+   *
+   * @throws SQLException if closed
+   */
   protected void checkNotClosed() throws SQLException {
     if (closed) {
       throw exceptionFactory.create("Connection is closed", "08000", 1220);

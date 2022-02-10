@@ -8,6 +8,10 @@ import com.sun.jna.Platform;
 import java.io.IOException;
 import org.mariadb.jdbc.client.impl.ConnectionHelper;
 
+/**
+ * Socket Utility, to defined function that will create socket according to dependency and
+ * configuration
+ */
 public class SocketUtility {
 
   /**

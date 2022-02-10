@@ -87,7 +87,6 @@ public class DataSourceTest extends Common {
     MariaDbDataSource ds = new MariaDbDataSource();
     assertNull(ds.getUrl());
     assertNull(ds.getUser());
-    assertNull(ds.getPassword());
     assertEquals(30, ds.getLoginTimeout());
     DriverManager.setLoginTimeout(40);
     assertEquals(40, ds.getLoginTimeout());
@@ -106,7 +105,6 @@ public class DataSourceTest extends Common {
     assertEquals("dd", ds.getUser());
 
     ds.setPassword("pwd");
-    assertEquals("pwd", ds.getPassword());
     assertThrows(SQLException.class, () -> ds.getConnection());
     assertThrows(SQLException.class, () -> ds.getPooledConnection());
 
@@ -114,7 +112,7 @@ public class DataSourceTest extends Common {
 
     ds.setUrl("jdbc:mariadb://myhost:5500/db?someOption=val");
     assertEquals(
-        "jdbc:mariadb://myhost:5500/db?user=dd&password=pwd&someOption=val&connectTimeout=50000",
+        "jdbc:mariadb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
         ds.getUrl());
   }
 

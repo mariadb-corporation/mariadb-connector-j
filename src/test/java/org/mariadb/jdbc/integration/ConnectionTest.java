@@ -62,7 +62,9 @@ public class ConnectionTest extends Common {
   @Test
   void socketTimeout() throws SQLException {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -831,7 +833,7 @@ public class ConnectionTest extends Common {
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
 
-    int testPort = this.port;
+    int testPort = port;
     if (System.getenv("TEST_PAM_PORT") != null) {
       testPort = Integer.parseInt(System.getenv("TEST_PAM_PORT"));
     }

@@ -21,11 +21,20 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.spec.EdDSAParameterSpec;
 
+/** ED25519 password plugin */
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
   private String authenticationData;
   private byte[] seed;
 
+  /**
+   * Sign password
+   *
+   * @param password password
+   * @param seed server seed
+   * @return encrypted value
+   * @throws SQLException if any error occurs
+   */
   private static byte[] ed25519SignWithPassword(final String password, final byte[] seed)
       throws SQLException {
 

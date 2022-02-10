@@ -9,18 +9,42 @@ import java.util.function.Supplier;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 
+/** Credential plugin definition, to permit providing Credential to server */
 public interface CredentialPlugin extends Supplier<Credential> {
-
+  /**
+   * credential identifier
+   *
+   * @return type
+   */
   String type();
 
+  /**
+   * Indicate if plugin must throw an error if SSL is not enabled
+   *
+   * @return if ssl is required
+   */
   default boolean mustUseSsl() {
     return false;
   }
 
+  /**
+   * Indicate authentication plugin type to use for authentication
+   *
+   * @return plugin type to use for authentication, or null for default
+   */
   default String defaultAuthenticationPluginType() {
     return null;
   }
 
+  /**
+   * Permit initializing plugin if overridden
+   *
+   * @param conf configuration
+   * @param userName user
+   * @param hostAddress host information
+   * @return credential plugin
+   * @throws SQLException if any error occurs
+   */
   default CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress)
       throws SQLException {
     return this;
