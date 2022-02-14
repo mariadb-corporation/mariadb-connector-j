@@ -46,7 +46,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.length = length;
     this.dataType = dataType;
     this.decimals = (byte) 0;
-    this.flags = ColumnFlags.PRIMARY_KEY;
+    this.flags = ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED;
     this.stringPos = stringPos;
     this.extTypeName = null;
   }
@@ -152,27 +152,27 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   public String getSchema() {
     buf.pos(stringPos[0]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTableAlias() {
     buf.pos(stringPos[1]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTable() {
     buf.pos(stringPos[useAliasAsName ? 1 : 2]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnAlias() {
     buf.pos(stringPos[3]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnName() {
     buf.pos(stringPos[4]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public long getLength() {

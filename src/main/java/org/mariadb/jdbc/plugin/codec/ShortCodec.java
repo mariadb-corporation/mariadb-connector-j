@@ -177,9 +177,6 @@ public class ShortCodec implements Codec<Short> {
 
       case BIGINT:
         result = buf.readLong();
-        if (result < 0 & !column.isSigned()) {
-          throw new SQLDataException("int overflow");
-        }
         break;
 
       case BIT:

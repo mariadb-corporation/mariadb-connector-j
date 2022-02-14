@@ -115,7 +115,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
 
       default:
         // fast authentication result
-        byte[] authResult = new byte[buf.readLengthNotNull()];
+        byte[] authResult = new byte[buf.readIntLengthEncodedNotNull()];
         buf.readBytes(authResult);
         switch (authResult[0]) {
           case 3:

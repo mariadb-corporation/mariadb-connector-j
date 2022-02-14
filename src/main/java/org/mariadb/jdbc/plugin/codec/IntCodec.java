@@ -87,14 +87,8 @@ public class IntCodec implements Codec<Integer> {
         return (int) LongCodec.parseNotEmpty(buf, length);
 
       case INTEGER:
-        result = LongCodec.parseNotEmpty(buf, length);
-        break;
-
       case BIGINT:
         result = LongCodec.parseNotEmpty(buf, length);
-        if (result < 0 & !column.isSigned()) {
-          throw new SQLDataException("int overflow");
-        }
         break;
 
       case BIT:
@@ -140,7 +134,7 @@ public class IntCodec implements Codec<Integer> {
     }
 
     int res = (int) result;
-    if (res != result) {
+    if (res != result || (result < 0 && !column.isSigned())) {
       throw new SQLDataException("integer overflow");
     }
     return res;

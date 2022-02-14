@@ -182,7 +182,7 @@ public interface ClientMessage {
         // * ResultSet
         // *********************************************************************************************************
       default:
-        int fieldCount = buf.readLengthNotNull();
+        int fieldCount = buf.readIntLengthEncodedNotNull();
 
         Column[] ci;
         boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();

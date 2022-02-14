@@ -6,12 +6,15 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class StatementTest extends Common {
 
@@ -22,6 +25,7 @@ public class StatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS executeGenerated");
     stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
     stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
+    stmt.execute("DROP TABLE IF EXISTS bigIntId");
   }
 
   @BeforeAll
@@ -34,7 +38,41 @@ public class StatementTest extends Common {
     stmt.execute(
         "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE testAffectedRow(id int)");
+    stmt.execute(
+        "CREATE TABLE bigIntId(`id` bigint(20) unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT, val VARCHAR(256))");
     stmt.execute("FLUSH TABLES");
+  }
+
+  @Test
+  public void longGeneratedId() throws SQLException {
+    longGeneratedId(BigInteger.ONE);
+    longGeneratedId(BigInteger.valueOf(Integer.MAX_VALUE));
+    longGeneratedId(BigInteger.valueOf(4294967295L));
+    longGeneratedId(BigInteger.valueOf(Long.MAX_VALUE));
+  }
+
+  public void longGeneratedId(BigInteger expected) throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("ALTER TABLE bigIntId AUTO_INCREMENT=" + expected.toString());
+    stmt.execute(
+        "INSERT INTO bigIntId(val) value ('est')", java.sql.Statement.RETURN_GENERATED_KEYS);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+
+    if (expected.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 1) {
+      assertThrowsContains(SQLDataException.class, () -> rs.getInt(1), "integer overflow");
+    } else {
+      assertEquals(expected.intValueExact(), rs.getInt(1));
+    }
+
+    if (expected.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) >= 1) {
+      assertThrowsContains(
+          SQLDataException.class, () -> rs.getLong(1), "cannot be decoded as Long");
+    } else {
+      assertEquals(expected.longValueExact(), rs.getLong(1));
+    }
+    assertTrue(expected.compareTo(((CompleteResult) rs).getBigInteger(1)) == 0);
+    assertTrue(new BigDecimal(expected).compareTo(rs.getBigDecimal(1)) == 0);
   }
 
   @Test

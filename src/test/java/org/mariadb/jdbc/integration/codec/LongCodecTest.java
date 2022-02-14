@@ -349,7 +349,7 @@ public class LongCodecTest extends CommonCodecTest {
       fail();
     } catch (SQLDataException e) {
       assertTrue(
-          e.getMessage().contains("int overflow")
+          e.getMessage().contains("integer overflow")
               || e.getMessage()
                   .contains("value '18446744073709551615' cannot be decoded as Integer"));
     }

@@ -92,7 +92,17 @@ public interface ReadableByteBuf {
    *
    * @return encoded length
    */
-  int readLengthNotNull();
+  long readLongLengthEncodedNotNull();
+
+  /**
+   * Read encoded length value that cannot be null see
+   * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers
+   *
+   * <p>this is readLongLengthEncodedNotNull limited to 32 bits </p>
+   *
+   * @return encoded length
+   */
+  int readIntLengthEncodedNotNull();
 
   /**
    * Utility to skip length encoded string, returning initial position
