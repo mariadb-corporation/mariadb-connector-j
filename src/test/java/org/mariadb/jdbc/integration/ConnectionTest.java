@@ -1075,7 +1075,7 @@ public class ConnectionTest extends Common {
     // ensure connecting without DB
     String connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/?user=%s&password=%s&restrictedAuth=none&%s&createDatabaseIfNotExist",
+            "jdbc:mariadb://%s:%s/?user=%s&password=%s&%s&createDatabaseIfNotExist",
             hostname, port, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       con.createStatement().executeQuery("SELECT 1");
@@ -1084,7 +1084,7 @@ public class ConnectionTest extends Common {
     String nonExistentDatabase = "bla`f`l";
     connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s&createDatabaseIfNotExist",
+            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
             hostname, port, nonExistentDatabase, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
