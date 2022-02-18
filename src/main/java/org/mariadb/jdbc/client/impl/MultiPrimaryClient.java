@@ -38,7 +38,7 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
-  /** is socket close */
+  /** temporary blacklisted hosts */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
 
   /** denied timeout */
