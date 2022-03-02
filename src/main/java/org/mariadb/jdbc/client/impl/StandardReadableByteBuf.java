@@ -77,11 +77,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   public long readLongLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
     switch (type) {
-      case 252:
+      case 252: // 0xfc
         return readUnsignedShort();
-      case 253:
+      case 253: // 0xfd
         return readUnsignedMedium();
-      case 254:
+      case 254: // 0xfe
         return readLong();
       default:
         return type;
