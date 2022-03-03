@@ -218,8 +218,9 @@ public class FailoverTest extends Common {
   @Test
   public void transactionReplayPreparedStatementBatch() throws Exception {
     Assumptions.assumeTrue(
-            !"maxscale".equals(System.getenv("srv")) &&
-            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
     for (int i = 0; i < 8; i++) {
       transactionReplayPreparedStatementBatch((i & 1) > 0, (i & 2) > 0, (i & 4) > 0);
     }

@@ -39,8 +39,8 @@ public enum HaMode {
 
       // ensure denied server have not reached denied timeout
       denyList.entrySet().stream()
-              .filter(e -> e.getValue() < System.currentTimeMillis())
-              .forEach(e -> denyList.remove(e.getKey()));
+          .filter(e -> e.getValue() < System.currentTimeMillis())
+          .forEach(e -> denyList.remove(e.getKey()));
 
       loopAddress.removeAll(denyList.keySet());
 

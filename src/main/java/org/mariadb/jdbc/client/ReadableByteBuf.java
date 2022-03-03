@@ -98,7 +98,7 @@ public interface ReadableByteBuf {
    * Read encoded length value that cannot be null see
    * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers
    *
-   * <p>this is readLongLengthEncodedNotNull limited to 32 bits </p>
+   * <p>this is readLongLengthEncodedNotNull limited to 32 bits
    *
    * @return encoded length
    */

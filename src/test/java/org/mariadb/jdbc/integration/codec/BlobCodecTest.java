@@ -624,7 +624,7 @@ public class BlobCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("BLOB", meta.getColumnTypeName(1));
+    assertEquals("TINYBLOB", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.sql.Blob", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

@@ -6,10 +6,8 @@ package org.mariadb.jdbc.client.result;
 
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -241,12 +239,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnTypeName(final int index) throws SQLException {
-    Column column = getColumn(index);
-    DataType dataType = column.getType();
-    if (dataType == DataType.GEOMETRY && column.getExtTypeName() != null) {
-      return column.getExtTypeName().toUpperCase(Locale.ROOT);
-    }
-    return dataType.name();
+    return getColumn(index).getColumnTypeName(conf);
   }
 
   /**

@@ -948,7 +948,7 @@ public class LongCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("BIGINT", meta.getColumnTypeName(1));
+    assertEquals("BIGINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.math.BigInteger", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

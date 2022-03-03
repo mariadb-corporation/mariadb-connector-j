@@ -1994,15 +1994,10 @@ public class DatabaseMetadataTest extends Common {
   public void getMetaData() throws SQLException {
     ResultSet rs = sharedConn.createStatement().executeQuery("SELECT * FROM json_test");
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()) {
-      assertEquals("BLOB", meta.getColumnTypeName(1));
-      assertEquals("java.sql.Clob", meta.getColumnClassName(1));
-      assertEquals(Types.VARCHAR, meta.getColumnType(1));
-    } else {
-      assertEquals("JSON", meta.getColumnTypeName(1));
-      assertEquals("java.lang.String", meta.getColumnClassName(1));
-      assertEquals(Types.VARBINARY, meta.getColumnType(1));
-    }
+    assertTrue(
+        "LONGTEXT".equals(meta.getColumnTypeName(1)) || "JSON".equals(meta.getColumnTypeName(1)));
+    assertEquals(Types.VARCHAR, meta.getColumnType(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
   }
 
   @Test
