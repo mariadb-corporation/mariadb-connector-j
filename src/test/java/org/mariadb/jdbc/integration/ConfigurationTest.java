@@ -72,19 +72,19 @@ public class ConfigurationTest extends Common {
       Statement stmt = conn.createStatement();
       ResultSet rs1 = stmt.executeQuery("SELECT @@performance_schema");
       rs1.next();
-      if ("1".equals(rs1.getString(1))) {
-        ResultSet rs =
-            stmt.executeQuery(
-                "SELECT * from performance_schema.session_connect_attrs where processlist_id="
-                    + conn.getThreadId()
-                    + " AND ATTR_NAME like 'test%'");
-        assertTrue(rs.next());
-        assertEquals("test1", rs.getString("ATTR_VALUE"));
-        assertTrue(rs.next());
-        assertEquals("test2Val", rs.getString("ATTR_VALUE"));
-        assertTrue(rs.next());
-        assertNull(rs.getString("ATTR_VALUE"));
-      }
+      Assumptions.assumeTrue("1".equals(rs1.getString(1)));
+
+      ResultSet rs =
+          stmt.executeQuery(
+              "SELECT * from performance_schema.session_connect_attrs where processlist_id="
+                  + conn.getThreadId()
+                  + " AND ATTR_NAME like 'test%'");
+      assertTrue(rs.next());
+      assertEquals("test1", rs.getString("ATTR_VALUE"));
+      assertTrue(rs.next());
+      assertEquals("test2Val", rs.getString("ATTR_VALUE"));
+      assertTrue(rs.next());
+      assertNull(rs.getString("ATTR_VALUE"));
     }
   }
 

@@ -417,6 +417,15 @@ public class PacketWriter implements Writer {
   }
 
   /**
+   * Current buffer
+   *
+   * @return current buffer
+   */
+  public byte[] buf() {
+    return buf;
+  }
+
+  /**
    * Write string to socket.
    *
    * @param str string
