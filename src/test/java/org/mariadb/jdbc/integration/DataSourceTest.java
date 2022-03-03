@@ -24,6 +24,11 @@ public class DataSourceTest extends Common {
     ds = new MariaDbDataSource();
     ds.setUrl(mDefUrl);
     testDs(ds);
+
+    ds = new MariaDbDataSource();
+    ds.setPassword("ttt");
+    ds.setUrl(mDefUrl);
+    assertThrows(SQLException.class, ds::getConnection);
   }
 
   private void testDs(MariaDbDataSource ds) throws SQLException {

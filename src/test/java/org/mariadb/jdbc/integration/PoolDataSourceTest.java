@@ -143,7 +143,6 @@ public class PoolDataSourceTest extends Common {
     MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
     assertNull(ds.getUrl());
     assertNull(ds.getUser());
-    assertNull(ds.getPassword());
     assertEquals(30, ds.getLoginTimeout());
     DriverManager.setLoginTimeout(40);
     assertEquals(40, ds.getLoginTimeout());
@@ -162,7 +161,6 @@ public class PoolDataSourceTest extends Common {
     assertEquals("dd", ds.getUser());
 
     ds.setPassword("pwd");
-    assertEquals("pwd", ds.getPassword());
     assertThrows(SQLException.class, () -> ds.getConnection());
     assertThrows(SQLException.class, () -> ds.getPooledConnection());
 
