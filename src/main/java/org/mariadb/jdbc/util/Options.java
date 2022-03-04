@@ -446,9 +446,6 @@ public class Options implements Cloneable {
     if (!Objects.equals(credentialType, opt.credentialType)) {
       return false;
     }
-    if (!Objects.equals(nonMappedOptions, opt.nonMappedOptions)) {
-      return false;
-    }
     if (!Objects.equals(tlsSocketType, opt.tlsSocketType)) {
       return false;
     }
