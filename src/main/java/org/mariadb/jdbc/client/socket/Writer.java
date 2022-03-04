@@ -18,6 +18,7 @@ public interface Writer {
 
   /**
    * Current buffer
+   *
    * @return current buffer
    */
   byte[] buf();

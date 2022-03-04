@@ -86,7 +86,7 @@ public final class HandshakeResponse implements ClientMessage {
   private static void writeConnectAttributes(
       Writer writer, String connectionAttributes, String host) throws IOException {
 
-    PacketWriter tmpWriter = new PacketWriter(null, 0,0, null, null);
+    PacketWriter tmpWriter = new PacketWriter(null, 0, 0, null, null);
     tmpWriter.pos(0);
     writeStringLengthAscii(tmpWriter, _CLIENT_NAME);
     writeStringLength(tmpWriter, "MariaDB Connector/J");

@@ -176,6 +176,10 @@
                     <archive>
                         <manifestEntries>
                             <Multi-Release>true</Multi-Release>
+                            <Export-Package>org.mariadb.jdbc</Export-Package>
+                            <Import-Package>
+                                javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,software.amazon.awssdk.*;resolution:=optional,org.slf4j;resolution:=optional
+                            </Import-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
