@@ -557,6 +557,7 @@ public class StatementTest extends Common {
   public void fetch() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
+    Statement stmt2 = sharedConn.createStatement();
     Common.assertThrowsContains(
         SQLException.class, () -> stmt.setFetchSize(-10), "invalid fetch size");
 
@@ -570,6 +571,15 @@ public class StatementTest extends Common {
     }
 
     assertFalse(rs.next());
+
+    rs = stmt.executeQuery("select * FROM seq_1_to_100");
+    ResultSet rs2 = stmt2.executeQuery("SELECT 200");
+    for (int i = 1; i <= 100; i++) {
+      assertTrue(rs.next());
+      assertEquals(i, rs.getInt(1));
+    }
+    assertTrue(rs2.next());
+    assertEquals(200, rs2.getInt(1));
   }
 
   @Test
