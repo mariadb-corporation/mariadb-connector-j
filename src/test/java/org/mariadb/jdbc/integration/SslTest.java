@@ -266,6 +266,18 @@ public class SslTest extends Common {
         assertNotNull(getSslVersion(con));
       }
 
+      if (System.getenv("TEST_DB_CLIENT_CERT") != null) {
+        assertThrowsContains(
+            SQLException.class,
+            () ->
+                createCon(
+                    baseOptions
+                        + "&sslMode=VERIFY_FULL&serverSslCert="
+                        + System.getenv("TEST_DB_CLIENT_CERT"),
+                    sslPort),
+            "aa");
+      }
+
       Configuration conf = Configuration.parse(mDefUrl);
       HostAddress hostAddress = conf.addresses().get(0);
       try {
