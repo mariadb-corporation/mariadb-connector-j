@@ -94,6 +94,19 @@ public class Common {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
 
+  public static boolean runLongTest() {
+    return !isXpand();
+  }
+
+  public static boolean isXpand() {
+    return sharedConn.getContext().getVersion().isMariaDBServer()
+        && sharedConn.getContext().getVersion().getQualifier().toLowerCase().contains("xpand");
+  }
+
+  public static boolean supportSequenceTable() {
+    return sharedConn.getContext().getVersion().isMariaDBServer() && !isXpand();
+  }
+
   public static boolean minVersion(int major, int minor, int patch) {
     return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
   }
@@ -127,12 +140,13 @@ public class Common {
   public static boolean haveSsl() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("show variables like '%ssl%'");
-    //    while (rs.next()) {
-    //      System.out.println(rs.getString(1) + ":" + rs.getString(2));
-    //    }
+    while (rs.next()) {
+      System.out.println(rs.getString(1) + ":" + rs.getString(2));
+    }
 
     rs = stmt.executeQuery("select @@have_ssl");
     assertTrue(rs.next());
+    System.out.println("have ssl:" + rs.getString(1));
     return "YES".equals(rs.getString(1));
   }
 
