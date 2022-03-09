@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
@@ -37,6 +40,7 @@ public class UpdatableResult extends CompleteResult {
   private String changeError;
   private int state = STATE_STANDARD;
   private ParameterList parameters;
+  private String[] primaryCols;
 
   /**
    * Constructor
@@ -113,12 +117,12 @@ public class UpdatableResult extends CompleteResult {
     for (Column col : metadataList) {
       if (col.isPrimaryKey()) {
         isAutoincrementPk = col.isAutoIncrement();
-        return;
+        if (isAutoincrementPk) {
+          primaryCols = new String[] {col.getColumnName()};
+          return;
+        }
       }
     }
-
-    canUpdate = false;
-    changeError = "Cannot update rows, since primary field is not present in query";
 
     // check that table contains a generated primary field
     // to check if insert are still possible
@@ -127,23 +131,42 @@ public class UpdatableResult extends CompleteResult {
             .getConnection()
             .createStatement()
             .executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
-
+    List<String> primaryColumns = new ArrayList<>();
     while (rs.next()) {
       if ("PRI".equals(rs.getString("Key"))) {
+        primaryColumns.add(rs.getString("Field"));
+        boolean keyPresent = false;
+        for (Column col : metadataList) {
+          if (rs.getString("Field").equals(col.getColumnName())) {
+            keyPresent = true;
+          }
+        }
         boolean canBeNull = "YES".equals(rs.getString("Null"));
         boolean hasDefault = rs.getString("Default") != null;
         boolean generated = rs.getString("Extra") != null && !rs.getString("Extra").isEmpty();
         isAutoincrementPk =
             rs.getString("Extra") != null && rs.getString("Extra").contains("auto_increment");
-        if (!canBeNull && !hasDefault && !generated) {
+        if (!keyPresent && !canBeNull && !hasDefault && !generated) {
           canInsert = false;
           changeError =
               String.format("primary field `%s` is not present in query", rs.getString("Field"));
         }
-        return;
+        if (!keyPresent) {
+          canUpdate = false;
+          changeError =
+              String.format(
+                  "Cannot update rows, since primary field %s is not present in query",
+                  rs.getString("Field"));
+        }
       }
     }
-    canInsert = false;
+
+    if (primaryColumns.isEmpty()) {
+      canUpdate = false;
+      changeError = "Cannot update rows, since no primary field is present in query";
+    } else {
+      primaryCols = primaryColumns.toArray(new String[0]);
+    }
   }
 
   private void cannotUpdateInsertRow(String reason) {
@@ -423,7 +446,8 @@ public class UpdatableResult extends CompleteResult {
               parameters.size() > pos ? parameters.get(pos) : null;
           if (param != null) {
             ((BasePreparedStatement) insertPreparedStatement).setParameter(paramPos++, param);
-          } else if (!colInfo.isPrimaryKey() && !colInfo.hasDefault()) {
+          } else if (!Arrays.asList(primaryCols).contains(colInfo.getColumnName())
+              && !colInfo.hasDefault()) {
             ((BasePreparedStatement) insertPreparedStatement)
                 .setParameter(paramPos++, Parameter.NULL_PARAMETER);
           }
@@ -489,7 +513,7 @@ public class UpdatableResult extends CompleteResult {
         valueClause.append("?");
         firstParam = false;
       } else {
-        if (colInfo.isPrimaryKey()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
           if (colInfo.isAutoIncrement() || colInfo.hasDefault()) {
             if (!colInfo.isAutoIncrement()
                 && (!context.getVersion().isMariaDBServer()
@@ -541,7 +565,7 @@ public class UpdatableResult extends CompleteResult {
       }
       selectSql.append("`").append(colInfo.getColumnName()).append("`");
 
-      if (colInfo.isPrimaryKey()) {
+      if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
@@ -574,9 +598,10 @@ public class UpdatableResult extends CompleteResult {
   private byte[] refreshRawData() throws SQLException {
     int fieldsPrimaryIndex = 0;
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
+
       for (int pos = 0; pos < metadataList.length; pos++) {
         Column colInfo = metadataList[pos];
-        if (colInfo.isPrimaryKey()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
           if ((state != STATE_STANDARD) && parameters.size() > pos && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
@@ -600,17 +625,17 @@ public class UpdatableResult extends CompleteResult {
     StringBuilder whereClause = new StringBuilder(" WHERE ");
 
     boolean firstUpdate = true;
-    boolean firstPrimary = true;
+
+    for (int pos = 0; pos < primaryCols.length; pos++) {
+      String key = primaryCols[pos];
+      if (pos != 0) {
+        whereClause.append("AND ");
+      }
+      whereClause.append("`").append(key).append("` = ? ");
+    }
+
     for (int pos = 0; pos < metadataList.length; pos++) {
       Column colInfo = metadataList[pos];
-
-      if (colInfo.isPrimaryKey()) {
-        if (!firstPrimary) {
-          whereClause.append("AND ");
-        }
-        firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
-      }
 
       if (parameters.size() > pos && parameters.get(pos) != null) {
         if (!firstUpdate) {
@@ -667,7 +692,7 @@ public class UpdatableResult extends CompleteResult {
 
           for (int pos = 0; pos < metadataList.length; pos++) {
             Column colInfo = metadataList[pos];
-            if (colInfo.isPrimaryKey()) {
+            if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
               preparedStatement.setObject(++fieldsIndex, getObject(pos + 1));
             }
           }
@@ -702,7 +727,7 @@ public class UpdatableResult extends CompleteResult {
         new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
     boolean firstPrimary = true;
     for (Column colInfo : metadataList) {
-      if (colInfo.isPrimaryKey()) {
+      if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
         if (!firstPrimary) {
           deleteSql.append("AND ");
         }
@@ -723,7 +748,7 @@ public class UpdatableResult extends CompleteResult {
       int fieldsPrimaryIndex = 1;
       for (int pos = 0; pos < metadataList.length; pos++) {
         Column colInfo = metadataList[pos];
-        if (colInfo.isPrimaryKey()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
           deletePreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1));
         }
       }

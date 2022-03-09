@@ -25,6 +25,7 @@ public class MediumIntCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS MediumIntCodec");
     stmt.execute("DROP TABLE IF EXISTS MediumIntCodec2");
+    stmt.execute("DROP TABLE IF EXISTS MediumIntCodec3");
     stmt.execute("DROP TABLE IF EXISTS MediumIntCodecUnsigned");
   }
 
@@ -41,6 +42,8 @@ public class MediumIntCodecTest extends CommonCodecTest {
     stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null)");
     stmt.execute(
         "CREATE TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
+    stmt.execute(
+        "CREATE TABLE MediumIntCodec3 (id int not null, id2 int not null, t1 MEDIUMINT, PRIMARY KEY (id, id2))");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -929,73 +932,83 @@ public class MediumIntCodecTest extends CommonCodecTest {
 
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
-    stmt.execute("TRUNCATE TABLE MediumIntCodec2");
+    stmt.execute("TRUNCATE TABLE MediumIntCodec3");
     try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO MediumIntCodec2(t1) VALUES (?)")) {
+        con.prepareStatement("INSERT INTO MediumIntCodec3(id, id2, t1) VALUES (?,?,?)")) {
       prep.setInt(1, 1);
+      prep.setInt(2, 1);
+      prep.setInt(3, 3);
       prep.execute();
-      prep.setObject(1, 2);
+      prep.setInt(1, 2);
+      prep.setInt(2, 1);
+      prep.setObject(3, 2);
       prep.execute();
-      prep.setObject(1, null);
+      prep.setInt(1, 3);
+      prep.setInt(2, 1);
+      prep.setObject(3, null);
       prep.execute();
-      prep.setObject(1, 3, Types.INTEGER);
+      prep.setInt(1, 4);
+      prep.setInt(2, 1);
+      prep.setObject(3, 3, Types.INTEGER);
       prep.execute();
-      prep.setObject(1, null, Types.INTEGER);
+      prep.setInt(1, 5);
+      prep.setInt(2, 1);
+      prep.setObject(3, null, Types.INTEGER);
       prep.execute();
     }
     ResultSet rs =
         con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
-            .executeQuery("SELECT * FROM MediumIntCodec2");
+            .executeQuery("SELECT * FROM MediumIntCodec3");
     assertTrue(rs.next());
-    assertEquals(1, rs.getInt(2));
+    assertEquals(3, rs.getInt(3));
     rs.updateInt("t1", 10);
     rs.updateRow();
-    assertEquals(10, rs.getInt(2));
+    assertEquals(10, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(2, rs.getInt(2));
+    assertEquals(2, rs.getInt(3));
     rs.updateObject("t1", null);
     rs.updateRow();
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
     assertTrue(rs.wasNull());
-    rs.updateInt(2, 50);
+    rs.updateInt(3, 50);
     rs.updateRow();
-    assertEquals(50, rs.getInt(2));
+    assertEquals(50, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(3, rs.getInt(2));
-    rs.updateObject(2, null, Types.INTEGER);
+    assertEquals(3, rs.getInt(3));
+    rs.updateObject(3, null, Types.INTEGER);
     rs.updateRow();
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
     assertTrue(rs.wasNull());
-    rs.updateObject(2, 85, Types.INTEGER);
+    rs.updateObject(3, 85, Types.INTEGER);
     rs.updateRow();
-    assertEquals(85, rs.getInt(2));
+    assertEquals(85, rs.getInt(3));
     assertFalse(rs.wasNull());
 
-    rs = stmt.executeQuery("SELECT * FROM MediumIntCodec2");
+    rs = stmt.executeQuery("SELECT * FROM MediumIntCodec3");
     assertTrue(rs.next());
-    assertEquals(10, rs.getInt(2));
+    assertEquals(10, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(50, rs.getInt(2));
+    assertEquals(50, rs.getInt(3));
 
     assertTrue(rs.next());
-    assertEquals(0, rs.getInt(2));
+    assertEquals(0, rs.getInt(3));
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
-    assertEquals(85, rs.getInt(2));
+    assertEquals(85, rs.getInt(3));
     assertFalse(rs.wasNull());
   }
 }
