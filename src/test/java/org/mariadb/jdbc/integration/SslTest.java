@@ -266,14 +266,14 @@ public class SslTest extends Common {
         assertNotNull(getSslVersion(con));
       }
 
-      if (System.getenv("TEST_DB_CLIENT_CERT") != null) {
+      if (System.getenv("TEST_DB_CLIENT_CERT_FULL") != null) {
         assertThrowsContains(
             SQLException.class,
             () ->
                 createCon(
                     baseOptions
                         + "&sslMode=VERIFY_FULL&serverSslCert="
-                        + System.getenv("TEST_DB_CLIENT_CERT"),
+                        + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
                     sslPort),
             "aa");
       }
