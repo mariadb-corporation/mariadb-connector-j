@@ -514,8 +514,10 @@ public class UpdatableResult extends CompleteResult {
         firstParam = false;
       } else {
         if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
-          if (colInfo.isAutoIncrement() || colInfo.hasDefault()) {
-            if (!colInfo.isAutoIncrement()
+          boolean isAutoIncrement =
+              colInfo.isAutoIncrement() || (primaryCols.length == 1 && isAutoincrementPk);
+          if (isAutoIncrement || colInfo.hasDefault()) {
+            if (!isAutoIncrement
                 && (!context.getVersion().isMariaDBServer()
                     || !context.getVersion().versionGreaterOrEqual(10, 5, 1))) {
               // driver cannot know generated default value like uuid().

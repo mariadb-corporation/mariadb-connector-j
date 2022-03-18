@@ -79,7 +79,7 @@ public class PooledConnectionTest extends Common {
     }
 
     try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(url + "poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
+        new MariaDbPoolDataSource(url + "&poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
 
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
@@ -98,7 +98,8 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
 
     File tempFile = File.createTempFile("log", ".tmp");
     //
@@ -163,7 +164,9 @@ public class PooledConnectionTest extends Common {
   @Test
   public void testPooledConnectionException() throws Exception {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
 
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);
     PooledConnection pc = null;
@@ -213,7 +216,11 @@ public class PooledConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'dsUser'");
+    try {
+      stmt.execute("DROP USER 'dsUser'");
+    } catch (SQLException e) {
+      // eat
+    }
 
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer()) {

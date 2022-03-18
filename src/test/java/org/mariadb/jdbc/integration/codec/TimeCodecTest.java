@@ -97,18 +97,22 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getObjectType() throws Exception {
-    getObjectType(get());
+    getObjectType(get(), true);
   }
 
   @Test
   public void getObjectTypePrepare() throws Exception {
-    getObjectType(getPrepare(sharedConn));
-    getObjectType(getPrepare(sharedConnBinary));
+    getObjectType(getPrepare(sharedConn), true);
+    getObjectType(getPrepare(sharedConnBinary), false);
   }
 
-  public void getObjectType(ResultSet rs) throws Exception {
+  public void getObjectType(ResultSet rs, boolean text) throws Exception {
     testErrObject(rs, Integer.class);
-    testObject(rs, String.class, "01:55:12.000");
+    if (isXpand() && !text) {
+      testObject(rs, String.class, "01:55:12");
+    } else {
+      testObject(rs, String.class, "01:55:12.000");
+    }
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
@@ -136,50 +140,78 @@ public class TimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getString() throws SQLException {
-    getString(get());
+    getString(get(), true);
   }
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare(sharedConn));
-    getString(getPrepare(sharedConnBinary));
+    getString(getPrepare(sharedConn), true);
+    getString(getPrepare(sharedConnBinary), false);
   }
 
-  public void getString(ResultSet rs) throws SQLException {
-    assertEquals("01:55:12.000", rs.getString(1));
-    assertFalse(rs.wasNull());
-    assertEquals("01:55:13.200000", rs.getString(2));
-    assertEquals("01:55:13.200000", rs.getString("t2alias"));
-    assertFalse(rs.wasNull());
-    assertEquals("-18:30:12.550000", rs.getString(3));
-    assertFalse(rs.wasNull());
-    assertNull(rs.getNString(4));
-    assertTrue(rs.wasNull());
-    rs.next();
-    assertTrue(
-        "-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
-    assertFalse(rs.wasNull());
-    assertEquals("838:59:58.999999", rs.getString(2));
-    assertEquals("838:59:58.999999", rs.getString("t2alias"));
-    assertFalse(rs.wasNull());
-    assertEquals("00:00:00.000000", rs.getString(3));
-    assertEquals("00:00:00", rs.getString(4));
-    assertFalse(rs.wasNull());
+  public void getString(ResultSet rs, boolean text) throws SQLException {
+    if (isXpand() && !text) {
+      // https://jira.mariadb.org/browse/XPT-273
+      assertEquals("01:55:12", rs.getString(1));
+      assertFalse(rs.wasNull());
+      assertEquals("01:55:13.200000", rs.getString(2));
+      assertEquals("01:55:13.200000", rs.getString("t2alias"));
+      assertFalse(rs.wasNull());
+      assertEquals("-18:30:12.550000", rs.getString(3));
+      assertFalse(rs.wasNull());
+      assertNull(rs.getNString(4));
+      assertTrue(rs.wasNull());
+      rs.next();
+      assertTrue(
+          "-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
+      assertFalse(rs.wasNull());
+      assertEquals("838:59:58.999999", rs.getString(2));
+      assertEquals("838:59:58.999999", rs.getString("t2alias"));
+      assertFalse(rs.wasNull());
+      assertEquals("00:00:00", rs.getString(3));
+      assertEquals("00:00:00", rs.getString(4));
+      assertFalse(rs.wasNull());
+
+    } else {
+      assertEquals("01:55:12.000", rs.getString(1));
+      assertFalse(rs.wasNull());
+      assertEquals("01:55:13.200000", rs.getString(2));
+      assertEquals("01:55:13.200000", rs.getString("t2alias"));
+      assertFalse(rs.wasNull());
+      assertEquals("-18:30:12.550000", rs.getString(3));
+      assertFalse(rs.wasNull());
+      assertNull(rs.getNString(4));
+      assertTrue(rs.wasNull());
+      rs.next();
+      assertTrue(
+          "-838:59:58.999".equals(rs.getString(1)) || "-838:59:58.999000".equals(rs.getString(1)));
+      assertFalse(rs.wasNull());
+      assertEquals("838:59:58.999999", rs.getString(2));
+      assertEquals("838:59:58.999999", rs.getString("t2alias"));
+      assertFalse(rs.wasNull());
+      assertEquals("00:00:00.000000", rs.getString(3));
+      assertEquals("00:00:00", rs.getString(4));
+      assertFalse(rs.wasNull());
+    }
   }
 
   @Test
   public void getNString() throws SQLException {
-    getNString(get());
+    getNString(get(), true);
   }
 
   @Test
   public void getNStringPrepare() throws SQLException {
-    getNString(getPrepare(sharedConn));
-    getNString(getPrepare(sharedConnBinary));
+    getNString(getPrepare(sharedConn), true);
+    getNString(getPrepare(sharedConnBinary), false);
   }
 
-  public void getNString(ResultSet rs) throws SQLException {
-    assertEquals("01:55:12.000", rs.getNString(1));
+  public void getNString(ResultSet rs, boolean text) throws SQLException {
+    if (isXpand() && !text) {
+      assertEquals("01:55:12", rs.getNString(1));
+    } else {
+      assertEquals("01:55:12.000", rs.getNString(1));
+    }
     assertFalse(rs.wasNull());
     assertEquals("01:55:13.200000", rs.getNString(2));
     assertEquals("01:55:13.200000", rs.getNString("t2alias"));
@@ -631,9 +663,13 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Types.TIME, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(14, meta.getPrecision(1));
-    assertEquals(3, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(14, meta.getColumnDisplaySize(1));
+
+    // https://jira.mariadb.org/browse/XPT-273
+    if (!isXpand()) {
+      assertEquals(3, meta.getScale(1));
+      assertEquals(14, meta.getColumnDisplaySize(1));
+    }
   }
 
   @Test

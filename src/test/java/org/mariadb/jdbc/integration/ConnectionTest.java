@@ -22,6 +22,11 @@ import org.mariadb.jdbc.integration.util.SocketFactoryTest;
 @DisplayName("Connection Test")
 public class ConnectionTest extends Common {
 
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    createSequenceTables();
+  }
+
   @Test
   public void isValid() throws SQLException {
     Connection sharedConn = DriverManager.getConnection(mDefUrl);
@@ -64,7 +69,8 @@ public class ConnectionTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
 
     try (Connection con = createCon("&socketTimeout=50")) {
       assertEquals(50, con.getNetworkTimeout());
@@ -472,17 +478,18 @@ public class ConnectionTest extends Common {
     // check if performance_schema is ON
     Statement stmt = sharedConn.createStatement();
     ResultSet res = stmt.executeQuery("show variables like 'performance_schema'");
-    res.next();
-    Assumptions.assumeFalse(res.getString("Value").equals("OFF"));
+    if (res.next()) {
+      Assumptions.assumeFalse(res.getString("Value").equals("OFF"));
 
-    try (Connection connection = createCon()) {
-      Statement attributeStatement = connection.createStatement();
-      ResultSet result =
-          attributeStatement.executeQuery(
-              "select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
-      while (result.next()) {
-        String strVal = result.getString("ATTR_VALUE");
-        assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
+      try (Connection connection = createCon()) {
+        Statement attributeStatement = connection.createStatement();
+        ResultSet result =
+            attributeStatement.executeQuery(
+                "select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
+        while (result.next()) {
+          String strVal = result.getString("ATTR_VALUE");
+          assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
+        }
       }
     }
   }
@@ -664,7 +671,9 @@ public class ConnectionTest extends Common {
           fail("Expected SQLException");
         } catch (SQLException e) {
           // This exception is expected
-          assertTrue(e.getMessage().contains("a foreign key constraint fails"));
+          assertTrue(
+              e.getMessage().contains("a foreign key constraint fails")
+                  || e.getMessage().contains("Foreign key constraint violation"));
           sharedConn.rollback();
         }
 
@@ -781,7 +790,11 @@ public class ConnectionTest extends Common {
     } catch (SQLException sqle) {
       Assumptions.assumeTrue(false, "server doesn't have ed25519 plugin, cancelling test");
     }
-    stmt.execute("drop user if exists verificationEd25519AuthPlugin@'%'");
+    try {
+      stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
     try {
       if (minVersion(10, 4, 0)) {
         stmt.execute(
@@ -827,8 +840,11 @@ public class ConnectionTest extends Common {
 
     String pamUser = System.getenv("TEST_PAM_USER");
     String pamPwd = System.getenv("TEST_PAM_PWD");
-
-    stmt.execute("DROP USER IF EXISTS '" + pamUser + "'@'%'");
+    try {
+      stmt.execute("DROP USER '" + pamUser + "'@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
     stmt.execute("FLUSH PRIVILEGES");
@@ -878,7 +894,7 @@ public class ConnectionTest extends Common {
     try (Connection connection = createCon("useReadAheadInput=false")) {
       // must have succeeded
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
       int i = 0;
       while (rs.next()) i++;
       assertTrue(i > 0);
@@ -954,7 +970,12 @@ public class ConnectionTest extends Common {
       return;
     }
     String path = rs.getString(2);
-    stmt.execute("DROP USER IF EXISTS testSocket");
+    try {
+      stmt.execute("DROP USER testSocket");
+    } catch (SQLException e) {
+      // eat
+    }
+
     stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
     stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
     stmt.execute("FLUSH PRIVILEGES");

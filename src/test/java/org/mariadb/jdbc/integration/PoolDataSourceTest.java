@@ -599,6 +599,7 @@ public class PoolDataSourceTest extends Common {
   public void ensureClosed() throws Throwable {
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
+    Assumptions.assumeFalse(initialConnection == -1);
 
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
@@ -673,10 +674,11 @@ public class PoolDataSourceTest extends Common {
     try {
       Statement stmt = sharedConn.createStatement();
       ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
-      assertTrue(rs.next());
-      System.out.println("threads : " + rs.getInt(2));
-      return rs.getInt(2);
-
+      if (rs.next()) {
+        System.out.println("threads : " + rs.getInt(2));
+        return rs.getInt(2);
+      }
+      return -1;
     } catch (SQLException e) {
       return -1;
     }

@@ -793,7 +793,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
     sb.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION");
-
     return executeQuery(sb.toString());
   }
 

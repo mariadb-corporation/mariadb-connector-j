@@ -244,7 +244,7 @@ public class FailoverTest extends Common {
                 + useBulk
                 + "&transactionReplay="
                 + transactionReplay)) {
-      con.setNetworkTimeout(Runnable::run, 200);
+      con.setNetworkTimeout(Runnable::run, 500);
       long threadId = con.getContext().getThreadId();
       execute(con, transactionReplay, threadId);
       threadId = con.getContext().getThreadId();

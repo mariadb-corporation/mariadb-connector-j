@@ -6,6 +6,7 @@ package org.mariadb.jdbc;
 
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
 /** Parameter metadata */
@@ -132,7 +133,9 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getType().name();
+    // https://jira.mariadb.org/browse/XPT-279 Xpand can return wrong datatype for parameters
+    DataType type = params[idx - 1].getType();
+    return type == null ? null : type.name();
   }
 
   /**

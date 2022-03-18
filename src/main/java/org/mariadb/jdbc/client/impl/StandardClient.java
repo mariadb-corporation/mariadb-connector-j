@@ -325,6 +325,13 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
+    if (conf.nonMappedOptions().containsKey("initSql")) {
+      String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
+      for (String cmd : initialCommands) {
+        commands.add(cmd);
+      }
+    }
+
     if (!commands.isEmpty()) {
       try {
         List<Completion> res;

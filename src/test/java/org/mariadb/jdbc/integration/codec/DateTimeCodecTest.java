@@ -142,16 +142,16 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   @Test
   public void getString() throws SQLException {
-    getString(get());
+    getString(get(), true);
   }
 
   @Test
   public void getStringPrepare() throws SQLException {
-    getString(getPrepare(sharedConn));
-    getString(getPrepare(sharedConnBinary));
+    getString(getPrepare(sharedConn), true);
+    getString(getPrepare(sharedConnBinary), false);
   }
 
-  public void getString(ResultSet rs) throws SQLException {
+  public void getString(ResultSet rs, boolean text) throws SQLException {
     assertEquals("2010-01-12 01:55:12", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1000-01-01 01:55:13.200000", rs.getString(2));
@@ -164,8 +164,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertEquals("0000-00-00 00:00:00", rs.getString(1));
-      assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
-      assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
+      if (isXpand() && !text) {
+        // https://jira.mariadb.org/browse/XPT-273
+        assertEquals("0000-00-00 00:00:00", rs.getString(2));
+        assertEquals("9999-12-31 00:00:00", rs.getString(3));
+      } else {
+        assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
+        assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
+      }
     }
   }
 
@@ -700,10 +706,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.TIMESTAMP, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(19, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(19, meta.getColumnDisplaySize(1));
+    // https://jira.mariadb.org/browse/XPT-273
+    if (!isXpand()) {
+      assertEquals(19, meta.getPrecision(1));
+      assertEquals(19, meta.getColumnDisplaySize(1));
+    }
   }
 
   @Test

@@ -29,7 +29,11 @@ public class SslTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS serverAuthUser");
+    try {
+      stmt.execute("DROP USER serverAuthUser");
+    } catch (SQLException e) {
+      // eat
+    }
   }
 
   @BeforeAll
@@ -267,15 +271,17 @@ public class SslTest extends Common {
       }
 
       if (System.getenv("TEST_DB_CLIENT_CERT_FULL") != null) {
-        assertThrowsContains(
-            SQLException.class,
-            () ->
-                createCon(
-                    baseOptions
-                        + "&sslMode=VERIFY_FULL&serverSslCert="
-                        + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
-                    sslPort),
-            "aa");
+        // client certificate is using extendedKeyUsage = critical, clientAuth, but java don't throw
+        // an exception
+        // as RFC 5280 would require
+        try (Connection con =
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_FULL&serverSslCert="
+                    + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
+                sslPort)) {
+          con.isValid(1000);
+        }
       }
 
       Configuration conf = Configuration.parse(mDefUrl);

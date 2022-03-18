@@ -191,7 +191,16 @@ public class StringCodec implements Codec<String> {
                 + ":"
                 + (tSeconds < 10 ? "0" : "")
                 + tSeconds;
-        if (column.getDecimals() == 0) return stTime;
+        if (column.getDecimals() == 0) {
+          if (tMicroseconds == 0) return stTime;
+          // possible for Xpand that doesn't send some metadata
+          // https://jira.mariadb.org/browse/XPT-273
+          StringBuilder stMicro = new StringBuilder(String.valueOf(tMicroseconds));
+          while (stMicro.length() < 6) {
+            stMicro.insert(0, "0");
+          }
+          return stTime + "." + stMicro;
+        }
         StringBuilder stMicro = new StringBuilder(String.valueOf(tMicroseconds));
         while (stMicro.length() < column.getDecimals()) {
           stMicro.insert(0, "0");
@@ -232,14 +241,22 @@ public class StringCodec implements Codec<String> {
             microseconds = buf.readUnsignedInt();
           }
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0 && month == 0 && day == 0) {
+          return "0000-00-00 00:00:00";
+        }
+
         LocalDateTime dateTime =
             LocalDateTime.of(year, month, day, hour, minutes, seconds)
                 .plusNanos(microseconds * 1000);
 
         StringBuilder microSecPattern = new StringBuilder();
-        if (column.getDecimals() > 0) {
+        if (column.getDecimals() > 0 || microseconds > 0) {
+          int decimal = column.getDecimals() & 0xff;
+          if (decimal == 0) decimal = 6;
           microSecPattern.append(".");
-          for (int i = 0; i < column.getDecimals(); i++) microSecPattern.append("S");
+          for (int i = 0; i < decimal; i++) microSecPattern.append("S");
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss" + microSecPattern);
         return dateTime.toLocalDate().toString() + ' ' + dateTime.toLocalTime().format(formatter);

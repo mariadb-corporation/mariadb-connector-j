@@ -141,7 +141,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         con.getClient().execute(new PreparePacket(cmd), this, true);
       }
     }
-
+    validParameters();
     // send COM_STMT_EXECUTE
     ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);
     results =

@@ -50,23 +50,28 @@ public class ConfigurationTest extends Common {
       rs.clearWarnings();
     }
 
-    try (Connection connection =
-        createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-      assertTrue(rs.next());
-    }
-    try (Connection connection =
-        createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
-      Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
-      assertTrue(rs.next());
+    // Xpand doesn't support session_track_system_variables
+    if (!isXpand()) {
+      try (Connection connection =
+          createCon("sessionVariables=session_track_system_variables='some\\';f,\"ff'")) {
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+        assertTrue(rs.next());
+      }
+      try (Connection connection =
+          createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+        assertTrue(rs.next());
+      }
     }
   }
 
   @Test
   public void connectionAttributes() throws SQLException {
-    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")));
+    // xpand doesn't support @@performance_schema variable
+    Assumptions.assumeTrue(!"maxscale".equals(System.getenv("srv")) && !isXpand());
+
     try (org.mariadb.jdbc.Connection conn =
         createCon("&connectionAttributes=test:test1,test2:test2Val,test3")) {
       Statement stmt = conn.createStatement();

@@ -164,22 +164,26 @@ public class PreparedStatementParametersTest extends Common {
         ps -> ps.setDate(1, Date.valueOf("2010-05-25")),
         rs -> assertEquals(Date.valueOf("2010-05-25").getTime(), rs.getDate(1).getTime()),
         con);
-    if (text) {
-      Common.assertThrowsContains(
-          SQLException.class,
-          () ->
-              checkSendTimestamp(
-                  ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-                  rs ->
-                      assertEquals(
-                          Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-                  con),
-          "Incorrect datetime value: '18:16:01.123'");
+    if (isXpand()) {
+      // skip due to error https://jira.mariadb.org/browse/XPT-265
     } else {
-      checkSendTimestamp(
-          ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
-          rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
-          con);
+      if (text) {
+        Common.assertThrowsContains(
+            SQLException.class,
+            () ->
+                checkSendTimestamp(
+                    ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
+                    rs ->
+                        assertEquals(
+                            Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
+                    con),
+            "Incorrect datetime value: '18:16:01.123'");
+      } else {
+        checkSendTimestamp(
+            ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
+            rs -> assertEquals(Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
+            con);
+      }
     }
 
     checkSendTimestamp(

@@ -82,10 +82,13 @@ public class FunctionTest extends Common {
           "wrong parameter index");
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
 
-      CallableParameterMetaData meta =
-          (CallableParameterMetaData) callableStatement.getParameterMetaData();
-      assertEquals(org.mariadb.jdbc.ParameterMetaData.parameterModeOut, meta.getParameterMode(1));
-      assertNull(meta.getParameterName(1));
+      // XPAND doesn't support I_S.parameters: https://jira.mariadb.org/browse/XPT-267
+      if (!isXpand()) {
+        CallableParameterMetaData meta =
+            (CallableParameterMetaData) callableStatement.getParameterMetaData();
+        assertEquals(org.mariadb.jdbc.ParameterMetaData.parameterModeOut, meta.getParameterMode(1));
+        assertNull(meta.getParameterName(1));
+      }
     } finally {
       stmt.execute("DROP FUNCTION IF EXISTS parameter_meta");
     }
@@ -124,10 +127,12 @@ public class FunctionTest extends Common {
           () -> callableStatement.registerOutParameter(-1, JDBCType.DOUBLE),
           "wrong parameter index");
       callableStatement.registerOutParameter(1, JDBCType.DOUBLE);
-      Common.assertThrowsContains(
-          SQLSyntaxErrorException.class,
-          () -> callableStatement.registerOutParameter("r", JDBCType.DOUBLE),
-          "parameter name r not found");
+      if (!isXpand()) {
+        Common.assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> callableStatement.registerOutParameter("r", JDBCType.DOUBLE),
+            "parameter name r not found");
+      }
       Common.assertThrowsContains(
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),

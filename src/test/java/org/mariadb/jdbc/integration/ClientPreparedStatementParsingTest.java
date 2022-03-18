@@ -229,6 +229,7 @@ public class ClientPreparedStatementParsingTest extends Common {
     } catch (SQLException sqle) {
       assertTrue(
           sqle.getMessage().contains("doesn't exist")
+              || sqle.getMessage().contains("Relation not found: \"testj\".\"unknownTable\"")
               || sqle.getMessage().contains("Unknown prepared statement handler"),
           sqle.getMessage());
       assertTrue(

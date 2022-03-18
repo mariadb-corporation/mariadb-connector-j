@@ -128,7 +128,12 @@ public class DataSourceTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'dsUser'");
+    try {
+      stmt.execute("DROP USER 'dsUser'");
+    } catch (SQLException e) {
+      // eat
+    }
+
     if (minVersion(8, 0, 0)) {
       if (isMariaDBServer()) {
         stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
@@ -147,7 +152,7 @@ public class DataSourceTest extends Common {
     }
     stmt.execute("FLUSH PRIVILEGES");
 
-    DataSource ds = new MariaDbDataSource(mDefUrl + "allowPublicKeyRetrieval");
+    DataSource ds = new MariaDbDataSource(mDefUrl + "&allowPublicKeyRetrieval");
     try (Connection con1 = ds.getConnection()) {
       try (Connection con2 = ds.getConnection("dsUser", "MySup8%rPassw@ord")) {
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
@@ -160,7 +165,11 @@ public class DataSourceTest extends Common {
         }
       }
     } finally {
-      stmt.execute("DROP USER IF EXISTS 'dsUser'");
+      try {
+        stmt.execute("DROP USER 'dsUser'");
+      } catch (SQLException e) {
+        // eat
+      }
     }
 
     // mysql has issue when creating new user with native password

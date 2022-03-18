@@ -46,6 +46,9 @@ public class ProcedureTest extends Common {
 
   @Test
   public void prepInsert() throws SQLException {
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
+
     Statement st = sharedConn.createStatement();
     st.execute("DROP PROCEDURE IF EXISTS prep_proc2");
     st.execute(
@@ -101,6 +104,8 @@ public class ProcedureTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
@@ -466,6 +471,9 @@ public class ProcedureTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
+    // https://jira.mariadb.org/browse/XPT-268
+    Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");

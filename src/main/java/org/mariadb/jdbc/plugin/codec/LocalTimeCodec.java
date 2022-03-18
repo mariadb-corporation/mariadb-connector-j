@@ -183,7 +183,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case TIMESTAMP:
       case DATETIME:
         if (length == 0) return null;
-        buf.skip(4); // skip year, month and day
+
+        int year = buf.readUnsignedShort();
+        int month = buf.readByte();
+        int dayOfMonth = buf.readByte();
+
         if (length > 4) {
           hour = buf.readByte();
           minutes = buf.readByte();
@@ -193,6 +197,11 @@ public class LocalTimeCodec implements Codec<LocalTime> {
             microseconds = buf.readInt();
           }
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0 && month == 0 && dayOfMonth == 0 && hour == 0 && minutes == 0 && seconds == 0)
+          return null;
+
         return LocalTime.of(hour, minutes, seconds).plusNanos(microseconds * 1000);
 
       case TIME:
