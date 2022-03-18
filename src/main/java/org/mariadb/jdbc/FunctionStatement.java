@@ -76,6 +76,11 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
     super.executeInternal();
   }
 
+  /**
+   * Ensures that returning value is not taken as a parameter.
+   *
+   * @throws SQLException if any exception
+   */
   protected void preValidParameters() throws SQLException {
     // remove first parameter, as it's an output param only
     Parameters newParameters = new ParameterList(parameters.size() - 1);

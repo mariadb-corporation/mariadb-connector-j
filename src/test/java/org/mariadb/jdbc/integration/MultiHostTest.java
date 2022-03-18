@@ -246,8 +246,7 @@ public class MultiHostTest extends Common {
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
-                url
-                    + "&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
+                url + "&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
