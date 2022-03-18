@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
@@ -32,6 +33,8 @@ public class PointCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
+    // xpand doesn't recognized POINT
+    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
     stmt.execute(

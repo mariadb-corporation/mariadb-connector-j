@@ -87,14 +87,8 @@ public class IntCodec implements Codec<Integer> {
         return (int) LongCodec.parseNotEmpty(buf, length);
 
       case INTEGER:
-        result = LongCodec.parseNotEmpty(buf, length);
-        break;
-
       case BIGINT:
         result = LongCodec.parseNotEmpty(buf, length);
-        if (result < 0 & !column.isSigned()) {
-          throw new SQLDataException("int overflow");
-        }
         break;
 
       case BIT:
@@ -127,9 +121,9 @@ public class IntCodec implements Codec<Integer> {
       case STRING:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
         }
 
@@ -140,7 +134,7 @@ public class IntCodec implements Codec<Integer> {
     }
 
     int res = (int) result;
-    if (res != result) {
+    if (res != result || (result < 0 && !column.isSigned())) {
       throw new SQLDataException("integer overflow");
     }
     return res;
@@ -241,9 +235,9 @@ public class IntCodec implements Codec<Integer> {
       case STRING:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
         }
 

@@ -33,7 +33,9 @@ public class XaTest extends Common {
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS xatable");

@@ -349,7 +349,7 @@ public class LongCodecTest extends CommonCodecTest {
       fail();
     } catch (SQLDataException e) {
       assertTrue(
-          e.getMessage().contains("int overflow")
+          e.getMessage().contains("integer overflow")
               || e.getMessage()
                   .contains("value '18446744073709551615' cannot be decoded as Integer"));
     }
@@ -948,7 +948,7 @@ public class LongCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("BIGINT", meta.getColumnTypeName(1));
+    assertEquals("BIGINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.math.BigInteger", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

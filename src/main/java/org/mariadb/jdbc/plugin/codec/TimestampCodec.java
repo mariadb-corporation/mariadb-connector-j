@@ -293,6 +293,15 @@ public class TimestampCodec implements Codec<Timestamp> {
             microseconds = buf.readUnsignedInt();
           }
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0
+            && month == 0
+            && dayOfMonth == 0
+            && hour == 0
+            && minutes == 0
+            && seconds == 0
+            && microseconds == 0) return null;
         break;
 
       case YEAR:

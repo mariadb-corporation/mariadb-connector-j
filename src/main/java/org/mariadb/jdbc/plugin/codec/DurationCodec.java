@@ -139,8 +139,8 @@ public class DurationCodec implements Codec<Duration> {
       case TIMESTAMP:
       case DATETIME:
         if (length == 0) return null;
-        buf.readUnsignedShort(); // skip year
-        buf.readByte(); // skip month
+        int year = buf.readUnsignedShort();
+        int month = buf.readByte();
         days = buf.readByte();
         if (length > 4) {
           hours = buf.readByte();
@@ -151,6 +151,11 @@ public class DurationCodec implements Codec<Duration> {
             microseconds = buf.readUnsignedInt();
           }
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0 && month == 0 && days == 0 && hours == 0 && minutes == 0 && seconds == 0)
+          return null;
+
         return Duration.ZERO
             .plusDays(days - 1)
             .plusHours(hours)

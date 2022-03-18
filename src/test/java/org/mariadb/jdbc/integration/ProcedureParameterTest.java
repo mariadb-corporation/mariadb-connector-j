@@ -39,6 +39,8 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
 
     CallableStatement stmt = sharedConn.prepareCall("{call useParameterName(?)}");
     stmt.setInt("a", 1);
@@ -53,6 +55,9 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
 
     try (CallableStatement call = sharedConn.prepareCall("{call withStrangeParameter(?)}")) {
       double expected = 5.43;
@@ -77,6 +82,8 @@ public class ProcedureParameterTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
@@ -157,6 +164,9 @@ public class ProcedureParameterTest extends Common {
 
   @Test
   public void getParameterTypeProcedure() throws SQLException {
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
+
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS procType");
     stmt.execute(

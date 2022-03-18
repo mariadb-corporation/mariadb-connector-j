@@ -1,4 +1,25 @@
 # Change Log
+## [3.0.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.4) (Mar 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.3...3.0.4)
+
+* [CONJ-915] javadoc addition
+* [CONJ-921] DatabaseMetadata#getTables with null value for tableNamePattern throws Syntax error
+* [CONJ-922] DECIMAL overflow for long/int/short not throwing exception
+* [CONJ-924] NULL column type might result in java.lang.IllegalArgumentException: Unexpected datatype NULL
+* [CONJ-926] Client restrict authentication to 'mysql_native_password,client_ed25519,auth_gssapi_client' if restrictedAuth parameter is not set
+* [CONJ-924] NULL column test correction
+* [CONJ-923] correctly return 64 bits generated id / updated rows
+* [CONJ-933] load-balancing failover doesn't timeout
+* [CONJ-935] Connection.getMetaData() returns MariaDbClob instead of String
+* [CONJ-937] metadata getColumnTypeName wrong return type
+* [CONJ-934] MariaDbDataSource is sensitive to the order of setting of username and password
+* [CONJ-932] Login packet now use recommended length encoded value for connection attributes
+* [CONJ-925] missing OSGI infos
+* [CONJ-945] ensure retry is limited by retriesAllDown
+* [CONJ-940] Permit updating rows when not having primary info on metadata (Xpand)
+* [CONJ-939] add Xpand testing
+
+
 ## [3.0.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.3) (Jan 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.2-rc...3.0.3)
 

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.sql.*;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
@@ -18,11 +19,16 @@ import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 public class MultiHostTest extends Common {
 
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    createSequenceTables();
+  }
+
   @Test
   public void failoverReadonlyToMaster() throws Exception {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
+    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       long primaryThreadId = con.getThreadId();
       con.setReadOnly(true);
       long replicaThreadId = con.getThreadId();
@@ -42,8 +48,10 @@ public class MultiHostTest extends Common {
   @Test
   public void readOnly() throws SQLException {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con = createProxyConKeep("waitReconnectTimeout=300&deniedListTimeout=300")) {
+        !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
+    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReadOnly");
       stmt.execute("CREATE TABLE testReadOnly(id int)");
@@ -106,9 +114,7 @@ public class MultiHostTest extends Common {
   @Test
   public void closedConnectionMulti() throws Exception {
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv"))
-            && isMariaDBServer());
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -127,7 +133,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
     testClosedConn(con);
 
     url =
@@ -145,7 +151,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
     testClosedConn(con);
   }
 
@@ -156,7 +162,7 @@ public class MultiHostTest extends Common {
     prep2.execute();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(1);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_1000");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
     rs.next();
 
     con.close();
@@ -205,37 +211,42 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
+                    + "&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       proxy.restart(50);
       con.isValid(1000);
     }
 
-    Thread.sleep(50);
+    Thread.sleep(100);
     // same in transaction
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=100")) {
+                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
 
-      proxy.restart(50);
-      assertThrowsContains(
-          SQLTransientConnectionException.class,
-          () -> stmt.executeQuery("SELECT @con"),
-          "In progress transaction was lost");
+      proxy.restart(100);
+      try {
+        ResultSet rs = stmt.executeQuery("SELECT @con");
+        if (rs.next()) {
+          System.out.println("Resultset res:" + rs.getString(1));
+        }
+        fail("must have thrown exception");
+      } catch (SQLTransientConnectionException e) {
+        assertTrue(e.getMessage().contains("In progress transaction was lost"));
+      }
     }
+
     Thread.sleep(50);
     // testing blacklisted
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
-                url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&deniedListTimeout=20")) {
+                url + "&retriesAllDown=4&connectTimeout=20&deniedListTimeout=20")) {
       Statement stmt = con.createStatement();
       con.setAutoCommit(false);
       stmt.execute("START TRANSACTION");
@@ -256,7 +267,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
+                    + "&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=20")) {
       Statement stmt = con.createStatement();
       stmt.execute("DROP TABLE IF EXISTS testReplay");
       stmt.execute("CREATE TABLE testReplay(id INT)");
@@ -296,9 +307,7 @@ public class MultiHostTest extends Common {
   @Test
   public void masterStreamingFailover() throws Exception {
     Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -322,18 +331,19 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
+    ResultSet rs =
+        stmt.executeQuery("SELECT * FROM sequence_1_to_10; SELECT * FROM sequence_1_to_10000");
     rs.next();
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
     Common.assertThrowsContains(
         SQLException.class,
-        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        () -> stmt2.executeQuery("SELECT * from sequence_1_to_10"),
         "Socket error during result streaming");
     assertNotEquals(threadId, con.getThreadId());
 
@@ -357,7 +367,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     con2.abort(Runnable::run);
   }
 
@@ -388,7 +398,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       con.setReadOnly(true);
@@ -408,7 +418,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
       Statement stmt = con.createStatement();
       stmt.execute("SET @con=1");
       con.setReadOnly(true);
@@ -451,18 +461,19 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     long threadId = con.getThreadId();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_50; SELECT * FROM seq_1_to_50000");
+    ResultSet rs =
+        stmt.executeQuery("SELECT * FROM sequence_1_to_10; SELECT * FROM sequence_1_to_10000");
     rs.next();
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
     Common.assertThrowsContains(
         SQLException.class,
-        () -> stmt2.executeQuery("SELECT * from mysql.user"),
+        () -> stmt2.executeQuery("SELECT * from sequence_1_to_10"),
         "Socket error during result streaming");
     assertNotEquals(threadId, con.getThreadId());
 
@@ -486,7 +497,7 @@ public class MultiHostTest extends Common {
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
+                    + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
     con2.abort(Runnable::run);
   }
 

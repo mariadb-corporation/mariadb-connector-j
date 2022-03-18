@@ -170,6 +170,9 @@ public class LocalDateCodec implements Codec<LocalDate> {
         if (length > 4) {
           buf.skip(length - 4);
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0 && month == 0 && dayOfMonth == 0) return null;
         return LocalDate.of(year, month, dayOfMonth);
 
       case BLOB:
@@ -223,6 +226,10 @@ public class LocalDateCodec implements Codec<LocalDate> {
           month = buf.readByte();
           dayOfMonth = buf.readByte();
         }
+
+        // xpand workaround https://jira.mariadb.org/browse/XPT-274
+        if (year == 0 && month == 0 && dayOfMonth == 0) return null;
+
         return LocalDate.of(year, month, dayOfMonth);
 
       default:

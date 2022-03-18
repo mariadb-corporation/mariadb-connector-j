@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -57,7 +58,7 @@ public class Common {
       database = get("DB_DATABASE", prop);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&restrictedAuth=none&%s",
+              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
               hostname, port, database, user, password, defaultOther);
 
     } catch (IOException io) {
@@ -94,12 +95,69 @@ public class Common {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
 
+  public static boolean runLongTest() {
+    String runLongTest = System.getenv("RUN_LONG_TEST");
+    if (runLongTest != null) {
+      return Boolean.parseBoolean(runLongTest);
+    }
+    return false;
+  }
+
+  public static boolean isXpand() {
+    String srv = System.getenv("srv");
+    if (srv != null) {
+      return "xpand".equals(srv);
+    }
+    return sharedConn.getContext().getVersion().isMariaDBServer()
+        && sharedConn.getContext().getVersion().getQualifier().toLowerCase().contains("xpand");
+  }
+
   public static boolean minVersion(int major, int minor, int patch) {
     return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
   }
 
   public static Connection createCon() throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl);
+  }
+
+  public static void createSequenceTables() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    boolean seq10_ok = false;
+    boolean seq10_000_ok = false;
+    try {
+      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sequence_1_to_10");
+      if (rs.next() && rs.getInt(1) == 10) {
+        seq10_ok = true;
+      }
+    } catch (SQLException e) {
+      // eat
+    }
+    if (!seq10_ok) {
+      stmt.execute("DROP TABLE IF EXISTS sequence_1_to_10");
+      stmt.execute("CREATE TABLE sequence_1_to_10 (t1 int)");
+      stmt.execute("insert into sequence_1_to_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+    }
+
+    try {
+      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sequence_1_to_10000");
+      if (rs.next() && rs.getInt(1) == 10_000) {
+        seq10_000_ok = true;
+      }
+    } catch (SQLException e) {
+      // eat
+    }
+    if (!seq10_000_ok) {
+      stmt.execute("DROP TABLE IF EXISTS sequence_1_to_10000");
+      stmt.execute("CREATE TABLE sequence_1_to_10000 (t1 int)");
+      try (PreparedStatement prep =
+          sharedConnBinary.prepareStatement("INSERT INTO sequence_1_to_10000 VALUES (?)")) {
+        for (int i = 1; i <= 10_000; i++) {
+          prep.setInt(1, i);
+          prep.addBatch();
+        }
+        prep.executeBatch();
+      }
+    }
   }
 
   public Connection createProxyCon(HaMode mode, String opts) throws SQLException {
@@ -130,10 +188,13 @@ public class Common {
     //    while (rs.next()) {
     //      System.out.println(rs.getString(1) + ":" + rs.getString(2));
     //    }
-
-    rs = stmt.executeQuery("select @@have_ssl");
-    assertTrue(rs.next());
-    return "YES".equals(rs.getString(1));
+    try {
+      rs = stmt.executeQuery("select @@have_ssl");
+      assertTrue(rs.next());
+      return "YES".equals(rs.getString(1));
+    } catch (SQLException e) {
+      return false;
+    }
   }
 
   public void cancelForVersion(int major, int minor) {

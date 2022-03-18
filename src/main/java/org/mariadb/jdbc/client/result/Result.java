@@ -176,8 +176,8 @@ public abstract class Result implements ResultSet, Completion {
             serverStatus = readBuf.readUnsignedShort();
           } else {
             // OK_Packet with a 0xFE header
-            readBuf.skip(readBuf.readLengthNotNull()); // skip update count
-            readBuf.skip(readBuf.readLengthNotNull()); // skip insert id
+            readBuf.readLongLengthEncodedNotNull(); // skip update count
+            readBuf.readLongLengthEncodedNotNull(); // skip insert id
             serverStatus = readBuf.readUnsignedShort();
             warnings = readBuf.readUnsignedShort();
           }
@@ -230,8 +230,8 @@ public abstract class Result implements ResultSet, Completion {
               serverStatus = buf.readUnsignedShort();
             } else {
               // OK_Packet with a 0xFE header
-              buf.skip(buf.readLengthNotNull()); // skip update count
-              buf.skip(buf.readLengthNotNull()); // skip insert id
+              buf.readLongLengthEncodedNotNull(); // skip update count
+              buf.readLongLengthEncodedNotNull(); // skip insert id
               serverStatus = buf.readUnsignedShort();
               warnings = buf.readUnsignedShort();
             }

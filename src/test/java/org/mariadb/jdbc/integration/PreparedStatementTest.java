@@ -32,6 +32,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("CREATE TABLE prepare3 (t1 LONGTEXT, t2 LONGTEXT, t3 LONGTEXT, t4 LONGTEXT)");
     stmt.execute("CREATE TABLE prepare4 (t1 int)");
     stmt.execute("INSERT INTO prepare4 VALUES (1),(2),(3),(4),(5)");
+    createSequenceTables();
   }
 
   @Test
@@ -272,9 +273,11 @@ public class PreparedStatementTest extends Common {
   }
 
   private void executeQuery(Connection con) throws SQLException {
+    // https://jira.mariadb.org/browse/XPT-282
+    Assumptions.assumeFalse(isXpand());
     Statement stmt = con.createStatement();
-    stmt.execute(
-        "CREATE TEMPORARY TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("DROP TABLE IF EXISTS prepare10");
+    stmt.execute("CREATE TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO prepare10(t1, t2) VALUES (5,10), (40,20), (127,45)");
     try (PreparedStatement preparedStatement =
         con.prepareStatement("SELECT * FROM prepare10 WHERE t1 > ?")) {
@@ -454,6 +457,8 @@ public class PreparedStatementTest extends Common {
 
   @Test
   public void executeBatchMultiple() throws SQLException {
+    // xpand don't support DO command
+    Assumptions.assumeFalse(isXpand());
     try (Connection con = createCon("allowMultiQueries&useBulkStmts=false")) {
       executeBatchMultiple(con);
     }
@@ -660,12 +665,11 @@ public class PreparedStatementTest extends Common {
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
 
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = con.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from seq_1_to_10; SELECT * FROM seq_1_to_1000;SELECT 2; END");
+        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM sequence_1_to_10;SELECT 2; END");
     stmt.execute("CALL multi()");
     Assertions.assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
@@ -673,7 +677,7 @@ public class PreparedStatementTest extends Common {
     while (rs.next()) {
       Assertions.assertEquals(i++, rs.getInt(1));
     }
-    Assertions.assertEquals(1001, i);
+    Assertions.assertEquals(11, i);
     stmt.setFetchSize(3);
     PreparedStatement prep = con.prepareStatement("CALL multi()");
     rs = prep.executeQuery();
@@ -703,7 +707,7 @@ public class PreparedStatementTest extends Common {
     while (rs.next()) {
       Assertions.assertEquals(i++, rs.getInt(1));
     }
-    Assertions.assertEquals(1001, i);
+    Assertions.assertEquals(11, i);
 
     rs = prep.executeQuery();
     prep.close();
@@ -798,21 +802,33 @@ public class PreparedStatementTest extends Common {
         con.prepareStatement("INSERT INTO prepareError(id, val) VALUES (?,?)")) {
       prep.setInt(1, 1);
       prep.setString(2, "val2");
-      Common.assertThrowsContains(
-          SQLException.class, prep::execute, "Duplicate entry '1' for key 'PRIMARY'");
+      try {
+        prep.execute();
+        fail();
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage()
+                    .contains("Duplicate key in container: `testj`.`prepareError` Primary key:")
+                || e.getMessage().contains("Duplicate entry '1' for key 'PRIMARY'"));
+      }
     }
     try (PreparedStatement prep = con.prepareStatement("Wrong command")) {
-      Common.assertThrowsContains(
-          SQLException.class, prep::execute, "You have an error in your SQL syntax");
+      try {
+        prep.execute();
+        fail();
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage().contains("syntax error: syntax error near")
+                || e.getMessage().contains("You have an error in your SQL syntax"));
+      }
     }
   }
 
   @Test
   public void streamNotFinished() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(2);
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
 
     Statement stmt2 = sharedConn.createStatement();
     ResultSet rs2 = stmt2.executeQuery("SELECT 1");
@@ -1087,10 +1103,14 @@ public class PreparedStatementTest extends Common {
       for (int i = 1; i <= 100000; i++) {
         st.setInt(i, rnds[i - 1]);
       }
-      Common.assertThrowsContains(
-          SQLException.class,
-          st::executeQuery,
-          "Prepared statement contains too many placeholders");
+      try {
+        st.executeQuery();
+        fail();
+      } catch (SQLException e) {
+        assertTrue(
+            e.getMessage().contains("memory exhausted near \",\"")
+                || e.getMessage().contains("Prepared statement contains too many placeholders"));
+      }
     }
     assertTrue(sharedConnBinary.isValid(1));
   }

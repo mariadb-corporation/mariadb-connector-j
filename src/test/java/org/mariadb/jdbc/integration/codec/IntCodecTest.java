@@ -964,6 +964,24 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(11, meta.getColumnDisplaySize(1));
+
+    rs = getUnsigned();
+    meta = rs.getMetaData();
+    assertEquals("INTEGER UNSIGNED", meta.getColumnTypeName(1));
+    assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
+    assertEquals("java.lang.Long", meta.getColumnClassName(1));
+    assertEquals("t1alias", meta.getColumnLabel(1));
+    assertEquals("t1", meta.getColumnName(1));
+    assertEquals(Types.BIGINT, meta.getColumnType(1));
+    assertEquals(4, meta.getColumnCount());
+    assertEquals(0, meta.getScale(1));
+    assertEquals("", meta.getSchemaName(1));
+
+    // https://jira.mariadb.org/browse/XPT-276
+    if (!isXpand()) {
+      assertEquals(10, meta.getColumnDisplaySize(1));
+      assertEquals(10, meta.getPrecision(1));
+    }
   }
 
   @Test

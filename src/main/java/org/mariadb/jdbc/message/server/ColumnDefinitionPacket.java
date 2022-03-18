@@ -6,6 +6,7 @@ package org.mariadb.jdbc.message.server;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
+import java.util.Locale;
 import java.util.Objects;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
@@ -29,6 +30,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   private final int flags;
   private final int[] stringPos;
   private final String extTypeName;
+  private final String extTypeFormat;
   private boolean useAliasAsName;
 
   /**
@@ -46,9 +48,10 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.length = length;
     this.dataType = dataType;
     this.decimals = (byte) 0;
-    this.flags = ColumnFlags.PRIMARY_KEY;
+    this.flags = ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED;
     this.stringPos = stringPos;
     this.extTypeName = null;
+    this.extTypeFormat = null;
   }
 
   /**
@@ -69,6 +72,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
     if (extendedInfo) {
       String tmpTypeName = null;
+      String tmpTypeFormat = null;
 
       // fast skipping extended info (usually not set)
       if (buf.readByte() != 0) {
@@ -77,16 +81,24 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
         ReadableByteBuf subPacket = buf.readLengthBuffer();
         while (subPacket.readableBytes() > 0) {
-          if (subPacket.readByte() == 0) {
-            tmpTypeName = subPacket.readAscii(subPacket.readLength());
-          } else { // skip data
-            subPacket.skip(subPacket.readLength());
+          switch (subPacket.readByte()) {
+            case 0:
+              tmpTypeName = subPacket.readAscii(subPacket.readLength());
+              break;
+            case 1:
+              tmpTypeFormat = subPacket.readAscii(subPacket.readLength());
+              break;
+            default: // skip data
+              subPacket.skip(subPacket.readLength());
+              break;
           }
         }
       }
       extTypeName = tmpTypeName;
+      extTypeFormat = tmpTypeFormat;
     } else {
       extTypeName = null;
+      extTypeFormat = null;
     }
 
     this.buf = buf;
@@ -152,27 +164,27 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   public String getSchema() {
     buf.pos(stringPos[0]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTableAlias() {
     buf.pos(stringPos[1]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTable() {
     buf.pos(stringPos[useAliasAsName ? 1 : 2]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnAlias() {
     buf.pos(stringPos[3]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnName() {
     buf.pos(stringPos[4]);
-    return buf.readString(buf.readLengthNotNull());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public long getLength() {
@@ -268,6 +280,84 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     }
   }
 
+  public String getColumnTypeName(Configuration conf) {
+    switch (dataType) {
+      case SMALLINT:
+      case MEDIUMINT:
+      case INTEGER:
+      case BIGINT:
+        if (!isSigned()) {
+          return dataType.name() + " UNSIGNED";
+        } else {
+          return dataType.name();
+        }
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        /*
+         map to different blob types based on datatype length
+         see https://mariadb.com/kb/en/library/data-types/
+        */
+        if (extTypeFormat != null) {
+          return extTypeFormat.toUpperCase(Locale.ROOT);
+        }
+        if (isBinary()) {
+          if (length < 0) {
+            return "LONGBLOB";
+          } else if (length <= 255) {
+            return "TINYBLOB";
+          } else if (length <= 65535) {
+            return "BLOB";
+          } else if (length <= 16777215) {
+            return "MEDIUMBLOB";
+          } else {
+            return "LONGBLOB";
+          }
+        } else {
+          if (length < 0) {
+            return "LONGTEXT";
+          } else if (getDisplaySize() <= 65532) {
+            return "VARCHAR";
+          } else if (getDisplaySize() <= 65535) {
+            return "TEXT";
+          } else if (getDisplaySize() <= 16777215) {
+            return "MEDIUMTEXT";
+          } else {
+            return "LONGTEXT";
+          }
+        }
+      case VARSTRING:
+      case VARCHAR:
+        if (isBinary()) {
+          return "VARBINARY";
+        }
+        if (length < 0) {
+          return "LONGTEXT";
+        } else if (getDisplaySize() <= 65532) {
+          return "VARCHAR";
+        } else if (getDisplaySize() <= 65535) {
+          return "TEXT";
+        } else if (getDisplaySize() <= 16777215) {
+          return "MEDIUMTEXT";
+        } else {
+          return "LONGTEXT";
+        }
+      case STRING:
+        if (isBinary()) {
+          return "BINARY";
+        }
+        return "CHAR";
+      case GEOMETRY:
+        if (extTypeName != null) {
+          return extTypeName.toUpperCase(Locale.ROOT);
+        }
+        return dataType.name();
+      default:
+        return dataType.name();
+    }
+  }
+
   public int getColumnType(Configuration conf) {
     switch (dataType) {
       case TINYINT:
@@ -303,8 +393,9 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case YEAR:
         if (conf.yearIsDateType()) return Types.DATE;
         return Types.SMALLINT;
-      case VARCHAR:
       case JSON:
+        return Types.VARCHAR;
+      case VARCHAR:
       case ENUM:
       case SET:
       case VARSTRING:
@@ -333,6 +424,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case SET:
       case VARSTRING:
       case STRING:
+      case NULL:
         return StringCodec.INSTANCE;
       case TINYINT:
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
@@ -384,7 +476,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
-        return isBinary() ? BlobCodec.INSTANCE : ClobCodec.INSTANCE;
+        return isBinary() ? BlobCodec.INSTANCE : StringCodec.INSTANCE;
       case TIME:
         return TimeCodec.INSTANCE;
       case YEAR:

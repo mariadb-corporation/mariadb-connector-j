@@ -15,14 +15,22 @@ public class Sha256AuthenticationTest extends Common {
   private static final boolean isWindows =
       System.getProperty("os.name").toLowerCase().contains("win");
 
+  private static void dropUserWithoutError(org.mariadb.jdbc.Statement stmt, String user) {
+    try {
+      stmt.execute("DROP USER " + user);
+    } catch (SQLException e) {
+      // eat
+    }
+  }
+
   @AfterAll
   public static void drop() throws SQLException {
     if (sharedConn != null) {
       org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
-      stmt.execute("DROP USER IF EXISTS 'cachingSha256User'@'%'");
-      stmt.execute("DROP USER IF EXISTS 'cachingSha256User2'@'%'");
-      stmt.execute("DROP USER IF EXISTS 'cachingSha256User3'@'%'");
-      stmt.execute("DROP USER IF EXISTS 'cachingSha256User4'@'%'");
+      dropUserWithoutError(stmt, "'cachingSha256User'@'%'");
+      dropUserWithoutError(stmt, "'cachingSha256User2'@'%'");
+      dropUserWithoutError(stmt, "'cachingSha256User3'@'%'");
+      dropUserWithoutError(stmt, "'cachingSha256User4'@'%'");
     }
     // reason is that after nativePassword test, it sometime always return wrong authentication id
     // not cached
@@ -86,7 +94,12 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(
         !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS tmpUser@'%'");
+    try {
+      stmt.execute("DROP USER tmpUser@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
+
     stmt.execute(
         "CREATE USER tmpUser@'%' IDENTIFIED WITH mysql_native_password BY '!Passw0rd3Works'");
     stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser@'%'");
@@ -94,7 +107,11 @@ public class Sha256AuthenticationTest extends Common {
     try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
       con.isValid(1);
     }
-    stmt.execute("DROP USER IF EXISTS tmpUser@'%' ");
+    try {
+      stmt.execute("DROP USER tmpUser@'%' ");
+    } catch (SQLException e) {
+      // eat
+    }
   }
 
   @Test

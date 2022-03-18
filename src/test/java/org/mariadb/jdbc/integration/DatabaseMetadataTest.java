@@ -7,10 +7,7 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Statement;
 
 public class DatabaseMetadataTest extends Common {
@@ -243,6 +240,7 @@ public class DatabaseMetadataTest extends Common {
     // cancel for MySQL 8.0, since CASCADE with I_S give importedKeySetDefault, not
     // importedKeyCascade
     //    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
+    Assumptions.assumeFalse(isXpand());
     java.sql.Statement st = con.createStatement();
     st.execute("DROP TABLE IF EXISTS `product order 1`");
     st.execute("DROP TABLE IF EXISTS `other sch'ema`.`product order.2`");
@@ -472,7 +470,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross2", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref0", rs.getString("FKCOLUMN_NAME"));
-    assertEquals(1, rs.getInt("KEY_SEQ"));
+    assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
@@ -481,7 +479,9 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
     assertEquals("cross2_ibfk_1", rs.getString("FK_NAME"));
-    assertEquals("PRIMARY", rs.getString("PK_NAME"));
+    assertTrue(
+        "PRIMARY".equals(rs.getString("PK_NAME"))
+            || "__idx_cross1__PRIMARY".equals(rs.getString("PK_NAME")));
 
     assertTrue(rs.next());
 
@@ -493,19 +493,16 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross3", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref1", rs.getString("FKCOLUMN_NAME"));
-    assertEquals(1, rs.getInt("KEY_SEQ"));
+    assertTrue(rs.getInt("KEY_SEQ") == 1 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariaDBServer()) {
-      // index name not taken into account
-      assertEquals("cross3_ibfk_1", rs.getString("FK_NAME"));
-    } else {
-      assertEquals("fk_my_name", rs.getString("FK_NAME"));
-    }
+    assertTrue(
+        "cross3_ibfk_1".equals(rs.getString("FK_NAME"))
+            || "fk_my_name".equals(rs.getString("FK_NAME")));
     assertEquals("unik_name", rs.getString("PK_NAME"));
 
     assertTrue(rs.next());
@@ -517,19 +514,16 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString("FKTABLE_SCHEM"));
     assertEquals("cross3", rs.getString("FKTABLE_NAME"));
     assertEquals("id_ref2", rs.getString("FKCOLUMN_NAME"));
-    assertEquals(2, rs.getInt("KEY_SEQ"));
+    assertTrue(rs.getInt("KEY_SEQ") == 2 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("UPDATE_RULE"));
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariaDBServer()) {
-      // wrong index name
-      assertEquals("cross3_ibfk_1", rs.getString("FK_NAME"));
-    } else {
-      assertEquals("fk_my_name", rs.getString("FK_NAME"));
-    }
+    assertTrue(
+        "fk_my_name".equals(rs.getString("FK_NAME"))
+            || "cross3_ibfk_1".equals(rs.getString("FK_NAME")));
     assertEquals("unik_name", rs.getString("PK_NAME"));
   }
 
@@ -579,7 +573,7 @@ public class DatabaseMetadataTest extends Common {
         haveInformationSchema = true;
       }
     }
-    assertTrue(haveMysql);
+    if (!isXpand()) assertTrue(haveMysql);
     assertTrue(haveInformationSchema);
   }
 
@@ -611,11 +605,16 @@ public class DatabaseMetadataTest extends Common {
 
     rs = dbmd.getTables("", null, "prim_key", new String[] {"TABLE", null});
     assertEquals(true, rs.next());
+
+    // ensure no regression CONJ-921
+    rs = dbmd.getTables(null, null, null, new String[] {"TABLE"});
+    assertEquals(true, rs.next());
   }
 
   @Test
   public void testGetTables2() throws SQLException {
     DatabaseMetaData dbmd = sharedConn.getMetaData();
+    Assumptions.assumeTrue(!isXpand());
     ResultSet rs =
         dbmd.getTables(
             "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
@@ -666,6 +665,9 @@ public class DatabaseMetadataTest extends Common {
   public void testGetColumns() throws SQLException {
     // mysql 5.6 doesn't permit VIRTUAL keyword
     Assumptions.assumeTrue(isMariaDBServer() || !isMariaDBServer() && minVersion(5, 7, 0));
+    // Xpand doesn't support PERSISTENT keyword
+    Assumptions.assumeFalse(isXpand());
+
     Statement stmt = sharedConn.createStatement();
     if (minVersion(10, 2, 0) || !isMariaDBServer()) {
       stmt.execute(
@@ -674,7 +676,7 @@ public class DatabaseMetadataTest extends Common {
               + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
     } else {
       stmt.execute(
-          "CREATE TABLE IF NOT EXISTS table `ta\nble'getcolumns`("
+          "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
               + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
               + "d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET 'utf8mb4'");
     }
@@ -927,6 +929,8 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void identifierCaseSensitivity() throws Exception {
+    // https://jira.mariadb.org/browse/XPT-281
+    Assumptions.assumeFalse(isXpand());
     java.sql.Statement stmt = sharedConn.createStatement();
     try {
       if (sharedConn.getMetaData().supportsMixedCaseIdentifiers()) {
@@ -1007,6 +1011,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getBestRowIdentifier() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     DatabaseMetaData meta = sharedConn.getMetaData();
     Common.assertThrowsContains(
         SQLException.class,
@@ -1146,6 +1151,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsBasic() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     cancelForVersion(10, 1); // due to server error MDEV-8984
     if (minVersion(10, 2, 0)) {
       testResultSetColumns(
@@ -1174,6 +1180,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getProcedureColumnsBasic() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getProcedureColumns(null, null, null, null),
         "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
@@ -1185,6 +1192,8 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getFunctionColumnsBasic() throws SQLException {
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getFunctionColumns(null, null, null, null),
         "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
@@ -1195,6 +1204,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
@@ -1231,6 +1241,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getImportedKeysBasic() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getImportedKeys(null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
@@ -1240,6 +1251,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getExportedKeysBasic() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getExportedKeys(null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
@@ -1249,6 +1261,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getCrossReferenceBasic() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getCrossReference(null, null, "", null, null, ""),
         "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
@@ -1270,7 +1283,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString(6));
     assertEquals("cross2", rs.getString(7));
     assertEquals("id_ref0", rs.getString(8));
-    assertEquals(1, rs.getInt(9));
+    assertTrue(rs.getInt(9) == 1 || rs.wasNull());
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("UPDATE_RULE"));
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
@@ -1289,19 +1302,16 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString(6));
     assertEquals("cross3", rs.getString(7));
     assertEquals("id_ref1", rs.getString(8));
-    assertEquals(1, rs.getInt(9));
+    assertTrue(rs.getInt(9) == 1 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt(10));
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariaDBServer()) {
-      // wrong index naming
-      assertEquals("cross3_ibfk_1", rs.getString(12));
-    } else {
-      assertEquals("fk_my_name", rs.getString("FK_NAME"));
-    }
+    assertTrue(
+        "fk_my_name".equals(rs.getString("FK_NAME"))
+            || "cross3_ibfk_1".equals(rs.getString("FK_NAME")));
 
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1));
@@ -1312,19 +1322,15 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(null, rs.getString(6));
     assertEquals("cross3", rs.getString(7));
     assertEquals("id_ref2", rs.getString(8));
-    assertEquals(2, rs.getInt(9));
+    assertTrue(rs.getInt(9) == 2 || rs.wasNull());
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt(10));
     if (!isMariaDBServer() && minVersion(8, 0, 0)) {
       assertEquals(DatabaseMetaData.importedKeyNoAction, rs.getInt("DELETE_RULE"));
     } else {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
     }
-    if (!isMariaDBServer()) {
-      // wrong index naming
-      assertEquals("cross3_ibfk_1", rs.getString(12));
-    } else {
-      assertEquals("fk_my_name", rs.getString(12));
-    }
+    assertTrue("fk_my_name".equals(rs.getString(12)) || "cross3_ibfk_1".equals(rs.getString(12)));
+
     assertFalse(rs.next());
   }
 
@@ -1385,6 +1391,8 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnsTest() throws SQLException {
+    // https://jira.mariadb.org/browse/XPT-280
+    Assumptions.assumeTrue(!isXpand());
 
     DatabaseMetaData dmd = sharedConn.getMetaData();
     ResultSet rs = dmd.getColumns(sharedConn.getCatalog(), null, "manycols", null);
@@ -1548,19 +1556,19 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0, rsmd.getScale(2));
     // datetime(6)
     assertEquals(26, rsmd.getPrecision(3));
-    assertEquals(6, rsmd.getScale(3));
+    if (!isXpand()) assertEquals(6, rsmd.getScale(3));
     // timestamp(0)
     assertEquals(19, rsmd.getPrecision(4));
     assertEquals(0, rsmd.getScale(4));
     // timestamp(6)
     assertEquals(26, rsmd.getPrecision(5));
-    assertEquals(6, rsmd.getScale(5));
+    if (!isXpand()) assertEquals(6, rsmd.getScale(5));
     // time(0)
     assertEquals(10, rsmd.getPrecision(6));
     assertEquals(0, rsmd.getScale(6));
     // time(6)
     assertEquals(17, rsmd.getPrecision(7));
-    assertEquals(6, rsmd.getScale(7));
+    if (!isXpand()) assertEquals(6, rsmd.getScale(7));
   }
 
   @Test
@@ -1577,19 +1585,19 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(19, rs.getInt(columnSizeField));
     // datetime(6)
     assertTrue(rs.next());
-    assertEquals(26, rs.getInt(columnSizeField));
+    if (!isXpand()) assertEquals(26, rs.getInt(columnSizeField));
     // timestamp(0)
     assertTrue(rs.next());
     assertEquals(19, rs.getInt(columnSizeField));
     // timestamp(6)
     assertTrue(rs.next());
-    assertEquals(26, rs.getInt(columnSizeField));
+    if (!isXpand()) assertEquals(26, rs.getInt(columnSizeField));
     // time(0)
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(columnSizeField));
     // time(6)
     assertTrue(rs.next());
-    assertEquals(17, rs.getInt(columnSizeField));
+    if (!isXpand()) assertEquals(17, rs.getInt(columnSizeField));
 
     assertFalse(rs.next());
   }
@@ -1601,6 +1609,7 @@ public class DatabaseMetadataTest extends Common {
    */
   @Test
   public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
+    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE PROCEDURE getProcTimePrecision2(IN  I date, "
@@ -1646,6 +1655,7 @@ public class DatabaseMetadataTest extends Common {
    */
   @Test
   public void metaTimeProcedureResultSet() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE PROCEDURE getProcTimePrecision"
@@ -1990,15 +2000,10 @@ public class DatabaseMetadataTest extends Common {
   public void getMetaData() throws SQLException {
     ResultSet rs = sharedConn.createStatement().executeQuery("SELECT * FROM json_test");
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()) {
-      assertEquals("BLOB", meta.getColumnTypeName(1));
-      assertEquals("java.sql.Clob", meta.getColumnClassName(1));
-      assertEquals(Types.VARCHAR, meta.getColumnType(1));
-    } else {
-      assertEquals("JSON", meta.getColumnTypeName(1));
-      assertEquals("java.lang.String", meta.getColumnClassName(1));
-      assertEquals(Types.VARBINARY, meta.getColumnType(1));
-    }
+    assertTrue(
+        "LONGTEXT".equals(meta.getColumnTypeName(1)) || "JSON".equals(meta.getColumnTypeName(1)));
+    assertEquals(Types.VARCHAR, meta.getColumnType(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
   }
 
   @Test

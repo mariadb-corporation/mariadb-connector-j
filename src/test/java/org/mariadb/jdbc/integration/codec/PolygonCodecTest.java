@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
@@ -86,6 +87,8 @@ public class PolygonCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
+    // xpand doesn't recognized Polygon
+    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon)");
     stmt.execute(

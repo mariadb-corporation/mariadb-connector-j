@@ -74,7 +74,21 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return (short) (buf[pos] & 0xff);
   }
 
-  public int readLengthNotNull() {
+  public long readLongLengthEncodedNotNull() {
+    int type = (buf[pos++] & 0xff);
+    switch (type) {
+      case 252: // 0xfc
+        return readUnsignedShort();
+      case 253: // 0xfd
+        return readUnsignedMedium();
+      case 254: // 0xfe
+        return readLong();
+      default:
+        return type;
+    }
+  }
+
+  public int readIntLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
     switch (type) {
       case 252:
@@ -204,7 +218,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public StandardReadableByteBuf readLengthBuffer() {
-    int len = readLengthNotNull();
+    int len = this.readIntLengthEncodedNotNull();
     byte[] tmp = new byte[len];
     readBytes(tmp);
     return new StandardReadableByteBuf(tmp, len);

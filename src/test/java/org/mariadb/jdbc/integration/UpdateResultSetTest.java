@@ -92,7 +92,7 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "1"),
-          "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since no primary field is present in query");
     }
   }
 
@@ -111,7 +111,7 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "val"),
-          "ResultSet cannot be updated. primary field `id` is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
     }
   }
 
@@ -256,11 +256,11 @@ public class UpdateResultSetTest extends Common {
             rs.updateString(1, "1-1-bis");
             rs.updateRow();
           },
-          "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
       Common.assertThrowsContains(
           SQLException.class,
           rs::deleteRow,
-          "ResultSet cannot be updated. Cannot update rows, since primary field is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
       ResultSetMetaData rsmd = rs.getMetaData();
       assertFalse(rsmd.isReadOnly(1));
       assertFalse(rsmd.isReadOnly(2));

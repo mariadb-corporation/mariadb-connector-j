@@ -637,7 +637,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     if (types != null && types.length > 0) {
       boolean mustAddType = false;
-      StringBuilder sqlType = new StringBuilder(" AND TABLE_TYPE IN (");
+
+      StringBuilder sqlType =
+          new StringBuilder(((firstCondition) ? " WHERE " : " AND ") + " TABLE_TYPE IN (");
       for (String s : types) {
         if (mustAddType) sqlType.append(",");
         mustAddType = true;
@@ -791,7 +793,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
     sb.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION");
-
     return executeQuery(sb.toString());
   }
 

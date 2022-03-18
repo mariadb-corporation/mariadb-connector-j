@@ -36,9 +36,15 @@ public enum HaMode {
         boolean primary) {
       // use in order not blacklisted server
       List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
-      loopAddress.removeAll(denyList.keySet());
-      Collections.shuffle(loopAddress);
 
+      // ensure denied server have not reached denied timeout
+      denyList.entrySet().stream()
+          .filter(e -> e.getValue() < System.currentTimeMillis())
+          .forEach(e -> denyList.remove(e.getKey()));
+
+      loopAddress.removeAll(denyList.keySet());
+
+      Collections.shuffle(loopAddress);
       return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
     }
   },

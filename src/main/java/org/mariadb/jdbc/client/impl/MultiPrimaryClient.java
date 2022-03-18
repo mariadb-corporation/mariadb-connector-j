@@ -38,7 +38,7 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class MultiPrimaryClient implements Client {
   private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
-  /** is socket close */
+  /** temporary blacklisted hosts */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
 
   /** denied timeout */
@@ -89,7 +89,9 @@ public class MultiPrimaryClient implements Client {
     int maxRetries = conf.retriesAllDown();
 
     while ((host = conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly))
-        .isPresent()) {
+            .isPresent()
+        && maxRetries > 0) {
+
       try {
         return conf.transactionReplay()
             ? new ReplayClient(conf, host.get(), lock, false)

@@ -15,15 +15,16 @@ public class BatchTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    after2();
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP TABLE IF EXISTS BatchTest");
     stmt.execute(
         "CREATE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
+    createSequenceTables();
   }
 
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE BatchTest");
+    sharedConn.createStatement().execute("DROP TABLE IF EXISTS BatchTest");
   }
 
   @Test
@@ -78,20 +79,20 @@ public class BatchTest extends Common {
       differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
-      differentParameterType(con, isMariaDBServer());
+      differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts=true&disablePipeline")) {
-      differentParameterType(con, isMariaDBServer());
+      differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
       differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con, isMariaDBServer());
+      differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      differentParameterType(con, isMariaDBServer());
+      differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false&allowLocalInfile")) {
       differentParameterType(con, false);
@@ -194,11 +195,11 @@ public class BatchTest extends Common {
       assertEquals(1, res[1]);
 
       stmt.execute("TRUNCATE BatchTest");
-      if (isMariaDBServer()) {
-        stmt.setFetchSize(1);
-        rs = stmt.executeQuery("SELECT * FROM seq_1_to_10");
-        rs.next();
-      }
+
+      stmt.setFetchSize(1);
+      rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
+      rs.next();
+
       prep.setInt(1, 1);
       prep.setString(2, "1");
       prep.addBatch();
@@ -270,6 +271,7 @@ public class BatchTest extends Common {
 
   @Test
   public void bulkPacketSplitMaxAllowedPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(2, maxAllowedPacket - 40, maxAllowedPacket);
     if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(2, maxAllowedPacket - 40, null);
@@ -277,6 +279,7 @@ public class BatchTest extends Common {
 
   @Test
   public void bulkPacketSplitMultiplePacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(4, getMaxAllowedPacket() / 3, maxAllowedPacket);
     if (maxAllowedPacket >= 16 * 1024 * 1024) bulkPacketSplit(4, getMaxAllowedPacket() / 3, null);
@@ -284,6 +287,7 @@ public class BatchTest extends Common {
 
   @Test
   public void bulkPacketSplitHugeNbPacket() throws SQLException {
+    Assumptions.assumeTrue(runLongTest());
     int maxAllowedPacket = getMaxAllowedPacket();
     bulkPacketSplit(getMaxAllowedPacket() / 8000, 20, maxAllowedPacket);
     if (maxAllowedPacket >= 16 * 1024 * 1024)
@@ -390,8 +394,8 @@ public class BatchTest extends Common {
       prep.setInt(1, 1);
       prep.setString(2, "val3");
       prep.addBatch();
-      Common.assertThrowsContains(
-          BatchUpdateException.class, prep::executeBatch, "Duplicate entry '1' for key 'PRIMARY'");
+      // Duplicate entry '1' for key 'PRIMARY'
+      assertThrows(BatchUpdateException.class, prep::executeBatch);
     }
   }
 }

@@ -71,7 +71,17 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
   }
 
   @Override
-  protected void validParameters() throws SQLException {
+  protected void executeInternal() throws SQLException {
+    preValidParameters();
+    super.executeInternal();
+  }
+
+  /**
+   * Ensures that returning value is not taken as a parameter.
+   *
+   * @throws SQLException if any exception
+   */
+  protected void preValidParameters() throws SQLException {
     // remove first parameter, as it's an output param only
     Parameters newParameters = new ParameterList(parameters.size() - 1);
     for (int i = 0; i < parameters.size() - 1; i++) {

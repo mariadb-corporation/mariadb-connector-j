@@ -50,12 +50,16 @@ public class MariaDbPoolDataSource
     if (url == null) throw new SQLException("url not set");
     conf = Configuration.parse(url);
     if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
-    if (user != null) {
+    if (user != null || password != null) {
       conf = conf.clone(user, password);
-    } else {
+    }
+    if (user != null) {
       user = conf.user();
+    }
+    if (password != null) {
       password = conf.password();
     }
+
     pool = Pools.retrievePool(conf);
   }
 
@@ -266,15 +270,6 @@ public class MariaDbPoolDataSource
   public void setUser(String user) throws SQLException {
     this.user = user;
     if (conf != null) config();
-  }
-
-  /**
-   * get password
-   *
-   * @return password
-   */
-  public String getPassword() {
-    return password;
   }
 
   /**

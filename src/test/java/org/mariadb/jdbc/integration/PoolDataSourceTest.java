@@ -143,7 +143,6 @@ public class PoolDataSourceTest extends Common {
     MariaDbPoolDataSource ds = new MariaDbPoolDataSource();
     assertNull(ds.getUrl());
     assertNull(ds.getUser());
-    assertNull(ds.getPassword());
     assertEquals(30, ds.getLoginTimeout());
     DriverManager.setLoginTimeout(40);
     assertEquals(40, ds.getLoginTimeout());
@@ -162,7 +161,6 @@ public class PoolDataSourceTest extends Common {
     assertEquals("dd", ds.getUser());
 
     ds.setPassword("pwd");
-    assertEquals("pwd", ds.getPassword());
     assertThrows(SQLException.class, () -> ds.getConnection());
     assertThrows(SQLException.class, () -> ds.getPooledConnection());
 
@@ -601,6 +599,7 @@ public class PoolDataSourceTest extends Common {
   public void ensureClosed() throws Throwable {
     Thread.sleep(500); // ensure that previous close are effective
     int initialConnection = getCurrentConnections();
+    Assumptions.assumeFalse(initialConnection == -1);
 
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=10&minPoolSize=1")) {
@@ -675,10 +674,11 @@ public class PoolDataSourceTest extends Common {
     try {
       Statement stmt = sharedConn.createStatement();
       ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
-      assertTrue(rs.next());
-      System.out.println("threads : " + rs.getInt(2));
-      return rs.getInt(2);
-
+      if (rs.next()) {
+        System.out.println("threads : " + rs.getInt(2));
+        return rs.getInt(2);
+      }
+      return -1;
     } catch (SQLException e) {
       return -1;
     }

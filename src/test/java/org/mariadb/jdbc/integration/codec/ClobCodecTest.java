@@ -87,12 +87,13 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals(new MariaDbClob("0".getBytes()), rs.getObject(1));
+    assertEquals(new MariaDbClob("0".getBytes()), rs.getObject(1, Clob.class));
     assertFalse(rs.wasNull());
-    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject(2));
-    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject("t2alias"));
+    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject(2, Clob.class));
+    assertEquals(new MariaDbClob("1".getBytes()), rs.getObject("t2alias", Clob.class));
     assertFalse(rs.wasNull());
-    assertEquals(new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getObject(3));
+    assertEquals(
+        new MariaDbClob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getObject(3, Clob.class));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -709,9 +710,9 @@ public class ClobCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("BLOB", meta.getColumnTypeName(1));
+    assertEquals("VARCHAR", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.sql.Clob", meta.getColumnClassName(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARCHAR, meta.getColumnType(1));
@@ -751,6 +752,7 @@ public class ClobCodecTest extends CommonCodecTest {
     Clob longData = new MariaDbClob(longDataSb.toString().getBytes(StandardCharsets.UTF_8));
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
+
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO ClobParamCodec(t1) VALUES (?)")) {
       prep.setClob(1, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));

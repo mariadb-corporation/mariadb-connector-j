@@ -13,13 +13,12 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import javax.net.ssl.SSLContext;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.tools.TcpProxy;
-
-import javax.net.ssl.SSLContext;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
@@ -30,7 +29,11 @@ public class SslTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS serverAuthUser");
+    try {
+      stmt.execute("DROP USER serverAuthUser");
+    } catch (SQLException e) {
+      // eat
+    }
   }
 
   @BeforeAll
@@ -116,7 +119,8 @@ public class SslTest extends Common {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try {
-      List<String> protocols = Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
+      List<String> protocols =
+          Arrays.asList(SSLContext.getDefault().getSupportedSSLParameters().getProtocols());
       Assumptions.assumeTrue(protocols.contains("TLSv1.3") && protocols.contains("TLSv1.2"));
     } catch (NoSuchAlgorithmException e) {
       // eat
@@ -264,6 +268,20 @@ public class SslTest extends Common {
           createCon(
               baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath, sslPort)) {
         assertNotNull(getSslVersion(con));
+      }
+
+      if (System.getenv("TEST_DB_CLIENT_CERT_FULL") != null) {
+        // client certificate is using extendedKeyUsage = critical, clientAuth, but java don't throw
+        // an exception
+        // as RFC 5280 would require
+        try (Connection con =
+            createCon(
+                baseOptions
+                    + "&sslMode=VERIFY_FULL&serverSslCert="
+                    + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
+                sslPort)) {
+          con.isValid(1000);
+        }
       }
 
       Configuration conf = Configuration.parse(mDefUrl);

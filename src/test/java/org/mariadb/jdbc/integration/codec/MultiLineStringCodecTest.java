@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
@@ -73,6 +74,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws Exception {
     drop();
+    // xpand doesn't recognized MultiLineString
+    Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3 MultiLineString, t4 MultiLineString)");

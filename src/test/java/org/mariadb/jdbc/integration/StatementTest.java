@@ -6,12 +6,15 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
+import org.mariadb.jdbc.client.result.CompleteResult;
 
 public class StatementTest extends Common {
 
@@ -22,6 +25,7 @@ public class StatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS executeGenerated");
     stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
     stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
+    stmt.execute("DROP TABLE IF EXISTS bigIntId");
   }
 
   @BeforeAll
@@ -34,7 +38,42 @@ public class StatementTest extends Common {
     stmt.execute(
         "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE testAffectedRow(id int)");
+    stmt.execute(
+        "CREATE TABLE bigIntId(`id` bigint(20) unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT, val VARCHAR(256))");
+    createSequenceTables();
     stmt.execute("FLUSH TABLES");
+  }
+
+  @Test
+  public void longGeneratedId() throws SQLException {
+    longGeneratedId(BigInteger.ONE);
+    longGeneratedId(BigInteger.valueOf(Integer.MAX_VALUE));
+    longGeneratedId(BigInteger.valueOf(4294967295L));
+    longGeneratedId(BigInteger.valueOf(Long.MAX_VALUE));
+  }
+
+  public void longGeneratedId(BigInteger expected) throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("ALTER TABLE bigIntId AUTO_INCREMENT=" + expected.toString());
+    stmt.execute(
+        "INSERT INTO bigIntId(val) value ('est')", java.sql.Statement.RETURN_GENERATED_KEYS);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+
+    if (expected.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 1) {
+      assertThrowsContains(SQLDataException.class, () -> rs.getInt(1), "integer overflow");
+    } else {
+      assertEquals(expected.intValueExact(), rs.getInt(1));
+    }
+
+    if (expected.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) >= 1) {
+      assertThrowsContains(
+          SQLDataException.class, () -> rs.getLong(1), "cannot be decoded as Long");
+    } else {
+      assertEquals(expected.longValueExact(), rs.getLong(1));
+    }
+    assertTrue(expected.compareTo(((CompleteResult) rs).getBigInteger(1)) == 0);
+    assertTrue(new BigDecimal(expected).compareTo(rs.getBigDecimal(1)) == 0);
   }
 
   @Test
@@ -74,11 +113,13 @@ public class StatementTest extends Common {
     assertEquals(-1, stmt.getUpdateCount());
     assertFalse(stmt.getMoreResults());
     assertEquals(-1, stmt.getUpdateCount());
-    assertFalse(stmt.execute("DO 1"));
-    Assertions.assertNull(stmt.getResultSet());
-    assertEquals(0, stmt.getUpdateCount());
-    assertFalse(stmt.getMoreResults());
-    assertEquals(-1, stmt.getUpdateCount());
+    if (!isXpand()) {
+      assertFalse(stmt.execute("DO 1"));
+      Assertions.assertNull(stmt.getResultSet());
+      assertEquals(0, stmt.getUpdateCount());
+      assertFalse(stmt.getMoreResults());
+      assertEquals(-1, stmt.getUpdateCount());
+    }
 
     assertTrue(stmt.execute("SELECT 1", new int[] {1, 2}));
     rs = stmt.getGeneratedKeys();
@@ -153,7 +194,9 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeUpdate("DO 1"));
+    if (!isXpand()) {
+      assertEquals(0, stmt.executeUpdate("DO 1"));
+    }
   }
 
   @Test
@@ -185,7 +228,9 @@ public class StatementTest extends Common {
           sqle.getMessage()
               .contains("the given SQL statement produces an unexpected ResultSet object"));
     }
-    assertEquals(0, stmt.executeLargeUpdate("DO 1"));
+    if (!isXpand()) {
+      assertEquals(0, stmt.executeLargeUpdate("DO 1"));
+    }
   }
 
   @Test
@@ -193,24 +238,21 @@ public class StatementTest extends Common {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1");
     assertTrue(rs.next());
-
-    rs = stmt.executeQuery("DO 1");
-    assertFalse(rs.next());
+    if (!isXpand()) {
+      rs = stmt.executeQuery("DO 1");
+      assertFalse(rs.next());
+    }
   }
 
   @Test
   public void close() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     assertFalse(stmt.isClosed());
-    ResultSet rs = stmt.executeQuery("select * FROM mysql.user LIMIT 1");
+    ResultSet rs = stmt.executeQuery("select * FROM sequence_1_to_10 LIMIT 1");
     rs.next();
-    Object[] objs = new Object[45];
-    for (int i = 0; i < 45; i++) {
-      objs[i] = rs.getObject(i + 1);
-    }
+    rs.getObject(1);
 
-    rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     assertFalse(rs.isClosed());
     stmt.close();
     assertTrue(stmt.isClosed());
@@ -288,7 +330,6 @@ public class StatementTest extends Common {
 
   @Test
   public void maxRows() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     assertEquals(0, stmt.getMaxRows());
     try {
@@ -301,7 +342,7 @@ public class StatementTest extends Common {
     stmt.setMaxRows(10);
     assertEquals(10, stmt.getMaxRows());
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     int i = 0;
     while (rs.next()) {
       i++;
@@ -310,7 +351,7 @@ public class StatementTest extends Common {
     assertEquals(10, i);
 
     stmt.setQueryTimeout(2);
-    rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     i = 0;
     while (rs.next()) {
       i++;
@@ -321,7 +362,6 @@ public class StatementTest extends Common {
 
   @Test
   public void largeMaxRows() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     assertEquals(0L, stmt.getLargeMaxRows());
     try {
@@ -334,7 +374,7 @@ public class StatementTest extends Common {
     stmt.setLargeMaxRows(10);
     assertEquals(10L, stmt.getLargeMaxRows());
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     int i = 0;
     while (rs.next()) {
       i++;
@@ -343,7 +383,7 @@ public class StatementTest extends Common {
     assertEquals(10, i);
 
     stmt.setQueryTimeout(2);
-    rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     i = 0;
     while (rs.next()) {
       i++;
@@ -383,13 +423,12 @@ public class StatementTest extends Common {
 
   @Test
   public void getMoreResults() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     assertFalse(stmt.getMoreResults(Statement.KEEP_CURRENT_RESULT));
     assertFalse(rs.isClosed());
 
-    rs = stmt.executeQuery("SELECT * FROM seq_1_to_10000");
+    rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10000");
     stmt.getMoreResults(Statement.CLOSE_CURRENT_RESULT);
     assertTrue(rs.isClosed());
     stmt.close();
@@ -402,7 +441,8 @@ public class StatementTest extends Common {
         isMariaDBServer()
             && !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
     Statement stmt = sharedConn.createStatement();
 
     Common.assertThrowsContains(
@@ -458,9 +498,7 @@ public class StatementTest extends Common {
   public void testWarnings() throws SQLException {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeTrue(isMariaDBServer());
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
 
     Statement stmt = sharedConn.createStatement();
 
@@ -497,7 +535,8 @@ public class StatementTest extends Common {
         isMariaDBServer()
             && !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.cancel(); // will do nothing
 
@@ -517,14 +556,14 @@ public class StatementTest extends Common {
 
   @Test
   public void fetch() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
+    Statement stmt2 = sharedConn.createStatement();
     Common.assertThrowsContains(
         SQLException.class, () -> stmt.setFetchSize(-10), "invalid fetch size");
 
     stmt.setFetchSize(10);
     assertEquals(10, stmt.getFetchSize());
-    ResultSet rs = stmt.executeQuery("select * FROM seq_1_to_10000");
+    ResultSet rs = stmt.executeQuery("select * FROM sequence_1_to_10000");
 
     for (int i = 1; i <= 10000; i++) {
       assertTrue(rs.next());
@@ -532,30 +571,38 @@ public class StatementTest extends Common {
     }
 
     assertFalse(rs.next());
+
+    rs = stmt.executeQuery("select * FROM sequence_1_to_10");
+    ResultSet rs2 = stmt2.executeQuery("SELECT 200");
+    for (int i = 1; i <= 10; i++) {
+      assertTrue(rs.next());
+      assertEquals(i, rs.getInt(1));
+    }
+    assertTrue(rs2.next());
+    assertEquals(200, rs2.getInt(1));
   }
 
   @Test
   public void fetchUnFinishedSameStatement() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(10);
     assertEquals(10, stmt.getFetchSize());
-    ResultSet rs = stmt.executeQuery("select * FROM seq_1_to_1000");
+    ResultSet rs = stmt.executeQuery("select * FROM sequence_1_to_10000");
 
-    for (int i = 1; i <= 500; i++) {
+    for (int i = 1; i <= 5000; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
     }
 
-    ResultSet rs2 = stmt.executeQuery("select * FROM seq_1_to_1000");
+    ResultSet rs2 = stmt.executeQuery("select * FROM sequence_1_to_10000");
 
-    for (int i = 501; i <= 1000; i++) {
+    for (int i = 5001; i <= 10000; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
     }
     assertFalse(rs.next());
 
-    for (int i = 1; i <= 1000; i++) {
+    for (int i = 1; i <= 10000; i++) {
       assertTrue(rs2.next());
       assertEquals(i, rs2.getInt(1));
     }
@@ -564,11 +611,10 @@ public class StatementTest extends Common {
 
   @Test
   public void fetchUnFinishedOtherStatement() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(5);
     assertEquals(5, stmt.getFetchSize());
-    ResultSet rs = stmt.executeQuery("select * FROM seq_1_to_20");
+    ResultSet rs = stmt.executeQuery("select * FROM sequence_1_to_10000");
 
     for (int i = 1; i <= 10; i++) {
       assertTrue(rs.next());
@@ -576,15 +622,15 @@ public class StatementTest extends Common {
     }
 
     Statement stmt2 = sharedConn.createStatement();
-    ResultSet rs2 = stmt2.executeQuery("select * FROM seq_1_to_20");
+    ResultSet rs2 = stmt2.executeQuery("select * FROM sequence_1_to_10000");
 
-    for (int i = 11; i <= 20; i++) {
-      assertTrue(rs.next());
+    for (int i = 11; i <= 10000; i++) {
+      assertTrue(rs.next(), "val " + i);
       assertEquals(i, rs.getInt(1));
     }
     assertFalse(rs.next());
 
-    for (int i = 1; i <= 20; i++) {
+    for (int i = 1; i <= 10000; i++) {
       assertTrue(rs2.next());
       assertEquals(i, rs2.getInt(1));
     }
@@ -593,10 +639,9 @@ public class StatementTest extends Common {
 
   @Test
   public void fetchUnfinished() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(1);
-    stmt.executeQuery("select * FROM seq_1_to_20");
+    stmt.executeQuery("select * FROM sequence_1_to_10");
     assertFalse(stmt.getMoreResults());
 
     Statement stmt2 = sharedConn.createStatement();
@@ -607,13 +652,12 @@ public class StatementTest extends Common {
 
   @Test
   public void fetchClose() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.setFetchSize(10);
     assertEquals(10, stmt.getFetchSize());
-    ResultSet rs = stmt.executeQuery("select * FROM seq_1_to_1000");
+    ResultSet rs = stmt.executeQuery("select * FROM sequence_1_to_10000");
 
-    for (int i = 1; i <= 500; i++) {
+    for (int i = 1; i <= 5000; i++) {
       assertTrue(rs.next());
       assertEquals(i, rs.getInt(1));
     }
@@ -622,8 +666,8 @@ public class StatementTest extends Common {
     stmt.close();
 
     Statement stmt2 = sharedConn.createStatement();
-    ResultSet rs2 = stmt2.executeQuery("select * FROM seq_1_to_1000");
-    for (int i = 1; i <= 1000; i++) {
+    ResultSet rs2 = stmt2.executeQuery("select * FROM sequence_1_to_10000");
+    for (int i = 1; i <= 10000; i++) {
       assertTrue(rs2.next());
       assertEquals(i, rs2.getInt(1));
     }
@@ -667,8 +711,14 @@ public class StatementTest extends Common {
     assertArrayEquals(new int[0], stmt.executeBatch());
     stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
-    Common.assertThrowsContains(
-        BatchUpdateException.class, stmt::executeBatch, "You have an error in your SQL syntax");
+    try {
+      stmt.executeBatch();
+      fail();
+    } catch (BatchUpdateException e) {
+      assertTrue(
+          e.getMessage().contains("You have an error in your SQL syntax")
+              || e.getMessage().contains("syntax error"));
+    }
   }
 
   @Test
@@ -702,10 +752,14 @@ public class StatementTest extends Common {
     Assertions.assertArrayEquals(new long[0], ret);
     stmt.addBatch("INSERT INTO executeLargeBatchBasic(t2) VALUES (57)");
     stmt.addBatch("WRONG QUERY");
-    Common.assertThrowsContains(
-        BatchUpdateException.class,
-        stmt::executeLargeBatch,
-        "You have an error in your SQL syntax");
+    try {
+      stmt.executeBatch();
+      fail();
+    } catch (BatchUpdateException e) {
+      assertTrue(
+          e.getMessage().contains("You have an error in your SQL syntax")
+              || e.getMessage().contains("syntax error"));
+    }
   }
 
   @Test
@@ -724,12 +778,11 @@ public class StatementTest extends Common {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
         !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from seq_1_to_10; SELECT * FROM seq_1_to_1000;SELECT 2; END");
+        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM sequence_1_to_10000;SELECT 2; END");
     stmt.execute("CALL multi()");
     assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
@@ -737,7 +790,7 @@ public class StatementTest extends Common {
     while (rs.next()) {
       assertEquals(i++, rs.getInt(1));
     }
-    assertEquals(1001, i);
+    assertEquals(10001, i);
     stmt.setFetchSize(3);
 
     rs = stmt.executeQuery("CALL multi()");
@@ -767,7 +820,7 @@ public class StatementTest extends Common {
     while (rs.next()) {
       assertEquals(i++, rs.getInt(1));
     }
-    assertEquals(1001, i);
+    assertEquals(10001, i);
 
     rs = stmt.executeQuery("CALL multi()");
     stmt.close();
@@ -811,7 +864,9 @@ public class StatementTest extends Common {
   @Test
   public void testAffectedRow() throws SQLException {
     testAffectedRow(false);
-    testAffectedRow(true);
+    if (!isXpand()) {
+      testAffectedRow(true);
+    }
   }
 
   private void testAffectedRow(boolean useAffectedRows) throws SQLException {

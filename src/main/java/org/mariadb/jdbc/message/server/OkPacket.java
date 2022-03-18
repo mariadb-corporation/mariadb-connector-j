@@ -27,27 +27,27 @@ public class OkPacket implements Completion {
    */
   public OkPacket(ReadableByteBuf buf, Context context) {
     buf.skip(); // ok header
-    this.affectedRows = buf.readLengthNotNull();
-    this.lastInsertId = buf.readLengthNotNull();
+    this.affectedRows = buf.readLongLengthEncodedNotNull();
+    this.lastInsertId = buf.readLongLengthEncodedNotNull();
     context.setServerStatus(buf.readUnsignedShort());
     context.setWarning(buf.readUnsignedShort());
 
     if ((context.getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0
         && buf.readableBytes() > 0) {
-      buf.skip(buf.readLengthNotNull()); // skip info
+      buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
       while (buf.readableBytes() > 0) {
-        if (buf.readLengthNotNull() > 0) {
+        if (buf.readIntLengthEncodedNotNull() > 0) {
           switch (buf.readByte()) {
             case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-              buf.readLengthNotNull();
-              String variable = buf.readString(buf.readLengthNotNull());
+              buf.readIntLengthEncodedNotNull();
+              String variable = buf.readString(buf.readIntLengthEncodedNotNull());
               Integer len = buf.readLength();
               String value = len == null ? null : buf.readString(len);
               logger.debug("System variable change:  {} = {}", variable, value);
               break;
 
             case StateChange.SESSION_TRACK_SCHEMA:
-              buf.readLengthNotNull();
+              buf.readIntLengthEncodedNotNull();
               Integer dbLen = buf.readLength();
               String database = dbLen == null ? null : buf.readString(dbLen);
               context.setDatabase(database.isEmpty() ? null : database);
@@ -55,7 +55,7 @@ public class OkPacket implements Completion {
               break;
 
             default:
-              buf.skip(buf.readLengthNotNull());
+              buf.skip(buf.readIntLengthEncodedNotNull());
           }
         }
       }

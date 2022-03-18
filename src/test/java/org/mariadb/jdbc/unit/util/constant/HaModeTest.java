@@ -83,7 +83,7 @@ public class HaModeTest {
   }
 
   @Test
-  public void loadBalanceTest() {
+  public void loadBalanceTest() throws InterruptedException {
     HostAddress host1 = HostAddress.from("1", 3306, true);
     HostAddress host2 = HostAddress.from("2", 3306, true);
     HostAddress host3 = HostAddress.from("3", 3306, true);
@@ -107,7 +107,7 @@ public class HaModeTest {
     Integer use = res.get(host1);
     Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
 
-    denyList.putIfAbsent(host1, System.currentTimeMillis() + 10000);
+    denyList.putIfAbsent(host1, System.currentTimeMillis() + 100);
 
     res = loopPercReturn(available, denyList);
     for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
@@ -116,6 +116,15 @@ public class HaModeTest {
     use = res.get(host2);
     Assertions.assertTrue(
         use > 400 && use < 600, "Expect 50% host2 and 50% host 3, but was " + use);
+
+    Thread.sleep(200);
+
+    res = loopPercReturn(available, denyList);
+    for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
+      System.out.println(entry.getKey() + " : " + entry.getValue());
+    }
+    use = res.get(host1);
+    Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
   }
 
   @Test

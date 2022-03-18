@@ -150,8 +150,11 @@ public class ParameterMetaDataTest extends Common {
         assertEquals(16383, meta.getPrecision(1));
         assertEquals(31, meta.getScale(1));
       } else {
-        assertEquals(0, meta.getPrecision(1));
-        assertEquals(0, meta.getScale(1));
+        // Xpand datatype as issue https://jira.mariadb.org/browse/XPT-279
+        if (!isXpand()) {
+          assertEquals(0, meta.getPrecision(1));
+          assertEquals(0, meta.getScale(1));
+        }
       }
 
       assertTrue(meta.isSigned(1));

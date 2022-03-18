@@ -19,7 +19,7 @@ cache:
     - $HOME/docker
     - $HOME/.m2
 
-env: local=0
+env: local=0 RUN_LONG_TEST=true
 
 install:
   - |-
@@ -37,6 +37,7 @@ install:
 jobs:
   allow_failures:
     - env: srv=build v=10.6
+    - env: srv=xpand TEST_DB_OTHER="initSql=SET NAMES UTF8"
   include:
     - env: srv=mariadb v=10.6
       os: windows
@@ -52,6 +53,8 @@ jobs:
     - env: srv=mariadb v=10.6 local=1 BENCH=1
     - if: type = push AND fork = false
       env: srv=maxscale
+    - if: type = push AND fork = false
+      env: srv=xpand TEST_DB_OTHER="initSql=SET NAMES UTF8"
     - if: type = push AND fork = false
       env: srv=build v=10.6
     - if: type = push AND fork = false

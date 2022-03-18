@@ -46,6 +46,9 @@ public class LocalInfileTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
 
+    // https://jira.mariadb.org/browse/XPT-270
+    Assumptions.assumeFalse(isXpand());
+
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
       Common.assertThrowsContains(
@@ -230,7 +233,7 @@ public class LocalInfileTest extends Common {
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
     Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
+        ((isMariaDBServer() || !minVersion(8, 0, 3)) && runLongTest())
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     checkBigLocalInfile(16777216 * 2);
@@ -242,6 +245,7 @@ public class LocalInfileTest extends Common {
         (isMariaDBServer() || !minVersion(8, 0, 3))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(runLongTest());
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
     assertTrue(rs.next());

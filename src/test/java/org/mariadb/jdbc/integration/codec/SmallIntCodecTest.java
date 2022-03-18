@@ -918,17 +918,21 @@ public class SmallIntCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("SMALLINT", meta.getColumnTypeName(1));
+    assertEquals("SMALLINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.INTEGER, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(5, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(5, meta.getColumnDisplaySize(1));
+
+    // https://jira.mariadb.org/browse/XPT-276
+    if (!isXpand()) {
+      assertEquals(5, meta.getPrecision(1));
+      assertEquals(5, meta.getColumnDisplaySize(1));
+    }
   }
 
   @Test

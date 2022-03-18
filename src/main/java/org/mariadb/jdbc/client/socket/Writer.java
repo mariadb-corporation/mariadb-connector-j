@@ -17,6 +17,13 @@ public interface Writer {
   int pos();
 
   /**
+   * Current buffer
+   *
+   * @return current buffer
+   */
+  byte[] buf();
+
+  /**
    * Set current buffer position
    *
    * @param pos position

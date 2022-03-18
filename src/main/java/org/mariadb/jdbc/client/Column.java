@@ -134,6 +134,14 @@ public interface Column {
   int getColumnType(Configuration conf);
 
   /**
+   * Retrieves the designated column's MariaDB/MySQL type name
+   *
+   * @param conf configuration
+   * @return type name used by the database
+   */
+  String getColumnTypeName(Configuration conf);
+
+  /**
    * return column codec from column server type
    *
    * @param conf configuration
