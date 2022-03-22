@@ -1,0 +1,21 @@
+Export-Package: org.mariadb.jdbc;org.mariadb.jdbc.client;org.mariadb.jdbc.client.util;org.mariadb.jdbc.client.socket;org.mariadb.jdbc.message;org.mariadb.jdbc.type;org.mariadb.jdbc.export;org.mariadb.jdbc.plugin;org.mariadb.jdbc.plugin.codec;org.mariadb.jdbc.plugin.authentication.standard;org.mariadb.jdbc.plugin.authentication.addon;org.mariadb.jdbc.plugin.credential.aws;org.mariadb.jdbc.plugin.credential.env;org.mariadb.jdbc.plugin.credential.system;org.mariadb.jdbc.plugin.tls.main
+
+Import-Package: \
+    javax.naming,\
+    javax.naming.ldap,\
+    javax.management,\
+    javax.sql,\
+    org.slf4j;resolution:=optional, \
+    javax.net;resolution:=optional,\
+    javax.net.ssl;resolution:=optional,\
+    com.sun.jna;resolution:=optional,\
+    com.sun.jna.platform.win32;resolution:=optional,\
+    javax.transaction.xa;resolution:=optional,\
+    waffle.windows.auth;resolution:=optional,\
+    waffle.windows.auth.impl;resolution:=optional,\
+    org.ietf.jgss;resolution:=optional,\
+    javax.security.auth.login;resolution:=optional,\
+    javax.security.auth.x500;resolution:=optional,\
+    software.amazon.awssdk.*;resolution:=optional
+
+-fixupmessages: "Classes found in the wrong directory:";is:=ignore
