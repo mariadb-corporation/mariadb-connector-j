@@ -24,7 +24,7 @@
         <jacoco.version>0.8.7</jacoco.version>
         <waffle-jna.version>3.1.1</waffle-jna.version>
         <mysql-connector-java.version>8.0.28</mysql-connector-java.version>
-        <bnd-maven-plugin.version>6.1.0</bnd-maven-plugin.version>
+        <bnd-maven-plugin.version>6.2.0</bnd-maven-plugin.version>
     </properties>
 
     <licenses>
