@@ -632,9 +632,10 @@ public class PoolDataSourceTest extends Common {
         pool.getConnection();
         fail();
       } catch (SQLException sqle) {
+        // ensure more time for windows
         assertTrue(
             (System.currentTimeMillis() - start) >= 500
-                && (System.currentTimeMillis() - start) < 800,
+                && (System.currentTimeMillis() - start) < 850,
             "timeout does not correspond to option. Elapsed time:"
                 + (System.currentTimeMillis() - start));
         assertTrue(
