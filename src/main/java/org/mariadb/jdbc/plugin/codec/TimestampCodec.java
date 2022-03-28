@@ -328,13 +328,24 @@ public class TimestampCodec implements Codec<Timestamp> {
   public void encodeText(
       Writer encoder, Context context, Object val, Calendar providedCal, Long maxLen)
       throws IOException {
+    Timestamp ts = (Timestamp) val;
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     sdf.setTimeZone(cal.getTimeZone());
-    String dateString = sdf.format(val);
+    String dateString = sdf.format(ts);
 
     encoder.writeByte('\'');
     encoder.writeAscii(dateString);
+
+    int microseconds = ts.getNanos() / 1000;
+    if (microseconds > 0) {
+      if (microseconds % 1000 == 0) {
+        encoder.writeAscii("." + Integer.toString(microseconds / 1000 + 1000).substring(1));
+      } else {
+        encoder.writeAscii("." + Integer.toString(microseconds + 1000000).substring(1));
+      }
+    }
+
     encoder.writeByte('\'');
   }
 
@@ -342,8 +353,9 @@ public class TimestampCodec implements Codec<Timestamp> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(((Timestamp) value).getTime());
-    if (cal.get(Calendar.MILLISECOND) == 0) {
+    Timestamp ts = (Timestamp) value;
+    cal.setTimeInMillis(ts.getTime());
+    if (ts.getNanos() == 0) {
       encoder.writeByte(7); // length
       encoder.writeShort((short) cal.get(Calendar.YEAR));
       encoder.writeByte((cal.get(Calendar.MONTH) + 1));
@@ -359,7 +371,7 @@ public class TimestampCodec implements Codec<Timestamp> {
       encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
       encoder.writeByte(cal.get(Calendar.MINUTE));
       encoder.writeByte(cal.get(Calendar.SECOND));
-      encoder.writeInt(cal.get(Calendar.MILLISECOND) * 1000);
+      encoder.writeInt(ts.getNanos() / 1000);
     }
   }
 
