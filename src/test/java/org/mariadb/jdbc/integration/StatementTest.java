@@ -26,12 +26,14 @@ public class StatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS executeGenerated2");
     stmt.execute("DROP TABLE IF EXISTS testAffectedRow");
     stmt.execute("DROP TABLE IF EXISTS bigIntId");
+    stmt.execute("DROP TABLE IF EXISTS testCONJ956");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("CREATE TABLE testCONJ956 (field varchar(300) NOT NULL)");
     stmt.execute("CREATE TABLE StatementTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute(
         "CREATE TABLE executeGenerated (t1 int not null primary key auto_increment, t2 int)");
@@ -100,6 +102,21 @@ public class StatementTest extends Common {
 
     // not supported
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, stmt.getResultSetHoldability());
+  }
+
+  @Test
+  public void conj956() throws SQLException {
+    StringBuilder sb = new StringBuilder();
+    String sQuery = "SELECT EXISTS (SELECT 1 FROM testCONJ956 WHERE ((field=?)))";
+    for (int i = 1; i <= 300; i++) {
+      sb.append("a");
+      if (i < 204) {
+        continue;
+      }
+      PreparedStatement stmt = sharedConn.prepareStatement(sQuery);
+      stmt.setString(1, sb.toString());
+      stmt.executeQuery();
+    }
   }
 
   @Test
