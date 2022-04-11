@@ -1115,4 +1115,20 @@ public class ConnectionTest extends Common {
 
     sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
   }
+
+
+  @Test
+  public void loopHost() throws SQLException {
+    Assumptions.assumeTrue(
+            !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+
+    // ensure connecting without DB
+    String connStr =
+            String.format(
+                    "jdbc:mariadb://wronghost,%s:%s/%s?user=%s&password=%s&%s",
+                    hostname, port, database, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      con.createStatement().executeQuery("SELECT 1");
+    }
+  }
 }

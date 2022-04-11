@@ -7,6 +7,7 @@ package org.mariadb.jdbc;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.SocketAddress;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
@@ -56,16 +57,38 @@ public final class Driver implements java.sql.Driver {
         break;
 
       default:
-        HostAddress hostAddress =
-            configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
-        client =
-            configuration.transactionReplay()
-                ? new ReplayClient(configuration, hostAddress, lock, false)
-                : new StandardClient(configuration, hostAddress, lock, false);
+        ClientInstance<Configuration , HostAddress , ReentrantLock , Boolean  ,Client>
+                clientInstance =
+                (configuration.transactionReplay()) ? ReplayClient::new : StandardClient::new;
+
+        if (configuration.addresses().isEmpty()) {
+          // unix socket / windows pipe
+          client = clientInstance.apply(configuration, null, lock, false);
+        } else {
+          // loop until finding
+          SQLException lastException = null;
+          for (HostAddress host : configuration.addresses()) {
+            try {
+              client = clientInstance.apply(configuration, host, lock, false);
+              return new Connection(configuration, lock, client);
+            } catch (SQLException e) {
+              lastException = e;
+            }
+          }
+          throw lastException;
+        }
         break;
     }
     return new Connection(configuration, lock, client);
+
+
   }
+
+  @FunctionalInterface
+  public interface ClientInstance<T, U, V, W, R> {
+    R apply(T t, U u, V v, W w) throws SQLException;
+  }
+
 
   /**
    * Connect to the given connection string.
