@@ -155,8 +155,11 @@ public class DecimalCodecTest extends CommonCodecTest {
   public void getStringPrepare() throws SQLException {
     getString(getPrepare(sharedConn));
     getString(getPrepare(sharedConnBinary));
-    getStringZerofill(getPrepare(sharedConn, true));
-    getStringZerofill(getPrepare(sharedConnBinary, true));
+    // Xpand doesn't support zerofill https://jira.mariadb.org/browse/XPT-286
+    if (!isXpand()) {
+      getStringZerofill(getPrepare(sharedConn, true));
+      getStringZerofill(getPrepare(sharedConnBinary, true));
+    }
   }
 
   public void getString(ResultSet rs) throws SQLException {
