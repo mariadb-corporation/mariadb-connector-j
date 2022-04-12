@@ -358,6 +358,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case SET:
       case VARSTRING:
       case STRING:
+      case NULL:
         return StringCodec.INSTANCE;
       case TINYINT:
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
