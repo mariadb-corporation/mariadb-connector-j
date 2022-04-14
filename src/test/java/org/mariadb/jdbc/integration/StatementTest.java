@@ -6,6 +6,8 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
+import org.mariadb.jdbc.plugin.Codec;
 
 public class StatementTest extends Common {
 
@@ -883,6 +886,16 @@ public class StatementTest extends Common {
     testAffectedRow(false);
     if (!isXpand()) {
       testAffectedRow(true);
+    }
+  }
+
+  @Test
+  public void ensureClassDefined() {
+    for (Codec<?> codec : sharedConn.getContext().getConf().codecs()) {
+      Type it = codec.getClass().getGenericInterfaces()[0];
+      ParameterizedType parameterizedType = (ParameterizedType) it;
+      Type typeParameter = parameterizedType.getActualTypeArguments()[0];
+      assertEquals(((Class<?>) typeParameter).getName(), codec.className());
     }
   }
 
