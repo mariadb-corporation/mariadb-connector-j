@@ -497,6 +497,28 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getLocalDateTime() throws SQLException {
+    getLocalDateTime(get());
+  }
+
+  @Test
+  public void getLocalDateTimePrepare() throws SQLException {
+    getLocalDateTime(getPrepare(sharedConn));
+    getLocalDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalDateTime(ResultSet rs) throws SQLException {
+    assertEquals(LocalDateTime.parse("1970-01-01T01:55:12"), rs.getObject(1, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+            LocalDateTime.parse("1970-01-01T01:55:13.234567"), rs.getObject(2, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertEquals(LocalDateTime.parse("1969-12-31T05:29:47.45"), rs.getObject(3, LocalDateTime.class));
+    assertNull(rs.getObject(4, LocalDateTime.class));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
   public void getAsciiStream() throws SQLException {
     getAsciiStream(get());
   }
