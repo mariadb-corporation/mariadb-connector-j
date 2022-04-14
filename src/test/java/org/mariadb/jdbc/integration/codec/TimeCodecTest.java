@@ -511,10 +511,43 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(LocalDateTime.parse("1970-01-01T01:55:12"), rs.getObject(1, LocalDateTime.class));
     assertFalse(rs.wasNull());
     assertEquals(
-            LocalDateTime.parse("1970-01-01T01:55:13.234567"), rs.getObject(2, LocalDateTime.class));
+        LocalDateTime.parse("1970-01-01T01:55:13.234567"), rs.getObject(2, LocalDateTime.class));
     assertFalse(rs.wasNull());
-    assertEquals(LocalDateTime.parse("1969-12-31T05:29:47.45"), rs.getObject(3, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("1969-12-31T05:29:47.45"), rs.getObject(3, LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getInstant() throws SQLException {
+    getInstant(get());
+  }
+
+  @Test
+  public void getInstantPrepare() throws SQLException {
+    getInstant(getPrepare(sharedConn));
+    getInstant(getPrepare(sharedConnBinary));
+  }
+
+  public void getInstant(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("1970-01-01T01:55:12"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(1, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("1970-01-01T01:55:13.234567"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(2, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("1969-12-31T05:29:47.45"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(3, Instant.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4, Instant.class));
     assertTrue(rs.wasNull());
   }
 

@@ -169,10 +169,10 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
         parts = LocalTimeCodec.parseTime(buf, length, column);
         if (parts[0] == -1) {
           return LocalDateTime.of(1970, 1, 1, 0, 0)
-                  .minusHours(parts[1] % 24)
-                  .minusMinutes(parts[2])
-                  .minusSeconds(parts[3])
-                  .minusNanos(parts[4]);
+              .minusHours(parts[1] % 24)
+              .minusMinutes(parts[2])
+              .minusSeconds(parts[3])
+              .minusNanos(parts[4]);
         }
         return LocalDateTime.of(1970, 1, 1, parts[1] % 24, parts[2], parts[3]).plusNanos(parts[4]);
 
@@ -214,11 +214,11 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
         if (negate) {
           return LocalDateTime.of(1970, 1, 1, 0, 0)
-                  .minusDays(day)
-                  .minusHours(hour)
-                  .minusMinutes(minutes)
-                  .minusSeconds(seconds)
-                  .minusNanos(microseconds * 1000);
+              .minusDays(day)
+              .minusHours(hour)
+              .minusMinutes(minutes)
+              .minusSeconds(seconds)
+              .minusNanos(microseconds * 1000);
         }
         break;
 
