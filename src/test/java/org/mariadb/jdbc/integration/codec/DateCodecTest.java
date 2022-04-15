@@ -524,6 +524,24 @@ public class DateCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+  }
+
+  @Test
   public void getAsciiStream() throws SQLException {
     getAsciiStream(get());
   }
@@ -704,6 +722,7 @@ public class DateCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateCodec2");
+
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
       prep.execute();

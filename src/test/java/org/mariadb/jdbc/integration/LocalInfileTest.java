@@ -86,8 +86,8 @@ public class LocalInfileTest extends Common {
   @Test
   public void wrongFile() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
@@ -104,7 +104,8 @@ public class LocalInfileTest extends Common {
   @Test
   public void unReadableFile() throws Exception {
     Assumptions.assumeTrue(checkLocal());
-    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv"))
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
 
@@ -129,8 +130,7 @@ public class LocalInfileTest extends Common {
   public void loadDataBasic() throws Exception {
     Assumptions.assumeTrue(checkLocal());
     Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("dummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
       bw.write("1\thello2\n2\tworld\n");
