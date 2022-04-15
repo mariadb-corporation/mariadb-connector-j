@@ -36,6 +36,15 @@ public class LocalInfileTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS `infile`");
   }
 
+  private static boolean checkLocal() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT @@local_infile");
+    if (rs.next()) {
+      return rs.getInt(1) == 1;
+    }
+    return false;
+  }
+
   @Test
   public void throwExceptions() throws Exception {
     Assumptions.assumeTrue(
@@ -76,9 +85,8 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void wrongFile() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
+    Assumptions.assumeTrue(checkLocal());
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
 
     try (Connection con = createCon("allowLocalInfile")) {
@@ -95,9 +103,8 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void unReadableFile() throws Exception {
-    Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
+    Assumptions.assumeTrue(checkLocal());
+    Assumptions.assumeTrue(!"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv"))
             && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
 
@@ -120,9 +127,9 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void loadDataBasic() throws Exception {
+    Assumptions.assumeTrue(checkLocal());
     Assumptions.assumeTrue(
-        (isMariaDBServer() || !minVersion(8, 0, 3))
-            && !"skysql".equals(System.getenv("srv"))
+        !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     File temp = File.createTempFile("dummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
@@ -171,6 +178,7 @@ public class LocalInfileTest extends Common {
 
   @Test
   public void loadDataValidationFails() throws Exception {
+    Assumptions.assumeTrue(checkLocal());
     loadDataValidationFails(false);
     loadDataValidationFails(true);
   }
