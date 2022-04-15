@@ -12,6 +12,7 @@ import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.Prepare;
+import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
@@ -140,6 +141,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
   public String description() {
     return "EXECUTE " + command;
+  }
+
+  public boolean validateLocalFileName(String fileName, Context context) {
+    return ClientMessage.validateLocalFileName(command, parameters, fileName, context);
   }
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {

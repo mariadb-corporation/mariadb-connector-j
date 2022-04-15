@@ -56,7 +56,8 @@ public final class PreparePacket implements ClientMessage {
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
-      boolean traceEnable)
+      boolean traceEnable,
+      ClientMessage message)
       throws IOException, SQLException {
 
     ReadableByteBuf buf = reader.readPacket(true, traceEnable);

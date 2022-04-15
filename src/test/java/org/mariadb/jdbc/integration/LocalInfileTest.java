@@ -9,10 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.*;
 import java.sql.*;
 import java.util.Locale;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 public class LocalInfileTest extends Common {
   @BeforeAll
@@ -40,7 +37,7 @@ public class LocalInfileTest extends Common {
   }
 
   @Test
-  public void defaultThrowExceptions() throws Exception {
+  public void throwExceptions() throws Exception {
     Assumptions.assumeTrue(
         (isMariaDBServer() || !minVersion(8, 0, 3))
             && !"skysql".equals(System.getenv("srv"))
@@ -49,19 +46,31 @@ public class LocalInfileTest extends Common {
     // https://jira.mariadb.org/browse/XPT-270
     Assumptions.assumeFalse(isXpand());
 
-    try (Connection con = createCon()) {
+    try (Connection con = createCon("&allowLocalInfile=false")) {
       Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
       Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
                   "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
-          "The used command is not allowed");
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       Common.assertThrowsContains(
-          BatchUpdateException.class, stmt::executeBatch, "The used command is not allowed");
+          BatchUpdateException.class,
+          stmt::executeBatch,
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "LOAD DATA LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+        prep.setString(1, "someFile");
+        Common.assertThrowsContains(
+            SQLException.class,
+            prep::execute,
+            "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
+      }
     }
   }
 
@@ -115,13 +124,14 @@ public class LocalInfileTest extends Common {
         (isMariaDBServer() || !minVersion(8, 0, 3))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
-    File temp = File.createTempFile("dummy", ".txt");
+    File temp = File.createTempFile("dummyloadDataBasic", ".txt");
     try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
-      bw.write("1\thello\n2\tworld\n");
+      bw.write("1\thello2\n2\tworld\n");
     }
 
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
       stmt.execute(
           "LOAD DATA LOCAL INFILE '"
               + temp.getCanonicalPath().replace("\\", "/")
@@ -129,10 +139,13 @@ public class LocalInfileTest extends Common {
       ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
-      assertEquals("hello", rs.getString(2));
+      assertEquals("hello2", rs.getString(2));
       assertTrue(rs.next());
       assertEquals(2, rs.getInt(1));
       assertEquals("world", rs.getString(2));
+      while (rs.next()) {
+        System.out.println(rs.getString(2));
+      }
       assertFalse(rs.next());
 
       stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
@@ -146,13 +159,66 @@ public class LocalInfileTest extends Common {
       rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
-      assertEquals("hello", rs.getString(2));
+      assertEquals("hello2", rs.getString(2));
       assertTrue(rs.next());
       assertEquals(2, rs.getInt(1));
       assertEquals("world", rs.getString(2));
       assertFalse(rs.next());
     } finally {
       temp.delete();
+    }
+  }
+
+  @Test
+  public void loadDataValidationFails() throws Exception {
+    loadDataValidationFails(false);
+    loadDataValidationFails(true);
+  }
+
+  public void loadDataValidationFails(boolean prepStmt) throws Exception {
+    File temp = File.createTempFile("dummy", ".txt");
+    File tempXml = File.createTempFile("xmldummy", ".txt");
+
+    try (Connection con = createCon("&allowLocalInfile&useServerPrepStmts=" + prepStmt)) {
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+        bw.write("1\thello\n2\tworld\n");
+      }
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(tempXml))) {
+        bw.write("<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n");
+      }
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "LOAD DATA LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+        prep.setString(1, temp.getCanonicalPath().replace("\\", "/"));
+        prep.execute();
+      }
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "LOAD XML LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+        prep.setString(1, tempXml.getCanonicalPath().replace("\\", "/"));
+        prep.execute();
+      }
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "/* test */ LOAD  DATA LOCAL INFILE 'j' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+        assertThrowsContains(SQLException.class, () -> prep.execute(), "Could not send file : j");
+      }
+      // special test comment inside LOAD DATA LOCAL are not checked, resulting in error
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "LOAD /**g*/ DATA LOCAL INFILE 'h' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+        assertThrowsContains(
+            SQLException.class,
+            () -> prep.execute(),
+            "LOAD DATA LOCAL INFILE asked for file 'h' that doesn't correspond to initial query ");
+      }
+      // ensure connection state after errors
+      ResultSet rs = con.createStatement().executeQuery("SELECT 1");
+      rs.next();
+      assertEquals(1, rs.getInt(1));
+    } finally {
+      temp.delete();
+      tempXml.delete();
     }
   }
 

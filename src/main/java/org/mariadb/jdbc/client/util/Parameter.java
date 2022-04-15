@@ -69,4 +69,12 @@ public interface Parameter {
    * @return is null
    */
   boolean isNull();
+
+  /**
+   * Methods to return parameter as string if possible (Streaming parameter will return null)
+   *
+   * @param context current connection context
+   * @return null if not available.
+   */
+  String bestEffortStringValue(Context context);
 }

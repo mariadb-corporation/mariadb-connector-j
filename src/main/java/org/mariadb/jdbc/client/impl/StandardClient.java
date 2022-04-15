@@ -824,7 +824,8 @@ public class StandardClient implements Client, AutoCloseable {
               context,
               exceptionFactory,
               lock,
-              traceEnable);
+              traceEnable,
+              message);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;

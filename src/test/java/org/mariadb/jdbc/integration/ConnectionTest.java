@@ -610,7 +610,7 @@ public class ConnectionTest extends Common {
   public void releaseSavepoint() throws SQLException {
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
-      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
+      stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10)) ");
       con.setAutoCommit(false);
       stmt.executeUpdate("INSERT INTO spt values('hej1')");
       stmt.executeUpdate("INSERT INTO spt values('hej2')");
