@@ -174,7 +174,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         }
       }
       throw new IOException(
-          String.format("Wrong value for option `serverSslCert` (value: '%s')", path));
+          String.format("Wrong value for option `serverSslCert` (value: '%s')", path), e);
     }
   }
 
