@@ -134,6 +134,10 @@ public class ProcedureTest extends Common {
       callableStatement.registerOutParameter(6, JDBCType.TIMESTAMP);
       callableStatement.registerOutParameter(7, JDBCType.TIMESTAMP);
       checkResults(callableStatement);
+
+      callableStatement.clearParameters();
+      checkResults(callableStatement);
+
       ParameterMetaData meta = callableStatement.getParameterMetaData();
 
       assertEquals("INT", meta.getParameterTypeName(1));

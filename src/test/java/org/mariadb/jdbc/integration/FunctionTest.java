@@ -26,7 +26,20 @@ public class FunctionTest extends Common {
       callableStatement.setInt(2, 2);
       callableStatement.setInt(3, 3);
       callableStatement.execute();
+
       assertEquals(6, callableStatement.getInt(1));
+
+      callableStatement.clearParameters();
+      callableStatement.setInt(2, 3);
+      callableStatement.setInt(3, 3);
+      callableStatement.execute();
+      assertEquals(9, callableStatement.getInt(1));
+
+      callableStatement.clearParameters();
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> callableStatement.execute(),
+          "Parameter at position 1 is not set");
     }
 
     try (CallableStatement callableStatement =
