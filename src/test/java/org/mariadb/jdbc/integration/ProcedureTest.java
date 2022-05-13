@@ -1085,4 +1085,26 @@ public class ProcedureTest extends Common {
     callableStatement.execute();
     assertEquals("ab", callableStatement.getString(2));
   }
+
+  @Test
+  public void procedureToString() throws SQLException {
+    try (CallableStatement callableStatement =
+        sharedConn.prepareCall("{call basic_proc(?,?,?,?,?,?,?)}")) {
+
+      assertEquals(
+          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[]}",
+          callableStatement.toString());
+      callableStatement.registerOutParameter(2, JDBCType.INTEGER);
+      callableStatement.registerOutParameter(3, JDBCType.INTEGER);
+      callableStatement.registerOutParameter(5, JDBCType.VARCHAR);
+      assertEquals(
+          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[null,<OUT>null,<OUT>null,null,<OUT>null]}",
+          callableStatement.toString());
+      callableStatement.setBytes(2, new byte[] {(byte) 'a', (byte) 'b'});
+      callableStatement.setLong(1, 10L);
+      assertEquals(
+          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[10,<OUT>_binary 'ab',<OUT>null,null,<OUT>null]}",
+          callableStatement.toString());
+    }
+  }
 }

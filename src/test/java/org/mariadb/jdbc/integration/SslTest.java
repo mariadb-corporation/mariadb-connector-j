@@ -265,7 +265,7 @@ public class SslTest extends Common {
     }
 
     try (Connection con =
-                 createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=file:///wrongPath", sslPort)) {
+        createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=file:///wrongPath", sslPort)) {
       assertNotNull(getSslVersion(con));
     } catch (Exception e) {
       assertTrue(e.getCause() instanceof FileNotFoundException);

@@ -139,4 +139,20 @@ public class FunctionTest extends Common {
           "wrong parameter index");
     }
   }
+
+  @Test
+  public void functionToString() throws SQLException {
+    try (CallableStatement callableStatement =
+        sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
+
+      assertEquals(
+          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null]}",
+          callableStatement.toString());
+      callableStatement.setLong(2, 10L);
+      callableStatement.setBytes(3, new byte[] {(byte) 'a', (byte) 'b'});
+      assertEquals(
+          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null,10,_binary 'ab']}",
+          callableStatement.toString());
+    }
+  }
 }

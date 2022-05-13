@@ -5,6 +5,8 @@
 package org.mariadb.jdbc.codec;
 
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.Context;
@@ -74,7 +76,12 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
 
   public String bestEffortStringValue(Context context) {
     if (isNull()) return "null";
-    if (codec.canEncodeLongData()) return null;
+    if (codec.canEncodeLongData()) {
+      Type it = codec.getClass().getGenericInterfaces()[0];
+      ParameterizedType parameterizedType = (ParameterizedType) it;
+      Type typeParameter = parameterizedType.getActualTypeArguments()[0];
+      return "<" + typeParameter + ">";
+    }
     try {
       PacketWriter writer = new PacketWriter(null, 0, 0xffffff, null, null);
       codec.encodeText(writer, context, this.value, null, this.length);
