@@ -278,20 +278,6 @@ public class SslTest extends Common {
         assertNotNull(getSslVersion(con));
       }
 
-      if (System.getenv("TEST_DB_CLIENT_CERT_FULL") != null) {
-        // client certificate is using extendedKeyUsage = critical, clientAuth, but java don't throw
-        // an exception
-        // as RFC 5280 would require
-        try (Connection con =
-            createCon(
-                baseOptions
-                    + "&sslMode=VERIFY_FULL&serverSslCert="
-                    + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
-                sslPort)) {
-          con.isValid(1000);
-        }
-      }
-
       Configuration conf = Configuration.parse(mDefUrl);
       HostAddress hostAddress = conf.addresses().get(0);
       try {
