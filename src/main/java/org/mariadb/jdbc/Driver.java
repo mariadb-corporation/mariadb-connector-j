@@ -81,7 +81,7 @@ public final class Driver implements java.sql.Driver {
   }
 
   @FunctionalInterface
-  public interface ClientInstance<T, U, V, W, R> {
+  private interface ClientInstance<T, U, V, W, R> {
     R apply(T t, U u, V v, W w) throws SQLException;
   }
 
