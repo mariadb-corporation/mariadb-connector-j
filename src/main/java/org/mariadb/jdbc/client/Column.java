@@ -123,7 +123,7 @@ public interface Column {
    *
    * @return precision
    */
-  long getPrecision();
+  int getPrecision();
 
   /**
    * return column type from column server type

@@ -35,6 +35,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists cross2");
     stmt.execute("drop table if exists cross1");
     stmt.execute("drop table if exists get_index_info");
+    stmt.execute("drop table if exists text_types_text");
   }
 
   @BeforeAll
@@ -125,6 +126,13 @@ public class DatabaseMetadataTest extends Common {
             + "    PRIMARY KEY(no),\n"
             + "    INDEX ind_prod (product_category, product_id),\n"
             + "    INDEX ind_cust (customer_id))");
+    stmt.execute(
+        "create table text_types_text (varchar100           varchar(100),\n"
+            + "  varchar255           varchar(255),\n"
+            + "  text                 text,\n"
+            + "  `tinytext`           tinytext,\n"
+            + "  `mediumtext`         mediumtext,\n"
+            + "  `longtext`           longtext)");
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -2002,8 +2010,43 @@ public class DatabaseMetadataTest extends Common {
     ResultSetMetaData meta = rs.getMetaData();
     assertTrue(
         "LONGTEXT".equals(meta.getColumnTypeName(1)) || "JSON".equals(meta.getColumnTypeName(1)));
-    assertEquals(Types.VARCHAR, meta.getColumnType(1));
+    assertEquals(Types.LONGVARCHAR, meta.getColumnType(1));
     assertEquals("java.lang.String", meta.getColumnClassName(1));
+  }
+
+  @Test
+  public void getTypeMetaData() throws SQLException {
+    //            "create table text_types_text (varchar100           varchar(100),\n" +
+    //                    "  varchar255           varchar(255),\n" +
+    //                    "  text                 text,\n" +
+    //                    "  `tinytext`           tinytext,\n" +
+    //                    "  `mediumtext`         mediumtext,\n" +
+    //                    "  `longtext`           longtext)"
+    try (ResultSet resultSet =
+        sharedConn.createStatement().executeQuery("select * from text_types_text")) {
+      ResultSetMetaData metaData = resultSet.getMetaData();
+
+      String[] expected =
+          new String[] {
+            "varchar100 12 VARCHAR 100",
+            "varchar255 12 VARCHAR 255",
+            "text 12 TEXT 65535",
+            "tinytext 12 VARCHAR 255",
+            "mediumtext 12 MEDIUMTEXT 16777215",
+            "longtext -1 LONGTEXT 0"
+          };
+      for (int i = 0; i < expected.length; i++) {
+        assertEquals(
+            expected[i],
+            metaData.getColumnName(i + 1)
+                + " "
+                + metaData.getColumnType(i + 1)
+                + " "
+                + metaData.getColumnTypeName(i + 1)
+                + " "
+                + metaData.getPrecision(i + 1));
+      }
+    }
   }
 
   @Test

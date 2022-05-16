@@ -204,17 +204,19 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   }
 
   public int getDisplaySize() {
-    if (dataType == DataType.VARCHAR
-        || dataType == DataType.JSON
-        || dataType == DataType.ENUM
-        || dataType == DataType.SET
-        || dataType == DataType.VARSTRING
-        || dataType == DataType.STRING) {
+    if (!isBinary()
+        && (dataType == DataType.VARCHAR
+            || dataType == DataType.JSON
+            || dataType == DataType.ENUM
+            || dataType == DataType.SET
+            || dataType == DataType.VARSTRING
+            || dataType == DataType.STRING
+            || dataType == DataType.BLOB
+            || dataType == DataType.TINYBLOB
+            || dataType == DataType.MEDIUMBLOB
+            || dataType == DataType.LONGBLOB)) {
       Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
-      if (maxWidth == null) {
-        return (int) length;
-      }
-      return (int) length / maxWidth;
+      if (maxWidth != null) return (int) (length / maxWidth);
     }
     return (int) length;
   }
@@ -250,7 +252,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    *
    * @return precision
    */
-  public long getPrecision() {
+  public int getPrecision() {
     switch (dataType) {
       case OLDDECIMAL:
       case DECIMAL:
@@ -259,9 +261,9 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         // - if is signed, 1 byte is saved for sign
         // - if decimal > 0, one byte more for dot
         if (isSigned()) {
-          return length - ((decimals > 0) ? 2 : 1);
+          return (int) (length - ((decimals > 0) ? 2 : 1));
         } else {
-          return length - ((decimals > 0) ? 1 : 0);
+          return (int) (length - ((decimals > 0) ? 1 : 0));
         }
       case VARCHAR:
       case JSON:
@@ -271,12 +273,22 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case STRING:
         Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
         if (maxWidth == null) {
-          return length;
+          return (int) length;
         }
-        return length / maxWidth;
+        return (int) (length / maxWidth);
+
+      case BLOB:
+      case TINYBLOB:
+      case MEDIUMBLOB:
+      case LONGBLOB:
+        if (!isBinary()) {
+          Integer maxWidth2 = CharsetEncodingLength.maxCharlen.get(charset);
+          if (maxWidth2 != null) return (int) (length / maxWidth2);
+        }
+        return (int) length;
 
       default:
-        return length;
+        return (int) length;
     }
   }
 
@@ -394,14 +406,18 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         if (conf.yearIsDateType()) return Types.DATE;
         return Types.SMALLINT;
       case JSON:
-        return Types.VARCHAR;
+        return Types.LONGVARCHAR;
       case VARCHAR:
       case ENUM:
       case SET:
       case VARSTRING:
       case TINYBLOB:
       case BLOB:
-        return isBinary() ? Types.VARBINARY : Types.VARCHAR;
+        if (length <= 0 || getDisplaySize() > 16777215) {
+          return isBinary() ? Types.LONGVARBINARY : Types.LONGVARCHAR;
+        } else {
+          return isBinary() ? Types.VARBINARY : Types.VARCHAR;
+        }
       case GEOMETRY:
         return Types.VARBINARY;
       case STRING:
