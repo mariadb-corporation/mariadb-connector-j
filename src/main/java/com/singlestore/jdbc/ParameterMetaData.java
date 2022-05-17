@@ -122,7 +122,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getType().name();
+    return params[idx - 1].getTypeName();
   }
 
   /**

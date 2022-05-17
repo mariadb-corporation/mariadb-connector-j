@@ -100,7 +100,7 @@ public class BinaryRowDecoder extends RowDecoder {
             readBuf.skip(8);
             break;
 
-          case INTEGER:
+          case INT:
           case MEDIUMINT:
           case FLOAT:
             readBuf.skip(4);
@@ -155,7 +155,7 @@ public class BinaryRowDecoder extends RowDecoder {
         length = 8;
         return;
 
-      case INTEGER:
+      case INT:
       case MEDIUMINT:
       case FLOAT:
         length = 4;

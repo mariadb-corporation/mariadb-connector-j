@@ -28,8 +28,7 @@ public class ClobCodec implements Codec<Clob> {
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -71,9 +70,8 @@ public class ClobCodec implements Codec<Clob> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         Clob clob = new SingleStoreClob(buf.buf(), buf.pos(), length);
         buf.skip(length);
         return clob;
@@ -173,6 +171,6 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.VARSTRING.get();
+    return DataType.VARCHAR.get();
   }
 }

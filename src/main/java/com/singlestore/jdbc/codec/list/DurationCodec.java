@@ -26,9 +26,8 @@ public class DurationCodec implements Codec<Duration> {
           DataType.TIME,
           DataType.DATETIME,
           DataType.TIMESTAMP,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -79,8 +78,7 @@ public class DurationCodec implements Codec<Duration> {
 
       case TIME:
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         parts = LocalTimeCodec.parseTime(buf, length, column);
         Duration d =
             Duration.ZERO
@@ -160,8 +158,7 @@ public class DurationCodec implements Codec<Duration> {
             .plusNanos(microseconds * 1000);
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         int[] parts = LocalTimeCodec.parseTime(buf, length, column);
         Duration d =
             Duration.ZERO

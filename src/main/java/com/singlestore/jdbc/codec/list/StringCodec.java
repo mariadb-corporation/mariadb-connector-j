@@ -32,7 +32,7 @@ public class StringCodec implements Codec<String> {
           DataType.OLDDECIMAL,
           DataType.TINYINT,
           DataType.SMALLINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.FLOAT,
           DataType.DOUBLE,
           DataType.TIMESTAMP,
@@ -48,8 +48,7 @@ public class StringCodec implements Codec<String> {
           DataType.ENUM,
           DataType.SET,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -156,7 +155,7 @@ public class StringCodec implements Codec<String> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         return mediumStr;
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return String.valueOf(buf.readUnsignedInt());
         }
@@ -305,6 +304,6 @@ public class StringCodec implements Codec<String> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.VARSTRING.get();
+    return DataType.VARCHAR.get();
   }
 }

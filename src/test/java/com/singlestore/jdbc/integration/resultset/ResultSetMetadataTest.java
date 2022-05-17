@@ -26,6 +26,7 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS resultsetmetadatatest1");
     stmt.execute("DROP TABLE IF EXISTS resultsetmetadatatest2");
     stmt.execute("DROP TABLE IF EXISTS resultsetmetadatatest3");
+    stmt.execute("DROP TABLE IF EXISTS test_rsmd_types");
   }
 
   @BeforeAll
@@ -41,6 +42,18 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("CREATE TABLE resultsetmetadatatest1(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest2(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest3(id int, name varchar(20))");
+    stmt.execute(
+        "CREATE TABLE IF NOT EXISTS test_rsmd_types (a1 CHAR(7), a2 BINARY(8), a3 VARCHAR(9), "
+            + "a4 VARBINARY(10), a5 LONGTEXT, a6 MEDIUMTEXT, a7 TEXT, a8 TINYTEXT, b1 TINYBLOB, b2 BLOB, "
+            + "b3 MEDIUMBLOB, b4 LONGBLOB, c JSON, d1 BOOL, d2 BIT, d3 TINYINT, d4 SMALLINT, "
+            + "d5 MEDIUMINT, d6 INT, d7 BIGINT, e1 FLOAT, e2 DOUBLE(8, 3), e3 DECIMAL(10, 2), "
+            + "f1 DATE, f2 TIME, f3 TIME(6), f4 DATETIME, f5 DATETIME(6), f6 TIMESTAMP, "
+            + "f7 TIMESTAMP(6), f8 YEAR)");
+    stmt.execute(
+        "insert into test_rsmd_types values (null, null, null, null, null, null, "
+            + "null, null, null, null, null, null, null, null, null, null, null, "
+            + "null, null, null, null, null, null, null, null, null, null, null, "
+            + "null, null, null)");
   }
 
   @Test
@@ -66,6 +79,14 @@ public class ResultSetMetadataTest extends Common {
     assertEquals("nullable_col", rsmd.getColumnLabel(2));
     assertEquals("something", rsmd.getColumnLabel(3));
     assertEquals("unikey_col", rsmd.getColumnName(3));
+    assertEquals("BIGINT", rsmd.getColumnTypeName(1));
+    assertEquals("VARCHAR", rsmd.getColumnTypeName(2));
+    assertEquals("INT", rsmd.getColumnTypeName(3));
+    assertEquals("CHAR", rsmd.getColumnTypeName(4));
+    assertEquals("SMALLINT", rsmd.getColumnTypeName(5));
+    assertEquals(Types.BIGINT, rsmd.getColumnType(1));
+    assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
+    assertEquals(Types.INTEGER, rsmd.getColumnType(3));
     assertEquals(Types.CHAR, rsmd.getColumnType(4));
     assertEquals(Types.INTEGER, rsmd.getColumnType(5));
     assertFalse(rsmd.isReadOnly(1));
@@ -104,6 +125,43 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rsmd2.isReadOnly(1));
     assertFalse(rsmd2.isWritable(1));
     assertFalse(rsmd2.isDefinitelyWritable(1));
+  }
+
+  @Test
+  public void metaTypesVsColumnTypes() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select * from test_rsmd_types");
+    assertTrue(rs.next());
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    DatabaseMetaData md = sharedConn.getMetaData();
+    ResultSet cols = md.getColumns(null, null, "test\\_rsmd\\_types", null);
+    for (int i = 1; i <= 28; ++i) {
+      cols.next();
+      // TODO PLAT-6202: remove the if
+      if (i < 14 || i > 16) {
+        System.out.println(cols.getString("COLUMN_NAME"));
+        System.out.println(cols.getInt("DATA_TYPE"));
+        assertEquals(rsmd.getColumnType(i), cols.getInt("DATA_TYPE"));
+        assertEquals(rsmd.getColumnTypeName(i), cols.getString("TYPE_NAME"));
+      }
+    }
+  }
+
+  @Test
+  public void columnTypesPrecision() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select * from test_rsmd_types");
+    assertTrue(rs.next());
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    assertEquals(7, rsmd.getPrecision(1));
+    assertEquals(8, rsmd.getPrecision(2));
+    assertEquals(9, rsmd.getPrecision(3));
+    assertEquals(10, rsmd.getPrecision(4));
+    assertEquals(0, rsmd.getPrecision(5));
+    assertEquals(0, rsmd.getPrecision(12));
+    assertEquals(0, rsmd.getPrecision(13));
   }
 
   @Test

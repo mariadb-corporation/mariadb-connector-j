@@ -34,8 +34,7 @@ public class BlobCodec implements Codec<Blob> {
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB,
-          DataType.STRING,
-          DataType.VARSTRING,
+          DataType.CHAR,
           DataType.VARCHAR);
 
   public String className() {
@@ -56,9 +55,8 @@ public class BlobCodec implements Codec<Blob> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         if (!column.isBinary()) {
           buf.skip(length);
           throw new SQLDataException(
@@ -92,9 +90,8 @@ public class BlobCodec implements Codec<Blob> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         if (!column.isBinary()) {
           buf.skip(length);
           throw new SQLDataException(

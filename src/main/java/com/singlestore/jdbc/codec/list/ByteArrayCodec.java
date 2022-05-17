@@ -31,9 +31,8 @@ public class ByteArrayCodec implements Codec<byte[]> {
           DataType.LONGBLOB,
           DataType.BIT,
           DataType.GEOMETRY,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING);
+          DataType.CHAR);
 
   public String className() {
     return byte[].class.getName();
@@ -64,8 +63,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
       case MEDIUMBLOB:
       case LONGBLOB:
       case BIT:
-      case STRING:
-      case VARSTRING:
+      case CHAR:
       case VARCHAR:
       case GEOMETRY:
         byte[] arr = new byte[length];

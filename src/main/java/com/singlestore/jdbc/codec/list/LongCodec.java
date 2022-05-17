@@ -31,12 +31,11 @@ public class LongCodec implements Codec<Long> {
           DataType.VARCHAR,
           DataType.DECIMAL,
           DataType.ENUM,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.BIGINT,
           DataType.BIT,
           DataType.YEAR,
@@ -96,7 +95,7 @@ public class LongCodec implements Codec<Long> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case YEAR:
         return parseNotEmpty(buf, length);
 
@@ -143,8 +142,7 @@ public class LongCodec implements Codec<Long> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           return new BigInteger(str).longValueExact();
@@ -200,7 +198,7 @@ public class LongCodec implements Codec<Long> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         return l;
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return buf.readUnsignedInt();
         }
@@ -241,9 +239,8 @@ public class LongCodec implements Codec<Long> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case VARSTRING:
       case VARCHAR:
-      case STRING:
+      case CHAR:
       case OLDDECIMAL:
       case DECIMAL:
         String str = buf.readString(length);

@@ -25,7 +25,7 @@ public class PolygonCodec implements Codec<Polygon> {
   }
 
   public boolean canDecode(ColumnDefinitionPacket column, Class<?> type) {
-    return column.getType() == DataType.STRING && type.isAssignableFrom(Polygon.class);
+    return column.getType() == DataType.CHAR && type.isAssignableFrom(Polygon.class);
   }
 
   public boolean canEncode(Object value) {
@@ -43,7 +43,7 @@ public class PolygonCodec implements Codec<Polygon> {
   public Polygon decodeBinary(
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
-    if (column.getType() == DataType.STRING) {
+    if (column.getType() == DataType.CHAR) {
       String s = buf.readString(length);
       try {
         return new Polygon(s);

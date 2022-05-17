@@ -27,7 +27,7 @@ public class DoubleCodec implements Codec<Double> {
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.FLOAT,
           DataType.DOUBLE,
           DataType.BIGINT,
@@ -35,8 +35,7 @@ public class DoubleCodec implements Codec<Double> {
           DataType.OLDDECIMAL,
           DataType.DECIMAL,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -70,7 +69,7 @@ public class DoubleCodec implements Codec<Double> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case FLOAT:
       case DOUBLE:
@@ -92,8 +91,7 @@ public class DoubleCodec implements Codec<Double> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str2 = buf.readString(length);
         try {
           return Double.valueOf(str2);
@@ -139,7 +137,7 @@ public class DoubleCodec implements Codec<Double> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         return d;
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return (double) buf.readUnsignedInt();
         }
@@ -180,8 +178,7 @@ public class DoubleCodec implements Codec<Double> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str2 = buf.readString(length);
         try {
           return Double.valueOf(str2);

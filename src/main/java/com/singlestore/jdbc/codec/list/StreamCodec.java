@@ -28,8 +28,7 @@ public class StreamCodec implements Codec<InputStream> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -48,9 +47,8 @@ public class StreamCodec implements Codec<InputStream> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:
@@ -70,9 +68,8 @@ public class StreamCodec implements Codec<InputStream> {
       ReadableByteBuf buf, int length, ColumnDefinitionPacket column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:

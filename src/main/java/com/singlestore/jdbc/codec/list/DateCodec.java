@@ -30,9 +30,8 @@ public class DateCodec implements Codec<Date> {
           DataType.DATETIME,
           DataType.TIMESTAMP,
           DataType.YEAR,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -82,8 +81,7 @@ public class DateCodec implements Codec<Date> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
       case DATE:
         String val = buf.readString(length);
         if ("0000-00-00".equals(val)) return null;
@@ -162,8 +160,7 @@ public class DateCodec implements Codec<Date> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String val = buf.readString(length);
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {

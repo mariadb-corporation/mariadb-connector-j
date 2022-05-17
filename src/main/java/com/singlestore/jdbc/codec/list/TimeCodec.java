@@ -29,9 +29,8 @@ public class TimeCodec implements Codec<Time> {
           DataType.TIME,
           DataType.DATETIME,
           DataType.TIMESTAMP,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -71,8 +70,7 @@ public class TimeCodec implements Codec<Time> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
       case TIME:
         Calendar c = cal == null ? Calendar.getInstance() : cal;
         int offset = c.getTimeZone().getOffset(0);
@@ -125,8 +123,7 @@ public class TimeCodec implements Codec<Time> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         int[] parts = LocalTimeCodec.parseTime(buf, length, column);
         Time t;
 

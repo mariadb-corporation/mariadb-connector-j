@@ -19,7 +19,9 @@ public class DatabaseMetadataTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision");
     stmt.execute("DROP PROCEDURE IF EXISTS getProcTimePrecision2");
+    stmt.execute("DROP PROCEDURE IF EXISTS testMetaCatalogProc");
     stmt.execute("DROP FUNCTION IF EXISTS testMetaCatalog");
+    stmt.execute("DROP FUNCTION IF EXISTS UDTF");
     stmt.execute("DROP TABLE IF EXISTS json_test");
     stmt.execute("DROP TABLE IF EXISTS dbpk_test");
     stmt.execute("DROP TABLE IF EXISTS datetime_test");
@@ -55,6 +57,8 @@ public class DatabaseMetadataTest extends Common {
         createRowstore()
             + " TABLE IF NOT EXISTS dbpk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
             + "id2))");
+    stmt.execute(
+        "CREATE FUNCTION UDTF(x int) returns table as return select * from dbpk_test where id1 = x");
     stmt.execute("CREATE TABLE IF NOT EXISTS datetime_test(dt datetime)");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS `manycols`("
@@ -106,6 +110,22 @@ public class DatabaseMetadataTest extends Common {
             + "    PRIMARY KEY(no),\n"
             + "    INDEX ind_prod (product_category, product_id),\n"
             + "    INDEX ind_cust (customer_id))");
+    stmt.execute(
+        "CREATE PROCEDURE getProcTimePrecision2( I date, "
+            + "t1 DATETIME,"
+            + "t3 timestamp,"
+            + "t5 time) AS BEGIN ECHO SELECT I; END");
+    stmt.execute(
+        "CREATE PROCEDURE getProcTimePrecision"
+            + "(I date, "
+            + "t1 DATETIME(0),"
+            + "t2 DATETIME(6),"
+            + "t3 timestamp(0),"
+            + "t4 timestamp(6),"
+            + "t5 time ,"
+            + "t6 time(6)) AS BEGIN ECHO SELECT I; END");
+    stmt.execute(
+        "CREATE PROCEDURE testMetaCatalogProc(x int) RETURNS int AS \nBEGIN\n return 1; end\n");
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -171,6 +191,48 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt("COLUMN_TYPE"));
     assertEquals(Types.INTEGER, rs.getInt("DATA_TYPE"));
     assertEquals("INT", rs.getString("TYPE_NAME"));
+    stmt.execute("DROP FUNCTION IF EXISTS hello");
+  }
+
+  @Test
+  public void functionColumnTypes() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    DatabaseMetaData meta = sharedConn.getMetaData();
+
+    stmt.execute("DROP FUNCTION IF EXISTS funcTypeTest");
+    stmt.execute(
+        "CREATE FUNCTION funcTypeTest (a1 VARCHAR(9) , "
+            + "a2 VARBINARY(10), a3 LONGTEXT, a4 MEDIUMTEXT, a5 TEXT, a6 TINYTEXT, a7 VARCHAR(11) CHARACTER SET binary, "
+            + "b1 TINYBLOB, b2 BLOB, b3 MEDIUMBLOB, b4 LONGBLOB) RETURNS CHAR(50) AS BEGIN "
+            + "RETURN CONCAT('Hello, ',a1,'!'); "
+            + "END");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    ResultSet rs = meta.getFunctionColumns(null, null, "funcTypeTest", null);
+    /* First row is for return value */
+    rs.next();
+    rs.next();
+    assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.VARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARCHAR, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARCHAR, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARCHAR, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.VARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.VARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
+    assertEquals(Types.LONGVARBINARY, rs.getInt("DATA_TYPE"));
+    rs.next();
     stmt.execute("DROP FUNCTION IF EXISTS hello");
   }
 
@@ -268,7 +330,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("a", rs.getString(4)); // COLUMN_NAME
     // In S2 type of auto_increment column is set to BIGINT for sharded tables
     assertEquals(Types.BIGINT, rs.getInt(5)); // DATA_TYPE
-    assertEquals("BIGINT(11)", rs.getString(6)); // "TYPE_NAME
+    assertEquals("BIGINT", rs.getString(6)); // "TYPE_NAME
     assertEquals(19, rs.getInt(7)); // "COLUMN_SIZE
     assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
     assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
@@ -291,7 +353,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("b", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPEf
-    assertEquals("VARCHAR(32)", rs.getString(6)); // "TYPE_NAME
+    assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
     assertEquals(32, rs.getInt(7)); // "COLUMN_SIZE
     assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
     assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
@@ -315,7 +377,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("c", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
-    assertEquals("AS (CHAR_LENGTH(B)) PERSISTED INT(11)", rs.getString(6)); // TYPE_NAME
+    assertEquals("INT", rs.getString(6)); // TYPE_NAME
     assertEquals(10, rs.getInt(7)); // COLUMN_SIZE
     assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
     assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
@@ -342,7 +404,7 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("d", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
-    assertEquals("AS LEFT(B,5) PERSISTED VARCHAR(5)", rs.getString(6)); // "TYPE_NAME
+    assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
     assertEquals(5, rs.getInt(7)); // "COLUMN_SIZE
     assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
     assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
@@ -845,6 +907,33 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void getFunctionType() throws SQLException {
+    ResultSet rs = sharedConn.getMetaData().getFunctions(null, null, "UDTF");
+    assertTrue(rs.next());
+    assertEquals(DatabaseMetaData.functionReturnsTable, rs.getInt("FUNCTION_TYPE"));
+    assertFalse(rs.next());
+    rs = sharedConn.getMetaData().getFunctions(null, null, "testMetaCatalog");
+    assertTrue(rs.next());
+    assertEquals(DatabaseMetaData.functionNoTable, rs.getInt("FUNCTION_TYPE"));
+    assertFalse(rs.next());
+  }
+
+  @Test
+  public void getProceduresNotFunctions() throws SQLException {
+    ResultSet rs;
+    rs = sharedConn.getMetaData().getProcedures(null, null, "getProcTimePrecision");
+    assertTrue(rs.next());
+    rs = sharedConn.getMetaData().getProcedures(null, null, "getProcTimePrecision2");
+    assertTrue(rs.next());
+    rs = sharedConn.getMetaData().getProcedures(null, null, "testMetaCatalogProc");
+    assertTrue(rs.next());
+    rs = sharedConn.getMetaData().getProcedures(null, null, "testMetaCatalog");
+    assertFalse(rs.next());
+    rs = sharedConn.getMetaData().getProcedures(null, null, "UDTF");
+    assertFalse(rs.next());
+  }
+
+  @Test
   public void getSuperTablesBasic() throws SQLException {
     testResultSetColumns(
         sharedConn.getMetaData().getSuperTables(null, null, null),
@@ -1105,11 +1194,6 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "CREATE PROCEDURE getProcTimePrecision2( I date, "
-            + "t1 DATETIME,"
-            + "t3 timestamp,"
-            + "t5 time) AS BEGIN ECHO SELECT I; END");
 
     final int precisionField = 8;
     final int lengthField = 9;
@@ -1150,15 +1234,6 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void metaTimeProcedureResultSet() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute(
-        "CREATE PROCEDURE getProcTimePrecision"
-            + "(I date, "
-            + "t1 DATETIME(0),"
-            + "t2 DATETIME(6),"
-            + "t3 timestamp(0),"
-            + "t4 timestamp(6),"
-            + "t5 time ,"
-            + "t6 time(6)) AS BEGIN ECHO SELECT I; END");
 
     final int precisionField = 8;
     final int lengthField = 9;
@@ -1483,26 +1558,26 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void testMetaCatalog() throws Exception {
     DatabaseMetaData meta = sharedConn.getMetaData();
-    ResultSet rs = meta.getProcedures(sharedConn.getCatalog(), null, "testMetaCatalog");
+    ResultSet rs = meta.getProcedures(sharedConn.getCatalog(), null, "testMetaCatalogProc");
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1));
     assertNull(rs.getString(2));
-    assertEquals("testMetaCatalog", rs.getString(3));
+    assertEquals("testMetaCatalogProc", rs.getString(3));
     assertNull(rs.getString(4));
     assertNull(rs.getString(5));
     assertNull(rs.getString(6));
     assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getInt(8));
-    assertEquals("testMetaCatalog", rs.getString(9));
+    assertEquals("testMetaCatalogProc", rs.getString(9));
     assertFalse(rs.next());
 
     // test with bad catalog
-    rs = meta.getProcedures("yahoooo", null, "testMetaCatalog");
+    rs = meta.getProcedures("yahoooo", null, "testMetaCatalogProc");
     assertFalse(rs.next());
 
     // test without catalog
-    rs = meta.getProcedures(null, null, "testMetaCatalog");
+    rs = meta.getProcedures(null, null, "testMetaCatalogProc");
     assertTrue(rs.next());
-    assertEquals("testMetaCatalog", rs.getString(3));
+    assertEquals("testMetaCatalogProc", rs.getString(3));
     assertFalse(rs.next());
   }
 
@@ -1512,6 +1587,6 @@ public class DatabaseMetadataTest extends Common {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("JSON", meta.getColumnTypeName(1));
     assertEquals("java.lang.String", meta.getColumnClassName(1));
-    assertEquals(Types.VARCHAR, meta.getColumnType(1));
+    assertEquals(Types.LONGVARCHAR, meta.getColumnType(1));
   }
 }

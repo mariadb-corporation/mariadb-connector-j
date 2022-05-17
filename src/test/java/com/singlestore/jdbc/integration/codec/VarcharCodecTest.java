@@ -241,7 +241,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some" + fourByteUnicode + "' (VARSTRING) cannot be decoded as Byte");
+        "value 'some" + fourByteUnicode + "' (VARCHAR) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -251,7 +251,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(1),
-        "value '' (VARSTRING) cannot be decoded as Byte");
+        "value '' (VARCHAR) cannot be decoded as Byte");
   }
 
   @Test
@@ -425,7 +425,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(1),
-        "value '0' (VARSTRING) cannot be decoded as Date");
+        "value '0' (VARCHAR) cannot be decoded as Date");
     rs.next();
     assertEquals("2011-01-01", rs.getDate(1).toString());
     assertFalse(rs.wasNull());
@@ -436,7 +436,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
-        "value '23:54:51.840010' (VARSTRING) cannot be decoded as Date");
+        "value '23:54:51.840010' (VARCHAR) cannot be decoded as Date");
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
@@ -444,7 +444,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(1),
-        "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
+        "value 'aaaa-bb-cc' (VARCHAR) cannot be decoded as Date");
   }
 
   @Test
@@ -463,12 +463,12 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(1),
-        "VARSTRING value '2011-01-01' cannot be decoded as Time");
+        "VARCHAR value '2011-01-01' cannot be decoded as Time");
     assertFalse(rs.wasNull());
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime(2),
-        "VARSTRING value '2010-12-31 23:59:59.152' cannot be decoded as Time");
+        "VARCHAR value '2010-12-31 23:59:59.152' cannot be decoded as Time");
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(3).getTime());
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime("t3alias").getTime());
     Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -494,7 +494,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, LocalTime.class),
-        "value '2011-01-01' (VARSTRING) cannot be decoded as LocalTime");
+        "value '2011-01-01' (VARCHAR) cannot be decoded as LocalTime");
     assertFalse(rs.wasNull());
 
     assertEquals(LocalTime.parse("23:59:59.152"), rs.getObject(2, LocalTime.class));
@@ -518,17 +518,17 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, Duration.class),
-        "VARSTRING value '0' cannot be decoded as Time");
+        "VARCHAR value '0' cannot be decoded as Time");
     rs.next();
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, Duration.class),
-        "VARSTRING value '2011-01-01' cannot be decoded as Time");
+        "VARCHAR value '2011-01-01' cannot be decoded as Time");
     assertFalse(rs.wasNull());
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(2, Duration.class),
-        "VARSTRING value '2010-12-31 23:59:59.152' cannot be decoded as Time");
+        "VARCHAR value '2010-12-31 23:59:59.152' cannot be decoded as Time");
     assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject(3, Duration.class));
     assertEquals(Duration.parse("PT23H54M51.84001S"), rs.getObject("t3alias", Duration.class));
   }
@@ -588,7 +588,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, LocalDateTime.class),
-        "value '0' (VARSTRING) cannot be decoded as LocalDateTime");
+        "value '0' (VARCHAR) cannot be decoded as LocalDateTime");
     rs.next();
     assertEquals(LocalDateTime.parse("2011-01-01T00:00:00"), rs.getObject(1, LocalDateTime.class));
     assertFalse(rs.wasNull());
@@ -598,7 +598,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, LocalDateTime.class),
-        "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as LocalDateTime");
+        "value 'aaaa-bb-cc' (VARCHAR) cannot be decoded as LocalDateTime");
     assertNull(rs.getObject(2, LocalDateTime.class));
   }
 
@@ -617,7 +617,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, LocalDate.class),
-        "value '0' (VARSTRING) cannot be decoded as Date");
+        "value '0' (VARCHAR) cannot be decoded as Date");
     rs.next();
     assertEquals(LocalDate.parse("2011-01-01"), rs.getObject(1, LocalDate.class));
     assertFalse(rs.wasNull());
@@ -626,7 +626,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getObject(1, LocalDate.class),
-        "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
+        "value 'aaaa-bb-cc' (VARCHAR) cannot be decoded as Date");
     assertNull(rs.getObject(2, LocalDate.class));
   }
 
@@ -790,7 +790,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),
-        "Data type VARSTRING (not binary) cannot be decoded as Blob");
+        "Data type VARCHAR (not binary) cannot be decoded as Blob");
   }
 
   @Test
@@ -847,7 +847,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("VARSTRING", meta.getColumnTypeName(1));
+    assertEquals("VARCHAR", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

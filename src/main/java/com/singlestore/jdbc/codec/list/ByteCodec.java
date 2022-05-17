@@ -28,7 +28,7 @@ public class ByteCodec implements Codec<Byte> {
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.BIGINT,
           DataType.YEAR,
           DataType.BIT,
@@ -41,8 +41,8 @@ public class ByteCodec implements Codec<Byte> {
           DataType.LONGBLOB,
           DataType.DECIMAL,
           DataType.ENUM,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.VARCHAR,
+          DataType.CHAR,
           DataType.VARCHAR);
 
   public static long parseBit(ReadableByteBuf buf, int length) {
@@ -89,7 +89,7 @@ public class ByteCodec implements Codec<Byte> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case YEAR:
         result = LongCodec.parseNotEmpty(buf, length);
@@ -106,8 +106,7 @@ public class ByteCodec implements Codec<Byte> {
       case DECIMAL:
       case ENUM:
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).byteValueExact();
@@ -180,7 +179,7 @@ public class ByteCodec implements Codec<Byte> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         break;
 
-      case INTEGER:
+      case INT:
         result = column.isSigned() ? buf.readInt() : buf.readUnsignedInt();
         break;
 
@@ -220,8 +219,7 @@ public class ByteCodec implements Codec<Byte> {
       case DECIMAL:
       case ENUM:
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();

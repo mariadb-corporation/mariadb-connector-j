@@ -32,9 +32,8 @@ public class TimestampCodec implements Codec<Timestamp> {
           DataType.DATETIME,
           DataType.TIMESTAMP,
           DataType.YEAR,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.TIME,
           DataType.BLOB,
           DataType.TINYBLOB,
@@ -129,9 +128,8 @@ public class TimestampCodec implements Codec<Timestamp> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
       case TIMESTAMP:
       case DATETIME:
         int pos = buf.pos();
@@ -258,9 +256,8 @@ public class TimestampCodec implements Codec<Timestamp> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         String val = buf.readString(length);
         try {
           int[] parts = LocalDateTimeCodec.parseTimestamp(val);

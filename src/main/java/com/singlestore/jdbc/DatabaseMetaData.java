@@ -34,19 +34,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     this.version = null;
   }
 
-  public Version getVersion() throws java.sql.SQLException {
-    if (this.version == null) {
-      String sql = "SELECT @@memsql_version;";
-      ResultSet rs = executeQuery(sql);
-      rs.next();
-      this.version = new Version(rs.getString(1));
-    }
-
-    return this.version;
-  }
-
   private static String DataTypeClause(Configuration conf) {
-    String upperCaseWithoutSize = " UCASE(COLUMN_TYPE)";
+    String upperCaseWithoutSize = " UCASE(DATA_TYPE)";
 
     if (conf.tinyInt1isBit()) {
       upperCaseWithoutSize =
@@ -113,6 +102,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + ","
         + "0"
         + ")";
+  }
+
+  public Version getVersion() throws java.sql.SQLException {
+    if (this.version == null) {
+      String sql = "SELECT @@memsql_version;";
+      ResultSet rs = executeQuery(sql);
+      rs.next();
+      this.version = new Version(rs.getString(1));
+    }
+
+    return this.version;
   }
 
   private String returnTypeClause() {
@@ -253,12 +253,26 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " WHEN 'blob' THEN "
         + Types.LONGVARBINARY
         + " WHEN 'tinytext' THEN "
+        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + Types.VARBINARY
+        + ", "
         + Types.VARCHAR
-        + " WHEN 'mediumtext' THEN "
+        + ") WHEN 'mediumtext' THEN "
+        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + Types.LONGVARBINARY
+        + ", "
         + Types.LONGVARCHAR
-        + " WHEN 'longtext' THEN "
+        + ") WHEN 'longtext' THEN "
+        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + Types.LONGVARBINARY
+        + ", "
         + Types.LONGVARCHAR
-        + " WHEN 'text' THEN "
+        + ") WHEN 'text' THEN "
+        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + Types.LONGVARBINARY
+        + ", "
+        + Types.LONGVARCHAR
+        + ") WHEN 'json' THEN "
         + Types.LONGVARCHAR
         + " WHEN 'date' THEN "
         + Types.DATE
@@ -295,8 +309,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + Types.SMALLINT
         + ")"
         + " WHEN 'varchar' THEN "
+        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + Types.VARBINARY
+        + ", "
         + Types.VARCHAR
-        + " WHEN 'varbinary' THEN "
+        + ") WHEN 'varbinary' THEN "
         + Types.VARBINARY
         + " WHEN 'char' THEN "
         + Types.CHAR
@@ -532,7 +549,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    *   <LI><B>REMARKS</B> String {@code =>} comment describing column (may be <code>null</code>)
    *   <LI><B>COLUMN_DEF</B> String {@code =>} default value for the column, which should be
    *       interpreted as a string when the value is enclosed in single quotes (may be <code>null
-   *       </code>)
+   * </code>)
    *   <LI><B>SQL_DATA_TYPE</B> int {@code =>} unused
    *   <LI><B>SQL_DATETIME_SUB</B> int {@code =>} unused
    *   <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the
@@ -1545,7 +1562,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * Retrieves whether this database supports the given transaction isolation level.
    *
    * @param level one of the transaction isolation levels defined in <code>java.sql.Connection
-   *     </code>
+   *              </code>
    * @return <code>true</code> if so; <code>false</code> otherwise
    * @see java.sql.Connection
    */
@@ -1624,20 +1641,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String sql =
         "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,NULL PROCEDURE_SCHEM, ROUTINE_NAME PROCEDURE_NAME,"
             + " NULL RESERVED1, NULL RESERVED2, NULL RESERVED3, ROUTINE_COMMENT REMARKS,"
-            + " CASE ROUTINE_TYPE "
-            + "  WHEN 'FUNCTION' THEN "
-            + procedureReturnsResult
-            + "  WHEN 'PROCEDURE' THEN "
+            + " IF( DATA_TYPE = '', "
             + procedureNoResult
-            + "  ELSE "
-            + procedureResultUnknown
-            + " END PROCEDURE_TYPE,"
+            + ", "
+            + procedureReturnsResult
+            + ") PROCEDURE_TYPE,"
             + " SPECIFIC_NAME "
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
             + patternCond("ROUTINE_NAME", procedureNamePattern)
-            + "/* AND ROUTINE_TYPE='PROCEDURE' */";
+            + " AND ROUTINE_TYPE='PROCEDURE'";
     return executeQuery(sql);
   }
 
@@ -1683,7 +1697,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    *   <LI><B>REMARKS</B> String {@code =>} comment describing parameter/column
    *   <LI><B>COLUMN_DEF</B> String {@code =>} default value for the column, which should be
    *       interpreted as a string when the value is enclosed in single quotes (may be <code>null
-   *       </code>)
+   * </code>)
    *       <UL>
    *         <LI>The string NULL (not enclosed in quotes) - if NULL was specified as the default
    *             value
@@ -1787,7 +1801,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + catalogCond("SPECIFIC_SCHEMA", catalog)
             + patternCond("SPECIFIC_NAME", procedureNamePattern)
             + patternCond("PARAMETER_NAME", columnNamePattern)
-            + " /* AND ROUTINE_TYPE='PROCEDURE' */ "
+            + "  AND ROUTINE_TYPE='PROCEDURE'  "
             + " ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION";
 
     return executeQuery(sql);
@@ -2181,9 +2195,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    *   <LI><B>DATA_TYPE</B> int {@code =>} SQL data type from java.sql.Types
    *   <LI><B>PRECISION</B> int {@code =>} maximum precision
    *   <LI><B>LITERAL_PREFIX</B> String {@code =>} prefix used to quote a literal (may be <code>null
-   *       </code>)
+   * </code>)
    *   <LI><B>LITERAL_SUFFIX</B> String {@code =>} suffix used to quote a literal (may be <code>null
-   *       </code>)
+   * </code>)
    *   <LI><B>CREATE_PARAMS</B> String {@code =>} parameters used in creating the type (may be
    *       <code>null</code>)
    *   <LI><B>NULLABLE</B> short {@code =>} can you use NULL for this type.
@@ -2204,7 +2218,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    *   <LI><B>FIXED_PREC_SCALE</B> boolean {@code =>} can it be a money value.
    *   <LI><B>AUTO_INCREMENT</B> boolean {@code =>} can it be used for an auto-increment value.
    *   <LI><B>LOCAL_TYPE_NAME</B> String {@code =>} localized version of type name (may be <code>
-   *       null</code>)
+   * null</code>)
    *   <LI><B>MINIMUM_SCALE</B> short {@code =>} minimum scale supported
    *   <LI><B>MAXIMUM_SCALE</B> short {@code =>} maximum scale supported
    *   <LI><B>SQL_DATA_TYPE</B> int {@code =>} unused
@@ -2230,12 +2244,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     };
     DataType[] dataTypes = {
       DataType.VARCHAR,
-      DataType.INTEGER,
-      DataType.INTEGER,
+      DataType.INT,
+      DataType.INT,
       DataType.VARCHAR,
       DataType.VARCHAR,
       DataType.VARCHAR,
-      DataType.INTEGER,
+      DataType.INT,
       DataType.BIT,
       DataType.SMALLINT,
       DataType.BIT,
@@ -2244,9 +2258,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       DataType.VARCHAR,
       DataType.SMALLINT,
       DataType.SMALLINT,
-      DataType.INTEGER,
-      DataType.INTEGER,
-      DataType.INTEGER
+      DataType.INT,
+      DataType.INT,
+      DataType.INT
     };
 
     String[][] data = {
@@ -3073,7 +3087,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @param typeNamePattern a type name pattern; must match the type name as it is stored in the
    *     database; may be a fully qualified name
    * @param types a list of user-defined types (JAVA_OBJECT, STRUCT, or DISTINCT) to include; <code>
-   *     null</code> returns all types
+   *                        null</code> returns all types
    * @return <code>ResultSet</code> object in which each row describes a UDT
    * @throws SQLException if a database access error occurs
    * @see #getSearchStringEscape
@@ -3125,9 +3139,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    *   <li><B>TYPE_SCHEM</B> String {@code =>} UDT's schema (may be <code>null</code>)
    *   <li><B>TYPE_NAME</B> String {@code =>} type name of the UDT
    *   <li><B>SUPERTYPE_CAT</B> String {@code =>} the direct super type's catalog (may be <code>null
-   *       </code>)
+   * </code>)
    *   <li><B>SUPERTYPE_SCHEM</B> String {@code =>} the direct super type's schema (may be <code>
-   *       null</code>)
+   * null</code>)
    *   <li><B>SUPERTYPE_NAME</B> String {@code =>} the direct super type's name
    * </OL>
    *
@@ -3346,9 +3360,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String[] columnNames = new String[] {"NAME", "MAX_LEN", "DEFAULT_VALUE", "DESCRIPTION"};
 
     DataType[] types =
-        new DataType[] {
-          DataType.VARSTRING, DataType.INTEGER, DataType.VARSTRING, DataType.VARSTRING
-        };
+        new DataType[] {DataType.VARCHAR, DataType.INT, DataType.VARCHAR, DataType.VARCHAR};
     String[][] data =
         new String[][] {
           new String[] {
@@ -3422,8 +3434,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     String sql =
         "SELECT ROUTINE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, ROUTINE_NAME FUNCTION_NAME,"
             + " ROUTINE_COMMENT REMARKS,"
+            + "IF( DTD_IDENTIFIER LIKE 'TABLE', "
+            + functionReturnsTable
+            + ", "
             + functionNoTable
-            + " FUNCTION_TYPE, SPECIFIC_NAME "
+            + ") FUNCTION_TYPE, SPECIFIC_NAME "
             + " FROM INFORMATION_SCHEMA.ROUTINES "
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)

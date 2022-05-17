@@ -31,12 +31,11 @@ public class IntCodec implements Codec<Integer> {
           DataType.VARCHAR,
           DataType.DECIMAL,
           DataType.ENUM,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.BIGINT,
           DataType.BIT,
           DataType.YEAR,
@@ -80,7 +79,7 @@ public class IntCodec implements Codec<Integer> {
       case YEAR:
         return (int) LongCodec.parseNotEmpty(buf, length);
 
-      case INTEGER:
+      case INT:
         result = LongCodec.parseNotEmpty(buf, length);
         break;
 
@@ -117,8 +116,7 @@ public class IntCodec implements Codec<Integer> {
       case VARCHAR:
       case DECIMAL:
       case ENUM:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
@@ -167,7 +165,7 @@ public class IntCodec implements Codec<Integer> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         return res;
 
-      case INTEGER:
+      case INT:
         if (column.isSigned()) {
           return buf.readInt();
         }
@@ -222,11 +220,10 @@ public class IntCodec implements Codec<Integer> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case OLDDECIMAL:
-      case VARCHAR:
       case DECIMAL:
       case ENUM:
-      case VARSTRING:
-      case STRING:
+      case VARCHAR:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
@@ -263,6 +260,6 @@ public class IntCodec implements Codec<Integer> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.INTEGER.get();
+    return DataType.INT.get();
   }
 }

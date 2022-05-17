@@ -30,12 +30,11 @@ public class ShortCodec implements Codec<Short> {
           DataType.VARCHAR,
           DataType.DECIMAL,
           DataType.ENUM,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.BIGINT,
           DataType.BIT,
           DataType.YEAR,
@@ -75,7 +74,7 @@ public class ShortCodec implements Codec<Short> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case YEAR:
         result = LongCodec.parseNotEmpty(buf, length);
@@ -107,8 +106,7 @@ public class ShortCodec implements Codec<Short> {
       case VARCHAR:
       case DECIMAL:
       case ENUM:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
@@ -159,7 +157,7 @@ public class ShortCodec implements Codec<Short> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         break;
 
-      case INTEGER:
+      case INT:
         result = column.isSigned() ? buf.readInt() : buf.readUnsignedInt();
         break;
 
@@ -202,8 +200,7 @@ public class ShortCodec implements Codec<Short> {
       case VARCHAR:
       case DECIMAL:
       case ENUM:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();

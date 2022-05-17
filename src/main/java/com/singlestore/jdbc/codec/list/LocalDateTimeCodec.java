@@ -34,9 +34,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
       EnumSet.of(
           DataType.DATETIME,
           DataType.TIMESTAMP,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.TIME,
           DataType.YEAR,
           DataType.DATE,
@@ -125,9 +124,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         String val = buf.readString(length);
         try {
           parts = parseTimestamp(val);
@@ -205,9 +203,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         String val = buf.readString(length);
         try {
           int[] parts = parseTimestamp(val);

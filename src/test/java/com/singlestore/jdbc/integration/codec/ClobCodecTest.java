@@ -722,7 +722,7 @@ public class ClobCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("TINYBLOB", meta.getColumnTypeName(1));
+    assertEquals("TINYTEXT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.sql.Clob", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

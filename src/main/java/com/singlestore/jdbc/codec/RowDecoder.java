@@ -78,7 +78,7 @@ public abstract class RowDecoder {
     }
     readBuf.skip(length);
     throw new SQLException(
-        String.format("Type %s not supported type for %s type", type, column.getType().name()));
+        String.format("Type %s not supported type for %s type", type, column.getTypeName()));
   }
 
   public abstract boolean wasNull();

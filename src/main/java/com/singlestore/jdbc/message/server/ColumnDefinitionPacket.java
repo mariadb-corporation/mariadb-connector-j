@@ -114,7 +114,6 @@ public class ColumnDefinitionPacket implements ServerMessage {
     /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
     switch (type) {
       case VARCHAR:
-      case VARSTRING:
         len = 64 * 3; /* 3 bytes per UTF8 char */
         break;
       case SMALLINT:
@@ -171,6 +170,25 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return dataType;
   }
 
+  public String getTypeName() {
+    switch (dataType) {
+      case VARCHAR:
+        return isBinary() ? "VARBINARY" : "VARCHAR";
+      case CHAR:
+        return isBinary() ? "BINARY" : "CHAR";
+      case TINYBLOB:
+        return isBinary() ? "TINYBLOB" : "TINYTEXT";
+      case BLOB:
+        return isBinary() ? "BLOB" : "TEXT";
+      case MEDIUMBLOB:
+        return isBinary() ? "MEDIUMBLOB" : "MEDIUMTEXT";
+      case LONGBLOB:
+        return isBinary() ? "LONGBLOB" : "LONGTEXT";
+      default:
+        return dataType.name();
+    }
+  }
+
   public byte getDecimals() {
     if (dataType == DataType.DATE) {
       return 0;
@@ -188,8 +206,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case JSON:
       case ENUM:
       case SET:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
         if (maxWidth == null) {
           return (int) length;
@@ -265,8 +282,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case JSON:
       case ENUM:
       case SET:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
         if (maxWidth == null) {
           return length;
@@ -288,7 +304,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
         return (decimals == 0) ? 10 : 17;
 
       default:
-        return length;
+        return Math.max(length, 0);
     }
   }
 
@@ -307,7 +323,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
         return Types.VARBINARY;
       case SMALLINT:
         return isSigned() ? Types.SMALLINT : Types.INTEGER;
-      case INTEGER:
+      case INT:
         return isSigned() ? Types.INTEGER : Types.BIGINT;
       case FLOAT:
         return Types.REAL;
@@ -329,22 +345,21 @@ public class ColumnDefinitionPacket implements ServerMessage {
         if (conf.yearIsDateType()) return Types.DATE;
         return Types.SMALLINT;
       case VARCHAR:
-      case JSON:
       case ENUM:
       case SET:
-      case VARSTRING:
       case TINYBLOB:
-      case BLOB:
         return isBinary() ? Types.VARBINARY : Types.VARCHAR;
       case GEOMETRY:
         return Types.VARBINARY;
-      case STRING:
-        return isBinary() ? Types.VARBINARY : Types.CHAR;
+      case CHAR:
+        return isBinary() ? Types.BINARY : Types.CHAR;
       case OLDDECIMAL:
       case DECIMAL:
         return Types.DECIMAL;
       case MEDIUMBLOB:
       case LONGBLOB:
+      case BLOB:
+      case JSON:
         return isBinary() ? Types.LONGVARBINARY : Types.LONGVARCHAR;
     }
     return Types.NULL;
@@ -356,15 +371,14 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case VARCHAR:
       case ENUM:
       case SET:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
       case NULL:
         return StringCodec.INSTANCE;
       case TINYINT:
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
       case SMALLINT:
         return isSigned() ? ShortCodec.INSTANCE : IntCodec.INSTANCE;
-      case INTEGER:
+      case INT:
         return isSigned() ? IntCodec.INSTANCE : LongCodec.INSTANCE;
       case FLOAT:
         return FloatCodec.INSTANCE;

@@ -31,9 +31,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           DataType.TIME,
           DataType.DATETIME,
           DataType.TIMESTAMP,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -135,9 +134,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case VARSTRING:
       case VARCHAR:
-      case STRING:
+      case CHAR:
         String val = buf.readString(length);
         try {
           if (val.contains(" ")) {
@@ -220,9 +218,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case VARSTRING:
       case VARCHAR:
-      case STRING:
+      case CHAR:
         String val = buf.readString(length);
         try {
           if (val.contains(" ")) {

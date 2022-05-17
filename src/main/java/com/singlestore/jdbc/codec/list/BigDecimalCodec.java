@@ -26,7 +26,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.FLOAT,
           DataType.DOUBLE,
           DataType.BIGINT,
@@ -36,8 +36,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.YEAR,
           DataType.DECIMAL,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -64,7 +63,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case FLOAT:
       case DOUBLE:
@@ -86,8 +85,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           return new BigDecimal(str);
@@ -139,7 +137,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         }
         return BigDecimal.valueOf(buf.readInt());
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return BigDecimal.valueOf(buf.readUnsignedInt());
         }
@@ -187,8 +185,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
       case DECIMAL:
       case OLDDECIMAL:
         String str = buf.readString(length);

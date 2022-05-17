@@ -24,10 +24,9 @@ public class BooleanCodec implements Codec<Boolean> {
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BIGINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.MEDIUMINT,
           DataType.SMALLINT,
           DataType.YEAR,
@@ -84,12 +83,11 @@ public class BooleanCodec implements Codec<Boolean> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case YEAR:
         String s = buf.readAscii(length);
@@ -137,8 +135,7 @@ public class BooleanCodec implements Codec<Boolean> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         return !"0".equals(buf.readAscii(length));
 
       case DECIMAL:
@@ -159,7 +156,7 @@ public class BooleanCodec implements Codec<Boolean> {
         return buf.readShort() != 0;
 
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
         return buf.readInt() != 0;
       case BIGINT:
         return buf.readLong() != 0;

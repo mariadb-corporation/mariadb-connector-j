@@ -226,7 +226,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (VARSTRING) cannot be decoded as Byte");
+        "value 'some\uD83C\uDF1F' (VARCHAR) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -397,7 +397,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(1),
-        "value '0' (VARSTRING) cannot be decoded as Date");
+        "value '0' (VARCHAR) cannot be decoded as Date");
     rs.next();
     assertEquals("2011-01-01", rs.getDate(1).toString());
     assertFalse(rs.wasNull());
@@ -408,7 +408,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
-        "value '23:54:51.840010' (VARSTRING) cannot be decoded as Date");
+        "value '23:54:51.840010' (VARCHAR) cannot be decoded as Date");
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
@@ -711,7 +711,7 @@ public class BinaryCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("VARSTRING", meta.getColumnTypeName(1));
+    assertEquals("VARBINARY", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
@@ -722,7 +722,7 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
-    assertEquals(Types.VARBINARY, meta.getColumnType(4));
+    assertEquals(Types.BINARY, meta.getColumnType(4));
   }
 
   @Test

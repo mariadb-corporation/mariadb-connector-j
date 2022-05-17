@@ -26,7 +26,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.BIGINT,
           DataType.DECIMAL,
           DataType.YEAR,
@@ -36,8 +36,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
           DataType.FLOAT,
           DataType.BIT,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -81,8 +80,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str2 = buf.readString(length);
         try {
           return new BigDecimal(str2).toBigInteger();
@@ -102,7 +100,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case YEAR:
         return new BigInteger(buf.readAscii(length));
@@ -149,7 +147,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         }
         return BigInteger.valueOf(buf.readInt());
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return BigInteger.valueOf(buf.readUnsignedInt());
         }
@@ -187,8 +185,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str = buf.readString(length);
         try {
           return new BigInteger(str);

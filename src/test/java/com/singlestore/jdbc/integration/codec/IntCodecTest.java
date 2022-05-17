@@ -608,7 +608,7 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLException.class,
         () -> rs.getObject(1, Duration.class),
-        "Type class java.time.Duration not supported type for INTEGER type");
+        "Type class java.time.Duration not supported type for INT type");
   }
 
   @Test
@@ -624,11 +624,11 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getDate(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getDate(1), "Data type INTEGER cannot be decoded as Date");
+        SQLDataException.class, () -> rs.getDate(1), "Data type INT cannot be decoded as Date");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate("t1alias"),
-        "Data type INTEGER cannot be decoded as Date");
+        "Data type INT cannot be decoded as Date");
   }
 
   @Test
@@ -644,11 +644,11 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getTime(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getTime(1), "Data type INTEGER cannot be decoded as Time");
+        SQLDataException.class, () -> rs.getTime(1), "Data type INT cannot be decoded as Time");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTime("t1alias"),
-        "Data type INTEGER cannot be decoded as Time");
+        "Data type INT cannot be decoded as Time");
   }
 
   @Test
@@ -666,11 +666,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp(1),
-        "Data type INTEGER cannot be decoded as Timestamp");
+        "Data type INT cannot be decoded as Timestamp");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getTimestamp("t1alias"),
-        "Data type INTEGER cannot be decoded as Timestamp");
+        "Data type INT cannot be decoded as Timestamp");
   }
 
   @Test
@@ -688,11 +688,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream(1),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getAsciiStream("t1alias"),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
   }
 
   @Test
@@ -711,11 +711,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream(1),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getUnicodeStream("t1alias"),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
   }
 
   @Test
@@ -733,11 +733,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream(1),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBinaryStream("t1alias"),
-        "Data type INTEGER cannot be decoded as Stream");
+        "Data type INT cannot be decoded as Stream");
   }
 
   @Test
@@ -753,13 +753,11 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getBytes(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBytes(1),
-        "Data type INTEGER cannot be decoded as byte[]");
+        SQLDataException.class, () -> rs.getBytes(1), "Data type INT cannot be decoded as byte[]");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBytes("t1alias"),
-        "Data type INTEGER cannot be decoded as byte[]");
+        "Data type INT cannot be decoded as byte[]");
   }
 
   @Test
@@ -777,11 +775,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
   }
 
   @Test
@@ -799,11 +797,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream(1),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNCharacterStream("t2alias"),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
   }
 
   @Test
@@ -839,11 +837,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream(1),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getCharacterStream("t1alias"),
-        "Data type INTEGER cannot be decoded as Reader");
+        "Data type INT cannot be decoded as Reader");
   }
 
   @Test
@@ -859,11 +857,11 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getClob(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class, () -> rs.getClob(1), "Data type INTEGER cannot be decoded as Clob");
+        SQLDataException.class, () -> rs.getClob(1), "Data type INT cannot be decoded as Clob");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getClob("t1alias"),
-        "Data type INTEGER cannot be decoded as Clob");
+        "Data type INT cannot be decoded as Clob");
   }
 
   @Test
@@ -879,13 +877,11 @@ public class IntCodecTest extends CommonCodecTest {
 
   private void getNClob(ResultSet rs) throws SQLException {
     assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNClob(1),
-        "Data type INTEGER cannot be decoded as Clob");
+        SQLDataException.class, () -> rs.getNClob(1), "Data type INT cannot be decoded as Clob");
     assertThrowsContains(
         SQLDataException.class,
         () -> rs.getNClob("t1alias"),
-        "Data type INTEGER cannot be decoded as Clob");
+        "Data type INT cannot be decoded as Clob");
   }
 
   @Test
@@ -950,7 +946,7 @@ public class IntCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = getSigned();
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("INTEGER", meta.getColumnTypeName(1));
+    assertEquals("INT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));

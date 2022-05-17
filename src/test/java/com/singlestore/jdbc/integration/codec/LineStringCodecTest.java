@@ -144,7 +144,7 @@ public class LineStringCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    assertEquals("STRING", meta.getColumnTypeName(1));
+    assertEquals("CHAR", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
 
     assertEquals(String.class.getName(), meta.getColumnClassName(1));

@@ -30,9 +30,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
           DataType.DATETIME,
           DataType.TIMESTAMP,
           DataType.YEAR,
-          DataType.VARSTRING,
           DataType.VARCHAR,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -113,9 +112,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case VARSTRING:
       case VARCHAR:
-      case STRING:
+      case CHAR:
         String val = buf.readString(length);
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {
@@ -178,9 +176,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         String val = buf.readString(length);
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {

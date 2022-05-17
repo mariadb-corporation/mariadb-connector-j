@@ -24,9 +24,8 @@ public class ReaderCodec implements Codec<Reader> {
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
-          DataType.STRING,
+          DataType.CHAR,
           DataType.VARCHAR,
-          DataType.VARSTRING,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -58,9 +57,8 @@ public class ReaderCodec implements Codec<Reader> {
         // expected fallthrough
         // BLOB is considered as String if has a collation (this is TEXT column)
 
-      case STRING:
+      case CHAR:
       case VARCHAR:
-      case VARSTRING:
         return new StringReader(buf.readString(length));
 
       default:
@@ -168,7 +166,7 @@ public class ReaderCodec implements Codec<Reader> {
   }
 
   public int getBinaryEncodeType() {
-    return DataType.VARSTRING.get();
+    return DataType.VARCHAR.get();
   }
 
   public boolean canEncodeLongData() {

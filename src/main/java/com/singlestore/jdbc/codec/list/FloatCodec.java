@@ -27,7 +27,7 @@ public class FloatCodec implements Codec<Float> {
           DataType.TINYINT,
           DataType.SMALLINT,
           DataType.MEDIUMINT,
-          DataType.INTEGER,
+          DataType.INT,
           DataType.FLOAT,
           DataType.BIGINT,
           DataType.OLDDECIMAL,
@@ -35,8 +35,7 @@ public class FloatCodec implements Codec<Float> {
           DataType.YEAR,
           DataType.DOUBLE,
           DataType.VARCHAR,
-          DataType.VARSTRING,
-          DataType.STRING,
+          DataType.CHAR,
           DataType.BLOB,
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
@@ -72,7 +71,7 @@ public class FloatCodec implements Codec<Float> {
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
-      case INTEGER:
+      case INT:
       case BIGINT:
       case DOUBLE:
       case OLDDECIMAL:
@@ -94,8 +93,7 @@ public class FloatCodec implements Codec<Float> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String val = buf.readString(length);
         try {
           return Float.valueOf(val);
@@ -142,7 +140,7 @@ public class FloatCodec implements Codec<Float> {
         buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
         return f;
 
-      case INTEGER:
+      case INT:
         if (!column.isSigned()) {
           return (float) buf.readUnsignedInt();
         }
@@ -183,8 +181,7 @@ public class FloatCodec implements Codec<Float> {
         // BLOB is considered as String if has a collation (this is TEXT column)
 
       case VARCHAR:
-      case VARSTRING:
-      case STRING:
+      case CHAR:
         String str2 = buf.readString(length);
         try {
           return Float.valueOf(str2);

@@ -9,7 +9,7 @@ public enum DataType {
   OLDDECIMAL(0),
   TINYINT(1),
   SMALLINT(2),
-  INTEGER(3),
+  INT(3),
   FLOAT(4),
   DOUBLE(5),
   NULL(6),
@@ -21,7 +21,6 @@ public enum DataType {
   DATETIME(12),
   YEAR(13),
   NEWDATE(14),
-  VARCHAR(15),
   BIT(16),
   JSON(245),
   DECIMAL(246),
@@ -31,8 +30,8 @@ public enum DataType {
   MEDIUMBLOB(250),
   LONGBLOB(251),
   BLOB(252),
-  VARSTRING(253),
-  STRING(254),
+  VARCHAR(253),
+  CHAR(254),
   GEOMETRY(255);
 
   static final DataType[] typeMap;

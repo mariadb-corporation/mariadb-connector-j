@@ -242,11 +242,10 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public String getColumnTypeName(final int index) throws SQLException {
     ColumnDefinitionPacket column = getColumn(index);
-    DataType dataType = column.getType();
-    if (dataType == DataType.GEOMETRY && column.getExtTypeName() != null) {
+    if (column.getType() == DataType.GEOMETRY && column.getExtTypeName() != null) {
       return column.getExtTypeName().toUpperCase(Locale.ROOT);
     }
-    return dataType.name();
+    return column.getTypeName();
   }
 
   /**
