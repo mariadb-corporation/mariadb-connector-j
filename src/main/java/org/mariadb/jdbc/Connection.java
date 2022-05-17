@@ -47,6 +47,7 @@ public class Connection implements java.sql.Connection {
   private final boolean canUseServerTimeout;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
+  private final boolean forceTransactionEnd;
   private MariaDbPoolConnection poolConnection;
 
   /**
@@ -58,6 +59,7 @@ public class Connection implements java.sql.Connection {
    */
   public Connection(Configuration conf, ReentrantLock lock, Client client) {
     this.conf = conf;
+    this.forceTransactionEnd = Boolean.parseBoolean(conf.nonMappedOptions().getProperty("forceTransactionEnd", "false"));
     this.lock = lock;
     this.exceptionFactory = client.getExceptionFactory().setConnection(this);
     this.client = client;
@@ -198,7 +200,7 @@ public class Connection implements java.sql.Connection {
   public void commit() throws SQLException {
     lock.lock();
     try {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+      if (forceTransactionEnd || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         client.execute(new QueryPacket("COMMIT"), false);
       }
     } finally {
@@ -210,7 +212,7 @@ public class Connection implements java.sql.Connection {
   public void rollback() throws SQLException {
     lock.lock();
     try {
-      if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+      if (forceTransactionEnd || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
         client.execute(new QueryPacket("ROLLBACK"), true);
       }
     } finally {
@@ -842,7 +844,7 @@ public class Connection implements java.sql.Connection {
     }
 
     // in transaction => rollback
-    if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+    if (forceTransactionEnd || (client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
       client.execute(new QueryPacket("ROLLBACK"), true);
     }
 
