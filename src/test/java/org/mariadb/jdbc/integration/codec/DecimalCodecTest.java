@@ -25,6 +25,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     stmt.execute("DROP TABLE IF EXISTS DecimalCodec");
     stmt.execute("DROP TABLE IF EXISTS DecimalCodec2");
     stmt.execute("DROP TABLE IF EXISTS DecimalCodec3");
+    stmt.execute("DROP TABLE IF EXISTS DecimalCodec4");
   }
 
   @BeforeAll
@@ -39,26 +40,40 @@ public class DecimalCodecTest extends CommonCodecTest {
         "INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null), (0, 9223372036854775808, 0, null)");
     stmt.execute(
         "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
+    stmt.execute(
+        "CREATE TABLE DecimalCodec4 (t1 DECIMAL(10,0) ZEROFILL, t2 DECIMAL(10,6) ZEROFILL, t3 DECIMAL(10,3) ZEROFILL, t4 DECIMAL(10,0) ZEROFILL)");
+    stmt.execute("INSERT INTO DecimalCodec4 VALUES (0, 105.21, 1.6, null)");
+
     stmt.execute("FLUSH TABLES");
   }
 
   private ResultSet get() throws SQLException {
+    return get(false);
+  }
+
+  private ResultSet get(boolean zerofill) throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec"
+                + (zerofill ? "4" : ""));
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
+    return getPrepare(con, false);
+  }
+
+  private ResultSet getPrepare(Connection con, boolean zerofill) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec"
+                + (zerofill ? "4" : "")
                 + " WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
@@ -133,12 +148,18 @@ public class DecimalCodecTest extends CommonCodecTest {
   @Test
   public void getString() throws SQLException {
     getString(get());
+    getStringZerofill(get(true));
   }
 
   @Test
   public void getStringPrepare() throws SQLException {
     getString(getPrepare(sharedConn));
     getString(getPrepare(sharedConnBinary));
+    // Xpand doesn't support zerofill https://jira.mariadb.org/browse/XPT-286
+    if (!isXpand()) {
+      getStringZerofill(getPrepare(sharedConn, true));
+      getStringZerofill(getPrepare(sharedConnBinary, true));
+    }
   }
 
   public void getString(ResultSet rs) throws SQLException {
@@ -148,6 +169,18 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertEquals("105.210000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals("-1.600", rs.getString(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getString(4));
+    assertTrue(rs.wasNull());
+  }
+
+  public void getStringZerofill(ResultSet rs) throws SQLException {
+    assertEquals("0000000000", rs.getString(1));
+    assertFalse(rs.wasNull());
+    assertEquals("0105.210000", rs.getString(2));
+    assertEquals("0105.210000", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("0000001.600", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -466,6 +499,24 @@ public class DecimalCodecTest extends CommonCodecTest {
         SQLDataException.class,
         () -> rs.getTimestamp("t1alias"),
         "Data type DECIMAL cannot be decoded as Timestamp");
+  }
+
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "Type class java.time.OffsetDateTime not supported type for DECIMAL type");
   }
 
   @Test

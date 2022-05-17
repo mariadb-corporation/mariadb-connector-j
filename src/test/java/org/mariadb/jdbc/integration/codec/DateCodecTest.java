@@ -492,6 +492,56 @@ public class DateCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getInstant() throws SQLException {
+    getInstant(get());
+  }
+
+  @Test
+  public void getInstantPrepare() throws SQLException {
+    getInstant(getPrepare(sharedConn));
+    getInstant(getPrepare(sharedConnBinary));
+  }
+
+  public void getInstant(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("2010-01-12T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(1, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("1000-01-01T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(2, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(3, Instant.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4, Instant.class));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+  }
+
+  @Test
   public void getAsciiStream() throws SQLException {
     getAsciiStream(get());
   }
@@ -672,6 +722,7 @@ public class DateCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateCodec2");
+
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
       prep.execute();

@@ -6,10 +6,15 @@ package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Random;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
+import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.Statement;
 
 public class PreparedStatementTest extends Common {
@@ -84,6 +89,7 @@ public class PreparedStatementTest extends Common {
         conn.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(1, 5);
       preparedStatement.setInt(2, 10);
+
       assertFalse(preparedStatement.execute());
 
       ParameterMetaData paramMeta = preparedStatement.getParameterMetaData();
@@ -1195,6 +1201,66 @@ public class PreparedStatementTest extends Common {
           SQLException.class,
           () -> rs.getObject(10, String.class),
           "Wrong index position. Is 10 but must be in 1-1 range");
+    }
+  }
+
+  @Test
+  public void prepareStmtToString() throws SQLException {
+    prepareStmtToString(sharedConn, "ClientPreparedStatement");
+    prepareStmtToString(sharedConnBinary, "ServerPreparedStatement");
+  }
+
+  public void prepareStmtToString(java.sql.Connection conn, String prefix) throws SQLException {
+    try (PreparedStatement preparedStatement =
+        conn.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
+
+      assertEquals(
+          prefix + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[]}",
+          preparedStatement.toString());
+
+      preparedStatement.setInt(1, 5);
+      preparedStatement.setLong(2, 10L);
+      assertEquals(
+          prefix + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[5,10]}",
+          preparedStatement.toString());
+
+      preparedStatement.setNull(2, Types.VARBINARY);
+      assertEquals(
+          prefix + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[5,null]}",
+          preparedStatement.toString());
+      preparedStatement.setNull(1, Types.VARBINARY);
+      preparedStatement.setBytes(2, new byte[] {(byte) 'a', (byte) 'b'});
+      assertEquals(
+          prefix
+              + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[null,_binary 'ab']}",
+          preparedStatement.toString());
+
+      preparedStatement.setBlob(1, new MariaDbBlob(new byte[] {0, 1, 2, 3, 4, 5}));
+      preparedStatement.setAsciiStream(2, new ByteArrayInputStream("test3".getBytes()));
+      assertEquals(
+          prefix
+              + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[<interface java.sql.Blob>,<class java.io.InputStream>]}",
+          preparedStatement.toString());
+
+      preparedStatement.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12"));
+      preparedStatement.setObject(2, LocalDate.parse("2011-01-01"));
+      assertEquals(
+          prefix
+              + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:['2010-01-12 01:55:12','2011-01-01']}",
+          preparedStatement.toString());
+
+      preparedStatement.setBigDecimal(1, new BigDecimal("158.9876543210"));
+      preparedStatement.setString(2, "test");
+      assertEquals(
+          prefix
+              + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[158.9876543210,'test']}",
+          preparedStatement.toString());
+
+      preparedStatement.setString(3, "unusedParam");
+      assertEquals(
+          prefix
+              + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[158.9876543210,'test','unusedParam']}",
+          preparedStatement.toString());
     }
   }
 }

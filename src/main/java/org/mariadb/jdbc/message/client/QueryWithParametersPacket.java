@@ -10,6 +10,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameter;
 import org.mariadb.jdbc.client.util.Parameters;
+import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 import org.mariadb.jdbc.util.ClientParser;
 
@@ -76,6 +77,10 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   public int batchUpdateLength() {
     return 1;
+  }
+
+  public boolean validateLocalFileName(String fileName, Context context) {
+    return ClientMessage.validateLocalFileName(parser.getSql(), parameters, fileName, context);
   }
 
   @Override

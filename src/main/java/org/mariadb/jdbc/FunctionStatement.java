@@ -90,4 +90,24 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
     parameters = newParameters;
     super.validParameters();
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("FunctionStatement{sql:'" + sql + "'");
+    sb.append(", parameters:[");
+    for (int i = 0; i < parameters.size(); i++) {
+      org.mariadb.jdbc.client.util.Parameter param = parameters.get(i);
+      if (outputParameters.contains(i + 1)) sb.append("<OUT>");
+      if (param == null) {
+        sb.append("null");
+      } else {
+        sb.append(param.bestEffortStringValue(con.getContext()));
+      }
+      if (i != parameters.size() - 1) {
+        sb.append(",");
+      }
+    }
+    sb.append("]}");
+    return sb.toString();
+  }
 }

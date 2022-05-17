@@ -502,4 +502,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     con.fireStatementClosed(this);
     super.close();
   }
+
+  @Override
+  public String toString() {
+    return "ClientPreparedStatement{" + super.toString() + '}';
+  }
 }

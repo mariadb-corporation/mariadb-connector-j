@@ -500,6 +500,24 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+  }
+
+  @Test
   public void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }
@@ -717,10 +735,12 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARCHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(1020, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(1020, meta.getColumnDisplaySize(1));
+    if (!isXpand()) {
+      assertEquals(255, meta.getColumnDisplaySize(1));
+      assertEquals(255, meta.getPrecision(1));
+    }
   }
 
   @Test

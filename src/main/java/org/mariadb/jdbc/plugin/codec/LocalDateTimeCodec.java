@@ -167,6 +167,13 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
       case TIME:
         parts = LocalTimeCodec.parseTime(buf, length, column);
+        if (parts[0] == -1) {
+          return LocalDateTime.of(1970, 1, 1, 0, 0)
+              .minusHours(parts[1] % 24)
+              .minusMinutes(parts[2])
+              .minusSeconds(parts[3])
+              .minusNanos(parts[4]);
+        }
         return LocalDateTime.of(1970, 1, 1, parts[1] % 24, parts[2], parts[3]).plusNanos(parts[4]);
 
       case YEAR:
@@ -196,12 +203,22 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
     switch (column.getType()) {
       case TIME:
         // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        buf.skip(5); // skip negative and days
+        boolean negate = buf.readByte() == 1;
+        int day = buf.readInt();
         hour = buf.readByte();
         minutes = buf.readByte();
         seconds = buf.readByte();
         if (length > 8) {
           microseconds = buf.readUnsignedInt();
+        }
+
+        if (negate) {
+          return LocalDateTime.of(1970, 1, 1, 0, 0)
+              .minusDays(day)
+              .minusHours(hour)
+              .minusMinutes(minutes)
+              .minusSeconds(seconds)
+              .minusNanos(microseconds * 1000);
         }
         break;
 

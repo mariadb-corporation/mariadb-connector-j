@@ -419,6 +419,24 @@ public class DoubleCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "Type class java.time.OffsetDateTime not supported type for DOUBLE type");
+  }
+
+  @Test
   public void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }

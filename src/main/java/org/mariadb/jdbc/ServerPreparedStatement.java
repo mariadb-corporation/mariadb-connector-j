@@ -673,4 +673,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       lock.unlock();
     }
   }
+
+  @Override
+  public String toString() {
+    return "ServerPreparedStatement{" + super.toString() + '}';
+  }
 }

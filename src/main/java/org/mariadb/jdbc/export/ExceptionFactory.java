@@ -254,6 +254,16 @@ public class ExceptionFactory {
     if ("70100".equals(sqlState)) { // ER_QUERY_INTERRUPTED
       return new SQLTimeoutException(msg, sqlState, errorCode);
     }
+    // 4166 : mariadb load data infile disable
+    // 1148 : 10.2 mariadb load data infile disable
+    // 3948 : mysql load data infile disable
+    if ((errorCode == 4166 || errorCode == 3948 || errorCode == 1148) && !conf.allowLocalInfile()) {
+      return new SQLException(
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands",
+          sqlState,
+          errorCode,
+          cause);
+    }
 
     SQLException returnEx;
     String sqlClass = sqlState == null ? "42" : sqlState.substring(0, 2);

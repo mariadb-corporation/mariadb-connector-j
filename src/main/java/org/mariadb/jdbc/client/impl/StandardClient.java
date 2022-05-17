@@ -402,7 +402,11 @@ public class StandardClient implements Client, AutoCloseable {
     // force client timezone to connection to ensure result of now(), ...
     if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
       boolean mustSetTimezone = true;
-      ZoneId clientZoneId = ZoneId.of(conf.timezone()).normalized();
+      TimeZone connectionTz =
+          "auto".equalsIgnoreCase(conf.timezone())
+              ? TimeZone.getDefault()
+              : TimeZone.getTimeZone(ZoneId.of(conf.timezone()).normalized());
+      ZoneId clientZoneId = connectionTz.toZoneId();
 
       // try to avoid timezone consideration if server use the same one
       try {
@@ -824,7 +828,8 @@ public class StandardClient implements Client, AutoCloseable {
               context,
               exceptionFactory,
               lock,
-              traceEnable);
+              traceEnable,
+              message);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;

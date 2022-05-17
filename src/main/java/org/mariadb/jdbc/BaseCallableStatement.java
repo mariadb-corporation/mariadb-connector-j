@@ -16,6 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.codec.Parameter;
 import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.util.ParameterList;
 
 /** Common methods for function/stored procedure */
 public abstract class BaseCallableStatement extends ServerPreparedStatement
@@ -165,6 +166,13 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
     registerOutParameter(parameterIndex, sqlType);
+  }
+
+  @Override
+  public void clearParameters() throws SQLException {
+    checkNotClosed();
+    parameters = new ParameterList();
+    outputParameters.stream().forEach(index -> parameters.set(index - 1, Parameter.NULL_PARAMETER));
   }
 
   /**

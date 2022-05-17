@@ -108,8 +108,8 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int type = buf[pos++] & 0xff;
-    pos += (type == 252) ? readUnsignedShort() : type;
+    int len = readLength();
+    pos += len;
     return pos;
   }
 

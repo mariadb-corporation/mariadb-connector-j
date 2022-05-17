@@ -150,7 +150,7 @@ public class SslTest extends Common {
     try (Connection con =
         createCon(
             baseOptions
-                + "&sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                + "&sslMode=trust&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             sslPort)) {
       assertNotNull(getSslVersion(con));
     }
@@ -263,25 +263,19 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
+
+    try (Connection con =
+        createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=file:///wrongPath", sslPort)) {
+      assertNotNull(getSslVersion(con));
+    } catch (Exception e) {
+      assertTrue(e.getCause() instanceof FileNotFoundException);
+    }
+
     if (!"localhost".equals(hostname)) {
       try (Connection con =
           createCon(
               baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + serverCertPath, sslPort)) {
         assertNotNull(getSslVersion(con));
-      }
-
-      if (System.getenv("TEST_DB_CLIENT_CERT_FULL") != null) {
-        // client certificate is using extendedKeyUsage = critical, clientAuth, but java don't throw
-        // an exception
-        // as RFC 5280 would require
-        try (Connection con =
-            createCon(
-                baseOptions
-                    + "&sslMode=VERIFY_FULL&serverSslCert="
-                    + System.getenv("TEST_DB_CLIENT_CERT_FULL"),
-                sslPort)) {
-          con.isValid(1000);
-        }
       }
 
       Configuration conf = Configuration.parse(mDefUrl);

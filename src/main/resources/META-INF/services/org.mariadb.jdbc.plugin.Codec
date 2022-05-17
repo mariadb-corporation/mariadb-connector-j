@@ -12,6 +12,8 @@ org.mariadb.jdbc.plugin.codec.DurationCodec
 org.mariadb.jdbc.plugin.codec.FloatCodec
 org.mariadb.jdbc.plugin.codec.GeometryCollectionCodec
 org.mariadb.jdbc.plugin.codec.IntCodec
+org.mariadb.jdbc.plugin.codec.InstantCodec
+org.mariadb.jdbc.plugin.codec.OffsetDateTimeCodec
 org.mariadb.jdbc.plugin.codec.LineStringCodec
 org.mariadb.jdbc.plugin.codec.LocalDateCodec
 org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec

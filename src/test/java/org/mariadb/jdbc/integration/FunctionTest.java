@@ -26,7 +26,20 @@ public class FunctionTest extends Common {
       callableStatement.setInt(2, 2);
       callableStatement.setInt(3, 3);
       callableStatement.execute();
+
       assertEquals(6, callableStatement.getInt(1));
+
+      callableStatement.clearParameters();
+      callableStatement.setInt(2, 3);
+      callableStatement.setInt(3, 3);
+      callableStatement.execute();
+      assertEquals(9, callableStatement.getInt(1));
+
+      callableStatement.clearParameters();
+      assertThrowsContains(
+          SQLTransientConnectionException.class,
+          () -> callableStatement.execute(),
+          "Parameter at position 1 is not set");
     }
 
     try (CallableStatement callableStatement =
@@ -137,6 +150,22 @@ public class FunctionTest extends Common {
           SQLSyntaxErrorException.class,
           () -> callableStatement.registerOutParameter(2, JDBCType.DOUBLE),
           "wrong parameter index");
+    }
+  }
+
+  @Test
+  public void functionToString() throws SQLException {
+    try (CallableStatement callableStatement =
+        sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
+
+      assertEquals(
+          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null]}",
+          callableStatement.toString());
+      callableStatement.setLong(2, 10L);
+      callableStatement.setBytes(3, new byte[] {(byte) 'a', (byte) 'b'});
+      assertEquals(
+          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null,10,_binary 'ab']}",
+          callableStatement.toString());
     }
   }
 }

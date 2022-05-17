@@ -582,7 +582,7 @@ public class PoolDataSourceTest extends Common {
               rs.next();
               Integer connectionId = rs.getInt(1);
               threadIds.add(connectionId);
-              stmt.execute("SELECT * FROM mysql.user");
+              stmt.execute("SELECT 1");
 
             } catch (SQLException e) {
               e.printStackTrace();
@@ -632,9 +632,10 @@ public class PoolDataSourceTest extends Common {
         pool.getConnection();
         fail();
       } catch (SQLException sqle) {
+        // ensure more time for windows
         assertTrue(
             (System.currentTimeMillis() - start) >= 500
-                && (System.currentTimeMillis() - start) < 800,
+                && (System.currentTimeMillis() - start) < 850,
             "timeout does not correspond to option. Elapsed time:"
                 + (System.currentTimeMillis() - start));
         assertTrue(

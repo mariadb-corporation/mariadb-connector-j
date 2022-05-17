@@ -27,6 +27,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS DateTimeCodec");
     stmt.execute("DROP TABLE IF EXISTS DateTimeCodec2");
+    stmt.execute("DROP TABLE IF EXISTS DateTimeCodec3");
   }
 
   @BeforeAll
@@ -37,12 +38,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
     stmt.execute(
         "INSERT INTO DateTimeCodec VALUES "
-            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.2', '9999-12-31 18:30:12.55', null)"
+            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.212345', '9999-12-31 18:30:12.55', null)"
             + (isMariaDBServer()
                 ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
                 : ""));
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
+    stmt.execute(
+            "CREATE TABLE DateTimeCodec3 (id int not null primary key auto_increment, t1 DATETIME(6))");
+
     stmt.execute("FLUSH TABLES");
   }
 
@@ -90,7 +94,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
         ((Timestamp) rs.getObject(1)).getTime());
     assertFalse(rs.wasNull());
     assertEquals(
-        Timestamp.valueOf("1000-01-01 01:55:13.2").getTime(),
+        Timestamp.valueOf("1000-01-01 01:55:13.212345").getTime(),
         ((Timestamp) rs.getObject(2)).getTime());
     assertFalse(rs.wasNull());
     assertEquals(
@@ -130,6 +134,16 @@ public class DateTimeCodecTest extends CommonCodecTest {
     testErrObject(rs, Reader.class);
     testObject(rs, LocalDate.class, LocalDate.parse("2010-01-12"));
     testObject(rs, LocalDateTime.class, LocalDateTime.parse("2010-01-12T01:55:12"));
+    // get OffsetDateTime for "2010-01-12T01:55:12" corresponding with current zone id:
+    OffsetDateTime expOffsetDateTime =
+        OffsetDateTime.ofInstant(
+            Timestamp.valueOf("2010-01-12 01:55:12").toInstant(), ZoneId.systemDefault());
+    testObject(rs, OffsetDateTime.class, expOffsetDateTime);
+    testObject(
+        rs,
+        Instant.class,
+        ZonedDateTime.of(LocalDateTime.parse("2010-01-12T01:55:12"), ZoneId.systemDefault())
+            .toInstant());
     testObject(rs, LocalTime.class, LocalTime.parse("01:55:12"));
     testObject(rs, Time.class, Time.valueOf("01:55:12"));
     testObject(rs, Timestamp.class, Timestamp.valueOf("2010-01-12 01:55:12"));
@@ -154,8 +168,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getString(ResultSet rs, boolean text) throws SQLException {
     assertEquals("2010-01-12 01:55:12", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertEquals("1000-01-01 01:55:13.200000", rs.getString(2));
-    assertEquals("1000-01-01 01:55:13.200000", rs.getString("t2alias"));
+    assertEquals("1000-01-01 01:55:13.212345", rs.getString(2));
+    assertEquals("1000-01-01 01:55:13.212345", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals("9999-12-31 18:30:12.550000", rs.getString(3));
     assertFalse(rs.wasNull());
@@ -190,9 +204,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals("2010-01-12 01:55:12", rs.getNString(1));
     assertFalse(rs.wasNull());
     String s = rs.getNString(2);
-    assertTrue(s.equals("1000-01-01 01:55:13.200000") || s.equals("1000-01-01 01:55:13.200"));
+    assertTrue(s.equals("1000-01-01 01:55:13.212345"));
     s = rs.getNString("t2alias");
-    assertTrue(s.equals("1000-01-01 01:55:13.200000") || s.equals("1000-01-01 01:55:13.200"));
+    assertTrue(s.equals("1000-01-01 01:55:13.212345"));
     assertFalse(rs.wasNull());
     s = rs.getNString(3);
     assertTrue(s.equals("9999-12-31 18:30:12.550000") || s.equals("9999-12-31 18:30:12.550"));
@@ -354,7 +368,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals(
         1263254400000L
-            - TimeZone.getDefault().getOffset(Timestamp.valueOf("2010-01-12 01:55:12").getTime()),
+            - TimeZone.getDefault()
+                .getOffset(Timestamp.valueOf("2010-01-12 01:55:12.123456").getTime()),
         rs.getDate(1).getTime());
     assertFalse(rs.wasNull());
 
@@ -383,6 +398,167 @@ public class DateTimeCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getDateTimezoneTest() throws SQLException {
+    TimeZone initialTz = Calendar.getInstance().getTimeZone();
+
+    TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
+    try (Connection conGmt8 = createCon("timezone=auto")) {
+      getDateTimezoneTestGmt8(conGmt8, getPrepare(conGmt8), TimeZone.getTimeZone("GMT+8"));
+      TimeZone.setDefault(TimeZone.getTimeZone("GMT-8"));
+      try (Connection conGmtm8 = createCon("timezone=auto")) {
+        getDateTimezoneTestGmtm8(conGmtm8, getPrepare(conGmtm8), TimeZone.getTimeZone("GMT-8"));
+      }
+    } finally{
+      TimeZone.setDefault(initialTz);
+    }
+  }
+
+  public void getDateTimezoneTestGmt8(Connection conGmt8, ResultSet rs, TimeZone tz) throws SQLException {
+
+    assertEquals(
+            "2010-01-12T01:55:12+08:00",
+            rs.getObject(1, OffsetDateTime.class).toString());
+
+    conGmt8.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
+    try (PreparedStatement prep = conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1,-2);
+      prep.setString(2, "2010-01-12 01:55:12");
+      prep.execute();
+
+      prep.setInt(1,1);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12+08:00"));
+      prep.execute();
+
+      prep.setInt(1,2);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12+01:00"));
+      prep.execute();
+
+      prep.setInt(1,3);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
+      prep.execute();
+
+      prep.setInt(1,4);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12-04:00"));
+      prep.execute();
+    }
+    conGmt8.commit();
+
+    java.sql.Statement stmt = conGmt8.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+      rs = prepStmt.executeQuery();
+      rs.next();
+      assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+
+      rs.next();
+      assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263232512000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 09:55:12.0", rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+      assertEquals("2010-01-12", rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T08:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 08:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263257712000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 08:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T09:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 09:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263261312000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 09:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-13T05:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-13 05:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263333312000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-13 05:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-13", rs.getDate(2).toString());
+    }
+    conGmt8.rollback();
+
+  }
+
+  public void getDateTimezoneTestGmtm8(Connection conGmt8, ResultSet rs, TimeZone tz) throws SQLException {
+
+    assertEquals(
+            "2010-01-12T01:55:12-08:00",
+            rs.getObject(1, OffsetDateTime.class).toString());
+
+    conGmt8.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
+    try (PreparedStatement prep = conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1,-2);
+      prep.setString(2, "2010-01-12 01:55:12");
+      prep.execute();
+
+      prep.setInt(1,1);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12-08:00"));
+      prep.execute();
+
+      prep.setInt(1,2);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12-01:00"));
+      prep.execute();
+
+      prep.setInt(1,3);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
+      prep.execute();
+
+      prep.setInt(1,4);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12+04:00"));
+      prep.execute();
+    }
+    conGmt8.commit();
+
+    java.sql.Statement stmt = conGmt8.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+      rs = prepStmt.executeQuery();
+      rs.next();
+      assertEquals("2010-01-12T01:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+
+      rs.next();
+      assertEquals("2010-01-12T01:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263290112000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-11 17:55:12.0", rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+      assertEquals("2010-01-11", rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
+
+      rs.next();
+      assertEquals("2010-01-11T18:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-11 18:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263264912000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-11 18:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-11", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-11T17:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-11 17:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263261312000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-11 17:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-11", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T05:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 05:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263304512000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 05:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+    }
+    conGmt8.rollback();
+
+  }
+  @Test
   public void getTime() throws SQLException {
     getTime(get());
   }
@@ -402,9 +578,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
 
     assertEquals(
-        6913200, rs.getTime(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        6913212, rs.getTime(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
-    assertEquals(Time.valueOf("01:55:13").getTime() + 200, rs.getTime(2).getTime());
+    assertEquals(Time.valueOf("01:55:13").getTime() + 212, rs.getTime(2).getTime());
     assertFalse(rs.wasNull());
     assertEquals(Time.valueOf("18:30:12").getTime() + 550, rs.getTime(3).getTime());
     assertFalse(rs.wasNull());
@@ -429,7 +605,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
   public void getDuration(ResultSet rs) throws SQLException {
     assertEquals(Duration.parse("PT265H55M12S"), rs.getObject(1, Duration.class));
-    assertEquals(Duration.parse("PT1H55M13.2S"), rs.getObject(2, Duration.class));
+    assertEquals(Duration.parse("PT1H55M13.212345S"), rs.getObject(2, Duration.class));
     assertNull(rs.getObject(4, Duration.class));
     if (isMariaDBServer()) {
       rs.next();
@@ -451,11 +627,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
   public void getLocalTime(ResultSet rs) throws SQLException {
     assertEquals(LocalTime.parse("01:55:12"), rs.getObject(1, LocalTime.class));
     assertFalse(rs.wasNull());
-    assertEquals(LocalTime.parse("01:55:13.2"), rs.getObject(2, LocalTime.class));
+    assertEquals(LocalTime.parse("01:55:13.212345"), rs.getObject(2, LocalTime.class));
     assertFalse(rs.wasNull());
     assertEquals(LocalTime.parse("18:30:12.55"), rs.getObject(3, LocalTime.class));
     assertFalse(rs.wasNull());
-    assertNull(rs.getTime(4));
+    assertNull(rs.getObject(4, LocalTime.class));
     assertTrue(rs.wasNull());
     if (isMariaDBServer()) {
       rs.next();
@@ -505,12 +681,12 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("2010-01-12 01:55:12").getTime(), rs.getTimestamp(1).getTime());
     assertFalse(rs.wasNull());
     assertEquals(
-        Timestamp.valueOf("1000-01-01 01:55:13.2").getTime(), rs.getTimestamp(2).getTime());
+        Timestamp.valueOf("1000-01-01 01:55:13.212345").getTime(), rs.getTimestamp(2).getTime());
     assertFalse(rs.wasNull());
     assertEquals(
         Timestamp.valueOf("9999-12-31 18:30:12.55").getTime(), rs.getTimestamp(3).getTime());
     assertFalse(rs.wasNull());
-    assertNull(rs.getDate(4));
+    assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
     if (isMariaDBServer()) {
       rs.next();
@@ -518,6 +694,122 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertNull(rs.getTimestamp(2));
       assertEquals(
           Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
+    }
+  }
+
+  @Test
+  public void getLocalDateTime() throws SQLException {
+    getLocalDateTime(get());
+  }
+
+  @Test
+  public void getLocalDateTimePrepare() throws SQLException {
+    getLocalDateTime(getPrepare(sharedConn));
+    getLocalDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getLocalDateTime(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
+    assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(1, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        LocalDateTime.parse("1000-01-01T01:55:13.212345"), rs.getObject(2, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        LocalDateTime.parse("9999-12-31T18:30:12.55"), rs.getObject(3, LocalDateTime.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4, LocalDateTime.class));
+    assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      rs.next();
+      assertNull(rs.getTimestamp(1));
+      assertNull(rs.getTimestamp(2));
+      assertEquals(
+          LocalDateTime.parse("9999-12-31T00:00:00.00"), rs.getObject(3, LocalDateTime.class));
+    }
+  }
+
+  @Test
+  public void getInstant() throws SQLException {
+    getInstant(get());
+  }
+
+  @Test
+  public void getInstantPrepare() throws SQLException {
+    getInstant(getPrepare(sharedConn));
+    getInstant(getPrepare(sharedConnBinary));
+  }
+
+  public void getInstant(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("2010-01-12T01:55:12"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(1, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("1000-01-01T01:55:13.212345"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(2, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("9999-12-31T18:30:12.55"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(3, Instant.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4, Instant.class));
+    assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      rs.next();
+      assertNull(rs.getTimestamp(1));
+      assertNull(rs.getTimestamp(2));
+      assertEquals(
+          ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00.00"), ZoneId.systemDefault())
+              .toInstant(),
+          rs.getObject(3, Instant.class));
+    }
+  }
+
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
+    assertEquals(
+        OffsetDateTime.ofInstant(
+            Timestamp.valueOf("2010-01-12 01:55:12").toInstant(), ZoneId.systemDefault()),
+        rs.getObject(1, OffsetDateTime.class));
+    assertFalse(rs.wasNull());
+
+    LocalDateTime l = LocalDateTime.parse("1000-01-01T01:55:13.212345");
+    assertEquals(
+        OffsetDateTime.of(l, ZoneId.systemDefault().getRules().getOffset(l)),
+        rs.getObject(2, OffsetDateTime.class));
+    assertFalse(rs.wasNull());
+
+    assertEquals(
+        OffsetDateTime.ofInstant(
+            Timestamp.valueOf("9999-12-31 18:30:12.55").toInstant(), ZoneId.systemDefault()),
+        rs.getObject(3, OffsetDateTime.class));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4, OffsetDateTime.class));
+    assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      rs.next();
+      assertNull(rs.getObject(1, OffsetDateTime.class));
+      assertNull(rs.getObject(2, OffsetDateTime.class));
+      assertEquals(
+          OffsetDateTime.ofInstant(
+              Timestamp.valueOf("9999-12-31 00:00:00.00").toInstant(), ZoneId.systemDefault()),
+          rs.getObject(3, OffsetDateTime.class));
     }
   }
 
@@ -724,6 +1016,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateTimeCodec2");
+
+    LocalDateTime ldtNow = LocalDateTime.parse("2022-04-15T19:49:41.398057");
+    OffsetDateTime offsetDtUtc =
+        OffsetDateTime.of(ldtNow, ZoneId.of("UTC").getRules().getOffset(ldtNow));
+    OffsetDateTime offsetDtCurrent =
+        OffsetDateTime.of(ldtNow, ZoneId.systemDefault().getRules().getOffset(ldtNow));
+
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO DateTimeCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
@@ -738,7 +1037,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.DATE);
       prep.execute();
-      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12"), Types.TIMESTAMP);
+      prep.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12.987765"), Types.TIMESTAMP);
       prep.execute();
       prep.setObject(1, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
       prep.execute();
@@ -767,6 +1066,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12"));
       prep.execute();
       prep.setObject(1, Timestamp.valueOf("2016-12-12 01:55:12.654"));
+      prep.execute();
+      prep.setObject(1, Instant.ofEpochSecond(10, 654000));
+      prep.execute();
+      prep.setObject(1, Instant.ofEpochSecond(12));
+      prep.execute();
+      prep.setObject(1, offsetDtUtc);
+      prep.execute();
+      prep.setObject(1, offsetDtCurrent);
       prep.execute();
     }
 
@@ -799,19 +1106,21 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-14"), rs.getDate(2));
-    rs.updateObject(2, LocalDateTime.parse("2021-01-12T01:55:12"), Types.TIMESTAMP);
+    rs.updateObject(2, LocalDateTime.parse("2021-01-12T01:55:12.347654"), Types.TIMESTAMP);
     rs.updateRow();
-    assertEquals(LocalDateTime.parse("2021-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("2021-01-12T01:55:12.347654"), rs.getObject(2, LocalDateTime.class));
     assertTrue(rs.next());
     assertNull(rs.getString(2));
     rs.updateTimestamp(2, Timestamp.valueOf("2015-12-12 01:55:12.654"));
     rs.updateRow();
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2010-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
-    rs.updateTimestamp("t1", Timestamp.valueOf("2015-12-12 01:55:12.654"));
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T01:55:12.987765"), rs.getObject(2, LocalDateTime.class));
+    rs.updateTimestamp("t1", Timestamp.valueOf("2015-12-12 01:55:12.654321"));
     rs.updateRow();
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654321"), rs.getTimestamp(2));
 
     rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
     assertTrue(rs.next());
@@ -823,12 +1132,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2021-01-12"), rs.getDate(2));
     assertTrue(rs.next());
-    assertEquals(LocalDateTime.parse("2021-01-12T01:55:12"), rs.getObject(2, LocalDateTime.class));
+    assertEquals(
+        LocalDateTime.parse("2021-01-12T01:55:12.347654"), rs.getObject(2, LocalDateTime.class));
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
 
     assertTrue(rs.next());
-    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654321"), rs.getTimestamp(2));
     assertTrue(rs.next());
     assertEquals(
         LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(2, LocalDateTime.class));
@@ -855,5 +1165,29 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(2));
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(Timestamp.from(Instant.ofEpochSecond(10, 654000)), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(Timestamp.from(Instant.ofEpochSecond(12)), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(
+        ldtNow
+            .atZone(ZoneId.of("UTC"))
+            .withZoneSameInstant(ZoneId.systemDefault())
+            .toOffsetDateTime(),
+        rs.getObject(2, OffsetDateTime.class));
+    assertEquals(
+        ldtNow.atZone(ZoneId.of("UTC")).withZoneSameInstant(ZoneId.systemDefault()),
+        rs.getObject(2, ZonedDateTime.class));
+    assertEquals(
+        ldtNow
+            .atZone(ZoneId.of("UTC"))
+            .withZoneSameInstant(ZoneId.systemDefault())
+            .toLocalDateTime(),
+        rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.next());
+    assertEquals(offsetDtCurrent, rs.getObject(2, OffsetDateTime.class));
+    assertEquals(ldtNow.atZone(ZoneId.systemDefault()), rs.getObject(2, ZonedDateTime.class));
+    assertEquals(ldtNow, rs.getObject(2, LocalDateTime.class));
   }
 }

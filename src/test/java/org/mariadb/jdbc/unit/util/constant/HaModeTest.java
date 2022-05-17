@@ -101,28 +101,18 @@ public class HaModeTest {
 
     ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
     Map<HostAddress, Integer> res = loopPercReturn(available, denyList);
-    for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
-      System.out.println(entry.getKey() + " : " + entry.getValue());
-    }
     Integer use = res.get(host1);
     Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
 
-    denyList.putIfAbsent(host1, System.currentTimeMillis() + 100);
+    denyList.putIfAbsent(host1, System.currentTimeMillis() + 10000);
 
     res = loopPercReturn(available, denyList);
-    for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
-      System.out.println(entry.getKey() + " : " + entry.getValue());
-    }
     use = res.get(host2);
     Assertions.assertTrue(
         use > 400 && use < 600, "Expect 50% host2 and 50% host 3, but was " + use);
-
-    Thread.sleep(200);
+    denyList.clear();
 
     res = loopPercReturn(available, denyList);
-    for (Map.Entry<HostAddress, Integer> entry : res.entrySet()) {
-      System.out.println(entry.getKey() + " : " + entry.getValue());
-    }
     use = res.get(host1);
     Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
   }

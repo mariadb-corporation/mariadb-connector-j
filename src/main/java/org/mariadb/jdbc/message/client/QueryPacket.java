@@ -7,6 +7,7 @@ package org.mariadb.jdbc.message.client;
 import java.io.IOException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.message.ClientMessage;
 
 /** Query client packet COM_QUERY see https://mariadb.com/kb/en/com_query/ */
 public final class QueryPacket implements RedoableClientMessage {
@@ -42,6 +43,10 @@ public final class QueryPacket implements RedoableClientMessage {
    */
   public boolean isCommit() {
     return "COMMIT".equalsIgnoreCase(sql);
+  }
+
+  public boolean validateLocalFileName(String fileName, Context context) {
+    return ClientMessage.validateLocalFileName(sql, null, fileName, context);
   }
 
   public String description() {
