@@ -89,7 +89,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getPrecision(int idx) throws SQLException {
     checkIndex(idx);
-    return (int) params[idx - 1].getPrecision();
+    return params[idx - 1].getPrecision();
   }
 
   /**

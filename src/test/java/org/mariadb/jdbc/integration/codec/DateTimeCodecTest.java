@@ -45,7 +45,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
     stmt.execute(
-            "CREATE TABLE DateTimeCodec3 (id int not null primary key auto_increment, t1 DATETIME(6))");
+        "CREATE TABLE DateTimeCodec3 (id int not null primary key auto_increment, t1 DATETIME(6))");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -408,36 +408,36 @@ public class DateTimeCodecTest extends CommonCodecTest {
       try (Connection conGmtm8 = createCon("timezone=auto")) {
         getDateTimezoneTestGmtm8(conGmtm8, getPrepare(conGmtm8), TimeZone.getTimeZone("GMT-8"));
       }
-    } finally{
+    } finally {
       TimeZone.setDefault(initialTz);
     }
   }
 
-  public void getDateTimezoneTestGmt8(Connection conGmt8, ResultSet rs, TimeZone tz) throws SQLException {
+  public void getDateTimezoneTestGmt8(Connection conGmt8, ResultSet rs, TimeZone tz)
+      throws SQLException {
 
-    assertEquals(
-            "2010-01-12T01:55:12+08:00",
-            rs.getObject(1, OffsetDateTime.class).toString());
+    assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(1, OffsetDateTime.class).toString());
 
     conGmt8.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
-    try (PreparedStatement prep = conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
-      prep.setInt(1,-2);
+    try (PreparedStatement prep =
+        conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1, -2);
       prep.setString(2, "2010-01-12 01:55:12");
       prep.execute();
 
-      prep.setInt(1,1);
+      prep.setInt(1, 1);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12+08:00"));
       prep.execute();
 
-      prep.setInt(1,2);
+      prep.setInt(1, 2);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12+01:00"));
       prep.execute();
 
-      prep.setInt(1,3);
+      prep.setInt(1, 3);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
       prep.execute();
 
-      prep.setInt(1,4);
+      prep.setInt(1, 4);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12-04:00"));
       prep.execute();
     }
@@ -455,10 +455,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals("2010-01-12T01:55:12+08:00", rs.getObject(2, OffsetDateTime.class).toString());
       assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
       assertEquals(1263232512000L, rs.getTimestamp(2).getTime());
-      assertEquals("2010-01-12 09:55:12.0", rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals(
+          "2010-01-12 09:55:12.0",
+          rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
       assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
       assertEquals("2010-01-12", rs.getDate(2).toString());
-      assertEquals("2010-01-12", rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals(
+          "2010-01-12",
+          rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
       assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
 
       rs.next();
@@ -483,34 +487,33 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals("2010-01-13", rs.getDate(2).toString());
     }
     conGmt8.rollback();
-
   }
 
-  public void getDateTimezoneTestGmtm8(Connection conGmt8, ResultSet rs, TimeZone tz) throws SQLException {
+  public void getDateTimezoneTestGmtm8(Connection conGmt8, ResultSet rs, TimeZone tz)
+      throws SQLException {
 
-    assertEquals(
-            "2010-01-12T01:55:12-08:00",
-            rs.getObject(1, OffsetDateTime.class).toString());
+    assertEquals("2010-01-12T01:55:12-08:00", rs.getObject(1, OffsetDateTime.class).toString());
 
     conGmt8.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
-    try (PreparedStatement prep = conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
-      prep.setInt(1,-2);
+    try (PreparedStatement prep =
+        conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1, -2);
       prep.setString(2, "2010-01-12 01:55:12");
       prep.execute();
 
-      prep.setInt(1,1);
+      prep.setInt(1, 1);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12-08:00"));
       prep.execute();
 
-      prep.setInt(1,2);
+      prep.setInt(1, 2);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12-01:00"));
       prep.execute();
 
-      prep.setInt(1,3);
+      prep.setInt(1, 3);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
       prep.execute();
 
-      prep.setInt(1,4);
+      prep.setInt(1, 4);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12+04:00"));
       prep.execute();
     }
@@ -528,10 +531,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals("2010-01-12T01:55:12-08:00", rs.getObject(2, OffsetDateTime.class).toString());
       assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
       assertEquals(1263290112000L, rs.getTimestamp(2).getTime());
-      assertEquals("2010-01-11 17:55:12.0", rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals(
+          "2010-01-11 17:55:12.0",
+          rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
       assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
       assertEquals("2010-01-12", rs.getDate(2).toString());
-      assertEquals("2010-01-11", rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals(
+          "2010-01-11",
+          rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
       assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
 
       rs.next();
@@ -556,8 +563,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals("2010-01-12", rs.getDate(2).toString());
     }
     conGmt8.rollback();
-
   }
+
   @Test
   public void getTime() throws SQLException {
     getTime(get());
