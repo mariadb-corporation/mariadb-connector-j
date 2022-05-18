@@ -1,4 +1,21 @@
 # Change Log
+## [3.0.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.5) (may 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.4...3.0.5)
+
+* [CONJ-956] ArrayIndexOutOfBoundsException when alias length > 250		
+* [CONJ-947] value after milliseconds precision lost when timestamp is encoded		
+* [CONJ-949] keep clientCertificateKeyStoreUrl and clientCertificateKeyStoreUrl aliases
+* [CONJ-950] metadata TEXT/TINYTEXT/MEDIUMTEXT/LONGTEXT wrong column type and length
+* [CONJ-954] java.time.OffsetDateTime not supported
+* [CONJ-958] compatibility with 2.7: now loop through hosts when multiple host without failover mode	
+* [CONJ-959] java.time.Instant not supported		
+* [CONJ-961] LOAD DATA LOCAL INFILE was disable by default		
+* [CONJ-962] resultset for negative TIME value return erronous LocalDateTime values		
+* [CONJ-965] better error message when not loading serverSslCert file
+* [CONJ-967] clearParameters() breaks validity when using output parameters in stored procedures		
+* [CONJ-969] org.mariadb.jdbc.ClientPreparedStatement is missing a toString implementation, useful for logging
+
+
 ## [3.0.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.4) (Mar 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.3...3.0.4)
 
