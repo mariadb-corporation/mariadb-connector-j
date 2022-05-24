@@ -6,16 +6,13 @@ package org.mariadb.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class ClientParser implements PrepareResult {
 
   private final String sql;
   private final List<byte[]> queryParts;
   private final int paramCount;
-  private static final Map<String, ClientParser> cache = new LinkedHashMap<>(512);
 
   private ClientParser(String sql, List<byte[]> queryParts) {
     this.sql = sql;
@@ -35,7 +32,6 @@ public final class ClientParser implements PrepareResult {
    * @return ClientPrepareResult
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
-    if (cache.containsKey(queryString)) return cache.get(queryString);
 
     List<byte[]> partList = new ArrayList<>();
     LexState state = LexState.Normal;
@@ -156,9 +152,7 @@ public final class ClientParser implements PrepareResult {
               .getBytes(StandardCharsets.UTF_8));
     }
 
-    ClientParser clientParser = new ClientParser(queryString, partList);
-    if (queryString.length() < 16384) cache.put(queryString, clientParser);
-    return clientParser;
+    return new ClientParser(queryString, partList);
   }
 
   public String getSql() {
