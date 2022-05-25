@@ -24,11 +24,18 @@ public interface Context {
   byte[] getSeed();
 
   /**
-   * Get server capabilities.
+   * has server capability
    *
-   * @return server capabilities
+   * @return true if server has capability
    */
-  long getServerCapabilities();
+  boolean hasServerCapability(long flag);
+
+  /**
+   * has client capability
+   *
+   * @return true if client has capability
+   */
+  boolean hasClientCapability(long flag);
 
   /**
    * Get server connection state

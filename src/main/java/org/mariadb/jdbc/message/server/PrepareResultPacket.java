@@ -45,13 +45,13 @@ public class PrepareResultPacket implements Completion, Prepare {
     final int numParams = buffer.readUnsignedShort();
     this.parameters = new Column[numParams];
     this.columns = new Column[numColumns];
+
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
             new ColumnDefinitionPacket(
                 reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-                    > 0);
+                context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
       if (!context.isEofDeprecated()) {
         reader.readPacket(true, trace);
@@ -62,8 +62,7 @@ public class PrepareResultPacket implements Completion, Prepare {
         columns[i] =
             new ColumnDefinitionPacket(
                 reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-                    > 0);
+                context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
       if (!context.isEofDeprecated()) {
         reader.readPacket(true, trace);

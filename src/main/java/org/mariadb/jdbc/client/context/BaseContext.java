@@ -17,6 +17,7 @@ public class BaseContext implements Context {
 
   private final long threadId;
   private final long serverCapabilities;
+  private final long clientCapabilities;
   private final byte[] seed;
   private final ServerVersion version;
   private final boolean eofDeprecated;
@@ -63,9 +64,10 @@ public class BaseContext implements Context {
     this.serverCapabilities = handshake.getCapabilities();
     this.serverStatus = handshake.getServerStatus();
     this.version = handshake.getVersion();
-    this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
-    this.skipMeta = (clientCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
-    this.extendedInfo = (serverCapabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0;
+    this.clientCapabilities = clientCapabilities;
+    this.eofDeprecated = hasClientCapability(Capabilities.CLIENT_DEPRECATE_EOF);
+    this.skipMeta = hasClientCapability(Capabilities.CACHE_METADATA);
+    this.extendedInfo = hasClientCapability(Capabilities.EXTENDED_TYPE_INFO);
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
@@ -80,8 +82,12 @@ public class BaseContext implements Context {
     return seed;
   }
 
-  public long getServerCapabilities() {
-    return serverCapabilities;
+  public boolean hasServerCapability(long flag) {
+    return (serverCapabilities & flag) > 0;
+  }
+
+  public boolean hasClientCapability(long flag) {
+    return (clientCapabilities & flag) > 0;
   }
 
   public int getServerStatus() {

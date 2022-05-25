@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.message.client;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.*;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
@@ -15,7 +17,6 @@ import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import org.mariadb.jdbc.util.VersionFactory;
-import org.mariadb.jdbc.util.constants.Capabilities;
 
 /**
  * Server handshake response builder. see
@@ -133,7 +134,7 @@ public final class HandshakeResponse implements ClientMessage {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {
-      if ((clientCapabilities & Capabilities.SSL) == 0) {
+      if (!context.hasClientCapability(SSL)) {
         throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
       }
       authData =
@@ -153,10 +154,10 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeString(username != null ? username : System.getProperty("user.name"));
     writer.writeByte(0x00);
 
-    if ((context.getServerCapabilities() & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+    if (context.hasServerCapability(PLUGIN_AUTH_LENENC_CLIENT_DATA)) {
       writer.writeLength(authData.length);
       writer.writeBytes(authData);
-    } else if ((context.getServerCapabilities() & Capabilities.SECURE_CONNECTION) != 0) {
+    } else if (context.hasServerCapability(SECURE_CONNECTION)) {
       writer.writeByte((byte) authData.length);
       writer.writeBytes(authData);
     } else {
@@ -164,17 +165,17 @@ public final class HandshakeResponse implements ClientMessage {
       writer.writeByte(0x00);
     }
 
-    if ((clientCapabilities & Capabilities.CONNECT_WITH_DB) != 0) {
+    if (context.hasClientCapability(CONNECT_WITH_DB)) {
       writer.writeString(database);
       writer.writeByte(0x00);
     }
 
-    if ((context.getServerCapabilities() & Capabilities.PLUGIN_AUTH) != 0) {
+    if (context.hasServerCapability(PLUGIN_AUTH)) {
       writer.writeString(authenticationPluginType);
       writer.writeByte(0x00);
     }
 
-    if ((context.getServerCapabilities() & Capabilities.CONNECT_ATTRS) != 0) {
+    if (context.hasServerCapability(CONNECT_ATTRS)) {
       writeConnectAttributes(writer, connectionAttributes, host);
     }
     writer.flush();

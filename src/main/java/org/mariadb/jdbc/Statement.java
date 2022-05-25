@@ -7,6 +7,7 @@ package org.mariadb.jdbc;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
@@ -17,8 +18,9 @@ import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
-import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.constants.ServerStatus;
+
+import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
 
 /** Statement implementation */
 public class Statement implements java.sql.Statement {
@@ -693,12 +695,23 @@ public class Statement implements java.sql.Statement {
     if (batchQueries == null || batchQueries.isEmpty()) return new int[0];
     lock.lock();
     try {
-      long serverCapabilities = con.getContext().getServerCapabilities();
+      // ensure pipelining is possible (no LOAD DATA/XML INFILE commands)
+      boolean possibleLoadLocal = con.getContext().hasClientCapability(LOCAL_FILES);
+      if (possibleLoadLocal) {
+        for (int i = 0; i < batchQueries.size(); i++) {
+          String sql = batchQueries.get(i).toUpperCase(Locale.ROOT);
+          if (sql.contains(" LOCAL ") && sql.contains("LOAD") && sql.contains(" INFILE")) {
+            break;
+          }
+        }
+        possibleLoadLocal = false;
+      }
+
       List<Completion> res =
-          (!con.getContext().getConf().allowLocalInfile()
-                  || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)
-              ? executeInternalBatchPipeline()
-              : executeInternalBatchStandard();
+              possibleLoadLocal
+              ? executeInternalBatchStandard()
+              : executeInternalBatchPipeline();
+
       results = res;
 
       int[] updates = new int[res.size()];
@@ -1430,12 +1443,23 @@ public class Statement implements java.sql.Statement {
 
     lock.lock();
     try {
-      long serverCapabilities = con.getContext().getServerCapabilities();
+      // ensure pipelining is possible (no LOAD DATA/XML INFILE commands)
+      boolean possibleLoadLocal = con.getContext().hasClientCapability(LOCAL_FILES);
+      if (possibleLoadLocal) {
+        for (int i = 0; i < batchQueries.size(); i++) {
+          String sql = batchQueries.get(i).toUpperCase(Locale.ROOT);
+          if (sql.contains(" LOCAL ") && sql.contains("LOAD") && sql.contains(" INFILE")) {
+            break;
+          }
+        }
+        possibleLoadLocal = false;
+      }
+
       List<Completion> res =
-          (!con.getContext().getConf().allowLocalInfile()
-                  || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)
-              ? executeInternalBatchPipeline()
-              : executeInternalBatchStandard();
+              possibleLoadLocal
+                      ? executeInternalBatchStandard()
+                      : executeInternalBatchPipeline();
+
       results = res;
       long[] updates = new long[res.size()];
       for (int i = 0; i < res.size(); i++) {

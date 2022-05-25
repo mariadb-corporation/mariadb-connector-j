@@ -295,7 +295,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public String getCatalog() throws SQLException {
 
-    if ((client.getContext().getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0) {
+    if (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return client.getContext().getDatabase();
     }
 
@@ -308,7 +308,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setCatalog(String catalog) throws SQLException {
-    if ((client.getContext().getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0
+    if (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
         && catalog.equals(client.getContext().getDatabase())) {
       return;
     }

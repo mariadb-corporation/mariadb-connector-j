@@ -187,14 +187,14 @@ public final class ConnectionHelper {
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
             | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
+            | Capabilities.EXTENDED_TYPE_INFO;
 
     // since skipping metadata is only available when using binary protocol,
     // only set it when server permit it and using binary protocol
     if (configuration.useServerPrepStmts()
         && Boolean.parseBoolean(
             configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
-      capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
+      capabilities |= Capabilities.CACHE_METADATA;
     }
 
     // remains for compatibility
@@ -204,7 +204,7 @@ public final class ConnectionHelper {
     }
 
     if (configuration.useBulkStmts()) {
-      capabilities |= Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS;
+      capabilities |= Capabilities.STMT_BULK_OPERATIONS;
     }
 
     if (!configuration.useAffectedRows()) {
@@ -367,7 +367,7 @@ public final class ConnectionHelper {
     Configuration conf = context.getConf();
     if (conf.sslMode() != SslMode.DISABLE) {
 
-      if ((context.getServerCapabilities() & Capabilities.SSL) == 0) {
+      if (!context.hasServerCapability(Capabilities.SSL)) {
         throw context
             .getExceptionFactory()
             .create("Trying to connect with ssl, but ssl not enabled in the server", "08000");
