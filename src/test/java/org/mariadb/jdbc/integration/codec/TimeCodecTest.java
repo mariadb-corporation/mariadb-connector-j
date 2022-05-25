@@ -93,6 +93,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
+    rs.next();
+    assertEquals(Time.valueOf("00:00:00").getTime(), rs.getTime(3).getTime());
   }
 
   @Test

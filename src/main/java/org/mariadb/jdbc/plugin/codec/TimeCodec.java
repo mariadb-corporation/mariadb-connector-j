@@ -106,7 +106,7 @@ public class TimeCodec implements Codec<Time> {
       throws SQLDataException {
 
     Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    long dayOfMonth;
+    long dayOfMonth = 0;
     int hour = 0;
     int minutes = 0;
     int seconds = 0;
@@ -151,14 +151,17 @@ public class TimeCodec implements Codec<Time> {
         }
         return t;
       case TIME:
-        // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        boolean negate = buf.readByte() == 1;
-        dayOfMonth = buf.readUnsignedInt();
-        hour = buf.readByte();
-        minutes = buf.readByte();
-        seconds = buf.readByte();
-        if (length > 8) {
-          microseconds = buf.readUnsignedInt();
+        boolean negate = false;
+        if (length > 0) {
+          // specific case for TIME, to handle value not in 00:00:00-23:59:59
+          negate = buf.readByte() == 1;
+          dayOfMonth = buf.readUnsignedInt();
+          hour = buf.readByte();
+          minutes = buf.readByte();
+          seconds = buf.readByte();
+          if (length > 8) {
+            microseconds = buf.readUnsignedInt();
+          }
         }
         int offset = cal.getTimeZone().getOffset(0);
         long timeInMillis =
