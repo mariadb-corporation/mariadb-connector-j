@@ -698,13 +698,14 @@ public class Statement implements java.sql.Statement {
       // ensure pipelining is possible (no LOAD DATA/XML INFILE commands)
       boolean possibleLoadLocal = con.getContext().hasClientCapability(LOCAL_FILES);
       if (possibleLoadLocal) {
+        possibleLoadLocal = false;
         for (int i = 0; i < batchQueries.size(); i++) {
           String sql = batchQueries.get(i).toUpperCase(Locale.ROOT);
           if (sql.contains(" LOCAL ") && sql.contains("LOAD") && sql.contains(" INFILE")) {
+            possibleLoadLocal = true;
             break;
           }
         }
-        possibleLoadLocal = false;
       }
 
       List<Completion> res =

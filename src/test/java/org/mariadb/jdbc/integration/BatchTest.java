@@ -98,7 +98,10 @@ public class BatchTest extends Common {
       differentParameterType(con, false);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con, false);
+      differentParameterType(con, isMariaDBServer() && !isXpand());
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile=false")) {
+      differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
