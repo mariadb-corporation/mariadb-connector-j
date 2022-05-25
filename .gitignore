@@ -1,6 +1,7 @@
 .classpath
 .project
 .settings
+.gradle
 
 # Keep empty directories:
 # Keep empty directories: >> .gitignore/.git*
