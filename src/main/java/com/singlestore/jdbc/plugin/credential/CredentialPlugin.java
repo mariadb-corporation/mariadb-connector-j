@@ -8,11 +8,12 @@ package com.singlestore.jdbc.plugin.credential;
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
 import java.sql.SQLException;
-import java.util.function.Supplier;
 
-public interface CredentialPlugin extends Supplier<Credential> {
+public interface CredentialPlugin {
 
   String type();
+
+  Credential get() throws SQLException;
 
   default boolean mustUseSsl() {
     return false;

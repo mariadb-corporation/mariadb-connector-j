@@ -42,6 +42,7 @@ if [[ "${EXISTS}" -eq 0 ]]; then
     docker run -i --init \
         --name ${CONTAINER_NAME} \
         -v ${PWD}/scripts/ssl:/test-ssl \
+        -v ${PWD}/scripts/jwt:/test-jwt \
         -e LICENSE_KEY=${LICENSE_KEY} \
         -e ROOT_PASSWORD=${SINGLESTORE_PASSWORD} \
         -p 5506:3306 -p 5507:3307 -p 5508:3308 \
@@ -79,6 +80,8 @@ echo "Setting up SSL"
 docker exec -it ${CONTAINER_NAME} memsqlctl update-config --yes --all --key ssl_ca --value /test-ssl/test-ca-cert.pem
 docker exec -it ${CONTAINER_NAME} memsqlctl update-config --yes --all --key ssl_cert --value /test-ssl/test-singlestore-cert.pem
 docker exec -it ${CONTAINER_NAME} memsqlctl update-config --yes --all --key ssl_key --value /test-ssl/test-singlestore-key.pem
+echo "Setting up JWT"
+docker exec -it ${CONTAINER_NAME} memsqlctl update-config --yes --all --key jwt_auth_config_file --value /test-jwt/jwt_auth_config.json
 echo "Restarting cluster"
 docker exec -it ${CONTAINER_NAME} memsqlctl restart-node --yes --all
 singlestore-wait-start

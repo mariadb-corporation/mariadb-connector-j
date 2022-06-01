@@ -6,7 +6,13 @@
 package com.singlestore.jdbc.plugin.credential;
 
 import com.singlestore.jdbc.Driver;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
 /**
@@ -17,6 +23,7 @@ public final class CredentialPluginLoader {
 
   private static final ServiceLoader<CredentialPlugin> loader =
       ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
+  private static final Logger logger = Loggers.getLogger(CredentialPluginLoader.class);
 
   /**
    * Get current Identity plugin according to option `identityType`.
@@ -28,12 +35,40 @@ public final class CredentialPluginLoader {
   public static CredentialPlugin get(String type) throws SQLException {
     if (type == null) return null;
 
-    for (CredentialPlugin implClass : loader) {
-      if (type.equals(implClass.type())) {
-        return implClass;
+    Iterator<CredentialPlugin> iter = loader.iterator();
+    StringWriter errors = new StringWriter();
+    PrintWriter errorsWriter = new PrintWriter(errors);
+
+    CredentialPlugin implClass = null;
+    do {
+      if (!iter.hasNext()) {
+        String msg = errors.toString();
+        if (msg.length() > 0) {
+          throw new SQLException(
+              "No identity plugin registered with the type \""
+                  + type
+                  + "\" "
+                  + "or the required plugin could not be loaded. "
+                  + "Some plugins failed to load:\n"
+                  + msg,
+              "08004",
+              1251);
+        } else {
+          throw new SQLException(
+              "No identity plugin registered with the type \"" + type + "\"", "08004", 1251);
+        }
       }
-    }
-    throw new SQLException(
-        "No identity plugin registered with the type \"" + type + "\".", "08004", 1251);
+
+      try {
+        implClass = iter.next();
+      } catch (ServiceConfigurationError e) {
+        errorsWriter.println(
+            "Could not load credential plugin. Please verify that"
+                + " all optional packages required for this plugin are installed:");
+        e.printStackTrace(errorsWriter);
+      }
+    } while (implClass == null || !type.equals(implClass.type()));
+
+    return implClass;
   }
 }

@@ -128,9 +128,6 @@ public final class HandshakeResponse implements ClientMessage {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {
-      if ((clientCapabilities & Capabilities.SSL) == 0) {
-        throw new IllegalStateException("Cannot send password in clear if SSL is not enabled.");
-      }
       authData =
           (password == null) ? new byte[0] : password.toString().getBytes(StandardCharsets.UTF_8);
     } else {

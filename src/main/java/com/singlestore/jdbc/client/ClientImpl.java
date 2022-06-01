@@ -21,6 +21,7 @@ import com.singlestore.jdbc.message.server.InitialHandshakePacket;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.plugin.credential.Credential;
 import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.credential.browser.BrowserCredentialPlugin;
 import com.singlestore.jdbc.util.MutableInt;
 import com.singlestore.jdbc.util.Security;
 import com.singlestore.jdbc.util.constants.Capabilities;
@@ -37,31 +38,33 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLInvalidAuthorizationSpecException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLPermission;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLSocket;
 
 public class ClientImpl implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(ClientImpl.class);
-  private final Socket socket;
+  protected final ExceptionFactory exceptionFactory;
+  private Socket socket;
   private final MutableInt sequence = new MutableInt();
   private final MutableInt compressionSequence = new MutableInt();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
-  private boolean closed = false;
-  protected final ExceptionFactory exceptionFactory;
+  private final boolean disablePipeline;
   protected PacketWriter writer;
+  protected Context context;
+  private boolean closed = false;
   private PacketReader reader;
   private com.singlestore.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   private int waitTimeout;
-  private final boolean disablePipeline;
-  protected Context context;
 
   public ClientImpl(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
@@ -74,10 +77,36 @@ public class ClientImpl implements Client, AutoCloseable {
     this.disablePipeline =
         Boolean.parseBoolean(conf.nonMappedOptions().getProperty("disablePipeline", "false"));
 
-    String host = hostAddress != null ? hostAddress.host : null;
     this.socketTimeout = conf.socketTimeout();
-    this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
 
+    String host = hostAddress != null ? hostAddress.host : null;
+
+    try {
+      connect(host, skipPostCommands);
+    } catch (SQLInvalidAuthorizationSpecException sqlException) {
+      // retry when connecting via browser auth token because token might have
+      // expired while we were connecting or the cached token was wrong
+      // error 2628 is JWT_TOKEN_EXPIRED
+      // error 1045 is ACCESS_DENIED_ERROR
+      if (conf.credentialPlugin() != null
+              && conf.credentialPlugin().type().contains("BROWSER_SSO")
+              && sqlException.getErrorCode() == 1045
+          || sqlException.getErrorCode() == 2628) {
+        BrowserCredentialPlugin credPlugin = (BrowserCredentialPlugin) conf.credentialPlugin();
+        // clear both local cache and keyring to force re-acquiring the token
+        logger.debug("Failed to connect with the JWT, retrying browser auth");
+        credPlugin.clearKeyring();
+        credPlugin.clearLocalCache();
+        this.closed = false;
+        connect(host, skipPostCommands);
+      } else {
+        throw sqlException;
+      }
+    }
+  }
+
+  private void connect(String host, boolean skipPostCommands) throws SQLException {
+    this.socket = ConnectionHelper.connectSocket(conf, hostAddress);
     try {
       // **********************************************************************
       // creating socket
@@ -104,6 +133,7 @@ public class ClientImpl implements Client, AutoCloseable {
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       long clientCapabilities =
           ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
+
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
@@ -148,6 +178,12 @@ public class ClientImpl implements Client, AutoCloseable {
       if (credentialPlugin != null && credentialPlugin.defaultAuthenticationPluginType() != null) {
         authenticationPluginType = credentialPlugin.defaultAuthenticationPluginType();
       }
+
+      if ("mysql_clear_password".equals(authenticationPluginType) && sslSocket == null) {
+        throw new IllegalStateException(
+            "Cannot send password in clear text if SSL is not enabled.");
+      }
+
       Credential credential = ConnectionHelper.loadCredential(credentialPlugin, conf, hostAddress);
 
       new HandshakeResponse(
@@ -180,7 +216,6 @@ public class ClientImpl implements Client, AutoCloseable {
       if (!skipPostCommands) {
         postConnectionQueries();
       }
-
     } catch (IOException ioException) {
       destroySocket();
 

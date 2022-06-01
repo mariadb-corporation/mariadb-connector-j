@@ -13,8 +13,8 @@
 <!--    <appender-ref ref="CONSOLE"/>-->
 <!--  </logger>-->
 
-<!--  <root level="error">-->
-<!--    <appender-ref ref="CONSOLE"/>-->
-<!--  </root>-->
+  <root level="debug">
+    <appender-ref ref="CONSOLE"/>
+  </root>
 
 </configuration>

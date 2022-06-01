@@ -9,6 +9,7 @@ import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.PacketReader;
 import com.singlestore.jdbc.client.socket.PacketWriter;
 import com.sun.jna.platform.win32.Sspi;
+import com.sun.jna.platform.win32.SspiUtil;
 import java.io.IOException;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
@@ -48,7 +49,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         byte[] tokenForTheClientOnTheServer = new byte[buf.readableBytes()];
         buf.readBytes(tokenForTheClientOnTheServer);
         Sspi.SecBufferDesc continueToken =
-            new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+            new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
         clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 

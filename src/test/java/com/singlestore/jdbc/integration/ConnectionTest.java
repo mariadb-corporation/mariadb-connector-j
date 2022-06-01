@@ -610,6 +610,39 @@ public class ConnectionTest extends Common {
     stmt.execute("drop user test_pam@'%'");
   }
 
+  @Test
+  public void jwtCredentialPlugin() throws Throwable {
+    Statement stmt = sharedConn.createStatement();
+
+    stmt.execute("DROP USER IF EXISTS jwt_user");
+    stmt.execute("CREATE USER jwt_user IDENTIFIED WITH authentication_jwt");
+    stmt.execute("GRANT ALL PRIVILEGES ON test.* TO jwt_user");
+    String jwt =
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QtZW1haWxAZ21haWwuY29tIiwic3ViIjoid3Jvbmd"
+            + "fdXNlciIsInVzZXJuYW1lIjoiand0X3VzZXIiLCJleHAiOjE5MTYyMzkwMjJ9.rSUfkgB8MhxazNAxZU8Wa2BIVqcxs3vBnT"
+            + "EDqNLT9yhP4gbMBz0EzAIiAFQe8A1yeeNhvwfHP2GDLYhi3c88HtdI2P6T00a90x7RCrmD7mWWgdA7OTrdxKNX3CsuVmthaG"
+            + "ExDAJDe3i_dPfZxFNHmYAX_4KBugZTwQOvsKir7sKPBi9atnTPm9dGqapYWWIcDyMGNk5GD50Pzxgncc2VMfx2AcVmzANIK2"
+            + "E7SOCRsN96YL0BkTb34CW2NeH001bnoIEjEJeQI3lEbCVafjTbBXHWptbwL2j9aoiV0XzjkT00-GdtUt1i6DfQO-EWF0J_IC"
+            + "_79wEiGfOnM5waWi-LDQ0FnXjV1FIpnOiJab9meIB11sW5MFn2U8q0yMareRHJQ43ZWg5uAnAf2ugm71EsTQtbmKGgDsTzt2"
+            + "UglhiNpnONzOEDCzz61FiVUTgWu0wMYzUgitgMJYvaDUit3F2OfQw4x--60VWKhB-q4EGm0DvPgFHMspxcZKNFlqJH3Qfgk8"
+            + "LDtJBI0kPpSJoYKbS9n1SmmfVL1UZOTsZNutIYNuN2CWo_D_TJNFKMys6sI7OIQ5QtYyHZyW1wShrR2V2Kwj6IxXpA2XxQf2"
+            + "emCRhCNGl5js73ljVnI0HsPLcEzEreRUQWOxgHCuB4dk2QgBj7EiZl57Cm0GywEqDlwf-XX1g";
+
+    try (Connection connection =
+        createCon("credentialType=JWT&sslMode=trust&user=jwt_user&password=" + jwt)) {
+      connection.getCatalog();
+    }
+
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("credentialType=JWT&user=jwt_user&password=" + jwt),
+        "unable to find valid certification path to requested target");
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon("credentialType=JWT&sslMode=trust&user=jwt_user&password=" + "invalid_jwt"),
+        "Access denied for user 'jwt_user'@'172.17.0.1' (using password: YES)");
+  }
+
   @Nested
   @DisplayName("Compression Test")
   class Compression {
@@ -825,10 +858,10 @@ public class ConnectionTest extends Common {
     assertTrue((capabilities & Capabilities.MULTI_RESULTS) > 0);
     assertTrue((capabilities & Capabilities.PS_MULTI_RESULTS) > 0);
     assertTrue((capabilities & Capabilities.PLUGIN_AUTH) > 0);
+    assertTrue((capabilities & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) > 0);
 
     assertEquals(0, (capabilities & Capabilities.COMPRESS));
     assertEquals(0, (capabilities & Capabilities.CONNECT_ATTRS));
-    assertEquals(0, (capabilities & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA));
     assertEquals(0, (capabilities & Capabilities.CLIENT_SESSION_TRACK));
     assertEquals(0, (capabilities & Capabilities.CLIENT_DEPRECATE_EOF));
     assertEquals(0, (capabilities & Capabilities.COMPRESS));

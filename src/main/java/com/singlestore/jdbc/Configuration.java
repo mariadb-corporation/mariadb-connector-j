@@ -9,6 +9,8 @@ import com.singlestore.jdbc.codec.Codec;
 import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
 import com.singlestore.jdbc.plugin.credential.CredentialPluginLoader;
 import com.singlestore.jdbc.util.constants.HaMode;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import com.singlestore.jdbc.util.options.OptionAliases;
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
@@ -48,6 +50,7 @@ import java.util.regex.Pattern;
  * <br>
  */
 public class Configuration {
+  private static final Logger logger = Loggers.getLogger(Configuration.class);
 
   private static final Pattern URL_PARAMETER =
       Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
@@ -343,6 +346,11 @@ public class Configuration {
     if (this.credentialType != null
         && this.credentialType.mustUseSsl()
         && (sslMode == null || SslMode.from(sslMode) == SslMode.DISABLE)) {
+      logger.warn(
+          "Credential type '"
+              + this.credentialType.type()
+              + "' is required to be used with SSL. "
+              + "Enabling SSL.");
       this.sslMode = SslMode.VERIFY_FULL;
     } else {
       this.sslMode = sslMode != null ? SslMode.from(sslMode) : SslMode.DISABLE;

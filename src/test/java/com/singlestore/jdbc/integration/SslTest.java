@@ -16,7 +16,6 @@ import java.nio.file.Paths;
 import java.sql.*;
 import org.junit.jupiter.api.*;
 
-// TODO: PLAT-5855
 @DisplayName("SSL tests")
 public class SslTest extends Common {
   private static Integer sslPort;
@@ -144,6 +143,11 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
+    assertThrowsContains(
+        SQLException.class,
+        () -> createCon(baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + urlPath, sslPort),
+        "DNS host \"localhost\" doesn't correspond to certificate CN \"test-memsql-server\"");
+
     String certificateString = getServerCertificate(serverCertPath);
     // file certificate, like  -----BEGIN CERTIFICATE-----...
     try (Connection con =
@@ -165,31 +169,5 @@ public class SslTest extends Common {
     } catch (Exception e) {
       throw new SQLException("abnormal exception", e);
     }
-  }
-
-  public static String retrieveCertificatePath() throws Exception {
-    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
-
-    // try local server
-    if (serverCertificatePath == null) {
-
-      try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
-        assertTrue(rs.next());
-        serverCertificatePath = checkFileExists(rs.getString(1));
-      }
-    }
-    if (serverCertificatePath == null) {
-      serverCertificatePath = checkFileExists("scripts/ssl/test-ca-cert.pem");
-    }
-    return serverCertificatePath;
-  }
-
-  private static String checkFileExists(String path) throws IOException {
-    if (path == null) return null;
-    File f = new File(path);
-    if (f.exists()) {
-      return f.getCanonicalPath().replace("\\", "/");
-    }
-    return null;
   }
 }
