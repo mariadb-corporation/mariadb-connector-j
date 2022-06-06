@@ -21,6 +21,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   private final com.singlestore.jdbc.Connection connection;
   private final Configuration conf;
   private Version version;
+  private Version singleStoreVersion;
 
   /**
    * Constructor.
@@ -32,6 +33,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     this.connection = connection;
     this.conf = conf;
     this.version = null;
+    this.singleStoreVersion = null;
   }
 
   private static String DataTypeClause(Configuration conf) {
@@ -105,14 +107,48 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public Version getVersion() throws java.sql.SQLException {
-    if (this.version == null) {
+    return conf.useMysqlVersion() ? this.getMySQLVersion() : this.getSingleStoreVersion();
+  }
+
+  /**
+   * This function is to return the version of S2
+   *
+   * @return S2 version object
+   * @throws java.sql.SQLException
+   */
+  public Version getSingleStoreVersion() throws java.sql.SQLException {
+    if (this.singleStoreVersion == null) {
       String sql = "SELECT @@memsql_version;";
       ResultSet rs = executeQuery(sql);
       rs.next();
+      this.singleStoreVersion = new Version(rs.getString(1));
+    }
+    return this.singleStoreVersion;
+  }
+
+  /**
+   * This function is to return the version of MySQL
+   *
+   * @return MySQL Version Object
+   * @throws java.sql.SQLException
+   */
+  private Version getMySQLVersion() throws java.sql.SQLException {
+    if (this.version == null) {
+      String sql = "SELECT @@version;";
+      ResultSet rs = executeQuery(sql);
+      rs.next();
+
       this.version = new Version(rs.getString(1));
     }
-
     return this.version;
+  }
+
+  private ResultSet executeQuery(String sql) throws SQLException {
+    Statement stmt = connection.createStatement();
+    Result rs = (Result) stmt.executeQuery(sql);
+    rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
+    rs.useAliasAsName();
+    return rs;
   }
 
   private String returnTypeClause() {
@@ -338,14 +374,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " ELSE "
         + Types.OTHER
         + " END ";
-  }
-
-  private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt = connection.createStatement();
-    Result rs = (Result) stmt.executeQuery(sql);
-    rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
-    rs.useAliasAsName();
-    return rs;
   }
 
   private String escapeQuote(String value) {
@@ -928,7 +956,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public String getDatabaseProductVersion() throws SQLException {
-    return getVersion().getVersion();
+    return getSingleStoreVersion().getVersion();
   }
 
   public String getDriverName() {
@@ -3298,11 +3326,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getDatabaseMajorVersion() throws SQLException {
-    return getVersion().getMajorVersion();
+    return getSingleStoreVersion().getMajorVersion();
   }
 
   public int getDatabaseMinorVersion() throws SQLException {
-    return getVersion().getMinorVersion();
+    return getSingleStoreVersion().getMinorVersion();
   }
 
   @Override

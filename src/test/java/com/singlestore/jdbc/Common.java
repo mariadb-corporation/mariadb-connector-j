@@ -94,7 +94,10 @@ public class Common {
   public static boolean minVersion(int major, int minor, int patch) {
     // TODO PLAT-5820
     try {
-      return sharedConn.getMetaData().getVersion().versionGreaterOrEqual(major, minor, patch);
+      return sharedConn
+          .getMetaData()
+          .getSingleStoreVersion()
+          .versionGreaterOrEqual(major, minor, patch);
     } catch (SQLException e) {
       fail();
     }
@@ -285,5 +288,24 @@ public class Common {
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
       initialTest = Instant.now();
     }
+  }
+
+  @Test
+  public void getVersion() throws Exception {
+    try (Connection con = createCon("useMysqlVersion=true")) {
+      assertEquals(
+          getVersion("SELECT @@version;", con), con.getMetaData().getVersion().getVersion());
+    }
+
+    try (Connection con = createCon("useMysqlVersion=false")) {
+      assertEquals(
+          getVersion("SELECT @@memsql_version;", con), con.getMetaData().getVersion().getVersion());
+    }
+  }
+
+  private String getVersion(String sql, Connection con) throws SQLException {
+    ResultSet rs = con.createStatement().executeQuery(sql);
+    rs.next();
+    return rs.getString(1);
   }
 }

@@ -138,6 +138,8 @@ public class Configuration {
 
   private Codec<?>[] codecs = null;
 
+  private boolean useMysqlVersion = false;
+
   private Configuration() {}
 
   private Configuration(
@@ -198,7 +200,8 @@ public class Configuration {
       int maxIdleTime,
       boolean registerJmxPool,
       int poolValidMinDelay,
-      boolean useResetConnection) {
+      boolean useResetConnection,
+      boolean useMysqlVersion) {
     this.user = user;
     this.password = password;
     this.database = database;
@@ -257,6 +260,7 @@ public class Configuration {
     this.registerJmxPool = registerJmxPool;
     this.poolValidMinDelay = poolValidMinDelay;
     this.useResetConnection = useResetConnection;
+    this.useMysqlVersion = useMysqlVersion;
     this.initialUrl = buildUrl(this);
   }
 
@@ -318,7 +322,8 @@ public class Configuration {
       Boolean transactionReplay,
       String geometryDefaultType,
       String restrictedAuth,
-      Properties nonMappedOptions)
+      Properties nonMappedOptions,
+      Boolean useMysqlVersion)
       throws SQLException {
     this.database = database;
     this.addresses = addresses;
@@ -403,6 +408,7 @@ public class Configuration {
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
+    if (useMysqlVersion != null) this.useMysqlVersion = useMysqlVersion;
 
     // *************************************************************
     // host primary check
@@ -698,7 +704,8 @@ public class Configuration {
         this.maxIdleTime,
         this.registerJmxPool,
         this.poolValidMinDelay,
-        this.useResetConnection);
+        this.useResetConnection,
+        this.useMysqlVersion);
   }
 
   public String database() {
@@ -946,6 +953,10 @@ public class Configuration {
     return codecs;
   }
 
+  public boolean useMysqlVersion() {
+    return useMysqlVersion;
+  }
+
   /**
    * ToString implementation.
    *
@@ -1175,6 +1186,8 @@ public class Configuration {
     private Boolean registerJmxPool;
     private Integer poolValidMinDelay;
     private Boolean useResetConnection;
+
+    private Boolean useMysqlVersion;
 
     public Builder user(String user) {
       this.user = nullOrEmpty(user);
@@ -1597,6 +1610,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder useMysqlVersion(Boolean useMysqlVersion) {
+      this.useMysqlVersion = useMysqlVersion;
+      return this;
+    }
+
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1657,7 +1675,8 @@ public class Configuration {
               this.transactionReplay,
               this.geometryDefaultType,
               this.restrictedAuth,
-              this._nonMappedOptions);
+              this._nonMappedOptions,
+              this.useMysqlVersion);
       conf.initialUrl = buildUrl(conf);
       return conf;
     }

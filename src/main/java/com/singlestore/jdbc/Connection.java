@@ -696,7 +696,8 @@ public class Connection implements java.sql.Connection {
    */
   public void reset() throws SQLException {
     boolean useComReset =
-        conf.useResetConnection() && getMetaData().getVersion().versionGreaterOrEqual(7, 5, 2);
+        conf.useResetConnection()
+            && getMetaData().getSingleStoreVersion().versionGreaterOrEqual(7, 5, 2);
 
     if (useComReset) {
       client.execute(ResetPacket.INSTANCE);
