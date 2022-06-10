@@ -710,7 +710,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    int prec = minVersion(7, 5, 0) ? 33 : 25;
+    int prec = minVersion(7, 5, 0) && !minVersion(7, 8, 0) ? 33 : 25;
     assertEquals(prec, meta.getPrecision(1));
     assertEquals(prec, meta.getColumnDisplaySize(1));
   }

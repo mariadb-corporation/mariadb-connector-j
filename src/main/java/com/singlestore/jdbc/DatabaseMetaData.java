@@ -37,15 +37,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private static String DataTypeClause(Configuration conf) {
-    String upperCaseWithoutSize = " UCASE(DATA_TYPE)";
+    String upperCaseWithoutSize = " UCASE(c.DATA_TYPE)";
 
     if (conf.tinyInt1isBit()) {
       upperCaseWithoutSize =
-          " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
+          " IF(c.COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
     }
 
     if (!conf.yearIsDateType()) {
-      return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
+      return " IF(c.COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', "
+          + upperCaseWithoutSize
+          + ")";
     }
 
     return upperCaseWithoutSize;
@@ -173,7 +175,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " COLUMN_NAME, "
         + columnType
         + " COLUMN_TYPE,"
-        + dataTypeClause("DTD_IDENTIFIER")
+        + dataTypeClause("DTD_IDENTIFIER", "")
         + " DATA_TYPE,"
         + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,"
         + "CASE DATA_TYPE "
@@ -276,8 +278,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "SingleStore does not support foreign keys and referential integrity");
   }
 
-  private String dataTypeClause(String fullTypeColumnName) {
-    return " CASE data_type"
+  private String dataTypeClause(String fullTypeColumnName, String tableAlias) {
+    return " CASE "
+        + tableAlias
+        + "DATA_TYPE"
         + " WHEN 'bit' THEN "
         + Types.BIT
         + " WHEN 'tinyblob' THEN "
@@ -289,22 +293,30 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " WHEN 'blob' THEN "
         + Types.LONGVARBINARY
         + " WHEN 'tinytext' THEN "
-        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + " IF( "
+        + tableAlias
+        + "CHARACTER_SET_NAME LIKE 'binary', "
         + Types.VARBINARY
         + ", "
         + Types.VARCHAR
         + ") WHEN 'mediumtext' THEN "
-        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + " IF( "
+        + tableAlias
+        + "CHARACTER_SET_NAME LIKE 'binary', "
         + Types.LONGVARBINARY
         + ", "
         + Types.LONGVARCHAR
         + ") WHEN 'longtext' THEN "
-        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + " IF( "
+        + tableAlias
+        + "CHARACTER_SET_NAME LIKE 'binary', "
         + Types.LONGVARBINARY
         + ", "
         + Types.LONGVARCHAR
         + ") WHEN 'text' THEN "
-        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + " IF( "
+        + tableAlias
+        + "CHARACTER_SET_NAME LIKE 'binary', "
         + Types.LONGVARBINARY
         + ", "
         + Types.LONGVARCHAR
@@ -323,6 +335,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " WHEN 'float' THEN "
         + Types.REAL
         + " WHEN 'int' THEN IF( "
+        + tableAlias
         + fullTypeColumnName
         + " like '%unsigned%', "
         + Types.INTEGER
@@ -338,6 +351,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " WHEN 'set' THEN "
         + Types.VARCHAR
         + " WHEN 'smallint' THEN IF( "
+        + tableAlias
         + fullTypeColumnName
         + " like '%unsigned%', "
         + Types.SMALLINT
@@ -345,7 +359,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + Types.SMALLINT
         + ")"
         + " WHEN 'varchar' THEN "
-        + " IF( CHARACTER_SET_NAME LIKE 'binary', "
+        + " IF( "
+        + tableAlias
+        + "CHARACTER_SET_NAME LIKE 'binary', "
         + Types.VARBINARY
         + ", "
         + Types.VARCHAR
@@ -362,6 +378,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + " WHEN 'tinyint' THEN "
         + (conf.tinyInt1isBit()
             ? "IF("
+                + tableAlias
                 + fullTypeColumnName
                 + " like 'tinyint(1)%',"
                 + Types.BIT
@@ -512,6 +529,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String catalog, String schemaPattern, String tableNamePattern, String[] types)
       throws SQLException {
 
+    // A FLAGS column was introduced to INFORMATION_SCHEMA.TABLES to distinguish between
+    // TVFs and other table types in order to exclude them from SHOW TABLES.
+    // If we cannot use FLAGS, we have to join ROUTINES to exclude TVFs
+    boolean canUseFlags = getSingleStoreVersion().versionGreaterOrEqual(7, 8, 1);
+
     StringBuilder sql =
         new StringBuilder(
             "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
@@ -519,7 +541,14 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                 + " NULL REF_GENERATION"
                 + " FROM INFORMATION_SCHEMA.TABLES "
+                + (canUseFlags
+                    ? ""
+                    : "LEFT JOIN INFORMATION_SCHEMA.ROUTINES ON "
+                        + "(TABLE_NAME=ROUTINE_NAME AND TABLE_SCHEMA=ROUTINE_SCHEMA)")
                 + " WHERE "
+                + (canUseFlags
+                    ? "CAST(FLAGS AS UNSIGNED INTEGER) & 1 = 0 AND "
+                    : "ROUTINE_NAME IS NULL AND ")
                 + catalogCond("TABLE_SCHEMA", catalog)
                 + patternCond("TABLE_NAME", tableNamePattern));
 
@@ -640,39 +669,55 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throws SQLException {
     String fullTypeColumnName = "COLUMN_TYPE";
 
+    // A FLAGS column was introduced to information_schema.TABLES to distinguish between
+    // TVFs and other table types in order to exclude them from SHOW TABLES.
+    // If the flags are available, join information_schema.TABLES and use them.
+    // If not, we have to join information_schema.ROUTINES to exclude TVFs.
+    // This is because some users may not have access rights to information_schema.ROUTINES
+    boolean canUseFlags = getSingleStoreVersion().versionGreaterOrEqual(7, 8, 1);
+
     String sql =
-        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-            + dataTypeClause(fullTypeColumnName)
+        "SELECT c.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, c.TABLE_NAME TABLE_NAME, c.COLUMN_NAME COLUMN_NAME,"
+            + dataTypeClause(fullTypeColumnName, "c.")
             + " DATA_TYPE,"
             + DataTypeClause(conf)
             + " TYPE_NAME, "
-            + " CASE DATA_TYPE"
+            + " CASE c.DATA_TYPE"
             + DateTimeSizeClause(fullTypeColumnName)
             + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
             + "  ELSE "
-            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+            + "  IF(c.NUMERIC_PRECISION IS NULL, LEAST(c.CHARACTER_MAXIMUM_LENGTH,"
             + Integer.MAX_VALUE
-            + "), NUMERIC_PRECISION) "
+            + "), c.NUMERIC_PRECISION) "
             + " END"
             + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
-            + " CONVERT (CASE DATA_TYPE"
+            + " CONVERT (CASE c.DATA_TYPE"
             + " WHEN 'year' THEN "
-            + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
+            + (conf.yearIsDateType() ? "c.NUMERIC_SCALE" : "0")
             + " WHEN 'tinyint' THEN "
-            + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
-            + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
-            + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-            + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-            + " LEAST(CHARACTER_OCTET_LENGTH,"
+            + (conf.tinyInt1isBit() ? "0" : "c.NUMERIC_SCALE")
+            + " ELSE c.NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+            + " 10 NUM_PREC_RADIX, IF(c.IS_NULLABLE = 'yes',1,0) NULLABLE,c.COLUMN_COMMENT REMARKS,"
+            + " c.COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+            + " LEAST(c.CHARACTER_OCTET_LENGTH,"
             + Integer.MAX_VALUE
             + ") CHAR_OCTET_LENGTH,"
-            + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-            + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED', 'COMPUTED') ,'YES','NO') IS_GENERATEDCOLUMN "
-            + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
-            + catalogCond("TABLE_SCHEMA", catalog)
-            + patternCond("TABLE_NAME", tableNamePattern)
-            + patternCond("COLUMN_NAME", columnNamePattern)
+            + " c.ORDINAL_POSITION ORDINAL_POSITION, c.IS_NULLABLE IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+            + " IF(c.EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+            + " IF(c.EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED', 'COMPUTED') ,'YES','NO') IS_GENERATEDCOLUMN "
+            + " FROM INFORMATION_SCHEMA.COLUMNS c "
+            + (canUseFlags
+                ? "LEFT JOIN INFORMATION_SCHEMA.TABLES AS t ON "
+                    + "(c.TABLE_NAME=t.TABLE_NAME AND c.TABLE_SCHEMA=t.TABLE_SCHEMA)"
+                : "LEFT JOIN INFORMATION_SCHEMA.ROUTINES AS r ON "
+                    + "(c.TABLE_NAME=r.ROUTINE_NAME AND c.TABLE_SCHEMA=r.ROUTINE_SCHEMA)")
+            + " WHERE "
+            + (canUseFlags
+                ? "CAST(t.FLAGS AS UNSIGNED INTEGER) & 1 = 0 AND "
+                : "r.ROUTINE_NAME IS NULL AND ")
+            + catalogCond("c.TABLE_SCHEMA", catalog)
+            + patternCond("c.TABLE_NAME", tableNamePattern)
+            + patternCond("c.COLUMN_NAME", columnNamePattern)
             + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
     return executeQuery(sql);
@@ -809,7 +854,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "SELECT "
             + bestRowSession
             + " SCOPE, COLUMN_NAME,"
-            + dataTypeClause("COLUMN_TYPE")
+            + dataTypeClause("COLUMN_TYPE", "")
             + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
             + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
             + " NUMERIC_SCALE DECIMAL_DIGITS,"
@@ -1800,7 +1845,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + procedureColumnUnknown
             + ")"
             + " END COLUMN_TYPE,"
-            + dataTypeClause("DTD_IDENTIFIER")
+            + dataTypeClause("DTD_IDENTIFIER", "")
             + " DATA_TYPE,"
             + "DATA_TYPE TYPE_NAME,"
             + " CASE DATA_TYPE"
@@ -3471,7 +3516,16 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " WHERE "
             + catalogCond("ROUTINE_SCHEMA", catalog)
             + patternCond("ROUTINE_NAME", functionNamePattern)
-            + " AND ROUTINE_TYPE='FUNCTION'";
+            + " AND ROUTINE_TYPE='FUNCTION'"
+            + " UNION"
+            + " SELECT AGGREGATE_SCHEMA FUNCTION_CAT,NULL FUNCTION_SCHEM, AGGREGATE_NAME FUNCTION_NAME,"
+            + " NULL REMARKS, "
+            + functionNoTable
+            + " FUNCTION_TYPE, AGGREGATE_NAME SPECIFIC_NAME "
+            + " FROM INFORMATION_SCHEMA.AGGREGATE_FUNCTIONS "
+            + " WHERE "
+            + catalogCond("AGGREGATE_SCHEMA", catalog)
+            + patternCond("AGGREGATE_NAME", functionNamePattern);
 
     return executeQuery(sql);
   }

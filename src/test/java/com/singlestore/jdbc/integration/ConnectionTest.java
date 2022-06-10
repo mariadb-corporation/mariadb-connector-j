@@ -640,7 +640,9 @@ public class ConnectionTest extends Common {
     assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=JWT&sslMode=trust&user=jwt_user&password=" + "invalid_jwt"),
-        "Access denied for user 'jwt_user'@'172.17.0.1' (using password: YES)");
+        minVersion(7, 8, 0)
+            ? "JWT Auth: invalid JWT token, invalid token supplied"
+            : "Access denied for user 'jwt_user'@'172.17.0.1' (using password: YES)");
   }
 
   @Nested

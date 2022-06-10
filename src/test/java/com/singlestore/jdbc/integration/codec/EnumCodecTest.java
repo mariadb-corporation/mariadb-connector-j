@@ -732,7 +732,7 @@ public class EnumCodecTest extends CommonCodecTest {
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    int prec = minVersion(7, 5, 0) ? 30 : 23;
+    int prec = minVersion(7, 5, 0) && !minVersion(7, 8, 0) ? 30 : 23;
     assertEquals(prec, meta.getPrecision(1));
     assertEquals(prec, meta.getColumnDisplaySize(1));
   }

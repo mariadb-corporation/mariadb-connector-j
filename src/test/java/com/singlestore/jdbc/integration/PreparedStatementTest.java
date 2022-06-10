@@ -587,6 +587,8 @@ public class PreparedStatementTest extends Common {
   }
 
   private void moreResults(Connection con) throws SQLException {
+    // TODO: PLAT-6236
+    Assumptions.assumeFalse(minVersion(7, 8, 0));
     Statement stmt = con.createStatement();
     ensureRange(stmt);
     stmt.setFetchSize(3);

@@ -384,6 +384,7 @@
                                             <include>com.auth0:java-jwt</include>
                                             <include>org.slf4j:slf4j-api</include>
                                             <include>org.apache.httpcomponents:*</include>
+
                                             <!--Linux keyring dependencies-->
                                             <include>de.swiesend:secret-service</include>
                                             <include>at.favre.lib:hkdf</include>
@@ -391,7 +392,7 @@
                                             <include>com.github.jnr:*</include>
                                             <include>org.ow2.asm:*</include>
 
-                                            Windows and Mac keyring dependencies
+                                            <!--Windows and Mac keyring dependencies-->
                                             <include>net.java.dev.jna:*</include>
                                         </includes>
                                     </artifactSet>

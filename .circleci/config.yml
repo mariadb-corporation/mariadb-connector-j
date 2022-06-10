@@ -116,6 +116,7 @@ workflows:
                 - singlestore/cluster-in-a-box:centos-7.3.13-761e3259b3-3.2.11-1.11.9
                 - singlestore/cluster-in-a-box:centos-7.5.10-d6401ae628-4.0.0-1.12.2
                 - singlestore/cluster-in-a-box:centos-7.6.8-ad67e74046-4.0.1-1.13.2
+                - singlestore/cluster-in-a-box:alma-7.8.5-144b69022c-4.0.6-1.13.7
   publish:
     jobs:
       - approve-publish:

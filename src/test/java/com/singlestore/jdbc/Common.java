@@ -92,7 +92,6 @@ public class Common {
   }
 
   public static boolean minVersion(int major, int minor, int patch) {
-    // TODO PLAT-5820
     try {
       return sharedConn
           .getMetaData()
