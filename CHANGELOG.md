@@ -1,6 +1,10 @@
 # Change Log
+## [2.7.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.6) (Jun 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.5...2.7.6)
 
-## [2.7.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.5) (Jan 2021)
+* CONJ-983  avoid race condition provoking locking issue
+
+## [2.7.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.5) (Jan 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.4...2.7.5)
 
 * CONJ-914  remove enabling session_track_schema on connection creation
