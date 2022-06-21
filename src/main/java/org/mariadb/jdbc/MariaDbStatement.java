@@ -56,10 +56,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -180,14 +177,16 @@ public class MariaDbStatement implements Statement, Cloneable {
     timerTaskFuture =
         timeoutScheduler.schedule(
             () -> {
-              try {
-                isTimedout = true;
-                if (!isBatch) {
-                  protocol.cancelCurrentQuery();
+              if (protocol != null) {
+                try {
+                  isTimedout = true;
+                  if (!isBatch) {
+                    protocol.cancelCurrentQuery();
+                  }
+                  protocol.interrupt();
+                } catch (Throwable e) {
+                  // eat
                 }
-                protocol.interrupt();
-              } catch (Throwable e) {
-                // eat
               }
             },
             queryTimeout,
@@ -222,13 +221,10 @@ public class MariaDbStatement implements Statement, Cloneable {
     if (timerTaskFuture != null) {
       if (!timerTaskFuture.cancel(true)) {
         // could not cancel, task either started or already finished
-        // we must now wait for task to finish to ensure state modifications are done
+        // we must now wait for task to finish ensuring state modifications are done
         try {
           timerTaskFuture.get();
-        } catch (InterruptedException e) {
-          // reset interrupt status
-          Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | CancellationException e) {
           // ignore error, likely due to interrupting during cancel
         }
         // we don't catch the exception if already canceled, that would indicate we tried
@@ -801,6 +797,14 @@ public class MariaDbStatement implements Statement, Cloneable {
         return;
       }
       connection.pooledConnection.fireStatementClosed(this);
+
+      if (timeoutScheduler != null) {
+        try {
+          timeoutScheduler.shutdown();
+        } catch (Throwable t) {
+          // eat
+        }
+      }
     } finally {
       protocol = null;
       connection = null;

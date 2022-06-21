@@ -164,14 +164,14 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
 
   @Override
   public boolean execute() throws SQLException {
-    connection.lock.lock();
+    lock.lock();
     try {
       validAllParameters();
       super.executeInternal(fetchSize);
       retrieveOutputResult();
       return results != null && results.getResultSet() != null;
     } finally {
-      connection.lock.unlock();
+      lock.unlock();
     }
   }
 

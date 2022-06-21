@@ -130,7 +130,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
    */
   @Override
   public int executeUpdate() throws SQLException {
-    connection.lock.lock();
+    lock.lock();
     try {
       super.execute();
       retrieveOutputResult();
@@ -139,7 +139,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
       }
       return getUpdateCount();
     } finally {
-      connection.lock.unlock();
+      lock.unlock();
     }
   }
 
@@ -157,7 +157,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
 
   @Override
   public ResultSet executeQuery() throws SQLException {
-    connection.lock.lock();
+    lock.lock();
     try {
       super.execute();
       retrieveOutputResult();
@@ -166,19 +166,19 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement
       }
       return SelectResultSet.createEmptyResultSet();
     } finally {
-      connection.lock.unlock();
+      lock.unlock();
     }
   }
 
   @Override
   public boolean execute() throws SQLException {
-    connection.lock.lock();
+    lock.lock();
     try {
       super.execute();
       retrieveOutputResult();
       return results != null && results.getResultSet() == null;
     } finally {
-      connection.lock.unlock();
+      lock.unlock();
     }
   }
 }
