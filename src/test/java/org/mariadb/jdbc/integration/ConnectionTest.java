@@ -112,6 +112,16 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void initSQL() throws SQLException {
+    try (Connection con = createCon("&initSql=SET @myVar='YourVar'")) {
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT @myVar");
+      assertTrue(rs.next());
+      assertEquals("YourVar", rs.getString(1));
+    }
+  }
+
+  @Test
   public void nativeSQL() throws SQLException {
     String[] inputs =
         new String[] {

@@ -68,6 +68,7 @@ public class Configuration {
   private Integer maxAllowedPacket = null;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
+  private String initSql = null;
 
   // socket
   private String socketFactory = null;
@@ -96,7 +97,7 @@ public class Configuration {
 
   // protocol
   private boolean allowMultiQueries = false;
-  private boolean allowLocalInfile = true;
+  private boolean allowLocalInfile = false;
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;
@@ -161,6 +162,7 @@ public class Configuration {
       Integer maxAllowedPacket,
       String geometryDefaultType,
       String restrictedAuth,
+      String initSql,
       String socketFactory,
       int connectTimeout,
       String pipe,
@@ -229,6 +231,7 @@ public class Configuration {
     this.maxAllowedPacket = maxAllowedPacket;
     this.geometryDefaultType = geometryDefaultType;
     this.restrictedAuth = restrictedAuth;
+    this.initSql = initSql;
     this.socketFactory = socketFactory;
     this.connectTimeout = connectTimeout;
     this.pipe = pipe;
@@ -352,6 +355,7 @@ public class Configuration {
       Integer transactionReplaySize,
       String geometryDefaultType,
       String restrictedAuth,
+      String initSql,
       Properties nonMappedOptions)
       throws SQLException {
     this.database = database;
@@ -433,6 +437,7 @@ public class Configuration {
     if (transactionReplaySize != null) this.transactionReplaySize = transactionReplaySize;
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
     if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
+    if (initSql != null) this.initSql = initSql;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
@@ -713,6 +718,7 @@ public class Configuration {
         this.maxAllowedPacket,
         this.geometryDefaultType,
         this.restrictedAuth,
+        this.initSql,
         this.socketFactory,
         this.connectTimeout,
         this.pipe,
@@ -1403,6 +1409,15 @@ public class Configuration {
   }
 
   /**
+   * Execute initial command when connection is established
+   *
+   * @return initial SQL command
+   */
+  public String initSql() {
+    return initSql;
+  }
+
+  /**
    * datatype Encoder/decoder list
    *
    * @return codec list
@@ -1604,6 +1619,7 @@ public class Configuration {
     private Integer maxAllowedPacket;
     private String geometryDefaultType;
     private String restrictedAuth;
+    private String initSql;
     private String transactionIsolation;
 
     // socket
@@ -1941,6 +1957,17 @@ public class Configuration {
      */
     public Builder restrictedAuth(String restrictedAuth) {
       this.restrictedAuth = restrictedAuth;
+      return this;
+    }
+
+    /**
+     * permit to execute an SQL command on connection creation
+     *
+     * @param initSql initial SQL command
+     * @return this {@link Builder}
+     */
+    public Builder initSql(String initSql) {
+      this.initSql = initSql;
       return this;
     }
 
@@ -2550,6 +2577,7 @@ public class Configuration {
               this.transactionReplaySize,
               this.geometryDefaultType,
               this.restrictedAuth,
+              this.initSql,
               this._nonMappedOptions);
       conf.initialUrl = buildUrl(conf);
       return conf;
