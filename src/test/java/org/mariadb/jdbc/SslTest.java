@@ -210,7 +210,7 @@ public class SslTest extends BaseTest {
     try (Connection con =
         setConnection(
             baseOptions
-                + "&useSsl&trustServerCertificate=true&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+                + "&useSsl&trustServerCertificate=true&enabledSslCipherSuites=TLS_DHE_RSA_WITH_AES_256_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
             database,
             sslPort)) {
       assertNotNull(getSslVersion(con));
