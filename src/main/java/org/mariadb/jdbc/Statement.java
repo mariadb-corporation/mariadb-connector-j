@@ -853,16 +853,19 @@ public class Statement implements java.sql.Statement {
     }
 
     if (currResult instanceof OkPacket) {
+
       OkPacket ok = ((OkPacket) currResult);
-      List<String[]> insertIds = new ArrayList<>();
-      insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
-      for (Completion result : results) {
-        if (result instanceof OkPacket) {
-          insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
+      if (ok.getLastInsertId() != 0) {
+        List<String[]> insertIds = new ArrayList<>();
+        insertIds.add(new String[]{String.valueOf(ok.getLastInsertId())});
+        for (Completion result : results) {
+          if (result instanceof OkPacket) {
+            insertIds.add(new String[]{String.valueOf(((OkPacket) result).getLastInsertId())});
+          }
         }
+        String[][] ids = insertIds.toArray(new String[0][]);
+        return CompleteResult.createResultSet("insert_id", DataType.BIGINT, ids, con.getContext());
       }
-      String[][] ids = insertIds.toArray(new String[0][]);
-      return CompleteResult.createResultSet("insert_id", DataType.BIGINT, ids, con.getContext());
     }
 
     return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
