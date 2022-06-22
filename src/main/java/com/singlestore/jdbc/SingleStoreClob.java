@@ -12,7 +12,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 
-public class SingleStoreClob extends SingleStoreBlob implements Clob, NClob, Serializable {
+public class SingleStoreClob extends BlobImpl implements Clob, NClob, Serializable {
 
   private static final long serialVersionUID = -3066501059817815286L;
 
