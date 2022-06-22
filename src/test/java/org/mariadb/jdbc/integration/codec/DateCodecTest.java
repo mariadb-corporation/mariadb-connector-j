@@ -740,6 +740,8 @@ public class DateCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setDate(1, Date.valueOf("2010-01-12"), Calendar.getInstance());
       prep.execute();
+      prep.setObject(1, new java.util.Date(Date.valueOf("2010-12-13").getTime()));
+      prep.execute();
     }
 
     ResultSet rs =
@@ -779,6 +781,10 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-12-13"), rs.getDate(2));
+    rs.updateObject(2, new java.util.Date(Date.valueOf("2010-12-31").getTime()), Types.DATE);
+    rs.updateRow();
 
     rs = stmt.executeQuery("SELECT * FROM DateCodec2");
     assertTrue(rs.next());
@@ -797,5 +803,7 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-12-31"), rs.getDate(2));
   }
 }

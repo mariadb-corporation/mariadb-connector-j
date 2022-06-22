@@ -48,7 +48,7 @@ public class DateCodec implements Codec<Date> {
   }
 
   public boolean canEncode(Object value) {
-    return value instanceof Date;
+    return value instanceof Date || java.util.Date.class.equals(value.getClass());
   }
 
   @Override
@@ -215,7 +215,7 @@ public class DateCodec implements Codec<Date> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(((Date) value).getTime());
+    cal.setTimeInMillis(((java.util.Date) value).getTime());
     encoder.writeByte(4); // length
     encoder.writeShort((short) cal.get(Calendar.YEAR));
     encoder.writeByte(((cal.get(Calendar.MONTH) + 1) & 0xff));
