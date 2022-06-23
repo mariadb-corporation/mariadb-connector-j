@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.client.util.Parameters;

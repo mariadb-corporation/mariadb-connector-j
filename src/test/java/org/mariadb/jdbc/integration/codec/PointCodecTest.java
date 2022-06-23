@@ -199,7 +199,7 @@ public class PointCodecTest extends CommonCodecTest {
                     && !"skysql-ha".equals(System.getenv("srv")))
                 ? Point.class.getName()
                 : GeometryCollection.class.getName())
-            : byte[].class.getName(),
+            : "byte[]",
         meta.getColumnClassName(1));
 
     assertEquals("t1alias", meta.getColumnLabel(1));

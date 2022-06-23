@@ -356,14 +356,13 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         (geoDefault
-                ? ((isMariaDBServer()
-                        && minVersion(10, 5, 1)
-                        && !"maxscale".equals(System.getenv("srv"))
-                        && !"skysql-ha".equals(System.getenv("srv")))
-                    ? Polygon.class
-                    : GeometryCollection.class)
-                : byte[].class)
-            .getName(),
+            ? ((isMariaDBServer()
+                    && minVersion(10, 5, 1)
+                    && !"maxscale".equals(System.getenv("srv"))
+                    && !"skysql-ha".equals(System.getenv("srv")))
+                ? Polygon.class.getName()
+                : GeometryCollection.class.getName())
+            : "byte[]"),
         meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));

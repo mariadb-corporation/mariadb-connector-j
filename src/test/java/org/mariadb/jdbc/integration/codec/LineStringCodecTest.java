@@ -269,7 +269,7 @@ public class LineStringCodecTest extends CommonCodecTest {
                     && !"skysql-ha".equals(System.getenv("srv")))
                 ? LineString.class.getName()
                 : GeometryCollection.class.getName())
-            : byte[].class.getName(),
+            : "byte[]",
         meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));

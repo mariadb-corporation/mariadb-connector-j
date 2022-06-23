@@ -38,7 +38,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
           DataType.STRING);
 
   public String className() {
-    return byte[].class.getName();
+    return "byte[]";
   }
 
   public boolean canDecode(Column column, Class<?> type) {
@@ -59,6 +59,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
 
   private byte[] getBytes(ReadableByteBuf buf, int length, Column column) throws SQLDataException {
     switch (column.getType()) {
+      case BIT:
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:

@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +21,6 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.ServerStatus;
-
-import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
 
 /** Statement implementation */
 public class Statement implements java.sql.Statement {
@@ -709,9 +709,7 @@ public class Statement implements java.sql.Statement {
       }
 
       List<Completion> res =
-              possibleLoadLocal
-              ? executeInternalBatchStandard()
-              : executeInternalBatchPipeline();
+          possibleLoadLocal ? executeInternalBatchStandard() : executeInternalBatchPipeline();
 
       results = res;
 
@@ -857,10 +855,10 @@ public class Statement implements java.sql.Statement {
       OkPacket ok = ((OkPacket) currResult);
       if (ok.getLastInsertId() != 0) {
         List<String[]> insertIds = new ArrayList<>();
-        insertIds.add(new String[]{String.valueOf(ok.getLastInsertId())});
+        insertIds.add(new String[] {String.valueOf(ok.getLastInsertId())});
         for (Completion result : results) {
           if (result instanceof OkPacket) {
-            insertIds.add(new String[]{String.valueOf(((OkPacket) result).getLastInsertId())});
+            insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
           }
         }
         String[][] ids = insertIds.toArray(new String[0][]);
@@ -1460,9 +1458,7 @@ public class Statement implements java.sql.Statement {
       }
 
       List<Completion> res =
-              possibleLoadLocal
-                      ? executeInternalBatchStandard()
-                      : executeInternalBatchPipeline();
+          possibleLoadLocal ? executeInternalBatchStandard() : executeInternalBatchPipeline();
 
       results = res;
       long[] updates = new long[res.size()];

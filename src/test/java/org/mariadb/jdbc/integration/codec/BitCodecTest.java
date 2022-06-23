@@ -76,12 +76,12 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals(BitSet.valueOf(new byte[] {(byte) 0}), rs.getObject(1));
+    assertEquals(false, rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertEquals(BitSet.valueOf(new byte[] {(byte) 1}), rs.getObject(2));
-    assertEquals(BitSet.valueOf(new byte[] {(byte) 1}), rs.getObject("t2alias"));
+    assertArrayEquals(new byte[] {(byte) 1}, (byte[]) rs.getObject(2));
+    assertArrayEquals(new byte[] {(byte) 1}, (byte[]) rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(BitSet.valueOf(new byte[] {(byte) 4, (byte) 15}), rs.getObject(3));
+    assertArrayEquals(new byte[] {(byte) 15, (byte) 4}, (byte[]) rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -112,7 +112,7 @@ public class BitCodecTest extends CommonCodecTest {
     testErrObject(rs, Double.class);
     testErrObject(rs, Float.class);
     testObject(rs, Byte.class, (byte) 0);
-    testErrObject(rs, byte[].class);
+    testObject(rs, byte[].class, new byte[] {0});
     testErrObject(rs, Date.class);
     testErrObject(rs, Time.class);
     testErrObject(rs, Timestamp.class);
@@ -510,13 +510,16 @@ public class BitCodecTest extends CommonCodecTest {
     getBytes(getPrepare(sharedConnBinary));
   }
 
-  public void getBytes(ResultSet rs) {
-    Common.assertThrowsContains(
-        SQLDataException.class, () -> rs.getBytes(1), "Data type BIT cannot be decoded as byte[]");
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBytes("t1alias"),
-        "Data type BIT cannot be decoded as byte[]");
+  public void getBytes(ResultSet rs) throws SQLException {
+    assertArrayEquals(new byte[] {(byte) 0}, rs.getBytes(1));
+    assertFalse(rs.wasNull());
+    assertArrayEquals(new byte[] {(byte) 1}, rs.getBytes(2));
+    assertArrayEquals(new byte[] {(byte) 1}, rs.getBytes("t2alias"));
+    assertFalse(rs.wasNull());
+    assertArrayEquals(new byte[] {(byte) 15, (byte) 4}, rs.getBytes(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getObject(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -651,15 +654,26 @@ public class BitCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("BIT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.util.BitSet", meta.getColumnClassName(1));
+    assertEquals("java.lang.Boolean", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.BIT, meta.getColumnType(1));
+    assertEquals(Types.BOOLEAN, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(1, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(1, meta.getColumnDisplaySize(1));
+
+    assertEquals("BIT", meta.getColumnTypeName(2));
+    assertEquals(sharedConn.getCatalog(), meta.getCatalogName(2));
+    assertEquals("byte[]", meta.getColumnClassName(2));
+    assertEquals("t2alias", meta.getColumnLabel(2));
+    assertEquals("t2", meta.getColumnName(2));
+    assertEquals(Types.VARBINARY, meta.getColumnType(2));
+    assertEquals(4, meta.getPrecision(2));
+    assertEquals(0, meta.getScale(2));
+    assertEquals("", meta.getSchemaName(2));
+    assertEquals(4, meta.getColumnDisplaySize(2));
   }
 
   @Test

@@ -117,9 +117,9 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       if (possibleLoadLocal) {
         String sqlUpper = sql.toUpperCase(Locale.ROOT);
         possibleLoadLocal =
-                sqlUpper.contains(" LOCAL ")
-                        && sqlUpper.contains("LOAD")
-                        && sqlUpper.contains(" INFILE");
+            sqlUpper.contains(" LOCAL ")
+                && sqlUpper.contains("LOAD")
+                && sqlUpper.contains(" INFILE");
       }
       if (possibleLoadLocal) {
         executeBatchStd();

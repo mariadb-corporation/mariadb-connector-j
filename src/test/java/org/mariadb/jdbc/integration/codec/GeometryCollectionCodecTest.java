@@ -253,8 +253,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     }
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
-        geoDefault ? GeometryCollection.class.getName() : byte[].class.getName(),
-        meta.getColumnClassName(1));
+        geoDefault ? GeometryCollection.class.getName() : "byte[]", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARBINARY, meta.getColumnType(1));

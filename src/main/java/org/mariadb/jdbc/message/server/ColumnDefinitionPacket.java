@@ -509,7 +509,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         if (conf.yearIsDateType()) return DateCodec.INSTANCE;
         return ShortCodec.INSTANCE;
       case BIT:
-        return BitSetCodec.INSTANCE;
+        if (this.length == 1) return BooleanCodec.INSTANCE;
+        return ByteArrayCodec.INSTANCE;
     }
     throw new IllegalArgumentException(String.format("Unexpected datatype %s", dataType));
   }
