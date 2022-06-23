@@ -62,6 +62,10 @@ public class CommonCodecTest extends Common {
       assertStreamEquals((InputStream) exp, (InputStream) rs.getObject(idx, objClass));
       assertNull(rs.getObject(4, objClass));
       assertNull(rs.getObject("t4alias", objClass));
+    } else if (exp instanceof byte[]) {
+      assertArrayEquals((byte[]) exp, (byte[]) rs.getObject(idx, objClass));
+      assertNull(rs.getObject(4, objClass));
+      assertNull(rs.getObject("t4alias", objClass));
     } else if (exp instanceof Reader) {
       assertReaderEquals((Reader) exp, (Reader) rs.getObject(idx, objClass));
       assertNull(rs.getObject(4, objClass));

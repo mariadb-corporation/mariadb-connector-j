@@ -98,12 +98,12 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws Exception {
-    assertEquals((byte) 0, rs.getObject(1));
+    assertEquals(0, rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertEquals((byte) 1, rs.getObject(2));
-    assertEquals((byte) 1, rs.getObject("t2alias"));
+    assertEquals(1, rs.getObject(2));
+    assertEquals(1, rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals((byte) -1, rs.getObject(3));
+    assertEquals(-1, rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -121,12 +121,12 @@ public class TinyIntCodecTest extends CommonCodecTest {
   }
 
   public void getObjectUnsigned(ResultSet rs) throws Exception {
-    assertEquals((short) 0, rs.getObject(1));
+    assertEquals(0, rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertEquals((short) 1, rs.getObject(2));
-    assertEquals((short) 1, rs.getObject("t2alias"));
+    assertEquals(1, rs.getObject(2));
+    assertEquals(1, rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals((short) 255, rs.getObject(3));
+    assertEquals(255, rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -925,7 +925,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("TINYINT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.lang.Byte", meta.getColumnClassName(1));
+    assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.TINYINT, meta.getColumnType(1));
@@ -937,9 +937,9 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("TINYINT", meta.getColumnTypeName(1));
+    assertEquals("TINYINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.lang.Short", meta.getColumnClassName(1));
+    assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.SMALLINT, meta.getColumnType(1));

@@ -45,7 +45,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     if (conf.tinyInt1isBit()) {
       upperCaseWithoutSize =
-          " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
+          " IF(COLUMN_TYPE like 'tinyint(1)%', '"
+              + (conf.transformedBitIsBoolean() ? "BOOLEAN" : "BIT")
+              + "', "
+              + upperCaseWithoutSize
+              + ")";
     }
 
     if (!conf.yearIsDateType()) {
@@ -453,7 +457,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             ? "IF("
                 + fullTypeColumnName
                 + " like 'tinyint(1)%',"
-                + Types.BIT
+                + (conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT)
                 + ","
                 + Types.TINYINT
                 + ") "

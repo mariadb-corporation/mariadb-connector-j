@@ -116,6 +116,7 @@ public class Configuration {
   // meta
   private boolean blankTableNameMeta = false;
   private boolean tinyInt1isBit = true;
+  private boolean transformedBitIsBoolean = false;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
   private boolean includeInnodbStatusInDeadlockExceptions = false;
@@ -197,6 +198,7 @@ public class Configuration {
       String servicePrincipalName,
       boolean blankTableNameMeta,
       boolean tinyInt1isBit,
+      boolean transformedBitIsBoolean,
       boolean yearIsDateType,
       boolean dumpQueriesOnException,
       boolean includeInnodbStatusInDeadlockExceptions,
@@ -266,6 +268,7 @@ public class Configuration {
     this.servicePrincipalName = servicePrincipalName;
     this.blankTableNameMeta = blankTableNameMeta;
     this.tinyInt1isBit = tinyInt1isBit;
+    this.transformedBitIsBoolean = transformedBitIsBoolean;
     this.yearIsDateType = yearIsDateType;
     this.dumpQueriesOnException = dumpQueriesOnException;
     this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
@@ -315,6 +318,7 @@ public class Configuration {
       String enabledSslCipherSuites,
       String sessionVariables,
       Boolean tinyInt1isBit,
+      Boolean transformedBitIsBoolean,
       Boolean yearIsDateType,
       String timezone,
       Boolean dumpQueriesOnException,
@@ -393,6 +397,7 @@ public class Configuration {
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
     if (tinyInt1isBit != null) this.tinyInt1isBit = tinyInt1isBit;
+    if (transformedBitIsBoolean != null) this.transformedBitIsBoolean = transformedBitIsBoolean;
     if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     this.timezone = timezone;
     if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
@@ -753,6 +758,7 @@ public class Configuration {
         this.servicePrincipalName,
         this.blankTableNameMeta,
         this.tinyInt1isBit,
+        this.transformedBitIsBoolean,
         this.yearIsDateType,
         this.dumpQueriesOnException,
         this.includeInnodbStatusInDeadlockExceptions,
@@ -1071,6 +1077,15 @@ public class Configuration {
    */
   public boolean tinyInt1isBit() {
     return tinyInt1isBit;
+  }
+
+  /**
+   * Must tinyint(1) be considered as Boolean or Bit
+   *
+   * @return true if tinyint(1) must be considered as Boolean
+   */
+  public boolean transformedBitIsBoolean() {
+    return transformedBitIsBoolean;
   }
 
   /**
@@ -1667,6 +1682,8 @@ public class Configuration {
     // meta
     private Boolean blankTableNameMeta;
     private Boolean tinyInt1isBit;
+
+    private Boolean transformedBitIsBoolean;
     private Boolean yearIsDateType;
     private Boolean dumpQueriesOnException;
     private Boolean includeInnodbStatusInDeadlockExceptions;
@@ -2115,6 +2132,17 @@ public class Configuration {
     }
 
     /**
+     * TinyInt(1) to be considered as boolean
+     *
+     * @param transformedBitIsBoolean Indicate if Tinyint(1) to be considered as boolean
+     * @return this {@link Builder}
+     */
+    public Builder transformedBitIsBoolean(Boolean transformedBitIsBoolean) {
+      this.transformedBitIsBoolean = transformedBitIsBoolean;
+      return this;
+    }
+
+    /**
      * Year datatype to be considered as date
      *
      * @param yearIsDateType indicate if Year must be considered as Date
@@ -2537,6 +2565,7 @@ public class Configuration {
               this.enabledSslCipherSuites,
               this.sessionVariables,
               this.tinyInt1isBit,
+              this.transformedBitIsBoolean,
               this.yearIsDateType,
               this.timezone,
               this.dumpQueriesOnException,

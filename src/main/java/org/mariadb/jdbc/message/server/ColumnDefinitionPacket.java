@@ -294,6 +294,15 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   public String getColumnTypeName(Configuration conf) {
     switch (dataType) {
+      case TINYINT:
+        if (length == 1) {
+          return conf.transformedBitIsBoolean() ? "BOOLEAN" : "BIT";
+        }
+        if (!isSigned()) {
+          return dataType.name() + " UNSIGNED";
+        } else {
+          return dataType.name();
+        }
       case SMALLINT:
       case MEDIUMINT:
       case INTEGER:
@@ -374,12 +383,12 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     switch (dataType) {
       case TINYINT:
         if (length == 1) {
-          return Types.BIT;
+          return conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
         }
         return isSigned() ? Types.TINYINT : Types.SMALLINT;
       case BIT:
         if (length == 1) {
-          return Types.BIT;
+          return Types.BOOLEAN;
         }
         return Types.VARBINARY;
       case SMALLINT:
@@ -443,7 +452,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case NULL:
         return StringCodec.INSTANCE;
       case TINYINT:
-        return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
+        if (conf.tinyInt1isBit() && this.length == 1) return BooleanCodec.INSTANCE;
+        return IntCodec.INSTANCE;
       case SMALLINT:
         return isSigned() ? ShortCodec.INSTANCE : IntCodec.INSTANCE;
       case INTEGER:
