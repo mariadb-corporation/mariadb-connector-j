@@ -58,7 +58,7 @@ public class Sha256AuthenticationTest extends BaseTest {
           "CREATE USER 'cachingSha256User'@'%'  IDENTIFIED WITH caching_sha2_password BY 'password'");
       stmt.execute("GRANT SELECT ON *.* TO 'cachingSha256User'@'%'");
     } else {
-      forceTls = "&enabledSslProtocolSuites=TLSv1.1";
+      forceTls = "&enabledSslProtocolSuites=TLSv1.1,TLSv1.2";
     }
   }
 
