@@ -1,4 +1,15 @@
 # Change Log
+## [3.0.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.6) (Jun 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.5...3.0.6)
+
+* [CONJ-953] PreparedStatement.getGeneratedKeys() returns rows when no keys are generated in insert
+* [CONJ-975] ArrayIndexOutOfBoundsException when attempt to getTime() from ResultSet
+* [CONJ-976] Improve use of pipelining when allowLocalInfile is enabled
+* [CONJ-979] ResultSet.getObject() returns Byte instead of Boolean for tinyint(1)
+* [CONJ-980] Permit setObject with java.util.Date parameter
+* [CONJ-984] Permit executing initial command with new option `initSql`
+* [CONJ-985] ResultSet.getObject() returns ByteSet instead of Byte[] for BIT
+
 ## [3.0.5](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.5) (may 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.4...3.0.5)
 
