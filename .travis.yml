@@ -36,7 +36,7 @@ install:
 
 jobs:
   allow_failures:
-    - env: srv=build v=10.6
+    - env: srv=build
   include:
     - env: srv=mariadb v=10.6
       os: windows
@@ -46,6 +46,7 @@ jobs:
     - env: srv=mariadb v=10.4 local=1
     - env: srv=mariadb v=10.5 local=1
     - env: srv=mariadb v=10.7 local=1
+    - env: srv=mariadb v=10.8 local=1
     - env: srv=mariadb v=10.6 packet=40
       jdk: openjdk8
     - env: srv=mariadb v=10.6 packet=40
@@ -55,7 +56,7 @@ jobs:
     - if: type = push AND fork = false
       env: srv=maxscale
     - if: type = push AND fork = false
-      env: srv=build v=10.6
+      env: srv=build
     - if: type = push AND fork = false
       env: srv=mariadb-es v=10.6
     - if: type = push AND fork = false
