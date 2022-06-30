@@ -36,7 +36,7 @@ install:
 
 jobs:
   allow_failures:
-    - env: srv=build v=10.6
+    - env: srv=build
     - env: srv=xpand TEST_DB_OTHER="initSql=SET NAMES UTF8"
   include:
     - env: srv=mariadb v=10.6
@@ -47,6 +47,7 @@ jobs:
     - env: srv=mariadb v=10.4 local=1
     - env: srv=mariadb v=10.5 local=1
     - env: srv=mariadb v=10.7 local=1
+    - env: srv=mariadb v=10.8 local=1
     - env: srv=mariadb v=10.6 packet=40
       jdk: openjdk17
     - env: srv=mariadb v=10.6 packet=8
@@ -56,7 +57,7 @@ jobs:
     - if: type = push AND fork = false
       env: srv=xpand TEST_DB_OTHER="initSql=SET NAMES UTF8"
     - if: type = push AND fork = false
-      env: srv=build v=10.6
+      env: srv=build
     - if: type = push AND fork = false
       env: srv=mariadb-es v=10.6
     - if: type = push AND fork = false
