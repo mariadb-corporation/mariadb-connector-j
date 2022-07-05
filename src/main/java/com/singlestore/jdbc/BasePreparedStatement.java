@@ -70,6 +70,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   public abstract void addBatch() throws SQLException;
 
+  public abstract void clearBatch() throws SQLException;
+
   public abstract ResultSetMetaData getMetaData() throws SQLException;
 
   public abstract ParameterMetaData getParameterMetaData() throws SQLException;

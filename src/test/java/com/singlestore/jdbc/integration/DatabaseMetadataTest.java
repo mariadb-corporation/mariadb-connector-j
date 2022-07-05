@@ -28,7 +28,10 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("DROP FUNCTION IF EXISTS UDAFmerge");
     stmt.execute("DROP FUNCTION IF EXISTS UDAFterminate");
     stmt.execute("DROP TABLE IF EXISTS json_test");
-    stmt.execute("DROP TABLE IF EXISTS dbpk_test");
+    stmt.execute("DROP TABLE IF EXISTS pk_test");
+    stmt.execute("DROP TABLE IF EXISTS pk_test_multi");
+    stmt.execute("DROP TABLE IF EXISTS pk_test_rowstore");
+    stmt.execute("DROP TABLE IF EXISTS pk_test_rowstore_multi");
     stmt.execute("DROP TABLE IF EXISTS datetime_test");
     stmt.execute("DROP TABLE IF EXISTS manycols");
     stmt.execute("DROP TABLE IF EXISTS ytab");
@@ -59,11 +62,21 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("CREATE TABLE json_test(t1 JSON)");
     stmt.execute("CREATE FUNCTION testMetaCatalog(x int) RETURNS int AS \nBEGIN\n return 1; end\n");
     stmt.execute(
-        createRowstore()
-            + " TABLE IF NOT EXISTS dbpk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
+        "CREATE"
+            + " TABLE IF NOT EXISTS pk_test(val varchar(20), id int not null, primary key(id))");
+    stmt.execute(
+        "CREATE"
+            + " TABLE IF NOT EXISTS pk_test_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
             + "id2))");
     stmt.execute(
-        "CREATE FUNCTION UDTF(x int) returns table as return select * from dbpk_test where id1 = x");
+        createRowstore()
+            + " TABLE IF NOT EXISTS pk_test_rowstore(val varchar(20), id int not null,primary key(id))");
+    stmt.execute(
+        createRowstore()
+            + " TABLE IF NOT EXISTS pk_test_rowstore_multi(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
+            + "id2))");
+    stmt.execute(
+        "CREATE FUNCTION UDTF(x int) returns table as return select * from pk_test where id = x");
     stmt.execute(
         "CREATE FUNCTION UDAFinit () RETURNS bigint AS declare s bigint ; BEGIN RETURN s; END");
     stmt.execute(
@@ -170,14 +183,45 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
-    ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
+    ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "pk_test");
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
+    assertNull(rs.getString("table_schem"));
+    assertEquals("pk_test", rs.getString("table_name"));
+    assertEquals("id", rs.getString("column_name"));
+    assertEquals("PRIMARY", rs.getString("PK_NAME"));
+    assertFalse(rs.next());
+
+    rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "pk_test_multi");
     int counter = 0;
     while (rs.next()) {
       counter++;
       assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
-      assertEquals(null, rs.getString("table_schem"));
-      assertEquals("dbpk_test", rs.getString("table_name"));
+      assertNull(rs.getString("table_schem"));
+      assertEquals("pk_test_multi", rs.getString("table_name"));
       assertEquals("id" + counter, rs.getString("column_name"));
+      assertEquals("PRIMARY", rs.getString("PK_NAME"));
+    }
+    assertEquals(2, counter);
+
+    rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "pk_test_rowstore");
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
+    assertNull(rs.getString("table_schem"));
+    assertEquals("pk_test_rowstore", rs.getString("table_name"));
+    assertEquals("id", rs.getString("column_name"));
+    assertEquals("PRIMARY", rs.getString("PK_NAME"));
+    assertFalse(rs.next());
+
+    rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "pk_test_rowstore_multi");
+    counter = 0;
+    while (rs.next()) {
+      counter++;
+      assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
+      assertNull(rs.getString("table_schem"));
+      assertEquals("pk_test_rowstore_multi", rs.getString("table_name"));
       assertEquals("id" + counter, rs.getString("column_name"));
       assertEquals("PRIMARY", rs.getString("PK_NAME"));
     }
@@ -369,7 +413,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
             + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c AS (CHAR_LENGTH(b)) PERSISTED INT, "
-            + "d AS left(b,5) PERSISTED VARCHAR(5) CHARACTER SET 'utf8mb4')");
+            + "d AS left(b,5) PERSISTED VARCHAR(5) CHARACTER SET 'utf8mb4', e AS a * 2 PERSISTED INT(14) UNSIGNED)");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "ta\nble'getcolumns", null);
@@ -472,6 +516,20 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0, rs.getShort(22)); // SOURCE_DATA_TYPE
     assertEquals("NO", rs.getString(23)); // IS_AUTOINCREMENT
     assertEquals("YES", rs.getString(24)); // IS_GENERATEDCOLUMN
+
+    assertTrue(rs.next());
+    assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
+    assertEquals(null, rs.getString(2)); // TABLE_SCHEM
+    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("e", rs.getString(4)); // COLUMN_NAME
+    assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
+    assertEquals("INT UNSIGNED", rs.getString(6)); // TYPE_NAME
+    assertEquals(10, rs.getInt(7)); // COLUMN_SIZE
+    assertEquals(0, rs.getInt(9)); // DECIMAL_DIGITS
+    assertEquals(10, rs.getInt(10)); // NUM_PREC_RADIX
+    assertEquals(1, rs.getInt(11)); // NULLABLE
+    assertEquals("", rs.getString(12)); // REMARKS
+
     assertFalse(rs.next());
   }
 
@@ -1211,13 +1269,13 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(4, rsmd.getScale(3));
     assertEquals(9, rsmd.getPrecision(4));
     assertEquals(0, rsmd.getScale(4));
-    assertEquals(6, rsmd.getPrecision(5));
+    assertEquals(12, rsmd.getPrecision(5));
     assertEquals(4, rsmd.getScale(5));
-    assertEquals(6, rsmd.getPrecision(6));
+    assertEquals(12, rsmd.getPrecision(6));
     assertEquals(4, rsmd.getScale(6));
-    assertEquals(14, rsmd.getPrecision(7));
+    assertEquals(22, rsmd.getPrecision(7));
     assertEquals(4, rsmd.getScale(7));
-    assertEquals(14, rsmd.getPrecision(8));
+    assertEquals(22, rsmd.getPrecision(8));
     assertEquals(4, rsmd.getScale(8));
   }
 

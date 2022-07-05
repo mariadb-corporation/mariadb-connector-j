@@ -207,11 +207,24 @@ public class ColumnDefinitionPacket implements ServerMessage {
       case ENUM:
       case SET:
       case CHAR:
+      case MEDIUMBLOB:
+      case BLOB:
+      case TINYBLOB:
         Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
         if (maxWidth == null) {
           return (int) length;
         }
         return (int) length / maxWidth;
+
+        // server sends MAX_UNSIGNEDINT or 4GB (or -1 if interpreted as int) as length for this.
+        // For LONGBLOB with maxWidth 1 this doesn't fit into an int, so return MAXINT.
+        // For LONGTEXT with maxWidth of at least 2, the precision fits
+      case LONGBLOB:
+        maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
+        if (maxWidth == null) {
+          return Integer.MAX_VALUE;
+        }
+        return (int) Long.max(Long.divideUnsigned(length, maxWidth.longValue()), Integer.MAX_VALUE);
 
       case DATE:
         return 10;
@@ -225,7 +238,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
         return (decimals == 0) ? 10 : 17;
 
       case FLOAT:
-        return 9;
+        return 12;
       case DOUBLE:
         return 18;
 
@@ -278,30 +291,37 @@ public class ColumnDefinitionPacket implements ServerMessage {
         } else {
           return length - ((decimals > 0) ? 1 : 0);
         }
+
+      case FLOAT:
+        return 12;
+      case DOUBLE:
+        return 22;
+      case INT:
+        return 10;
+      case TINYINT:
+        return 3;
+      case SMALLINT:
+        return 5;
+      case MEDIUMINT:
+        return 7;
+      case BIGINT:
+        return 19;
+
       case VARCHAR:
       case JSON:
       case ENUM:
       case SET:
       case CHAR:
-        Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
-        if (maxWidth == null) {
-          return length;
-        }
-        return length / maxWidth;
-      case FLOAT:
-        return 6;
-      case DOUBLE:
-        return 14;
       case DATE:
-        return 10;
       case DATETIME:
       case TIMESTAMP:
-        // S2 sends the same length of DATETIME(6) for both DATETIME(0) and DATETIME(6)
-        // However in reality DATETIME(0) is 7 symbols shorter as it is missing ".000000"
-        return (decimals == 0) ? length - 7 : length;
       case TIME:
-        // same as above, but S2 returns 18 instead 17 for some reason
-        return (decimals == 0) ? 10 : 17;
+      case LONGBLOB:
+      case MEDIUMBLOB:
+      case BLOB:
+      case TINYBLOB:
+        // Character types, precision should equal number of displayed characters
+        return getDisplaySize();
 
       default:
         return Math.max(length, 0);

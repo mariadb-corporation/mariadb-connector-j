@@ -940,7 +940,7 @@ public class LongCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.BIGINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(20, meta.getPrecision(1));
+    assertEquals(19, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
@@ -954,7 +954,7 @@ public class LongCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.BIGINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(20, meta.getPrecision(1));
+    assertEquals(19, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));

@@ -37,7 +37,23 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private static String DataTypeClause(Configuration conf) {
-    String upperCaseWithoutSize = " UCASE(c.DATA_TYPE)";
+    String upperCaseWithoutPersisted =
+        "UCASE(IF( UCASE(COLUMN_TYPE) LIKE '%PERSISTED%', SUBSTRING(COLUMN_TYPE,"
+            + " 10 + LOCATE('PERSISTED', UCASE(COLUMN_TYPE))), COLUMN_TYPE))";
+    String upperCaseWithoutSize =
+        " UCASE(IF( "
+            + upperCaseWithoutPersisted
+            + " LIKE '%(%)%', CONCAT(SUBSTRING( "
+            + upperCaseWithoutPersisted
+            + ",1, LOCATE('(',"
+            + upperCaseWithoutPersisted
+            + ") - 1 ), SUBSTRING("
+            + upperCaseWithoutPersisted
+            + " ,1+locate(')', "
+            + upperCaseWithoutPersisted
+            + "))), "
+            + upperCaseWithoutPersisted
+            + "))";
 
     if (conf.tinyInt1isBit()) {
       upperCaseWithoutSize =
@@ -472,17 +488,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
     // MySQL 8 now use 'PRI' in place of 'pri'
     String sql =
-        "SELECT DISTINCT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
-            + " FROM INFORMATION_SCHEMA.COLUMNS A JOIN INFORMATION_SCHEMA.STATISTICS B ON"
-            + " (A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME)"
-            + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
+        "SELECT DISTINCT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME, SEQ_IN_INDEX KEY_SEQ, INDEX_NAME PK_NAME "
+            + " FROM INFORMATION_SCHEMA.STATISTICS "
+            + "WHERE INDEX_NAME='PRIMARY' "
             + " AND "
-            + catalogCond("A.TABLE_SCHEMA", catalog)
-            + " AND "
-            + catalogCond("B.TABLE_SCHEMA", catalog)
-            + patternCond("A.TABLE_NAME", table)
-            + patternCond("B.TABLE_NAME", table)
-            + " ORDER BY A.COLUMN_NAME";
+            + catalogCond("TABLE_SCHEMA", catalog)
+            + patternCond("TABLE_NAME", table)
+            + " ORDER BY COLUMN_NAME";
 
     return executeQuery(sql);
   }

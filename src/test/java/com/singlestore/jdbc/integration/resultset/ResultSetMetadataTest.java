@@ -13,6 +13,7 @@ import java.sql.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 public class ResultSetMetadataTest extends Common {
 
@@ -27,6 +28,7 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS resultsetmetadatatest2");
     stmt.execute("DROP TABLE IF EXISTS resultsetmetadatatest3");
     stmt.execute("DROP TABLE IF EXISTS test_rsmd_types");
+    stmt.execute("DROP TABLE IF EXISTS test_rsmd_unsigned");
   }
 
   @BeforeAll
@@ -54,6 +56,15 @@ public class ResultSetMetadataTest extends Common {
             + "null, null, null, null, null, null, null, null, null, null, null, "
             + "null, null, null, null, null, null, null, null, null, null, null, "
             + "null, null, null)");
+    stmt.execute(
+        "CREATE TABLE IF NOT EXISTS test_rsmd_unsigned (s1 TINYINT, s2 SMALLINT, "
+            + "s3 MEDIUMINT, s4 INT, s5 BIGINT, s6 REAL, s7 DOUBLE, s8 DECIMAL, s9 NUMERIC, "
+            + "uns1 TINYINT UNSIGNED, uns2 SMALLINT UNSIGNED, uns3 MEDIUMINT UNSIGNED, "
+            + "uns4 INT UNSIGNED, uns5 BIGINT UNSIGNED, uns6 REAL UNSIGNED,"
+            + " uns7 DOUBLE UNSIGNED, uns8 DECIMAL UNSIGNED, uns9 NUMERIC UNSIGNED)");
+    stmt.execute(
+        "insert into test_rsmd_unsigned values (null, null, null, null, null, null, "
+            + "null, null, null, null, null, null, null, null, null, null, null, null)");
   }
 
   @Test
@@ -140,11 +151,46 @@ public class ResultSetMetadataTest extends Common {
       cols.next();
       // TODO PLAT-6202: remove the if
       if (i < 14 || i > 16) {
-        System.out.println(cols.getString("COLUMN_NAME"));
-        System.out.println(cols.getInt("DATA_TYPE"));
         assertEquals(rsmd.getColumnType(i), cols.getInt("DATA_TYPE"));
         assertEquals(rsmd.getColumnTypeName(i), cols.getString("TYPE_NAME"));
       }
+    }
+
+    cols = md.getColumns(null, null, "test\\_rsmd\\_types", null);
+
+    for (int i = 1; i <= 28; ++i) {
+      cols.next();
+      // Cannot correctly determine precision in the case of DOUBLE(8,3)
+      if (i == 22) {
+        continue;
+      }
+
+      // Versions < 7.8 incorrectly send length of TEXT types
+      // Versions < 7.5 incorrectly send charset for those types,
+      // so LONGTEXT also doesn't work
+      if ((!minVersion(7, 8, 0) && i >= 6 && i <= 8) || !minVersion(7, 5, 0) && i == 5) {
+        continue;
+      }
+
+      try {
+        assertEquals(rsmd.getPrecision(i), cols.getInt("COLUMN_SIZE"));
+      } catch (AssertionFailedError e) {
+        System.out.println("Error at column " + i);
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void unsignedTypes() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("select * from test_rsmd_unsigned");
+    assertTrue(rs.next());
+    ResultSetMetaData rsmd = rs.getMetaData();
+
+    for (int i = 1; i <= 9; ++i) {
+      assertTrue(rsmd.isSigned(i));
+      assertFalse(rsmd.isSigned(i + 9));
     }
   }
 
@@ -159,8 +205,8 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(8, rsmd.getPrecision(2));
     assertEquals(9, rsmd.getPrecision(3));
     assertEquals(10, rsmd.getPrecision(4));
-    assertEquals(0, rsmd.getPrecision(5));
-    assertEquals(0, rsmd.getPrecision(12));
+    assertEquals(1431655765, rsmd.getPrecision(5));
+    assertEquals(2147483647, rsmd.getPrecision(12));
     assertEquals(0, rsmd.getPrecision(13));
   }
 

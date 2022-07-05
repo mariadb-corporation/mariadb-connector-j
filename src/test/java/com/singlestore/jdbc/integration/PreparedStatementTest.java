@@ -1099,4 +1099,44 @@ public class PreparedStatementTest extends Common {
           "Wrong index position. Is 10 but must be in 1-1 range");
     }
   }
+
+  @Test
+  public void clearBatchTest() throws SQLException {
+    clearBatch(sharedConn);
+    clearBatch(sharedConnBinary);
+  }
+
+  public void clearBatch(Connection conn) throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("DROP TABLE IF EXISTS clearBatchTest");
+    stmt.executeUpdate("CREATE TABLE clearBatchTest (id int)");
+    conn.setAutoCommit(false);
+    String sql = "INSERT INTO clearBatchTest (id) VALUES (?)";
+    PreparedStatement ps = conn.prepareStatement(sql);
+    for (int i = 1; i <= 3; i++) {
+      ps.setInt(1, i);
+      ps.addBatch();
+      ps.executeBatch();
+      conn.commit();
+    }
+
+    ps.setInt(1, 4);
+    ps.addBatch();
+    ps.clearBatch();
+    conn.rollback();
+
+    ps.setInt(1, 5);
+    ps.addBatch();
+    ps.executeBatch();
+    conn.commit();
+    ps.close();
+
+    ResultSet rs = stmt.executeQuery("SELECT * FROM clearBatchTest ORDER BY id");
+    int[] expected = {1, 2, 3, 5};
+    for (int i = 0; i < 4; i++) {
+      rs.next();
+      assertEquals(expected[i], rs.getInt(1));
+    }
+    assertFalse(rs.next());
+  }
 }

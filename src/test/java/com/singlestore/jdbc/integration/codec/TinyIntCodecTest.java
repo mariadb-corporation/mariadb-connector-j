@@ -930,7 +930,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.TINYINT, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(4, meta.getPrecision(1));
+    assertEquals(3, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(4, meta.getColumnDisplaySize(1));

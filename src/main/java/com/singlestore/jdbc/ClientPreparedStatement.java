@@ -265,6 +265,25 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     parameters = new ParameterList();
   }
 
+  /**
+   * Empties this <code>PreparedStatement</code> object's current list of parameters.
+   *
+   * @throws SQLException if a database access error occurs, this method is called on a closed
+   *     <code>Statement</code> or the driver does not support batch updates
+   * @see #addBatch
+   * @see DatabaseMetaData#supportsBatchUpdates
+   * @since 1.2
+   */
+  @Override
+  public void clearBatch() throws SQLException {
+    checkNotClosed();
+    if (batchParameters == null) {
+      batchParameters = new ArrayList<>();
+    } else {
+      batchParameters.clear();
+    }
+  }
+
   protected void validParameters() throws SQLException {
     for (int i = 0; i < parser.getParamCount(); i++) {
       if (parameters.containsKey(i)) {

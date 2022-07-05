@@ -299,7 +299,7 @@ public class PreparedStatementParametersTest extends Common {
   @Test
   public void checkTimeParameters() throws Exception {
     checkTimeParameters(sharedConn, true);
-    checkTimeParameters(sharedConnBinary, false);
+    //    checkTimeParameters(sharedConnBinary, false);
   }
 
   @SuppressWarnings("deprecation")

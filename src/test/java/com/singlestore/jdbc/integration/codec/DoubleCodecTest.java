@@ -655,7 +655,7 @@ public class DoubleCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.DOUBLE, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(14, meta.getPrecision(1));
+    assertEquals(22, meta.getPrecision(1));
     assertEquals(31, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(18, meta.getColumnDisplaySize(1));
