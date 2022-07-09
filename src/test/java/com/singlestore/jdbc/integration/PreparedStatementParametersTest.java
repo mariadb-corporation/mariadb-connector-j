@@ -316,10 +316,14 @@ public class PreparedStatementParametersTest extends Common {
         con);
     checkSendTime(
         ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123), utcCal),
-        rs ->
-            assertEquals(
-                Time.valueOf("18:16:01").getTime() + 123 - TimeZone.getDefault().getOffset(0),
-                rs.getTime(1).getTime()),
+        rs -> {
+          Time expectedTime =
+              new Time(
+                  Time.valueOf("18:16:01").getTime() + 123 - TimeZone.getDefault().getOffset(0));
+          Time actualTime = rs.getTime(1);
+          assertEquals(expectedTime.toString(), actualTime.toString());
+          assertEquals(expectedTime.getTime() % 1000, actualTime.getTime() % 1000);
+        },
         con);
   }
 

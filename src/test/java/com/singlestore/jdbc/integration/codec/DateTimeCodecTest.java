@@ -5,7 +5,10 @@
 
 package com.singlestore.jdbc.integration.codec;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.client.result.CompleteResult;
@@ -13,8 +16,24 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.*;
-import java.time.*;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
@@ -327,32 +346,83 @@ public class DateTimeCodecTest extends CommonCodecTest {
     getDate(getPrepare(sharedConnBinary));
   }
 
+  /**
+   * This function is to compare Expected Date and Actual Date which are respectively in system's
+   * time zone and UTC time zone. It should assert equal both dates regardless of the system's time
+   * zone.
+   *
+   * @param rs
+   * @param expectedTime
+   * @param index
+   * @throws SQLException
+   */
+  private void testDate(ResultSet rs, long expectedTime, int index) throws SQLException {
+    long offset = TimeZone.getDefault().getOffset(expectedTime);
+    long time =
+        expectedTime % (1000 * 60 * 60 * 24); // milliseconds value of the 'Time' of expectedTime
+    long ms_of_24_hrs = 24 * 60 * 60 * 1000; // milliseconds value of 24hrs
+
+    /*
+     * While retrieving 'Date' type value from S2 database, it is getting converted into a Date of system's time zone which may result in either
+     * previous Date or next Date or same Date as compare to the Date returned from database. This all depends on the time zone difference between database
+     * stored Date's time zone and system's time zone.
+     *
+     * a. If system's offset is in negative and 'Time' value is less than offset value then converted date will be of previous day.
+     *    For e.g. date stored in database is as 'x 01:00:00' in UTC format. System offset is -2 so returned date will be converted as 'x-1 23:00:00'.
+     *    Hence this returned date needs to be compared against previous date i.e. 'x-1'
+     *
+     * b. If system's offset is in positive and 'Time' value + offset value is greater than 24 hrs then converted date will be of next day.
+     *    For e.g. date stored in database is as 'x 22:00:00' in UTC format. System offset is +4 so returned date will be converted as 'x+1 02:00:00'.
+     *    Hence this returned date needs to be compared against next date i.e. 'x+1'
+     *
+     * c. In all other case, expected and actual date will be of same day.
+     *
+     */
+
+    if ((offset < 0 && time < Math.abs(offset)) || (offset > 0 && (time + offset) > ms_of_24_hrs)) {
+      assertEquals(
+          new Date(expectedTime + offset).toString(),
+          rs.getDate(index, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+    } else {
+      assertEquals(
+          new Date(expectedTime).toString(),
+          rs.getDate(index, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+    }
+  }
+
   public void getDate(ResultSet rs) throws SQLException {
-    assertEquals(
-        1263254400000L
-            - TimeZone.getDefault().getOffset(Timestamp.valueOf("2010-01-12 01:55:12").getTime()),
-        rs.getDate(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    testDate(
+        rs,
+        1263261312000l,
+        1); // Passing the millisecond time of the UTC Date (2010-01-12 01:55:12) which is stored in
+    // the database at index 1.
     assertFalse(rs.wasNull());
+
     assertEquals(
         1263254400000L
             - TimeZone.getDefault().getOffset(Timestamp.valueOf("2010-01-12 01:55:12").getTime()),
         rs.getDate(1).getTime());
     assertFalse(rs.wasNull());
 
-    assertEquals(
-        -30609792000000L
-            - TimeZone.getDefault().getOffset(Timestamp.valueOf("1000-01-01 01:55:13").getTime()),
-        rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+    testDate(
+        rs,
+        -30609785100000l,
+        2); // Passing the millisecond time of the UTC Date (1000-01-01 01:55:13.2) which is stored
+    // in the database at index 2.
     assertFalse(rs.wasNull());
+
     assertEquals(
         -30609792000000L
             - TimeZone.getDefault().getOffset(Timestamp.valueOf("1000-01-01 01:55:13").getTime()),
         rs.getDate(2).getTime());
+
     assertFalse(rs.wasNull());
+
     assertEquals(
         253402214400000L
             - TimeZone.getDefault().getOffset(Timestamp.valueOf("9999-12-31 18:30:12").getTime()),
         rs.getDate(3).getTime());
+
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
