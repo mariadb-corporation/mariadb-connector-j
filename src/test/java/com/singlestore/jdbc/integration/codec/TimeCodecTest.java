@@ -374,8 +374,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Time.valueOf("838:59:58").getTime() + 999, rs.getTime(2).getTime());
     assertFalse(rs.wasNull());
     // TODO: PLAT-5956
-    // assertEquals(Time.valueOf("0:00:00").getTime(), rs.getTime(3).getTime());
-    // assertFalse(rs.wasNull());
+    assertEquals(Time.valueOf("0:00:00").getTime(), rs.getTime(3).getTime());
+    assertFalse(rs.wasNull());
   }
 
   @Test
@@ -492,8 +492,8 @@ public class TimeCodecTest extends CommonCodecTest {
 
     assertFalse(rs.wasNull());
     // TODO: PLAT-5956
-    // assertEquals(Timestamp.valueOf("1970-01-01 00:00:00").getTime(), rs.getTime(3).getTime());
-    // assertFalse(rs.wasNull());
+    assertEquals(Timestamp.valueOf("1970-01-01 00:00:00").getTime(), rs.getTime(3).getTime());
+    assertFalse(rs.wasNull());
   }
 
   @Test
