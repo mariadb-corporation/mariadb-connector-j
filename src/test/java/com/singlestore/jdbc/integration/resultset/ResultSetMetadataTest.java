@@ -241,6 +241,31 @@ public class ResultSetMetadataTest extends Common {
   }
 
   @Test
+  public void testLongIdentifier() throws Exception {
+    try (com.singlestore.jdbc.Connection connection = createCon("&allowMultiQueries=true")) {
+      try (Statement stmt = connection.createStatement()) {
+        stmt.execute("DROP TABLE IF EXISTS TSUPPLY");
+        stmt.execute(
+            "create table TSUPPLY (RNUM integer not null , SNO varchar(2), PNO varchar(2), JNO varchar(2), QTY integer, SHARD KEY ( RNUM ) )");
+        ResultSet rs =
+            stmt.executeQuery(
+                "SELECT COUNT(`t2`"
+                    + new String(new char[1000]).replace("\0", " ")
+                    + ") FROM `ResultSetTest`");
+        assertTrue(rs.next());
+        assertEquals(8, rs.getInt(1));
+
+        ResultSetMetaData rsmd = rs.getMetaData();
+
+        // database always trims identifier to the first 256 characters
+        assertEquals(256, rsmd.getColumnName(1).length());
+        assertEquals(
+            "COUNT(`t2`" + new String(new char[246]).replace("\0", " "), rsmd.getColumnName(1));
+      }
+    }
+  }
+
+  @Test
   public void testAlias() throws Exception {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS testAlias");

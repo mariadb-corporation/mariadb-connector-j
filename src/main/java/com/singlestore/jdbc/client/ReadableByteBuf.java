@@ -105,12 +105,8 @@ public final class ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int type = (buf[pos++] & 0xff);
-    if (type == 252) {
-      pos += readUnsignedShort();
-      return pos;
-    }
-    pos += type;
+    int len = readLength();
+    pos += len;
     return pos;
   }
 
