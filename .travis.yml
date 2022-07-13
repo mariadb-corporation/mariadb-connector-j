@@ -39,10 +39,15 @@ jobs:
     - env: srv=build
     - env: srv=xpand TEST_DB_OTHER="initSql=SET NAMES UTF8"
   include:
+    - if: type = push AND fork = false
+      env: srv=mariadb-es v=10.4
+    - if: type = push AND fork = false
+      env: srv=mariadb-es v=10.5
+    - if: type = push AND fork = false
+      env: srv=mariadb-es v=10.6
     - env: srv=mariadb v=10.6
       os: windows
       language: shell
-    - env: srv=mariadb v=10.2 local=1
     - env: srv=mariadb v=10.3 local=1
     - env: srv=mariadb v=10.4 local=1
     - env: srv=mariadb v=10.5 local=1
@@ -59,8 +64,6 @@ jobs:
     - if: type = push AND fork = false
       env: srv=build
     - if: type = push AND fork = false
-      env: srv=mariadb-es v=10.6
-    - if: type = push AND fork = false
       env: srv=mysql v=5.7
     - if: type = push AND fork = false
       env: srv=mysql v=8.0
@@ -68,7 +71,6 @@ jobs:
       env: srv=skysql
     - if: type = push AND fork = false
       env: srv=skysql-ha
-
 
 script:
   - mvn clean -Dmaven.test.skip
