@@ -730,7 +730,7 @@ public class NullCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("NULL", meta.getColumnTypeName(1));
     assertEquals("", meta.getCatalogName(1));
-    assertEquals("java.lang.String", meta.getColumnClassName(1));
+    assertEquals("byte[]", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1alias", meta.getColumnName(1));
     assertEquals(Types.NULL, meta.getColumnType(1));

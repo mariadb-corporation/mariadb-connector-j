@@ -444,13 +444,14 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   public Codec<?> getDefaultCodec(Configuration conf) {
     switch (dataType) {
       case JSON:
-      case VARCHAR:
-      case ENUM:
+        return StringCodec.INSTANCE;
+      case NULL:
       case SET:
+      case ENUM:
+      case VARCHAR:
       case VARSTRING:
       case STRING:
-      case NULL:
-        return StringCodec.INSTANCE;
+        return isBinary() ? ByteArrayCodec.INSTANCE : StringCodec.INSTANCE;
       case TINYINT:
         if (conf.tinyInt1isBit() && this.length == 1) return BooleanCodec.INSTANCE;
         return IntCodec.INSTANCE;

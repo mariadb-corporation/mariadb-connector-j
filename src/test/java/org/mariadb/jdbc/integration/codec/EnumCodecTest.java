@@ -29,6 +29,7 @@ public class EnumCodecTest extends CommonCodecTest {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS EnumCodec");
+    stmt.execute("DROP TABLE IF EXISTS EnumCodec2");
   }
 
   @BeforeAll
@@ -44,6 +45,8 @@ public class EnumCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO EnumCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
+    stmt.execute("CREATE TABLE EnumCodec2 (t1 ENUM('0', '1', '2')) CHARACTER SET binary");
+    stmt.execute("INSERT INTO EnumCodec2 VALUES ('0'), ('1'), (null)");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -93,6 +96,51 @@ public class EnumCodecTest extends CommonCodecTest {
     assertEquals("some🌟", rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
+    assertTrue(rs.wasNull());
+  }
+
+  private ResultSet getBinary() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    ResultSet rs = stmt.executeQuery("select t1 as t1alias from EnumCodec2");
+    assertTrue(rs.next());
+    sharedConn.commit();
+    return rs;
+  }
+
+  private ResultSet getBinaryPrepare(Connection con) throws SQLException {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
+        con.prepareStatement("select t1 as t1alias from EnumCodec2" + " WHERE 1 > ?");
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
+    assertTrue(rs.next());
+    con.commit();
+    return rs;
+  }
+
+  @Test
+  public void getBinaryObject() throws SQLException {
+    getBinaryObject(getBinary());
+  }
+
+  @Test
+  public void getBinaryObjectPrepare() throws SQLException {
+    getBinaryObject(getBinaryPrepare(sharedConn));
+    getBinaryObject(getBinaryPrepare(sharedConnBinary));
+  }
+
+  public void getBinaryObject(ResultSet rs) throws SQLException {
+    assertArrayEquals("0".getBytes(StandardCharsets.UTF_8), (byte[]) rs.getObject(1));
+    assertFalse(rs.wasNull());
+    assertTrue(rs.next());
+    assertArrayEquals("1".getBytes(StandardCharsets.UTF_8), (byte[]) rs.getObject(1));
+    assertFalse(rs.wasNull());
+    assertFalse(rs.wasNull());
+    assertTrue(rs.next());
+    assertNull(rs.getObject(1));
     assertTrue(rs.wasNull());
   }
 
