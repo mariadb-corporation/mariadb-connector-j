@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Context;
@@ -25,6 +26,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   private final String command;
   private final ServerPreparedStatement prep;
   private Prepare prepareResult;
+  private InputStream localInfileInputStream;
 
   /**
    * Constructor
@@ -35,11 +37,16 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
    * @param prep prepared statement
    */
   public ExecutePacket(
-      Prepare prepareResult, Parameters parameters, String command, ServerPreparedStatement prep) {
+      Prepare prepareResult,
+      Parameters parameters,
+      String command,
+      ServerPreparedStatement prep,
+      InputStream localInfileInputStream) {
     this.parameters = parameters;
     this.prepareResult = prepareResult;
     this.command = command;
     this.prep = prep;
+    this.localInfileInputStream = localInfileInputStream;
   }
 
   public void saveParameters() {
@@ -129,6 +136,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
   public String getCommand() {
     return command;
+  }
+
+  public InputStream getLocalInfileInputStream() {
+    return localInfileInputStream;
   }
 
   public ServerPreparedStatement prep() {

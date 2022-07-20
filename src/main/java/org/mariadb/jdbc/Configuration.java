@@ -97,7 +97,7 @@ public class Configuration {
 
   // protocol
   private boolean allowMultiQueries = false;
-  private boolean allowLocalInfile = false;
+  private boolean allowLocalInfile = true;
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;

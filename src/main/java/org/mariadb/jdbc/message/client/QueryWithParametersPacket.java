@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -23,6 +24,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   private final String preSqlCmd;
   private final ClientParser parser;
   private Parameters parameters;
+  private InputStream localInfileInputStream;
 
   /**
    * Constructor
@@ -31,10 +33,15 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
    * @param parser command parser result
    * @param parameters parameters
    */
-  public QueryWithParametersPacket(String preSqlCmd, ClientParser parser, Parameters parameters) {
+  public QueryWithParametersPacket(
+      String preSqlCmd,
+      ClientParser parser,
+      Parameters parameters,
+      InputStream localInfileInputStream) {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;
     this.parameters = parameters;
+    this.localInfileInputStream = localInfileInputStream;
   }
 
   @Override
@@ -81,6 +88,10 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   public boolean validateLocalFileName(String fileName, Context context) {
     return ClientMessage.validateLocalFileName(parser.getSql(), parameters, fileName, context);
+  }
+
+  public InputStream getLocalInfileInputStream() {
+    return localInfileInputStream;
   }
 
   @Override

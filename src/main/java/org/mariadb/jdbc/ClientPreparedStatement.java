@@ -89,7 +89,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     lock.lock();
     try {
       QueryWithParametersPacket query =
-          new QueryWithParametersPacket(preSqlCmd(), parser, parameters);
+          new QueryWithParametersPacket(preSqlCmd(), parser, parameters, localInfileInputStream);
       results =
           con.getClient()
               .execute(
@@ -102,6 +102,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   closeOnCompletion,
                   false);
     } finally {
+      localInfileInputStream = null;
       lock.unlock();
     }
   }
@@ -187,7 +188,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   private void executeBatchPipeline() throws SQLException {
     ClientMessage[] packets = new ClientMessage[batchParameters.size()];
     for (int i = 0; i < batchParameters.size(); i++) {
-      packets[i] = new QueryWithParametersPacket(preSqlCmd(), parser, batchParameters.get(i));
+      packets[i] = new QueryWithParametersPacket(preSqlCmd(), parser, batchParameters.get(i), null);
     }
     try {
       results =
@@ -220,7 +221,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
         results.addAll(
             con.getClient()
                 .execute(
-                    new QueryWithParametersPacket(preSqlCmd(), parser, batchParameters.get(i)),
+                    new QueryWithParametersPacket(
+                        preSqlCmd(), parser, batchParameters.get(i), localInfileInputStream),
                     this,
                     0,
                     maxRows,
@@ -233,6 +235,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       BatchUpdateException exception =
           exceptionFactory().createBatchUpdate(results, batchParameters.size(), bue);
       results = null;
+      localInfileInputStream = null;
       throw exception;
     }
   }

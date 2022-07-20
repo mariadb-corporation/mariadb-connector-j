@@ -98,6 +98,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         executeStandard(cmd);
       }
     } finally {
+      localInfileInputStream = null;
       lock.unlock();
     }
   }
@@ -112,7 +113,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
     PreparePacket prepare = new PreparePacket(cmd);
-    ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this);
+    ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this, localInfileInputStream);
     try {
       List<Completion> res =
           con.getClient()
@@ -142,7 +143,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     }
     validParameters();
     // send COM_STMT_EXECUTE
-    ExecutePacket execute = new ExecutePacket(prepareResult, parameters, cmd, this);
+    ExecutePacket execute =
+        new ExecutePacket(prepareResult, parameters, cmd, this, localInfileInputStream);
     results =
         con.getClient()
             .execute(
@@ -273,7 +275,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     int maxCmdToSend = Math.min(batchParameters.size() - index, maxCmd);
     ClientMessage[] packets = new ClientMessage[maxCmdToSend];
     for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i - index] = new ExecutePacket(prepareResult, batchParameters.get(i), cmd, this);
+      packets[i - index] =
+          new ExecutePacket(
+              prepareResult, batchParameters.get(i), cmd, this, localInfileInputStream);
     }
     return con.getClient()
         .executePipeline(
@@ -293,7 +297,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     ClientMessage[] packets = new ClientMessage[maxCmdToSend + 1];
     packets[0] = new PreparePacket(cmd);
     for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i + 1 - index] = new ExecutePacket(null, batchParameters.get(i), cmd, this);
+      packets[i + 1 - index] =
+          new ExecutePacket(null, batchParameters.get(i), cmd, this, localInfileInputStream);
     }
     List<Completion> res =
         con.getClient()
@@ -334,7 +339,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         }
       }
       try {
-        ExecutePacket execute = new ExecutePacket(prepareResult, batchParameter, cmd, this);
+        ExecutePacket execute =
+            new ExecutePacket(prepareResult, batchParameter, cmd, this, localInfileInputStream);
         tmpResults.addAll(con.getClient().execute(execute, this, false));
       } catch (SQLException e) {
         if (error == null) error = e;
@@ -619,6 +625,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       return updates;
 
     } finally {
+      localInfileInputStream = null;
       batchParameters.clear();
       lock.unlock();
     }

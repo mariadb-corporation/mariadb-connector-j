@@ -138,31 +138,44 @@ public interface ClientMessage {
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
       case 0xfb:
         buf.skip(1); // skip header
-        String fileName = buf.readStringNullEnd();
-
         SQLException exception = null;
-        if (!message.validateLocalFileName(fileName, context)) {
-          exception =
-              exceptionFactory
-                  .withSql(this.description())
-                  .create(
-                      String.format(
-                          "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to initial query %s. Possible malicious proxy changing server answer ! Command interrupted",
-                          fileName, this.description()),
-                      "HY000");
-        } else {
-          try (InputStream is = new FileInputStream(fileName)) {
+
+        InputStream is = getLocalInfileInputStream();
+        if (is == null) {
+          String fileName = buf.readStringNullEnd();
+          if (!message.validateLocalFileName(fileName, context)) {
+            exception =
+                exceptionFactory
+                    .withSql(this.description())
+                    .create(
+                        String.format(
+                            "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to initial query %s. Possible malicious proxy changing server answer ! Command interrupted",
+                            fileName, this.description()),
+                        "HY000");
+          } else {
+
+            try {
+              is = new FileInputStream(fileName);
+            } catch (FileNotFoundException f) {
+              exception =
+                  exceptionFactory
+                      .withSql(this.description())
+                      .create("Could not send file : " + f.getMessage(), "HY000", f);
+            }
+          }
+        }
+
+        // sending stream
+        if (is != null) {
+          try {
             byte[] fileBuf = new byte[8192];
             int len;
             while ((len = is.read(fileBuf)) > 0) {
               writer.writeBytes(fileBuf, 0, len);
               writer.flush();
             }
-          } catch (FileNotFoundException f) {
-            exception =
-                exceptionFactory
-                    .withSql(this.description())
-                    .create("Could not send file : " + f.getMessage(), "HY000", f);
+          } finally {
+            is.close();
           }
         }
 
@@ -259,6 +272,10 @@ public interface ClientMessage {
               traceEnable);
         }
     }
+  }
+
+  default InputStream getLocalInfileInputStream() {
+    return null;
   }
 
   /**

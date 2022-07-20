@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
+import java.io.InputStream;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.message.ClientMessage;
@@ -13,6 +14,7 @@ import org.mariadb.jdbc.message.ClientMessage;
 public final class QueryPacket implements RedoableClientMessage {
 
   private final String sql;
+  private final InputStream localInfileInputStream;
 
   /**
    * Constructor
@@ -21,6 +23,12 @@ public final class QueryPacket implements RedoableClientMessage {
    */
   public QueryPacket(String sql) {
     this.sql = sql;
+    this.localInfileInputStream = null;
+  }
+
+  public QueryPacket(String sql, InputStream localInfileInputStream) {
+    this.sql = sql;
+    this.localInfileInputStream = localInfileInputStream;
   }
 
   public int batchUpdateLength() {
@@ -47,6 +55,10 @@ public final class QueryPacket implements RedoableClientMessage {
 
   public boolean validateLocalFileName(String fileName, Context context) {
     return ClientMessage.validateLocalFileName(sql, null, fileName, context);
+  }
+
+  public InputStream getLocalInfileInputStream() {
+    return localInfileInputStream;
   }
 
   public String description() {

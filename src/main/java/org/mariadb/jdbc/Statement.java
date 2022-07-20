@@ -6,6 +6,7 @@ package org.mariadb.jdbc;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
 
+import java.io.InputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,8 @@ public class Statement implements java.sql.Statement {
   protected List<Completion> results;
   /** current results */
   protected Completion currResult;
+  /** streaming load data infile data */
+  protected InputStream localInfileInputStream;
 
   /**
    * Constructor
@@ -91,6 +94,11 @@ public class Statement implements java.sql.Statement {
 
   private ExceptionFactory exceptionFactory() {
     return con.getExceptionFactory().of(this);
+  }
+
+  public void setLocalInfileInputStream(InputStream inputStream) throws SQLException {
+    checkNotClosed();
+    localInfileInputStream = inputStream;
   }
 
   /**
@@ -919,7 +927,7 @@ public class Statement implements java.sql.Statement {
       results =
           con.getClient()
               .execute(
-                  new QueryPacket(cmd),
+                  new QueryPacket(cmd, localInfileInputStream),
                   this,
                   fetchSize,
                   maxRows,
@@ -928,6 +936,7 @@ public class Statement implements java.sql.Statement {
                   closeOnCompletion,
                   false);
     } finally {
+      localInfileInputStream = null;
       lock.unlock();
     }
   }
@@ -1513,7 +1522,7 @@ public class Statement implements java.sql.Statement {
         results.addAll(
             con.getClient()
                 .execute(
-                    new QueryPacket(batchQuery),
+                    new QueryPacket(batchQuery, localInfileInputStream),
                     this,
                     0,
                     0L,
@@ -1531,6 +1540,8 @@ public class Statement implements java.sql.Statement {
             completion instanceof OkPacket ? (int) ((OkPacket) completion).getAffectedRows() : 0;
       }
       throw new BatchUpdateException(sqle.getMessage(), updateCounts, sqle);
+    } finally {
+      localInfileInputStream = null;
     }
   }
 }
