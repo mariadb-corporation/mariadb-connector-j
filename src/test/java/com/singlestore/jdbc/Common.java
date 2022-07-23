@@ -245,7 +245,7 @@ public class Common {
     return serverCertificatePath;
   }
 
-  private static String checkAndCanonizePath(String path) throws IOException {
+  protected static String checkAndCanonizePath(String path) throws IOException {
     if (path == null) return null;
     File f = new File(path);
     if (f.exists()) {

@@ -156,6 +156,22 @@ public class SslTest extends Common {
     }
   }
 
+  @Test
+  public void trustStoreMandatorySsl() throws Throwable {
+    String trustStorePath = checkAndCanonizePath("scripts/ssl/test-TS.jks");
+    Assumptions.assumeTrue(trustStorePath != null, "Canceled, server certificate not provided");
+
+    try (Connection con =
+        createCon(
+            baseOptions
+                + "&sslMode=VERIFY_CA&trustStore="
+                + trustStorePath
+                + "&trustStorePassword=trustPass",
+            sslPort)) {
+      assertNotNull(getSslVersion(con));
+    }
+  }
+
   private String getServerCertificate(String serverCertPath) throws SQLException {
     try (BufferedReader br =
         new BufferedReader(new InputStreamReader(new FileInputStream(serverCertPath)))) {

@@ -51,6 +51,28 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     }
   }
 
+  private static TrustManager loadServerCerts(
+      String keyStoreUrl,
+      String keyStorePassword,
+      String storeType,
+      ExceptionFactory exceptionFactory)
+      throws SQLException {
+
+    try {
+      try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
+        char[] keyStorePasswordChars =
+            keyStorePassword == null ? null : keyStorePassword.toCharArray();
+        KeyStore ks =
+            KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
+        ks.load(inStream, keyStorePasswordChars);
+        return new SingleStoreX509TrustManager(ks, exceptionFactory);
+      }
+    } catch (IOException | GeneralSecurityException ex) {
+      throw exceptionFactory.create(
+          "Failed to read keyStore file. Option keyStore=" + keyStoreUrl, "08000", ex);
+    }
+  }
+
   private static InputStream loadFromUrl(String keyStoreUrl) throws FileNotFoundException {
     try {
       return new URL(keyStoreUrl).openStream();
@@ -73,13 +95,32 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
     if (conf.sslMode() == SslMode.TRUST) {
       trustManager = new X509TrustManager[] {new SingleStoreX509TrustingManager()};
-    } else { // if certificate is provided, load it.
-      // if not, relying on default truststore
-      if (conf.serverSslCert() != null) {
+    } else {
+      if (conf.trustStore() != null) {
+        try {
+          trustManager =
+              new TrustManager[] {
+                loadServerCerts(
+                    conf.trustStore(),
+                    conf.trustStorePassword(),
+                    conf.trustStoreType() != null
+                        ? conf.trustStoreType()
+                        : KeyStore.getDefaultType(),
+                    exceptionFactory)
+              };
+        } catch (SQLException queryException) {
+          trustManager = null;
+          logger.error("Error loading trust manager from system properties", queryException);
+        }
+      } else if (conf.serverSslCert() != null) {
 
         KeyStore ks;
         try {
-          ks = KeyStore.getInstance(KeyStore.getDefaultType());
+          ks =
+              KeyStore.getInstance(
+                  conf.trustStoreType() != null
+                      ? conf.trustStoreType()
+                      : KeyStore.getDefaultType());
         } catch (GeneralSecurityException generalSecurityEx) {
           throw exceptionFactory.create(
               "Failed to create keystore instance", "08000", generalSecurityEx);
@@ -97,19 +138,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
             ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
           }
 
-          TrustManagerFactory tmf =
-              TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-          tmf.init(ks);
-          for (TrustManager tm : tmf.getTrustManagers()) {
-            if (tm instanceof X509TrustManager) {
-              trustManager = new X509TrustManager[] {(X509TrustManager) tm};
-              break;
-            }
-          }
-
-          if (trustManager == null) {
-            throw new SQLException("No X509TrustManager found");
-          }
+          trustManager = new TrustManager[] {new SingleStoreX509TrustManager(ks, exceptionFactory)};
 
         } catch (IOException ioEx) {
           throw exceptionFactory.create("Failed load keyStore", "08000", ioEx);

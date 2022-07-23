@@ -92,6 +92,9 @@ public class Configuration {
   // SSL
   private SslMode sslMode = SslMode.DISABLE;
   private String serverSslCert = null;
+  private String trustStore = null;
+  private String trustStorePassword = null;
+  private String trustStoreType = null;
   private String keyStore = null;
   private String keyStorePassword = null;
   private String keyStoreType = null;
@@ -170,6 +173,9 @@ public class Configuration {
       String tlsSocketType,
       SslMode sslMode,
       String serverSslCert,
+      String trustStore,
+      String trustStorePassword,
+      String trustStoreType,
       String keyStore,
       String keyStorePassword,
       String keyStoreType,
@@ -229,6 +235,9 @@ public class Configuration {
     this.tlsSocketType = tlsSocketType;
     this.sslMode = sslMode;
     this.serverSslCert = serverSslCert;
+    this.trustStore = trustStore;
+    this.trustStorePassword = trustStorePassword;
+    this.trustStoreType = trustStoreType;
     this.keyStore = keyStore;
     this.keyStorePassword = keyStorePassword;
     this.keyStoreType = keyStoreType;
@@ -314,6 +323,9 @@ public class Configuration {
       Integer poolValidMinDelay,
       Boolean useResetConnection,
       String serverSslCert,
+      String trustStore,
+      String trustStorePassword,
+      String trustStoreType,
       String keyStore,
       String keyStorePassword,
       String keyStoreType,
@@ -405,6 +417,9 @@ public class Configuration {
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
     if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
+    if (trustStore != null) this.trustStore = trustStore;
+    if (trustStorePassword != null) this.trustStorePassword = trustStorePassword;
+    if (trustStoreType != null) this.trustStoreType = trustStoreType;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
@@ -674,6 +689,9 @@ public class Configuration {
         this.tlsSocketType,
         this.sslMode,
         this.serverSslCert,
+        this.trustStore,
+        this.trustStorePassword,
+        this.trustStoreType,
         this.keyStore,
         this.keyStorePassword,
         this.keyStoreType,
@@ -738,6 +756,18 @@ public class Configuration {
 
   public String serverSslCert() {
     return serverSslCert;
+  }
+
+  public String trustStore() {
+    return trustStore;
+  }
+
+  public String trustStorePassword() {
+    return trustStorePassword;
+  }
+
+  public String trustStoreType() {
+    return trustStoreType;
   }
 
   public String keyStore() {
@@ -1143,6 +1173,9 @@ public class Configuration {
     // SSL
     private String sslMode;
     private String serverSslCert;
+    private String trustStore;
+    private String trustStorePassword;
+    private String trustStoreType;
     private String keyStore;
     private String keyStorePassword;
     private String keyStoreType;
@@ -1196,6 +1229,21 @@ public class Configuration {
 
     public Builder serverSslCert(String serverSslCert) {
       this.serverSslCert = nullOrEmpty(serverSslCert);
+      return this;
+    }
+
+    public Builder trustStore(String trustStore) {
+      this.trustStore = nullOrEmpty(trustStore);
+      return this;
+    }
+
+    public Builder trustStorePassword(String trustStorePassword) {
+      this.trustStorePassword = nullOrEmpty(trustStorePassword);
+      return this;
+    }
+
+    public Builder trustStoreType(String trustStoreType) {
+      this.trustStoreType = nullOrEmpty(trustStoreType);
       return this;
     }
 
@@ -1667,6 +1715,9 @@ public class Configuration {
               this.poolValidMinDelay,
               this.useResetConnection,
               this.serverSslCert,
+              this.trustStore,
+              this.trustStorePassword,
+              this.trustStoreType,
               this.keyStore,
               this.keyStorePassword,
               this.keyStoreType,
