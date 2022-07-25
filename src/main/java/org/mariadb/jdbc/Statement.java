@@ -21,6 +21,7 @@ import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
+import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Statement implementation */
@@ -870,7 +871,12 @@ public class Statement implements java.sql.Statement {
           }
         }
         String[][] ids = insertIds.toArray(new String[0][]);
-        return CompleteResult.createResultSet("insert_id", DataType.BIGINT, ids, con.getContext());
+        return CompleteResult.createResultSet(
+            "insert_id",
+            DataType.BIGINT,
+            ids,
+            con.getContext(),
+            ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED);
       }
     }
 

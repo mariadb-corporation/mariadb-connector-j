@@ -90,11 +90,13 @@ public class CompleteResult extends Result {
    * @param columnType column key type
    * @param data values
    * @param context connection context
+   * @param flags column flags
    * @return result-set
    */
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[][] data, Context context) {
-    return createResultSet(new String[] {columnName}, new DataType[] {columnType}, data, context);
+      String columnName, DataType columnType, String[][] data, Context context, int flags) {
+    return createResultSet(
+        new String[] {columnName}, new DataType[] {columnType}, data, context, flags);
   }
 
   /**
@@ -107,16 +109,17 @@ public class CompleteResult extends Result {
    *     is given in its string representation, as in MariaDB text protocol, except boolean (BIT(1))
    *     values that are represented as "1" or "0" strings
    * @param context connection context
+   * @param flags column flags
    * @return resultset
    */
   public static ResultSet createResultSet(
-      String[] columnNames, DataType[] columnTypes, String[][] data, Context context) {
+      String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
 
     int columnNameLength = columnNames.length;
     ColumnDefinitionPacket[] columns = new ColumnDefinitionPacket[columnNameLength];
 
     for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i]);
+      columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i], flags);
     }
 
     List<byte[]> rows = new ArrayList<>();

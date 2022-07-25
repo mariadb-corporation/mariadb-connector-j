@@ -1462,8 +1462,15 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void testGetTypeInfoBasic() throws SQLException {
+    ResultSet rs = sharedConn.getMetaData().getTypeInfo();
+    while (rs.next()) {
+      rs.getInt(2);
+    }
+    ResultSetMetaData rmeta = rs.getMetaData();
+    assertTrue(rmeta.isSigned(1));
+
     testResultSetColumns(
-        sharedConn.getMetaData().getTypeInfo(),
+        rs,
         "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
             + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
             + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "

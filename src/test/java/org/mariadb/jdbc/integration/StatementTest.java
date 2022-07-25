@@ -85,8 +85,10 @@ public class StatementTest extends Common {
     stmt.execute(
         "INSERT INTO bigIntId(val) value ('est')", java.sql.Statement.RETURN_GENERATED_KEYS);
     ResultSet rs = stmt.getGeneratedKeys();
-    assertTrue(rs.next());
 
+    ResultSetMetaData rmeta = rs.getMetaData();
+    assertFalse(rmeta.isSigned(1));
+    assertTrue(rs.next());
     if (expected.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) >= 1) {
       assertThrowsContains(SQLDataException.class, () -> rs.getInt(1), "integer overflow");
     } else {

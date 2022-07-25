@@ -40,15 +40,16 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    * @param length length
    * @param dataType server data type
    * @param stringPos string information position
+   * @param flags columns flags
    */
   private ColumnDefinitionPacket(
-      ReadableByteBuf buf, long length, DataType dataType, int[] stringPos) {
+      ReadableByteBuf buf, long length, DataType dataType, int[] stringPos, int flags) {
     this.buf = buf;
     this.charset = 33;
     this.length = length;
     this.dataType = dataType;
     this.decimals = (byte) 0;
-    this.flags = ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED;
+    this.flags = flags;
     this.stringPos = stringPos;
     this.extTypeName = null;
     this.extTypeFormat = null;
@@ -115,9 +116,10 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    *
    * @param name column name
    * @param type server type
+   * @param flags columns flags
    * @return column definition
    */
-  public static ColumnDefinitionPacket create(String name, DataType type) {
+  public static ColumnDefinitionPacket create(String name, DataType type, int flags) {
     byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
     byte[] arr = new byte[9 + 2 * nameBytes.length];
     arr[0] = 3;
@@ -159,7 +161,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     }
 
     return new ColumnDefinitionPacket(
-        new StandardReadableByteBuf(arr, arr.length), len, type, stringPos);
+        new StandardReadableByteBuf(arr, arr.length), len, type, stringPos, flags);
   }
 
   public String getSchema() {

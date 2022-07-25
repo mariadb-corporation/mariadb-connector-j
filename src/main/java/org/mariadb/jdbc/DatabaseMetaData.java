@@ -15,6 +15,7 @@ import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
+import org.mariadb.jdbc.util.constants.ColumnFlags;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Mariadb Database metadata */
@@ -296,7 +297,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
           return result;
         });
-    return CompleteResult.createResultSet(columnNames, dataTypes, arr, connection.getContext());
+    return CompleteResult.createResultSet(
+        columnNames, dataTypes, arr, connection.getContext(), ColumnFlags.PRIMARY_KEY);
   }
 
   /**
@@ -3227,7 +3229,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     };
 
-    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext());
+    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext(), 0);
   }
 
   /**
@@ -3736,7 +3738,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
         };
 
-    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext());
+    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext(), 0);
   }
 
   /**
