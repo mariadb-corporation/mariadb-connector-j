@@ -1093,6 +1093,17 @@ public class ConnectionTest extends Common {
       assertEquals("-08:00", rs.getString(1));
     }
 
+    try (Connection con = createCon("timezone=UTC")) {
+      Statement statement = con.createStatement();
+      ResultSet rs = statement.executeQuery("SELECT @@time_zone, @@system_time_zone");
+      rs.next();
+      String srvTz = rs.getString(1);
+      if ("SYSTEM".equals(rs.getString(1))) {
+        srvTz = rs.getString(2);
+      }
+      assertTrue("+00:00".equals(srvTz) || "UTC".equals(srvTz));
+    }
+
     try (Connection con = createCon("timezone=disable")) {
       con.isValid(1);
     }
