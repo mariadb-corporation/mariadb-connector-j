@@ -1,4 +1,15 @@
 # Change Log
+## [3.0.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.7) (Jul 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.6...3.0.7)
+
+* [CONJ-993] SQLDataException reading DATA_TYPE on DatabaseMetaData.getTypeInfo() after 3.0.4		
+* [CONJ-986] Permit specific Statement.setLocalInfileInputStream for compatibility 
+* [CONJ-987] Version 3.0.0 returns String for VARBINARY instead of byte[] as 2.7.6 did		
+* [CONJ-989] Binary column read as String
+* [CONJ-990] Setting timezone=UTC result in SQLSyntaxErrorException		
+* [CONJ-991] Regression: binary(16) is returned as String by getObject()		
+* [CONJ-994] Version 3.x rejects previously accepted boolean string parameter for BOOLEAN field
+
 ## [3.0.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.6) (Jun 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.5...3.0.6)
 
