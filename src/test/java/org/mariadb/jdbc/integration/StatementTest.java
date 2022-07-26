@@ -132,6 +132,24 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void setObjectError() throws SQLException {
+    try (PreparedStatement prep = sharedConn.prepareStatement("SELECT ?")) {
+      assertThrowsContains(
+          SQLException.class, () -> prep.setObject(1, "", Types.ARRAY), "Type not supported");
+      assertThrowsContains(
+          SQLException.class, () -> prep.setObject(1, "", JDBCType.ARRAY), "Type not supported");
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.setObject(1, "a", JDBCType.BLOB),
+          "Cannot convert a string to a Blob");
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.setObject(1, 'a', JDBCType.BLOB),
+          "Cannot convert a character to a Blob");
+    }
+  }
+
+  @Test
   public void conj956() throws SQLException {
     StringBuilder sb = new StringBuilder();
     String sQuery = "SELECT EXISTS (SELECT 1 FROM testCONJ956 WHERE ((field=?)))";

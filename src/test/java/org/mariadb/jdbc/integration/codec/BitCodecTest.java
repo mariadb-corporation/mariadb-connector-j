@@ -694,6 +694,10 @@ public class BitCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, null, Types.BINARY);
       prep.execute();
+      prep.setObject(1, 0, Types.BIT);
+      prep.execute();
+      prep.setObject(1, 1, Types.BIT);
+      prep.execute();
     }
 
     ResultSet rs =
@@ -722,6 +726,10 @@ public class BitCodecTest extends CommonCodecTest {
     rs.updateObject("t1", BitSet.valueOf(new byte[] {0x04, 0x00}), Types.BINARY);
     rs.updateRow();
     assertEquals("b'100'", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("b''", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("b'1'", rs.getString(2));
 
     rs = stmt.executeQuery("SELECT * FROM BitCodec2");
     assertTrue(rs.next());

@@ -980,9 +980,15 @@ public class TinyIntCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, (byte) 3, Types.TINYINT);
       prep.execute();
+      prep.setObject(1, "4", Types.TINYINT);
+      prep.execute();
       prep.setObject(1, Byte.valueOf("4"), Types.TINYINT);
       prep.execute();
       prep.setObject(1, null, Types.TINYINT);
+      prep.execute();
+      prep.setObject(1, "true", Types.BOOLEAN);
+      prep.execute();
+      prep.setObject(1, "false", Types.BOOLEAN);
       prep.execute();
     }
     ResultSet rs =
@@ -1035,10 +1041,16 @@ public class TinyIntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(3, rs.getByte(2));
     assertTrue(rs.next());
+    assertEquals(4, rs.getByte(2));
+    assertTrue(rs.next());
     assertEquals(4, rs.getShort(2));
     assertTrue(rs.next());
     assertEquals(0, rs.getByte(2));
     assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(2));
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(2));
 
     rs = stmt.executeQuery("SELECT * FROM TinyIntCodec2");
     assertTrue(rs.next());
@@ -1065,6 +1077,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(3, rs.getByte(2));
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
     assertTrue(rs.next());
     assertEquals(4, rs.getShort(2));
     assertTrue(rs.next());

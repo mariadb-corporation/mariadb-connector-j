@@ -1002,7 +1002,11 @@ public class IntCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, 3, Types.INTEGER);
       prep.execute();
+      prep.setObject(1, "4", Types.INTEGER);
+      prep.execute();
       prep.setObject(1, null, Types.INTEGER);
+      prep.execute();
+      prep.setObject(1, 5, Types.VARCHAR);
       prep.execute();
     }
 
@@ -1038,12 +1042,17 @@ public class IntCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
+    assertEquals(4, rs.getInt(2));
+
+    assertTrue(rs.next());
     assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
     rs.updateObject(2, 25, Types.INTEGER);
     rs.updateRow();
     assertEquals(25, rs.getInt(2));
     assertFalse(rs.wasNull());
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(2));
 
     rs = stmt.executeQuery("SELECT * FROM IntCodec2");
     assertTrue(rs.next());
@@ -1060,6 +1069,10 @@ public class IntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0, rs.getInt(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(4, rs.getInt(2));
+    assertFalse(rs.wasNull());
 
     assertTrue(rs.next());
     assertEquals(25, rs.getInt(2));

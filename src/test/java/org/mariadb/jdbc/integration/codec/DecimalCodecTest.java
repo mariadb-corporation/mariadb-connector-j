@@ -818,6 +818,14 @@ public class DecimalCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, BigDecimal.valueOf(3), Types.DECIMAL);
       prep.execute();
+      prep.setObject(1, "4", Types.DECIMAL);
+      prep.execute();
+      prep.setObject(1, "5", Types.NUMERIC);
+      prep.execute();
+      prep.setObject(1, 7D, JDBCType.NUMERIC);
+      prep.execute();
+      prep.setObject(1, "6", Types.BIGINT);
+      prep.execute();
       prep.setObject(1, null, Types.DECIMAL);
       prep.execute();
     }
@@ -857,6 +865,18 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertNull(rs.getBigDecimal(2));
 
     assertTrue(rs.next());
+    assertEquals("4", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("5", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("7", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("6", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
     assertNull(rs.getString(2));
     rs.updateObject(2, BigDecimal.valueOf(30), Types.DECIMAL);
     rs.updateRow();
@@ -878,6 +898,15 @@ public class DecimalCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertNull(rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertEquals("4", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("5", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("7", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("6", rs.getBigDecimal(2).toString());
 
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));

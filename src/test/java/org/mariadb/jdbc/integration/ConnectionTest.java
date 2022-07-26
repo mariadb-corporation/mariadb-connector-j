@@ -916,7 +916,7 @@ public class ConnectionTest extends Common {
     try (Connection con = createCon()) {
       con.getCatalog();
       Statement stmt = con.createStatement();
-      stmt.execute("CREATE DATABASE someDb");
+      stmt.execute("CREATE DATABASE IF NOT EXISTS someDb");
       con.setCatalog("someDb");
       stmt.execute("DROP DATABASE someDb");
       if (minVersion(10, 4, 0)

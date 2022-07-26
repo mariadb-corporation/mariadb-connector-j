@@ -605,7 +605,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-    setInternalObject(parameterIndex, x, null);
+    setInternalObject(parameterIndex, x, targetSqlType, null);
   }
 
   /**
@@ -641,7 +641,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setObject(int parameterIndex, Object x) throws SQLException {
-    setInternalObject(parameterIndex, x, null);
+    setInternalObject(parameterIndex, x, null, null);
   }
 
   /**
@@ -1080,27 +1080,172 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
       throws SQLException {
-    setInternalObject(parameterIndex, x, (long) scaleOrLength);
+    setInternalObject(parameterIndex, x, targetSqlType, (long) scaleOrLength);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private void setInternalObject(int parameterIndex, Object x, Long scaleOrLength)
+  private void setInternalObject(
+      int parameterIndex, Object obj, Integer targetSqlType, Long scaleOrLength)
       throws SQLException {
     checkIndex(parameterIndex);
-    if (x == null) {
+    if (obj == null) {
       parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
       return;
     }
 
+    if (targetSqlType != null) {
+      // target type is defined.
+      // in case of not corresponding data type, converting
+      switch (targetSqlType) {
+        case Types.ARRAY:
+        case Types.DATALINK:
+        case Types.JAVA_OBJECT:
+        case Types.REF:
+        case Types.ROWID:
+        case Types.SQLXML:
+        case Types.STRUCT:
+          throw exceptionFactory().notSupported("Type not supported");
+        default:
+          break;
+      }
+
+      if (obj instanceof String || obj instanceof Character) {
+        if (targetSqlType == Types.BLOB) {
+          throw exceptionFactory()
+              .create(
+                  String.format(
+                      "Cannot convert a %s to a Blob",
+                      obj instanceof String ? "string" : "character"));
+        }
+        String str = obj instanceof String ? (String) obj : ((Character) obj).toString();
+        try {
+          switch (targetSqlType) {
+            case Types.BIT:
+            case Types.BOOLEAN:
+              setBoolean(parameterIndex, !("false".equalsIgnoreCase(str) || "0".equals(str)));
+              return;
+            case Types.TINYINT:
+              setByte(parameterIndex, Byte.parseByte(str));
+              return;
+            case Types.SMALLINT:
+              setShort(parameterIndex, Short.parseShort(str));
+              return;
+            case Types.INTEGER:
+              setInt(parameterIndex, Integer.parseInt(str));
+              return;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+              setDouble(parameterIndex, Double.valueOf(str));
+              return;
+            case Types.REAL:
+              setFloat(parameterIndex, Float.valueOf(str));
+              return;
+            case Types.BIGINT:
+              setLong(parameterIndex, Long.valueOf(str));
+              return;
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+              setBigDecimal(parameterIndex, new BigDecimal(str));
+              return;
+            case Types.CLOB:
+            case Types.NCLOB:
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.LONGNVARCHAR:
+              setString(parameterIndex, str);
+              return;
+            case Types.TIMESTAMP:
+              if (str.startsWith("0000-00-00")) {
+                setTimestamp(parameterIndex, null);
+              } else {
+                setTimestamp(parameterIndex, Timestamp.valueOf(str));
+              }
+              return;
+            case Types.TIME:
+              setTime(parameterIndex, Time.valueOf((String) obj));
+              return;
+            default:
+              throw exceptionFactory()
+                  .create(String.format("Could not convert [%s] to %s", str, targetSqlType));
+          }
+        } catch (IllegalArgumentException e) {
+          throw exceptionFactory()
+              .create(
+                  String.format("Could not convert [%s] to java.sql.Type %s", str, targetSqlType),
+                  "HY000",
+                  e);
+        }
+      } else if (obj instanceof Number) {
+        Number bd = (Number) obj;
+        switch (targetSqlType) {
+          case Types.TINYINT:
+            setByte(parameterIndex, bd.byteValue());
+            return;
+          case Types.SMALLINT:
+            setShort(parameterIndex, bd.shortValue());
+            return;
+          case Types.INTEGER:
+            setInt(parameterIndex, bd.intValue());
+            return;
+          case Types.BIGINT:
+            setLong(parameterIndex, bd.longValue());
+            return;
+          case Types.FLOAT:
+          case Types.DOUBLE:
+            setDouble(parameterIndex, bd.doubleValue());
+            return;
+          case Types.REAL:
+            setFloat(parameterIndex, bd.floatValue());
+            return;
+          case Types.DECIMAL:
+          case Types.NUMERIC:
+            if (obj instanceof BigDecimal) {
+              setBigDecimal(parameterIndex, (BigDecimal) obj);
+            } else if (obj instanceof Double || obj instanceof Float) {
+              setDouble(parameterIndex, bd.doubleValue());
+            } else {
+              setLong(parameterIndex, bd.longValue());
+            }
+            return;
+          case Types.BIT:
+            setBoolean(parameterIndex, bd.shortValue() != 0);
+            return;
+          case Types.CHAR:
+          case Types.VARCHAR:
+            setString(parameterIndex, bd.toString());
+            return;
+          default:
+            throw exceptionFactory()
+                .create(String.format("Could not convert [%s] to %s", bd, targetSqlType));
+        }
+      } else if (obj instanceof byte[]) {
+        if (targetSqlType == Types.BINARY
+            || targetSqlType == Types.VARBINARY
+            || targetSqlType == Types.LONGVARBINARY) {
+          setBytes(parameterIndex, (byte[]) obj);
+          return;
+        } else if (targetSqlType == Types.BLOB) {
+          setBlob(parameterIndex, new MariaDbBlob((byte[]) obj));
+        } else {
+          throw exceptionFactory()
+              .create("Can only convert a byte[] to BINARY, VARBINARY, LONGVARBINARY or BLOB type");
+        }
+      }
+    }
+
+    // in case parameter still not set, defaulting to object type
     for (Codec<?> codec : con.getContext().getConf().codecs()) {
-      if (codec.canEncode(x)) {
-        Parameter p = new Parameter(codec, x, scaleOrLength);
+      if (codec.canEncode(obj)) {
+        Parameter p = new Parameter(codec, obj, scaleOrLength);
         parameters.set(parameterIndex - 1, p);
         return;
       }
     }
 
-    throw new SQLException(String.format("Type %s not supported type", x.getClass().getName()));
+    throw new SQLException(String.format("Type %s not supported type", obj.getClass().getName()));
   }
 
   /**
@@ -1401,7 +1546,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setObject(int parameterIndex, Object x, SQLType targetSqlType, int scaleOrLength)
       throws SQLException {
-    setInternalObject(parameterIndex, x, (long) scaleOrLength);
+    setInternalObject(
+        parameterIndex,
+        x,
+        targetSqlType == null ? null : targetSqlType.getVendorTypeNumber(),
+        (long) scaleOrLength);
   }
 
   /**
@@ -1426,6 +1575,10 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    */
   @Override
   public void setObject(int parameterIndex, Object x, SQLType targetSqlType) throws SQLException {
-    setInternalObject(parameterIndex, x, null);
+    setInternalObject(
+        parameterIndex,
+        x,
+        targetSqlType == null ? null : targetSqlType.getVendorTypeNumber(),
+        null);
   }
 }

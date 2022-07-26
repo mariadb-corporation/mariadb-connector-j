@@ -1046,6 +1046,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, LocalDateTime.parse("2010-01-12T01:55:12.987765"), Types.TIMESTAMP);
       prep.execute();
+      prep.setObject(1, "2010-01-12 01:55:12.987765", Types.TIMESTAMP);
+      prep.execute();
+      prep.setObject(1, "0000-00-00 00:00:00", Types.TIMESTAMP);
+      prep.execute();
       prep.setObject(1, LocalDateTime.parse("2010-01-12T01:56:12.456"), Types.TIMESTAMP);
       prep.execute();
       prep.setObject(
@@ -1082,6 +1086,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, offsetDtCurrent);
       prep.execute();
+      assertThrowsContains(
+          SQLException.class,
+          () -> prep.setObject(1, "2010-aaa", Types.TIMESTAMP),
+          "Could not convert [2010-aaa] to java.sql.Type 93");
     }
 
     ResultSet rs =
@@ -1128,6 +1136,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
     rs.updateTimestamp("t1", Timestamp.valueOf("2015-12-12 01:55:12.654321"));
     rs.updateRow();
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654321"), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T01:55:12.987765"), rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.next());
+    assertNull(rs.getObject(2, LocalDateTime.class));
 
     rs = stmt.executeQuery("SELECT * FROM DateTimeCodec2");
     assertTrue(rs.next());
@@ -1146,6 +1159,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2015-12-12 01:55:12.654321"), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(Timestamp.valueOf("2010-01-12 01:55:12.987765"), rs.getTimestamp(2));
+    assertTrue(rs.next());
     assertTrue(rs.next());
     assertEquals(
         LocalDateTime.parse("2010-01-12T01:56:12.456"), rs.getObject(2, LocalDateTime.class));

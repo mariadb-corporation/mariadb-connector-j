@@ -954,6 +954,8 @@ public class SmallIntCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, 3, Types.SMALLINT);
       prep.execute();
+      prep.setObject(1, "4", Types.SMALLINT);
+      prep.execute();
       prep.setObject(1, null, Types.SMALLINT);
       prep.execute();
     }
@@ -988,6 +990,9 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
 
     assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
+
+    assertTrue(rs.next());
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
     rs.updateObject(2, null, Types.SMALLINT);
@@ -1009,6 +1014,9 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(5, rs.getShort(2));
     assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
 
     assertTrue(rs.next());
     assertEquals(0, rs.getShort(2));

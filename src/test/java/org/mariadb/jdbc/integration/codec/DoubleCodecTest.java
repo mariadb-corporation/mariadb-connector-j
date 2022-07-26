@@ -705,6 +705,10 @@ public class DoubleCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, 3D, Types.DECIMAL);
       prep.execute();
+      prep.setObject(1, "4", Types.FLOAT);
+      prep.execute();
+      prep.setObject(1, 5D, Types.DOUBLE);
+      prep.execute();
       prep.setObject(1, null, Types.DECIMAL);
       prep.execute();
     }
@@ -737,6 +741,11 @@ public class DoubleCodecTest extends CommonCodecTest {
     assertNull(rs.getString(2));
 
     assertTrue(rs.next());
+    assertEquals(4D, rs.getDouble(2));
+    assertTrue(rs.next());
+    assertEquals(5D, rs.getDouble(2));
+
+    assertTrue(rs.next());
     assertNull(rs.getString(2));
     rs.updateObject("t1", 30D, Types.DECIMAL);
     rs.updateRow();
@@ -754,6 +763,11 @@ public class DoubleCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertNull(rs.getString(2));
+
+    assertTrue(rs.next());
+    assertEquals(4D, rs.getDouble(2));
+    assertTrue(rs.next());
+    assertEquals(5D, rs.getDouble(2));
 
     assertTrue(rs.next());
     assertEquals(30D, rs.getDouble(2));

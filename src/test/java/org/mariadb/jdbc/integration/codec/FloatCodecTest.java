@@ -720,6 +720,10 @@ public class FloatCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setObject(1, 3.1F, Types.DECIMAL);
       prep.execute();
+      prep.setObject(1, "3.2", Types.REAL);
+      prep.execute();
+      prep.setObject(1, 3.3F, Types.REAL);
+      prep.execute();
       prep.setObject(1, null, Types.DECIMAL);
       prep.execute();
     }
@@ -754,6 +758,11 @@ public class FloatCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
+    assertEquals(3.2F, rs.getFloat(2));
+    assertTrue(rs.next());
+    assertEquals(3.3F, rs.getFloat(2));
+
+    assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
 
@@ -771,6 +780,11 @@ public class FloatCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(3.2F, rs.getFloat(2));
+    assertTrue(rs.next());
+    assertEquals(3.3F, rs.getFloat(2));
 
     assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));

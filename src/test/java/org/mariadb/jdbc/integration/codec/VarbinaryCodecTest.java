@@ -6,10 +6,7 @@ package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +27,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS VarbinaryCodec");
+    stmt.execute("DROP TABLE IF EXISTS VarbinaryCodec2");
   }
 
   @BeforeAll
@@ -38,6 +36,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
         "CREATE TABLE VarbinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4 VARBINARY(20))");
+    stmt.execute("CREATE TABLE VarbinaryCodec2 (t1 VARBINARY(20))");
     stmt.execute(
         "INSERT INTO VarbinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null)");
@@ -721,5 +720,48 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
+  }
+
+  @Test
+  public void sendParam() throws Exception {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws Exception {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE VarbinaryCodec2");
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO VarbinaryCodec2(t1) VALUES (?)")) {
+      prep.setBytes(1, null);
+      prep.execute();
+      prep.setBytes(1, "e🌟1".getBytes(StandardCharsets.UTF_8));
+      prep.execute();
+      prep.setNull(1, Types.BLOB);
+      prep.execute();
+
+      prep.setObject(1, "e🌟2".getBytes(StandardCharsets.UTF_8));
+      prep.execute();
+      prep.setObject(1, "e🌟3".getBytes(StandardCharsets.UTF_8), Types.VARBINARY);
+      prep.execute();
+    }
+
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM VarbinaryCodec2");
+    assertTrue(rs.next());
+    assertNull(rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟1".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertNull(rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟2".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟3".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
   }
 }
