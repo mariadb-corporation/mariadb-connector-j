@@ -44,7 +44,9 @@ public class ConfigurationTest extends Common {
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertTrue(rs.next());
-      assertEquals(5, rs.getInt(1));
+      if (!"galera".equals(System.getenv("srv"))) {
+        assertEquals(5, rs.getInt(1));
+      }
       assertFalse(rs.next());
       assertFalse(stmt.getMoreResults());
       rs.clearWarnings();
