@@ -127,7 +127,8 @@ public class StandardClient implements Client, AutoCloseable {
 
       this.exceptionFactory.setThreadId(handshake.getThreadId());
       long clientCapabilities =
-          ConnectionHelper.initializeClientCapabilities(conf, handshake.getCapabilities());
+          ConnectionHelper.initializeClientCapabilities(
+              conf, handshake.getCapabilities(), hostAddress);
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
@@ -320,7 +321,9 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add("SET SESSION TRANSACTION READ ONLY");
     }
 
-    if (conf.database() != null && conf.createDatabaseIfNotExist()) {
+    if (conf.database() != null
+        && conf.createDatabaseIfNotExist()
+        && (hostAddress == null || hostAddress.primary)) {
       String escapedDb = conf.database().replace("`", "``");
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));

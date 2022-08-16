@@ -1134,7 +1134,19 @@ public class ConnectionTest extends Common {
       assertEquals(nonExistentDatabase, rs.getString(1));
     }
 
+    nonExistentDatabase = "bla`f`l0";
+    connStr =
+        String.format(
+            "jdbc:mariadb:replication://%s:%s,%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            hostname, port, hostname, port, nonExistentDatabase, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+
     sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l0`");
   }
 
   @Test
