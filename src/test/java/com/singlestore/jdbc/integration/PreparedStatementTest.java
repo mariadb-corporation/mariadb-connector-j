@@ -814,14 +814,14 @@ public class PreparedStatementTest extends Common {
   @Test
   public void largeMaxRows() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
-      largeMaxRows(con);
+      largeMaxRows(con, "&useServerPrepStmts=false");
     }
     try (Connection con = createCon("&useServerPrepStmts")) {
-      largeMaxRows(con);
+      largeMaxRows(con, "&useServerPrepStmts");
     }
   }
 
-  private void largeMaxRows(Connection con) throws SQLException {
+  private void largeMaxRows(Connection con, String options) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS largeMaxRows");
     stmt.setFetchSize(3);
@@ -860,24 +860,36 @@ public class PreparedStatementTest extends Common {
       }
       assertEquals(10, i);
 
-      prep.setQueryTimeout(2);
-      rs = prep.executeQuery();
-      i = 0;
-      while (rs.next()) {
-        i++;
-        assertEquals(i, rs.getInt(1));
+      try (Connection conn = createCon(options)) {
+        PreparedStatement prep2 = conn.prepareStatement("SELECT * FROM largeMaxRows order by id");
+        prep2.setQueryTimeout(2);
+        prep2.setLargeMaxRows(10);
+        rs = prep2.executeQuery();
+        i = 0;
+        while (rs.next()) {
+          i++;
+          assertEquals(i, rs.getInt(1));
+        }
+        assertEquals(10, i);
+      } catch (SQLNonTransientConnectionException ex) {
+        assertTrue(ex.getMessage().endsWith("query timed out"));
       }
-      assertEquals(10, i);
 
-      prep.setQueryTimeout(20);
-      prep.setLargeMaxRows(0);
-      rs = prep.executeQuery();
-      i = 0;
-      while (rs.next()) {
-        i++;
-        assertEquals(i, rs.getInt(1));
+      try (Connection conn = createCon(options)) {
+        PreparedStatement prep1 = conn.prepareStatement("SELECT * FROM largeMaxRows order by id");
+        prep1.setQueryTimeout(20);
+        prep1.setLargeMaxRows(0);
+        rs = prep1.executeQuery();
+        i = 0;
+        while (rs.next()) {
+          i++;
+          assertEquals(i, rs.getInt(1));
+        }
+        assertEquals(50, i);
+      } catch (SQLNonTransientConnectionException ex) {
+        assertTrue(ex.getMessage().endsWith("query timed out"));
       }
-      assertEquals(50, i);
+
       prep.setQueryTimeout(0);
       prep.setQueryTimeout(0);
     }
@@ -906,28 +918,33 @@ public class PreparedStatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS large_max_rows_batch");
     stmt.setFetchSize(3);
     stmt.execute("CREATE TABLE large_max_rows_batch(id int)");
-    try (PreparedStatement prep =
-        con.prepareStatement("INSERT INTO large_max_rows_batch(id) VALUE (?)")) {
-      prepareInsert(prep);
 
-      prep.setMaxRows(1);
-      prepareInsert(prep);
+    PreparedStatement prep = con.prepareStatement("INSERT INTO large_max_rows_batch(id) VALUE (?)");
+    prepareInsert(prep);
 
-      prep.setQueryTimeout(1);
-      prepareInsert(prep);
+    prep.setMaxRows(1);
+    prepareInsert(prep);
 
-      prep.setMaxRows(0);
-      prepareInsert(prep);
+    prep.setMaxRows(0);
+    prepareInsert(prep);
 
-      prep.setLargeMaxRows(2);
-      prepareInsert(prep);
+    prep.setLargeMaxRows(2);
+    prepareInsert(prep);
 
-      prep.setQueryTimeout(0);
-      prepareInsert(prep);
-    }
+    prep.setQueryTimeout(0);
+    prep = con.prepareStatement("INSERT INTO large_max_rows_batch(id) VALUE (?)");
+    prepareInsert(prep);
+
     ResultSet rs = stmt.executeQuery("SELECT count(*) FROM large_max_rows_batch");
     rs.next();
-    assertEquals(12, rs.getInt(1));
+    assertEquals(10, rs.getInt(1));
+
+    try {
+      prep.setQueryTimeout(1);
+      prepareInsert(prep);
+    } catch (BatchUpdateException exception) {
+      assertTrue(exception.getMessage().endsWith("query timed out"));
+    }
   }
 
   @Test

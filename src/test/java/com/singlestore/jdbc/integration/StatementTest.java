@@ -7,12 +7,15 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.singlestore.jdbc.ClientPreparedStatement;
 import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
+import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.Statement;
 import java.sql.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 import org.junit.jupiter.api.*;
 
 public class StatementTest extends Common {
@@ -308,7 +311,7 @@ public class StatementTest extends Common {
 
   @Test
   public void maxRows() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt = createCon().createStatement();
     assertEquals(0, stmt.getMaxRows());
     try {
       stmt.setMaxRows(-1);
@@ -341,7 +344,7 @@ public class StatementTest extends Common {
 
   @Test
   public void largeMaxRows() throws SQLException {
-    Statement stmt = sharedConn.createStatement();
+    Statement stmt = createCon().createStatement();
     assertEquals(0L, stmt.getLargeMaxRows());
     try {
       stmt.setLargeMaxRows(-1);
@@ -415,39 +418,131 @@ public class StatementTest extends Common {
     stmt.close();
   }
 
-  // TODO: PLAT-5876
-  @Disabled
-  @Test
-  @Timeout(20)
-  public void queryTimeout() throws Exception {
-    Statement stmt = sharedConn.createStatement();
+  public void executeTimeOutQeuryWithStatement(Statement stmt) {
+    SQLNonTransientConnectionException exception =
+        assertThrows(
+            SQLNonTransientConnectionException.class,
+            () -> {
+              stmt.setQueryTimeout(1);
+              assertEquals(1, stmt.getQueryTimeout());
+              stmt.execute(
+                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
+                      + ".tables as t2");
+            });
+    assertTrue(exception.getMessage().endsWith("query timed out"));
+  }
 
+  public void executeTimeOutQeuryWithPrepareStatement(PreparedStatement stmt) {
+    SQLNonTransientConnectionException exception =
+        assertThrows(
+            SQLNonTransientConnectionException.class,
+            () -> {
+              stmt.setQueryTimeout(1);
+              assertEquals(1, stmt.getQueryTimeout());
+              stmt.executeQuery();
+            });
+
+    assertTrue(exception.getMessage().endsWith("query timed out"));
+  }
+
+  @Test
+  public void queryTimeout() throws Exception {
+
+    // Use-case-1 Test Query Timeout implementation with 'Statement' for 'ClientImpl'.
+    Statement stmt = createCon().createStatement();
     assertThrowsContains(
         SQLException.class, () -> stmt.setQueryTimeout(-1), "Query timeout cannot be negative");
 
-    assertThrowsContains(
-        SQLTimeoutException.class,
-        () -> {
-          stmt.setQueryTimeout(1);
-          assertEquals(1, stmt.getQueryTimeout());
-          stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
-                  + ".tables as t2");
-        },
-        "Query execution was interrupted (max_statement_time exceeded)");
+    executeTimeOutQeuryWithStatement(stmt);
+
+    // Use-case-2 Test Query Timeout implementation with 'Statement', transactionReplay = true and
+    // useServerPrepStmts=false for 'ClientReplayImpl'.
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=false")) {
+      executeTimeOutQeuryWithStatement(con.createStatement());
+    }
+
+    // Use-case-3 Test Query Timeout implementation with 'Statement', transactionReplay = true and
+    // useServerPrepStmts=true.
+    try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
+      executeTimeOutQeuryWithStatement(con.createStatement());
+    }
+
+    // Use-case-4 Test Query Timeout implementation with 'Statement', HAMode as 'Sequential' for
+    // 'MultiPrimaryClient'.
+    String urlWithHaMode =
+        mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:sequential:")
+            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
+            + "useServerPrepStmts=true";
+    try (Connection con = (Connection) DriverManager.getConnection(urlWithHaMode)) {
+      executeTimeOutQeuryWithStatement(con.createStatement());
+    }
+
+    // Use-case-5 Test Query Timeout implementation with 'Statement', HAMode as 'Replication' for
+    // 'MultiPrimaryReplicaClient'.
+    urlWithHaMode =
+        mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:replication:")
+            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
+            + "useServerPrepStmts=true";
+    try (Connection con = (Connection) DriverManager.getConnection(urlWithHaMode)) {
+      executeTimeOutQeuryWithStatement(con.createStatement());
+    }
+
+    String sql =
+        "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2";
+
+    // Use-case-6 Test Query Timeout implementation with 'PreparedStatement'
+    try (Connection con = (Connection) DriverManager.getConnection(mDefUrl)) {
+      executeTimeOutQeuryWithPrepareStatement(con.prepareStatement(sql));
+    }
+
+    // Use-case-7 Test Query Timeout implementation with 'ClientPreparedStatement'
+    try (Connection con = (Connection) DriverManager.getConnection(mDefUrl)) {
+      ClientPreparedStatement clientPrepStmt =
+          new ClientPreparedStatement(
+              sql,
+              con,
+              new ReentrantLock(),
+              false,
+              false,
+              ResultSet.FETCH_FORWARD,
+              ResultSet.CONCUR_READ_ONLY,
+              Statement.NO_GENERATED_KEYS,
+              0);
+      executeTimeOutQeuryWithPrepareStatement(clientPrepStmt);
+    }
+
+    // Use-case-8 Test Query Timeout implementation with 'ServerPreparedStatement'
+    try (Connection con = (Connection) DriverManager.getConnection(mDefUrl)) {
+      ServerPreparedStatement serverPrepStmt =
+          new ServerPreparedStatement(
+              sql,
+              con,
+              new ReentrantLock(),
+              false,
+              false,
+              ResultSet.FETCH_FORWARD,
+              ResultSet.CONCUR_READ_ONLY,
+              Statement.NO_GENERATED_KEYS,
+              0);
+      executeTimeOutQeuryWithPrepareStatement(serverPrepStmt);
+    }
   }
 
   @Test
   public void smallQueryTimeout() throws Exception {
-    Statement stmt = sharedConn.createStatement();
-    stmt.setQueryTimeout(1);
-    stmt.execute("SELECT 1");
+    try (Connection con = createCon()) {
+      Statement stmt = con.createStatement();
+      stmt.setQueryTimeout(0);
+      stmt.execute("SELECT 1");
 
-    stmt.setMaxRows(1);
-    stmt.execute("SELECT 1");
+      stmt.setMaxRows(1);
+      stmt.execute("SELECT 1");
 
-    stmt.setQueryTimeout(0);
-    stmt.execute("SELECT 1");
+      stmt.setQueryTimeout(1);
+      stmt.execute("SELECT 1");
+    } catch (SQLNonTransientConnectionException exception) {
+      assertTrue(exception.getMessage().endsWith("query timed out"));
+    }
   }
 
   @Test

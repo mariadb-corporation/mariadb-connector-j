@@ -49,9 +49,15 @@ public class ClientReplayImpl extends ClientImpl {
                 "Packet too big for current server max_allowed_packet value", "HZ000", ioException);
       }
       destroySocket();
-      throw exceptionFactory
-          .withSql(message.description())
-          .create("Socket error", "08000", ioException);
+      if (timeOut) {
+        throw exceptionFactory
+            .withSql(message.description())
+            .create("Socket error: query timed out", "08000", ioException);
+      } else {
+        throw exceptionFactory
+            .withSql(message.description())
+            .create("Socket error", "08000", ioException);
+      }
     }
   }
 
