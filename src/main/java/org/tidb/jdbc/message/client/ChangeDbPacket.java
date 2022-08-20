@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
+
+package org.tidb.jdbc.message.client;
+
+import java.io.IOException;
+import org.tidb.jdbc.client.Context;
+import org.tidb.jdbc.client.socket.Writer;
+
+/** change database. See https://mariadb.com/kb/en/com_init_db/ protocol */
+public final class ChangeDbPacket implements RedoableClientMessage {
+
+  private final String database;
+
+  /**
+   * Constructor to encode COM_INIT_DB packet
+   *
+   * @param database database
+   */
+  public ChangeDbPacket(String database) {
+    this.database = database;
+  }
+
+  @Override
+  public int encode(Writer writer, Context context) throws IOException {
+    writer.initPacket();
+    writer.writeByte(0x02);
+    writer.writeString(this.database);
+    writer.flush();
+    return 1;
+  }
+}

@@ -1,0 +1,6 @@
+org.tidb.jdbc.plugin.authentication.addon.ClearPasswordPlugin
+org.tidb.jdbc.plugin.authentication.addon.SendGssApiAuthPacket
+org.tidb.jdbc.plugin.authentication.standard.Ed25519PasswordPlugin
+org.tidb.jdbc.plugin.authentication.standard.NativePasswordPlugin
+org.tidb.jdbc.plugin.authentication.standard.SendPamAuthPacket
+org.tidb.jdbc.plugin.authentication.standard.CachingSha2PasswordPlugin

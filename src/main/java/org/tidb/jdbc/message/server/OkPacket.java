@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2021 MariaDB Corporation Ab
+
+package org.tidb.jdbc.message.server;
+
+import org.tidb.jdbc.client.Completion;
+import org.tidb.jdbc.client.Context;
+import org.tidb.jdbc.client.ReadableByteBuf;
+import org.tidb.jdbc.util.constants.Capabilities;
+import org.tidb.jdbc.util.constants.StateChange;
+import org.tidb.jdbc.util.log.Logger;
+import org.tidb.jdbc.util.log.Loggers;
+
+/** Ok packet parser see https://mariadb.com/kb/en/ok_packet/ */
+public class OkPacket implements Completion {
+  private static final Logger logger = Loggers.getLogger(OkPacket.class);
+
+  private final long affectedRows;
+  private final long lastInsertId;
+
+  /**
+   * Parser
+   *
+   * @param buf packet buffer
+   * @param context connection context
+   */
+  public OkPacket(ReadableByteBuf buf, Context context) {
+    buf.skip(); // ok header
+    this.affectedRows = buf.readLongLengthEncodedNotNull();
+    this.lastInsertId = buf.readLongLengthEncodedNotNull();
+    context.setServerStatus(buf.readUnsignedShort());
+    context.setWarning(buf.readUnsignedShort());
+
+    if (context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK) && buf.readableBytes() > 0) {
+      buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
+      while (buf.readableBytes() > 0) {
+        if (buf.readIntLengthEncodedNotNull() > 0) {
+          switch (buf.readByte()) {
+            case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
+              buf.readIntLengthEncodedNotNull();
+              String variable = buf.readString(buf.readIntLengthEncodedNotNull());
+              Integer len = buf.readLength();
+              String value = len == null ? null : buf.readString(len);
+              logger.debug("System variable change:  {} = {}", variable, value);
+              break;
+
+            case StateChange.SESSION_TRACK_SCHEMA:
+              buf.readIntLengthEncodedNotNull();
+              Integer dbLen = buf.readLength();
+              String database = dbLen == null ? null : buf.readString(dbLen);
+              context.setDatabase(database.isEmpty() ? null : database);
+              logger.debug("Database change: is '{}'", database);
+              break;
+
+            default:
+              buf.skip(buf.readIntLengthEncodedNotNull());
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * get affected rows
+   *
+   * @return affected rows
+   */
+  public long getAffectedRows() {
+    return affectedRows;
+  }
+
+  /**
+   * Get last auto generated insert id
+   *
+   * @return last insert id
+   */
+  public long getLastInsertId() {
+    return lastInsertId;
+  }
+}

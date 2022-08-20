@@ -1,7 +1,7 @@
-package org.mariadb.jdbc.client;
+package org.tidb.jdbc.client;
 
 import jdk.net.ExtendedSocketOptions;
-import org.mariadb.jdbc.Configuration;
+import org.tidb.jdbc.Configuration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

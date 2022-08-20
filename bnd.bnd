@@ -1,4 +1,4 @@
-Export-Package: org.mariadb.jdbc;org.mariadb.jdbc.client;org.mariadb.jdbc.client.util;org.mariadb.jdbc.client.socket;org.mariadb.jdbc.message;org.mariadb.jdbc.type;org.mariadb.jdbc.export;org.mariadb.jdbc.plugin;org.mariadb.jdbc.plugin.codec;org.mariadb.jdbc.plugin.authentication.standard;org.mariadb.jdbc.plugin.authentication.addon;org.mariadb.jdbc.plugin.credential.aws;org.mariadb.jdbc.plugin.credential.env;org.mariadb.jdbc.plugin.credential.system;org.mariadb.jdbc.plugin.tls.main
+Export-Package: org.tidb.jdbc;org.tidb.jdbc.client;org.tidb.jdbc.client.util;org.tidb.jdbc.client.socket;org.tidb.jdbc.message;org.tidb.jdbc.type;org.tidb.jdbc.export;org.tidb.jdbc.plugin;org.tidb.jdbc.plugin.codec;org.tidb.jdbc.plugin.authentication.standard;org.tidb.jdbc.plugin.authentication.addon;org.tidb.jdbc.plugin.credential.aws;org.tidb.jdbc.plugin.credential.env;org.tidb.jdbc.plugin.credential.system;org.tidb.jdbc.plugin.tls.main
 
 Import-Package: \
     javax.naming,\

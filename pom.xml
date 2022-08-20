@@ -159,7 +159,7 @@
                 <configuration>
                     <source>1.8</source>
                     <excludePackageNames>
-                        org.mariadb.jdbc.client,org.mariadb.jdbc.codec,org.mariadb.jdbc.message,org.mariadb.jdbc.util,org.mariadb.jdbc.plugin.authentication.standard.ed25519,org.mariadb.jdbc.plugin.authentication.standard.ed25519.*
+                        org.tidb.jdbc.client,org.tidb.jdbc.codec,org.tidb.jdbc.message,org.tidb.jdbc.util,org.tidb.jdbc.plugin.authentication.standard.ed25519,org.tidb.jdbc.plugin.authentication.standard.ed25519.*
                     </excludePackageNames>
                 </configuration>
                 <executions>
@@ -180,7 +180,7 @@
                     <archive>
                         <manifestEntries>
                             <Multi-Release>true</Multi-Release>
-                            <Export-Package>org.mariadb.jdbc</Export-Package>
+                            <Export-Package>org.tidb.jdbc</Export-Package>
                             <Import-Package>
                                 javax.naming,javax.naming.ldap,javax.management,javax.sql,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.transaction.xa;resolution:=optional,waffle.windows.auth;resolution:=optional,waffle.windows.auth.impl;resolution:=optional,org.ietf.jgss;resolution:=optional,javax.security.auth.login;resolution:=optional,javax.security.auth.x500;resolution:=optional,software.amazon.awssdk.*;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>

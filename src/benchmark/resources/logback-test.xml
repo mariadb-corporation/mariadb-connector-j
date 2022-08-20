@@ -8,7 +8,7 @@
     </encoder>
   </appender>
 
-  <logger level="ERROR" name="org.mariadb.jdbc"/>
+  <logger level="ERROR" name="org.tidb.jdbc"/>
 
   <root level="WARN">
     <appender-ref ref="STDOUT"/>
