@@ -374,7 +374,9 @@ public class StandardClient implements Client, AutoCloseable {
           throw exceptionFactory.create(
               String.format(
                   "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
-                  conf.timezone()), "HY000", sqlException);
+                  conf.timezone()),
+              "HY000",
+              sqlException);
         }
         throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
       }
@@ -428,7 +430,8 @@ public class StandardClient implements Client, AutoCloseable {
         if (clientZoneId.getRules().isFixedOffset()) {
           ZoneOffset zoneOffset = clientZoneId.getRules().getOffset(Instant.now());
           if (zoneOffset.getTotalSeconds() == 0) {
-            // specific for UTC timezone, server permitting only SYSTEM/UTC offset or named time zone
+            // specific for UTC timezone, server permitting only SYSTEM/UTC offset or named time
+            // zone
             // not 'UTC'/'Z'
             sessionCommands.add("time_zone='+00:00'");
           } else {

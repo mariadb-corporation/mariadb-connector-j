@@ -3,13 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client</artifactId>
+    <groupId>io.github.icemap</groupId>
+    <artifactId>tidb-java-client</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-java-client</name>
-    <version>3.0.7</version>
-    <description>JDBC driver for MariaDB and MySQL</description>
-    <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
+    <name>tidb-java-client</name>
+    <version>0.0.1</version>
+    <description>JDBC driver (Community) for TiDB</description>
+    <url>https://github.com/Icemap/tidb-connector-j</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -33,36 +33,39 @@
         </license>
     </licenses>
 
-    <organization>
-        <name>mariadb.com</name>
-        <url>https://mariadb.com</url>
-    </organization>
-
     <developers>
         <developer>
-            <id>mariadbJdbcDevelopers</id>
-            <name>mariadb jdbc developers</name>
-            <url>http://mariadb.org/</url>
+            <name>qizhiwang</name>
+            <id>Icemap</id>
+            <email>cheese.javaee@gmail.com</email>
+            <roles>
+                <role>Developer</role>
+            </roles>
+            <timezone>+8</timezone>
         </developer>
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/mariadb-corporation/mariadb-connector-j.git</connection>
-        <url>https://github.com/mariadb-corporation/mariadb-connector-j</url>
-        <developerConnection>scm:git:git@github.com:MariaDB/mariadb-connector-j.git
+        <connection>scm:git:git@github.com:Icemap/tidb-connector-j.git</connection>
+        <url>https://github.com/Icemap/tidb-connector-j</url>
+        <developerConnection>scm:git:git@github.com:Icemap/tidb-connector-j.git
         </developerConnection>
     </scm>
 
     <issueManagement>
-        <system>JIRA</system>
-        <url>https://mariadb.atlassian.net/browse/CONJ</url>
+        <system>GitHub Issues</system>
+        <url>https://github.com/Icemap/tidb-connector-j/issues</url>
     </issueManagement>
 
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
     </distributionManagement>
 
     <dependencyManagement>

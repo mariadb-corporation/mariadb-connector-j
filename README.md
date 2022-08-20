@@ -1,18 +1,18 @@
-<p align="center">
-  <a href="https://mariadb.com/">
-    <img src="https://mariadb.com/kb/static/images/logo-2018-black.png">
-  </a>
-</p>
+# TiDB java connector (Community)
 
-# MariaDB java connector
+English | [中文](/README-zh.md)
 
-MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applications developed in Java to MariaDB and MySQL databases. MariaDB Connector/J is LGPL licensed.
+***TiDB java connector (Community)***:
 
-Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
+- Is A JDBC 4.2 compatible driver, used to connect applications developed in Java to TiDB databases.
+- Is LGPL licensed.
+- Based on [MariaDB java connector](https://github.com/mariadb-corporation/mariadb-connector-j) 3.0.7 version.
+- Is a ***NON-OFFICIAL*** library.
+- Is a more ***AGGRESSIVE*** adaptation of new features of TiDB.
+- Unlike [MySQL Connector/J](https://github.com/mysql/mysql-connector-j), this library welcomes pull request from anybody.
 
 ## Status
-[![Linux Build](https://travis-ci.com/mariadb-corporation/mariadb-connector-j.svg?branch=master)](https://app.travis-ci.com/github/mariadb-corporation/mariadb-connector-j)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
+[![Linux Build](https://travis-ci.com/Icemap/tidb-connector-j.svg?branch=master)](https://app.travis-ci.com/github/mariadb-corporation/mariadb-connector-j)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![codecov][codecov-image]][codecov-url]
 
@@ -21,44 +21,33 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 For java 8 or more :
 (maintenance branch for java 7 is 1.x)
 
-The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/downloads/#connectors)
-or maven : 
-```script
+The driver (jar) can be downloaded from maven:
+
+**Not prepared now**
+
+```xml
 <dependency>
-	<groupId>org.mariadb.jdbc</groupId>
-	<artifactId>mariadb-java-client</artifactId>
-	<version>3.0.7</version>
+    <groupId>org.mariadb.jdbc</groupId>
+    <artifactId>mariadb-java-client</artifactId>
+    <version>3.0.7</version>
 </dependency>
-```
-
-
-Development snapshot are available on sonatype nexus repository
-```script
-<repositories>
-    <repository>
-        <id>sonatype-nexus-snapshots</id>
-        <name>Sonatype Nexus Snapshots</name>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-</repositories>
-
-<dependencies>
-    <dependency>
-        <groupId>org.mariadb.jdbc</groupId>
-        <artifactId>mariadb-java-client</artifactId>
-        <version>3.0.8-SNAPSHOT</version>
-    </dependency>
-</dependencies>
 ```
 
 ## Documentation
 
-For a Getting started guide, API docs, recipes,  etc. see the 
-* [About MariaDB connector/J](https://mariadb.com/kb/en/about-mariadb-connector-j/)
-* [Install driver](https://mariadb.com/kb/en/installing-mariadb-connectorj/)
-* [Changelog](/CHANGELOG.md)
-* [Failover and high-availability](https://mariadb.com/kb/en/failover-and-high-availability-with-mariadb-connector-j/)
+For a Getting started guide, API docs, recipes, etc. see here:
 
+- [TiDB Developer Guide](https://docs.pingcap.com/tidb/stable/dev-guide-overview)
+- [About MariaDB connector/J](https://mariadb.com/kb/en/about-mariadb-connector-j/)
+- [TiDB Docs](https://docs.pingcap.com/tidb/stable)
 
-[codecov-image]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j/branch/master/graph/badge.svg
-[codecov-url]:https://codecov.io/gh/mariadb-corporation/mariadb-connector-j
+## Roadmap
+
+- [ ] Remove code about `triggers`, `events`, `procedures`
+- [ ] Remove test case about `triggers`, `events`, `procedures` follow the code.
+- [ ] Build CI for TiDB.
+- [ ] Support close connection for TiDB (Use `KILL TIDB xxx` statement).
+- [ ] Support HA for TiDB.
+- [ ] Support [Optimistic Transactions and Pessimistic Transactions](https://docs.pingcap.com/tidb/stable/dev-guide-optimistic-and-pessimistic-transaction) for TiDB.
+- [ ] Support [Follower Read](https://docs.pingcap.com/tidb/stable/dev-guide-use-follower-read)
+- [ ] Support [Stale Read](https://docs.pingcap.com/tidb/stable/dev-guide-use-stale-read)
