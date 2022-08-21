@@ -1843,7 +1843,7 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(meta.insertsAreDetected(ResultSet.TYPE_FORWARD_ONLY));
     assertTrue(meta.supportsBatchUpdates());
     assertEquals(sharedConn, sharedConn.getMetaData().getConnection());
-    assertTrue(meta.supportsSavepoints());
+    assertEquals(minVersion(6, 0, 2), meta.supportsSavepoints());
     assertFalse(meta.supportsNamedParameters());
     assertFalse(meta.supportsMultipleOpenResults());
     assertTrue(meta.supportsGetGeneratedKeys());

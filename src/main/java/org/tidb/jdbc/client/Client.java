@@ -88,6 +88,17 @@ public interface Client extends AutoCloseable {
       boolean canRedo)
       throws SQLException;
 
+  List<Completion> executePipelineAndRemoveFirstResult(
+      ClientMessage[] messages,
+      Statement stmt,
+      int fetchSize,
+      long maxRows,
+      int resultSetConcurrency,
+      int resultSetType,
+      boolean closeOnCompletion,
+      boolean canRedo)
+      throws SQLException;
+
   /**
    * Read results
    *

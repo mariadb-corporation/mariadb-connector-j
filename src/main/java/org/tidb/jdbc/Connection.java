@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.sql.ConnectionEvent;
 import org.tidb.jdbc.client.Client;
@@ -65,8 +64,8 @@ public class Connection implements java.sql.Connection {
     this.exceptionFactory = client.getExceptionFactory().setConnection(this);
     this.client = client;
     Context context = this.client.getContext();
-    this.canUseServerTimeout = context.getVersion().isTiDBServer();
-    this.canUseServerMaxRows = context.getVersion().isTiDBServer();
+    this.canUseServerTimeout = true;
+    this.canUseServerMaxRows = context.getVersion().versionGreaterOrEqual(4, 0, 2);
     this.defaultFetchSize = context.getConf().defaultFetchSize();
   }
 
@@ -163,9 +162,13 @@ public class Connection implements java.sql.Connection {
         defaultFetchSize);
   }
 
+  private ExceptionFactory exceptionFactory() {
+    return this.getExceptionFactory();
+  }
+
   @Override
   public CallableStatement prepareCall(String sql) throws SQLException {
-    return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    throw exceptionFactory().notSupported("TiDB not supported procedures");
   }
 
   @Override
@@ -440,48 +443,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
       throws SQLException {
-    checkNotClosed();
-    Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
-    if (!matcher.matches()) {
-      throw new SQLSyntaxErrorException(
-          "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
-              + sql);
-    }
-
-    String query = NativeSql.parse(matcher.group(2), client.getContext());
-
-    boolean isFunction = (matcher.group(3) != null);
-    String databaseAndProcedure = matcher.group(8);
-    String database = matcher.group(10);
-    String procedureName = matcher.group(13);
-    String arguments = matcher.group(16);
-    if (database == null) {
-      database = getCatalog();
-    }
-
-    if (isFunction) {
-      return new FunctionStatement(
-          this,
-          database,
-          databaseAndProcedure,
-          (arguments == null) ? "()" : arguments,
-          lock,
-          canUseServerTimeout,
-          canUseServerMaxRows,
-          resultSetType,
-          resultSetConcurrency);
-    } else {
-      return new ProcedureStatement(
-          this,
-          query,
-          database,
-          procedureName,
-          lock,
-          canUseServerTimeout,
-          canUseServerMaxRows,
-          resultSetType,
-          resultSetConcurrency);
-    }
+    throw exceptionFactory().notSupported("TiDB not supported procedures");
   }
 
   @Override
@@ -506,6 +468,10 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint() throws SQLException {
+    if (!this.client.getContext().getVersion().versionGreaterOrEqual(6, 0, 2)) {
+      throw exceptionFactory().notSupported("TiDB support savepoint at 6.0.2 version");
+    }
+
     MariaDbSavepoint savepoint = new MariaDbSavepoint(savepointId.incrementAndGet());
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -513,6 +479,10 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public Savepoint setSavepoint(String name) throws SQLException {
+    if (!this.client.getContext().getVersion().versionGreaterOrEqual(6, 0, 2)) {
+      throw exceptionFactory().notSupported("TiDB support savepoint at 6.0.2 version");
+    }
+
     MariaDbSavepoint savepoint = new MariaDbSavepoint(name.replace("`", "``"));
     client.execute(new QueryPacket("SAVEPOINT `" + savepoint.rawValue() + "`"), true);
     return savepoint;
@@ -521,6 +491,10 @@ public class Connection implements java.sql.Connection {
   @Override
   public void rollback(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
+    if (!this.client.getContext().getVersion().versionGreaterOrEqual(6, 0, 2)) {
+      throw exceptionFactory().notSupported("TiDB support savepoint at 6.0.2 version");
+    }
+
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
@@ -543,6 +517,10 @@ public class Connection implements java.sql.Connection {
   @Override
   public void releaseSavepoint(java.sql.Savepoint savepoint) throws SQLException {
     checkNotClosed();
+    if (!this.client.getContext().getVersion().versionGreaterOrEqual(6, 0, 2)) {
+      throw exceptionFactory().notSupported("TiDB support savepoint at 6.0.2 version");
+    }
+
     lock.lock();
     try {
       if ((client.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
@@ -588,7 +566,7 @@ public class Connection implements java.sql.Connection {
   public CallableStatement prepareCall(
       String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
       throws SQLException {
-    return prepareCall(sql, resultSetType, resultSetConcurrency);
+    throw exceptionFactory().notSupported("TiDB not supported procedures");
   }
 
   @Override

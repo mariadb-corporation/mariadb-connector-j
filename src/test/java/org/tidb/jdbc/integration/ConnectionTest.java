@@ -532,6 +532,8 @@ public class ConnectionTest extends Common {
 
   @Test
   public void savepointTest() throws SQLException {
+    Assumptions.assumeTrue(minVersion(6, 0, 2));
+
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
@@ -579,6 +581,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void savepointUnname() throws SQLException {
+    Assumptions.assumeTrue(minVersion(6, 0, 2));
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10))");
@@ -615,6 +618,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void releaseSavepoint() throws SQLException {
+    Assumptions.assumeTrue(minVersion(6, 0, 2));
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE spt(test varchar(10)) ");

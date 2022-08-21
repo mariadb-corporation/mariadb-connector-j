@@ -232,10 +232,11 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals((byte) 1, rs.getByte(2));
     assertEquals((byte) 1, rs.getByte("t2alias"));
     assertFalse(rs.wasNull());
+    // TiDB treat MEDIUMTEXT as MEDIUMBLOB
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getByte(3),
-        "value 'some\uD83C\uDF1F' (BLOB) cannot be decoded as Byte");
+        "value 'some\uD83C\uDF1F' (MEDIUMBLOB) cannot be decoded as Byte");
     assertFalse(rs.wasNull());
     assertEquals((byte) 0, rs.getByte(4));
     assertTrue(rs.wasNull());
@@ -403,8 +404,11 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getDate(ResultSet rs) throws SQLException {
+    // TiDB treat TINYTEXT as TINYBLOB
     Common.assertThrowsContains(
-        SQLDataException.class, () -> rs.getDate(1), "value '0' (BLOB) cannot be decoded as Date");
+        SQLDataException.class,
+        () -> rs.getDate(1),
+        "value '0' (TINYBLOB) cannot be decoded as Date");
     rs.next();
     assertEquals("2011-01-01", rs.getDate(1).toString());
     assertFalse(rs.wasNull());
@@ -412,10 +416,11 @@ public class ClobCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals("2010-12-31", rs.getDate("t2alias").toString());
     assertFalse(rs.wasNull());
+    // TiDB treat MEDIUMTEXT as MEDIUMBLOB
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getDate(3),
-        "value '23:54:51.840010' (BLOB) cannot be decoded as Date");
+        "value '23:54:51.840010' (MEDIUMBLOB) cannot be decoded as Date");
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
@@ -452,12 +457,14 @@ public class ClobCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
   }
 
-  @Test
+  // TiDB Bug: https://github.com/pingcap/tidb/issues/35291 Skip until fixed
+  // @Test
   public void getTimestamp() throws SQLException {
     getTimestamp(get());
   }
 
-  @Test
+  // TiDB Bug: https://github.com/pingcap/tidb/issues/35291 Skip until fixed
+  // @Test
   public void getTimestampPrepare() throws SQLException {
     getTimestamp(getPrepare(sharedConn));
     getTimestamp(getPrepare(sharedConnBinary));
@@ -672,10 +679,11 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getBlob(ResultSet rs) {
+    // TiDB treat TINYTEXT as TINYBLOB
     Common.assertThrowsContains(
         SQLDataException.class,
         () -> rs.getBlob(1),
-        "Data type BLOB (not binary) cannot be decoded as Blob");
+        "Data type TINYBLOB (not binary) cannot be decoded as Blob");
   }
 
   @Test

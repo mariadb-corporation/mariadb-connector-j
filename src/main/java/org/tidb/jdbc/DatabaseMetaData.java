@@ -3447,7 +3447,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsSavepoints() {
-    return true;
+    return connection.getContext().getVersion().versionGreaterOrEqual(6, 0, 2);
   }
 
   public boolean supportsNamedParameters() {

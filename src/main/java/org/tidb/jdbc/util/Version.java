@@ -18,7 +18,6 @@ public class Version {
     int patch = 0;
     String qualif = "";
 
-    int length = version.length();
     char car;
     int offset = 0;
     int type = 0;
@@ -26,6 +25,7 @@ public class Version {
 
     String[] tidbVersionArray = version.split("-", 3);
     if (tidbVersionArray.length == 3 && tidbVersionArray[1].equals("TiDB")) {
+      int length = tidbVersionArray[2].length();
       for (; offset < length; offset++) {
         car = tidbVersionArray[2].charAt(offset);
         if (car < '0' || car > '9') {

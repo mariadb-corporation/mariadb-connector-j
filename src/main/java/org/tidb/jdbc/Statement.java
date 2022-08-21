@@ -1078,22 +1078,7 @@ public class Statement implements java.sql.Statement {
    * @throws SQLException if fails to escape sql
    */
   protected String escapeTimeout(final String sql) throws SQLException {
-    String escapedSql = escape ? NativeSql.parse(sql, con.getContext()) : sql;
-    if (queryTimeout != 0 && canUseServerTimeout) {
-      if (canUseServerMaxRows && maxRows > 0) {
-        return "SET STATEMENT max_statement_time="
-            + queryTimeout
-            + ", SQL_SELECT_LIMIT="
-            + maxRows
-            + " FOR "
-            + escapedSql;
-      }
-      return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + escapedSql;
-    }
-    if (canUseServerMaxRows && maxRows > 0) {
-      return "SET STATEMENT SQL_SELECT_LIMIT=" + maxRows + " FOR " + escapedSql;
-    }
-    return escapedSql;
+    return escape ? NativeSql.parse(sql, con.getContext()) : sql;
   }
 
   /**

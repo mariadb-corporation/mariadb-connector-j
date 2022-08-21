@@ -33,7 +33,6 @@ import org.tidb.jdbc.util.constants.ServerStatus;
  */
 public class ClientPreparedStatement extends BasePreparedStatement {
   private final ClientParser parser;
-
   /**
    * Client prepare statement constructor
    *
@@ -74,29 +73,21 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     parameters = new ParameterList(parser.getParamCount());
   }
 
-  /**
-   * use additional part for timeout if possible
-   *
-   * @return pre command for handling timeout
-   */
-  protected String preSqlCmd() {
-    if (queryTimeout != 0 && canUseServerTimeout) {
-      return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR ";
-    }
-    return null;
-  }
-
   private void executeInternal() throws SQLException {
     checkNotClosed();
     validParameters();
     lock.lock();
     try {
-      QueryWithParametersPacket query =
-          new QueryWithParametersPacket(preSqlCmd(), parser, parameters, localInfileInputStream);
+      ClientMessage[] packets =
+          new ClientMessage[] {
+            new QueryPacket(setTimeoutAndSelectLimit()),
+            new QueryWithParametersPacket(null, parser, parameters, localInfileInputStream)
+          };
+
       results =
           con.getClient()
-              .execute(
-                  query,
+              .executePipelineAndRemoveFirstResult(
+                  packets,
                   this,
                   fetchSize,
                   maxRows,
@@ -144,11 +135,13 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       if (prepareResult == null) {
         ClientMessage[] packets =
             new ClientMessage[] {
-              new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, null)
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new PreparePacket(cmd),
+              new BulkExecutePacket(null, batchParameters, cmd, null)
             };
         List<Completion> res =
             con.getClient()
-                .executePipeline(
+                .executePipelineAndRemoveFirstResult(
                     packets,
                     this,
                     0,
@@ -164,10 +157,15 @@ public class ClientPreparedStatement extends BasePreparedStatement {
           results = res;
         }
       } else {
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new BulkExecutePacket(prepareResult, batchParameters, cmd, null)
+            };
         results =
             con.getClient()
-                .execute(
-                    new BulkExecutePacket(prepareResult, batchParameters, cmd, null),
+                .executePipelineAndRemoveFirstResult(
+                    packets,
                     this,
                     fetchSize,
                     maxRows,
@@ -189,14 +187,20 @@ public class ClientPreparedStatement extends BasePreparedStatement {
    * @throws SQLException if IOException / Command error
    */
   private void executeBatchPipeline() throws SQLException {
-    ClientMessage[] packets = new ClientMessage[batchParameters.size()];
-    for (int i = 0; i < batchParameters.size(); i++) {
-      packets[i] = new QueryWithParametersPacket(preSqlCmd(), parser, batchParameters.get(i), null);
+    if (batchParameters.size() == 0) {
+      return;
     }
+
+    ClientMessage[] packets = new ClientMessage[batchParameters.size() + 1];
+    packets[0] = new QueryPacket(setTimeoutAndSelectLimit());
+    for (int i = 0; i < batchParameters.size(); i++) {
+      packets[i + 1] = new QueryWithParametersPacket(null, parser, batchParameters.get(i), null);
+    }
+
     try {
       results =
           con.getClient()
-              .executePipeline(
+              .executePipelineAndRemoveFirstResult(
                   packets,
                   this,
                   0,
@@ -221,11 +225,16 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     try {
       results = new ArrayList<>();
       for (; i < batchParameters.size(); i++) {
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new QueryWithParametersPacket(
+                  null, parser, batchParameters.get(i), localInfileInputStream)
+            };
         results.addAll(
             con.getClient()
-                .execute(
-                    new QueryWithParametersPacket(
-                        preSqlCmd(), parser, batchParameters.get(i), localInfileInputStream),
+                .executePipelineAndRemoveFirstResult(
+                    packets,
                     this,
                     0,
                     maxRows,

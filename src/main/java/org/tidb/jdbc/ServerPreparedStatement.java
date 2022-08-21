@@ -19,6 +19,7 @@ import org.tidb.jdbc.message.ClientMessage;
 import org.tidb.jdbc.message.client.BulkExecutePacket;
 import org.tidb.jdbc.message.client.ExecutePacket;
 import org.tidb.jdbc.message.client.PreparePacket;
+import org.tidb.jdbc.message.client.QueryPacket;
 import org.tidb.jdbc.message.server.ColumnDefinitionPacket;
 import org.tidb.jdbc.message.server.OkPacket;
 import org.tidb.jdbc.message.server.PrepareResultPacket;
@@ -112,13 +113,14 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private void executePipeline(String cmd) throws SQLException {
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
+    QueryPacket set = new QueryPacket(setTimeoutAndSelectLimit());
     PreparePacket prepare = new PreparePacket(cmd);
     ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this, localInfileInputStream);
     try {
       List<Completion> res =
           con.getClient()
-              .executePipeline(
-                  new ClientMessage[] {prepare, execute},
+              .executePipelineAndRemoveFirstResult(
+                  new ClientMessage[] {set, prepare, execute},
                   this,
                   fetchSize,
                   maxRows,
@@ -126,7 +128,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                   resultSetType,
                   closeOnCompletion,
                   false);
-      results = res.subList(1, res.size());
     } catch (SQLException ex) {
       results = null;
       throw ex;
@@ -138,17 +139,35 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null) {
       prepareResult = con.getContext().getPrepareCache().get(cmd, this);
       if (prepareResult == null) {
-        con.getClient().execute(new PreparePacket(cmd), this, true);
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new QueryPacket(setTimeoutAndSelectLimit()), new PreparePacket(cmd)
+            };
+
+        con.getClient()
+            .executePipelineAndRemoveFirstResult(
+                packets,
+                this,
+                0,
+                0L,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.TYPE_FORWARD_ONLY,
+                false,
+                true);
       }
     }
     validParameters();
     // send COM_STMT_EXECUTE
+
+    QueryPacket set = new QueryPacket(setTimeoutAndSelectLimit());
     ExecutePacket execute =
         new ExecutePacket(prepareResult, parameters, cmd, this, localInfileInputStream);
+    ClientMessage[] packets = new ClientMessage[] {set, execute};
+
     results =
         con.getClient()
-            .execute(
-                execute,
+            .executePipelineAndRemoveFirstResult(
+                packets,
                 this,
                 fetchSize,
                 maxRows,
@@ -200,11 +219,13 @@ public class ServerPreparedStatement extends BasePreparedStatement {
         ClientMessage[] packets;
         packets =
             new ClientMessage[] {
-              new PreparePacket(cmd), new BulkExecutePacket(null, batchParameters, cmd, this)
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new PreparePacket(cmd),
+              new BulkExecutePacket(null, batchParameters, cmd, this)
             };
         res =
             con.getClient()
-                .executePipeline(
+                .executePipelineAndRemoveFirstResult(
                     packets,
                     this,
                     0,
@@ -221,10 +242,16 @@ public class ServerPreparedStatement extends BasePreparedStatement {
           results = res;
         }
       } else {
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new BulkExecutePacket(prepareResult, batchParameters, cmd, this)
+            };
+
         results =
             con.getClient()
-                .execute(
-                    new BulkExecutePacket(prepareResult, batchParameters, cmd, this),
+                .executePipelineAndRemoveFirstResult(
+                    packets,
                     this,
                     0,
                     maxRows,
@@ -273,14 +300,15 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
   private List<Completion> executeBunch(String cmd, int index, int maxCmd) throws SQLException {
     int maxCmdToSend = Math.min(batchParameters.size() - index, maxCmd);
-    ClientMessage[] packets = new ClientMessage[maxCmdToSend];
+    ClientMessage[] packets = new ClientMessage[maxCmdToSend + 1];
+    packets[0] = new QueryPacket(setTimeoutAndSelectLimit());
     for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i - index] =
+      packets[i - index + 1] =
           new ExecutePacket(
               prepareResult, batchParameters.get(i), cmd, this, localInfileInputStream);
     }
     return con.getClient()
-        .executePipeline(
+        .executePipelineAndRemoveFirstResult(
             packets,
             this,
             0,
@@ -294,15 +322,16 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private List<Completion> executeBunchPrepare(String cmd, int index, int maxCmd)
       throws SQLException {
     int maxCmdToSend = Math.min(batchParameters.size() - index, maxCmd);
-    ClientMessage[] packets = new ClientMessage[maxCmdToSend + 1];
-    packets[0] = new PreparePacket(cmd);
+    ClientMessage[] packets = new ClientMessage[maxCmdToSend + 2];
+    packets[0] = new QueryPacket(setTimeoutAndSelectLimit());
+    packets[1] = new PreparePacket(cmd);
     for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i + 1 - index] =
+      packets[i + 2 - index] =
           new ExecutePacket(null, batchParameters.get(i), cmd, this, localInfileInputStream);
     }
     List<Completion> res =
         con.getClient()
-            .executePipeline(
+            .executePipelineAndRemoveFirstResult(
                 packets,
                 this,
                 0,
@@ -335,13 +364,39 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       if (prepareResult == null) {
         prepareResult = con.getContext().getPrepareCache().get(cmd, this);
         if (prepareResult == null) {
-          con.getClient().execute(new PreparePacket(cmd), this, false);
+          ClientMessage[] packets =
+              new ClientMessage[] {
+                new QueryPacket(setTimeoutAndSelectLimit()), new PreparePacket(cmd)
+              };
+          con.getClient()
+              .executePipeline(
+                  packets,
+                  this,
+                  0,
+                  0L,
+                  ResultSet.CONCUR_READ_ONLY,
+                  ResultSet.TYPE_FORWARD_ONLY,
+                  false,
+                  false);
         }
       }
       try {
-        ExecutePacket execute =
-            new ExecutePacket(prepareResult, batchParameter, cmd, this, localInfileInputStream);
-        tmpResults.addAll(con.getClient().execute(execute, this, false));
+        ClientMessage[] packets =
+            new ClientMessage[] {
+              new QueryPacket(setTimeoutAndSelectLimit()),
+              new ExecutePacket(prepareResult, batchParameter, cmd, this, localInfileInputStream)
+            };
+        tmpResults.addAll(
+            con.getClient()
+                .executePipelineAndRemoveFirstResult(
+                    packets,
+                    this,
+                    0,
+                    0L,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.TYPE_FORWARD_ONLY,
+                    false,
+                    false));
       } catch (SQLException e) {
         if (error == null) error = e;
       }

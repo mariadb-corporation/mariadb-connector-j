@@ -259,25 +259,6 @@ public class PreparedStatementTest extends Common {
     }
   }
 
-  @Test
-  public void tryMaybeNotPreparable() throws SQLException {
-    try (Connection con = createCon("useServerPrepStmts")) {
-      try (PreparedStatement prep = con.prepareStatement("CREATE TABLE maybeCreate(id int)")) {
-        prep.execute();
-      }
-    } finally {
-      sharedConn.createStatement().execute("DROP TABLE IF EXISTS maybeCreate");
-    }
-    try (Connection con = createCon("useServerPrepStmts")) {
-      try (PreparedStatement prep =
-          con.prepareStatement("CREATE PROCEDURE maybeProc(IN  I date) BEGIN SELECT I; END")) {
-        prep.execute();
-      }
-    } finally {
-      sharedConn.createStatement().execute("DROP PROCEDURE IF EXISTS maybeProc");
-    }
-  }
-
   private void executeQuery(Connection con) throws SQLException {
     // https://jira.mariadb.org/browse/XPT-282
     Statement stmt = con.createStatement();
@@ -511,56 +492,6 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
-  public void executeLargeBatch() throws SQLException {
-    executeLargeBatch(sharedConn);
-    executeLargeBatch(sharedConnBinary);
-    try (Connection con = createCon("allowLocalInfile=true")) {
-      executeLargeBatch(con);
-    }
-    try (Connection con = createCon("allowLocalInfile=true&useServerPrepStmts=true")) {
-      executeLargeBatch(con);
-    }
-  }
-
-  private void executeLargeBatch(Connection con) throws SQLException {
-    Statement stmt = con.createStatement();
-    stmt.execute("TRUNCATE prepare1");
-    try (PreparedStatement preparedStatement =
-        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
-      preparedStatement.executeLargeBatch();
-      preparedStatement.setInt(1, 5);
-      preparedStatement.setInt(2, 10);
-      preparedStatement.addBatch();
-      preparedStatement.executeLargeBatch();
-      preparedStatement.executeLargeBatch();
-    }
-
-    try (PreparedStatement preparedStatement =
-        con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
-      preparedStatement.setInt(1, 40);
-      preparedStatement.setInt(2, 20);
-      preparedStatement.addBatch();
-      preparedStatement.setInt(1, 127);
-      preparedStatement.setInt(2, 45);
-      preparedStatement.addBatch();
-      preparedStatement.executeLargeBatch();
-    }
-
-    try (PreparedStatement preparedStatement =
-        con.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
-      preparedStatement.setInt(1, 20);
-      ResultSet rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
-      assertEquals(40, rs.getInt(1));
-      assertEquals(20, rs.getInt(2));
-      assertTrue(rs.next());
-      assertEquals(127, rs.getInt(1));
-      assertEquals(45, rs.getInt(2));
-      assertFalse(rs.next());
-    }
-  }
-
-  @Test
   public void executeBatchGenerated() throws SQLException {
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -652,137 +583,6 @@ public class PreparedStatementTest extends Common {
         sharedConnBinary.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
       assertEquals(0, preparedStatement.executeLargeBatch().length);
     }
-  }
-
-  @Test
-  public void moreResults() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
-      moreResults(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts")) {
-      moreResults(con);
-    }
-  }
-
-  private void moreResults(Connection con) throws SQLException {
-    // error MXS-3929 for maxscale 6.2.0
-    Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-
-    Statement stmt = con.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS multi");
-    stmt.setFetchSize(3);
-    stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM sequence_1_to_10;SELECT 2; END");
-    stmt.execute("CALL multi()");
-    Assertions.assertTrue(stmt.getMoreResults());
-    ResultSet rs = stmt.getResultSet();
-    int i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(11, i);
-    stmt.setFetchSize(3);
-    PreparedStatement prep = con.prepareStatement("CALL multi()");
-    rs = prep.executeQuery();
-    Assertions.assertFalse(rs.isClosed());
-    prep.setFetchSize(0); // force more result to load all remaining result-set
-    Assertions.assertTrue(prep.getMoreResults());
-    Assertions.assertTrue(rs.isClosed());
-    rs = prep.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-
-    prep.setFetchSize(3);
-    rs = prep.executeQuery();
-    Assertions.assertFalse(rs.isClosed());
-    prep.setFetchSize(0); // force more result to load all remaining result-set
-    Assertions.assertTrue(prep.getMoreResults(java.sql.Statement.KEEP_CURRENT_RESULT));
-    Assertions.assertFalse(rs.isClosed());
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(11, i);
-    rs = prep.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(11, i);
-
-    rs = prep.executeQuery();
-    prep.close();
-    assertTrue(rs.isClosed());
-  }
-
-  @Test
-  public void moreRowLimitedResults() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false")) {
-      moreRowLimitedResults(con);
-    }
-    try (Connection con = createCon("&useServerPrepStmts")) {
-      moreRowLimitedResults(con);
-    }
-  }
-
-  private void moreRowLimitedResults(Connection con) throws SQLException {
-    // error MXS-3929 for maxscale 6.2.0
-    Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-
-    Statement stmt = con.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS multi");
-    stmt.setFetchSize(3);
-    stmt.setMaxRows(5);
-    stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from prepare4; SELECT * FROM prepare4;SELECT 2; END");
-    stmt.execute("CALL multi()");
-    Assertions.assertTrue(stmt.getMoreResults());
-    ResultSet rs = stmt.getResultSet();
-    int i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(6, i);
-    stmt.setFetchSize(3);
-    PreparedStatement prep = con.prepareStatement("CALL multi()");
-    prep.setMaxRows(20);
-    rs = prep.executeQuery();
-    Assertions.assertFalse(rs.isClosed());
-    prep.setFetchSize(0); // force more result to load all remaining result-set
-    Assertions.assertTrue(prep.getMoreResults());
-    Assertions.assertTrue(rs.isClosed());
-    rs = prep.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-
-    prep.setFetchSize(3);
-    prep.setMaxRows(5);
-    rs = prep.executeQuery();
-    Assertions.assertFalse(rs.isClosed());
-    prep.setFetchSize(0); // force more result to load all remaining result-set
-    Assertions.assertTrue(prep.getMoreResults(java.sql.Statement.KEEP_CURRENT_RESULT));
-    Assertions.assertFalse(rs.isClosed());
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(6, i);
-    rs = prep.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      Assertions.assertEquals(i++, rs.getInt(1));
-    }
-    Assertions.assertEquals(6, i);
-
-    rs = prep.executeQuery();
-    prep.close();
-    assertTrue(rs.isClosed());
   }
 
   @Test
@@ -1148,8 +948,9 @@ public class PreparedStatementTest extends Common {
 
   private void skippingRes(java.sql.Connection con) throws SQLException {
     con.createStatement().execute("TRUNCATE prepare3");
-    String longText = generateLongText(20_000_000);
-    String mediumText = generateLongText(10_000_000);
+    // TiDB max row size is 6_291_456
+    String longText = generateLongText(5_000_000);
+    String mediumText = generateLongText(1_000_000);
     String smallIntText = generateLongText(60_000);
 
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO prepare3 values (?,?,?,?)")) {

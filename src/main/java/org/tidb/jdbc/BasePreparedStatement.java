@@ -39,6 +39,9 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   /** PREPARE command result */
   protected Prepare prepareResult = null;
 
+  /** TiDB defaultMaxRows */
+  protected final String defaultMaxRows = "18446744073709551615";
+
   /**
    * Constructor
    *
@@ -1619,5 +1622,13 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
         x,
         targetSqlType == null ? null : targetSqlType.getVendorTypeNumber(),
         null);
+  }
+
+  protected String setTimeoutAndSelectLimit() {
+    String setParamSQL = "SET max_execution_time=" + queryTimeout;
+    if (canUseServerMaxRows) {
+      setParamSQL += ", sql_select_limit=" + (maxRows == 0 ? defaultMaxRows : maxRows);
+    }
+    return setParamSQL;
   }
 }

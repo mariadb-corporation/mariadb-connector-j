@@ -380,6 +380,30 @@ public class MultiPrimaryClient implements Client {
   }
 
   @Override
+  public List<Completion> executePipelineAndRemoveFirstResult(
+      ClientMessage[] messages,
+      Statement stmt,
+      int fetchSize,
+      long maxRows,
+      int resultSetConcurrency,
+      int resultSetType,
+      boolean closeOnCompletion,
+      boolean canRedo)
+      throws SQLException {
+    List<Completion> result =
+        this.executePipeline(
+            messages,
+            stmt,
+            fetchSize,
+            maxRows,
+            resultSetConcurrency,
+            resultSetType,
+            closeOnCompletion,
+            canRedo);
+    return result.subList(1, result.size());
+  }
+
+  @Override
   public List<Completion> executePipeline(
       ClientMessage[] messages,
       Statement stmt,
