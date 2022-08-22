@@ -16,8 +16,6 @@ import org.tidb.jdbc.util.constants.Capabilities;
  */
 public final class InitialHandshakePacket implements ServerMessage {
 
-  private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
-
   private final long threadId;
   private final byte[] seed;
   private final long capabilities;

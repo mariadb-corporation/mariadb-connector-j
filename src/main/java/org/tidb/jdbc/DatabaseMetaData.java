@@ -1817,11 +1817,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @see java.sql.Connection
    */
   public boolean supportsTransactionIsolationLevel(int level) {
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     switch (level) {
-      case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
       case java.sql.Connection.TRANSACTION_READ_COMMITTED:
       case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
-      case java.sql.Connection.TRANSACTION_SERIALIZABLE:
         return true;
       default:
         return false;

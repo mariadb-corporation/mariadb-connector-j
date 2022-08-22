@@ -74,6 +74,8 @@ public class StandardClient implements Client, AutoCloseable {
   private int socketTimeout;
   private final boolean disablePipeline;
 
+  private String tidbConnectionID;
+
   /** connection context */
   protected Context context;
 
@@ -304,26 +306,13 @@ public class StandardClient implements Client, AutoCloseable {
   private void postConnectionQueries() throws SQLException {
     List<String> commands = new ArrayList<>();
 
-    List<String> galeraAllowedStates =
-        conf.galeraAllowedState() == null
-            ? Collections.emptyList()
-            : Arrays.asList(conf.galeraAllowedState().split(","));
-
-    if (hostAddress != null
-        && Boolean.TRUE.equals(hostAddress.primary)
-        && !galeraAllowedStates.isEmpty()) {
-      commands.add("show status like 'wsrep_local_state'");
-    }
+    // TIDB Connection ID Query
+    // This query mast be first, because it will be read later
+    commands.add("SELECT CONNECTION_ID()");
 
     String serverTz = conf.timezone() != null ? handleTimezone() : null;
     String sessionVariableQuery = createSessionVariableQuery(serverTz);
     if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
-
-    if (hostAddress != null
-        && !hostAddress.primary
-        && context.getVersion().versionGreaterOrEqual(5, 6, 5)) {
-      commands.add("SET SESSION TRANSACTION READ ONLY");
-    }
 
     if (conf.database() != null && conf.createDatabaseIfNotExist()) {
       String escapedDb = conf.database().replace("`", "``");
@@ -337,54 +326,42 @@ public class StandardClient implements Client, AutoCloseable {
 
     if (conf.nonMappedOptions().containsKey("initSql")) {
       String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
-      for (String cmd : initialCommands) {
-        commands.add(cmd);
-      }
+      commands.addAll(Arrays.asList(initialCommands));
     }
 
-    if (!commands.isEmpty()) {
-      try {
-        List<Completion> res;
-        ClientMessage[] msgs = new ClientMessage[commands.size()];
-        for (int i = 0; i < commands.size(); i++) {
-          msgs[i] = new QueryPacket(commands.get(i));
-        }
-        res =
-            executePipeline(
-                msgs,
-                null,
-                0,
-                0L,
-                ResultSet.CONCUR_READ_ONLY,
-                ResultSet.TYPE_FORWARD_ONLY,
-                false,
-                true);
-
-        if (hostAddress != null
-            && Boolean.TRUE.equals(hostAddress.primary)
-            && !galeraAllowedStates.isEmpty()) {
-          ResultSet rs = (ResultSet) res.get(2);
-          rs.next();
-          if (!galeraAllowedStates.contains(rs.getString(2))) {
-            throw exceptionFactory.create(
-                String.format("fail to validate Galera state (State is %s)", rs.getString(2)));
-          }
-          res.remove(0);
-        }
-
-      } catch (SQLException sqlException) {
-
-        if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
-          // timezone is not valid
-          throw exceptionFactory.create(
-              String.format(
-                  "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
-                  conf.timezone()),
-              "HY000",
-              sqlException);
-        }
-        throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
+    try {
+      List<Completion> res;
+      ClientMessage[] msgs = new ClientMessage[commands.size()];
+      for (int i = 0; i < commands.size(); i++) {
+        msgs[i] = new QueryPacket(commands.get(i));
       }
+      res =
+          executePipeline(
+              msgs,
+              null,
+              0,
+              0L,
+              ResultSet.CONCUR_READ_ONLY,
+              ResultSet.TYPE_FORWARD_ONLY,
+              false,
+              true);
+
+      Result connectionIDRow = (Result) res.get(0);
+      connectionIDRow.next();
+      this.tidbConnectionID = connectionIDRow.getString(1);
+
+    } catch (SQLException sqlException) {
+
+      if (conf.timezone() != null && !"disable".equalsIgnoreCase(conf.timezone())) {
+        // timezone is not valid
+        throw exceptionFactory.create(
+            String.format(
+                "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
+                conf.timezone()),
+            "HY000",
+            sqlException);
+      }
+      throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
   }
 
@@ -937,13 +914,7 @@ public class StandardClient implements Client, AutoCloseable {
       logger.debug("aborting connection {}", context.getThreadId());
       if (!lockStatus) {
         // lock not available : query is running
-        // force end by executing an KILL connection
-        try (StandardClient cli =
-            new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
-          cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
-        } catch (SQLException e) {
-          // eat
-        }
+        this.forceClose();
       } else {
         try {
           QuitPacket.INSTANCE.encode(writer, context);
@@ -1008,5 +979,21 @@ public class StandardClient implements Client, AutoCloseable {
   public void reset() {
     context.resetStateFlag();
     context.resetPrepareCache();
+  }
+
+  @Override
+  public void forceClose() {
+    // force end by executing an KILL connection
+    try (StandardClient cli = new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
+      cli.execute(new QueryPacket("KILL TIDB " + this.tidbConnectionID), false);
+    } catch (SQLException e) {
+      // eat "Connection was killed" message
+      // e.printStackTrace();
+    }
+  }
+
+  @Override
+  public String getTiDBConnectionID() {
+    return this.tidbConnectionID;
   }
 }

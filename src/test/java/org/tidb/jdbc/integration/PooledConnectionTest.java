@@ -6,7 +6,6 @@ package org.tidb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.sql.Connection;
@@ -104,63 +103,19 @@ public class PooledConnectionTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
 
-    File tempFile = File.createTempFile("log", ".tmp");
-    //
-    //    Logger logger = (Logger) LoggerFactory.getLogger("org.tidb.jdbc");
-    //    Level initialLevel = logger.getLevel();
-    //    logger.setLevel(Level.TRACE);
-    //    logger.setAdditive(false);
-    //    logger.detachAndStopAllAppenders();
-    //
-    //    LoggerContext context = new LoggerContext();
-    //    FileAppender<ILoggingEvent> fa = new FileAppender<>();
-    //    fa.setName("FILE");
-    //    fa.setImmediateFlush(true);
-    //    PatternLayoutEncoder pa = new PatternLayoutEncoder();
-    //    pa.setPattern("%r %5p %c [%t] - %m%n");
-    //    pa.setContext(context);
-    //    pa.start();
-    //    fa.setEncoder(pa);
-    //
-    //    fa.setFile(tempFile.getPath());
-    //    fa.setAppend(true);
-    //    fa.setContext(context);
-    //    fa.start();
-    //
-    //    logger.addAppender(fa);
-
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
       Thread.sleep(100);
       MariaDbInnerPoolConnection pc = (MariaDbInnerPoolConnection) ds.getPooledConnection();
       org.tidb.jdbc.Connection conn = pc.getConnection();
-      long threadId = conn.getThreadId();
-      try {
-        conn.createStatement().execute("KILL " + threadId);
-      } catch (SQLException e) {
-        // eat "Connection was killed" message
-      }
+      String threadId = conn.getTiDBConnectionID();
+
+      conn.getClient().forceClose();
       pc.close();
       pc = (MariaDbInnerPoolConnection) ds.getPooledConnection();
       conn = pc.getConnection();
-      assertNotEquals(threadId, conn.getThreadId());
+      assertTrue(conn.isClosed());
       pc.close();
-    } finally {
-
-      //      String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      //      assertTrue(
-      //          contents.contains(
-      //              "removed from pool MariaDB-pool due to error during reset (total:0, active:0,
-      // pending:0)"),
-      //          contents);
-      //      assertTrue(contents.contains("pool MariaDB-pool new physical connection created"),
-      // contents);
-      //
-      //      assertTrue(
-      //          contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"),
-      // contents);
-      //      logger.setLevel(initialLevel);
-      //      logger.detachAppender(fa);
     }
   }
 
@@ -178,11 +133,7 @@ public class PooledConnectionTest extends Common {
       Connection connection = pc.getConnection();
 
       /* Ask server to abort the connection */
-      try {
-        connection.createStatement().execute("KILL CONNECTION_ID()");
-      } catch (Exception e) {
-        /* exception is expected here, server sends query aborted */
-      }
+      ((org.tidb.jdbc.Connection) connection).getClient().forceClose();
 
       /* Try to read  after server side closed the connection */
       assertThrows(SQLException.class, () -> connection.createStatement().execute("SELECT 1"));
@@ -204,7 +155,7 @@ public class PooledConnectionTest extends Common {
       con.createStatement().execute("START TRANSACTION ");
 
       Connection con2 = pool.getPoolConnection().getConnection();
-      con2.createStatement().execute("KILL " + con.getThreadId());
+      ((org.tidb.jdbc.Connection) con2).getClient().forceClose();
       con2.close();
       Thread.sleep(10);
       assertThrows(SQLException.class, con::commit);

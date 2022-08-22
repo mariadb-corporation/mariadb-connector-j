@@ -114,7 +114,7 @@ public class ErrorTest extends Common {
         createCon(
             "includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
 
-      conn1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+      conn1.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
       Statement stmt1 = conn1.createStatement();
       try {
         stmt1.execute("SET SESSION idle_transaction_timeout=2");
@@ -128,7 +128,7 @@ public class ErrorTest extends Common {
               "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
 
         Statement stmt2 = conn2.createStatement();
-        conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+        conn2.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         try {
           stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
         } catch (SQLException e) {

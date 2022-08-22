@@ -75,9 +75,9 @@ public class PoolDataSourceTest extends Common {
 
   private void testDs(MariaDbPoolDataSource ds) throws SQLException {
     try (Connection con1 = ds.getConnection()) {
-      long threadId;
+      String threadId;
       try (org.tidb.jdbc.Connection con2 = (org.tidb.jdbc.Connection) ds.getConnection()) {
-        threadId = con2.getThreadId();
+        threadId = con2.getTiDBConnectionID();
         ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
         ResultSet rs2 = con2.createStatement().executeQuery("SELECT 2");
         while (rs1.next()) {
@@ -88,7 +88,7 @@ public class PoolDataSourceTest extends Common {
         }
       }
       try (org.tidb.jdbc.Connection con2 = (org.tidb.jdbc.Connection) ds.getConnection()) {
-        assertEquals(threadId, con2.getThreadId());
+        assertEquals(threadId, con2.getTiDBConnectionID());
       }
     }
 
@@ -106,10 +106,11 @@ public class PoolDataSourceTest extends Common {
       while (rs2.next()) {
         assertEquals(2, rs2.getInt(1));
       }
-      long threadId = ((org.tidb.jdbc.Connection) con2.getConnection()).getThreadId();
+      String threadId = ((org.tidb.jdbc.Connection) con2.getConnection()).getTiDBConnectionID();
       if (con2 != null) con2.getConnection().close();
       con2 = ds.getPooledConnection();
-      assertEquals(threadId, ((org.tidb.jdbc.Connection) con2.getConnection()).getThreadId());
+      assertEquals(
+          threadId, ((org.tidb.jdbc.Connection) con2.getConnection()).getTiDBConnectionID());
     } finally {
       if (con1 != null) con1.getConnection().close();
       if (con2 != null) con2.getConnection().close();
@@ -380,8 +381,8 @@ public class PoolDataSourceTest extends Common {
 
       try (Connection connection = pool.getConnection()) {
         assertEquals(Connection.TRANSACTION_REPEATABLE_READ, connection.getTransactionIsolation());
-        connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-        assertEquals(Connection.TRANSACTION_SERIALIZABLE, connection.getTransactionIsolation());
+        connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, connection.getTransactionIsolation());
       }
 
       try (Connection connection = pool.getConnection()) {
@@ -467,7 +468,7 @@ public class PoolDataSourceTest extends Common {
       ObjectName name = objectNames.iterator().next();
       checkJmxInfo(server, name, 0, 3, 3);
 
-      List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
+      List<String> initialThreadIds = pool.testGetConnectionIdleThreadIds();
       Thread.sleep(200);
 
       // must still have 3 connections, but must be other ones
@@ -688,19 +689,19 @@ public class PoolDataSourceTest extends Common {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
             mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
-      long threadId = 0;
+      String threadId;
       try (Connection conn = pool.getConnection()) {
         conn.isValid(1);
-        threadId = ((org.tidb.jdbc.Connection) conn).getThreadId();
+        threadId = ((org.tidb.jdbc.Connection) conn).getTiDBConnectionID();
       }
 
       try (Connection conn = pool.getConnection(user, password)) {
         conn.isValid(1);
-        assertEquals(threadId, ((org.tidb.jdbc.Connection) conn).getThreadId());
+        assertEquals(threadId, ((org.tidb.jdbc.Connection) conn).getTiDBConnectionID());
       }
       try (Connection conn = pool.getConnection("poolUser", "!Passw0rd3Works")) {
         conn.isValid(1);
-        assertNotEquals(threadId, ((org.tidb.jdbc.Connection) conn).getThreadId());
+        assertNotEquals(threadId, ((org.tidb.jdbc.Connection) conn).getTiDBConnectionID());
       }
     }
   }

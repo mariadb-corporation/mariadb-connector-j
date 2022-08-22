@@ -43,9 +43,10 @@ For a Getting started guide, API docs, recipes, etc. see here:
 
 ## Roadmap
 
-- [ ] Remove codes and test cases about `procedures`.
-- [ ] Remove codes and test cases about `geometry`.
+- [x] Remove codes and test cases about `procedures`.
+- [x] Remove codes and test cases about `geometry`.
 - [x] Remove codes and test cases about `MariaDB Xpand`.
+- [x] Remove codes and test cases about `READ_UNCOMMITTED` / `SERIALIZABLE` transaction isolation. 
 - [x] Repair `major`, `minor`, `patch` version get logic.
 - [ ] Build CI for TiDB.
 - [ ] Support close connection for TiDB (Use `KILL TIDB xxx` statement).

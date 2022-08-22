@@ -266,28 +266,26 @@ public class MultiPrimaryClient implements Client {
       currentClient.setSocketTimeout(oldCli.getSocketTimeout());
     }
 
+    // TiDB not support READ ONLY
+    /*
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_READ_ONLY) > 0
         && !currentClient.getHostAddress().primary
         && currentClient.getContext().getVersion().versionGreaterOrEqual(5, 6, 5)) {
       currentClient.execute(new QueryPacket("SET SESSION TRANSACTION READ ONLY"), true);
     }
+    */
 
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
         && currentClient.getContext().getTransactionIsolationLevel()
             != oldCtx.getTransactionIsolationLevel()) {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (oldCtx.getTransactionIsolationLevel()) {
-        case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
-          query += " READ UNCOMMITTED";
-          break;
         case java.sql.Connection.TRANSACTION_READ_COMMITTED:
           query += " READ COMMITTED";
           break;
         case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
           query += " REPEATABLE READ";
-          break;
-        case java.sql.Connection.TRANSACTION_SERIALIZABLE:
-          query += " SERIALIZABLE";
           break;
       }
       currentClient
@@ -566,5 +564,15 @@ public class MultiPrimaryClient implements Client {
   public void reset() {
     currentClient.getContext().resetStateFlag();
     currentClient.getContext().resetPrepareCache();
+  }
+
+  @Override
+  public void forceClose() {
+    currentClient.forceClose();
+  }
+
+  @Override
+  public String getTiDBConnectionID() {
+    return currentClient.getTiDBConnectionID();
   }
 }

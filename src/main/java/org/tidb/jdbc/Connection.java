@@ -13,7 +13,6 @@ import java.util.regex.Pattern;
 import javax.sql.ConnectionEvent;
 import org.tidb.jdbc.client.Client;
 import org.tidb.jdbc.client.Context;
-import org.tidb.jdbc.client.impl.StandardClient;
 import org.tidb.jdbc.export.ExceptionFactory;
 import org.tidb.jdbc.message.client.ChangeDbPacket;
 import org.tidb.jdbc.message.client.PingPacket;
@@ -86,10 +85,7 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli =
-        new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
-      cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
-    }
+    client.forceClose();
   }
 
   @Override
@@ -323,7 +319,7 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public int getTransactionIsolation() throws SQLException {
-
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     String sql = "SELECT @@tx_isolation";
     ResultSet rs = createStatement().executeQuery(sql);
     if (rs.next()) {
@@ -332,14 +328,8 @@ public class Connection implements java.sql.Connection {
         case "REPEATABLE-READ":
           return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 
-        case "READ-UNCOMMITTED":
-          return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
-
         case "READ-COMMITTED":
           return java.sql.Connection.TRANSACTION_READ_COMMITTED;
-
-        case "SERIALIZABLE":
-          return java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
         default:
           throw exceptionFactory.create(
@@ -352,11 +342,11 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setTransactionIsolation(int level) throws SQLException {
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
     switch (level) {
       case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
-        query += " READ UNCOMMITTED";
-        break;
+        throw new SQLException("TiDB Not support READ_UNCOMMITTED transaction isolation level");
       case java.sql.Connection.TRANSACTION_READ_COMMITTED:
         query += " READ COMMITTED";
         break;
@@ -364,8 +354,7 @@ public class Connection implements java.sql.Connection {
         query += " REPEATABLE READ";
         break;
       case java.sql.Connection.TRANSACTION_SERIALIZABLE:
-        query += " SERIALIZABLE";
-        break;
+        throw new SQLException("TiDB Not support SERIALIZABLE transaction isolation level");
       default:
         throw new SQLException("Unsupported transaction isolation level");
     }
@@ -845,12 +834,12 @@ public class Connection implements java.sql.Connection {
   }
 
   /**
-   * Current server thread id.
+   * Current TiDB connection id.
    *
-   * @return current server thread id
+   * @return current TiDB connection id.
    */
-  public long getThreadId() {
-    return client.getContext().getThreadId();
+  public String getTiDBConnectionID() {
+    return client.getTiDBConnectionID();
   }
 
   /**

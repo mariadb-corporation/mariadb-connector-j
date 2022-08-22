@@ -177,7 +177,7 @@ public class Pool implements AutoCloseable, PoolMBean {
           logger.debug(
               "pool {} connection {} removed due to inactivity (total:{}, active:{}, pending:{})",
               poolTag,
-              con.getThreadId(),
+              con.getTiDBConnectionID(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -217,7 +217,7 @@ public class Pool implements AutoCloseable, PoolMBean {
                 silentCloseConnection(item.getConnection());
                 logger.debug(
                     "connection {} removed from pool {} due to error during reset (total:{}, active:{}, pending:{})",
-                    item.getConnection().getThreadId(),
+                    item.getConnection().getTiDBConnectionID(),
                     poolTag,
                     totalConnection.get(),
                     getActiveConnections(),
@@ -249,7 +249,7 @@ public class Pool implements AutoCloseable, PoolMBean {
             addConnectionRequest();
             logger.debug(
                 "connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",
-                item.getConnection().getThreadId(),
+                item.getConnection().getTiDBConnectionID(),
                 poolTag,
                 totalConnection.get(),
                 getActiveConnections(),
@@ -264,7 +264,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         logger.debug(
             "pool {} new physical connection {} created (total:{}, active:{}, pending:{})",
             poolTag,
-            connection.getThreadId(),
+            connection.getTiDBConnectionID(),
             totalConnection.get(),
             getActiveConnections(),
             pendingRequestNumber.get());
@@ -318,7 +318,7 @@ public class Pool implements AutoCloseable, PoolMBean {
           logger.debug(
               "pool {} connection {} removed from pool due to failed validation (total:{}, active:{}, pending:{})",
               poolTag,
-              item.getConnection().getThreadId(),
+              item.getConnection().getTiDBConnectionID(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -556,10 +556,10 @@ public class Pool implements AutoCloseable, PoolMBean {
    *
    * @return current thread id's
    */
-  public List<Long> testGetConnectionIdleThreadIds() {
-    List<Long> threadIds = new ArrayList<>();
+  public List<String> testGetConnectionIdleThreadIds() {
+    List<String> threadIds = new ArrayList<>();
     for (MariaDbInnerPoolConnection pooledConnection : idleConnections) {
-      threadIds.add(pooledConnection.getConnection().getThreadId());
+      threadIds.add(pooledConnection.getConnection().getTiDBConnectionID());
     }
     return threadIds;
   }

@@ -66,7 +66,7 @@ public class ConfigurationTest extends Common {
       ResultSet rs =
           stmt.executeQuery(
               "SELECT * from performance_schema.session_connect_attrs where processlist_id="
-                  + conn.getThreadId()
+                  + conn.getTiDBConnectionID()
                   + " AND ATTR_NAME like 'test%'");
       assertTrue(rs.next());
       assertEquals("test1", rs.getString("ATTR_VALUE"));

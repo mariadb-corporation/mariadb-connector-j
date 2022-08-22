@@ -1993,10 +1993,11 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0, meta.getMaxUserNameLength());
     assertEquals(Connection.TRANSACTION_REPEATABLE_READ, meta.getDefaultTransactionIsolation());
     assertTrue(meta.supportsTransactions());
-    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_UNCOMMITTED));
     assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_READ_COMMITTED));
     assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_REPEATABLE_READ));
-    assertTrue(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
+    assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_SERIALIZABLE));
     assertFalse(meta.supportsTransactionIsolationLevel(Connection.TRANSACTION_NONE));
     assertTrue(meta.supportsDataDefinitionAndDataManipulationTransactions());
     assertFalse(meta.supportsDataManipulationTransactionsOnly());

@@ -31,19 +31,19 @@ public class MultiHostTest extends Common {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
-      long primaryThreadId = con.getThreadId();
+      String primaryThreadId = con.getTiDBConnectionID();
       con.setReadOnly(true);
-      long replicaThreadId = con.getThreadId();
-      assertTrue(primaryThreadId != replicaThreadId);
+      String replicaThreadId = con.getTiDBConnectionID();
+      assertNotEquals(primaryThreadId, replicaThreadId);
 
       con.setReadOnly(false);
-      assertEquals(primaryThreadId, con.getThreadId());
+      assertEquals(primaryThreadId, con.getTiDBConnectionID());
       con.setReadOnly(true);
-      assertEquals(replicaThreadId, con.getThreadId());
+      assertEquals(replicaThreadId, con.getTiDBConnectionID());
       proxy.restart(250);
 
       con.isValid(1);
-      assertEquals(primaryThreadId, con.getThreadId());
+      assertEquals(primaryThreadId, con.getTiDBConnectionID());
     }
   }
 
@@ -74,19 +74,11 @@ public class MultiHostTest extends Common {
       Statement stmt = con.createStatement();
       stmt.execute("CREATE DATABASE IF NOT EXISTS sync");
       con.setCatalog("sync");
-      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_SERIALIZABLE);
-      con.setReadOnly(true);
       assertEquals("sync", con.getCatalog());
-      assertEquals(java.sql.Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
-      con.setReadOnly(true);
       con.setReadOnly(false);
-      assertEquals(java.sql.Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
       con.setTransactionIsolation(java.sql.Connection.TRANSACTION_READ_COMMITTED);
       con.setReadOnly(true);
       assertEquals(java.sql.Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
-      con.setTransactionIsolation(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED);
-      con.setReadOnly(false);
-      assertEquals(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       con.setTransactionIsolation(java.sql.Connection.TRANSACTION_REPEATABLE_READ);
       con.setReadOnly(true);
       assertEquals(java.sql.Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
@@ -332,7 +324,7 @@ public class MultiHostTest extends Common {
             DriverManager.getConnection(
                 url
                     + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
-    long threadId = con.getThreadId();
+    String threadId = con.getTiDBConnectionID();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
     ResultSet rs =
@@ -345,7 +337,7 @@ public class MultiHostTest extends Common {
         SQLException.class,
         () -> stmt2.executeQuery("SELECT * from sequence_1_to_10"),
         "Socket error during result streaming");
-    assertNotEquals(threadId, con.getThreadId());
+    assertNotEquals(threadId, con.getTiDBConnectionID());
 
     // additional small test
     assertEquals(0, con.getNetworkTimeout());
@@ -462,7 +454,7 @@ public class MultiHostTest extends Common {
             DriverManager.getConnection(
                 url
                     + "&allowMultiQueries&transactionReplay=true&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=40&connectTimeout=500&useReadAheadInput=false");
-    long threadId = con.getThreadId();
+    String threadId = con.getTiDBConnectionID();
     Statement stmt = con.createStatement();
     stmt.setFetchSize(2);
     ResultSet rs =
@@ -475,7 +467,7 @@ public class MultiHostTest extends Common {
         SQLException.class,
         () -> stmt2.executeQuery("SELECT * from sequence_1_to_10"),
         "Socket error during result streaming");
-    assertNotEquals(threadId, con.getThreadId());
+    assertNotEquals(threadId, con.getTiDBConnectionID());
 
     // additional small test
     assertEquals(0, con.getNetworkTimeout());

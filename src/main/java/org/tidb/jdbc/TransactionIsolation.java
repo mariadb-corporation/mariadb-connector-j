@@ -8,6 +8,8 @@ import java.sql.Connection;
 
 /** Transaction isolation enumeration */
 public enum TransactionIsolation {
+  // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
+
   /**
    * dirty reads and non-repeatable reads are prevented; phantom reads can occur. This level
    * prohibits a transaction from reading a row with uncommitted changes in it, and it also
@@ -20,14 +22,14 @@ public enum TransactionIsolation {
    * dirty reads are prevented; non-repeatable reads and phantom reads can occur. This level only
    * prohibits a transaction from reading a row with uncommitted changes in it.
    */
-  READ_COMMITTED("READ-COMMITTED", Connection.TRANSACTION_READ_COMMITTED),
+  READ_COMMITTED("READ-COMMITTED", Connection.TRANSACTION_READ_COMMITTED);
   /**
    * dirty reads, non-repeatable reads and phantom reads can occur. This level allows a row changed
    * by one transaction to be read by another transaction before any changes in that row have been
    * committed (a "dirty read"). If any of the changes are rolled back, the second transaction will
    * have retrieved an invalid row.
    */
-  READ_UNCOMMITTED("READ-UNCOMMITTED", Connection.TRANSACTION_READ_UNCOMMITTED),
+  // READ_UNCOMMITTED("READ-UNCOMMITTED", Connection.TRANSACTION_READ_UNCOMMITTED),
   /**
    * dirty reads, non-repeatable reads and phantom reads are prevented. This level includes the
    * prohibitions in TRANSACTION_REPEATABLE_READ and further prohibits the situation where one
@@ -35,9 +37,10 @@ public enum TransactionIsolation {
    * that satisfies that WHERE condition, and the first transaction rereads for the same condition,
    * retrieving the additional "phantom" row in the second read.
    */
-  SERIALIZABLE("SERIALIZABLE", Connection.TRANSACTION_SERIALIZABLE);
+  // SERIALIZABLE("SERIALIZABLE", Connection.TRANSACTION_SERIALIZABLE);
 
   private final String value;
+
   private final int level;
 
   TransactionIsolation(String value, int level) {

@@ -202,4 +202,8 @@ public interface Client extends AutoCloseable {
    * @return connection host
    */
   HostAddress getHostAddress();
+
+  void forceClose();
+
+  String getTiDBConnectionID();
 }

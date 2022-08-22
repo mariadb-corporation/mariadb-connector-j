@@ -209,41 +209,7 @@ public class ConnectionTest extends Common {
 
   @Test
   public void nativeSqlTest() throws SQLException {
-    String exp;
-    //    if (isMariaDBServer() || minVersion(8, 0, 17)) {
-    //      exp =
-    //          "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
-    //              + ", convert(convert(?, CHAR), SIGNED INTEGER)"
-    //              + ", 1=?"
-    //              + ", 1=?"
-    //              + ", convert(?,   SIGNED INTEGER   )"
-    //              + ",  convert (?,   SIGNED INTEGER   )"
-    //              + ", convert(?, UNSIGNED INTEGER)"
-    //              + ", convert(?, BINARY)"
-    //              + ", convert(?, BINARY)"
-    //              + ", convert(?, BINARY)"
-    //              + ", convert(?, BINARY)"
-    //              + ", convert(?, BINARY)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, CHAR)"
-    //              + ", convert(?, DOUBLE)"
-    //              + ", convert(?, DOUBLE)"
-    //              + ", convert(?, DECIMAL)"
-    //              + ", convert(?, DECIMAL)"
-    //              + ", convert(?, DECIMAL)"
-    //              + ", convert(?, DATETIME)"
-    //              + ", convert(?, DATETIME)";
-    //    } else {
-    exp =
+    String exp =
         "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
             + ", convert(convert(?, CHAR), SIGNED INTEGER)"
             + ", 1=?"
@@ -267,14 +233,13 @@ public class ConnectionTest extends Common {
             + ", convert(?, CHAR)"
             + ", convert(?, CHAR)"
             + ", convert(?, CHAR)"
-            + ", 0.0+?"
-            + ", 0.0+?"
+            + ", convert(?, DOUBLE)"
+            + ", convert(?, DOUBLE)"
             + ", convert(?, DECIMAL)"
             + ", convert(?, DECIMAL)"
             + ", convert(?, DECIMAL)"
             + ", convert(?, DATETIME)"
             + ", convert(?, DATETIME)";
-    //    }
 
     assertEquals(
         exp,
@@ -503,12 +468,11 @@ public class ConnectionTest extends Common {
 
   @Test
   public void isolationLevel() throws SQLException {
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     java.sql.Connection connection = createCon();
     int[] levels =
         new int[] {
-          java.sql.Connection.TRANSACTION_READ_UNCOMMITTED,
           java.sql.Connection.TRANSACTION_READ_COMMITTED,
-          java.sql.Connection.TRANSACTION_SERIALIZABLE,
           java.sql.Connection.TRANSACTION_REPEATABLE_READ
         };
     for (int level : levels) {
@@ -679,12 +643,9 @@ public class ConnectionTest extends Common {
         try (java.sql.Statement st = sharedConn.createStatement()) {
           st.executeUpdate("delete from tx_prim_key where id = 32");
           sharedConn.commit();
-          fail("Expected SQLException");
+          // TiDB not support FK
+          // fail("Expected SQLException");
         } catch (SQLException e) {
-          // This exception is expected
-          assertTrue(
-              e.getMessage().contains("a foreign key constraint fails")
-                  || e.getMessage().contains("Foreign key constraint violation"));
           sharedConn.rollback();
         }
 

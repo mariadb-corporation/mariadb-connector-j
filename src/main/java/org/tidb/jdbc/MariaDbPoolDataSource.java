@@ -302,7 +302,7 @@ public class MariaDbPoolDataSource
    *
    * @return current thread id's
    */
-  public List<Long> testGetConnectionIdleThreadIds() {
+  public List<String> testGetConnectionIdleThreadIds() {
     return (pool != null) ? pool.testGetConnectionIdleThreadIds() : null;
   }
 }

@@ -168,6 +168,7 @@ public class ConfigurationTest {
 
   @Test
   public void testConfigurationIsolation() throws Throwable {
+    // TiDB Not support READ_UNCOMMITTED and SERIALIZABLE transaction isolation level
     Configuration conf =
         Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=REPEATABLE-READ");
     assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
@@ -182,13 +183,6 @@ public class ConfigurationTest {
     conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=readCommitted");
     assertTrue(TransactionIsolation.READ_COMMITTED == conf.transactionIsolation());
 
-    conf =
-        Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=READ-UNCOMMITTED");
-    assertTrue(TransactionIsolation.READ_UNCOMMITTED == conf.transactionIsolation());
-
-    conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=SERIALIZABLE");
-    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
-
     try {
       Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=wrong_val");
       Assertions.fail();
@@ -199,11 +193,6 @@ public class ConfigurationTest {
 
     Assertions.assertNull(
         Configuration.parse("jdbc:mysql://localhost/test?transactionIsolation=wrong_val"));
-
-    conf =
-        Configuration.parse(
-            "jdbc:mysql://localhost/test?transactionIsolation=SERIALIZABLE&permitMysqlScheme");
-    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
   }
 
   @Test

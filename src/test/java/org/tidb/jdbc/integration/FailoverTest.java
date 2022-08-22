@@ -23,7 +23,7 @@ public class FailoverTest extends Common {
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
       con.setNetworkTimeout(Runnable::run, 200);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
       Statement stmt = con.createStatement();
       proxy.restart(200);
       assertThrowsContains(
@@ -31,7 +31,7 @@ public class FailoverTest extends Common {
           () -> stmt.execute("SELECT 1"),
           "Driver has reconnect connection after a communications link failure");
       ;
-      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+      Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
     }
   }
 
@@ -41,12 +41,12 @@ public class FailoverTest extends Common {
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createProxyCon(HaMode.SEQUENTIAL, "")) {
       con.setNetworkTimeout(Runnable::run, 200);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
       Statement stmt = con.createStatement();
       proxy.restart(200);
 
       con.isValid(1000);
-      Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+      Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
     }
   }
 
@@ -69,10 +69,10 @@ public class FailoverTest extends Common {
     try (Connection con =
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
-      con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+      con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
       final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
@@ -89,9 +89,9 @@ public class FailoverTest extends Common {
           assertEquals("test" + i, rs.getString("test"));
         }
         con.commit();
-        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
         assertFalse(con.getAutoCommit());
-        assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
             SQLTransientConnectionException.class,
@@ -120,10 +120,10 @@ public class FailoverTest extends Common {
     try (Connection con =
         createProxyCon(HaMode.SEQUENTIAL, "&transactionReplay=" + transactionReplay)) {
       assertEquals(Connection.TRANSACTION_REPEATABLE_READ, con.getTransactionIsolation());
-      con.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
+      con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
       final Statement stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
 
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test0')");
       con.setAutoCommit(false);
@@ -142,9 +142,9 @@ public class FailoverTest extends Common {
           assertEquals("test" + i, rs.getString("test"));
         }
 
-        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
         assertFalse(con.getAutoCommit());
-        assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
+        assertEquals(Connection.TRANSACTION_READ_COMMITTED, con.getTransactionIsolation());
       } else {
         assertThrowsContains(
             SQLTransientConnectionException.class, con::commit, "during a COMMIT statement");
@@ -177,7 +177,7 @@ public class FailoverTest extends Common {
             "&useServerPrepStmts=" + binary + "&transactionReplay=" + transactionReplay)) {
       stmt = con.createStatement();
       con.setNetworkTimeout(Runnable::run, 200);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
 
       stmt.executeUpdate("INSERT INTO transaction_failover_3 (test) VALUES ('test0')");
       con.setAutoCommit(false);
@@ -209,7 +209,7 @@ public class FailoverTest extends Common {
           assertEquals("test" + i, rs.getString("test"));
         }
         con.commit();
-        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
         assertFalse(con.getAutoCommit());
       }
     }
@@ -245,14 +245,14 @@ public class FailoverTest extends Common {
                 + "&transactionReplay="
                 + transactionReplay)) {
       con.setNetworkTimeout(Runnable::run, 500);
-      long threadId = con.getContext().getThreadId();
+      String threadId = con.getClient().getTiDBConnectionID();
       execute(con, transactionReplay, threadId);
-      threadId = con.getContext().getThreadId();
+      threadId = con.getClient().getTiDBConnectionID();
       execute(con, transactionReplay, threadId);
     }
   }
 
-  private void execute(Connection con, boolean transactionReplay, long threadId)
+  private void execute(Connection con, boolean transactionReplay, String threadId)
       throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -285,7 +285,7 @@ public class FailoverTest extends Common {
           assertEquals("test" + i, rs.getString("test"));
         }
         con.commit();
-        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
         assertFalse(con.getAutoCommit());
       } else {
         try {
@@ -324,7 +324,7 @@ public class FailoverTest extends Common {
           assertEquals("test" + i, rs.getString("test"));
         }
         con.commit();
-        Assertions.assertTrue(con.getContext().getThreadId() != threadId);
+        Assertions.assertTrue(con.getClient().getTiDBConnectionID() != threadId);
         assertFalse(con.getAutoCommit());
       } else {
         try {
