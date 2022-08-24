@@ -20,11 +20,17 @@ import org.tidb.jdbc.client.ReadableByteBuf;
 import org.tidb.jdbc.client.socket.Writer;
 import org.tidb.jdbc.plugin.Codec;
 
-/** Time codec */
+/**
+ * Time codec
+ * HACK !!!!!!
+ * TiDB support TIME type binary sucks
+ * It will emerge error, so save binary TIME type to TIMESTAMP type
+ * */
 public class TimeCodec implements Codec<Time> {
 
   /** default instance */
   public static final TimeCodec INSTANCE = new TimeCodec();
+
 
   private static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -46,8 +52,8 @@ public class TimeCodec implements Codec<Time> {
 
   public boolean canDecode(Column column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
-        && type.isAssignableFrom(Time.class)
-        && !type.equals(java.util.Date.class);
+            && type.isAssignableFrom(Time.class)
+            && !type.equals(java.util.Date.class);
   }
 
   public boolean canEncode(Object value) {
@@ -233,25 +239,27 @@ public class TimeCodec implements Codec<Time> {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     cal.setTime((Time) value);
     cal.set(Calendar.DAY_OF_MONTH, 1);
-    if (cal.get(Calendar.MILLISECOND) > 0) {
-      encoder.writeByte((byte) 12);
-      encoder.writeByte((byte) 0);
-      encoder.writeInt(0);
-      encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte((byte) cal.get(Calendar.MINUTE));
-      encoder.writeByte((byte) cal.get(Calendar.SECOND));
-      encoder.writeInt(cal.get(Calendar.MILLISECOND) * 1000);
+    if (cal.get(Calendar.MILLISECOND) == 0) {
+      encoder.writeByte(7); // length
+      encoder.writeShort((short) cal.get(Calendar.YEAR));
+      encoder.writeByte((cal.get(Calendar.MONTH) + 1));
+      encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
+      encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
+      encoder.writeByte(cal.get(Calendar.MINUTE));
+      encoder.writeByte(cal.get(Calendar.SECOND));
     } else {
-      encoder.writeByte((byte) 8); // length
-      encoder.writeByte((byte) 0);
-      encoder.writeInt(0);
-      encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte((byte) cal.get(Calendar.MINUTE));
-      encoder.writeByte((byte) cal.get(Calendar.SECOND));
+      encoder.writeByte(11); // length
+      encoder.writeShort((short) cal.get(Calendar.YEAR));
+      encoder.writeByte((cal.get(Calendar.MONTH) + 1));
+      encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
+      encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
+      encoder.writeByte(cal.get(Calendar.MINUTE));
+      encoder.writeByte(cal.get(Calendar.SECOND));
+      encoder.writeInt(cal.get(Calendar.MILLISECOND) * 1000);
     }
   }
 
   public int getBinaryEncodeType() {
-    return DataType.TIME.get();
+    return DataType.TIMESTAMP.get();
   }
 }

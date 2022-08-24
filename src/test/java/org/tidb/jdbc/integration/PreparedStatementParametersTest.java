@@ -154,7 +154,7 @@ public class PreparedStatementParametersTest extends Common {
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
         rs ->
-            assertEquals(minus ? 1263164400000L : 1263254400000L, rs.getDate(1, utcCal).getTime()),
+            assertEquals(minus ? 1263139200000L: 1263164400000L, rs.getDate(1, utcCal).getTime()),
         con);
     checkSendTimestamp(
         ps -> ps.setDate(1, Date.valueOf("2010-01-12"), utcCal),
@@ -165,6 +165,7 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals(Date.valueOf("2010-05-25").getTime(), rs.getDate(1).getTime()),
         con);
     if (text) {
+      // TiDB discerned timestamp and datetime in error log
       assertThrowsContains(
           SQLException.class,
           () ->
@@ -174,7 +175,7 @@ public class PreparedStatementParametersTest extends Common {
                       assertEquals(
                           Time.valueOf("18:16:01").getTime() + 123, rs.getTime(1).getTime()),
                   con),
-          "Incorrect datetime value: '18:16:01.123'");
+          "Incorrect timestamp value: '18:16:01.123'");
     } else {
       checkSendTimestamp(
           ps -> ps.setTime(1, new Time(Time.valueOf("18:16:01").getTime() + 123)),
@@ -433,9 +434,10 @@ public class PreparedStatementParametersTest extends Common {
 
   @Test
   public void bigSend() throws SQLException {
+    // TiDB max entry size is 6291456
     int maxAllowedPacket = getMaxAllowedPacket();
-    Assumptions.assumeTrue(maxAllowedPacket > 21 * 1024 * 1024);
-    char[] arr = new char[20 * 1024 * 1024];
+    Assumptions.assumeTrue(maxAllowedPacket > 600 * 1024);
+    char[] arr = new char[500 * 1024];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
@@ -463,27 +465,7 @@ public class PreparedStatementParametersTest extends Common {
     con.commit();
   }
 
-  @Test
-  public void bigSendError() throws SQLException {
-    int maxAllowedPacket = getMaxAllowedPacket();
-    Assumptions.assumeTrue(maxAllowedPacket < 32 * 1024 * 1024);
-    char[] arr = new char[maxAllowedPacket];
-    for (int pos = 0; pos < arr.length; pos++) {
-      arr[pos] = (char) ('A' + (pos % 60));
-    }
-    boolean expectClosed = maxAllowedPacket >= 16 * 1024 * 1024;
-    String st = new String(arr);
-    try (Connection con = createCon("maxAllowedPacket=" + maxAllowedPacket)) {
-      bigSendError(con, st, expectClosed);
-    }
-    try (Connection con =
-        createCon("useServerPrepStmts=true&maxAllowedPacket=" + maxAllowedPacket)) {
-      bigSendError(con, st, expectClosed);
-    }
-    try (Connection con = createCon("transactionReplay&maxAllowedPacket=" + maxAllowedPacket)) {
-      bigSendError(con, st, expectClosed);
-    }
-  }
+  // TiDB not support maxAllowedPacket, delete `bigSendError`
 
   public void bigSendError(Connection con, String st, boolean expectClose) throws SQLException {
     Statement stmt = con.createStatement();
@@ -501,6 +483,7 @@ public class PreparedStatementParametersTest extends Common {
     if (!con.isClosed()) con.commit();
   }
 
+  // maxAllowedPacket not support
   @Test
   public void bigSendErrorMax() throws SQLException {
     Assumptions.assumeTrue(
@@ -536,7 +519,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.setInt(1, 1);
       prep.setString(2, st);
       assertThrowsContains(
-          SQLNonTransientConnectionException.class,
+          BatchUpdateException.class,
           prep::execute,
           "Packet too big for current server max_allowed_packet value");
       assertEquals(expectClose, con.isClosed());

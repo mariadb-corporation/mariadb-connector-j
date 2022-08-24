@@ -55,3 +55,7 @@ Java 8 以上 :
 - [ ] 支持 TiDB 的 [乐观事务和悲观事务](https://docs.pingcap.com/zh/tidb/stable/dev-guide-optimistic-and-pessimistic-transaction)。
 - [ ] 支持 TiDB 的 [Follower Read](https://docs.pingcap.com/zh/tidb/stable/dev-guide-use-follower-read)。
 - [ ] 支持 TiDB 的 [Stale Read](https://docs.pingcap.com/tidb/stable/dev-guide-use-stale-read)。
+
+## 不支持的 JDBC 配置
+
+- `maxAllowedPacket`: TiDB 的 `max_allowed_packet` 仅为全局，session 级别不可更改。

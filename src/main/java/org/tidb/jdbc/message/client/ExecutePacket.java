@@ -116,6 +116,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
       // send not null parameter, not long data
       for (int i = 0; i < parameterCount; i++) {
         Parameter p = parameters.get(i);
+        // Hack!! TiDB time not support very well, trans TIME to TIMESTAMP
         if (!p.isNull() && !p.canEncodeLongData()) {
           p.encodeBinary(writer);
         }
