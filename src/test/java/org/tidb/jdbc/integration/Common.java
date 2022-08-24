@@ -162,9 +162,7 @@ public class Common {
 
     String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
     if (mode != HaMode.NONE) {
-      url =
-          url.replaceAll(
-              "jdbc:tidb:", "jdbc:tidb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
+      url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
     }
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");

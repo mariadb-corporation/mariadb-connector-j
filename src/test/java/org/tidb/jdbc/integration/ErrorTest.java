@@ -7,6 +7,9 @@ package org.tidb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -64,85 +67,52 @@ public class ErrorTest extends Common {
     }
   }
 
-  @Test
-  public void testPre41ErrorFormat() throws Exception {
-    testPre41ErrorFormat(sharedConn);
-    try (Connection con =
-        createCon("dumpQueriesOnException&includeInnodbStatusInDeadlockExceptions")) {
-      testPre41ErrorFormat(con);
+  // TiDB not restrict connection number, remove testPre41ErrorFormat
+
+  private void deadlockRunner(CountDownLatch waitDone, CyclicBarrier waitForSelect, boolean lockZeroFirst, AtomicInteger successNum) {
+    final String select0 = "SELECT * FROM deadlock WHERE a=0 FOR UPDATE";
+    final String select1 = "SELECT * FROM deadlock WHERE a=1 FOR UPDATE";
+
+    Connection conn = null;
+
+    try {
+      conn = createCon();
+      conn.setAutoCommit(false);
+      conn.createStatement().execute("START TRANSACTION");
+      conn.createStatement().execute(lockZeroFirst ? select0 : select1);
+      waitForSelect.await(5, TimeUnit.SECONDS);
+      conn.createStatement().execute(lockZeroFirst ? select1 : select0);
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getMessage().contains("Deadlock found when trying to get lock; try restarting transaction"));
+      successNum.getAndIncrement();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    } finally {
+      if (conn != null) {
+        try {
+          conn.close();
+        } catch (SQLException e) {
+          // eat
+        }
+      }
+
+      waitDone.countDown();
     }
   }
 
-  private void testPre41ErrorFormat(Connection con) throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv"))
-            && !"skysql".equals(System.getenv("srv"))
-            && !"skysql-ha".equals(System.getenv("srv")));
-    SQLException exception = null;
-    int max_connections;
-    Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT @@max_connections");
-    rs.next();
-    max_connections = rs.getInt(1);
-    Assumptions.assumeTrue(max_connections < 1000);
-    Connection[] cons = new Connection[max_connections];
-    for (int i = 0; i < max_connections; i++) {
-      try {
-        cons[i] = createCon();
-      } catch (SQLException sqle) {
-        exception = sqle;
-      }
-    }
-
-    for (int i = 0; i < max_connections; i++) {
-      try {
-        if (cons[i] != null) cons[i].close();
-      } catch (SQLException sqle) {
-        // eat
-      }
-    }
-    assertNotNull(exception);
-    assertTrue(exception.getMessage().contains("Too many"));
-  }
-
   @Test
-  public void deadLockInformation() throws SQLException {
+  public void deadLockInformation() throws SQLException, InterruptedException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("insert into deadlock(a) values(0), (1)");
 
-    try (Connection conn1 =
-        createCon(
-            "includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
+    AtomicInteger successNum = new AtomicInteger(0);
+    CyclicBarrier waitForSelect = new CyclicBarrier(2);
+    CountDownLatch waitDone = new CountDownLatch(2);
+    ExecutorService twoThreadPool = Executors.newFixedThreadPool(2);
+    twoThreadPool.execute(() -> deadlockRunner(waitDone, waitForSelect, true, successNum));
+    twoThreadPool.execute(() -> deadlockRunner(waitDone, waitForSelect, false, successNum));
+    waitDone.await(5, TimeUnit.SECONDS);
 
-      conn1.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-      Statement stmt1 = conn1.createStatement();
-      try {
-        stmt1.execute("SET SESSION idle_transaction_timeout=2");
-      } catch (SQLException e) {
-        // eat ( for mariadb >= 10.3)
-      }
-      stmt.execute("start transaction");
-      stmt.execute("update deadlock set a = 2 where a <> 0");
-      try (Connection conn2 =
-          createCon(
-              "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
-
-        Statement stmt2 = conn2.createStatement();
-        conn2.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-        try {
-          stmt2.execute("SET SESSION idle_transaction_timeout=2, innodb_lock_wait_timeout=2");
-        } catch (SQLException e) {
-          // eat ( for mariadb >= 10.3)
-        }
-        stmt2.execute("start transaction");
-        try {
-          stmt2.execute("update deadlock set a = 3 where a <> 1");
-          fail("Must have thrown deadlock exception");
-        } catch (SQLException sqle) {
-          assertTrue(sqle.getMessage().contains("current threads:"));
-          assertTrue(sqle.getMessage().contains("deadlock information"));
-        }
-      }
-    }
+    assertNotEquals(successNum.get(), 0);
   }
 }

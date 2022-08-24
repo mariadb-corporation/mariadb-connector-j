@@ -21,16 +21,13 @@ import org.tidb.jdbc.client.socket.Writer;
 import org.tidb.jdbc.plugin.Codec;
 
 /**
- * Time codec
- * HACK !!!!!!
- * TiDB support TIME type binary sucks
- * It will emerge error, so save binary TIME type to TIMESTAMP type
- * */
+ * Time codec HACK !!!!!! TiDB support TIME type binary sucks It will emerge error, so save binary
+ * TIME type to TIMESTAMP type
+ */
 public class TimeCodec implements Codec<Time> {
 
   /** default instance */
   public static final TimeCodec INSTANCE = new TimeCodec();
-
 
   private static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -52,8 +49,8 @@ public class TimeCodec implements Codec<Time> {
 
   public boolean canDecode(Column column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
-            && type.isAssignableFrom(Time.class)
-            && !type.equals(java.util.Date.class);
+        && type.isAssignableFrom(Time.class)
+        && !type.equals(java.util.Date.class);
   }
 
   public boolean canEncode(Object value) {

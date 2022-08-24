@@ -987,8 +987,8 @@ public class ConnectionTest extends Common {
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
 
-    Assumptions.assumeTrue(hostAddress.host.equals("127.0.0.1") ||
-            hostAddress.host.equals("localhost"));
+    Assumptions.assumeTrue(
+        hostAddress.host.equals("127.0.0.1") || hostAddress.host.equals("localhost"));
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     try (Connection con = createCon("localSocketAddress=" + hostAddress.host)) {

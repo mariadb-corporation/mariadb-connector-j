@@ -175,8 +175,7 @@ public class ConfigurationTest {
     conf = Configuration.parse("jdbc:tidb://localhost/test");
     assertNull(conf.transactionIsolation());
 
-    conf =
-        Configuration.parse("jdbc:tidb://localhost/test?transactionIsolation=repeatable-read");
+    conf = Configuration.parse("jdbc:tidb://localhost/test?transactionIsolation=repeatable-read");
     assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
 
     conf = Configuration.parse("jdbc:tidb://localhost/test?transactionIsolation=readCommitted");
@@ -239,15 +238,12 @@ public class ConfigurationTest {
         SslMode.VERIFY_FULL,
         Configuration.parse("jdbc:tidb://localhost/test?useSsl=true").sslMode());
     assertEquals(
-        SslMode.VERIFY_FULL,
-        Configuration.parse("jdbc:tidb://localhost/test?useSsl=1").sslMode());
+        SslMode.VERIFY_FULL, Configuration.parse("jdbc:tidb://localhost/test?useSsl=1").sslMode());
     assertEquals(
-        SslMode.VERIFY_FULL,
-        Configuration.parse("jdbc:tidb://localhost/test?useSSL=1").sslMode());
+        SslMode.VERIFY_FULL, Configuration.parse("jdbc:tidb://localhost/test?useSSL=1").sslMode());
     assertEquals(
         SslMode.TRUST,
-        Configuration.parse("jdbc:tidb://localhost/test?useSsl&trustServerCertificate")
-            .sslMode());
+        Configuration.parse("jdbc:tidb://localhost/test?useSsl&trustServerCertificate").sslMode());
     assertEquals(
         SslMode.VERIFY_CA,
         Configuration.parse("jdbc:tidb://localhost/test?useSsl&disableSslHostnameVerification")
@@ -256,8 +252,7 @@ public class ConfigurationTest {
 
   @Test
   public void testBooleanDefault() throws Throwable {
-    assertFalse(
-        Configuration.parse("jdbc:tidb:///test").includeThreadDumpInDeadlockExceptions());
+    assertFalse(Configuration.parse("jdbc:tidb:///test").includeThreadDumpInDeadlockExceptions());
     assertFalse(
         Configuration.parse("jdbc:tidb:///test?includeThreadDumpInDeadlockExceptions=false")
             .includeThreadDumpInDeadlockExceptions());
@@ -329,13 +324,11 @@ public class ConfigurationTest {
 
   @Test
   public void testWithoutDb() throws Throwable {
-    Configuration jdbc =
-        Configuration.parse("jdbc:tidb://localhost/?user=root&tcpKeepAlive=true");
+    Configuration jdbc = Configuration.parse("jdbc:tidb://localhost/?user=root&tcpKeepAlive=true");
     assertTrue(jdbc.tcpKeepAlive());
     assertNull(jdbc.database());
 
-    Configuration jdbc2 =
-        Configuration.parse("jdbc:tidb://localhost?user=root&tcpKeepAlive=true");
+    Configuration jdbc2 = Configuration.parse("jdbc:tidb://localhost?user=root&tcpKeepAlive=true");
     assertTrue(jdbc2.tcpKeepAlive());
     assertNull(jdbc2.database());
   }
@@ -471,8 +464,7 @@ public class ConfigurationTest {
 
   @Test
   public void testJdbcParserSimpleIpv4() throws SQLException {
-    String url =
-        "jdbc:tidb://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
+    String url = "jdbc:tidb://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
     Configuration conf = Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());

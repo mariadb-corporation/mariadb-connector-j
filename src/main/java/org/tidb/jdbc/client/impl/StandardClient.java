@@ -320,6 +320,8 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("USE `%s`", escapedDb));
     }
 
+    commands.add("SET tidb_txn_mode=pessimistic");
+
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
     }

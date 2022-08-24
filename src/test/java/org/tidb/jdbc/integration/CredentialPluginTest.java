@@ -28,26 +28,12 @@ public class CredentialPluginTest extends Common {
 
     Assumptions.assumeTrue(isTiDBServer());
     drop();
-    boolean useOldNotation = isTiDBServer();
     Statement stmt = sharedConn.createStatement();
-    if (useOldNotation) {
-      stmt.execute("CREATE USER 'identityUser'@'localhost'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("CREATE USER 'identityUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-    } else {
-      stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute(
-          "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'localhost'");
-      stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'%'");
-    }
+    stmt.execute("CREATE USER 'identityUser'@'localhost' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute(
+        "GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'localhost'");
+    stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
   }
 
