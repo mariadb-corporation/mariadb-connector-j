@@ -340,6 +340,9 @@ public class Statement implements java.sql.Statement {
           .create("Query timeout cannot be negative : asked for " + seconds, "42000");
     }
     this.queryTimeout = seconds;
+    if (this.con != null) {
+      this.con.createStatement().execute("SET max_execution_time=" + (this.queryTimeout * 1000));
+    }
   }
 
   /**

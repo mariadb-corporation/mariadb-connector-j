@@ -485,8 +485,8 @@ public class EnumCodecTest extends CommonCodecTest {
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(3).getTime());
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime("t3alias").getTime());
     Calendar utc = Calendar.getInstance();
-    assertEquals(86091840, rs.getTime(3, utc).getTime());
-    assertEquals(86091840, rs.getTime("t3alias", utc).getTime());
+    assertEquals(57291840, rs.getTime(3, utc).getTime());
+    assertEquals(57291840, rs.getTime("t3alias", utc).getTime());
 
     assertFalse(rs.wasNull());
   }

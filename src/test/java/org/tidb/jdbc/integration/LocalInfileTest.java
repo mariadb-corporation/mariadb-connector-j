@@ -290,25 +290,16 @@ public class LocalInfileTest extends Common {
 
   public void loadDataValidationFails(boolean prepStmt) throws Exception {
     File temp = File.createTempFile("dummy", ".txt");
-    File tempXml = File.createTempFile("xmldummy", ".txt");
+    // TiDB not support LOAD XML LOCAL INFILE
 
     try (Connection con = createCon("&allowLocalInfile&useServerPrepStmts=" + prepStmt)) {
       try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
         bw.write("1\thello\n2\tworld\n");
       }
-      try (BufferedWriter bw = new BufferedWriter(new FileWriter(tempXml))) {
-        bw.write("<row id=\"1\" test=\"hello\" />\n<row id=\"2\" test=\"world\" />\n");
-      }
       try (PreparedStatement prep =
           con.prepareStatement(
               "LOAD DATA LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
         prep.setString(1, temp.getCanonicalPath().replace("\\", "/"));
-        prep.execute();
-      }
-      try (PreparedStatement prep =
-          con.prepareStatement(
-              "LOAD XML LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
-        prep.setString(1, tempXml.getCanonicalPath().replace("\\", "/"));
         prep.execute();
       }
       try (PreparedStatement prep =
@@ -331,7 +322,6 @@ public class LocalInfileTest extends Common {
       assertEquals(1, rs.getInt(1));
     } finally {
       temp.delete();
-      tempXml.delete();
     }
   }
 

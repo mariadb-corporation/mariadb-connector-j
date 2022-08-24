@@ -9,9 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.sql.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -69,7 +67,11 @@ public class ErrorTest extends Common {
 
   // TiDB not restrict connection number, remove testPre41ErrorFormat
 
-  private void deadlockRunner(CountDownLatch waitDone, CyclicBarrier waitForSelect, boolean lockZeroFirst, AtomicInteger successNum) {
+  private void deadlockRunner(
+      CountDownLatch waitDone,
+      CyclicBarrier waitForSelect,
+      boolean lockZeroFirst,
+      AtomicInteger successNum) {
     final String select0 = "SELECT * FROM deadlock WHERE a=0 FOR UPDATE";
     final String select1 = "SELECT * FROM deadlock WHERE a=1 FOR UPDATE";
 
@@ -83,7 +85,9 @@ public class ErrorTest extends Common {
       waitForSelect.await(5, TimeUnit.SECONDS);
       conn.createStatement().execute(lockZeroFirst ? select1 : select0);
     } catch (SQLException sqle) {
-      assertTrue(sqle.getMessage().contains("Deadlock found when trying to get lock; try restarting transaction"));
+      assertTrue(
+          sqle.getMessage()
+              .contains("Deadlock found when trying to get lock; try restarting transaction"));
       successNum.getAndIncrement();
     } catch (Exception e) {
       throw new RuntimeException(e);

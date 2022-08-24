@@ -177,7 +177,7 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertEquals("105.210000", rs.getString(2));
     assertEquals("105.210000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("0000001.600", rs.getString(3));
+    assertEquals("1.600", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());

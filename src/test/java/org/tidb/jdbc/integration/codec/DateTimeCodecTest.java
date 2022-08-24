@@ -172,18 +172,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertEquals("0000-00-00 00:00:00", rs.getString(1));
-      if (!text) {
-        // https://jira.mariadb.org/browse/XPT-273
-        assertEquals("0000-00-00 00:00:00", rs.getString(2));
-        assertEquals("9999-12-31 00:00:00", rs.getString(3));
-      } else {
-        assertEquals("0000-00-00 00:00:00.000000", rs.getString(2));
-        assertEquals("9999-12-31 00:00:00.000000", rs.getString(3));
-      }
-    }
   }
 
   @Test
@@ -387,11 +375,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-      assertNull(rs.getTime(2));
-    }
   }
 
   @Test
@@ -590,10 +573,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTime(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-    }
   }
 
   @Test
@@ -611,10 +590,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT265H55M12S"), rs.getObject(1, Duration.class));
     assertEquals(Duration.parse("PT1H55M13.212345S"), rs.getObject(2, Duration.class));
     assertNull(rs.getObject(4, Duration.class));
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, Duration.class));
-    }
   }
 
   @Test
@@ -637,10 +612,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalTime.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTime(1));
-    }
   }
 
   @Test
@@ -663,10 +634,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalTime.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDate.class));
-    }
   }
 
   @Test
@@ -692,13 +659,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-      assertNull(rs.getTimestamp(2));
-      assertEquals(
-          Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
-    }
   }
 
   @Test
@@ -724,13 +684,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalDateTime.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-      assertNull(rs.getTimestamp(2));
-      assertEquals(
-          LocalDateTime.parse("9999-12-31T00:00:00.00"), rs.getObject(3, LocalDateTime.class));
-    }
   }
 
   @Test
@@ -763,15 +716,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, Instant.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-      assertNull(rs.getTimestamp(2));
-      assertEquals(
-          ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00.00"), ZoneId.systemDefault())
-              .toInstant(),
-          rs.getObject(3, Instant.class));
-    }
   }
 
   @Test
@@ -806,15 +750,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, OffsetDateTime.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, OffsetDateTime.class));
-      assertNull(rs.getObject(2, OffsetDateTime.class));
-      assertEquals(
-          OffsetDateTime.ofInstant(
-              Timestamp.valueOf("9999-12-31 00:00:00.00").toInstant(), ZoneId.systemDefault()),
-          rs.getObject(3, OffsetDateTime.class));
-    }
   }
 
   @Test

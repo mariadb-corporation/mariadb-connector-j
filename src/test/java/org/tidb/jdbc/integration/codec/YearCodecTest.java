@@ -110,7 +110,7 @@ public class YearCodecTest extends CommonCodecTest {
     testObject(rs, BigInteger.class, BigInteger.valueOf(2010));
     testObject(rs, Double.class, 2010d);
     testObject(rs, Float.class, 2010f);
-      testErrObject(rs, Byte.class);
+    testErrObject(rs, Byte.class);
     testErrObject(rs, byte[].class);
     testObject(rs, Boolean.class, true);
     testErrObject(rs, Clob.class);
@@ -150,8 +150,7 @@ public class YearCodecTest extends CommonCodecTest {
     testObject(rs, LocalDateTime.class, LocalDateTime.parse("1980-01-01T00:00:00"));
     testErrObject(rs, LocalTime.class);
     testErrObject(rs, Time.class);
-    testObject(
-        rs, BigInteger.class, BigInteger.valueOf(1980));
+    testObject(rs, BigInteger.class, BigInteger.valueOf(1980));
     testObject(rs, Timestamp.class, Timestamp.valueOf("1980-01-01 00:00:00"));
     testObject(
         rs,
@@ -411,8 +410,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertNull(rs.getBigDecimal(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(
-        BigDecimal.valueOf(1980), rs.getBigDecimal(1));
+    assertEquals(BigDecimal.valueOf(1980), rs.getBigDecimal(1));
   }
 
   @Test

@@ -974,15 +974,6 @@ public class ConnectionTest extends Common {
   }
 
   @Test
-  public void sslNotSet() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    Assumptions.assumeFalse(haveSsl());
-    assertThrowsContains(
-        SQLException.class, () -> createCon("sslMode=trust"), "ssl not enabled in the server");
-  }
-
-  @Test
   public void localSocketAddress() throws SQLException {
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);

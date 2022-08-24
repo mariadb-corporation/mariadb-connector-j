@@ -1030,7 +1030,6 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     if (table == null) {
       throw new SQLException("'table' parameter cannot be null in getBestRowIdentifier()");
     }
-    boolean hasIsGeneratedCol = connection.getContext().getVersion().isTiDBServer();
 
     StringBuilder sbInner =
         new StringBuilder("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_KEY = 'PRI'");
@@ -1046,9 +1045,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
                 + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
                 + " NUMERIC_SCALE DECIMAL_DIGITS,"
-                + (hasIsGeneratedCol
-                    ? ("IF(IS_GENERATED='NEVER'," + bestRowNotPseudo + "," + bestRowPseudo + ")")
-                    : bestRowNotPseudo)
+                + bestRowNotPseudo
                 + " PSEUDO_COLUMN"
                 + " FROM INFORMATION_SCHEMA.COLUMNS"
                 + " WHERE (COLUMN_KEY  = 'PRI'"
@@ -1137,7 +1134,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean allProceduresAreCallable() {
-    return true;
+    return false;
   }
 
   public boolean allTablesAreSelectable() {
@@ -1592,7 +1589,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public String getProcedureTerm() {
-    return "procedure";
+    return "";
   }
 
   public String getCatalogTerm() {
@@ -1632,7 +1629,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsCatalogsInProcedureCalls() {
-    return true;
+    return false;
   }
 
   public boolean supportsCatalogsInTableDefinitions() {
@@ -1660,7 +1657,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsStoredProcedures() {
-    return true;
+    return false;
   }
 
   public boolean supportsSubqueriesInComparisons() {
@@ -1756,7 +1753,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public int getMaxProcedureNameLength() {
-    return 64;
+    return 0;
   }
 
   public int getMaxCatalogNameLength() {
@@ -1844,358 +1841,35 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   /**
-   * Retrieves a description of the stored procedures available in the given catalog. Only procedure
-   * descriptions matching the schema and procedure name criteria are returned. They are ordered by
-   * <code>PROCEDURE_CAT</code>, <code>PROCEDURE_SCHEM</code>, <code>PROCEDURE_NAME</code> and
-   * <code>SPECIFIC_ NAME</code>.
+   * TiDB not support procedures.
    *
-   * <p>Each procedure description has the following columns:
-   *
-   * <OL>
-   *   <LI><B>PROCEDURE_CAT</B> String {@code =>} procedure catalog (may be <code>null</code>)
-   *   <LI><B>PROCEDURE_SCHEM</B> String {@code =>} procedure schema (may be <code>null</code>)
-   *   <LI><B>PROCEDURE_NAME</B> String {@code =>} procedure name
-   *   <LI>reserved for future use
-   *   <LI>reserved for future use
-   *   <LI>reserved for future use
-   *   <LI><B>REMARKS</B> String {@code =>} explanatory comment on the procedure
-   *   <LI><B>PROCEDURE_TYPE</B> short {@code =>} kind of procedure:
-   *       <UL>
-   *         <LI>procedureResultUnknown - Cannot determine if a return value will be returned
-   *         <LI>procedureNoResult - Does not return a return value
-   *         <LI>procedureReturnsResult - Returns a return value
-   *       </UL>
-   *   <LI><B>SPECIFIC_NAME</B> String {@code =>} The name which uniquely identifies this procedure
-   *       within its schema.
-   * </OL>
-   *
-   * <p>A user may not have permissions to execute any of the procedures that are returned by <code>
-   * getProcedures</code>
-   *
-   * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
-   *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
-   *     be used to narrow the search
-   * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the
-   *     database; "" retrieves those without a schema; <code>null</code> means that the schema name
-   *     should not be used to narrow the search
-   * @param procedureNamePattern a procedure name pattern; must match the procedure name as it is
-   *     stored in the database
-   * @return <code>ResultSet</code> - each row is a procedure description
-   * @throws SQLException if a database access error occurs
-   * @see #getSearchStringEscape
+   * @throws SQLException always throw it
    */
   public ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
       throws SQLException {
-
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT ROUTINE_SCHEMA PROCEDURE_CAT,"
-                + "NULL PROCEDURE_SCHEM, "
-                + "ROUTINE_NAME PROCEDURE_NAME,"
-                + " NULL RESERVED1,"
-                + " NULL RESERVED2,"
-                + " NULL RESERVED3,"
-                + " ROUTINE_COMMENT REMARKS,"
-                + " CASE ROUTINE_TYPE "
-                + "  WHEN 'FUNCTION' THEN "
-                + procedureReturnsResult
-                + "  WHEN 'PROCEDURE' THEN "
-                + procedureNoResult
-                + "  ELSE "
-                + procedureResultUnknown
-                + " END PROCEDURE_TYPE,"
-                + " SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.ROUTINES ");
-
-    boolean firstCondition = catalogCond(true, sb, "ROUTINE_SCHEMA", catalog);
-    firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", procedureNamePattern);
-
-    return executeQuery(sb.toString());
+    throw new SQLException("TiDB not support procedures");
   }
 
   /**
-   * Retrieves a description of the given catalog's stored procedure parameter and result columns.
+   * TiDB not support procedures.
    *
-   * <p>Only descriptions matching the schema, procedure and parameter name criteria are returned.
-   * They are ordered by PROCEDURE_CAT, PROCEDURE_SCHEM, PROCEDURE_NAME and SPECIFIC_NAME. Within
-   * this, the return value, if any, is first. Next are the parameter descriptions in call order.
-   * The column descriptions follow in column number order.
-   *
-   * <p>Each row in the <code>ResultSet</code> is a parameter description or column description with
-   * the following fields:
-   *
-   * <OL>
-   *   <LI><B>PROCEDURE_CAT</B> String {@code =>} procedure catalog (may be <code>null</code>)
-   *   <LI><B>PROCEDURE_SCHEM</B> String {@code =>} procedure schema (may be <code>null</code>)
-   *   <LI><B>PROCEDURE_NAME</B> String {@code =>} procedure name
-   *   <LI><B>COLUMN_NAME</B> String {@code =>} column/parameter name
-   *   <LI><B>COLUMN_TYPE</B> Short {@code =>} kind of column/parameter:
-   *       <UL>
-   *         <LI>procedureColumnUnknown - nobody knows
-   *         <LI>procedureColumnIn - IN parameter
-   *         <LI>procedureColumnInOut - INOUT parameter
-   *         <LI>procedureColumnOut - OUT parameter
-   *         <LI>procedureColumnReturn - procedure return value
-   *         <LI>procedureColumnResult - result column in <code>ResultSet</code>
-   *       </UL>
-   *   <LI><B>DATA_TYPE</B> int {@code =>} SQL type from java.sql.Types
-   *   <LI><B>TYPE_NAME</B> String {@code =>} SQL type name, for a UDT type the type name is fully
-   *       qualified
-   *   <LI><B>PRECISION</B> int {@code =>} precision
-   *   <LI><B>LENGTH</B> int {@code =>} length in bytes of data
-   *   <LI><B>SCALE</B> short {@code =>} scale - null is returned for data types where SCALE is not
-   *       applicable.
-   *   <LI><B>RADIX</B> short {@code =>} radix
-   *   <LI><B>NULLABLE</B> short {@code =>} can it contain NULL.
-   *       <UL>
-   *         <LI>procedureNoNulls - does not allow NULL values
-   *         <LI>procedureNullable - allows NULL values
-   *         <LI>procedureNullableUnknown - nullability unknown
-   *       </UL>
-   *   <LI><B>REMARKS</B> String {@code =>} comment describing parameter/column
-   *   <LI><B>COLUMN_DEF</B> String {@code =>} default value for the column, which should be
-   *       interpreted as a string when the value is enclosed in single quotes (may be <code>null
-   *       </code>)
-   *       <UL>
-   *         <LI>The string NULL (not enclosed in quotes) - if NULL was specified as the default
-   *             value
-   *         <LI>TRUNCATE (not enclosed in quotes) - if the specified default value cannot be
-   *             represented without truncation
-   *         <LI>NULL - if a default value was not specified
-   *       </UL>
-   *   <LI><B>SQL_DATA_TYPE</B> int {@code =>} reserved for future use
-   *   <LI><B>SQL_DATETIME_SUB</B> int {@code =>} reserved for future use
-   *   <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} the maximum length of binary and character based
-   *       columns. For any other datatype the returned value is a NULL
-   *   <LI><B>ORDINAL_POSITION</B> int {@code =>} the ordinal position, starting from 1, for the
-   *       input and output parameters for a procedure. A value of 0 is returned if this row
-   *       describes the procedure's return value. For result set columns, it is the ordinal
-   *       position of the column in the result set starting from 1. If there are multiple result
-   *       sets, the column ordinal positions are implementation defined.
-   *   <LI><B>IS_NULLABLE</B> String {@code =>} ISO rules are used to determine the nullability for
-   *       a column.
-   *       <UL>
-   *         <LI>YES --- if the column can include NULLs
-   *         <LI>NO --- if the column cannot include NULLs
-   *         <LI>empty string --- if the nullability for the column is unknown
-   *       </UL>
-   *   <LI><B>SPECIFIC_NAME</B> String {@code =>} the name which uniquely identifies this procedure
-   *       within its schema.
-   * </OL>
-   *
-   * <p><B>Note:</B> Some databases may not return the column descriptions for a procedure.
-   *
-   * <p>The PRECISION column represents the specified column size for the given column. For numeric
-   * data, this is the maximum precision. For character data, this is the length in characters. For
-   * datetime datatypes, this is the length in characters of the String representation (assuming the
-   * maximum allowed precision of the fractional seconds component). For binary data, this is the
-   * length in bytes. For the ROWID datatype, this is the length in bytes. Null is returned for data
-   * types where the column size is not applicable.
-   *
-   * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
-   *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
-   *     be used to narrow the search
-   * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the
-   *     database; "" retrieves those without a schema; <code>null</code> means that the schema name
-   *     should not be used to narrow the search
-   * @param procedureNamePattern a procedure name pattern; must match the procedure name as it is
-   *     stored in the database
-   * @param columnNamePattern a column name pattern; must match the column name as it is stored in
-   *     the database
-   * @return <code>ResultSet</code> - each row describes a stored procedure parameter or column
-   * @throws SQLException if a database access error occurs
-   * @see #getSearchStringEscape
+   * @throws SQLException always throw it
    */
   public ResultSet getProcedureColumns(
       String catalog, String schemaPattern, String procedureNamePattern, String columnNamePattern)
       throws SQLException {
-    /*
-     *  Get info from information_schema.parameters
-     */
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-                + " PARAMETER_NAME COLUMN_NAME, "
-                + " CASE PARAMETER_MODE "
-                + "  WHEN 'IN' THEN "
-                + procedureColumnIn
-                + "  WHEN 'OUT' THEN "
-                + procedureColumnOut
-                + "  WHEN 'INOUT' THEN "
-                + procedureColumnInOut
-                + "  ELSE IF(PARAMETER_MODE IS NULL,"
-                + procedureColumnReturn
-                + ","
-                + procedureColumnUnknown
-                + ")"
-                + " END COLUMN_TYPE,"
-                + dataTypeClause("DTD_IDENTIFIER")
-                + " DATA_TYPE,"
-                + "DATA_TYPE TYPE_NAME,"
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN "
-                + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'date' THEN 10"
-                + "  WHEN 'datetime' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'timestamp' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  ELSE "
-                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                + Integer.MAX_VALUE
-                + "), NUMERIC_PRECISION) "
-                + " END `PRECISION`,"
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN "
-                + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'date' THEN 10"
-                + "  WHEN 'datetime' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'timestamp' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  ELSE "
-                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                + Integer.MAX_VALUE
-                + "), NUMERIC_PRECISION) "
-                + " END `LENGTH`,"
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN CAST(DATETIME_PRECISION as signed integer)"
-                + "  WHEN 'datetime' THEN CAST(DATETIME_PRECISION as signed integer)"
-                + "  WHEN 'timestamp' THEN CAST(DATETIME_PRECISION as signed integer)"
-                + "  ELSE NUMERIC_SCALE "
-                + " END `SCALE`,"
-                + "10 RADIX,"
-                + procedureNullableUnknown
-                + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-                + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.PARAMETERS");
-
-    boolean firstCondition = catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
-    firstCondition = patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
-    firstCondition = patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
-    sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
-
-    return executeQuery(sb.toString());
+    throw new SQLException("TiDB not support procedures");
   }
 
   /**
-   * Retrieves a description of the given catalog's system or user function parameters and return
-   * type.
+   * TiDB not support functions.
    *
-   * <p>Only descriptions matching the schema, function and parameter name criteria are returned.
-   * They are ordered by <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>FUNCTION_NAME
-   * </code> and <code>SPECIFIC_ NAME</code>. Within this, the return value, if any, is first. Next
-   * are the parameter descriptions in call order. The column descriptions follow in column number
-   * order.
-   *
-   * <p>Each row in the <code>ResultSet</code> is a parameter description, column description or
-   * return type description with the following fields:
-   *
-   * <OL>
-   *   <LI><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>)
-   *   <LI><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>)
-   *   <LI><B>FUNCTION_NAME</B> String {@code =>} function name. This is the name used to invoke the
-   *       function
-   *   <LI><B>COLUMN_NAME</B> String {@code =>} column/parameter name
-   *   <LI><B>COLUMN_TYPE</B> Short {@code =>} kind of column/parameter:
-   *       <UL>
-   *         <LI>functionColumnUnknown - nobody knows
-   *         <LI>functionColumnIn - IN parameter
-   *         <LI>functionColumnInOut - INOUT parameter
-   *         <LI>functionColumnOut - OUT parameter
-   *         <LI>functionColumnReturn - function return value
-   *         <LI>functionColumnResult - Indicates that the parameter or column is a column in the
-   *             <code>ResultSet</code>
-   *       </UL>
-   *   <LI><B>DATA_TYPE</B> int {@code =>} SQL type from java.sql.Types
-   *   <LI><B>TYPE_NAME</B> String {@code =>} SQL type name, for a UDT type the type name is fully
-   *       qualified
-   *   <LI><B>PRECISION</B> int {@code =>} precision
-   *   <LI><B>LENGTH</B> int {@code =>} length in bytes of data
-   *   <LI><B>SCALE</B> short {@code =>} scale - null is returned for data types where SCALE is not
-   *       applicable.
-   *   <LI><B>RADIX</B> short {@code =>} radix
-   *   <LI><B>NULLABLE</B> short {@code =>} can it contain NULL.
-   *       <UL>
-   *         <LI>functionNoNulls - does not allow NULL values
-   *         <LI>functionNullable - allows NULL values
-   *         <LI>functionNullableUnknown - nullability unknown
-   *       </UL>
-   *   <LI><B>REMARKS</B> String {@code =>} comment describing column/parameter
-   *   <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} the maximum length of binary and character based
-   *       parameters or columns. For any other datatype the returned value is a NULL
-   *   <LI><B>ORDINAL_POSITION</B> int {@code =>} the ordinal position, starting from 1, for the
-   *       input and output parameters. A value of 0 is returned if this row describes the
-   *       function's return value. For result set columns, it is the ordinal position of the column
-   *       in the result set starting from 1.
-   *   <LI><B>IS_NULLABLE</B> String {@code =>} ISO rules are used to determine the nullability for
-   *       a parameter or column.
-   *       <UL>
-   *         <LI>YES --- if the parameter or column can include NULLs
-   *         <LI>NO --- if the parameter or column cannot include NULLs
-   *         <LI>empty string --- if the nullability for the parameter or column is unknown
-   *       </UL>
-   *   <LI><B>SPECIFIC_NAME</B> String {@code =>} the name which uniquely identifies this function
-   *       within its schema. This is a user specified, or DBMS generated, name that may be
-   *       different then the <code>FUNCTION_NAME</code> for example with overload functions
-   * </OL>
-   *
-   * <p>The PRECISION column represents the specified column size for the given parameter or column.
-   * For numeric data, this is the maximum precision. For character data, this is the length in
-   * characters. For datetime datatypes, this is the length in characters of the String
-   * representation (assuming the maximum allowed precision of the fractional seconds component).
-   * For binary data, this is the length in bytes. For the ROWID datatype, this is the length in
-   * bytes. Null is returned for data types where the column size is not applicable.
-   *
-   * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
-   *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
-   *     be used to narrow the search
-   * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the
-   *     database; "" retrieves those without a schema; <code>null</code> means that the schema name
-   *     should not be used to narrow the search
-   * @param functionNamePattern a procedure name pattern; must match the function name as it is
-   *     stored in the database
-   * @param columnNamePattern a parameter name pattern; must match the parameter or column name as
-   *     it is stored in the database
-   * @return <code>ResultSet</code> - each row describes a user function parameter, column or return
-   *     type
-   * @throws SQLException if a database access error occurs
-   * @see #getSearchStringEscape
-   * @since 1.6
+   * @throws SQLException always throw it
    */
   public ResultSet getFunctionColumns(
       String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern)
       throws SQLException {
-
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT SPECIFIC_SCHEMA `FUNCTION_CAT`, NULL `FUNCTION_SCHEM`, SPECIFIC_NAME FUNCTION_NAME,"
-                + " PARAMETER_NAME COLUMN_NAME, "
-                + " CASE PARAMETER_MODE "
-                + "  WHEN 'IN' THEN "
-                + functionColumnIn
-                + "  WHEN 'OUT' THEN "
-                + functionColumnOut
-                + "  WHEN 'INOUT' THEN "
-                + functionColumnInOut
-                + "  ELSE "
-                + functionReturn
-                + " END COLUMN_TYPE,"
-                + dataTypeClause("DTD_IDENTIFIER")
-                + " DATA_TYPE,"
-                + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
-                + procedureNullableUnknown
-                + " NULLABLE,NULL REMARKS,"
-                + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.PARAMETERS");
-
-    boolean firstCondition = catalogCond(true, sb, "SPECIFIC_SCHEMA", catalog);
-    firstCondition = patternCond(firstCondition, sb, "SPECIFIC_NAME", functionNamePattern);
-    firstCondition = patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
-    sb.append(firstCondition ? " WHERE " : " AND ")
-        .append(" ROUTINE_TYPE='FUNCTION' ORDER BY FUNCTION_CAT, SPECIFIC_NAME, ORDINAL_POSITION");
-
-    return executeQuery(sb.toString());
+    throw new SQLException("TiDB not support functions");
   }
 
   public ResultSet getSchemas() throws SQLException {
@@ -3670,7 +3344,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   public boolean supportsStoredFunctionsUsingCallSyntax() {
-    return true;
+    return false;
   }
 
   public boolean autoCommitFailureClosesAllResultSets() {
@@ -3727,64 +3401,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   /**
-   * Retrieves a description of the system and user functions available in the given catalog. Only
-   * system and user function descriptions matching the schema and function name criteria are
-   * returned. They are ordered by <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>
-   * FUNCTION_NAME</code> and <code>SPECIFIC_ NAME</code>.
+   * TiDB not support functions.
    *
-   * <p>Each function description has the following columns:
-   *
-   * <OL>
-   *   <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>)
-   *   <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>)
-   *   <li><B>FUNCTION_NAME</B> String {@code =>} function name. This is the name used to invoke the
-   *       function
-   *   <li><B>REMARKS</B> String {@code =>} explanatory comment on the function
-   *   <li><B>FUNCTION_TYPE</B> short {@code =>} kind of function:
-   *       <UL>
-   *         <li>functionResultUnknown - Cannot determine if a return value or table will be
-   *             returned
-   *         <li>functionNoTable- Does not return a table
-   *         <li>functionReturnsTable - Returns a table
-   *       </UL>
-   *   <li><B>SPECIFIC_NAME</B> String {@code =>} the name which uniquely identifies this function
-   *       within its schema. This is a user specified, or DBMS generated, name that may be
-   *       different then the <code>FUNCTION_NAME</code> for example with overload functions
-   * </OL>
-   *
-   * <p>A user may not have permission to execute any of the functions that are returned by <code>
-   * getFunctions</code>
-   *
-   * @param catalog a catalog name; must match the catalog name as it is stored in the database; ""
-   *     retrieves those without a catalog; <code>null</code> means that the catalog name should not
-   *     be used to narrow the search
-   * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the
-   *     database; "" retrieves those without a schema; <code>null</code> means that the schema name
-   *     should not be used to narrow the search
-   * @param functionNamePattern a function name pattern; must match the function name as it is
-   *     stored in the database
-   * @return <code>ResultSet</code> - each row is a function description
-   * @throws SQLException if a database access error occurs
-   * @see #getSearchStringEscape
-   * @since 1.6
+   * @throws SQLException always throw it
    */
   public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
       throws SQLException {
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT ROUTINE_SCHEMA FUNCTION_CAT,"
-                + "NULL FUNCTION_SCHEM, "
-                + "ROUTINE_NAME FUNCTION_NAME, "
-                + "ROUTINE_COMMENT REMARKS, "
-                + functionNoTable
-                + " FUNCTION_TYPE, "
-                + "SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.ROUTINES");
-    boolean firstCondition = catalogCond(true, sb, "ROUTINE_SCHEMA", catalog);
-    firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", functionNamePattern);
-    sb.append(firstCondition ? " WHERE " : " AND ").append(" ROUTINE_TYPE='FUNCTION'");
-
-    return executeQuery(sb.toString());
+    throw new SQLException("TiDB not support functions");
   }
 
   @Override

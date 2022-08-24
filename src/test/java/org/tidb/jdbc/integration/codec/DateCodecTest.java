@@ -150,10 +150,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertTrue("0000-00-00".equals(rs.getString(1)));
-    }
   }
 
   @Test
@@ -339,10 +335,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getDate(1));
-    }
   }
 
   @Test
@@ -418,10 +410,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, LocalDate.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDate.class));
-    }
   }
 
   @Test
@@ -460,10 +448,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("9999-12-31 00:00:00"), rs.getTimestamp(3));
     assertNull(rs.getTimestamp(4));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getTimestamp(1));
-    }
   }
 
   @Test
@@ -483,10 +467,6 @@ public class DateCodecTest extends CommonCodecTest {
         LocalDateTime.parse("2010-01-12T00:00:00"), rs.getObject("t1alias", LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
     assertTrue(rs.wasNull());
-    if (isTiDBServer()) {
-      rs.next();
-      assertNull(rs.getObject(1, LocalDateTime.class));
-    }
   }
 
   @Test

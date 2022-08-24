@@ -1625,7 +1625,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   }
 
   protected String setTimeoutAndSelectLimit() {
-    String setParamSQL = "SET max_execution_time=" + queryTimeout;
+    String setParamSQL = "SET max_execution_time=" + (queryTimeout * 1000);
     if (canUseServerMaxRows) {
       setParamSQL += ", sql_select_limit=" + (maxRows == 0 ? defaultMaxRows : maxRows);
     }

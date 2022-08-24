@@ -510,7 +510,7 @@ public class StatementTest extends Common {
               "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
                   + ".tables as t2");
         },
-        "Query execution was interrupted (max_statement_time exceeded)");
+        "Query execution was interrupted");
   }
 
   @Test
@@ -547,39 +547,7 @@ public class StatementTest extends Common {
     }
   }
 
-  @Test
-  public void testWarnings() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-
-    Statement stmt = sharedConn.createStatement();
-
-    // connection level
-    Assertions.assertNull(sharedConn.getWarnings());
-    stmt.executeQuery("select now() = 1");
-    SQLWarning warning = sharedConn.getWarnings();
-    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
-    stmt.executeQuery("select now() = 1");
-    sharedConn.clearWarnings();
-    Assertions.assertNull(sharedConn.getWarnings());
-
-    // statement level
-    ResultSet rs = stmt.executeQuery("select now() = 1");
-    warning = rs.getWarnings();
-    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
-
-    rs = stmt.executeQuery("select now() = 1");
-    rs.clearWarnings();
-    Assertions.assertNull(rs.getWarnings());
-
-    stmt.executeQuery("select now() = 1");
-    warning = stmt.getWarnings();
-    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
-
-    stmt.executeQuery("select now() = 1");
-    stmt.clearWarnings();
-    Assertions.assertNull(stmt.getWarnings());
-  }
+  // TiDB not have this warning: ncorrect datetime value
 
   @Test
   public void cancel() throws Exception {
@@ -588,7 +556,8 @@ public class StatementTest extends Common {
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv")));
     Statement stmt = sharedConn.createStatement();
-    stmt.cancel(); // will do nothing
+    stmt.cancel(); // TiDB will close this connection, so you need create another one
+    sharedConn = (Connection) DriverManager.getConnection(mDefUrl);
 
     ExecutorService exec = Executors.newFixedThreadPool(1);
 
@@ -822,59 +791,7 @@ public class StatementTest extends Common {
     }
   }
 
-  @Test
-  public void moreResults() throws SQLException {
-    // error MXS-3929 for maxscale 6.2.0
-    Assumptions.assumeTrue(
-        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
-    Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS multi");
-    stmt.setFetchSize(3);
-    stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM sequence_1_to_10000;SELECT 2; END");
-    stmt.execute("CALL multi()");
-    assertTrue(stmt.getMoreResults());
-    ResultSet rs = stmt.getResultSet();
-    int i = 1;
-    while (rs.next()) {
-      assertEquals(i++, rs.getInt(1));
-    }
-    assertEquals(10001, i);
-    stmt.setFetchSize(3);
-
-    rs = stmt.executeQuery("CALL multi()");
-    assertFalse(rs.isClosed());
-    stmt.setFetchSize(0); // force more result to load all remaining result-set
-    assertTrue(stmt.getMoreResults());
-    assertTrue(rs.isClosed());
-    rs = stmt.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      assertEquals(i++, rs.getInt(1));
-    }
-
-    stmt.setFetchSize(3);
-    rs = stmt.executeQuery("CALL multi()");
-    assertFalse(rs.isClosed());
-    stmt.setFetchSize(0); // force more result to load all remaining result-set
-    assertTrue(stmt.getMoreResults(java.sql.Statement.KEEP_CURRENT_RESULT));
-    assertFalse(rs.isClosed());
-    i = 1;
-    while (rs.next()) {
-      assertEquals(i++, rs.getInt(1));
-    }
-    assertEquals(11, i);
-    rs = stmt.getResultSet();
-    i = 1;
-    while (rs.next()) {
-      assertEquals(i++, rs.getInt(1));
-    }
-    assertEquals(10001, i);
-
-    rs = stmt.executeQuery("CALL multi()");
-    stmt.close();
-    assertTrue(rs.isClosed());
-  }
+  // TiDB not support PROCEDURE
 
   @Test
   public void closeOnCompletion() throws SQLException {
