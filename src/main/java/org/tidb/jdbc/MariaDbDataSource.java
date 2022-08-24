@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 import javax.sql.*;
 
 /** MariaDB basic datasource */
-public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
+public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource {
 
   /** configuration */
   private Configuration conf = null;
@@ -217,19 +217,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return new MariaDbPoolConnection(org.tidb.jdbc.Driver.connect(conf));
-  }
-
-  @Override
-  public XAConnection getXAConnection() throws SQLException {
-    if (conf == null) config();
-    return new MariaDbPoolConnection(org.tidb.jdbc.Driver.connect(conf));
-  }
-
-  @Override
-  public XAConnection getXAConnection(String username, String password) throws SQLException {
-    if (conf == null) config();
-    Configuration conf = this.conf.clone(username, password);
-    return new MariaDbPoolConnection(Driver.connect(conf));
   }
 
   /**

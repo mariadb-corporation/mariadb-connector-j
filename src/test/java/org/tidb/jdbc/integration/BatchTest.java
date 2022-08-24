@@ -76,40 +76,40 @@ public class BatchTest extends Common {
   @Test
   public void differentParameterType() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con =
         createCon("&useServerPrepStmts=false&useBulkStmts=true&disablePipeline")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile=false")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
-      differentParameterType(con, false);
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile=false")) {
-      differentParameterType(con, isTiDBServer());
+      differentParameterType(con);
     }
     try (Connection con =
         createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
-      differentParameterType(con, false);
+      differentParameterType(con);
     }
   }
 
-  public void differentParameterType(Connection con, boolean expectSuccessUnknown)
+  public void differentParameterType(Connection con)
       throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
@@ -148,13 +148,8 @@ public class BatchTest extends Common {
       prep.addBatch();
       int[] res = prep.executeBatch();
       assertEquals(2, res.length);
-      if (expectSuccessUnknown) {
-        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
-        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
-      } else {
-        assertEquals(1, res[0]);
-        assertEquals(1, res[1]);
-      }
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
     }
     rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());

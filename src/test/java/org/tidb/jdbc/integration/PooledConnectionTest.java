@@ -145,25 +145,6 @@ public class PooledConnectionTest extends Common {
   }
 
   @Test
-  public void testPooledConnectionException2() throws Exception {
-    Assumptions.assumeTrue(
-        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Pool pool = Pools.retrievePool(Configuration.parse(mDefUrl + "&maxPoolSize=2"))) {
-      MariaDbInnerPoolConnection pooledConnection = pool.getPoolConnection();
-      org.tidb.jdbc.Connection con = pooledConnection.getConnection();
-      con.setAutoCommit(false);
-      con.createStatement().execute("START TRANSACTION ");
-
-      Connection con2 = pool.getPoolConnection().getConnection();
-      ((org.tidb.jdbc.Connection) con2).getClient().forceClose();
-      con2.close();
-      Thread.sleep(10);
-      assertThrows(SQLException.class, con::commit);
-      pooledConnection.close();
-    }
-  }
-
-  @Test
   public void testPooledConnectionStatementError() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -174,22 +155,8 @@ public class PooledConnectionTest extends Common {
       // eat
     }
 
-    if (minVersion(8, 0, 0)) {
-      if (isTiDBServer()) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      } else {
-        stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      }
-    } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-    }
+    stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);

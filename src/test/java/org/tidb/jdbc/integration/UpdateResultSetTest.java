@@ -578,7 +578,9 @@ public class UpdateResultSetTest extends Common {
       assertEquals("4", rs.getString(3));
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT * FROM testUpdateChangingMultiplePrimaryKey");
+    // fix: not stable query
+    ResultSet rs =
+        stmt.executeQuery("SELECT * FROM testUpdateChangingMultiplePrimaryKey ORDER BY `id`");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -1059,18 +1061,12 @@ public class UpdateResultSetTest extends Common {
         if (isTiDBServer()) {
           fail("Must have thrown exception");
         }
-        rs.next();
-        assertEquals(36, rs.getString(1).length());
-        assertEquals("x", rs.getString(2));
       } catch (SQLException e) {
-        if (isTiDBServer()) {
-          fail("Must have succeed");
-        }
         assertTrue(
             e.getMessage()
                 .contains(
                     "Cannot call insertRow() not setting value for primary key column1 with "
-                        + "default value before server 10.5"));
+                        + "default value in TiDB"));
       }
       rs.moveToInsertRow();
       rs.updateString("column1", "de6f7774-e399-11ea-aa68-c8348e0fed44");

@@ -18,7 +18,7 @@ import org.tidb.jdbc.pool.Pools;
 
 /** MariaDB pool datasource. This use mariadb internal pool. */
 public class MariaDbPoolDataSource
-    implements DataSource, ConnectionPoolDataSource, XADataSource, Closeable, AutoCloseable {
+    implements DataSource, ConnectionPoolDataSource, Closeable, AutoCloseable {
 
   private Pool pool;
   private Configuration conf = null;
@@ -211,18 +211,6 @@ public class MariaDbPoolDataSource
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection(username, password);
-  }
-
-  @Override
-  public XAConnection getXAConnection() throws SQLException {
-    if (conf == null) config();
-    return pool.getPoolConnection();
-  }
-
-  @Override
-  public XAConnection getXAConnection(String username, String password) throws SQLException {
     if (conf == null) config();
     return pool.getPoolConnection(username, password);
   }

@@ -19,7 +19,6 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
-import javax.sql.XAConnection;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -116,25 +115,7 @@ public class PoolDataSourceTest extends Common {
       if (con2 != null) con2.getConnection().close();
     }
 
-    XAConnection conx1 = null;
-    XAConnection conx2 = null;
-    try {
-      conx1 = ds.getXAConnection();
-      conx2 = ds.getXAConnection();
-
-      ResultSet rs1 = conx1.getConnection().createStatement().executeQuery("SELECT 1");
-      ResultSet rs2 = conx2.getConnection().createStatement().executeQuery("SELECT 2");
-      while (rs1.next()) {
-        assertEquals(1, rs1.getInt(1));
-      }
-      while (rs2.next()) {
-        assertEquals(2, rs2.getInt(1));
-      }
-
-    } finally {
-      if (conx1 != null) con1.close();
-      if (conx2 != null) con2.close();
-    }
+    // TiDB not support XA, remove it
   }
 
   @Test
@@ -153,8 +134,6 @@ public class PoolDataSourceTest extends Common {
     assertThrows(SQLException.class, () -> ds.getConnection("user", "password"));
     assertThrows(SQLException.class, () -> ds.getPooledConnection());
     assertThrows(SQLException.class, () -> ds.getPooledConnection("user", "password"));
-    assertThrows(SQLException.class, () -> ds.getXAConnection());
-    assertThrows(SQLException.class, () -> ds.getXAConnection("user", "password"));
 
     ds.setUser("dd");
     assertEquals("dd", ds.getUser());

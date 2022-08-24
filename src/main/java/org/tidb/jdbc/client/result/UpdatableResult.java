@@ -532,7 +532,7 @@ public class UpdatableResult extends CompleteResult {
               throw exceptionFactory.create(
                   String.format(
                       "Cannot call insertRow() not setting value for primary key %s "
-                          + "with default value before server 10.5",
+                          + "with default value in TiDB",
                       colInfo.getColumnName()));
             }
           } else {
