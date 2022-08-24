@@ -102,19 +102,15 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testObject(rs, Integer.class, isTiDBServer() ? 10 : 2010);
-    testObject(rs, String.class, isTiDBServer() ? "10" : "2010");
-    testObject(rs, Long.class, isTiDBServer() ? 10L : 2010L);
-    testObject(rs, Short.class, (short) (isTiDBServer() ? 10 : 2010));
-    testObject(rs, BigDecimal.class, isTiDBServer() ? BigDecimal.TEN : BigDecimal.valueOf(2010));
-    testObject(rs, BigInteger.class, isTiDBServer() ? BigInteger.TEN : BigInteger.valueOf(2010));
-    testObject(rs, Double.class, isTiDBServer() ? 10d : 2010d);
-    testObject(rs, Float.class, isTiDBServer() ? 10f : 2010f);
-    if (isTiDBServer()) {
-      testObject(rs, Byte.class, (byte) 0x0a);
-    } else {
+    testObject(rs, Integer.class, 2010);
+    testObject(rs, String.class, "2010");
+    testObject(rs, Long.class, 2010L);
+    testObject(rs, Short.class, (short) (2010));
+    testObject(rs, BigDecimal.class, BigDecimal.valueOf(2010));
+    testObject(rs, BigInteger.class, BigInteger.valueOf(2010));
+    testObject(rs, Double.class, 2010d);
+    testObject(rs, Float.class, 2010f);
       testErrObject(rs, Byte.class);
-    }
     testErrObject(rs, byte[].class);
     testObject(rs, Boolean.class, true);
     testErrObject(rs, Clob.class);
@@ -125,7 +121,7 @@ public class YearCodecTest extends CommonCodecTest {
     testObject(rs, LocalDateTime.class, LocalDateTime.parse("2010-01-01T00:00:00"));
     testErrObject(rs, LocalTime.class);
     testErrObject(rs, Time.class);
-    testObject(rs, BigInteger.class, isTiDBServer() ? BigInteger.TEN : BigInteger.valueOf(2010));
+    testObject(rs, BigInteger.class, BigInteger.valueOf(2010));
     testObject(rs, Timestamp.class, Timestamp.valueOf("2010-01-01 00:00:00"));
     testObject(
         rs,
@@ -134,20 +130,16 @@ public class YearCodecTest extends CommonCodecTest {
     testObject(rs, java.util.Date.class, Date.valueOf("2010-01-01"));
     rs.next();
 
-    testObject(rs, Integer.class, isTiDBServer() ? 80 : 1980);
-    testObject(rs, String.class, isTiDBServer() ? "80" : "1980");
-    testObject(rs, Long.class, isTiDBServer() ? 80L : 1980L);
-    testObject(rs, Short.class, (short) (isTiDBServer() ? 80 : 1980));
-    testObject(rs, BigDecimal.class, BigDecimal.valueOf(isTiDBServer() ? 80 : 1980));
-    testObject(rs, BigInteger.class, BigInteger.valueOf(isTiDBServer() ? 80 : 1980));
-    testObject(rs, Double.class, isTiDBServer() ? 80d : 1980d);
-    testObject(rs, Float.class, isTiDBServer() ? 80f : 1980f);
+    testObject(rs, Integer.class, 1980);
+    testObject(rs, String.class, "1980");
+    testObject(rs, Long.class, 1980L);
+    testObject(rs, Short.class, (short) (1980));
+    testObject(rs, BigDecimal.class, BigDecimal.valueOf(1980));
+    testObject(rs, BigInteger.class, BigInteger.valueOf(1980));
+    testObject(rs, Double.class, 1980d);
+    testObject(rs, Float.class, 1980f);
 
-    if (isTiDBServer()) {
-      testObject(rs, Byte.class, (byte) 80);
-    } else {
-      testErrObject(rs, Byte.class);
-    }
+    testErrObject(rs, Byte.class);
     testErrObject(rs, byte[].class);
     testObject(rs, Boolean.class, true);
     testErrObject(rs, Clob.class);
@@ -159,7 +151,7 @@ public class YearCodecTest extends CommonCodecTest {
     testErrObject(rs, LocalTime.class);
     testErrObject(rs, Time.class);
     testObject(
-        rs, BigInteger.class, isTiDBServer() ? BigInteger.valueOf(80) : BigInteger.valueOf(1980));
+        rs, BigInteger.class, BigInteger.valueOf(1980));
     testObject(rs, Timestamp.class, Timestamp.valueOf("1980-01-01 00:00:00"));
     testObject(
         rs,
@@ -181,7 +173,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? "10" : "2010", rs.getString(1));
+    assertEquals("2010", rs.getString(1));
     assertFalse(rs.wasNull());
     assertEquals("1901", rs.getString(2));
     assertEquals("1901", rs.getString("t2alias"));
@@ -191,7 +183,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? "80" : "1980", rs.getString(1));
+    assertEquals("1980", rs.getString(1));
   }
 
   @Test
@@ -207,7 +199,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? "10" : "2010", rs.getNString(1));
+    assertEquals("2010", rs.getNString(1));
     assertFalse(rs.wasNull());
     assertEquals("1901", rs.getNString(2));
     assertEquals("1901", rs.getNString("t2alias"));
@@ -217,7 +209,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? "80" : "1980", rs.getString(1));
+    assertEquals("1980", rs.getString(1));
   }
 
   @Test
@@ -257,11 +249,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getByte(ResultSet rs) throws SQLException {
-    if (isTiDBServer()) {
-      assertEquals(Byte.valueOf("10"), rs.getByte(1));
-    } else {
-      Common.assertThrowsContains(SQLDataException.class, () -> rs.getByte(1), "byte overflow");
-    }
+    Common.assertThrowsContains(SQLDataException.class, () -> rs.getByte(1), "byte overflow");
     assertFalse(rs.wasNull());
     Common.assertThrowsContains(SQLDataException.class, () -> rs.getByte(2), "byte overflow");
     Common.assertThrowsContains(
@@ -283,7 +271,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getShort(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? 10 : 2010, rs.getShort(1));
+    assertEquals(2010, rs.getShort(1));
     assertFalse(rs.wasNull());
     assertEquals(1901, rs.getShort(2));
     assertEquals(1901, rs.getShort("t2alias"));
@@ -293,7 +281,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getShort(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? 80 : 1980, rs.getShort(1));
+    assertEquals(1980, rs.getShort(1));
   }
 
   @Test
@@ -309,7 +297,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getInt(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? 10 : 2010, rs.getInt(1));
+    assertEquals(2010, rs.getInt(1));
     assertFalse(rs.wasNull());
     assertEquals(1901, rs.getInt(2));
     assertEquals(1901, rs.getInt("t2alias"));
@@ -319,7 +307,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getInt(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? 80 : 1980, rs.getInt(1));
+    assertEquals(1980, rs.getInt(1));
   }
 
   @Test
@@ -335,7 +323,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getLong(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? 10 : 2010, rs.getLong(1));
+    assertEquals(2010, rs.getLong(1));
     assertFalse(rs.wasNull());
     assertEquals(1901, rs.getLong(2));
     assertEquals(1901, rs.getLong("t2alias"));
@@ -345,7 +333,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getLong(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? 80 : 1980, rs.getLong(1));
+    assertEquals(1980, rs.getLong(1));
   }
 
   @Test
@@ -361,7 +349,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getFloat(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? 10F : 2010f, rs.getFloat(1));
+    assertEquals(2010f, rs.getFloat(1));
     assertFalse(rs.wasNull());
     assertEquals(1901F, rs.getFloat(2));
     assertEquals(1901F, rs.getFloat("t2alias"));
@@ -371,7 +359,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals(0F, rs.getFloat(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? 80f : 1980f, rs.getFloat(1));
+    assertEquals(1980f, rs.getFloat(1));
   }
 
   @Test
@@ -387,7 +375,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getDouble(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? 10d : 2010d, rs.getDouble(1));
+    assertEquals(2010d, rs.getDouble(1));
     assertFalse(rs.wasNull());
     assertEquals(1901D, rs.getDouble(2));
     assertEquals(1901D, rs.getDouble("t2alias"));
@@ -397,7 +385,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals(0D, rs.getDouble(4));
     assertTrue(rs.wasNull());
     rs.next();
-    assertEquals(isTiDBServer() ? 80d : 1980d, rs.getDouble(1));
+    assertEquals(1980d, rs.getDouble(1));
   }
 
   @Test
@@ -413,7 +401,7 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getBigDecimal(ResultSet rs) throws SQLException {
-    assertEquals(isTiDBServer() ? BigDecimal.TEN : BigDecimal.valueOf(2010), rs.getBigDecimal(1));
+    assertEquals(BigDecimal.valueOf(2010), rs.getBigDecimal(1));
     assertFalse(rs.wasNull());
     assertEquals(BigDecimal.valueOf(1901), rs.getBigDecimal(2));
     assertEquals(BigDecimal.valueOf(1901), rs.getBigDecimal("t2alias"));
@@ -424,7 +412,7 @@ public class YearCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
     rs.next();
     assertEquals(
-        isTiDBServer() ? BigDecimal.valueOf(80) : BigDecimal.valueOf(1980), rs.getBigDecimal(1));
+        BigDecimal.valueOf(1980), rs.getBigDecimal(1));
   }
 
   @Test
@@ -737,9 +725,9 @@ public class YearCodecTest extends CommonCodecTest {
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.DATE, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
-    assertEquals(isTiDBServer() ? 2 : 4, meta.getPrecision(1));
+    assertEquals(4, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    assertEquals(isTiDBServer() ? 2 : 4, meta.getColumnDisplaySize(1));
+    assertEquals(4, meta.getColumnDisplaySize(1));
   }
 }

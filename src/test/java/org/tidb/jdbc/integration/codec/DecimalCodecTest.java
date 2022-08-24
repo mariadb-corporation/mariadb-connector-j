@@ -174,8 +174,8 @@ public class DecimalCodecTest extends CommonCodecTest {
   public void getStringZerofill(ResultSet rs) throws SQLException {
     assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertEquals("0105.210000", rs.getString(2));
-    assertEquals("0105.210000", rs.getString("t2alias"));
+    assertEquals("105.210000", rs.getString(2));
+    assertEquals("105.210000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
     assertEquals("0000001.600", rs.getString(3));
     assertFalse(rs.wasNull());

@@ -47,24 +47,7 @@ public class MultiHostTest extends Common {
     }
   }
 
-  @Test
-  public void readOnly() throws SQLException {
-    Assumptions.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    try (Connection con = createProxyConKeep("&waitReconnectTimeout=300&deniedListTimeout=300")) {
-      Statement stmt = con.createStatement();
-      stmt.execute("DROP TABLE IF EXISTS testReadOnly");
-      stmt.execute("CREATE TABLE testReadOnly(id int)");
-      con.setAutoCommit(false);
-      con.setReadOnly(true);
-      assertThrowsContains(
-          SQLException.class,
-          () -> stmt.execute("INSERT INTO testReadOnly values (2)"),
-          "Cannot execute statement in a READ ONLY transaction");
-      con.setReadOnly(false);
-      stmt.execute("DROP TABLE testReadOnly");
-    }
-  }
+  // TiDB not support readonly
 
   @Test
   public void syncState() throws Exception {
