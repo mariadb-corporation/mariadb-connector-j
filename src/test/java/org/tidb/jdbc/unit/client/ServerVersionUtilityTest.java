@@ -22,10 +22,10 @@ public class ServerVersionUtilityTest {
     assertTrue(ver.isTiDBServer());
     assertTrue(ver.versionGreaterOrEqual(6, 2, 10));
     assertTrue(ver.versionGreaterOrEqual(6, 2, 11));
-    assertTrue(ver.versionGreaterOrEqual(6, 3, 5));
-    assertTrue(ver.versionGreaterOrEqual(7, 1, 1));
+    assertFalse(ver.versionGreaterOrEqual(6, 3, 5));
+    assertFalse(ver.versionGreaterOrEqual(7, 1, 1));
     assertFalse(ver.versionGreaterOrEqual(10, 1, 12));
-    assertFalse(ver.versionGreaterOrEqual(5, 3, 12));
+    assertTrue(ver.versionGreaterOrEqual(5, 3, 12));
 
     ver = new ServerVersionUtility("5.7.25-TiDB-v1.123.1-beta", true);
     assertEquals(1, ver.getMajorVersion());

@@ -25,9 +25,15 @@ public class Version {
 
     String[] tidbVersionArray = version.split("-", 3);
     if (tidbVersionArray.length == 3 && tidbVersionArray[1].equals("TiDB")) {
-      int length = tidbVersionArray[2].length();
+      String rawVersion = tidbVersionArray[2];
+      // trim first 'v'
+      if (rawVersion.length() != 0 && rawVersion.charAt(0) == 'v') {
+        rawVersion = rawVersion.substring(1);
+      }
+
+      int length = rawVersion.length();
       for (; offset < length; offset++) {
-        car = tidbVersionArray[2].charAt(offset);
+        car = rawVersion.charAt(offset);
         if (car < '0' || car > '9') {
           switch (type) {
             case 0:
@@ -38,7 +44,7 @@ public class Version {
               break;
             case 2:
               patch = val;
-              qualif = tidbVersionArray[2].substring(offset);
+              qualif = rawVersion.substring(offset);
               offset = length;
               break;
             default:

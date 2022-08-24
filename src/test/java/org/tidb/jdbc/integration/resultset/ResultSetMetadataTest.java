@@ -96,9 +96,10 @@ public class ResultSetMetadataTest extends Common {
 
     rs = stmt.executeQuery("select 1 from test_rsmd");
     ResultSetMetaData rsmd2 = rs.getMetaData();
-    assertTrue(rsmd2.isReadOnly(1));
-    assertFalse(rsmd2.isWritable(1));
-    assertFalse(rsmd2.isDefinitelyWritable(1));
+    // TiDB not support read only selection
+    assertFalse(rsmd2.isReadOnly(1));
+    assertTrue(rsmd2.isWritable(1));
+    assertTrue(rsmd2.isDefinitelyWritable(1));
   }
 
   @Test

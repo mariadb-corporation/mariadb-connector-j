@@ -109,8 +109,7 @@ public class BatchTest extends Common {
     }
   }
 
-  public void differentParameterType(Connection con)
-      throws SQLException {
+  public void differentParameterType(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =

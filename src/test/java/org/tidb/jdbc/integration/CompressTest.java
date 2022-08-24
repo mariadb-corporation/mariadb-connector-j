@@ -32,7 +32,8 @@ public class CompressTest extends Common {
 
   @Test
   public void bigSend() throws SQLException {
-    int[] maxSize = new int[] {8 * 1024, 128 * 1024, 1024 * 1024, 16 * 1024 * 1024};
+    // TiDB max entry size is 6291456
+    int[] maxSize = new int[] {8 * 1024, 128 * 1024, 1000 * 1024, 5000 * 1024};
 
     for (int i = 0; i < maxSize.length; i++) {
       bigSend(sharedConn, maxSize[i]);
@@ -52,9 +53,9 @@ public class CompressTest extends Common {
     stmt.execute("TRUNCATE compressTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     String st2 = new String(arr2, 0, 5_000);
-    String st3 = new String(arr2, 0, Math.min(maxLen, 150_000));
-    String st4 = new String(arr2, 0, Math.min(maxLen, 1_100_000));
-    String st5 = new String(arr2, 0, Math.min(maxLen, 1_100_000));
+    String st3 = new String(arr2, 0, Math.min(maxLen, 100_000));
+    String st4 = new String(arr2, 0, Math.min(maxLen, 500_000));
+    String st5 = new String(arr2, 0, Math.min(maxLen, 500_000));
     String st6 = new String(arr2);
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO compressTest VALUES (?, ?, ?, ?, ?, ?)")) {

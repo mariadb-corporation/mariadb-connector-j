@@ -21,8 +21,6 @@ import org.tidb.jdbc.MariaDbPoolDataSource;
 import org.tidb.jdbc.export.SslMode;
 import org.tidb.jdbc.integration.tools.TcpProxy;
 import org.tidb.jdbc.pool.MariaDbInnerPoolConnection;
-import org.tidb.jdbc.pool.Pool;
-import org.tidb.jdbc.pool.Pools;
 
 public class PooledConnectionTest extends Common {
 

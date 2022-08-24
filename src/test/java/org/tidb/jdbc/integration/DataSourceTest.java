@@ -113,22 +113,8 @@ public class DataSourceTest extends Common {
       // eat
     }
 
-    if (minVersion(8, 0, 0)) {
-      if (isTiDBServer()) {
-        stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      } else {
-        stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
-        stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
-      }
-    } else {
-      stmt.execute("CREATE USER 'dsUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
-    }
+    stmt.execute("CREATE USER 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
     stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl + "&allowPublicKeyRetrieval");
