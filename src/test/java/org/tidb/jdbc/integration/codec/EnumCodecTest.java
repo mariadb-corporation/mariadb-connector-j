@@ -484,7 +484,7 @@ public class EnumCodecTest extends CommonCodecTest {
         "STRING value '2010-12-31 23:59:59.152' cannot be decoded as Time");
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime(3).getTime());
     assertEquals(Time.valueOf("23:54:51").getTime() + 840, rs.getTime("t3alias").getTime());
-    Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    Calendar utc = Calendar.getInstance();
     assertEquals(86091840, rs.getTime(3, utc).getTime());
     assertEquals(86091840, rs.getTime("t3alias", utc).getTime());
 
@@ -508,12 +508,12 @@ public class EnumCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp(1, Calendar.getInstance()).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp("t1alias", Calendar.getInstance()).getTime());
     assertFalse(rs.wasNull());
 
     assertEquals(
@@ -522,7 +522,7 @@ public class EnumCodecTest extends CommonCodecTest {
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
             + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp(2, Calendar.getInstance()).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
         rs.getTimestamp("t2alias").getTime());
@@ -530,7 +530,7 @@ public class EnumCodecTest extends CommonCodecTest {
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
             + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp("t2alias", Calendar.getInstance()).getTime());
     assertFalse(rs.wasNull());
 
     //

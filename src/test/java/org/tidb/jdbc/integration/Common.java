@@ -58,7 +58,7 @@ public class Common {
       database = get("DB_DATABASE", prop);
       mDefUrl =
           String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+              "jdbc:tidb://%s:%s/%s?user=%s&password=%s&%s",
               hostname, port, database, user, password, defaultOther);
 
     } catch (IOException io) {
@@ -164,7 +164,7 @@ public class Common {
     if (mode != HaMode.NONE) {
       url =
           url.replaceAll(
-              "jdbc:mariadb:", "jdbc:mariadb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
+              "jdbc:tidb:", "jdbc:tidb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
     }
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");

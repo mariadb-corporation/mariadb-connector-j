@@ -35,22 +35,16 @@ public class PoolDataSourceTest extends Common {
     drop();
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
-    boolean useOldNotation = isTiDBServer();
     Statement stmt = sharedConn.createStatement();
-    if (useOldNotation) {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%'");
-      stmt.execute(
-          "GRANT SELECT ON "
-              + sharedConn.getCatalog()
-              + ".* TO 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-    } else {
-      stmt.execute("CREATE USER IF NOT EXISTS 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
-      stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
-    }
+
+    stmt.execute("DROP USER IF EXISTS 'poolUser'@'%'");
+    stmt.execute("CREATE USER 'poolUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
+    stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
+    stmt.execute("FLUSH PRIVILEGES");
+
     stmt.execute(
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
     stmt.execute("FLUSH TABLES");
-    stmt.execute("FLUSH PRIVILEGES");
   }
 
   @AfterAll
@@ -144,9 +138,9 @@ public class PoolDataSourceTest extends Common {
 
     assertThrows(SQLException.class, () -> ds.setUrl("jdbc:wrong://d"));
 
-    ds.setUrl("jdbc:mariadb://myhost:5500/db?someOption=val");
+    ds.setUrl("jdbc:tidb://myhost:5500/db?someOption=val");
     assertEquals(
-        "jdbc:mariadb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
+        "jdbc:tidb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
         ds.getUrl());
     ds.close();
   }
@@ -604,7 +598,7 @@ public class PoolDataSourceTest extends Common {
   public void wrongUrlHandling() throws SQLException {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
-            "jdbc:mariadb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
+            "jdbc:tidb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
       long start = System.currentTimeMillis();
       try {
         pool.getConnection();

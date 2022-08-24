@@ -181,7 +181,8 @@ public class TimeCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs, boolean text) throws SQLException {
-    assertEquals("01:55:12", rs.getNString(1));
+    // TiDB is normal time string "01:55:12.000" instead of "01:55:12"
+    assertEquals("01:55:12.000", rs.getNString(1));
     assertFalse(rs.wasNull());
     assertEquals("01:55:13.234567", rs.getNString(2));
     assertEquals("01:55:13.234567", rs.getNString("t2alias"));

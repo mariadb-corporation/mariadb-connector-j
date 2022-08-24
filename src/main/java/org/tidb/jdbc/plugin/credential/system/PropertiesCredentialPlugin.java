@@ -14,7 +14,7 @@ import org.tidb.jdbc.plugin.CredentialPlugin;
  *
  * <p>default implementation use system properties `mariadb.user` and `mariadb.pwd`
  *
- * <p>example : `jdbc:mariadb://host/db?credentialType=PROPERTY`
+ * <p>example : `jdbc:tidb://host/db?credentialType=PROPERTY`
  *
  * <p>2 options `userKey` and `pwdKey` permits indicating which system properties to use .
  */

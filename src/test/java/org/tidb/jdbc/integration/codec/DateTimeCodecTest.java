@@ -38,10 +38,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
         "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
     stmt.execute(
         "INSERT INTO DateTimeCodec VALUES "
-            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.212345', '9999-12-31 18:30:12.55', null)"
-            + (isTiDBServer()
-                ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
-                : ""));
+            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.212345', '9999-12-31 18:30:12.55', null)");
     stmt.execute(
         "CREATE TABLE DateTimeCodec2 (id int not null primary key auto_increment, t1 DATETIME(6))");
     stmt.execute(

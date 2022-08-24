@@ -34,8 +34,7 @@ public class DateCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE DateCodec (t1 DATE, t2 DATE, t3 DATE, t4 DATE)");
     stmt.execute(
-        "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null)"
-            + (isTiDBServer() ? ",('0000-00-00', '1000-01-01', '9999-12-31', null)" : ""));
+        "INSERT INTO DateCodec VALUES ('2010-01-12', '1000-01-01', '9999-12-31', null)");
     stmt.execute("CREATE TABLE DateCodec2 (id int not null primary key auto_increment, t1 DATE)");
     stmt.execute("FLUSH TABLES");
   }

@@ -94,9 +94,9 @@ public class DataSourceTest extends Common {
 
     assertThrows(SQLException.class, () -> ds.setUrl("jdbc:wrong://d"));
 
-    ds.setUrl("jdbc:mariadb://myhost:5500/db?someOption=val");
+    ds.setUrl("jdbc:tidb://myhost:5500/db?someOption=val");
     assertEquals(
-        "jdbc:mariadb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
+        "jdbc:tidb://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
         ds.getUrl());
   }
 

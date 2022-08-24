@@ -31,15 +31,9 @@ public class YearCodecTest extends CommonCodecTest {
   public static void beforeAll2() throws SQLException {
     drop();
     Statement stmt = sharedConn.createStatement();
-    if (isTiDBServer()) {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
-      stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (80, '1901', '2155', null)");
-    } else {
-      stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
-      stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155', null)");
-    }
+    stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
+    stmt.execute(
+        "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155', null)");
     stmt.execute("FLUSH TABLES");
   }
 

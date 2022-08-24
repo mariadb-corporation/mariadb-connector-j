@@ -469,12 +469,12 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp(1).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp(1, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp(1, Calendar.getInstance()).getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime(), rs.getTimestamp("t1alias").getTime());
     assertEquals(
         Timestamp.valueOf("2011-01-01 00:00:00").getTime() + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp("t1alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp("t1alias", Calendar.getInstance()).getTime());
     assertFalse(rs.wasNull());
 
     assertEquals(
@@ -483,7 +483,7 @@ public class BinaryCodecTest extends CommonCodecTest {
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
             + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp(2, Calendar.getInstance()).getTime());
     assertEquals(
         Timestamp.valueOf("2010-12-31 23:59:59").getTime() + 152,
         rs.getTimestamp("t2alias").getTime());
@@ -491,7 +491,7 @@ public class BinaryCodecTest extends CommonCodecTest {
         Timestamp.valueOf("2010-12-31 23:59:59").getTime()
             + 152
             + TimeZone.getDefault().getDSTSavings(),
-        rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
+        rs.getTimestamp("t2alias", Calendar.getInstance()).getTime());
     assertFalse(rs.wasNull());
 
     //

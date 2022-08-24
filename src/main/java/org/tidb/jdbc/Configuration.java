@@ -20,7 +20,7 @@ import org.tidb.jdbc.util.options.OptionAliases;
  *
  * <p>basic syntax :<br>
  * {@code
- * jdbc:mariadb:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
+ * jdbc:tidb:[replication:|failover|loadbalance:|aurora:]//<hostDescription>[,<hostDescription>]/[database>]
  * [?<key1>=<value1>[&<key2>=<value2>]] }
  *
  * <p>hostDescription:<br>
@@ -37,12 +37,12 @@ import org.tidb.jdbc.util.options.OptionAliases;
  *
  * <p>host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * exemple : {@code jdbc:tidb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  *
  * <p>Some examples :<br>
- * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:tidb://localhost:3306/database?user=greg&password=pass}<br>
  * {@code
- * jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
+ * jdbc:tidb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}
  * <br>
  */
 public class Configuration {
@@ -489,9 +489,7 @@ public class Configuration {
    * @return true if url string correspond.
    */
   public static boolean acceptsUrl(String url) {
-    return url != null
-        && (url.startsWith("jdbc:mariadb:")
-            || (url.startsWith("jdbc:mysql:") && url.contains("permitMysqlScheme")));
+    return url != null && url.startsWith("jdbc:tidb:");
   }
 
   /**
@@ -1472,7 +1470,7 @@ public class Configuration {
   protected static String buildUrl(Configuration conf) {
     Configuration defaultConf = new Configuration();
     StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb:");
+    sb.append("jdbc:tidb:");
     if (conf.haMode != HaMode.NONE) {
       sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
     }

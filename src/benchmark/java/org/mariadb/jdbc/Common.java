@@ -93,7 +93,7 @@ public class Common {
         try (Connection conn =
                      DriverManager.getConnection(
                              String.format(
-                                     "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
+                                     "jdbc:tidb://%s:%s/%s?user=%s&password=%s",
                                      host, port, database, username, password))) {
           Statement stmt = conn.createStatement();
           try {

@@ -58,11 +58,11 @@ public class ConnectionTest extends Common {
   void missingHost() {
     assertThrowsContains(
         SQLException.class,
-        () -> DriverManager.getConnection("jdbc:mariadb:///db"),
+        () -> DriverManager.getConnection("jdbc:tidb:///db"),
         "hostname must be set to connect socket if not using local socket or pipe");
     assertThrowsContains(
         SQLException.class,
-        () -> DriverManager.getConnection("jdbc:mariadb:///db?socketFactory=test"),
+        () -> DriverManager.getConnection("jdbc:tidb:///db?socketFactory=test"),
         "hostname must be set to connect socket");
   }
 
@@ -826,7 +826,7 @@ public class ConnectionTest extends Common {
     }
     String connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
+            "jdbc:tidb://%s:%s/%s?user=%s&password=%s&%s",
             hostname, testPort, database, pamUser, pamPwd, defaultOther);
     try {
       try (Connection connection =
@@ -912,7 +912,7 @@ public class ConnectionTest extends Common {
 
     String url =
         String.format(
-            "jdbc:mariadb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
+            "jdbc:tidb:///%s?user=testSocket&password=heyPassw!µ20§rd&localSocket=%s&tcpAbortiveClose&tcpKeepAlive",
             sharedConn.getCatalog(), path);
 
     try (java.sql.Connection connection = DriverManager.getConnection(url)) {
@@ -925,7 +925,7 @@ public class ConnectionTest extends Common {
         SQLException.class,
         () ->
             DriverManager.getConnection(
-                "jdbc:mariadb:///"
+                "jdbc:tidb:///"
                     + sharedConn.getCatalog()
                     + "?user=testSocket&password=heyPassw!µ20§rd&localSocket=/wrongPath"),
         "Socket fail to connect to host");
@@ -935,7 +935,7 @@ public class ConnectionTest extends Common {
       if (serverCertPath != null) {
         try (Connection con =
             DriverManager.getConnection(
-                "jdbc:mariadb:///"
+                "jdbc:tidb:///"
                     + sharedConn.getCatalog()
                     + "?sslMode=verify-full&user=testSocket&password=heyPassw!µ20§rd"
                     + "&serverSslCert="
@@ -1040,7 +1040,7 @@ public class ConnectionTest extends Common {
     // ensure connecting without DB
     String connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            "jdbc:tidb://%s:%s/?user=%s&password=%s&%s&createDatabaseIfNotExist",
             hostname, port, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       con.createStatement().executeQuery("SELECT 1");
@@ -1049,7 +1049,7 @@ public class ConnectionTest extends Common {
     String nonExistentDatabase = "bla`f`l";
     connStr =
         String.format(
-            "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            "jdbc:tidb://%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
             hostname, port, nonExistentDatabase, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
@@ -1068,7 +1068,7 @@ public class ConnectionTest extends Common {
     // ensure connecting without DB
     String connStr =
         String.format(
-            "jdbc:mariadb://wronghost,%s:%s/%s?user=%s&password=%s&%s",
+            "jdbc:tidb://wronghost,%s:%s/%s?user=%s&password=%s&%s",
             hostname, port, database, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       con.createStatement().executeQuery("SELECT 1");

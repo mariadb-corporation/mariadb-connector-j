@@ -92,7 +92,7 @@ public class MultiHostTest extends Common {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
 
-    String url = mDefUrl.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    String url = mDefUrl.replaceAll("jdbc:tidb:", "jdbc:tidb:replication:");
     try (java.sql.Connection con = DriverManager.getConnection(url + "&waitReconnectTimeout=20")) {
       con.isValid(1);
       con.setReadOnly(true);
@@ -116,7 +116,7 @@ public class MultiHostTest extends Common {
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 hostAddress.host, hostAddress.port));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -134,7 +134,7 @@ public class MultiHostTest extends Common {
             String.format(
                 "//%s:%s,%s,%s/",
                 hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -194,7 +194,7 @@ public class MultiHostTest extends Common {
             String.format(
                 "//address=(host=localhost)(port=9999)(type=master),address=(host=localhost)(port=%s)(type=master),address=(host=%s)(port=%s)(type=master)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -314,7 +314,7 @@ public class MultiHostTest extends Common {
             "//([^/]*)/",
             String.format(
                 "//address=(host=localhost)(port=%s)(type=master)/", proxy.getLocalPort()));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:sequential:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:sequential:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -381,7 +381,7 @@ public class MultiHostTest extends Common {
             "//([^/]*)/",
             String.format(
                 "//localhost:%s,%s:%s/", proxy.getLocalPort(), hostAddress.host, hostAddress.port));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -444,7 +444,7 @@ public class MultiHostTest extends Common {
             String.format(
                 "//address=(host=localhost)(port=%s)(type=primary),address=(host=%s)(port=%s)(type=replica)/",
                 proxy.getLocalPort(), hostAddress.host, hostAddress.port));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
@@ -507,7 +507,7 @@ public class MultiHostTest extends Common {
             "//([^/]*)/",
             String.format(
                 "//%s:%s,localhost:%s/", hostAddress.host, hostAddress.port, proxy.getLocalPort()));
-    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    url = url.replaceAll("jdbc:tidb:", "jdbc:tidb:replication:");
     if (conf.sslMode() == SslMode.VERIFY_FULL) {
       url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
     }
