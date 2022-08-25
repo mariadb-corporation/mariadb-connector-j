@@ -190,8 +190,7 @@ public class Connection implements java.sql.Connection {
   @Override
   public void close() throws SQLException {
     if (poolConnection != null) {
-      SingleStorePoolConnection poolConnection = this.poolConnection;
-      poolConnection.close();
+      poolConnection.fireConnectionClosed(new ConnectionEvent(poolConnection));
       return;
     }
     client.close();

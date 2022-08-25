@@ -124,8 +124,8 @@ public class LongCodec implements Codec<Long> {
       case DECIMAL:
         String str2 = buf.readAscii(length);
         try {
-          return new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValue();
-        } catch (NumberFormatException nfe) {
+          return new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValueExact();
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str2));
         }
 
@@ -246,7 +246,7 @@ public class LongCodec implements Codec<Long> {
         String str = buf.readString(length);
         try {
           return new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str));
         }
 

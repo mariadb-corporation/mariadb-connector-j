@@ -71,7 +71,8 @@ public class MultiPrimaryClient implements Client {
     int maxRetries = conf.retriesAllDown();
 
     while ((host = conf.haMode().getAvailableHost(conf.addresses(), denyList, !readOnly))
-        .isPresent()) {
+            .isPresent()
+        && maxRetries > 0) {
       try {
         return conf.transactionReplay()
             ? new ClientReplayImpl(conf, host.get(), lock, false)

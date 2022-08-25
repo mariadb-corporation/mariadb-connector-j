@@ -42,7 +42,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE StringCodec (t1 VARCHAR(20) CHARACTER SET utf8mb4, t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20), id INT) CHARACTER "
+        "CREATE TABLE StringCodec (t1 VARCHAR(255) CHARACTER SET utf8mb4, t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
         "INSERT INTO StringCodec VALUES ('0', '1', 'some"
@@ -855,11 +855,11 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals(Types.VARCHAR, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     // TODO: PLAT-5895
-    // assertEquals(20, meta.getPrecision(1));
+    assertEquals(255, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     // TODO: PLAT-5895
-    // assertEquals(20, meta.getColumnDisplaySize(1));
+    assertEquals(255, meta.getColumnDisplaySize(1));
   }
 
   @Test

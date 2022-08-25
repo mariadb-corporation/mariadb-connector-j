@@ -87,14 +87,12 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals(new SingleStoreClob("0".getBytes()), rs.getObject(1));
+    assertEquals("0", rs.getObject(1));
     assertFalse(rs.wasNull());
-    assertEquals(new SingleStoreClob("1".getBytes()), rs.getObject(2));
-    assertEquals(new SingleStoreClob("1".getBytes()), rs.getObject("t2alias"));
+    assertEquals("1", rs.getObject(2));
+    assertEquals("1", rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(
-        new SingleStoreClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
-        rs.getObject(3));
+    assertEquals(("some" + fourByteUnicode), rs.getObject(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
@@ -724,7 +722,7 @@ public class ClobCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("TINYTEXT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.sql.Clob", meta.getColumnClassName(1));
+    assertEquals("java.lang.String", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
     assertEquals(Types.VARCHAR, meta.getColumnType(1));

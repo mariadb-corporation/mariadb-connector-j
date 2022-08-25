@@ -32,10 +32,11 @@ public class DecimalCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
+        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(30,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
     stmt.execute(
         "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0), id INT)");
-    stmt.execute("INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null, 1)");
+    stmt.execute(
+        "INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null, 1), (0, 9223372036854775808, 0, null, 2)");
     stmt.execute(
         createRowstore()
             + " TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
@@ -229,6 +230,8 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getShort(ResultSet rs) throws SQLException {
+    //	  0, 105.21, -1.6, null, 1), (0, 9223372036854775808, 0, null, 2)
+
     assertEquals(0, rs.getShort(1));
     assertFalse(rs.wasNull());
     assertEquals(105, rs.getShort(2));
@@ -238,6 +241,11 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getShort(4));
     assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getShort(2),
+        "value '9223372036854775808.000000' cannot be decoded as Short");
   }
 
   @Test
@@ -261,6 +269,11 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals(0, rs.getInt(4));
     assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getInt(2),
+        "value '9223372036854775808.000000' cannot be decoded as Int");
   }
 
   @Test
@@ -284,6 +297,11 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertEquals(0L, rs.getLong(4));
     assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertThrowsContains(
+        SQLDataException.class,
+        () -> rs.getLong(2),
+        "value '9223372036854775808.000000' cannot be decoded as Long");
   }
 
   @Test
@@ -356,6 +374,8 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertNull(rs.getBigDecimal(4));
     assertNull(rs.getBigDecimal(4, BigDecimal.ROUND_CEILING));
     assertTrue(rs.wasNull());
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("9223372036854775808.000000"), rs.getBigDecimal(2));
   }
 
   @Test
@@ -695,10 +715,10 @@ public class DecimalCodecTest extends CommonCodecTest {
     assertEquals("", meta.getSchemaName(1));
     assertEquals(11, meta.getColumnDisplaySize(1));
 
-    assertEquals(10, meta.getPrecision(2));
+    assertEquals(30, meta.getPrecision(2));
     assertEquals(6, meta.getScale(2));
     assertEquals("", meta.getSchemaName(2));
-    assertEquals(12, meta.getColumnDisplaySize(2));
+    assertEquals(32, meta.getColumnDisplaySize(2));
   }
 
   @Test

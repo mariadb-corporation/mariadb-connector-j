@@ -109,9 +109,9 @@ public class ShortCodec implements Codec<Short> {
       case CHAR:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
         }
 
@@ -203,9 +203,9 @@ public class ShortCodec implements Codec<Short> {
       case CHAR:
         String str = buf.readString(length);
         try {
-          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValue();
+          result = new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
           break;
-        } catch (NumberFormatException nfe) {
+        } catch (NumberFormatException | ArithmeticException nfe) {
           throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
         }
 

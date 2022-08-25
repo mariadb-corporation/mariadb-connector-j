@@ -8,7 +8,6 @@ package com.singlestore.jdbc.pool;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.SingleStorePoolConnection;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.sql.*;
 
 public class InternalPoolConnection extends SingleStorePoolConnection {
   private final AtomicLong lastUsed;
@@ -21,10 +20,6 @@ public class InternalPoolConnection extends SingleStorePoolConnection {
   public InternalPoolConnection(Connection connection) {
     super(connection);
     lastUsed = new AtomicLong(System.nanoTime());
-  }
-
-  public void close() {
-    fireConnectionClosed(new ConnectionEvent(this));
   }
 
   /**
