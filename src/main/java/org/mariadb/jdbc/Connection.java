@@ -864,9 +864,7 @@ public class Connection implements java.sql.Connection {
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());
         }
-        if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
-          setReadOnly(false); // default to master connection
-        }
+        setReadOnly(((stateFlag & ConnectionState.STATE_READ_ONLY) != 0)); 
         if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
           setTransactionIsolation(
               conf.transactionIsolation() == null
