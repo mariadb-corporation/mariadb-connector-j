@@ -49,13 +49,19 @@ public class Sha256AuthenticationTest extends Common {
     Statement stmt = sharedConn.createStatement();
     rsaPublicKey = checkFileExists(System.getProperty("rsaPublicKey"));
     if (rsaPublicKey == null) {
-      ResultSet rs = stmt.executeQuery("SELECT @@caching_sha2_password_public_key_path");
+      ResultSet rs = stmt.executeQuery("SELECT @@caching_sha2_password_public_key_path, @@datadir");
       rs.next();
       rsaPublicKey = checkFileExists(rs.getString(1));
-      if (rsaPublicKey == null
-          && rs.getString(1) != null
-          && System.getenv("TEST_DB_RSA_PUBLIC_KEY") != null) {
-        rsaPublicKey = checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY"));
+
+
+      if (rsaPublicKey == null) {
+        rsaPublicKey = checkFileExists(rs.getString(2) + rs.getString(1));
+        if (rsaPublicKey == null) {
+          rsaPublicKey = checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY"));
+          if (rsaPublicKey == null && System.getenv("TEST_DB_RSA_PUBLIC_KEY") != null) {
+            rsaPublicKey = checkFileExists(System.getenv("TEST_DB_RSA_PUBLIC_KEY"));
+          }
+        }
       }
     }
     if (rsaPublicKey == null) {
@@ -142,8 +148,7 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256Allow() throws Exception {
-    Assumptions.assumeTrue(
-        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+    Assumptions.assumeTrue(!isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User3&allowPublicKeyRetrieval&password=!Passw0rd3Works")) {
@@ -153,8 +158,7 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256PluginTest() throws Exception {
-    Assumptions.assumeTrue(
-        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+    Assumptions.assumeTrue(!isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     try (Connection con =
