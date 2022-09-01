@@ -89,8 +89,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     validParameters();
     lock.lock();
     String cmd = escapeTimeout(sql);
-    if (prepareResult == null && canCachePrepStmts)
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+    if (prepareResult == null)
+      if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
       if (prepareResult == null && con.getContext().hasClientCapability(STMT_BULK_OPERATIONS)) {
         try {
@@ -139,8 +139,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
 
   private void executeStandard(String cmd) throws SQLException {
     // send COM_STMT_PREPARE
-    if (prepareResult == null && canCachePrepStmts) {
-      prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+    if (prepareResult == null) {
+      if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
       if (prepareResult == null) {
         con.getClient().execute(new PreparePacket(cmd), this, true);
       }
@@ -338,8 +338,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     for (Parameters batchParameter : batchParameters) {
       // prepare is in loop, because if connection fail, prepare is reset, and need to be re
       // prepared
-      if (prepareResult == null && canCachePrepStmts) {
-        prepareResult = con.getContext().getPrepareCache().get(cmd, this);
+      if (prepareResult == null) {
+        if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
         if (prepareResult == null) {
           con.getClient().execute(new PreparePacket(cmd), this, false);
         }
