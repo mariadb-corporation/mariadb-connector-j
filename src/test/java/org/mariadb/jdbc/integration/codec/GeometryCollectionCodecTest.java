@@ -271,7 +271,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE GeometryCollectionCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO GeometryCollectionCodec2(t1) VALUES (?)")) {
       prep.setObject(1, geo1);
@@ -305,6 +305,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     assertEquals(geo2, rs.getObject(2, GeometryCollection.class));
     assertTrue(rs.next());
     assertEquals(geo3, rs.getObject(2, GeometryCollection.class));
+    con.commit();
   }
 
   @Test

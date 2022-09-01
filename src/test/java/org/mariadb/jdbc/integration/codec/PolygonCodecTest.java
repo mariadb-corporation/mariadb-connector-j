@@ -381,7 +381,7 @@ public class PolygonCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE PolygonCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO PolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
@@ -415,6 +415,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, Polygon.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, Polygon.class));
+    con.commit();
   }
 
   @Test

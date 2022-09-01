@@ -872,6 +872,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE StringParamCodec");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO StringParamCodec(t1) VALUES (?)")) {
       prep.setString(1, "e'\\n🌟'\\'1Ã");
@@ -1040,6 +1041,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("http://f🌟15", rs.getObject("t1", empty));
     assertEquals("http://f🌟15", rs.getURL(2).toString());
     assertEquals("http://f🌟15", rs.getURL("t1").toString());
+    con.commit();
   }
 
   @Test
