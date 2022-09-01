@@ -142,7 +142,7 @@ public class StandardClient implements Client, AutoCloseable {
                   clientCapabilities,
                   conf,
                   this.exceptionFactory,
-                  new PrepareCache(conf.prepStmtCacheSize(), this));
+                  conf.cachePrepStmts() ? new PrepareCache(conf.prepStmtCacheSize(), this) : null);
 
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);

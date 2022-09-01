@@ -80,6 +80,9 @@ public class PreparedStatementTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts")) {
       execute(con);
     }
+    try (Connection con = createCon("&useServerPrepStmts&cachePrepStmts=false")) {
+      execute(con);
+    }
   }
 
   private void execute(Connection conn) throws SQLException {

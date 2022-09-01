@@ -23,6 +23,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
    * @param lock thread locker
    * @param canUseServerTimeout can use server timeout
    * @param canUseServerMaxRows can use server max rows
+   * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType result-set type
    * @param resultSetConcurrency concurrency
    * @throws SQLException if any exception occurs
@@ -35,6 +36,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
       ReentrantLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
+      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency)
       throws SQLException {
@@ -46,6 +48,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
         procedureName,
         canUseServerTimeout,
         canUseServerMaxRows,
+        canCachePrepStmts,
         resultSetType,
         resultSetConcurrency,
         0);
