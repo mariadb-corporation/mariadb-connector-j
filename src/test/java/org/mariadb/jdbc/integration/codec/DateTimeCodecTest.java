@@ -1023,7 +1023,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateTimeCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     LocalDateTime ldtNow = LocalDateTime.parse("2022-04-15T19:49:41.398057");
     OffsetDateTime offsetDtUtc =
         OffsetDateTime.of(ldtNow, ZoneId.of("UTC").getRules().getOffset(ldtNow));
@@ -1212,5 +1212,6 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(offsetDtCurrent, rs.getObject(2, OffsetDateTime.class));
     assertEquals(ldtNow.atZone(ZoneId.systemDefault()), rs.getObject(2, ZonedDateTime.class));
     assertEquals(ldtNow, rs.getObject(2, LocalDateTime.class));
+    con.commit();
   }
 }

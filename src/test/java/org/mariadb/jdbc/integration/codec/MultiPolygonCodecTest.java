@@ -307,7 +307,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MultiPolygonCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO MultiPolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
@@ -341,6 +341,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, MultiPolygon.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiPolygon.class));
+    con.commit();
   }
 
   @Test

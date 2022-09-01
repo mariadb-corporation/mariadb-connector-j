@@ -288,6 +288,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LineStringCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     LineString ls1 =
         new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true);
     LineString ls2 =
@@ -333,6 +334,7 @@ public class LineStringCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, LineString.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, LineString.class));
+    con.commit();
   }
 
   @Test

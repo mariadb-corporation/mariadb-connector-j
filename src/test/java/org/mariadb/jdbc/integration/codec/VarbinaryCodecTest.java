@@ -731,6 +731,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE VarbinaryCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO VarbinaryCodec2(t1) VALUES (?)")) {
       prep.setBytes(1, null);
@@ -763,5 +764,6 @@ public class VarbinaryCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertArrayEquals("e🌟3".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+    con.commit();
   }
 }

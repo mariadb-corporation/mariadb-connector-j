@@ -711,6 +711,7 @@ public class FloatCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE FloatCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO FloatCodec2(t1) VALUES (?)")) {
       prep.setFloat(1, 1.1F);
       prep.execute();
@@ -789,5 +790,6 @@ public class FloatCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
+    con.commit();
   }
 }

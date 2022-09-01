@@ -806,6 +806,7 @@ public class DecimalCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DecimalCodec3");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO DecimalCodec3(t1) VALUES (?)")) {
       prep.setBigDecimal(1, BigDecimal.valueOf(1));
@@ -910,5 +911,6 @@ public class DecimalCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
+    con.commit();
   }
 }

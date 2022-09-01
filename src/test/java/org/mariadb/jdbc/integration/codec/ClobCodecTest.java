@@ -772,7 +772,7 @@ public class ClobCodecTest extends CommonCodecTest {
     Clob longData = new MariaDbClob(longDataSb.toString().getBytes(StandardCharsets.UTF_8));
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO ClobParamCodec(t1) VALUES (?)")) {
       prep.setClob(1, new MariaDbClob("e🌟£1".getBytes(StandardCharsets.UTF_8)));
@@ -1009,5 +1009,6 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e🌟5789", rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e🌟57", rs.getString(2));
+    con.commit();
   }
 }
