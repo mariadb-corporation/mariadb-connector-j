@@ -53,7 +53,6 @@ public class Sha256AuthenticationTest extends Common {
       rs.next();
       rsaPublicKey = checkFileExists(rs.getString(1));
 
-
       if (rsaPublicKey == null) {
         rsaPublicKey = checkFileExists(rs.getString(2) + rs.getString(1));
         if (rsaPublicKey == null) {

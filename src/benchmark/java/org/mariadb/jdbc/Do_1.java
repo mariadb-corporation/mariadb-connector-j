@@ -9,14 +9,13 @@ import org.openjdk.jmh.annotations.Benchmark;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class Select_1 extends Common {
+public class Do_1 extends Common {
 
-  @Benchmark
-  public int run(MyState state) throws Throwable {
-    try (Statement st = state.connectionText.createStatement()) {
-      ResultSet rs = st.executeQuery("select 1");
-      rs.next();
-      return rs.getInt(1);
+    @Benchmark
+    public int run(MyState state) throws Throwable {
+        try (Statement st = state.connectionText.createStatement()) {
+            return st.executeUpdate("DO 1");
+        }
     }
-  }
+
 }

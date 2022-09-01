@@ -14,10 +14,10 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
-@Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
-@Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
-@Fork(value = 5)
-@Threads(value = -1) // detecting CPU count
+@Warmup(iterations = 5, timeUnit = TimeUnit.SECONDS, time = 1)
+@Measurement(iterations = 5, timeUnit = TimeUnit.SECONDS, time = 1)
+@Fork(value = 1)
+@Threads(value = 1) // detecting CPU count
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class Common {
@@ -43,6 +43,8 @@ public class Common {
     @Param({"mysql", "mariadb"})
     String driver;
 
+    int fetchSize;
+
     @Setup(Level.Trial)
     public void createConnections() throws Exception {
 
@@ -50,9 +52,11 @@ public class Common {
       switch (driver) {
         case "mysql":
           className = "com.mysql.cj.jdbc.Driver";
+          fetchSize = Integer.MIN_VALUE;
           break;
         case "mariadb":
           className = "org.mariadb.jdbc.Driver";
+          fetchSize = 1;
           break;
         default:
           throw new RuntimeException("wrong param");
