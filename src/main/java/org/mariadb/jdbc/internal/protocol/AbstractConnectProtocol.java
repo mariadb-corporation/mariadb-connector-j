@@ -249,7 +249,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
             (options.pipe == null && options.localSocket == null)
                 ? new InetSocketAddress(host, port)
                 : null;
-        socket.connect(sockAddr, options.connectTimeout);
+
+        try {
+          socket.connect(sockAddr, options.connectTimeout);
+        } catch (IOException ioe) {
+          // ensure closing unix socket if wrong file
+          try {
+            socket.close();
+          } catch (IOException e) {
+            // eat
+          }
+          throw ioe;
+        }
       }
       return socket;
 
