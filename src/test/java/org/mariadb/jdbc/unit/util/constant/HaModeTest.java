@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.unit.util.constant;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,8 +27,6 @@ import org.mariadb.jdbc.util.constants.*;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HaModeTest {
   @Test
@@ -77,9 +77,7 @@ public class HaModeTest {
       if (host2.equals(res.get())) replica1++;
       if (host3.equals(res.get())) replica2++;
     }
-    assertTrue(
-            replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
-
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
     replica1 = 0;
     replica2 = 0;
@@ -90,8 +88,7 @@ public class HaModeTest {
       if (host2.equals(res.get())) replica1++;
       if (host3.equals(res.get())) replica2++;
     }
-    assertTrue(
-            replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
     for (int i = 0; i < 1000; i++) {
       denyList.putIfAbsent(host2, System.currentTimeMillis() + 1000);
