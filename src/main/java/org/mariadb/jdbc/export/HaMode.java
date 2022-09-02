@@ -16,7 +16,7 @@ public enum HaMode {
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      return HaMode.getAvailableHostInOrder(hostAddresses, denyList, primary);
+      return HaMode.getAvailableHostRandomOrder(hostAddresses, denyList, primary);
     }
   },
   /** sequential: driver will always connect according to connection string order */
@@ -34,18 +34,7 @@ public enum HaMode {
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      // use in order not blacklisted server
-      List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
-
-      // ensure denied server have not reached denied timeout
-      denyList.entrySet().stream()
-          .filter(e -> e.getValue() < System.currentTimeMillis())
-          .forEach(e -> denyList.remove(e.getKey()));
-
-      loopAddress.removeAll(denyList.keySet());
-
-      Collections.shuffle(loopAddress);
-      return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
+      return HaMode.getAvailableHostRandomOrder(hostAddresses, denyList, primary);
     }
   },
   /** no ha-mode. Connect to first host only */
@@ -104,6 +93,31 @@ public enum HaMode {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * return hosts of corresponding type (primary or not) without blacklisted hosts. hosts in
+   * blacklist reaching blacklist timeout will be present. Order is random.
+   *
+   * @param hostAddresses hosts
+   * @param denyList blacklist
+   * @param primary returns primary hosts or replica
+   * @return list without denied hosts
+   */
+  public static Optional<HostAddress> getAvailableHostRandomOrder(
+      List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary) {
+    // use in order not blacklisted server
+    List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
+
+    // ensure denied server have not reached denied timeout
+    denyList.entrySet().stream()
+        .filter(e -> e.getValue() < System.currentTimeMillis())
+        .forEach(e -> denyList.remove(e.getKey()));
+
+    loopAddress.removeAll(denyList.keySet());
+
+    Collections.shuffle(loopAddress);
+    return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
   }
 
   /**

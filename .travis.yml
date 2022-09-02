@@ -8,6 +8,9 @@ jdk: openjdk11
 addons:
   hosts:
     - mariadb.example.com
+    - mariadb1.example.com
+    - mariadb2.example.com
+    - mariadb3.example.com
 
 before_install:
   - git clone https://github.com/mariadb-corporation/connector-test-machine.git

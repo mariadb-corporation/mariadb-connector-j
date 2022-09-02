@@ -917,4 +917,8 @@ public class Connection implements java.sql.Connection {
   protected ExceptionFactory getExceptionFactory() {
     return exceptionFactory;
   }
+
+  public String __test_host() {
+    return this.client.getHostAddress().toString();
+  }
 }
