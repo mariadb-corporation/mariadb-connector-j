@@ -127,7 +127,17 @@ public final class ConnectionHelper {
             conf.pipe() == null && conf.localSocket() == null
                 ? new InetSocketAddress(hostAddress.host, hostAddress.port)
                 : null;
-        socket.connect(sockAddr, conf.connectTimeout());
+        try {
+          socket.connect(sockAddr, conf.connectTimeout());
+        } catch (IOException ioe) {
+          // ensure closing unix socket if wrong file
+          try {
+            socket.close();
+          } catch (IOException e) {
+            // eat
+          }
+          throw ioe;
+        }
       }
       return socket;
 
