@@ -200,6 +200,10 @@ public class Common {
     }
   }
 
+  public boolean isWindows() {
+    return System.getProperty("os.name").toLowerCase().contains("win");
+  }
+
   public void cancelForVersion(int major, int minor) {
     String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
     Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));

@@ -15,11 +15,9 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 public class UnixsocketTest extends Common {
-  private final boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-
   @Test
   public void testConnectWithUnixSocketWhenDBNotUp() throws IOException {
-    Assumptions.assumeTrue(!isWindows);
+    Assumptions.assumeTrue(!isWindows());
     String url = "jdbc:mariadb://localhost:3306";
     Properties properties = new Properties();
     properties.setProperty("localSocket", "/tmp/not_valid_socket");

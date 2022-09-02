@@ -12,8 +12,6 @@ import org.junit.jupiter.api.*;
 public class Sha256AuthenticationTest extends Common {
 
   private static String rsaPublicKey;
-  private static final boolean isWindows =
-      System.getProperty("os.name").toLowerCase().contains("win");
 
   private static void dropUserWithoutError(org.mariadb.jdbc.Statement stmt, String user) {
     try {
@@ -97,7 +95,7 @@ public class Sha256AuthenticationTest extends Common {
   public void nativePassword() throws Exception {
     Assumptions.assumeTrue(haveSsl());
     Assumptions.assumeTrue(
-        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+        !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     Statement stmt = sharedConn.createStatement();
     try {
       stmt.execute("DROP USER tmpUser@'%'");
@@ -122,7 +120,7 @@ public class Sha256AuthenticationTest extends Common {
   @Test
   public void cachingSha256Empty() throws Exception {
     Assumptions.assumeTrue(
-        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+        !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
@@ -132,7 +130,7 @@ public class Sha256AuthenticationTest extends Common {
   @Test
   public void wrongRsaPath() throws Exception {
     Assumptions.assumeTrue(
-        !isWindows && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
+        !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     File tempFile = File.createTempFile("log", ".tmp");
     Common.assertThrowsContains(
@@ -193,7 +191,7 @@ public class Sha256AuthenticationTest extends Common {
 
   @Test
   public void cachingSha256PluginTestWithoutServerRsaKey() throws Exception {
-    Assumptions.assumeTrue(!isWindows && minVersion(8, 0, 0));
+    Assumptions.assumeTrue(!isWindows() && minVersion(8, 0, 0));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
