@@ -48,6 +48,11 @@ public class MultiHostTest extends Common {
   @Test
   public void ensureReadOnlyOnReplica() throws Exception {
     // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
+    Assumptions.assumeTrue(
+            !"skysql".equals(System.getenv("srv"))
+                    && !"skysql-ha".equals(System.getenv("srv"))
+                    && !isXpand());
+
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
     String url =
