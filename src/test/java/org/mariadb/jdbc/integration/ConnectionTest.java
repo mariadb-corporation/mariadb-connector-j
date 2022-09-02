@@ -361,7 +361,12 @@ public class ConnectionTest extends Common {
         assertEquals("_test_db", connection.getCatalog());
         stmt.execute("USE _test_db");
         assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog(null);
+        assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog("_test_db");
+        assertEquals("_test_db", connection.getCatalog());
         stmt.execute("drop database _test_db");
+        assertTrue(connection.getCatalog() == null || "_test_db".equals(connection.getCatalog()));
       }
     }
   }
