@@ -155,6 +155,10 @@ public class UnixDomainSocket extends Socket {
       }
       connected = true;
     } catch (LastErrorException lee) {
+      try {
+        close();
+      } catch (IOException e) { }
+
       throw new IOException("native connect() failed : " + formatError(lee));
     }
     is = new UnixSocketInputStream();
