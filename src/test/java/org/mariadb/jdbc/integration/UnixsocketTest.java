@@ -18,10 +18,13 @@ public class UnixsocketTest extends Common {
   @Test
   public void testConnectWithUnixSocketWhenDBNotUp() throws IOException {
     Assumptions.assumeTrue(!isWindows());
-    String url = "jdbc:mariadb://localhost:3306";
-    Properties properties = new Properties();
-    properties.setProperty("localSocket", "/tmp/not_valid_socket");
-    properties.setProperty("localSocketAddress", "localhost");
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv"))
+            && !"skysql".equals(System.getenv("srv"))
+            && !"xpand".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv")));
+
+    String url = mDefUrl + "&localSocket=/tmp/not_valid_socket&localSocketAddress=localhost";
 
     java.sql.Driver driver = new org.mariadb.jdbc.Driver();
 
@@ -41,7 +44,7 @@ public class UnixsocketTest extends Common {
       assertThrows(
           SQLNonTransientConnectionException.class,
           () -> {
-            driver.connect(url, properties);
+            driver.connect(url, new Properties());
           });
     }
     proc = rt.exec(commands);

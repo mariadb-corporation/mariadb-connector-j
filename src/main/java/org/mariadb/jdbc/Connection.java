@@ -313,8 +313,9 @@ public class Connection implements java.sql.Connection {
   public void setCatalog(String catalog) throws SQLException {
     // null catalog means keep current.
     // there is no possibility to set no database when one is selected
-    if (catalog == null || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
-             && catalog.equals(client.getContext().getDatabase()))) {
+    if (catalog == null
+        || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
+            && catalog.equals(client.getContext().getDatabase()))) {
       return;
     }
     lock.lock();
