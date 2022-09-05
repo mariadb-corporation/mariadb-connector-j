@@ -1545,7 +1545,8 @@ public class Statement implements java.sql.Statement {
         updateCounts[i] =
             completion instanceof OkPacket ? (int) ((OkPacket) completion).getAffectedRows() : 0;
       }
-      throw new BatchUpdateException(sqle.getMessage(), updateCounts, sqle);
+      throw new BatchUpdateException(
+          sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), updateCounts, sqle);
     } finally {
       localInfileInputStream = null;
     }

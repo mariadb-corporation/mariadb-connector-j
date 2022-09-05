@@ -292,7 +292,10 @@ public class FailoverTest extends Common {
           p.executeBatch();
           Assertions.fail();
         } catch (SQLException e) {
-          Throwable ee = (e instanceof BatchUpdateException) ? e.getCause() : e;
+          SQLException ee = (SQLException) ((e instanceof BatchUpdateException) ? e.getCause() : e);
+          assertEquals(ee.getMessage(), e.getMessage());
+          assertEquals(ee.getSQLState(), e.getSQLState());
+          assertEquals(ee.getErrorCode(), e.getErrorCode());
           assertTrue(ee.getMessage().contains("In progress transaction was lost"));
         }
       }

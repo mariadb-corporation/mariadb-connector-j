@@ -177,7 +177,8 @@ public class ExceptionFactory {
         updateCounts[i] = org.mariadb.jdbc.Statement.EXECUTE_FAILED;
       }
     }
-    return new BatchUpdateException(updateCounts, sqle);
+    return new BatchUpdateException(
+        sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), updateCounts, sqle);
   }
 
   /**
@@ -210,7 +211,8 @@ public class ExceptionFactory {
         updateCounts[i] = Statement.SUCCESS_NO_INFO;
       }
     }
-    return new BatchUpdateException(updateCounts, sqle);
+    return new BatchUpdateException(
+        sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), updateCounts, sqle);
   }
 
   /**
