@@ -76,20 +76,20 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public long readLongLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252: // 0xfc
         return readUnsignedShort();
       case 253: // 0xfd
         return readUnsignedMedium();
-      case 254: // 0xfe
+      default: // 0xfe
         return readLong();
-      default:
-        return type;
     }
   }
 
   public int readIntLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252:
         return readUnsignedShort();
@@ -108,7 +108,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int len = readLength();
+    int len = readIntLengthEncodedNotNull();
     pos += len;
     return pos;
   }
@@ -138,11 +138,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public short readShort() {
-    return (short) ((buf[pos++] & 0xff) | (buf[pos++] << 8));
+    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
   }
 
   public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) | (buf[pos++] << 8)) & 0xffff;
+    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
   }
 
   public int readMedium() {

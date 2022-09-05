@@ -832,6 +832,8 @@ public class PacketWriter implements Writer {
       buf[3] = this.sequence.incrementAndGet();
       checkMaxAllowedLength(pos - 4);
       out.write(buf, 0, pos);
+      out.flush();
+
       cmdLength += pos - 4;
 
       if (logger.isTraceEnabled()) {
