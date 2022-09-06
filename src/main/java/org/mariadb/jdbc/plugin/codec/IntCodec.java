@@ -80,16 +80,16 @@ public class IntCodec implements Codec<Integer> {
       throws SQLDataException {
     long result;
     switch (column.getType()) {
+      case INTEGER:
+      case BIGINT:
+        result = buf.atoi(length);
+        break;
+
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
       case YEAR:
-        return (int) LongCodec.parseNotEmpty(buf, length);
-
-      case INTEGER:
-      case BIGINT:
-        result = LongCodec.parseNotEmpty(buf, length);
-        break;
+        return (int) buf.atoi(length);
 
       case BIT:
         result = 0;

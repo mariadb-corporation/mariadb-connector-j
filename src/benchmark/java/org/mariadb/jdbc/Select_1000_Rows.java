@@ -15,26 +15,24 @@ public class Select_1000_Rows extends Common {
       "select seq, 'abcdefghijabcdefghijabcdefghijaa' from seq_1_to_1000";
 
   @Benchmark
-  public String[] text(MyState state) throws Throwable {
-    return run(state.connectionText, state.fetchSize);
+  public int text(MyState state) throws Throwable {
+    return run(state.connectionText);
   }
 
   @Benchmark
-  public String[] binary(MyState state) throws Throwable {
-    return run(state.connectionBinary, state.fetchSize);
+  public int binary(MyState state) throws Throwable {
+    return run(state.connectionBinary);
   }
 
-  private String[] run(Connection con, int fetchSize) throws Throwable {
+  private int run(Connection con) throws Throwable {
     try (PreparedStatement st = con.prepareStatement(sql)) {
-      st.setFetchSize(fetchSize);
       ResultSet rs = st.executeQuery();
-      String[] res = new String[1000];
       int i = 0;
       while (rs.next()) {
-        rs.getInt(1);
-        res[i++] = rs.getString(2);
+        i = rs.getInt(1);
+        rs.getString(2);
       }
-      return res;
+      return i;
     }
   }
 }

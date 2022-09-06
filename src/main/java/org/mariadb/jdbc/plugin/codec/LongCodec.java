@@ -46,33 +46,6 @@ public class LongCodec implements Codec<Long> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  /**
-   * Fast long from text parsing
-   *
-   * @param buf packet buffer
-   * @param length data length
-   * @return long value
-   */
-  public static long parseNotEmpty(ReadableByteBuf buf, int length) {
-
-    boolean negate = false;
-    int idx = 0;
-    long result = 0;
-
-    if (length > 0 && buf.getByte() == 45) { // minus sign
-      negate = true;
-      buf.skip();
-      idx++;
-    }
-
-    while (idx++ < length) {
-      result = result * 10 + buf.readByte() - 48;
-    }
-
-    if (negate) result = -1 * result;
-    return result;
-  }
-
   public String className() {
     return Long.class.getName();
   }
@@ -112,11 +85,11 @@ public class LongCodec implements Codec<Long> {
       case MEDIUMINT:
       case INTEGER:
       case YEAR:
-        return parseNotEmpty(buf, length);
+        return buf.atoi(length);
 
       case BIGINT:
         if (column.isSigned()) {
-          return parseNotEmpty(buf, length);
+          return buf.atoi(length);
         } else {
           BigInteger val = new BigInteger(buf.readAscii(length));
           try {

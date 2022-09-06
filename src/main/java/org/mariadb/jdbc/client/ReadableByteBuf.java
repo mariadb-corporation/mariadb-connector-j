@@ -56,6 +56,9 @@ public interface ReadableByteBuf {
    */
   void skip(int length);
 
+  /** Skip length encoded value */
+  void skipLengthEncoded();
+
   /**
    * Read Blob at current position
    *
@@ -110,6 +113,14 @@ public interface ReadableByteBuf {
    * @return initial position
    */
   int skipIdentifier();
+
+  /**
+   * Fast long from text parsing
+   *
+   * @param length data length
+   * @return long value
+   */
+  long atoi(int length);
 
   /**
    * Read encoded length value see

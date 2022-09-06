@@ -377,7 +377,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public String getString(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StringCodec.INSTANCE, null);
+    return row.getStringValue(columnIndex);
   }
 
   @Override

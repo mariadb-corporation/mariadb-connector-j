@@ -42,9 +42,6 @@ public class Common {
 
     @Param({"mysql", "mariadb"})
     String driver;
-
-    int fetchSize;
-
     @Setup(Level.Trial)
     public void createConnections() throws Exception {
 
@@ -52,11 +49,9 @@ public class Common {
       switch (driver) {
         case "mysql":
           className = "com.mysql.cj.jdbc.Driver";
-          fetchSize = Integer.MIN_VALUE;
           break;
         case "mariadb":
           className = "org.mariadb.jdbc.Driver";
-          fetchSize = 1;
           break;
         default:
           throw new RuntimeException("wrong param");
