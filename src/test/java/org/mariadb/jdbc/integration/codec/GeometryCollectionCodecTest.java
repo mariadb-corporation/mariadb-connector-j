@@ -203,32 +203,32 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
-    testErrObject(rs, Long.class);
-    testErrObject(rs, Short.class);
-    testErrObject(rs, BigDecimal.class);
-    testErrObject(rs, BigInteger.class);
-    testErrObject(rs, LineString.class);
-    testErrObject(rs, Point.class);
-    testErrObject(rs, Polygon.class);
-    testErrObject(rs, MultiLineString.class);
-    testErrObject(rs, MultiPoint.class);
-    testErrObject(rs, MultiPolygon.class);
-    testErrObject(rs, Double.class);
-    testErrObject(rs, Float.class);
-    testErrObject(rs, Byte.class);
+    testErrObject(rs, Integer.class, 1);
+    testErrObject(rs, String.class, 1);
+    testErrObject(rs, Long.class, 1);
+    testErrObject(rs, Short.class, 1);
+    testErrObject(rs, BigDecimal.class, 1);
+    testErrObject(rs, BigInteger.class, 1);
+    testErrObject(rs, LineString.class, 1);
+    testErrObject(rs, Point.class, 1);
+    testErrObject(rs, Polygon.class, 1);
+    testErrObject(rs, MultiLineString.class, 1);
+    testErrObject(rs, MultiPoint.class, 1);
+    testErrObject(rs, MultiPolygon.class, 1);
+    testErrObject(rs, Double.class, 1);
+    testErrObject(rs, Float.class, 1);
+    testErrObject(rs, Byte.class, 1);
 
     String hexa =
         "000000000107000000020000000101000000000000000000000000000000000000000102000000050000000000000000002440000000000000244000000000000034400000000000002440000000000000344000000000000034400000000000002440000000000000344000000000000024400000000000002440";
-    testArrObject(rs, MultiPolygonCodecTest.decodeHexString(hexa));
+    testArrObject(rs, MultiPolygonCodecTest.decodeHexString(hexa), 1);
 
-    testErrObject(rs, Boolean.class);
-    testErrObject(rs, Clob.class);
-    testErrObject(rs, NClob.class);
-    testErrObject(rs, InputStream.class);
-    testErrObject(rs, Reader.class);
-    testErrObject(rs, java.util.Date.class);
+    testErrObject(rs, Boolean.class, 1);
+    testErrObject(rs, Clob.class, 1);
+    testErrObject(rs, NClob.class, 1);
+    testErrObject(rs, InputStream.class, 1);
+    testErrObject(rs, Reader.class, 1);
+    testErrObject(rs, java.util.Date.class, 1);
   }
 
   @Test

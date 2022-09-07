@@ -238,25 +238,25 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
-    testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
-    testErrObject(rs, Long.class);
-    testErrObject(rs, Short.class);
-    testErrObject(rs, BigDecimal.class);
-    testErrObject(rs, BigInteger.class);
-    testErrObject(rs, Double.class);
-    testErrObject(rs, Float.class);
-    testErrObject(rs, Byte.class);
+    testErrObject(rs, Integer.class, 1);
+    testErrObject(rs, String.class, 1);
+    testErrObject(rs, Long.class, 1);
+    testErrObject(rs, Short.class, 1);
+    testErrObject(rs, BigDecimal.class, 1);
+    testErrObject(rs, BigInteger.class, 1);
+    testErrObject(rs, Double.class, 1);
+    testErrObject(rs, Float.class, 1);
+    testErrObject(rs, Byte.class, 1);
     String hexa =
         "0000000001060000000200000001030000000100000007000000000000000000F03F000000000000F03F000000000000F03F00000000000014400000000000001040000000000000224000000000000018400000000000002240000000000000224000000000000008400000000000001C400000000000000040000000000000F03F000000000000F03F010300000002000000050000000000000000000000000000000000000000000000000049400000000000000000000000000000494000000000000049400000000000000000000000000000494000000000000000000000000000000000050000000000000000002440000000000000244000000000000034400000000000002440000000000000344000000000000034400000000000002440000000000000344000000000000024400000000000002440";
-    testArrObject(rs, decodeHexString(hexa));
+    testArrObject(rs, decodeHexString(hexa), 1);
 
-    testErrObject(rs, Boolean.class);
-    testErrObject(rs, Clob.class);
-    testErrObject(rs, NClob.class);
-    testErrObject(rs, InputStream.class);
-    testErrObject(rs, Reader.class);
-    testErrObject(rs, java.util.Date.class);
+    testErrObject(rs, Boolean.class, 1);
+    testErrObject(rs, Clob.class, 1);
+    testErrObject(rs, NClob.class, 1);
+    testErrObject(rs, InputStream.class, 1);
+    testErrObject(rs, Reader.class, 1);
+    testErrObject(rs, java.util.Date.class, 1);
   }
 
   @Test
