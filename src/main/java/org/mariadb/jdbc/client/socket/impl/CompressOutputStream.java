@@ -131,6 +131,7 @@ public class CompressOutputStream extends OutputStream {
 
         out.write(header, 0, 7);
         out.write(compressedBytes, 0, compressLen);
+        out.flush();
       }
     }
   }
