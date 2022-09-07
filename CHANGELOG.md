@@ -1,4 +1,23 @@
 # Change Log
+
+## [3.0.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.8) (Sept 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.7...3.0.8)
+
+##### Notable Changes
+* small performance improvement
+  * [CONJ-1010] improve client side prepared parameter parameter substitution
+  
+##### Bugs Fixed
+* [CONJ-997] regression in 3.x when using option galeraAllowedState resulting in an IndexOutOfBoundsException
+* [CONJ-1002] 2nd failover reconnection ignores default database/schema setting when not set by connection string
+* [CONJ-1003] replication configuration always use 1st replica on 3.0
+* [CONJ-996] BatchUpdateException doesn't inherited the SQLState & vendorCode from the cause SQL exception
+* [CONJ-1006] disabling cachePrepStmts with useServerPrepStmts might result in Exception
+* [CONJ-1007] Socket file descriptors are leaked after connecting with unix socket if DB is not up running
+* [CONJ-1010] improve client side prepare statement parameter substitution
+* [CONJ-999] setting createDatabaseIfNotExist option use on read-only server will refuse connection on 3.0
+
+
 ## [3.0.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.7) (Jul 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.6...3.0.7)
 
