@@ -10,14 +10,16 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
-public class NonNullParameter<T> extends Parameter {
+/**
+ * Parameter wrapper for primitive, knowing that value cannot be null, permitting fast path for few
+ * methods.
+ *
+ * @param <T> value type
+ */
+public class NonNullParameter<T> extends Parameter<T> {
 
   public NonNullParameter(Codec<T> codec, T value) {
     super(codec, value);
-  }
-
-  public NonNullParameter(Codec<T> codec, T value, Long length) {
-    super(codec, value, length);
   }
 
   @Override

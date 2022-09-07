@@ -23,7 +23,7 @@ import org.mariadb.jdbc.client.socket.Reader;
  * possibility:
  *
  * <ul>
- *   <li>With >= MariaDB server, you can use the query "SET STATEMENT net_write_timeout=10000 FOR
+ *   <li>With &gt; MariaDB server, you can use the query "SET STATEMENT net_write_timeout=10000 FOR
  *       XXX" with XXX your "normal" query. This will indicate that specifically for this query,
  *       net_write_timeout will be set to a longer time (10000 in this example).
  *   <li>for non mariadb servers, a specific query will have to temporarily set net_write_timeout
