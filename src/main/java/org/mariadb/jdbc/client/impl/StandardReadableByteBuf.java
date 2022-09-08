@@ -64,13 +64,13 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     } else {
       switch (len) {
         case 252:
-          pos += readUnsignedShort();
+          skip(readUnsignedShort());
           break;
         case 253:
-          pos += readUnsignedMedium();
+          skip(readUnsignedMedium());
           break;
         case 254:
-          pos += 4 + readUnsignedInt();
+          skip((int) (4 + readUnsignedInt()));
           break;
       }
     }
