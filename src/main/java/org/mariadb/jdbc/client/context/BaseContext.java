@@ -151,7 +151,7 @@ public class BaseContext implements Context {
   }
 
   public void resetPrepareCache() {
-    prepareCache.reset();
+    if (prepareCache != null) prepareCache.reset();
   }
 
   public int getStateFlag() {

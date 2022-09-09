@@ -172,10 +172,13 @@ public final class ConnectionHelper {
    *
    * @param configuration configuration
    * @param serverCapabilities server capabilities
+   * @param hostAddress host address server
    * @return client capabilities
    */
   public static long initializeClientCapabilities(
-      final Configuration configuration, final long serverCapabilities) {
+      final Configuration configuration,
+      final long serverCapabilities,
+      final HostAddress hostAddress) {
     long capabilities =
         Capabilities.IGNORE_SPACE
             | Capabilities.CLIENT_PROTOCOL_41
@@ -230,7 +233,12 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.COMPRESS;
     }
 
-    if (configuration.database() != null && !configuration.createDatabaseIfNotExist()) {
+    // connect to database directly if not needed to be created, or if slave, since cannot be
+    // created
+    if (configuration.database() != null
+        && (!configuration.createDatabaseIfNotExist()
+            || (configuration.createDatabaseIfNotExist()
+                && (hostAddress != null && !hostAddress.primary)))) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
 

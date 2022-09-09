@@ -358,7 +358,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MultiLineStringCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO MultiLineStringCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
@@ -392,6 +392,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, MultiLineString.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiLineString.class));
+    con.commit();
   }
 
   @Test

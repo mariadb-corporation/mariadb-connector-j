@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.unit.util.constant;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -67,19 +69,33 @@ public class HaModeTest {
     Assertions.assertTrue(res.isPresent());
     Assertions.assertEquals(host1, res.get());
 
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host2, res.get());
+    int replica1 = 0;
+    int replica2 = 0;
+    for (int i = 0; i < 1000; i++) {
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      if (host2.equals(res.get())) replica1++;
+      if (host3.equals(res.get())) replica2++;
+    }
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
+    replica1 = 0;
+    replica2 = 0;
     denyList.putIfAbsent(host2, System.currentTimeMillis() - 10);
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host2, res.get());
+    for (int i = 0; i < 1000; i++) {
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      if (host2.equals(res.get())) replica1++;
+      if (host3.equals(res.get())) replica2++;
+    }
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
-    denyList.putIfAbsent(host2, System.currentTimeMillis() + 1000);
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host3, res.get());
+    for (int i = 0; i < 1000; i++) {
+      denyList.putIfAbsent(host2, System.currentTimeMillis() + 1000);
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      Assertions.assertEquals(host3, res.get());
+    }
   }
 
   @Test

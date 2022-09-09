@@ -177,10 +177,22 @@ public class LocalInfileTest extends Common {
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
-      Common.assertThrowsContains(
-          BatchUpdateException.class,
-          stmt::executeBatch,
-          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
+
+      try {
+        stmt.executeBatch();
+        fail();
+      } catch (SQLException e) {
+        assertEquals(e.getClass(), BatchUpdateException.class);
+        assertTrue(
+            e.getMessage()
+                .contains(
+                    "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands"));
+        assertNotNull(e.getCause());
+        assertEquals(e.getCause().getMessage(), e.getMessage());
+        assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+        assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
+      }
+
       try (PreparedStatement prep =
           con.prepareStatement(
               "LOAD DATA LOCAL INFILE ? INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {

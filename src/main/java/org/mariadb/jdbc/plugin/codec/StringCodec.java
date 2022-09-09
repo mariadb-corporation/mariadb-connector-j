@@ -70,28 +70,25 @@ public class StringCodec implements Codec<String> {
   public String decodeText(
       final ReadableByteBuf buf, final int length, final Column column, final Calendar cal)
       throws SQLDataException {
-    switch (column.getType()) {
-      case BIT:
-        byte[] bytes = new byte[length];
-        buf.readBytes(bytes);
-        StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
-        sb.append("b'");
-        boolean firstByteNonZero = false;
-        for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
-          boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
-          if (b) {
-            sb.append('1');
-            firstByteNonZero = true;
-          } else if (firstByteNonZero) {
-            sb.append('0');
-          }
+    if (column.getType() == DataType.BIT) {
+      byte[] bytes = new byte[length];
+      buf.readBytes(bytes);
+      StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
+      sb.append("b'");
+      boolean firstByteNonZero = false;
+      for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
+        boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
+        if (b) {
+          sb.append('1');
+          firstByteNonZero = true;
+        } else if (firstByteNonZero) {
+          sb.append('0');
         }
-        sb.append("'");
-        return sb.toString();
-
-      default:
-        return buf.readString(length);
+      }
+      sb.append("'");
+      return sb.toString();
     }
+    return buf.readString(length);
   }
 
   public String decodeBinary(

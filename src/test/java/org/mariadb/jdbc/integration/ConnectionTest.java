@@ -361,7 +361,12 @@ public class ConnectionTest extends Common {
         assertEquals("_test_db", connection.getCatalog());
         stmt.execute("USE _test_db");
         assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog(null);
+        assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog("_test_db");
+        assertEquals("_test_db", connection.getCatalog());
         stmt.execute("drop database _test_db");
+        assertTrue(connection.getCatalog() == null || "_test_db".equals(connection.getCatalog()));
       }
     }
   }
@@ -1134,7 +1139,19 @@ public class ConnectionTest extends Common {
       assertEquals(nonExistentDatabase, rs.getString(1));
     }
 
+    nonExistentDatabase = "bla`f`l0";
+    connStr =
+        String.format(
+            "jdbc:mariadb:replication://%s:%s,%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            hostname, port, hostname, port, nonExistentDatabase, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+
     sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l0`");
   }
 
   @Test

@@ -117,18 +117,18 @@ public interface ClientMessage {
 
     ReadableByteBuf buf = reader.readPacket(true, traceEnable);
 
-    switch (buf.getUnsignedByte()) {
+    switch (buf.getByte()) {
 
         // *********************************************************************************************************
         // * OK response
         // *********************************************************************************************************
-      case 0x00:
+      case (byte) 0x00:
         return new OkPacket(buf, context);
 
         // *********************************************************************************************************
         // * ERROR response
         // *********************************************************************************************************
-      case 0xff:
+      case (byte) 0xff:
         // force current status to in transaction to ensure rollback/commit, since command may
         // have issue a transaction
         ErrorPacket errorPacket = new ErrorPacket(buf, context);
@@ -136,7 +136,7 @@ public interface ClientMessage {
             .withSql(this.description())
             .create(
                 errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
-      case 0xfb:
+      case (byte) 0xfb:
         buf.skip(1); // skip header
         SQLException exception = null;
 

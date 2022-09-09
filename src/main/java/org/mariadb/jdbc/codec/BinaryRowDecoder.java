@@ -25,6 +25,11 @@ public class BinaryRowDecoder extends RowDecoder {
   }
 
   @Override
+  public String decodeString() throws SQLException {
+    return StringCodec.INSTANCE.decodeBinary(readBuf, length, columns[index], null);
+  }
+
+  @Override
   public byte decodeByte() throws SQLException {
     return ByteCodec.INSTANCE.decodeBinaryByte(readBuf, length, columns[index]);
   }
@@ -119,25 +124,7 @@ public class BinaryRowDecoder extends RowDecoder {
             break;
 
           default:
-            int len = this.readBuf.readUnsignedByte();
-            if (len < 251) {
-              // length is encoded on 1 bytes (is then less than 251)
-              this.readBuf.skip(len);
-              break;
-            }
-            switch (len) {
-              case 252:
-                this.readBuf.skip(this.readBuf.readUnsignedShort());
-                break;
-
-              case 253:
-                this.readBuf.skip(this.readBuf.readUnsignedMedium());
-                break;
-
-              case 254:
-                this.readBuf.skip((int) this.readBuf.readLong());
-                break;
-            }
+            this.readBuf.skipLengthEncoded();
             break;
         }
       }

@@ -10,32 +10,29 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-public class Select_10000_Rows extends Common {
+public class Select_1000_Rows extends Common {
   private static final String sql =
-      "SELECT lpad(conv(floor(rand()*pow(36,8)), 10, 36), 8, 0) as rnd_str_8 FROM seq_1_to_10000";
-
+      "select seq, 'abcdefghijabcdefghijabcdefghijaa' from seq_1_to_1000";
 
   @Benchmark
-  public String[] text(MyState state) throws Throwable {
+  public int text(MyState state) throws Throwable {
     return run(state.connectionText);
   }
 
-
   @Benchmark
-  public String[] binary(MyState state) throws Throwable {
+  public int binary(MyState state) throws Throwable {
     return run(state.connectionBinary);
   }
 
-  private String[] run(Connection con) throws Throwable {
+  private int run(Connection con) throws Throwable {
     try (PreparedStatement st = con.prepareStatement(sql)) {
-
       ResultSet rs = st.executeQuery();
-      String[] res = new String[10000];
       int i = 0;
       while (rs.next()) {
-        res[i++] = rs.getString(1);
+        i = rs.getInt(1);
+        rs.getString(2);
       }
-      return res;
+      return i;
     }
   }
 }

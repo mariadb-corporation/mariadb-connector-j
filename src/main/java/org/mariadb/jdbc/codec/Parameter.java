@@ -47,7 +47,11 @@ public class Parameter<T> implements org.mariadb.jdbc.client.util.Parameter {
   }
 
   public void encodeText(Writer encoder, Context context) throws IOException, SQLException {
-    codec.encodeText(encoder, context, this.value, null, length);
+    if (value == null) {
+      encoder.writeAscii("null");
+    } else {
+      codec.encodeText(encoder, context, this.value, null, length);
+    }
   }
 
   public void encodeBinary(Writer encoder) throws IOException, SQLException {

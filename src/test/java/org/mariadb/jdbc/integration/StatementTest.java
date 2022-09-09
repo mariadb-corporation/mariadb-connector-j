@@ -780,6 +780,10 @@ public class StatementTest extends Common {
       assertTrue(
           e.getMessage().contains("You have an error in your SQL syntax")
               || e.getMessage().contains("syntax error"));
+      assertNotNull(e.getCause());
+      assertEquals(e.getCause().getMessage(), e.getMessage());
+      assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+      assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
     }
   }
 
@@ -821,6 +825,10 @@ public class StatementTest extends Common {
       assertTrue(
           e.getMessage().contains("You have an error in your SQL syntax")
               || e.getMessage().contains("syntax error"));
+      assertNotNull(e.getCause());
+      assertEquals(e.getCause().getMessage(), e.getMessage());
+      assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+      assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
     }
   }
 

@@ -13,7 +13,6 @@ import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -248,7 +247,9 @@ public abstract class Result implements ResultSet, Completion {
   /** Grow data array. */
   private void growDataArray() {
     int newCapacity = data.length + (data.length >> 1);
-    data = Arrays.copyOf(data, newCapacity);
+    byte[][] newData = new byte[newCapacity][];
+    System.arraycopy(data, 0, newData, 0, data.length);
+    data = newData;
   }
 
   /**
@@ -376,7 +377,7 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public String getString(int columnIndex) throws SQLException {
-    return row.getValue(columnIndex, StringCodec.INSTANCE, null);
+    return row.getStringValue(columnIndex);
   }
 
   @Override

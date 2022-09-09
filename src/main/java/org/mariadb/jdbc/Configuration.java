@@ -83,7 +83,7 @@ public class Configuration {
   private boolean tcpAbortiveClose = false;
   private String localSocketAddress = null;
   private int socketTimeout = 0;
-  private boolean useReadAheadInput = true;
+  private boolean useReadAheadInput = false;
   private String tlsSocketType = null;
 
   // SSL

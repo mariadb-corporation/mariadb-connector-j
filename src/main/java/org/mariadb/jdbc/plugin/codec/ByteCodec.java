@@ -106,7 +106,7 @@ public class ByteCodec implements Codec<Byte> {
       case INTEGER:
       case BIGINT:
       case YEAR:
-        result = LongCodec.parseNotEmpty(buf, length);
+        result = buf.atoi(length);
         break;
 
       case BIT:

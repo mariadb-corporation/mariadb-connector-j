@@ -933,6 +933,7 @@ public class MediumIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MediumIntCodec3");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO MediumIntCodec3(id, id2, t1) VALUES (?,?,?)")) {
       prep.setInt(1, 1);
@@ -1010,5 +1011,6 @@ public class MediumIntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(85, rs.getInt(3));
     assertFalse(rs.wasNull());
+    con.commit();
   }
 }

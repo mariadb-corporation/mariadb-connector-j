@@ -756,6 +756,7 @@ public class TimeCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE TimeCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     Time tt = Time.valueOf("01:55:12");
     tt.setTime(tt.getTime() + 120);
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(t1) VALUES (?)")) {
@@ -849,5 +850,6 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
+    con.commit();
   }
 }

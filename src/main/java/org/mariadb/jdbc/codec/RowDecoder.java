@@ -9,14 +9,13 @@ import java.sql.SQLException;
 import java.util.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.plugin.Codec;
 
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private final Configuration conf;
-  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
+  protected final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   protected final Column[] columns;
 
   protected int length;
@@ -46,6 +45,8 @@ public abstract class RowDecoder {
   public abstract short decodeShort() throws SQLException;
 
   public abstract int decodeInt() throws SQLException;
+
+  public abstract String decodeString() throws SQLException;
 
   public abstract long decodeLong() throws SQLException;
 
@@ -90,7 +91,7 @@ public abstract class RowDecoder {
           String.format(
               "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
     }
-    if (readBuf.buf() == null) {
+    if (readBuf.buf == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
 
@@ -143,6 +144,14 @@ public abstract class RowDecoder {
       return 0;
     }
     return decodeInt();
+  }
+
+  public String getStringValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return null;
+    }
+    return decodeString();
   }
 
   public long getLongValue(int index) throws SQLException {

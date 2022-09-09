@@ -970,6 +970,7 @@ public class LongCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LongCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO LongCodec2(t1) VALUES (?)")) {
       prep.setLong(1, 1L);
       prep.execute();
@@ -1064,5 +1065,6 @@ public class LongCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(180L, rs.getLong(2));
     assertFalse(rs.wasNull());
+    con.commit();
   }
 }

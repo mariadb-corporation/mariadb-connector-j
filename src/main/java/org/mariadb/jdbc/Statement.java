@@ -176,7 +176,7 @@ public class Statement implements java.sql.Statement {
       }
 
       // close result-set
-      if (results != null) {
+      if (results != null && !results.isEmpty()) {
         for (Completion completion : results) {
           if (completion instanceof Result) {
             ((Result) completion).closeFromStmtClose(lock);
@@ -937,8 +937,8 @@ public class Statement implements java.sql.Statement {
                   this,
                   fetchSize,
                   maxRows,
-                  this.resultSetConcurrency,
-                  this.resultSetType,
+                  resultSetConcurrency,
+                  resultSetType,
                   closeOnCompletion,
                   false);
     } finally {
@@ -1545,7 +1545,8 @@ public class Statement implements java.sql.Statement {
         updateCounts[i] =
             completion instanceof OkPacket ? (int) ((OkPacket) completion).getAffectedRows() : 0;
       }
-      throw new BatchUpdateException(sqle.getMessage(), updateCounts, sqle);
+      throw new BatchUpdateException(
+          sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), updateCounts, sqle);
     } finally {
       localInfileInputStream = null;
     }

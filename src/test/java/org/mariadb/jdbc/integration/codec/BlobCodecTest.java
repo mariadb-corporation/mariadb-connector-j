@@ -676,6 +676,7 @@ public class BlobCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO BlobCodec2(t1) VALUES (?)")) {
       prep.setBlob(1, (Blob) null);
       prep.execute();
@@ -993,6 +994,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertArrayEquals("2g🌟4".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
+    con.commit();
   }
 
   private static class BlobInputStream implements Blob {

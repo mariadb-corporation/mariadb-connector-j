@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 @Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
 @Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
 @Fork(value = 5)
-@Threads(value = -1) // detecting CPU count
+@Threads(value = 1) // detecting CPU count
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class Common {
@@ -42,7 +42,6 @@ public class Common {
 
     @Param({"mysql", "mariadb"})
     String driver;
-
     @Setup(Level.Trial)
     public void createConnections() throws Exception {
 

@@ -219,6 +219,7 @@ public class PointCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE PointCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(t1) VALUES (?)")) {
       prep.setObject(1, new Point(52.1, 12.8));
       prep.execute();
@@ -250,6 +251,7 @@ public class PointCodecTest extends CommonCodecTest {
     assertEquals(new Point(2.2, 3.3), rs.getObject(2, Point.class));
     assertTrue(rs.next());
     assertEquals(new Point(2, 3), rs.getObject(2, Point.class));
+    con.commit();
   }
 
   @Test

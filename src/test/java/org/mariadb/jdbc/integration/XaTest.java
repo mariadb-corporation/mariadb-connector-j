@@ -186,6 +186,7 @@ public class XaTest extends Common {
 
   @Test
   public void testCommit() throws Exception {
+    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testCommit(dataSource);
     testCommit(poolDataSource);
   }
@@ -205,6 +206,7 @@ public class XaTest extends Common {
 
   @Test
   public void testRollback() throws Exception {
+    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     testRollback(dataSource);
     testRollback(poolDataSource);
   }
@@ -220,6 +222,7 @@ public class XaTest extends Common {
 
   @Test
   public void testRecover() throws Exception {
+    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     XAConnection xaConnection = dataSource.getXAConnection();
     try {
       java.sql.Connection connection = xaConnection.getConnection();
@@ -248,6 +251,7 @@ public class XaTest extends Common {
 
   @Test
   public void resumeAndJoinTest() throws Exception {
+    Assumptions.assumeFalse("galera".equals(System.getenv("srv")));
     Connection conn1;
     MariaDbDataSource ds = new MariaDbDataSource(mDefUrl);
 

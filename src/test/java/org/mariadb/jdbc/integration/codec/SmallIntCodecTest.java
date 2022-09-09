@@ -944,6 +944,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE SmallIntCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO SmallIntCodec2(t1) VALUES (?)")) {
       prep.setShort(1, (short) 1);
@@ -1021,5 +1022,6 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
+    con.commit();
   }
 }

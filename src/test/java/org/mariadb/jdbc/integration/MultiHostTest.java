@@ -46,6 +46,57 @@ public class MultiHostTest extends Common {
   }
 
   @Test
+  public void ensureReadOnlyOnReplica() throws Exception {
+    // mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined
+    Assumptions.assumeTrue(
+        !isWindows()
+            && !"skysql".equals(System.getenv("srv"))
+            && !"skysql-ha".equals(System.getenv("srv"))
+            && !isXpand());
+
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//mariadb1.example.com:%s,mariadb2.example.com:%s,mariadb3.example.com:%s/",
+                hostAddress.port, hostAddress.port, hostAddress.port));
+    url = url.replaceAll("jdbc:mariadb:", "jdbc:mariadb:replication:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+    try {
+      int replica1 = 0;
+      int replica2 = 0;
+      for (int i = 0; i < 100; i++) {
+        try (Connection con =
+            (Connection)
+                DriverManager.getConnection(
+                    url + "&waitReconnectTimeout=30&deniedListTimeout=300")) {
+          assertTrue(con.__test_host().contains("primary"));
+          con.setReadOnly(true);
+          assertTrue(con.__test_host().contains("replica"));
+          if (con.__test_host().contains("mariadb2")) {
+            replica1++;
+          }
+          if (con.__test_host().contains("mariadb3")) {
+            replica2++;
+          }
+        }
+      }
+
+      assertTrue(
+          replica1 > 35, "value replica1/replicat2 aren't right : " + replica1 + "/" + replica2);
+      assertTrue(
+          replica2 > 35, "value replica1/replicat2 aren't right : " + replica1 + "/" + replica2);
+    } catch (SQLNonTransientConnectionException e) {
+      fail(
+          "mariadb1.example.com, mariadb2.example.com and mariadb3.example.com DNS alias must be defined");
+    }
+  }
+
+  @Test
   public void readOnly() throws SQLException {
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv"))

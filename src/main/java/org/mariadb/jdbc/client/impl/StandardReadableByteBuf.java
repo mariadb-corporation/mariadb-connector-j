@@ -12,7 +12,7 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   private int limit;
-  private byte[] buf;
+  public byte[] buf;
   private int pos;
 
   /**
@@ -57,9 +57,46 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     pos += length;
   }
 
+  public void skipLengthEncoded() {
+    int len = buf[pos++] & 0xff;
+    if (len < 251) {
+      pos += len;
+    } else {
+      switch (len) {
+        case 252:
+          skip(readUnsignedShort());
+          break;
+        case 253:
+          skip(readUnsignedMedium());
+          break;
+        case 254:
+          skip((int) (4 + readUnsignedInt()));
+          break;
+      }
+    }
+  }
+
   public MariaDbBlob readBlob(int length) {
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
+  }
+
+  public long atoi(int length) {
+    boolean negate = false;
+    int idx = 0;
+    long result = 0;
+
+    if (length > 0 && buf[pos] == 45) { // minus sign
+      negate = true;
+      pos++;
+      idx++;
+    }
+
+    while (idx++ < length) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+
+    return (negate) ? -1 * result : result;
   }
 
   public byte getByte() {
@@ -76,20 +113,20 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public long readLongLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252: // 0xfc
         return readUnsignedShort();
       case 253: // 0xfd
         return readUnsignedMedium();
-      case 254: // 0xfe
+      default: // 0xfe
         return readLong();
-      default:
-        return type;
     }
   }
 
   public int readIntLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252:
         return readUnsignedShort();
@@ -108,7 +145,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int len = readLength();
+    int len = readIntLengthEncodedNotNull();
     pos += len;
     return pos;
   }
@@ -138,11 +175,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public short readShort() {
-    return (short) ((buf[pos++] & 0xff) | (buf[pos++] << 8));
+    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
   }
 
   public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) | (buf[pos++] << 8)) & 0xffff;
+    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
   }
 
   public int readMedium() {

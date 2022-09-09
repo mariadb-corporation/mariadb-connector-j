@@ -12,7 +12,8 @@ import org.mariadb.jdbc.client.util.MutableInt;
 
 /**
  * Compression writer handler Permit to wrap standard packet to compressed packet ( 7 byte header).
- * Driver will compress packet only if packet size is meaningful (1536 bytes) > to one TCP packet.
+ * Driver will compress packet only if packet size is meaningful (1536 bytes) &gt; to one TCP
+ * packet.
  */
 public class CompressOutputStream extends OutputStream {
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
@@ -131,6 +132,7 @@ public class CompressOutputStream extends OutputStream {
 
         out.write(header, 0, 7);
         out.write(compressedBytes, 0, compressLen);
+        out.flush();
       }
     }
   }

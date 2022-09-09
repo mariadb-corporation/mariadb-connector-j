@@ -47,6 +47,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
    * @param procedureName procedure name
    * @param canUseServerTimeout indicate if server support server timeout
    * @param canUseServerMaxRows indicate if server support server max rows
+   * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType resultset type
    * @param resultSetConcurrency resultset concurrency
    * @param defaultFetchSize default fetch size
@@ -60,6 +61,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
       String procedureName,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
+      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency,
       int defaultFetchSize)
@@ -70,6 +72,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         lock,
         canUseServerTimeout,
         canUseServerMaxRows,
+        canCachePrepStmts,
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,

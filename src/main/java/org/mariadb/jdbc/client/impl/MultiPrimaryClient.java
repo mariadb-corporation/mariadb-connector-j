@@ -259,7 +259,10 @@ public class MultiPrimaryClient implements Client {
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
         && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase())) {
       currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
+      if (oldCtx.getDatabase() != null) {
+        currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
+      }
+      currentClient.getContext().setDatabase(oldCtx.getDatabase());
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_NETWORK_TIMEOUT) > 0) {
