@@ -88,7 +88,7 @@ public class LongCodec implements Codec<Long> {
         return buf.atoi(length);
 
       case BIGINT:
-        if (column.isSigned()) {
+        if (column.isSigned() || length < 10) {
           return buf.atoi(length);
         } else {
           BigInteger val = new BigInteger(buf.readAscii(length));
