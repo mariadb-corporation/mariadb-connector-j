@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.socket.Writer;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
@@ -46,9 +46,9 @@ public class PacketWriter implements Writer {
   /** buffer position */
   protected int pos = 4;
   /** packet sequence */
-  protected final MutableInt sequence;
+  protected final MutableByte sequence;
   /** compressed packet sequence */
-  protected final MutableInt compressSequence;
+  protected final MutableByte compressSequence;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
@@ -63,8 +63,8 @@ public class PacketWriter implements Writer {
       OutputStream out,
       int maxQuerySizeToLog,
       Integer maxAllowedPacket,
-      MutableInt sequence,
-      MutableInt compressSequence) {
+      MutableByte sequence,
+      MutableByte compressSequence) {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;

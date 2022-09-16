@@ -16,7 +16,9 @@ import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
+import org.mariadb.jdbc.client.result.rowdecoder.BinaryRowDecoder;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.codec.*;
@@ -61,7 +63,7 @@ public class UpdatableResult extends CompleteResult {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      Column[] metadataList,
+      ColumnDecoder[] metadataList,
       org.mariadb.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
@@ -325,99 +327,99 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateNull(String columnLabel) throws SQLException {
-    updateNull(row.getIndex(columnLabel));
+    updateNull(findColumn(columnLabel));
   }
 
   @Override
   public void updateBoolean(String columnLabel, boolean x) throws SQLException {
-    updateBoolean(row.getIndex(columnLabel), x);
+    updateBoolean(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateByte(String columnLabel, byte x) throws SQLException {
-    updateByte(row.getIndex(columnLabel), x);
+    updateByte(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateShort(String columnLabel, short x) throws SQLException {
-    updateShort(row.getIndex(columnLabel), x);
+    updateShort(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateInt(String columnLabel, int x) throws SQLException {
-    updateInt(row.getIndex(columnLabel), x);
+    updateInt(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateLong(String columnLabel, long x) throws SQLException {
-    updateLong(row.getIndex(columnLabel), x);
+    updateLong(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateFloat(String columnLabel, float x) throws SQLException {
-    updateFloat(row.getIndex(columnLabel), x);
+    updateFloat(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateDouble(String columnLabel, double x) throws SQLException {
-    updateDouble(row.getIndex(columnLabel), x);
+    updateDouble(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateBigDecimal(String columnLabel, BigDecimal x) throws SQLException {
-    updateBigDecimal(row.getIndex(columnLabel), x);
+    updateBigDecimal(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateString(String columnLabel, String x) throws SQLException {
-    updateString(row.getIndex(columnLabel), x);
+    updateString(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateBytes(String columnLabel, byte[] x) throws SQLException {
-    updateBytes(row.getIndex(columnLabel), x);
+    updateBytes(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateDate(String columnLabel, Date x) throws SQLException {
-    updateDate(row.getIndex(columnLabel), x);
+    updateDate(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateTime(String columnLabel, Time x) throws SQLException {
-    updateTime(row.getIndex(columnLabel), x);
+    updateTime(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateTimestamp(String columnLabel, Timestamp x) throws SQLException {
-    updateTimestamp(row.getIndex(columnLabel), x);
+    updateTimestamp(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateAsciiStream(String columnLabel, InputStream x, int length) throws SQLException {
-    updateAsciiStream(row.getIndex(columnLabel), x, length);
+    updateAsciiStream(findColumn(columnLabel), x, length);
   }
 
   @Override
   public void updateBinaryStream(String columnLabel, InputStream x, int length)
       throws SQLException {
-    updateBinaryStream(row.getIndex(columnLabel), x, length);
+    updateBinaryStream(findColumn(columnLabel), x, length);
   }
 
   @Override
   public void updateCharacterStream(String columnLabel, Reader reader, int length)
       throws SQLException {
-    updateCharacterStream(row.getIndex(columnLabel), reader, length);
+    updateCharacterStream(findColumn(columnLabel), reader, length);
   }
 
   @Override
   public void updateObject(String columnLabel, Object x, int scaleOrLength) throws SQLException {
-    updateObject(row.getIndex(columnLabel), x, scaleOrLength);
+    updateObject(findColumn(columnLabel), x, scaleOrLength);
   }
 
   @Override
   public void updateObject(String columnLabel, Object x) throws SQLException {
-    updateObject(row.getIndex(columnLabel), x);
+    updateObject(findColumn(columnLabel), x);
   }
 
   @Override
@@ -437,7 +439,7 @@ public class UpdatableResult extends CompleteResult {
                   Statement.RETURN_GENERATED_KEYS,
                   ResultSet.TYPE_FORWARD_ONLY,
                   ResultSet.CONCUR_READ_ONLY,
-                  row instanceof BinaryRowDecoder)) {
+                  rowDecoder instanceof BinaryRowDecoder)) {
 
         int paramPos = 0;
         for (int pos = 0; pos < metadataList.length; pos++) {
@@ -594,7 +596,7 @@ public class UpdatableResult extends CompleteResult {
             Statement.RETURN_GENERATED_KEYS,
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY,
-            row instanceof BinaryRowDecoder);
+            rowDecoder instanceof BinaryRowDecoder);
   }
 
   private byte[] refreshRawData() throws SQLException {
@@ -680,7 +682,7 @@ public class UpdatableResult extends CompleteResult {
                     Statement.RETURN_GENERATED_KEYS,
                     ResultSet.TYPE_FORWARD_ONLY,
                     ResultSet.CONCUR_READ_ONLY,
-                    row instanceof BinaryRowDecoder)) {
+                    rowDecoder instanceof BinaryRowDecoder)) {
 
           int fieldsIndex = 0;
           for (int pos = 0; pos < metadataList.length; pos++) {
@@ -811,7 +813,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateBlob(String columnLabel, Blob x) throws SQLException {
-    updateBlob(row.getIndex(columnLabel), x);
+    updateBlob(findColumn(columnLabel), x);
   }
 
   @Override
@@ -822,7 +824,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateClob(String columnLabel, Clob x) throws SQLException {
-    updateClob(row.getIndex(columnLabel), x);
+    updateClob(findColumn(columnLabel), x);
   }
 
   @Override
@@ -877,19 +879,19 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void updateAsciiStream(String columnLabel, InputStream x, long length)
       throws SQLException {
-    updateAsciiStream(row.getIndex(columnLabel), x, length);
+    updateAsciiStream(findColumn(columnLabel), x, length);
   }
 
   @Override
   public void updateBinaryStream(String columnLabel, InputStream x, long length)
       throws SQLException {
-    updateBinaryStream(row.getIndex(columnLabel), x, length);
+    updateBinaryStream(findColumn(columnLabel), x, length);
   }
 
   @Override
   public void updateCharacterStream(String columnLabel, Reader reader, long length)
       throws SQLException {
-    updateCharacterStream(row.getIndex(columnLabel), reader, length);
+    updateCharacterStream(findColumn(columnLabel), reader, length);
   }
 
   @Override
@@ -901,7 +903,7 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void updateBlob(String columnLabel, InputStream inputStream, long length)
       throws SQLException {
-    updateBlob(row.getIndex(columnLabel), inputStream, length);
+    updateBlob(findColumn(columnLabel), inputStream, length);
   }
 
   @Override
@@ -912,7 +914,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-    updateClob(row.getIndex(columnLabel), reader, length);
+    updateClob(findColumn(columnLabel), reader, length);
   }
 
   @Override
@@ -955,17 +957,17 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateAsciiStream(String columnLabel, InputStream x) throws SQLException {
-    updateAsciiStream(row.getIndex(columnLabel), x);
+    updateAsciiStream(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateBinaryStream(String columnLabel, InputStream x) throws SQLException {
-    updateBinaryStream(row.getIndex(columnLabel), x);
+    updateBinaryStream(findColumn(columnLabel), x);
   }
 
   @Override
   public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-    updateCharacterStream(row.getIndex(columnLabel), reader);
+    updateCharacterStream(findColumn(columnLabel), reader);
   }
 
   @Override
@@ -976,7 +978,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-    updateBlob(row.getIndex(columnLabel), inputStream);
+    updateBlob(findColumn(columnLabel), inputStream);
   }
 
   @Override
@@ -987,7 +989,7 @@ public class UpdatableResult extends CompleteResult {
 
   @Override
   public void updateClob(String columnLabel, Reader reader) throws SQLException {
-    updateClob(row.getIndex(columnLabel), reader);
+    updateClob(findColumn(columnLabel), reader);
   }
 
   @Override
@@ -1029,7 +1031,7 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void updateObject(String columnLabel, Object x, SQLType targetSqlType, int scaleOrLength)
       throws SQLException {
-    updateObject(row.getIndex(columnLabel), x, targetSqlType, scaleOrLength);
+    updateObject(findColumn(columnLabel), x, targetSqlType, scaleOrLength);
   }
 
   @Override
@@ -1040,7 +1042,7 @@ public class UpdatableResult extends CompleteResult {
   @Override
   public void updateObject(String columnLabel, Object x, SQLType targetSqlType)
       throws SQLException {
-    updateObject(row.getIndex(columnLabel), x, targetSqlType);
+    updateObject(findColumn(columnLabel), x, targetSqlType);
   }
 
   @Override
@@ -1051,10 +1053,10 @@ public class UpdatableResult extends CompleteResult {
   private void resetToRowPointer() {
     rowPointer = savedRowPointer;
     if (rowPointer != BEFORE_FIRST_POS && rowPointer < dataSize - 1) {
-      row.setRow(data[rowPointer]);
+      setrow.accept(data[rowPointer]);
     } else {
       // all data are reads and pointer is after last
-      row.setRow(null);
+      setNullRowBuf();
     }
     savedRowPointer = -1;
   }

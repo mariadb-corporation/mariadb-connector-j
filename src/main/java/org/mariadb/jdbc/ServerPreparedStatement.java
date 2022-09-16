@@ -10,6 +10,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
@@ -19,7 +20,6 @@ import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.BulkExecutePacket;
 import org.mariadb.jdbc.message.client.ExecutePacket;
 import org.mariadb.jdbc.message.client.PreparePacket;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
@@ -441,7 +441,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       if (currResult instanceof Result) return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**

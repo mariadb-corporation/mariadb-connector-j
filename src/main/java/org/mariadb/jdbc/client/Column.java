@@ -1,8 +1,5 @@
 package org.mariadb.jdbc.client;
 
-import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.plugin.Codec;
-
 public interface Column {
 
   /**
@@ -45,7 +42,7 @@ public interface Column {
    *
    * @return column maximum length
    */
-  long getLength();
+  long getColumnLength();
 
   /**
    * server data type
@@ -117,37 +114,6 @@ public interface Column {
    * @return extended metadata name
    */
   String getExtTypeName();
-
-  /**
-   * Return metadata precision.
-   *
-   * @return precision
-   */
-  int getPrecision();
-
-  /**
-   * return column type from column server type
-   *
-   * @param conf configuration
-   * @return column type
-   */
-  int getColumnType(Configuration conf);
-
-  /**
-   * Retrieves the designated column's MariaDB/MySQL type name
-   *
-   * @param conf configuration
-   * @return type name used by the database
-   */
-  String getColumnTypeName(Configuration conf);
-
-  /**
-   * return column codec from column server type
-   *
-   * @param conf configuration
-   * @return decoding codec
-   */
-  Codec<?> getDefaultCodec(Configuration conf);
 
   /** Use column alias as name */
   void useAliasAsName();

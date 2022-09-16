@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 
 /**
  * Compression writer handler Permit to wrap standard packet to compressed packet ( 7 byte header).
@@ -18,7 +18,7 @@ import org.mariadb.jdbc.client.util.MutableInt;
 public class CompressOutputStream extends OutputStream {
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
   private final OutputStream out;
-  private final MutableInt sequence;
+  private final MutableByte sequence;
   private final byte[] header = new byte[7];
   private byte[] longPacketBuffer = null;
 
@@ -28,7 +28,7 @@ public class CompressOutputStream extends OutputStream {
    * @param out socket output stream
    * @param compressionSequence compression sequence
    */
-  public CompressOutputStream(OutputStream out, MutableInt compressionSequence) {
+  public CompressOutputStream(OutputStream out, MutableByte compressionSequence) {
     this.out = out;
     this.sequence = compressionSequence;
   }

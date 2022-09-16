@@ -58,21 +58,22 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public void skipLengthEncoded() {
-    int len = buf[pos++] & 0xff;
-    if (len < 251) {
-      pos += len;
-    } else {
-      switch (len) {
-        case 252:
-          skip(readUnsignedShort());
-          break;
-        case 253:
-          skip(readUnsignedMedium());
-          break;
-        case 254:
-          skip((int) (4 + readUnsignedInt()));
-          break;
-      }
+    byte len = buf[pos++];
+    switch (len) {
+      case (byte) 251:
+        return;
+      case (byte) 252:
+        skip(readUnsignedShort());
+        return;
+      case (byte) 253:
+        skip(readUnsignedMedium());
+        return;
+      case (byte) 254:
+        skip((int) (4 + readUnsignedInt()));
+        return;
+      default:
+        pos += len & 0xff;
+        return;
     }
   }
 
@@ -81,7 +82,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
   }
 
-  public long atoi(int length) {
+  public long atoll(int length) {
     boolean negate = false;
     int idx = 0;
     long result = 0;
@@ -97,6 +98,17 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     }
 
     return (negate) ? -1 * result : result;
+  }
+
+  public long atoull(int length) {
+    int idx = 0;
+    long result = 0;
+
+    while (idx++ < length) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+
+    return result;
   }
 
   public byte getByte() {

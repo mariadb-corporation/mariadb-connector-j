@@ -121,7 +121,7 @@ public class StringCodec implements Codec<String> {
 
       case YEAR:
         StringBuilder s = new StringBuilder(String.valueOf(buf.readUnsignedShort()));
-        while (s.length() < column.getLength()) s.insert(0, "0");
+        while (s.length() < column.getColumnLength()) s.insert(0, "0");
         return s.toString();
 
       case SMALLINT:

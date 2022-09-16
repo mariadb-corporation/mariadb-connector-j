@@ -8,10 +8,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.type.*;
 
 public class GeometryTest {
@@ -302,9 +302,7 @@ public class GeometryTest {
         SQLException.class,
         () ->
             Geometry.getGeometry(
-                readBuf,
-                ptBytes.length,
-                ColumnDefinitionPacket.create("test", DataType.GEOMETRY, 0)));
+                readBuf, ptBytes.length, ColumnDecoder.create("test", DataType.GEOMETRY, 0)));
     assertNull(Geometry.getGeometry(new StandardReadableByteBuf(new byte[0], 0), 0, null));
   }
 }

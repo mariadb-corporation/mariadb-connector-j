@@ -97,6 +97,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
   }
 
   private void getObject(ResultSet rs) throws SQLException {
+    Object o = rs.getObject(1);
     assertEquals(Short.valueOf("0"), rs.getObject(1));
     assertFalse(rs.wasNull());
     assertEquals(Short.valueOf("1"), rs.getObject(2));

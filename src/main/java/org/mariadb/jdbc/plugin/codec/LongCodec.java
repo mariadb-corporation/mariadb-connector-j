@@ -85,11 +85,11 @@ public class LongCodec implements Codec<Long> {
       case MEDIUMINT:
       case INTEGER:
       case YEAR:
-        return buf.atoi(length);
+        return buf.atoll(length);
 
       case BIGINT:
         if (column.isSigned() || length < 10) {
-          return buf.atoi(length);
+          return buf.atoll(length);
         } else {
           BigInteger val = new BigInteger(buf.readAscii(length));
           try {

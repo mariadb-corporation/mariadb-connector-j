@@ -12,7 +12,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
 import org.mariadb.jdbc.util.log.Loggers;
@@ -29,7 +29,7 @@ public class PacketReader implements Reader {
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
 
-  private final MutableInt sequence;
+  private final MutableByte sequence;
   private String serverThreadLog = "";
 
   /**
@@ -39,7 +39,7 @@ public class PacketReader implements Reader {
    * @param conf connection options
    * @param sequence current increment sequence
    */
-  public PacketReader(InputStream in, Configuration conf, MutableInt sequence) {
+  public PacketReader(InputStream in, Configuration conf, MutableByte sequence) {
     this.inputStream = in;
     this.maxQuerySizeToLog = conf.maxQuerySizeToLog();
     this.sequence = sequence;
@@ -180,7 +180,7 @@ public class PacketReader implements Reader {
     return new StandardReadableByteBuf(rawBytes, lastPacketLength);
   }
 
-  public MutableInt getSequence() {
+  public MutableByte getSequence() {
     return sequence;
   }
 

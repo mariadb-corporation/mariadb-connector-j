@@ -58,8 +58,8 @@ public class DateCodec implements Codec<Date> {
 
     switch (column.getType()) {
       case YEAR:
-        short y = (short) buf.atoi(length);
-        if (column.getLength() == 2) {
+        short y = (short) buf.atoll(length);
+        if (column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (y <= 69) {
             y += 2000;
@@ -108,7 +108,7 @@ public class DateCodec implements Codec<Date> {
     }
   }
 
-  private Date getDate(Column column, Calendar cal, String val, String[] stDatePart)
+  public static Date getDate(Column column, Calendar cal, String val, String[] stDatePart)
       throws SQLDataException {
     try {
       int year = Integer.parseInt(stDatePart[0]);
@@ -138,7 +138,7 @@ public class DateCodec implements Codec<Date> {
       case YEAR:
         int v = buf.readShort();
 
-        if (column.getLength() == 2) {
+        if (column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (v <= 69) {
             v += 2000;

@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -15,7 +16,7 @@ import org.mariadb.jdbc.util.constants.ColumnFlags;
 public class ResultSetMetaData implements java.sql.ResultSetMetaData {
 
   private final ExceptionFactory exceptionFactory;
-  private final Column[] fieldPackets;
+  private final ColumnDecoder[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
 
@@ -29,7 +30,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public ResultSetMetaData(
       final ExceptionFactory exceptionFactory,
-      final Column[] fieldPackets,
+      final ColumnDecoder[] fieldPackets,
       final Configuration conf,
       final boolean forceAlias) {
     this.exceptionFactory = exceptionFactory;
@@ -288,10 +289,10 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnClassName(int column) throws SQLException {
-    return getColumn(column).getDefaultCodec(conf).className();
+    return getColumn(column).defaultClassname(conf);
   }
 
-  private Column getColumn(int column) throws SQLException {
+  private ColumnDecoder getColumn(int column) throws SQLException {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }

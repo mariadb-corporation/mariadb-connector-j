@@ -116,7 +116,7 @@ public class Configuration {
   // meta
   private boolean blankTableNameMeta = false;
   private boolean tinyInt1isBit = true;
-  private boolean transformedBitIsBoolean = false;
+  private boolean transformedBitIsBoolean = true;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
   private boolean includeInnodbStatusInDeadlockExceptions = false;

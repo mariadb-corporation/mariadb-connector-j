@@ -91,7 +91,7 @@ public class TimestampCodec implements Codec<Timestamp> {
         Calendar cal1 = calParam == null ? Calendar.getInstance() : calParam;
 
         int year = Integer.parseInt(buf.readAscii(length));
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         synchronized (cal1) {
           cal1.clear();
           cal1.set(year, Calendar.JANUARY, 1);
@@ -306,7 +306,7 @@ public class TimestampCodec implements Codec<Timestamp> {
 
       case YEAR:
         year = buf.readUnsignedShort();
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         break;
 
       default:

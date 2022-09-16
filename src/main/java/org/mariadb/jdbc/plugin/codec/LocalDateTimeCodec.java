@@ -178,7 +178,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
       case YEAR:
         int year = Integer.parseInt(buf.readAscii(length));
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         return LocalDateTime.of(year, 1, 1, 0, 0);
 
       default:
@@ -275,7 +275,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
       case YEAR:
         year = buf.readUnsignedShort();
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         break;
       default:
         buf.skip(length);

@@ -84,7 +84,7 @@ public class ShortCodec implements Codec<Short> {
       case INTEGER:
       case BIGINT:
       case YEAR:
-        result = buf.atoi(length);
+        result = buf.atoll(length);
         break;
 
       case BIT:

@@ -82,14 +82,14 @@ public class IntCodec implements Codec<Integer> {
     switch (column.getType()) {
       case INTEGER:
       case BIGINT:
-        result = buf.atoi(length);
+        result = buf.atoll(length);
         break;
 
       case TINYINT:
       case SMALLINT:
       case MEDIUMINT:
       case YEAR:
-        return (int) buf.atoi(length);
+        return (int) buf.atoll(length);
 
       case BIT:
         result = 0;

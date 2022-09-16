@@ -7,11 +7,7 @@ package org.mariadb.jdbc.message.server;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.client.Client;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -22,8 +18,8 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class PrepareResultPacket implements Completion, Prepare {
 
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
-  private final Column[] parameters;
-  private Column[] columns;
+  private final ColumnDecoder[] parameters;
+  private ColumnDecoder[] columns;
 
   /** prepare statement id */
   protected int statementId;
@@ -43,13 +39,13 @@ public class PrepareResultPacket implements Completion, Prepare {
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
     final int numParams = buffer.readUnsignedShort();
-    this.parameters = new Column[numParams];
-    this.columns = new Column[numColumns];
+    this.parameters = new ColumnDecoder[numParams];
+    this.columns = new ColumnDecoder[numColumns];
 
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
-            new ColumnDefinitionPacket(
+            ColumnDecoder.decode(
                 reader.readPacket(false, trace),
                 context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
@@ -60,7 +56,7 @@ public class PrepareResultPacket implements Completion, Prepare {
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
-            new ColumnDefinitionPacket(
+            ColumnDecoder.decode(
                 reader.readPacket(false, trace),
                 context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
@@ -101,15 +97,15 @@ public class PrepareResultPacket implements Completion, Prepare {
     return statementId;
   }
 
-  public Column[] getParameters() {
+  public ColumnDecoder[] getParameters() {
     return parameters;
   }
 
-  public Column[] getColumns() {
+  public ColumnDecoder[] getColumns() {
     return columns;
   }
 
-  public void setColumns(Column[] columns) {
+  public void setColumns(ColumnDecoder[] columns) {
     this.columns = columns;
   }
 }
