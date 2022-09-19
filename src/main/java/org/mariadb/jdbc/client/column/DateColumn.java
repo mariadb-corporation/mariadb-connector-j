@@ -4,17 +4,15 @@
 
 package org.mariadb.jdbc.client.column;
 
-import java.sql.Date;
-import java.sql.SQLDataException;
-import java.sql.Types;
+import java.sql.*;
 import java.time.LocalDate;
 import java.util.Calendar;
+import java.util.TimeZone;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.plugin.codec.DateCodec;
 
 /** Column metadata definition */
 public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -47,29 +45,13 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    String val = buf.readString(length);
-    if ("0000-00-00".equals(val)) return null;
-    String[] stDatePart = val.split("[- ]");
-    if (stDatePart.length < 3) {
-      throw new SQLDataException(
-          String.format("value '%s' (%s) cannot be decoded as Date", val, dataType));
-    }
-
-    return DateCodec.getDate(this, null, val, stDatePart);
+    return decodeDateText(buf, length, null);
   }
 
   @Override
   public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (length == 0) return null;
-    Calendar c = Calendar.getInstance();
-    synchronized (c) {
-      c.clear();
-      c.set(Calendar.YEAR, buf.readShort());
-      c.set(Calendar.MONTH, buf.readByte() - 1);
-      c.set(Calendar.DAY_OF_MONTH, buf.readByte());
-      return new Date(c.getTimeInMillis());
-    }
+    return decodeDateBinary(buf, length, null);
   }
 
   @Override
@@ -174,5 +156,100 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
     buf.skip(length);
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
+  }
+
+  @Override
+  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    int year = (int) buf.atoull(4);
+    buf.skip(1);
+    int month = (int) buf.atoull(2);
+    buf.skip(1);
+    int dayOfMonth = (int) buf.atoull(2);
+    if (year == 0 && month == 0 && dayOfMonth == 0) return null;
+
+    Calendar c = cal == null ? Calendar.getInstance() : cal;
+    synchronized (c) {
+      c.clear();
+      c.set(Calendar.YEAR, year);
+      c.set(Calendar.MONTH, month - 1);
+      c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+      return new Date(c.getTimeInMillis());
+    }
+  }
+
+  @Override
+  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (length == 0) return null;
+
+    Calendar c = cal == null ? Calendar.getInstance() : cal;
+    synchronized (c) {
+      c.clear();
+      c.set(Calendar.YEAR, buf.readShort());
+      c.set(Calendar.MONTH, buf.readByte() - 1);
+      c.set(Calendar.DAY_OF_MONTH, buf.readByte());
+      return new Date(c.getTimeInMillis());
+    }
+  }
+
+  @Override
+  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    if (calParam == null || calParam.getTimeZone().equals(TimeZone.getDefault())) {
+      String s = buf.readAscii(length);
+      if ("0000-00-00".equals(s)) return null;
+      return new Timestamp(Date.valueOf(s).getTime());
+    }
+
+    String[] datePart = buf.readAscii(length).split("-");
+    synchronized (calParam) {
+      calParam.clear();
+      calParam.set(
+          Integer.parseInt(datePart[0]),
+          Integer.parseInt(datePart[1]) - 1,
+          Integer.parseInt(datePart[2]));
+      return new Timestamp(calParam.getTimeInMillis());
+    }
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    if (length == 0) return null;
+
+    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+    int year;
+    int month;
+    long dayOfMonth;
+
+    year = buf.readUnsignedShort();
+    month = buf.readByte();
+    dayOfMonth = buf.readByte();
+
+    if (year == 0 && month == 0 && dayOfMonth == 0) return null;
+
+    Timestamp timestamp;
+    synchronized (cal) {
+      cal.clear();
+      cal.set(year, month - 1, (int) dayOfMonth, 0, 0, 0);
+      timestamp = new Timestamp(cal.getTimeInMillis());
+    }
+    timestamp.setNanos(0);
+    return timestamp;
   }
 }

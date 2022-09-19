@@ -14,10 +14,7 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.MariaDbBlob;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -43,7 +40,7 @@ public class BlobCodec implements Codec<Blob> {
     return Blob.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Blob.class);
   }
 
@@ -53,7 +50,7 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Blob decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -88,7 +85,7 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Blob decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:

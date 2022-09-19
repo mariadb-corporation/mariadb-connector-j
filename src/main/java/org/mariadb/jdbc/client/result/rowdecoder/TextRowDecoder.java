@@ -2,7 +2,10 @@ package org.mariadb.jdbc.client.result.rowdecoder;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -61,6 +64,36 @@ public class TextRowDecoder implements RowDecoder {
       int fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeBooleanText(rowBuf, fieldLength);
+  }
+
+  public Date decodeDate(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeDateText(rowBuf, fieldLength, cal);
+  }
+
+  public Time decodeTime(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeTimeText(rowBuf, fieldLength, cal);
+  }
+
+  public Timestamp decodeTimestamp(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeTimestampText(rowBuf, fieldLength, cal);
   }
 
   public short decodeShort(
@@ -137,7 +170,7 @@ public class TextRowDecoder implements RowDecoder {
       fieldIndex.incrementAndGet();
     }
 
-    byte len = rowBuf.readByte();
+    byte len = rowBuf.buf[rowBuf.pos++];
     switch (len) {
       case (byte) 251:
         return NULL_LENGTH;

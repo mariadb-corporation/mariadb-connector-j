@@ -5,22 +5,18 @@
 package org.mariadb.jdbc.client.column;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.sql.Blob;
-import java.sql.SQLDataException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
-public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder {
+public class BlobColumn extends StringColumn implements ColumnDecoder {
 
   public BlobColumn(
       ReadableByteBuf buf,
@@ -174,17 +170,17 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Short", dataType));
     }
-    String str = buf.readString(length);
-    try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).shortValueExact();
-    } catch (NumberFormatException | ArithmeticException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Short", str));
-    }
+    return super.decodeShortText(buf, length);
   }
 
   @Override
   public short decodeShortBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeShortText(buf, length);
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(
+          String.format("Data type %s cannot be decoded as Short", dataType));
+    }
+    return super.decodeShortBinary(buf, length);
   }
 
   @Override
@@ -194,17 +190,17 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Integer", dataType));
     }
-    String str = buf.readString(length);
-    try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).intValueExact();
-    } catch (NumberFormatException | ArithmeticException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Integer", str));
-    }
+    return super.decodeIntText(buf, length);
   }
 
   @Override
   public int decodeIntBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeIntText(buf, length);
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(
+          String.format("Data type %s cannot be decoded as Integer", dataType));
+    }
+    return super.decodeIntBinary(buf, length);
   }
 
   @Override
@@ -213,12 +209,7 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       buf.skip(length);
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
     }
-    String str = buf.readString(length);
-    try {
-      return new BigInteger(str).longValueExact();
-    } catch (NumberFormatException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str));
-    }
+    return super.decodeLongText(buf, length);
   }
 
   @Override
@@ -227,12 +218,7 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       buf.skip(length);
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
     }
-    String str = buf.readString(length);
-    try {
-      return new BigDecimal(str).setScale(0, RoundingMode.DOWN).longValueExact();
-    } catch (NumberFormatException | ArithmeticException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Long", str));
-    }
+    return super.decodeLongBinary(buf, length);
   }
 
   @Override
@@ -242,12 +228,7 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Float", dataType));
     }
-    String val = buf.readString(length);
-    try {
-      return Float.parseFloat(val);
-    } catch (NumberFormatException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Float", val));
-    }
+    return super.decodeFloatText(buf, length);
   }
 
   @Override
@@ -257,13 +238,7 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Float", dataType));
     }
-
-    String str2 = buf.readString(length);
-    try {
-      return Float.parseFloat(str2);
-    } catch (NumberFormatException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Float", str2));
-    }
+    return super.decodeFloatText(buf, length);
   }
 
   @Override
@@ -273,16 +248,78 @@ public class BlobColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Double", dataType));
     }
-    String str2 = buf.readString(length);
-    try {
-      return Double.parseDouble(str2);
-    } catch (NumberFormatException nfe) {
-      throw new SQLDataException(String.format("value '%s' cannot be decoded as Double", str2));
-    }
+    return super.decodeDoubleText(buf, length);
   }
 
   @Override
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeDoubleText(buf, length);
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(
+          String.format("Data type %s cannot be decoded as Double", dataType));
+    }
+    return super.decodeDoubleBinary(buf, length);
+  }
+
+  @Override
+  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+    }
+    return super.decodeDateText(buf, length, cal);
+  }
+
+  @Override
+  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+    }
+    return super.decodeDateBinary(buf, length, cal);
+  }
+
+  @Override
+  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+    }
+    return super.decodeTimeText(buf, length, cal);
+  }
+
+  @Override
+  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+    }
+    return super.decodeTimeBinary(buf, length, cal);
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(
+          String.format("Data type %s cannot be decoded as Timestamp", dataType));
+    }
+    return super.decodeTimestampText(buf, length, cal);
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    if (isBinary()) {
+      buf.skip(length);
+      throw new SQLDataException(
+          String.format("Data type %s cannot be decoded as Timestamp", dataType));
+    }
+    return super.decodeTimestampBinary(buf, length, cal);
   }
 }

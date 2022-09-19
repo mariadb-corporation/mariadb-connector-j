@@ -2,7 +2,10 @@ package org.mariadb.jdbc.client.result.rowdecoder;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -59,6 +62,36 @@ public class BinaryRowDecoder implements RowDecoder {
       int fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeBooleanBinary(rowBuf, fieldLength);
+  }
+
+  public Date decodeDate(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeDateBinary(rowBuf, fieldLength, cal);
+  }
+
+  public Time decodeTime(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeTimeBinary(rowBuf, fieldLength, cal);
+  }
+
+  public Timestamp decodeTimestamp(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException {
+    return metadataList[fieldIndex.get()].decodeTimestampBinary(rowBuf, fieldLength, cal);
   }
 
   public short decodeShort(
@@ -126,10 +159,15 @@ public class BinaryRowDecoder implements RowDecoder {
 
     if (fieldIndex.get() >= newIndex) {
       fieldIndex.set(0);
-      // skip header + null-bitmap
-      rowBuf.pos(1 + ((maxIndex + 9) / 8));
+      rowBuf.pos(1);
+      rowBuf.readBytes(nullBitmap);
     } else {
       fieldIndex.incrementAndGet();
+      if (fieldIndex.get() == 0) {
+        // skip header + null-bitmap
+        rowBuf.pos(1);
+        rowBuf.readBytes(nullBitmap);
+      }
     }
 
     while (fieldIndex.get() < newIndex) {

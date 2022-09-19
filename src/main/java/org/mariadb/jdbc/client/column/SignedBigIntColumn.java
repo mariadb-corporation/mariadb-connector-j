@@ -4,8 +4,8 @@
 
 package org.mariadb.jdbc.client.column;
 
-import java.sql.SQLDataException;
-import java.sql.Types;
+import java.math.BigInteger;
+import java.sql.*;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -14,9 +14,9 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 
 /** Column metadata definition */
-public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
+public class SignedBigIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
-  public SmallIntColumn(
+  public SignedBigIntColumn(
       ReadableByteBuf buf,
       int charset,
       long length,
@@ -30,33 +30,27 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
   }
 
   public String defaultClassname(Configuration conf) {
-    return isSigned() ? Short.class.getName() : Integer.class.getName();
+    return Long.class.getName();
   }
 
   public int getColumnType(Configuration conf) {
-    return isSigned() ? Types.SMALLINT : Types.INTEGER;
+    return Types.BIGINT;
   }
 
   public String getColumnTypeName(Configuration conf) {
-    return isSigned() ? "SMALLINT" : "SMALLINT UNSIGNED";
+    return "BIGINT";
   }
 
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (isSigned()) {
-      return (short) buf.atoll(length);
-    }
-    return (int) buf.atoull(length);
+    return buf.atoll(length);
   }
 
   @Override
   public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (isSigned()) {
-      return buf.readShort();
-    }
-    return buf.readUnsignedShort();
+    return buf.readLong();
   }
 
   @Override
@@ -67,13 +61,13 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public boolean decodeBooleanBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return buf.readShort() != 0;
+    return buf.readLong() != 0;
   }
 
   @Override
   public byte decodeByteText(ReadableByteBuf buf, int length) throws SQLDataException {
     long result = buf.atoll(length);
-    if ((byte) result != result || (result < 0 && !isSigned())) {
+    if ((byte) result != result) {
       throw new SQLDataException("byte overflow");
     }
     return (byte) result;
@@ -81,10 +75,11 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public byte decodeByteBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    long result = isSigned() ? buf.readShort() : buf.readUnsignedShort();
+    long result = buf.readLong();
     if ((byte) result != result) {
       throw new SQLDataException("byte overflow");
     }
+
     return (byte) result;
   }
 
@@ -97,18 +92,12 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
   @Override
   public String decodeStringBinary(ReadableByteBuf buf, int length, Calendar cal)
       throws SQLDataException {
-    if (!isSigned()) {
-      return String.valueOf(buf.readUnsignedShort());
-    }
-    return String.valueOf(buf.readShort());
+    return BigInteger.valueOf(buf.readLong()).toString();
   }
 
   @Override
   public short decodeShortText(ReadableByteBuf buf, int length) throws SQLDataException {
-    if (isSigned()) {
-      return (short) buf.atoll(length);
-    }
-    long result = buf.atoull(length);
+    long result = buf.atoll(length);
     if ((short) result != result) {
       throw new SQLDataException("Short overflow");
     }
@@ -117,10 +106,7 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public short decodeShortBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    if (isSigned()) {
-      return buf.readShort();
-    }
-    int result = buf.readUnsignedShort();
+    long result = buf.readLong();
     if ((short) result != result) {
       throw new SQLDataException("Short overflow");
     }
@@ -129,12 +115,22 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public int decodeIntText(ReadableByteBuf buf, int length) throws SQLDataException {
-    return (int) buf.atoll(length);
+    long result = buf.atoll(length);
+    int res = (int) result;
+    if (res != result) {
+      throw new SQLDataException("integer overflow");
+    }
+    return res;
   }
 
   @Override
   public int decodeIntBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return isSigned() ? buf.readShort() : buf.readUnsignedShort();
+    long result = buf.readLong();
+    int res = (int) result;
+    if (res != result) {
+      throw new SQLDataException("integer overflow");
+    }
+    return res;
   }
 
   @Override
@@ -144,7 +140,7 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public long decodeLongBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return isSigned() ? buf.readShort() : buf.readUnsignedShort();
+    return buf.readLong();
   }
 
   @Override
@@ -154,10 +150,7 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public float decodeFloatBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    if (!isSigned()) {
-      return (float) buf.readUnsignedShort();
-    }
-    return buf.readShort();
+    return (float) buf.readLong();
   }
 
   @Override
@@ -167,9 +160,50 @@ public class SmallIntColumn extends ColumnDefinitionPacket implements ColumnDeco
 
   @Override
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    if (!isSigned()) {
-      return buf.readUnsignedShort();
-    }
-    return buf.readShort();
+    return buf.readLong();
+  }
+
+  @Override
+  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+  }
+
+  @Override
+  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+  }
+
+  @Override
+  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }
 }

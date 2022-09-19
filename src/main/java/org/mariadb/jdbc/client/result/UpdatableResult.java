@@ -1053,7 +1053,7 @@ public class UpdatableResult extends CompleteResult {
   private void resetToRowPointer() {
     rowPointer = savedRowPointer;
     if (rowPointer != BEFORE_FIRST_POS && rowPointer < dataSize - 1) {
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
     } else {
       // all data are reads and pointer is after last
       setNullRowBuf();

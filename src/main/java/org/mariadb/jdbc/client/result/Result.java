@@ -16,7 +16,6 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
@@ -57,8 +56,6 @@ public abstract class Result implements ResultSet, Completion {
 
   /** binary/text row decoder */
   protected final RowDecoder rowDecoder;
-
-  protected final Consumer<byte[]> setrow;
 
   /** data size */
   protected int dataSize = 0;
@@ -125,10 +122,9 @@ public abstract class Result implements ResultSet, Completion {
     this.traceEnable = traceEnable;
     if (binaryProtocol) {
       rowDecoder = BINARY_ROW_DECODER;
-      setrow = this::setBinaryRowBuf;
+      nullBitmap = new byte[(maxIndex + 9) / 8];
     } else {
       rowDecoder = TEXT_ROW_DECODER;
-      setrow = this::setTextRowBuf;
     }
   }
 
@@ -153,7 +149,6 @@ public abstract class Result implements ResultSet, Completion {
     this.closeOnCompletion = false;
     this.traceEnable = false;
     rowDecoder = TEXT_ROW_DECODER;
-    setrow = this::setTextRowBuf;
   }
 
   /**
@@ -378,7 +373,7 @@ public abstract class Result implements ResultSet, Completion {
     if (rawData == null) {
       setNullRowBuf();
     } else {
-      setrow.accept(rawData);
+      setRow(rawData);
       fieldIndex.set(-1);
     }
   }
@@ -570,8 +565,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        DateCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null);
   }
 
   @Override
@@ -583,8 +577,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        TimeCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null);
   }
 
   @Override
@@ -596,8 +589,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        TimestampCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, null);
   }
 
   @Override
@@ -1232,8 +1224,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        DateCodec.INSTANCE, cal, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal);
   }
 
   @Override
@@ -1250,8 +1241,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        TimeCodec.INSTANCE, cal, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal);
   }
 
   @Override
@@ -1268,8 +1258,7 @@ public abstract class Result implements ResultSet, Completion {
     if (fieldLength == NULL_LENGTH) {
       return null;
     }
-    return rowDecoder.decode(
-        TimestampCodec.INSTANCE, cal, rowBuf, fieldLength, metadataList, fieldIndex);
+    return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, cal);
   }
 
   @Override
@@ -1683,17 +1672,8 @@ public abstract class Result implements ResultSet, Completion {
     rowBuf.buf(null, 0, 0);
   }
 
-  private void setTextRowBuf(byte[] row) {
+  public void setRow(byte[] row) {
     rowBuf.buf(row, row.length, 0);
-    fieldIndex.set(-1);
-  }
-
-  private void setBinaryRowBuf(byte[] buf) {
-    nullBitmap = new byte[(maxIndex + 9) / 8];
-    for (int i = 0; i < nullBitmap.length; i++) {
-      nullBitmap[i] = buf[i + 1];
-    }
-    rowBuf.buf(buf, buf.length, 1 + nullBitmap.length);
     fieldIndex.set(-1);
   }
 

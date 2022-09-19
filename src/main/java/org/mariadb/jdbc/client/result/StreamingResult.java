@@ -153,7 +153,7 @@ public class StreamingResult extends Result {
     checkClose();
     if (rowPointer < dataSize - 1) {
       rowPointer++;
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     } else {
       if (!loaded) {
@@ -170,7 +170,7 @@ public class StreamingResult extends Result {
           // resultSet has been cleared. next value is pointer 0.
           rowPointer = 0;
           if (dataSize > 0) {
-            setrow.accept(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         } else {
@@ -178,7 +178,7 @@ public class StreamingResult extends Result {
           // results have been added to current resultSet
           rowPointer++;
           if (dataSize > rowPointer) {
-            setrow.accept(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         }
@@ -263,7 +263,7 @@ public class StreamingResult extends Result {
 
     rowPointer = 0;
     if (dataSize > 0) {
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
     setNullRowBuf();
@@ -276,7 +276,7 @@ public class StreamingResult extends Result {
     fetchRemaining();
     rowPointer = dataSize - 1;
     if (dataSize > 0) {
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
     setNullRowBuf();
@@ -305,7 +305,7 @@ public class StreamingResult extends Result {
 
     if (idx > 0 && idx <= dataSize) {
       rowPointer = idx - 1;
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
 
@@ -315,7 +315,7 @@ public class StreamingResult extends Result {
     if (idx > 0) {
       if (idx <= dataSize) {
         rowPointer = idx - 1;
-        setrow.accept(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
 
@@ -327,7 +327,7 @@ public class StreamingResult extends Result {
       if (dataSize + idx >= 0) {
         // absolute position reverse from ending resultSet
         rowPointer = dataSize + idx;
-        setrow.accept(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
       setNullRowBuf();
@@ -357,7 +357,7 @@ public class StreamingResult extends Result {
     }
 
     rowPointer = newPos;
-    setrow.accept(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -368,7 +368,7 @@ public class StreamingResult extends Result {
     if (rowPointer > -1) {
       rowPointer--;
       if (rowPointer != -1) {
-        setrow.accept(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
     }

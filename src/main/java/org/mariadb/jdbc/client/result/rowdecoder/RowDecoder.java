@@ -1,6 +1,9 @@
 package org.mariadb.jdbc.client.result.rowdecoder;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -49,6 +52,30 @@ public interface RowDecoder {
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
       int fieldLength)
+      throws SQLException;
+
+  Date decodeDate(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException;
+
+  Time decodeTime(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
+      throws SQLException;
+
+  Timestamp decodeTimestamp(
+      ColumnDecoder[] metadataList,
+      MutableInt fieldIndex,
+      StandardReadableByteBuf rowBuf,
+      int fieldLength,
+      Calendar cal)
       throws SQLException;
 
   short decodeShort(

@@ -152,7 +152,7 @@ public class CompleteResult extends Result {
   @Override
   public boolean next() throws SQLException {
     if (rowPointer < dataSize - 1) {
-      setrow.accept(data[++rowPointer]);
+      setRow(data[++rowPointer]);
       return true;
     } else {
       // all data are reads and pointer is after last
@@ -224,7 +224,7 @@ public class CompleteResult extends Result {
       setNullRowBuf();
       return false;
     }
-    setrow.accept(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -236,7 +236,7 @@ public class CompleteResult extends Result {
       setNullRowBuf();
       return false;
     }
-    setrow.accept(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -257,13 +257,13 @@ public class CompleteResult extends Result {
 
     if (idx > 0) {
       rowPointer = idx - 1;
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     } else {
       if (dataSize + idx >= 0) {
         // absolute position reverse from ending resultSet
         rowPointer = dataSize + idx;
-        setrow.accept(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
       rowPointer = BEFORE_FIRST_POS;
@@ -286,7 +286,7 @@ public class CompleteResult extends Result {
       return false;
     } else {
       rowPointer = newPos;
-      setrow.accept(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
   }
@@ -297,7 +297,7 @@ public class CompleteResult extends Result {
     if (rowPointer > BEFORE_FIRST_POS) {
       rowPointer--;
       if (rowPointer != BEFORE_FIRST_POS) {
-        setrow.accept(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
     }

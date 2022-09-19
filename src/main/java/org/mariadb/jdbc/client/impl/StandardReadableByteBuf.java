@@ -13,7 +13,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   private int limit;
   public byte[] buf;
-  private int pos;
+  public int pos;
 
   /**
    * Packet buffer constructor
@@ -101,13 +101,10 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public long atoull(int length) {
-    int idx = 0;
     long result = 0;
-
-    while (idx++ < length) {
+    for (int idx = 0; idx < length; idx++) {
       result = result * 10 + buf[pos++] - 48;
     }
-
     return result;
   }
 

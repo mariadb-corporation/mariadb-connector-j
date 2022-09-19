@@ -7,34 +7,34 @@ package org.mariadb.jdbc.client;
 import org.mariadb.jdbc.client.column.*;
 
 public enum DataType {
-  OLDDECIMAL(0, BigDecimalColumn::new),
-  TINYINT(1, TinyIntColumn::new),
-  SMALLINT(2, SmallIntColumn::new),
-  INTEGER(3, IntColumn::new),
-  FLOAT(4, FloatColumn::new),
-  DOUBLE(5, DoubleColumn::new),
-  NULL(6, StringColumn::new),
-  TIMESTAMP(7, TimestampColumn::new),
-  BIGINT(8, BigIntColumn::new),
-  MEDIUMINT(9, MediumIntColumn::new),
-  DATE(10, DateColumn::new),
-  TIME(11, TimeColumn::new),
-  DATETIME(12, TimestampColumn::new),
-  YEAR(13, YearColumn::new),
-  NEWDATE(14, DateColumn::new),
-  VARCHAR(15, StringColumn::new),
-  BIT(16, BitColumn::new),
-  JSON(245, StringColumn::new),
-  DECIMAL(246, BigDecimalColumn::new),
-  ENUM(247, StringColumn::new),
-  SET(248, StringColumn::new),
-  TINYBLOB(249, BlobColumn::new),
-  MEDIUMBLOB(250, BlobColumn::new),
-  LONGBLOB(251, BlobColumn::new),
-  BLOB(252, BlobColumn::new),
-  VARSTRING(253, StringColumn::new),
-  STRING(254, StringColumn::new),
-  GEOMETRY(255, GeometryColumn::new);
+  OLDDECIMAL(0, BigDecimalColumn::new, BigDecimalColumn::new),
+  TINYINT(1, SignedTinyIntColumn::new, UnsignedTinyIntColumn::new),
+  SMALLINT(2, SignedSmallIntColumn::new, UnsignedSmallIntColumn::new),
+  INTEGER(3, SignedIntColumn::new, UnsignedIntColumn::new),
+  FLOAT(4, FloatColumn::new, FloatColumn::new),
+  DOUBLE(5, DoubleColumn::new, DoubleColumn::new),
+  NULL(6, StringColumn::new, StringColumn::new),
+  TIMESTAMP(7, TimestampColumn::new, TimestampColumn::new),
+  BIGINT(8, SignedBigIntColumn::new, UnsignedBigIntColumn::new),
+  MEDIUMINT(9, SignedMediumIntColumn::new, UnsignedMediumIntColumn::new),
+  DATE(10, DateColumn::new, DateColumn::new),
+  TIME(11, TimeColumn::new, TimeColumn::new),
+  DATETIME(12, TimestampColumn::new, TimestampColumn::new),
+  YEAR(13, YearColumn::new, YearColumn::new),
+  NEWDATE(14, DateColumn::new, DateColumn::new),
+  VARCHAR(15, StringColumn::new, StringColumn::new),
+  BIT(16, BitColumn::new, BitColumn::new),
+  JSON(245, StringColumn::new, StringColumn::new),
+  DECIMAL(246, BigDecimalColumn::new, BigDecimalColumn::new),
+  ENUM(247, StringColumn::new, StringColumn::new),
+  SET(248, StringColumn::new, StringColumn::new),
+  TINYBLOB(249, BlobColumn::new, BlobColumn::new),
+  MEDIUMBLOB(250, BlobColumn::new, BlobColumn::new),
+  LONGBLOB(251, BlobColumn::new, BlobColumn::new),
+  BLOB(252, BlobColumn::new, BlobColumn::new),
+  VARSTRING(253, StringColumn::new, StringColumn::new),
+  STRING(254, StringColumn::new, StringColumn::new),
+  GEOMETRY(255, GeometryColumn::new, GeometryColumn::new);
 
   static final DataType[] typeMap;
 
@@ -47,10 +47,15 @@ public enum DataType {
 
   private final int mariadbType;
   private final ColumnConstructor columnConstructor;
+  private final ColumnConstructor unsignedColumnConstructor;
 
-  DataType(int mariadbType, ColumnConstructor columnConstructor) {
+  DataType(
+      int mariadbType,
+      ColumnConstructor columnConstructor,
+      ColumnConstructor unsignedColumnConstructor) {
     this.mariadbType = mariadbType;
     this.columnConstructor = columnConstructor;
+    this.unsignedColumnConstructor = unsignedColumnConstructor;
   }
 
   public int get() {
@@ -63,6 +68,10 @@ public enum DataType {
 
   public ColumnConstructor getColumnConstructor() {
     return columnConstructor;
+  }
+
+  public ColumnConstructor getUnsignedColumnConstructor() {
+    return unsignedColumnConstructor;
   }
 
   @FunctionalInterface

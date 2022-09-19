@@ -1,10 +1,14 @@
 package org.mariadb.jdbc.client;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.SQLDataException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
+import org.mariadb.jdbc.util.constants.ColumnFlags;
 
 public interface ColumnDecoder extends Column {
   String defaultClassname(Configuration conf);
@@ -32,6 +36,24 @@ public interface ColumnDecoder extends Column {
   byte decodeByteText(final ReadableByteBuf buf, final int length) throws SQLDataException;
 
   byte decodeByteBinary(final ReadableByteBuf buf, final int length) throws SQLDataException;
+
+  Date decodeDateText(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
+
+  Date decodeDateBinary(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
+
+  Time decodeTimeText(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
+
+  Time decodeTimeBinary(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
+
+  Timestamp decodeTimestampText(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
+
+  Timestamp decodeTimestampBinary(final ReadableByteBuf buf, final int length, Calendar cal)
+      throws SQLDataException;
 
   boolean decodeBooleanText(final ReadableByteBuf buf, final int length) throws SQLDataException;
 
@@ -98,10 +120,12 @@ public interface ColumnDecoder extends Column {
     DataType dataType = DataType.of(buf.readUnsignedByte());
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
-    return dataType
-        .getColumnConstructor()
-        .create(
-            buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    DataType.ColumnConstructor constructor =
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? dataType.getColumnConstructor()
+            : dataType.getUnsignedColumnConstructor();
+    return constructor.create(
+        buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
   static ColumnDecoder create(String name, DataType type, int flags) {
@@ -144,16 +168,19 @@ public interface ColumnDecoder extends Column {
         len = 1;
         break;
     }
-    return type.getColumnConstructor()
-        .create(
-            new StandardReadableByteBuf(arr, arr.length),
-            33,
-            len,
-            type,
-            (byte) 0,
-            flags,
-            stringPos,
-            null,
-            null);
+    DataType.ColumnConstructor constructor =
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? type.getColumnConstructor()
+            : type.getUnsignedColumnConstructor();
+    return constructor.create(
+        new StandardReadableByteBuf(arr, arr.length),
+        33,
+        len,
+        type,
+        (byte) 0,
+        flags,
+        stringPos,
+        null,
+        null);
   }
 }

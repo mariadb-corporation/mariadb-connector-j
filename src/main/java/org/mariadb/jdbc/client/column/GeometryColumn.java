@@ -4,8 +4,8 @@
 
 package org.mariadb.jdbc.client.column;
 
-import java.sql.SQLDataException;
-import java.sql.Types;
+import java.sql.*;
+import java.util.Calendar;
 import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.DataType;
@@ -81,5 +81,21 @@ public class GeometryColumn extends BlobColumn {
   public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
     return getDefaultText(conf, buf, length);
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }
 }

@@ -7,10 +7,7 @@ package org.mariadb.jdbc.plugin.codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.Geometry;
@@ -28,7 +25,7 @@ public class PolygonCodec implements Codec<Polygon> {
     return Polygon.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.GEOMETRY && type.isAssignableFrom(Polygon.class);
   }
 
@@ -37,13 +34,13 @@ public class PolygonCodec implements Codec<Polygon> {
   }
 
   @Override
-  public Polygon decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Polygon decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
-  public Polygon decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Polygon decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID

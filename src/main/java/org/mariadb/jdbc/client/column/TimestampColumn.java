@@ -4,10 +4,9 @@
 
 package org.mariadb.jdbc.client.column;
 
-import java.sql.SQLDataException;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.sql.*;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
@@ -15,6 +14,8 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
+import org.mariadb.jdbc.plugin.codec.LocalDateTimeCodec;
+import org.mariadb.jdbc.plugin.codec.TimeCodec;
 
 /** Column metadata definition */
 public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDecoder {
@@ -47,101 +48,13 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    int pos = buf.pos();
-    int nanoBegin = -1;
-    int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
-    int partIdx = 0;
-    for (int begin = 0; begin < length; begin++) {
-      byte b = buf.readByte();
-      if (b == '-' || b == ' ' || b == ':') {
-        partIdx++;
-        continue;
-      }
-      if (b == '.') {
-        partIdx++;
-        nanoBegin = begin;
-        continue;
-      }
-      if (b < '0' || b > '9') {
-        buf.pos(pos);
-        throw new SQLDataException(
-            String.format(
-                "value '%s' (%s) cannot be decoded as Timestamp",
-                buf.readString(length), dataType));
-      }
-
-      timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
-    }
-    if (timestampsPart[0] == 0
-        && timestampsPart[1] == 0
-        && timestampsPart[2] == 0
-        && timestampsPart[3] == 0
-        && timestampsPart[4] == 0
-        && timestampsPart[5] == 0
-        && timestampsPart[6] == 0) {
-      return null;
-    }
-
-    // fix non-leading tray for nanoseconds
-    if (nanoBegin > 0) {
-      for (int begin = 0; begin < 6 - (length - nanoBegin - 1); begin++) {
-        timestampsPart[6] = timestampsPart[6] * 10;
-      }
-    }
-
-    Calendar c = Calendar.getInstance();
-    c.set(
-        timestampsPart[0],
-        timestampsPart[1] - 1,
-        timestampsPart[2],
-        timestampsPart[3],
-        timestampsPart[4],
-        timestampsPart[5]);
-    Timestamp timestamp = new Timestamp(c.getTime().getTime());
-    timestamp.setNanos(timestampsPart[6] * 1000);
-    return timestamp;
+    return decodeTimestampText(buf, length, null);
   }
 
   @Override
   public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (length == 0) return null;
-    Calendar cal = Calendar.getInstance();
-    int year;
-    int month = 1;
-    long dayOfMonth = 1;
-    int hour = 0;
-    int minutes = 0;
-    int seconds = 0;
-    long microseconds = 0;
-    year = buf.readUnsignedShort();
-    month = buf.readByte();
-    dayOfMonth = buf.readByte();
-
-    if (length > 4) {
-      hour = buf.readByte();
-      minutes = buf.readByte();
-      seconds = buf.readByte();
-
-      if (length > 7) {
-        microseconds = buf.readUnsignedInt();
-      }
-    }
-
-    // xpand workaround https://jira.mariadb.org/browse/XPT-274
-    if (year == 0
-        && month == 0
-        && dayOfMonth == 0
-        && hour == 0
-        && minutes == 0
-        && seconds == 0
-        && microseconds == 0) return null;
-    Timestamp timestamp;
-    cal.clear();
-    cal.set(year, month - 1, (int) dayOfMonth, hour, minutes, seconds);
-    timestamp = new Timestamp(cal.getTimeInMillis());
-    timestamp.setNanos((int) (microseconds * 1000));
-    return timestamp;
+    return decodeTimestampBinary(buf, length, null);
   }
 
   @Override
@@ -284,5 +197,289 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
     buf.skip(length);
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
+  }
+
+  @Override
+  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+
+    int pos = buf.pos();
+    int nanoBegin = -1;
+    int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
+    int partIdx = 0;
+    for (int begin = 0; begin < length; begin++) {
+      byte b = buf.readByte();
+      if (b == '-' || b == ' ' || b == ':') {
+        partIdx++;
+        continue;
+      }
+      if (b == '.') {
+        partIdx++;
+        nanoBegin = begin;
+        continue;
+      }
+      if (b < '0' || b > '9') {
+        buf.pos(pos);
+        throw new SQLDataException(
+            String.format(
+                "value '%s' (%s) cannot be decoded as Timestamp",
+                buf.readString(length), dataType));
+      }
+
+      timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+    }
+    if (timestampsPart[0] == 0
+        && timestampsPart[1] == 0
+        && timestampsPart[2] == 0
+        && timestampsPart[3] == 0
+        && timestampsPart[4] == 0
+        && timestampsPart[5] == 0
+        && timestampsPart[6] == 0) {
+      return null;
+    }
+
+    // fix non-leading tray for nanoseconds
+    if (nanoBegin > 0) {
+      for (int begin = 0; begin < 6 - (length - nanoBegin - 1); begin++) {
+        timestampsPart[6] = timestampsPart[6] * 10;
+      }
+    }
+
+    Timestamp timestamp;
+    if (cal == null) {
+      Calendar c = Calendar.getInstance();
+      c.set(
+          timestampsPart[0],
+          timestampsPart[1] - 1,
+          timestampsPart[2],
+          timestampsPart[3],
+          timestampsPart[4],
+          timestampsPart[5]);
+      timestamp = new Timestamp(c.getTime().getTime());
+      timestamp.setNanos(timestampsPart[6] * 1000);
+    } else {
+      synchronized (cal) {
+        cal.clear();
+        cal.set(
+            timestampsPart[0],
+            timestampsPart[1] - 1,
+            timestampsPart[2],
+            timestampsPart[3],
+            timestampsPart[4],
+            timestampsPart[5]);
+        timestamp = new Timestamp(cal.getTime().getTime());
+        timestamp.setNanos(timestampsPart[6] * 1000);
+      }
+    }
+
+    String st = timestamp.toString();
+    return Date.valueOf(st.substring(0, 10));
+  }
+
+  @Override
+  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+
+    if (length == 0) return null;
+    int year = buf.readUnsignedShort();
+    int month = buf.readByte();
+    int dayOfMonth = buf.readByte();
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
+    if (length > 4) {
+      hour = buf.readByte();
+      minutes = buf.readByte();
+      seconds = buf.readByte();
+
+      if (length > 7) {
+        microseconds = buf.readUnsignedInt();
+      }
+    }
+
+    // xpand workaround https://jira.mariadb.org/browse/XPT-274
+    if (year == 0
+        && month == 0
+        && dayOfMonth == 0
+        && hour == 0
+        && minutes == 0
+        && seconds == 0
+        && microseconds == 0) return null;
+
+    Timestamp timestamp;
+    synchronized (cal) {
+      cal.clear();
+      cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
+      timestamp = new Timestamp(cal.getTimeInMillis());
+    }
+    timestamp.setNanos((int) (microseconds * 1000));
+    String st = timestamp.toString();
+    return Date.valueOf(st.substring(0, 10));
+  }
+
+  @Override
+  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    LocalDateTime lt = LocalDateTimeCodec.INSTANCE.decodeText(buf, length, this, cal);
+    if (lt == null) return null;
+    Calendar cc = cal == null ? Calendar.getInstance() : cal;
+    ZonedDateTime d =
+        TimeCodec.EPOCH_DATE.atTime(lt.toLocalTime()).atZone(cc.getTimeZone().toZoneId());
+    return new Time(d.toEpochSecond() * 1000 + d.getNano() / 1_000_000);
+  }
+
+  @Override
+  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    if (length == 0) return null;
+    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+
+    int year = buf.readUnsignedShort();
+    int month = buf.readByte();
+    int dayOfMonth = buf.readByte();
+
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
+    if (length > 4) {
+      hour = buf.readByte();
+      minutes = buf.readByte();
+      seconds = buf.readByte();
+
+      if (length > 7) {
+        microseconds = buf.readUnsignedInt();
+      }
+    }
+
+    if (year == 0 && month == 0 && dayOfMonth == 0 && hour == 0 && minutes == 0 && seconds == 0) {
+      return null;
+    }
+
+    synchronized (cal) {
+      cal.clear();
+      cal.set(1970, Calendar.JANUARY, 1, hour, minutes, seconds);
+      return new Time(cal.getTimeInMillis() + microseconds / 1_000);
+    }
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    int pos = buf.pos();
+    int nanoBegin = -1;
+    int[] timestampsPart = new int[] {0, 0, 0, 0, 0, 0, 0};
+    int partIdx = 0;
+    for (int begin = 0; begin < length; begin++) {
+      byte b = buf.readByte();
+      if (b == '-' || b == ' ' || b == ':') {
+        partIdx++;
+        continue;
+      }
+      if (b == '.') {
+        partIdx++;
+        nanoBegin = begin;
+        continue;
+      }
+      if (b < '0' || b > '9') {
+        buf.pos(pos);
+        throw new SQLDataException(
+            String.format(
+                "value '%s' (%s) cannot be decoded as Timestamp",
+                buf.readString(length), dataType));
+      }
+
+      timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+    }
+    if (timestampsPart[0] == 0
+        && timestampsPart[1] == 0
+        && timestampsPart[2] == 0
+        && timestampsPart[3] == 0
+        && timestampsPart[4] == 0
+        && timestampsPart[5] == 0
+        && timestampsPart[6] == 0) {
+      return null;
+    }
+
+    // fix non-leading tray for nanoseconds
+    if (nanoBegin > 0) {
+      for (int begin = 0; begin < 6 - (length - nanoBegin - 1); begin++) {
+        timestampsPart[6] = timestampsPart[6] * 10;
+      }
+    }
+
+    Timestamp timestamp;
+    if (calParam == null) {
+      Calendar c = Calendar.getInstance();
+      c.set(
+          timestampsPart[0],
+          timestampsPart[1] - 1,
+          timestampsPart[2],
+          timestampsPart[3],
+          timestampsPart[4],
+          timestampsPart[5]);
+      timestamp = new Timestamp(c.getTime().getTime());
+      timestamp.setNanos(timestampsPart[6] * 1000);
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(
+            timestampsPart[0],
+            timestampsPart[1] - 1,
+            timestampsPart[2],
+            timestampsPart[3],
+            timestampsPart[4],
+            timestampsPart[5]);
+        timestamp = new Timestamp(calParam.getTime().getTime());
+        timestamp.setNanos(timestampsPart[6] * 1000);
+      }
+    }
+    return timestamp;
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar calParam)
+      throws SQLDataException {
+    if (length == 0) return null;
+    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
+
+    int year = buf.readUnsignedShort();
+    int month = buf.readByte();
+    int dayOfMonth = buf.readByte();
+    int hour = 0;
+    int minutes = 0;
+    int seconds = 0;
+    long microseconds = 0;
+
+    if (length > 4) {
+      hour = buf.readByte();
+      minutes = buf.readByte();
+      seconds = buf.readByte();
+
+      if (length > 7) {
+        microseconds = buf.readUnsignedInt();
+      }
+    }
+
+    // xpand workaround https://jira.mariadb.org/browse/XPT-274
+    if (year == 0
+        && month == 0
+        && dayOfMonth == 0
+        && hour == 0
+        && minutes == 0
+        && seconds == 0
+        && microseconds == 0) return null;
+    Timestamp timestamp;
+    synchronized (cal) {
+      cal.clear();
+      cal.set(year, month - 1, (int) dayOfMonth, hour, minutes, seconds);
+      timestamp = new Timestamp(cal.getTimeInMillis());
+    }
+    timestamp.setNanos((int) (microseconds * 1000));
+    return timestamp;
   }
 }

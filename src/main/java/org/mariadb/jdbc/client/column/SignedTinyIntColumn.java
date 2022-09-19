@@ -11,12 +11,11 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
-import org.mariadb.jdbc.plugin.codec.ByteCodec;
 
 /** Column metadata definition */
-public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
+public class SignedTinyIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
-  public BitColumn(
+  public SignedTinyIntColumn(
       ReadableByteBuf buf,
       int charset,
       long length,
@@ -30,187 +29,148 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   public String defaultClassname(Configuration conf) {
-    return columnLength == 1 ? Boolean.class.getName() : "byte[]";
+    if (conf.tinyInt1isBit() && columnLength == 1) return Boolean.class.getName();
+    return Integer.class.getName();
   }
 
   public int getColumnType(Configuration conf) {
-    return columnLength == 1 ? Types.BOOLEAN : Types.VARBINARY;
+    if (conf.tinyInt1isBit() && columnLength == 1) {
+      return conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
+    }
+    return isSigned() ? Types.TINYINT : Types.SMALLINT;
   }
 
   public String getColumnTypeName(Configuration conf) {
-    return "BIT";
-  }
-
-  public int getPrecision() {
-    return (int) columnLength;
+    if (conf.tinyInt1isBit() && columnLength == 1) {
+      return conf.transformedBitIsBoolean() ? "BOOLEAN" : "BIT";
+    }
+    return isSigned() ? "TINYINT" : "TINYINT UNSIGNED";
   }
 
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (columnLength == 1) {
-      return ByteCodec.parseBit(buf, length) != 0;
+    if (conf.tinyInt1isBit() && columnLength == 1) {
+      return decodeBooleanText(buf, length);
     }
-    byte[] arr = new byte[length];
-    buf.readBytes(arr);
-    return arr;
+    return (int) buf.atoll(length);
   }
 
   @Override
   public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    return getDefaultText(conf, buf, length);
+    if (conf.tinyInt1isBit() && columnLength == 1) {
+      return decodeBooleanBinary(buf, length);
+    }
+    if (isSigned()) {
+      return (int) buf.readByte();
+    }
+    return (int) buf.readUnsignedByte();
   }
 
   @Override
   public boolean decodeBooleanText(ReadableByteBuf buf, int length) throws SQLDataException {
-    return ByteCodec.parseBit(buf, length) != 0;
+    String s = buf.readAscii(length);
+    return !"0".equals(s);
   }
 
   @Override
   public boolean decodeBooleanBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return ByteCodec.parseBit(buf, length) != 0;
+    return buf.readByte() != 0;
   }
 
   @Override
   public byte decodeByteText(ReadableByteBuf buf, int length) throws SQLDataException {
-    byte val = buf.readByte();
-    if (length > 1) buf.skip(length - 1);
-    return val;
+    long result = buf.atoll(length);
+    if ((byte) result != result) {
+      throw new SQLDataException("byte overflow");
+    }
+    return (byte) result;
   }
 
   @Override
   public byte decodeByteBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeByteText(buf, length);
+    if (isSigned()) return buf.readByte();
+    long result = buf.readUnsignedByte();
+
+    if ((byte) result != result) {
+      throw new SQLDataException("byte overflow");
+    }
+    return (byte) result;
   }
 
   @Override
   public String decodeStringText(ReadableByteBuf buf, int length, Calendar cal)
       throws SQLDataException {
-    byte[] bytes = new byte[length];
-    buf.readBytes(bytes);
-    StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
-    sb.append("b'");
-    boolean firstByteNonZero = false;
-    for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
-      boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
-      if (b) {
-        sb.append('1');
-        firstByteNonZero = true;
-      } else if (firstByteNonZero) {
-        sb.append('0');
-      }
-    }
-    sb.append("'");
-    return sb.toString();
+    return buf.readString(length);
   }
 
   @Override
   public String decodeStringBinary(ReadableByteBuf buf, int length, Calendar cal)
       throws SQLDataException {
-    byte[] bytes = new byte[length];
-    buf.readBytes(bytes);
-    StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
-    sb.append("b'");
-    boolean firstByteNonZero = false;
-    for (int i = 0; i < Byte.SIZE * bytes.length; i++) {
-      boolean b = (bytes[i / Byte.SIZE] & 1 << (Byte.SIZE - 1 - (i % Byte.SIZE))) > 0;
-      if (b) {
-        sb.append('1');
-        firstByteNonZero = true;
-      } else if (firstByteNonZero) {
-        sb.append('0');
-      }
+    if (!isSigned()) {
+      return String.valueOf(buf.readUnsignedByte());
     }
-    sb.append("'");
-    return sb.toString();
+    return String.valueOf(buf.readByte());
   }
 
   @Override
   public short decodeShortText(ReadableByteBuf buf, int length) throws SQLDataException {
-    long result = 0;
-    for (int i = 0; i < length; i++) {
-      byte b = buf.readByte();
-      result = (result << 8) + (b & 0xff);
-    }
-    if ((short) result != result || (result < 0 && !isSigned())) {
-      throw new SQLDataException("Short overflow");
-    }
-    return (short) result;
+    return (short) buf.atoll(length);
   }
 
   @Override
   public short decodeShortBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeShortText(buf, length);
+    return (isSigned() ? buf.readByte() : buf.readUnsignedByte());
   }
 
   @Override
   public int decodeIntText(ReadableByteBuf buf, int length) throws SQLDataException {
-    long result = 0;
-    for (int i = 0; i < length; i++) {
-      byte b = buf.readByte();
-      result = (result << 8) + (b & 0xff);
-    }
-    int res = (int) result;
-    if (res != result || (result < 0 && !isSigned())) {
-      throw new SQLDataException("integer overflow");
-    }
-    return res;
+    return (int) buf.atoll(length);
   }
 
   @Override
   public int decodeIntBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    long result = 0;
-    for (int i = 0; i < length; i++) {
-      byte b = buf.readByte();
-      result = (result << 8) + (b & 0xff);
-    }
-
-    int res = (int) result;
-    if (res != result) {
-      throw new SQLDataException("integer overflow");
-    }
-
-    return res;
+    return (isSigned() ? buf.readByte() : buf.readUnsignedByte());
   }
 
   @Override
   public long decodeLongText(ReadableByteBuf buf, int length) throws SQLDataException {
-    long result = 0;
-    for (int i = 0; i < length; i++) {
-      byte b = buf.readByte();
-      result = (result << 8) + (b & 0xff);
-    }
-    return result;
+    return buf.atoll(length);
   }
 
   @Override
   public long decodeLongBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    return decodeLongText(buf, length);
+    if (!isSigned()) {
+      return buf.readUnsignedByte();
+    }
+    return buf.readByte();
   }
 
   @Override
   public float decodeFloatText(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
-    throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
+    return Float.parseFloat(buf.readAscii(length));
   }
 
   @Override
   public float decodeFloatBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
-    throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
+    if (!isSigned()) {
+      return buf.readUnsignedByte();
+    }
+    return buf.readByte();
   }
 
   @Override
   public double decodeDoubleText(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
-    throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
+    return Double.parseDouble(buf.readAscii(length));
   }
 
   @Override
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
-    throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
+    if (!isSigned()) {
+      return buf.readUnsignedByte();
+    }
+    return buf.readByte();
   }
 
   @Override

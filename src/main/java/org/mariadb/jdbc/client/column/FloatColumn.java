@@ -6,8 +6,7 @@ package org.mariadb.jdbc.client.column;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLDataException;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
@@ -189,5 +188,49 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
   @Override
   public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
     return buf.readFloat();
+  }
+
+  @Override
+  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+  }
+
+  @Override
+  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
+  }
+
+  @Override
+  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
+  }
+
+  @Override
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+      throws SQLDataException {
+    buf.skip(length);
+    throw new SQLDataException(
+        String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }
 }

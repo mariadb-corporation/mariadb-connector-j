@@ -7,10 +7,7 @@ package org.mariadb.jdbc.plugin.codec;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -56,17 +53,17 @@ public class BitSetCodec implements Codec<BitSet> {
     return BitSet.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.BIT && type.isAssignableFrom(BitSet.class);
   }
 
   @Override
-  public BitSet decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal) {
+  public BitSet decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) {
     return parseBit(buf, length);
   }
 
   @Override
-  public BitSet decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal) {
+  public BitSet decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) {
     return parseBit(buf, length);
   }
 
