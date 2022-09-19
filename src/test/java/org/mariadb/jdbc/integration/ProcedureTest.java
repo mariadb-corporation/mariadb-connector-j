@@ -37,8 +37,7 @@ public class ProcedureTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE procedure_test (t0 int)");
-    stmt.execute(
-        "CREATE PROCEDURE multiply_by_2 (INOUT t1 INT) BEGIN \nset t1 = t1 * 2;\nEND");
+    stmt.execute("CREATE PROCEDURE multiply_by_2 (INOUT t1 INT) BEGIN \nset t1 = t1 * 2;\nEND");
   }
 
   @Test

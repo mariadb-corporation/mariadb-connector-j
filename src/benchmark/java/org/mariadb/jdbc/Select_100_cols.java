@@ -24,6 +24,11 @@ public class Select_100_cols extends Common {
     return run(state.connectionBinary);
   }
 
+  @Benchmark
+  public int[] binaryNoCache(MyState state) throws Throwable {
+    return run(state.connectionBinaryNoCache);
+  }
+
   private int[] run(Connection con) throws Throwable {
 
     try (PreparedStatement prep = con.prepareStatement("select * FROM test100")) {

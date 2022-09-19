@@ -38,7 +38,11 @@ public class Common {
 
     // connections
     protected Connection connectionText;
+    protected Connection connectionTextRewrite;
+
     protected Connection connectionBinary;
+    protected Connection connectionBinaryNoCache;
+
 
     @Param({"mysql", "mariadb"})
     String driver;
@@ -70,9 +74,21 @@ public class Common {
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
+        Properties rewriteStmtProperties = new Properties();
+        rewriteStmtProperties.setProperty("rewriteBatchedStatements", "true");
+        connectionTextRewrite =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlText, rewriteStmtProperties);
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect(jdbcUrlBinary, new Properties());
+        Properties noCacheProperties = new Properties();
+        noCacheProperties.setProperty("prepStmtCacheSize", "0");
+        noCacheProperties.setProperty("cachePrepStmts", "false");
+        connectionBinaryNoCache =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlBinary, noCacheProperties);
+
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -83,6 +99,8 @@ public class Common {
     public void doTearDown() throws SQLException {
       connectionText.close();
       connectionBinary.close();
+      connectionTextRewrite.close();
+      connectionBinaryNoCache.close();
     }
   }
 
@@ -119,11 +137,29 @@ public class Common {
           sb2.append(")");
           stmt.executeUpdate(sb.toString());
           stmt.executeUpdate(sb2.toString());
+
+          stmt.execute("DROP TABLE IF EXISTS perfTestTextBatch");
+          try {
+            stmt.execute("INSTALL SONAME 'ha_blackhole'");
+          } catch (SQLException e) { }
+
+          String createTable = "CREATE TABLE perfTestTextBatch (id MEDIUMINT NOT NULL AUTO_INCREMENT,t0 text, PRIMARY KEY (id)) COLLATE='utf8mb4_unicode_ci'";
+          try {
+            stmt.execute(createTable + " ENGINE = BLACKHOLE");
+          } catch (SQLException e){
+            stmt.execute(createTable);
+          }
+
         }
       } catch (SQLException e) {
         e.printStackTrace();
       }
     }
   }
+
+
+
+
+
 
 }
