@@ -128,7 +128,8 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   public void registerOutParameter(int parameterIndex, int sqlType) throws SQLException {
     checkIndex(parameterIndex);
     outputParameters.add(parameterIndex);
-    parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
+    if (!parameters.containsKey(parameterIndex - 1))
+      parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
   }
 
   private void checkIndex(int index) throws SQLException {
