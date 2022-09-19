@@ -476,7 +476,7 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     Timestamp timestamp;
     synchronized (cal) {
       cal.clear();
-      cal.set(year, month - 1, (int) dayOfMonth, hour, minutes, seconds);
+      cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
       timestamp = new Timestamp(cal.getTimeInMillis());
     }
     timestamp.setNanos((int) (microseconds * 1000));

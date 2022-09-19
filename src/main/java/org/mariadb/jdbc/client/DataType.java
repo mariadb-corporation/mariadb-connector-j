@@ -24,7 +24,7 @@ public enum DataType {
   NEWDATE(14, DateColumn::new, DateColumn::new),
   VARCHAR(15, StringColumn::new, StringColumn::new),
   BIT(16, BitColumn::new, BitColumn::new),
-  JSON(245, StringColumn::new, StringColumn::new),
+  JSON(245, JsonColumn::new, JsonColumn::new),
   DECIMAL(246, BigDecimalColumn::new, BigDecimalColumn::new),
   ENUM(247, StringColumn::new, StringColumn::new),
   SET(248, StringColumn::new, StringColumn::new),
