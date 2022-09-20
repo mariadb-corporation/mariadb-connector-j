@@ -41,6 +41,8 @@ public class Common {
     protected Connection connectionTextRewrite;
 
     protected Connection connectionBinary;
+
+    protected Connection connectionBinaryNoPipeline;
     protected Connection connectionBinaryNoCache;
 
 
@@ -82,13 +84,23 @@ public class Common {
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect(jdbcUrlBinary, new Properties());
-        Properties noCacheProperties = new Properties();
-        noCacheProperties.setProperty("prepStmtCacheSize", "0");
-        noCacheProperties.setProperty("cachePrepStmts", "false");
+
+        String jdbcUrlBinaryNoCache =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, true, true, "&prepStmtCacheSize=0&cachePrepStmts=false" + other);
+
         connectionBinaryNoCache =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlBinary, noCacheProperties);
+                        .connect(jdbcUrlBinaryNoCache, new Properties());
 
+        String jdbcUrlBinaryNoCacheNoPipeline =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, true, true, "&prepStmtCacheSize=0&cachePrepStmts=false&disablePipeline=true" + other);
+        connectionBinaryNoPipeline =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -101,6 +113,7 @@ public class Common {
       connectionBinary.close();
       connectionTextRewrite.close();
       connectionBinaryNoCache.close();
+      connectionBinaryNoPipeline.close();
     }
   }
 

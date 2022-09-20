@@ -4,11 +4,11 @@
 
 package org.mariadb.jdbc.client.column;
 
+import java.sql.*;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
-import java.sql.*;
 
 /** Column metadata definition */
 public class JsonColumn extends StringColumn implements ColumnDecoder {
@@ -35,7 +35,6 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
   }
 
   public String getColumnTypeName(Configuration conf) {
-      return "JSON";
+    return "JSON";
   }
-
 }

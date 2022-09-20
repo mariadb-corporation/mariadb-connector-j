@@ -7,7 +7,6 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.CallableParameterMetaData;
@@ -18,7 +17,7 @@ public class FunctionTest extends Common {
 
   @Test
   public void basicFunction() throws SQLException {
-    //disabled for mysql : see https://bugs.mysql.com/bug.php?id=108545
+    // disabled for mysql : see https://bugs.mysql.com/bug.php?id=108545
     Assumptions.assumeTrue(isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS basic_function");
