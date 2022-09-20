@@ -1,6 +1,6 @@
 # Change Log
 
-## [3.0.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.8) (Sept 2022)
+## [3.0.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.8) (Sept 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.7...3.0.8)
 
 ##### Notable Changes
