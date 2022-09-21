@@ -193,7 +193,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
-    throw new IOException("Skip from compress socket not implemented");
+    return read(new byte[(int)n], 0, (int)n);
   }
 
   /**

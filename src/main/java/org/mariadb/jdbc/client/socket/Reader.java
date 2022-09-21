@@ -23,6 +23,13 @@ public interface Reader {
   ReadableByteBuf readPacket(boolean reUsable) throws IOException;
 
   /**
+   * Skip next MySQL packet.
+   *
+   * @throws IOException if socket exception occur.
+   */
+  void skipPacket() throws IOException;
+
+  /**
    * Get next MySQL packet. If packet is more than 16M, read as many packet needed to finish reading
    * MySQL packet. (first that has not length = 16Mb)
    *

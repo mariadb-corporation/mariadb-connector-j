@@ -180,6 +180,68 @@ public class PacketReader implements Reader {
     return new StandardReadableByteBuf(rawBytes, lastPacketLength);
   }
 
+  public void skipPacket() throws IOException {
+    if (logger.isTraceEnabled()) {
+      readPacket(true, true);
+      return;
+    }
+
+    // ***************************************************
+    // Read 4 byte header
+    // ***************************************************
+    int remaining = 4;
+    int off = 0;
+    do {
+      int count = inputStream.read(header, off, remaining);
+      if (count < 0) {
+        throw new EOFException(
+            "unexpected end of stream, read "
+                + off
+                + " bytes from 4 (socket was closed by server)");
+      }
+      remaining -= count;
+      off += count;
+    } while (remaining > 0);
+
+    int lastPacketLength =
+        (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+    sequence.set(header[3]);
+
+    remaining = lastPacketLength;
+    do {
+      remaining -= inputStream.skip(remaining);
+    } while (remaining > 0);
+
+    // ***************************************************
+    // In case content length is big, content will be separate in many 16Mb packets
+    // ***************************************************
+    if (lastPacketLength == MAX_PACKET_SIZE) {
+      int packetLength;
+      do {
+        remaining = 4;
+        off = 0;
+        do {
+          int count = inputStream.read(header, off, remaining);
+          if (count < 0) {
+            throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+          }
+          remaining -= count;
+          off += count;
+        } while (remaining > 0);
+
+        packetLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+        sequence.set(header[3]);
+
+        remaining = packetLength;
+        do {
+          remaining -= inputStream.skip(remaining);
+        } while (remaining > 0);
+
+        lastPacketLength += packetLength;
+      } while (packetLength == MAX_PACKET_SIZE);
+    }
+  }
+
   public MutableByte getSequence() {
     return sequence;
   }

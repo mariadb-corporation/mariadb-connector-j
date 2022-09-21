@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -16,6 +17,39 @@ import org.mariadb.jdbc.util.log.Loggers;
 
 /** Prepare result packet See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion, Prepare {
+  static final ColumnDecoder CONSTANT_PARAMETER;
+
+  static {
+    byte[] bytes =
+        new byte[] {
+          0x03,
+          0x64,
+          0x65,
+          0x66,
+          0x00,
+          0x00,
+          0x00,
+          0x01,
+          0x3F,
+          0x00,
+          0x00,
+          0x0C,
+          0x3F,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x06,
+          (byte) 0x80,
+          0x00,
+          0x00,
+          0x00,
+          0x00
+        };
+    CONSTANT_PARAMETER =
+        ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length), true);
+  }
 
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final ColumnDecoder[] parameters;
@@ -44,10 +78,10 @@ public class PrepareResultPacket implements Completion, Prepare {
 
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] =
-            ColumnDecoder.decode(
-                reader.readPacket(false, trace),
-                context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
+        // skipping packet, since there is no metadata information.
+        // might change when https://jira.mariadb.org/browse/MDEV-15031 is done
+        parameters[i] = CONSTANT_PARAMETER;
+        reader.skipPacket();
       }
       if (!context.isEofDeprecated()) {
         reader.readPacket(true, trace);
