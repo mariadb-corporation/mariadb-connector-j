@@ -27,6 +27,12 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     this.limit = limit;
   }
 
+  public StandardReadableByteBuf(byte[] buf) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = buf.length;
+  }
+
   public int readableBytes() {
     return limit - pos;
   }

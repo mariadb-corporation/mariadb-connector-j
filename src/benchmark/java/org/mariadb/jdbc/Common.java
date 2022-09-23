@@ -88,7 +88,7 @@ public class Common {
         String jdbcUrlBinaryNoCache =
                 String.format(
                         jdbcBase,
-                        driver, host, port, database, username, password, true, true, "&prepStmtCacheSize=0&cachePrepStmts=false" + other);
+                        driver, host, port, database, username, password, true, false, "&prepStmtCacheSize=0" + other);
 
         connectionBinaryNoCache =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())

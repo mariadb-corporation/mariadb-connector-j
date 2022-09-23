@@ -30,9 +30,7 @@ import org.mariadb.jdbc.util.ParameterList;
  */
 public class ServerPreparedStatement extends BasePreparedStatement {
   private static final Pattern PREPARABLE_STATEMENT_PATTERN =
-      Pattern.compile(
-          "^(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
-          Pattern.CASE_INSENSITIVE);
+      Pattern.compile("^(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)", Pattern.CASE_INSENSITIVE);
   private final boolean canCachePrepStmts;
   /**
    * Server prepare statement constructor

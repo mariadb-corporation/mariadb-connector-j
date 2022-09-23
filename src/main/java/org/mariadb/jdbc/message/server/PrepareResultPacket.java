@@ -84,18 +84,18 @@ public class PrepareResultPacket implements Completion, Prepare {
         reader.skipPacket();
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
             ColumnDecoder.decode(
-                reader.readPacket(false, trace),
+                new StandardReadableByteBuf(reader.readPacket(trace)),
                 context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
   }

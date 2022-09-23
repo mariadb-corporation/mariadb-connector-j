@@ -160,19 +160,18 @@ public abstract class Result implements ResultSet, Completion {
    */
   @SuppressWarnings("fallthrough")
   protected boolean readNext() throws IOException, SQLException {
-    byte[] buf = reader.readPacket(false, traceEnable).buf();
+    byte[] buf = reader.readPacket(traceEnable);
     switch (buf[0]) {
       case (byte) 0xFF:
         loaded = true;
-        ErrorPacket errorPacket =
-            new ErrorPacket(new StandardReadableByteBuf(buf, buf.length), context);
+        ErrorPacket errorPacket = new ErrorPacket(reader.readableBufFromArray(buf), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
         if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = new StandardReadableByteBuf(buf, buf.length);
+          ReadableByteBuf readBuf = reader.readableBufFromArray(buf);
           readBuf.skip(); // skip header
           int serverStatus;
           int warnings;
@@ -215,7 +214,7 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("fallthrough")
   protected void skipRemaining() throws IOException, SQLException {
     while (true) {
-      ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+      ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
       switch (buf.getUnsignedByte()) {
         case 0xFF:
           loaded = true;

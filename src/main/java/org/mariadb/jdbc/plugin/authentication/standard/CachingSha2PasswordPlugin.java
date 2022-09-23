@@ -105,7 +105,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
     new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
 
-    ReadableByteBuf buf = in.readPacket(true);
+    ReadableByteBuf buf = in.readReusablePacket();
 
     switch (buf.getByte()) {
       case (byte) 0x00:
@@ -119,7 +119,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
         buf.readBytes(authResult);
         switch (authResult[0]) {
           case 3:
-            return in.readPacket(true);
+            return in.readReusablePacket();
           case 4:
             if (conf.sslMode() != SslMode.DISABLE) {
               // send clear password
@@ -147,7 +147,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 out.writeByte(2);
                 out.flush();
 
-                buf = in.readPacket(true);
+                buf = in.readReusablePacket();
                 switch (buf.getByte(0)) {
                   case (byte) 0xFF:
                   case (byte) 0xFE:
@@ -167,7 +167,7 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               out.flush();
             }
 
-            return in.readPacket(true);
+            return in.readReusablePacket();
 
           default:
             throw new SQLException(

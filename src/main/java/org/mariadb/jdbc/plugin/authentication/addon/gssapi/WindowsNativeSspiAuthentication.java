@@ -42,7 +42,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
       // Step 2: read server response token
       if (clientContext.isContinue()) {
-        ReadableByteBuf buf = in.readPacket(true);
+        ReadableByteBuf buf = in.readReusablePacket();
         byte[] tokenForTheClientOnTheServer = new byte[buf.readableBytes()];
         buf.readBytes(tokenForTheClientOnTheServer);
         Sspi.SecBufferDesc continueToken =

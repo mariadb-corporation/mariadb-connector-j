@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
@@ -111,7 +112,7 @@ public interface ClientMessage {
       ClientMessage message)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
 
     switch (buf.getByte()) {
 
@@ -135,7 +136,7 @@ public interface ClientMessage {
       case (byte) 0xfb:
         buf.skip(1); // skip header
         SQLException exception = null;
-
+        reader.getSequence().set((byte) 1);
         InputStream is = getLocalInfileInputStream();
         if (is == null) {
           String fileName = buf.readStringNullEnd();
@@ -214,14 +215,15 @@ public interface ClientMessage {
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
                 ColumnDecoder.decode(
-                    reader.readPacket(false, traceEnable), context.isExtendedInfo());
+                    new StandardReadableByteBuf(reader.readPacket(traceEnable)),
+                    context.isExtendedInfo());
           }
         }
         if (canSkipMeta && !skipMeta) ((BasePreparedStatement) stmt).updateMeta(ci);
 
         // intermediate EOF
         if (!context.isEofDeprecated()) {
-          reader.readPacket(true, traceEnable);
+          reader.skipPacket();
         }
 
         // read resultSet

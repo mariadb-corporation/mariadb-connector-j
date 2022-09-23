@@ -279,7 +279,7 @@ public final class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readReusablePacket();
 
     authentication_loop:
     while (true) {

@@ -193,7 +193,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
-    return read(new byte[(int)n], 0, (int)n);
+    return read(new byte[(int) n], 0, (int) n);
   }
 
   /**

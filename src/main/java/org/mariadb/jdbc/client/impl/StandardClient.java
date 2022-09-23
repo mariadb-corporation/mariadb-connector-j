@@ -117,7 +117,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       // read server handshake
-      ReadableByteBuf buf = reader.readPacket(true);
+      ReadableByteBuf buf = reader.readReusablePacket(logger.isTraceEnabled());
       if (buf.getByte() == -1) {
         ErrorPacket errorPacket = new ErrorPacket(buf, null);
         throw this.exceptionFactory.create(

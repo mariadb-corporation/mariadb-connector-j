@@ -75,7 +75,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
       out.writeByte(0);
       out.flush();
 
-      ReadableByteBuf buf = in.readPacket(true);
+      ReadableByteBuf buf = in.readReusablePacket();
 
       int type = buf.getUnsignedByte();
 
