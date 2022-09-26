@@ -76,11 +76,13 @@ public class Common {
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
-        Properties rewriteStmtProperties = new Properties();
-        rewriteStmtProperties.setProperty("rewriteBatchedStatements", "true");
+        String jdbcUrlTextRewrite =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, false, false, "&rewriteBatchedStatements=true&useBulkStmts=false" + other);
         connectionTextRewrite =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlText, rewriteStmtProperties);
+                        .connect(jdbcUrlTextRewrite, new Properties());
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect(jdbcUrlBinary, new Properties());

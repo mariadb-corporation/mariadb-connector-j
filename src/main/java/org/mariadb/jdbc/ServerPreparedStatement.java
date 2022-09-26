@@ -19,6 +19,7 @@ import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.BulkExecutePacket;
 import org.mariadb.jdbc.message.client.ExecutePacket;
+import org.mariadb.jdbc.message.client.PrepareExecutePacket;
 import org.mariadb.jdbc.message.client.PreparePacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
@@ -90,12 +91,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null)
       if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
-      if (prepareResult == null && con.getContext().hasClientCapability(STMT_BULK_OPERATIONS)) {
-        try {
-          executePipeline(cmd);
-        } catch (BatchUpdateException b) {
-          throw (SQLException) b.getCause();
-        }
+      if (prepareResult == null && con.getContext().permitPipeline()) {
+        executePipeline(cmd);
       } else {
         executeStandard(cmd);
       }
@@ -114,13 +111,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private void executePipeline(String cmd) throws SQLException {
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
-    PreparePacket prepare = new PreparePacket(cmd);
-    ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this, localInfileInputStream);
     try {
       List<Completion> res =
           con.getClient()
-              .executePipeline(
-                  new ClientMessage[] {prepare, execute},
+              .execute(
+                  new PrepareExecutePacket(cmd, parameters, this, localInfileInputStream),
                   this,
                   fetchSize,
                   maxRows,

@@ -714,6 +714,20 @@ public class PacketWriter implements Writer {
     mark = -1;
   }
 
+  public void flushPipeline() throws IOException {
+    writeSocket(false);
+
+    // if buf is big, and last query doesn't use at least half of it, resize buf to default
+    // value
+    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
+      buf = new byte[SMALL_BUFFER_SIZE];
+    }
+
+    pos = 4;
+    cmdLength = 0;
+    mark = -1;
+  }
+
   /**
    * Count query size. If query size is greater than max_allowed_packet and nothing has been already
    * send, throw an exception to avoid having the connection closed.

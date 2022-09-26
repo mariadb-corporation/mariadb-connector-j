@@ -101,7 +101,7 @@ public class Configuration {
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;
-
+  private boolean disablePipeline = false;
   // prepare
   private boolean cachePrepStmts = true;
   private int prepStmtCacheSize = 250;
@@ -189,6 +189,7 @@ public class Configuration {
       boolean useCompression,
       boolean useAffectedRows,
       boolean useBulkStmts,
+      boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
       boolean useServerPrepStmts,
@@ -259,6 +260,7 @@ public class Configuration {
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
     this.useBulkStmts = useBulkStmts;
+    this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
     this.useServerPrepStmts = useServerPrepStmts;
@@ -327,6 +329,7 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean useBulkStmts,
+      Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
       Boolean createDatabaseIfNotExist,
@@ -406,6 +409,7 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
@@ -749,6 +753,7 @@ public class Configuration {
         this.useCompression,
         this.useAffectedRows,
         this.useBulkStmts,
+        this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
         this.useServerPrepStmts,
@@ -1158,6 +1163,15 @@ public class Configuration {
    */
   public boolean useBulkStmts() {
     return useBulkStmts;
+  }
+
+  /**
+   * Disable pipeline.
+   *
+   * @return is pipeline disabled.
+   */
+  public boolean disablePipeline() {
+    return disablePipeline;
   }
 
   /**
@@ -1667,7 +1681,7 @@ public class Configuration {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
-
+    private Boolean disablePipeline;
     // prepare
     private Boolean cachePrepStmts;
     private Integer prepStmtCacheSize;
@@ -2232,6 +2246,17 @@ public class Configuration {
     }
 
     /**
+     * Disable pipeline
+     *
+     * @param disablePipeline disable pipeline.
+     * @return this {@link Builder}
+     */
+    public Builder disablePipeline(Boolean disablePipeline) {
+      this.disablePipeline = disablePipeline;
+      return this;
+    }
+
+    /**
      * Permit to force autocommit connection value
      *
      * @param autocommit autocommit value
@@ -2574,6 +2599,7 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.useBulkStmts,
+              this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
               this.createDatabaseIfNotExist,

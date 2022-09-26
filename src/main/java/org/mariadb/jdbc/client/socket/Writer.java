@@ -163,6 +163,13 @@ public interface Writer {
   void flush() throws IOException;
 
   /**
+   * Send packet to buffered outputstream without flushing
+   *
+   * @throws IOException if socket error occur.
+   */
+  void flushPipeline() throws IOException;
+
+  /**
    * must a max allowed length exception be thrown
    *
    * @param length command length

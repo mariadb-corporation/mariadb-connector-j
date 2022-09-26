@@ -38,6 +38,13 @@ public interface Context {
   boolean hasClientCapability(long flag);
 
   /**
+   * Does server and client permit pipeline
+   *
+   * @return true if permitted
+   */
+  boolean permitPipeline();
+
+  /**
    * Get server connection state
    *
    * @return server status
