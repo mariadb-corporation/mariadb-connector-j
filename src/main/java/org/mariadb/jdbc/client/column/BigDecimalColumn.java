@@ -17,6 +17,20 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 /** Column metadata definition */
 public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
+  /**
+   * Constructor for column corresponding to DECIMAL datatype. Class permit specific decoding for
+   * this datatype
+   *
+   * @param buf Column definition MySQL packet buffer
+   * @param charset charset
+   * @param length datatype length
+   * @param dataType data type
+   * @param decimals number of decimals
+   * @param flags column flags
+   * @param stringPos string value position
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public BigDecimalColumn(
       ReadableByteBuf buf,
       int charset,

@@ -15,6 +15,19 @@ import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 /** Column metadata definition */
 public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
+  /**
+   * INTEGER metadata type decoder
+   *
+   * @param buf buffer
+   * @param charset charset
+   * @param length maximum data length
+   * @param dataType data type. see https://mariadb.com/kb/en/result-set-packets/#field-types
+   * @param decimals decimal length
+   * @param flags flags. see https://mariadb.com/kb/en/result-set-packets/#field-details-flag
+   * @param stringPos string offset position in buffer
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public SignedIntColumn(
       ReadableByteBuf buf,
       int charset,

@@ -17,7 +17,20 @@ import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
 public class BlobColumn extends StringColumn implements ColumnDecoder {
-
+  /**
+   * Constructor for column corresponding to BLOB datatype. Class permit specific decoding for this
+   * datatype
+   *
+   * @param buf Column definition MySQL packet buffer
+   * @param charset charset
+   * @param length datatype length
+   * @param dataType data type
+   * @param decimals number of decimals
+   * @param flags column flags
+   * @param stringPos string value position
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public BlobColumn(
       ReadableByteBuf buf,
       int charset,

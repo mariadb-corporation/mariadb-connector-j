@@ -16,6 +16,19 @@ import org.mariadb.jdbc.type.*;
 /** Column metadata definition */
 public class GeometryColumn extends BlobColumn {
 
+  /**
+   * Geometry metadata type decoder
+   *
+   * @param buf buffer
+   * @param charset charset
+   * @param length maximum data length
+   * @param dataType data type. see https://mariadb.com/kb/en/result-set-packets/#field-types
+   * @param decimals decimal length
+   * @param flags flags. see https://mariadb.com/kb/en/result-set-packets/#field-details-flag
+   * @param stringPos string offset position in buffer
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public GeometryColumn(
       ReadableByteBuf buf,
       int charset,

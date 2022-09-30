@@ -97,6 +97,12 @@ public class Statement implements java.sql.Statement {
     return con.getExceptionFactory().of(this);
   }
 
+  /**
+   * Set current local infile stream
+   *
+   * @param inputStream stream
+   * @throws SQLException if statement is already closed
+   */
   public void setLocalInfileInputStream(InputStream inputStream) throws SQLException {
     checkNotClosed();
     localInfileInputStream = inputStream;

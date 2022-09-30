@@ -921,6 +921,11 @@ public class Connection implements java.sql.Connection {
     return exceptionFactory;
   }
 
+  /**
+   * for _TEST_ only
+   *
+   * @return current host
+   */
   public String __test_host() {
     return this.client.getHostAddress().toString();
   }

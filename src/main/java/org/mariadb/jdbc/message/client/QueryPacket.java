@@ -26,6 +26,12 @@ public final class QueryPacket implements RedoableClientMessage {
     this.localInfileInputStream = null;
   }
 
+  /**
+   * Constructor with local infile input stream
+   *
+   * @param sql sql
+   * @param localInfileInputStream local infile input stream
+   */
   public QueryPacket(String sql, InputStream localInfileInputStream) {
     this.sql = sql;
     this.localInfileInputStream = localInfileInputStream;

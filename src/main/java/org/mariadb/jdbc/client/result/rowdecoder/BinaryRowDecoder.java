@@ -13,8 +13,22 @@ import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** BINARY rows decoder */
 public class BinaryRowDecoder implements RowDecoder {
 
+  /**
+   * Binary decode data according to data type.
+   *
+   * @param codec current codec
+   * @param cal calendar
+   * @param rowBuf row buffer
+   * @param fieldLength field length
+   * @param metadataList metadatas
+   * @param fieldIndex field index
+   * @return default object according to metadata
+   * @param <T> Codec default return type
+   * @throws SQLException if any decoding error occurs
+   */
   public <T> T decode(
       Codec<T> codec,
       Calendar cal,

@@ -272,6 +272,11 @@ public interface ClientMessage {
     }
   }
 
+  /**
+   * Get current local infile input stream.
+   *
+   * @return default to null
+   */
   default InputStream getLocalInfileInputStream() {
     return null;
   }

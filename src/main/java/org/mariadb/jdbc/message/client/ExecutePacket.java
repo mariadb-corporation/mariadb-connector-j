@@ -35,6 +35,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
    * @param parameters parameter
    * @param command sql command
    * @param prep prepared statement
+   * @param localInfileInputStream local infile input stream
    */
   public ExecutePacket(
       Prepare prepareResult,

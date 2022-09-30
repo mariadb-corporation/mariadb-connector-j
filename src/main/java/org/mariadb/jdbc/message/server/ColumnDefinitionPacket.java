@@ -16,16 +16,38 @@ import org.mariadb.jdbc.util.constants.ColumnFlags;
 public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   private final ReadableByteBuf buf;
+  /** charset * */
   protected final int charset;
+  /** column maximum length * */
   protected final long columnLength;
+  /** data type see https://mariadb.com/kb/en/result-set-packets/#field-types* */
   protected final DataType dataType;
+  /** number of decimal * */
   protected final byte decimals;
+  /** flags see https://mariadb.com/kb/en/result-set-packets/#field-details-flag* */
   private final int flags;
+  /** string offset position in buffer * */
   private final int[] stringPos;
+  /** extended type name * */
   protected final String extTypeName;
+  /** extended type format * */
   protected final String extTypeFormat;
+  /** configuration: use alias as name * */
   private boolean useAliasAsName;
 
+  /**
+   * Column definition constructor
+   *
+   * @param buf buffer
+   * @param charset charset
+   * @param columnLength maxium column length
+   * @param dataType data type
+   * @param decimals decimal length
+   * @param flags flags
+   * @param stringPos string position indexes
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public ColumnDefinitionPacket(
       ReadableByteBuf buf,
       int charset,

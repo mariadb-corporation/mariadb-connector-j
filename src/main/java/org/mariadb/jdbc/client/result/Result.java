@@ -33,6 +33,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 public abstract class Result implements ResultSet, Completion {
   private static BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
   private static TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
+  /** null length value **/
   public static final int NULL_LENGTH = -1;
   private final int maxIndex;
   private final boolean closeOnCompletion;
@@ -64,11 +65,17 @@ public abstract class Result implements ResultSet, Completion {
   protected byte[][] data;
 
   private byte[] nullBitmap;
+
+  /** reusable row buffer decoder * */
   protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+
   private int fieldLength;
 
+  /** mutable field index * */
   protected MutableInt fieldIndex = new MutableInt();
+
   private Map<String, Integer> mapper = null;
+
   /** is fully loaded */
   protected boolean loaded;
 
@@ -1667,10 +1674,16 @@ public abstract class Result implements ResultSet, Completion {
     throw exceptionFactory.notSupported("Not supported when using CONCUR_READ_ONLY concurrency");
   }
 
+  /** Set row buffer to null (no row) */
   protected void setNullRowBuf() {
     rowBuf.buf(null, 0, 0);
   }
 
+  /**
+   * set row decoder to current row data
+   *
+   * @param row row
+   */
   public void setRow(byte[] row) {
     rowBuf.buf(row, row.length, 0);
     fieldIndex.set(-1);

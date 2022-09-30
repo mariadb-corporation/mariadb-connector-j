@@ -22,6 +22,19 @@ import org.mariadb.jdbc.util.CharsetEncodingLength;
 /** Column metadata definition */
 public class StringColumn extends ColumnDefinitionPacket implements ColumnDecoder {
 
+  /**
+   * VARCHAR/STRING/VARSTRING metadata type decoder
+   *
+   * @param buf buffer
+   * @param charset charset
+   * @param length maximum data length
+   * @param dataType data type. see https://mariadb.com/kb/en/result-set-packets/#field-types
+   * @param decimals decimal length
+   * @param flags flags. see https://mariadb.com/kb/en/result-set-packets/#field-details-flag
+   * @param stringPos string offset position in buffer
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public StringColumn(
       ReadableByteBuf buf,
       int charset,

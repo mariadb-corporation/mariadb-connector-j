@@ -10,9 +10,13 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 
 /** Packet buffer */
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-
+  /** row data limit * */
   private int limit;
+
+  /** buffer * */
   public byte[] buf;
+
+  /** current position reading buffer * */
   public int pos;
 
   /**
@@ -27,6 +31,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     this.limit = limit;
   }
 
+  /**
+   * Packet buffer constructor, limit being the buffer length
+   *
+   * @param buf buffer
+   */
   public StandardReadableByteBuf(byte[] buf) {
     this.pos = 0;
     this.buf = buf;

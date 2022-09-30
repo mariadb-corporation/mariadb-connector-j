@@ -13,6 +13,7 @@ import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
+/** TEXT rows decoder */
 public class TextRowDecoder implements RowDecoder {
 
   @Override

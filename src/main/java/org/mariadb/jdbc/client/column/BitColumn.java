@@ -15,7 +15,20 @@ import org.mariadb.jdbc.plugin.codec.ByteCodec;
 
 /** Column metadata definition */
 public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
-
+  /**
+   * Constructor for column corresponding to BIT datatype. Class permit specific decoding for this
+   * datatype
+   *
+   * @param buf Column definition MySQL packet buffer
+   * @param charset charset
+   * @param length datatype length
+   * @param dataType data type
+   * @param decimals number of decimals
+   * @param flags column flags
+   * @param stringPos string value position
+   * @param extTypeName extended type name
+   * @param extTypeFormat extended type format
+   */
   public BitColumn(
       ReadableByteBuf buf,
       int charset,

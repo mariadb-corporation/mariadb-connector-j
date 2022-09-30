@@ -39,7 +39,10 @@ public final class PrepareExecutePacket implements RedoableWithPrepareClientMess
   /**
    * Construct prepare packet
    *
-   * @param sql sql command
+   * @param sql sql
+   * @param parameters parameter
+   * @param prep prepare
+   * @param localInfileInputStream local infile input stream
    */
   public PrepareExecutePacket(
       String sql,

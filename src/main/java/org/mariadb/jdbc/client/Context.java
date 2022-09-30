@@ -26,6 +26,7 @@ public interface Context {
   /**
    * has server capability
    *
+   * @param flag capability to check
    * @return true if server has capability
    */
   boolean hasServerCapability(long flag);
@@ -33,6 +34,7 @@ public interface Context {
   /**
    * has client capability
    *
+   * @param flag capability to check
    * @return true if client has capability
    */
   boolean hasClientCapability(long flag);
