@@ -29,7 +29,7 @@ public class ProcedureTest extends Common {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS procedure_test");
-    stmt.execute("DROP TABLE IF EXISTS multiply_by_2");
+    stmt.execute("DROP PROCEDURE IF EXISTS multiply_by_2");
   }
 
   @BeforeAll
@@ -37,8 +37,7 @@ public class ProcedureTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE procedure_test (t0 int)");
-    stmt.execute(
-        "CREATE PROCEDURE multiply_by_2 (INOUT t1 INT) BEGIN \n" + "set t1 = t1 * 2;\n" + "END");
+    stmt.execute("CREATE PROCEDURE multiply_by_2 (INOUT t1 INT) BEGIN \nset t1 = t1 * 2;\nEND");
   }
 
   @Test
