@@ -73,6 +73,7 @@ import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
@@ -461,7 +462,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
     for (ParameterHolder[] parameters : parametersList) {
       for (int i = 0; i < parameterCount; i++) {
-        if (parameters[i].getColumnType().getType() != types[i]) {
+        if (parameters[i].getColumnType().getType() != types[i]
+            && parameters[i].getColumnType() != ColumnType.NULL) {
           return false;
         }
       }

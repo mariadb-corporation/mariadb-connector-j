@@ -105,57 +105,84 @@ public class BasicBatchTest extends BaseTest {
 
   @Test
   public void batchTest() throws SQLException {
+    batchTest(sharedConnection, 1);
+    try (Connection con = openNewConnection(mDefUrl + "&useBulkStmts=true")) {
+      batchTest(con, Statement.SUCCESS_NO_INFO);
+    }
+  }
+
+  private void batchTest(Connection connection, int expectedInsertId) throws SQLException {
     Assume.assumeFalse(sharedIsRewrite());
-    PreparedStatement ps =
-        sharedConnection.prepareStatement(
-            "insert into test_batch values (null, ?)", Statement.RETURN_GENERATED_KEYS);
-    ps.setString(1, "aaa");
-    ps.addBatch();
-    ps.setString(1, "bbb");
-    ps.addBatch();
-    ps.setString(1, "ccc");
-    ps.addBatch();
-    int[] batchResult = ps.executeBatch();
-    ResultSet rs1 = ps.getGeneratedKeys();
+    Statement stmt = connection.createStatement();
+    stmt.execute("TRUNCATE TABLE test_batch");
+    try (PreparedStatement ps =
+        connection.prepareStatement(
+            "insert into test_batch values (null, ?)", Statement.RETURN_GENERATED_KEYS)) {
+      ps.setString(1, "aaa");
+      ps.addBatch();
+      ps.setString(1, "bbb");
+      ps.addBatch();
+      ps.setString(1, "ccc");
+      ps.addBatch();
+      int[] batchResult = ps.executeBatch();
+      ResultSet rs1 = ps.getGeneratedKeys();
 
-    int[] autoInc = setAutoInc();
+      int[] autoInc = setAutoInc();
 
-    for (int count = 1; count <= 3; count++) {
-      assertTrue(rs1.next());
-      assertTrue(
-          String.valueOf(autoInc[0] * count + autoInc[1]).equalsIgnoreCase(rs1.getString(1)));
+      for (int count = 1; count <= 3; count++) {
+        assertTrue(rs1.next());
+        assertTrue(
+            String.valueOf(autoInc[0] * count + autoInc[1]).equalsIgnoreCase(rs1.getString(1)));
+      }
+      for (int unitInsertNumber : batchResult) {
+        assertEquals(1, unitInsertNumber);
+      }
     }
-    for (int unitInsertNumber : batchResult) {
-      assertEquals(1, unitInsertNumber);
+    try (PreparedStatement ps =
+        connection.prepareStatement(
+            "insert into test_batch values (null, ?)", Statement.NO_GENERATED_KEYS)) {
+      ps.setString(1, "aaa");
+      ps.addBatch();
+      ps.setString(1, "bbb");
+      ps.addBatch();
+      ps.setString(1, "ccc");
+      ps.addBatch();
+      ps.setString(1, null);
+      ps.addBatch();
+      ps.setNull(1, Types.VARCHAR);
+      ps.addBatch();
+      int[] batchResult = ps.executeBatch();
+      for (int unitInsertNumber : batchResult) {
+        assertEquals(expectedInsertId, unitInsertNumber);
+      }
+      final ResultSet rs = stmt.executeQuery("select * from test_batch");
+      ps.executeQuery("SELECT 1");
+      try {
+        ResultSet rs1 = ps.getGeneratedKeys();
+        fail();
+      } catch (SQLException sqle) {
+        assertEquals(
+            "Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS",
+            sqle.getMessage());
+      }
+
+      assertTrue(rs.next());
+      assertEquals("aaa", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals("bbb", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals("ccc", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals("aaa", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals("bbb", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals("ccc", rs.getString(2));
+      assertTrue(rs.next());
+      assertNull(rs.getString(2));
+      assertTrue(rs.next());
+      assertNull(rs.getString(2));
     }
-    ps.setString(1, "aaa");
-    ps.addBatch();
-    ps.setString(1, "bbb");
-    ps.addBatch();
-    ps.setString(1, "ccc");
-    ps.addBatch();
-    batchResult = ps.executeBatch();
-    for (int unitInsertNumber : batchResult) {
-      assertEquals(1, unitInsertNumber);
-    }
-    final ResultSet rs =
-        sharedConnection.createStatement().executeQuery("select * from test_batch");
-    ps.executeQuery("SELECT 1");
-    try {
-      rs1 = ps.getGeneratedKeys();
-      fail();
-    } catch (SQLException sqle) {
-      assertEquals(
-          "Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS",
-          sqle.getMessage());
-    }
-    assertFalse(rs1.next());
-    assertEquals(true, rs.next());
-    assertEquals("aaa", rs.getString(2));
-    assertEquals(true, rs.next());
-    assertEquals("bbb", rs.getString(2));
-    assertEquals(true, rs.next());
-    assertEquals("ccc", rs.getString(2));
   }
 
   @Test
