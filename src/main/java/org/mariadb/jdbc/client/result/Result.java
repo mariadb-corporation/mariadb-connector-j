@@ -33,8 +33,9 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 public abstract class Result implements ResultSet, Completion {
   private static BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
   private static TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
-  /** null length value **/
+  /** null length value */
   public static final int NULL_LENGTH = -1;
+
   private final int maxIndex;
   private final boolean closeOnCompletion;
   private boolean forceAlias;
@@ -43,7 +44,7 @@ public abstract class Result implements ResultSet, Completion {
   /** result-set type */
   protected final int resultSetType;
 
-  /** connection exception factoy */
+  /** connection exception factory */
   protected final ExceptionFactory exceptionFactory;
 
   /** packet reader */
@@ -66,12 +67,12 @@ public abstract class Result implements ResultSet, Completion {
 
   private byte[] nullBitmap;
 
-  /** reusable row buffer decoder * */
+  /** reusable row buffer decoder */
   protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
 
   private int fieldLength;
 
-  /** mutable field index * */
+  /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
 
   private Map<String, Integer> mapper = null;
