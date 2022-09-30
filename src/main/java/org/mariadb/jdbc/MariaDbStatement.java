@@ -785,7 +785,7 @@ public class MariaDbStatement implements Statement, Cloneable {
       closed = true;
       if (results != null) {
         if (results.getFetchSize() != 0) {
-          skipMoreResults();
+          skipMoreResults(protocol);
         }
 
         results.close();
@@ -972,17 +972,19 @@ public class MariaDbStatement implements Statement, Cloneable {
    *     <code>Statement</code>
    */
   public void cancel() throws SQLException {
+    // use local protocol variable, in case statement is closed during cancellation
+    Protocol initialProtocol = this.protocol;
     checkClose();
     boolean locked = lock.tryLock();
     try {
       if (executing) {
-        protocol.cancelCurrentQuery();
+        initialProtocol.cancelCurrentQuery();
       } else if (results != null
           && results.getFetchSize() != 0
-          && !results.isFullyLoaded(protocol)) {
+          && !results.isFullyLoaded(initialProtocol)) {
         try {
-          protocol.cancelCurrentQuery();
-          skipMoreResults();
+          initialProtocol.cancelCurrentQuery();
+          skipMoreResults(initialProtocol);
         } catch (SQLException e) {
           // eat exception
         }
@@ -1186,7 +1188,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     return -1;
   }
 
-  protected void skipMoreResults() throws SQLException {
+  protected void skipMoreResults(Protocol protocol) throws SQLException {
     try {
       protocol.skip();
       warningsCleared = false;

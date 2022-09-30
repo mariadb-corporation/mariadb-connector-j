@@ -397,7 +397,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
         executeBatchRewrite(results, prepareResult, parametersList, true);
         return true;
-
       }
 
       if (options.useBulkStmts
