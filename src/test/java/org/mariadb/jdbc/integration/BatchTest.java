@@ -122,10 +122,20 @@ public class BatchTest extends Common {
       prep.setInt(1, 2);
       prep.setInt(2, 2);
       prep.addBatch();
+      prep.setInt(1, 3);
+      prep.setNull(2, Types.INTEGER);
+      prep.addBatch();
       int[] res = prep.executeBatch();
-      assertEquals(2, res.length);
-      assertEquals(1, res[0]);
-      assertEquals(1, res[1]);
+      assertEquals(3, res.length);
+      if (expectSuccessUnknown) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[2]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(1, res[1]);
+        assertEquals(1, res[2]);
+      }
     }
     ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
@@ -134,6 +144,9 @@ public class BatchTest extends Common {
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
     assertEquals("2", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals(3, rs.getInt(1));
+    assertNull(rs.getString(2));
     assertFalse(rs.next());
     stmt.execute("TRUNCATE BatchTest");
 
