@@ -79,11 +79,14 @@ public class DateCodec implements Codec<Date> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTimeInMillis(((java.util.Date) value).getTime());
-    encoder.writeByte(4); // length
-    encoder.writeShort((short) cal.get(Calendar.YEAR));
-    encoder.writeByte(((cal.get(Calendar.MONTH) + 1) & 0xff));
-    encoder.writeByte((cal.get(Calendar.DAY_OF_MONTH) & 0xff));
+    synchronized (cal) {
+      cal.clear();
+      cal.setTimeInMillis(((java.util.Date) value).getTime());
+      encoder.writeByte(4); // length
+      encoder.writeShort((short) cal.get(Calendar.YEAR));
+      encoder.writeByte(((cal.get(Calendar.MONTH) + 1) & 0xff));
+      encoder.writeByte((cal.get(Calendar.DAY_OF_MONTH) & 0xff));
+    }
   }
 
   public int getBinaryEncodeType() {

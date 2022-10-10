@@ -90,26 +90,29 @@ public class TimestampCodec implements Codec<Timestamp> {
   @Override
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
-    Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
     Timestamp ts = (Timestamp) value;
-    cal.setTimeInMillis(ts.getTime());
-    if (ts.getNanos() == 0) {
-      encoder.writeByte(7); // length
-      encoder.writeShort((short) cal.get(Calendar.YEAR));
-      encoder.writeByte((cal.get(Calendar.MONTH) + 1));
-      encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
-      encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte(cal.get(Calendar.MINUTE));
-      encoder.writeByte(cal.get(Calendar.SECOND));
-    } else {
-      encoder.writeByte(11); // length
-      encoder.writeShort((short) cal.get(Calendar.YEAR));
-      encoder.writeByte((cal.get(Calendar.MONTH) + 1));
-      encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
-      encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte(cal.get(Calendar.MINUTE));
-      encoder.writeByte(cal.get(Calendar.SECOND));
-      encoder.writeInt(ts.getNanos() / 1000);
+    Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
+    synchronized (cal) {
+      cal.clear();
+      cal.setTimeInMillis(ts.getTime());
+      if (ts.getNanos() == 0) {
+        encoder.writeByte(7); // length
+        encoder.writeShort((short) cal.get(Calendar.YEAR));
+        encoder.writeByte((cal.get(Calendar.MONTH) + 1));
+        encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
+        encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
+        encoder.writeByte(cal.get(Calendar.MINUTE));
+        encoder.writeByte(cal.get(Calendar.SECOND));
+      } else {
+        encoder.writeByte(11); // length
+        encoder.writeShort((short) cal.get(Calendar.YEAR));
+        encoder.writeByte((cal.get(Calendar.MONTH) + 1));
+        encoder.writeByte(cal.get(Calendar.DAY_OF_MONTH));
+        encoder.writeByte(cal.get(Calendar.HOUR_OF_DAY));
+        encoder.writeByte(cal.get(Calendar.MINUTE));
+        encoder.writeByte(cal.get(Calendar.SECOND));
+        encoder.writeInt(ts.getNanos() / 1000);
+      }
     }
   }
 
