@@ -509,7 +509,12 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   @Override
   public void close() throws SQLException {
     if (prepareResult != null) {
-      prepareResult.close(this.con.getClient());
+      lock.lock();
+      try {
+        prepareResult.close(this.con.getClient());
+      } finally {
+        lock.unlock();
+      }
     }
     con.fireStatementClosed(this);
     super.close();
