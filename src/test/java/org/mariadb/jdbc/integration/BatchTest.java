@@ -7,6 +7,8 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
+import java.util.Calendar;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
@@ -20,11 +22,14 @@ public class BatchTest extends Common {
     stmt.execute(
         "CREATE TABLE BatchTest (t1 int not null primary key auto_increment, t2 LONGTEXT)");
     createSequenceTables();
+    stmt.execute("CREATE TABLE timestampCal(id int, val TIMESTAMP)");
   }
 
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE IF EXISTS BatchTest");
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS timestampCal");
+    stmt.execute("DROP TABLE IF EXISTS BatchTest");
   }
 
   @Test
@@ -412,6 +417,76 @@ public class BatchTest extends Common {
       prep.addBatch();
       // Duplicate entry '1' for key 'PRIMARY'
       assertThrows(BatchUpdateException.class, prep::executeBatch);
+    }
+  }
+
+  private class TimestampCal {
+    private Timestamp val;
+    private int id;
+
+    public TimestampCal(Timestamp val, int id) {
+      this.val = val;
+      this.id = id;
+    }
+
+    public Timestamp getVal() {
+      return val;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
+    }
+  }
+
+  @Test
+  public void ensureCalendarSync() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
+    // to ensure that calendar is use at the same time, using BULK command
+    TimestampCal[] t1 = new TimestampCal[50];
+    for (int i = 0; i < 50; i++) {
+      t1[i] = new TimestampCal(Timestamp.valueOf((1970 + i) + "-01-31 12:00:00.0"), i);
+    }
+    TimestampCal[] t2 = new TimestampCal[50];
+    for (int i = 0; i < 50; i++) {
+      t2[i] = new TimestampCal(Timestamp.valueOf((1970 + i) + "-12-01 01:12:15.0"), i + 50);
+    }
+
+    Calendar cal = Calendar.getInstance();
+
+    int inserts = Stream.of(t1, t2).parallel().mapToInt(l -> insertTimestamp(l, cal)).sum();
+    assertEquals(100, inserts);
+    Statement stmt = sharedConn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM timestampCal order by ID");
+    for (int i = 0; i < 50; i++) {
+      rs.next();
+      assertEquals(t1[i].getVal().toString(), rs.getTimestamp(2, cal).toString());
+    }
+    for (int i = 0; i < 50; i++) {
+      rs.next();
+      assertEquals(t2[i].getVal().toString(), rs.getTimestamp(2, cal).toString());
+    }
+  }
+
+  private int insertTimestamp(TimestampCal[] vals, Calendar cal) {
+    try (Connection con = createCon()) {
+      try (PreparedStatement prep =
+          con.prepareStatement("INSERT INTO timestampCal(val, id) VALUES (?,?)")) {
+        for (int i = 0; i < vals.length; i++) {
+          System.out.println(vals[i]);
+          prep.setTimestamp(1, vals[i].getVal(), cal);
+          prep.setInt(2, vals[i].getId());
+          prep.addBatch();
+        }
+        return prep.executeBatch().length;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return -1;
     }
   }
 }
