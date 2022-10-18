@@ -20,11 +20,11 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   protected final int charset;
   /** column maximum length */
   protected final long columnLength;
-  /** data type see https://mariadb.com/kb/en/result-set-packets/#field-types*/
+  /** data type see https://mariadb.com/kb/en/result-set-packets/#field-types */
   protected final DataType dataType;
   /** number of decimal */
   protected final byte decimals;
-  /** flags see https://mariadb.com/kb/en/result-set-packets/#field-details-flag*/
+  /** flags see https://mariadb.com/kb/en/result-set-packets/#field-details-flag */
   private final int flags;
   /** string offset position in buffer */
   private final int[] stringPos;

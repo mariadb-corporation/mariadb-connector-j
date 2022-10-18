@@ -863,7 +863,7 @@ public class UpdateResultSetTest extends Common {
       assertNull(rs.getString("t2"));
     }
     try (PreparedStatement preparedStatement =
-                 con.prepareStatement(
+        con.prepareStatement(
             "select id, t1, t2 from testMoveToInsertRow",
             ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_UPDATABLE)) {
