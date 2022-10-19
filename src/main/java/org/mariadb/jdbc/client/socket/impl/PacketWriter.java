@@ -343,8 +343,14 @@ public class PacketWriter implements Writer {
   }
 
   public void writeAscii(String str) throws IOException {
-    byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
-    writeBytes(arr, 0, arr.length);
+    int len = str.length();
+    if (len > buf.length - pos) {
+      byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
+      writeBytes(arr, 0, arr.length);
+    }
+    for (int off = 0; off < len; ) {
+      this.buf[this.pos++] = (byte) str.charAt(off++);
+    }
   }
 
   public void writeString(String str) throws IOException {
