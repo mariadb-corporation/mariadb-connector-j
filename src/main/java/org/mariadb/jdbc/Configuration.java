@@ -10,7 +10,6 @@ import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
-
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
@@ -666,7 +665,7 @@ public class Configuration {
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
         Properties deprecatedDesc = new Properties();
         try (InputStream inputStream =
-                     Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+            Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
           deprecatedDesc.load(inputStream);
         } catch (IOException io) {
           // eat
