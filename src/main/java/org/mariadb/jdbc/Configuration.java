@@ -4,15 +4,20 @@
 
 package org.mariadb.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
+
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 /**
@@ -46,6 +51,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  * <br>
  */
 public class Configuration {
+  private static final Logger logger = Loggers.getLogger(Configuration.class);
 
   // standard options
   private String user = null;
@@ -658,9 +664,19 @@ public class Configuration {
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
+        Properties deprecatedDesc = new Properties();
+        try (InputStream inputStream =
+                     Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+          deprecatedDesc.load(inputStream);
+        } catch (IOException io) {
+          // eat
+        }
+        logger.warn(deprecatedDesc.getProperty("useSsl"));
         if (isSet("trustServerCertificate", nonMappedOptions)) {
           builder.sslMode("trust");
+          logger.warn(deprecatedDesc.getProperty("trustServerCertificate"));
         } else if (isSet("disableSslHostnameVerification", nonMappedOptions)) {
+          logger.warn(deprecatedDesc.getProperty("disableSslHostnameVerification"));
           builder.sslMode("verify-ca");
         } else {
           builder.sslMode("verify-full");
