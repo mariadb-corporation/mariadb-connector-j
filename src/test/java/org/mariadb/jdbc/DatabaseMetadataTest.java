@@ -428,7 +428,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals("unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -445,7 +445,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertEquals("product_order_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals("unik_name", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -462,7 +462,7 @@ public class DatabaseMetadataTest extends BaseTest {
       assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("DELETE_RULE"));
       assertEquals("product_order_ibfk_2", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "PRIMARY", rs.getString("PK_NAME"));
+      assertEquals("PRIMARY", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
     }
 
