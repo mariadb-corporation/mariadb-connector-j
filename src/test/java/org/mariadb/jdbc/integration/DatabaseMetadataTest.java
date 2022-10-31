@@ -236,15 +236,21 @@ public class DatabaseMetadataTest extends Common {
   /** Same as getImportedKeys, with one foreign key in a table in another catalog. */
   @Test
   public void getImportedKeys() throws Exception {
-    getImportedKeys(sharedConn);
+    getImportedKeys(sharedConn, true);
     try (org.mariadb.jdbc.Connection con = createCon()) {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
-      getImportedKeys(con);
+      getImportedKeys(con, true);
+    }
+    try (org.mariadb.jdbc.Connection con = createCon("importedKeysWithConstraintNames=false")) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
+      getImportedKeys(con, false);
     }
   }
 
-  private void getImportedKeys(org.mariadb.jdbc.Connection con) throws Exception {
+  private void getImportedKeys(
+      org.mariadb.jdbc.Connection con, boolean importedKeysWithConstraintNames) throws Exception {
     // cancel for MySQL 8.0, since CASCADE with I_S give importedKeySetDefault, not
     // importedKeyCascade
     //    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
@@ -349,7 +355,9 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
       assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
+          rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -366,7 +374,9 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
       assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
+          rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -388,7 +398,8 @@ public class DatabaseMetadataTest extends Common {
       }
       assertEquals("product order 1_ibfk_2", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "PRIMARY", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "PRIMARY", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
     }
 

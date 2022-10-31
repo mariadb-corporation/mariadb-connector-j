@@ -7,10 +7,7 @@ package org.mariadb.jdbc;
 import java.sql.*;
 import java.sql.Statement;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
@@ -202,7 +199,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   private ResultSet getImportedKeys(
       String tableDef, String tableName, String catalog, org.mariadb.jdbc.Connection connection)
-      throws ParseException {
+      throws Exception, SQLException {
+    boolean importedKeysWithConstraintNames =
+        Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("importedKeysWithConstraintNames", "true"));
     String[] columnNames = {
       "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
       "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
@@ -255,7 +255,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           onDeleteReferenceAction = getImportedKeyAction(referenceAction);
         }
       }
-
+      Map<String, Map<String[], String>> externalInfos = new HashMap<>();
       for (int i = 0; i < primaryKeyCols.size(); i++) {
 
         String[] row = new String[columnNames.length];
@@ -274,7 +274,37 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         row[9] = Integer.toString(onUpdateReferenceAction); // UPDATE_RULE
         row[10] = Integer.toString(onDeleteReferenceAction); // DELETE_RULE
         row[11] = constraintName.name; // FK_NAME
-        row[12] = null; // PK_NAME - unlike using information_schema, cannot know constraint name
+        if (importedKeysWithConstraintNames) {
+          String ext =
+              (pkTable.schema == null ? "" : quoteIdentifier(pkTable.schema) + ".")
+                  + quoteIdentifier(pkTable.name);
+          if (!externalInfos.containsKey(ext)) {
+            externalInfos.put(ext, getExtImportedKeys(ext, connection));
+          }
+          row[12] = null; // PK_NAME
+          Map<String[], String> externalInfo = externalInfos.get(ext);
+          if (externalInfo != null) {
+            for (Map.Entry<String[], String> entry : externalInfo.entrySet()) {
+              boolean foundAll = true;
+
+              for (String keyPart : entry.getKey()) {
+                boolean foundKey = false;
+                for (Identifier keyCol : primaryKeyCols) {
+                  if (keyCol.name.equals(keyPart)) {
+                    foundKey = true;
+                    break;
+                  }
+                }
+                if (!foundKey) foundAll = false;
+              }
+              if (foundAll) {
+                row[12] = entry.getValue();
+              }
+            }
+          }
+        } else {
+          row[12] = null; // PK_NAME
+        }
         row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable); // DEFERRABILITY
         data.add(row);
       }
@@ -299,6 +329,41 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         });
     return CompleteResult.createResultSet(
         columnNames, dataTypes, arr, connection.getContext(), ColumnFlags.PRIMARY_KEY);
+  }
+
+  private Map<String[], String> getExtImportedKeys(
+      String tableName, org.mariadb.jdbc.Connection connection) throws SQLException {
+    ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE " + tableName);
+    rs.next();
+    String refTableDef = rs.getString(2);
+    Map<String[], String> res = new HashMap<>();
+    String[] parts = refTableDef.split("\n");
+    for (int i = 1; i < parts.length - 1; i++) {
+      String part = parts[i].trim();
+      if (part.startsWith("`")) {
+        // field
+        continue;
+      }
+      if (part.startsWith("PRIMARY KEY") || part.startsWith("UNIQUE KEY")) {
+        String name = "PRIMARY";
+        if (part.indexOf("`") < part.indexOf("(")) {
+          int offset = part.indexOf("`");
+          name = part.substring(offset + 1, part.indexOf("`", offset + 1));
+        }
+
+        String subPart = part.substring(part.indexOf("(") + 1, part.lastIndexOf(")"));
+        List<String> cols = new ArrayList<>();
+        int pos = 0;
+        while (pos < subPart.length()) {
+          pos = subPart.indexOf("`", pos);
+          int endpos = subPart.indexOf("`", pos + 1);
+          cols.add(subPart.substring(pos + 1, endpos));
+          pos = endpos + 1;
+        }
+        res.put(cols.toArray(new String[0]), name);
+      }
+    }
+    return res;
   }
 
   /**
