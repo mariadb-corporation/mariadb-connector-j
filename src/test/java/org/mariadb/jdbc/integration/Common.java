@@ -118,6 +118,11 @@ public class Common {
   public static boolean minVersion(int major, int minor, int patch) {
     return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
   }
+  public static boolean exactVersion(int major, int minor, int patch) {
+    return sharedConn.getContext().getVersion().getMajorVersion() == major
+            && sharedConn.getContext().getVersion().getMinorVersion() == minor
+            && sharedConn.getContext().getVersion().getPatchVersion() == patch;
+  }
 
   public static Connection createCon() throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl);
