@@ -1509,6 +1509,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return minorVersion;
   }
 
+  public int getPatchServerVersion() {
+    return patchVersion;
+  }
+
   /**
    * Utility method to check if database version is greater than parameters.
    *

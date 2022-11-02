@@ -157,6 +157,9 @@ public class PasswordEncodingTest extends BaseTest {
             Charset.forName(charsetName));
         stmt.execute("GRANT SELECT on *.* to 'test" + charsetName + "'@'%'");
       }
+      // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+      Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
+
       stmt.execute("FLUSH PRIVILEGES");
     }
   }

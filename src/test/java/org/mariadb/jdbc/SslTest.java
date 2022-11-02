@@ -85,6 +85,9 @@ public class SslTest extends BaseTest {
     createSslUser("mutualAuthUser", "REQUIRE X509");
 
     Statement stmt = sharedConnection.createStatement();
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
+
     stmt.execute("FLUSH PRIVILEGES");
     sslPort =
         System.getenv("TEST_MAXSCALE_TLS_PORT") == null

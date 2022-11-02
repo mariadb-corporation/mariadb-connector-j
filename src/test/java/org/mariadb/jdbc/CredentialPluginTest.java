@@ -56,6 +56,9 @@ public class CredentialPluginTest extends BaseTest {
       stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute("GRANT SELECT ON " + database + ".* TO 'identityUser'@'%'");
     }
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
+
     stmt.execute("FLUSH PRIVILEGES");
   }
 

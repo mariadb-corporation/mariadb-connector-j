@@ -213,6 +213,8 @@ public interface Protocol {
 
   int getMinorServerVersion();
 
+  int getPatchServerVersion();
+
   boolean versionGreaterOrEqual(int major, int minor, int patch);
 
   void setLocalInfileInputStream(InputStream inputStream);

@@ -390,6 +390,12 @@ public class BaseTest {
     return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
   }
 
+  public static boolean exactVersion(int major, int minor, int patch) {
+    return ((MariaDbConnection) sharedConnection).getProtocol().getMajorServerVersion() == major
+        && ((MariaDbConnection) sharedConnection).getProtocol().getMinorServerVersion() == minor
+        && ((MariaDbConnection) sharedConnection).getProtocol().getPatchServerVersion() == patch;
+  }
+
   /**
    * Indicate if there is a anonymous user.
    *
