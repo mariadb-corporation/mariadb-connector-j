@@ -240,6 +240,7 @@ public class UpdateResultSetTest extends Common {
             + "`t1` VARCHAR(50) NOT NULL,"
             + "`t2` VARCHAR(50) NULL default 'default-value',"
             + "PRIMARY KEY (`id`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.executeQuery("INSERT INTO UpdateWithoutPrimary(t1,t2) values ('1-1','1-2')");
 
     try (PreparedStatement preparedStatement =
@@ -282,6 +283,7 @@ public class UpdateResultSetTest extends Common {
     assertEquals("1-1", rs.getString(2));
     assertEquals("1-2", rs.getString(3));
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
