@@ -90,21 +90,24 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
       // Step 1: send token to server
       byte[] tokenForTheServerOnTheClient = clientContext.getToken();
-      out.startPacket(sequence.incrementAndGet());
-      out.write(tokenForTheServerOnTheClient);
-      out.flush();
-
-      // Step 2: read server response token
-      if (clientContext.isContinue()) {
-        Buffer buffer = in.getPacket(true);
-        sequence.set(in.getLastPacketSeq());
-        byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
-        Sspi.SecBufferDesc continueToken =
-            new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
-        clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
+      if (tokenForTheServerOnTheClient != null && tokenForTheServerOnTheClient.length > 0) {
+        out.startPacket(sequence.incrementAndGet());
+        out.write(tokenForTheServerOnTheClient);
+        out.flush();
       }
 
-    } while (clientContext.isContinue());
+      // Step 2: read server response token
+      if (!clientContext.isContinue()) {
+        break;
+      }
+      Buffer buffer = in.getPacket(true);
+      sequence.set(in.getLastPacketSeq());
+      byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
+      Sspi.SecBufferDesc continueToken =
+          new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+      clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
+
+    } while (true);
 
     clientContext.dispose();
   }
