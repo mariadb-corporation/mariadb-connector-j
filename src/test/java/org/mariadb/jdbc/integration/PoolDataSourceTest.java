@@ -54,8 +54,8 @@ public class PoolDataSourceTest extends Common {
         "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
     stmt.execute("FLUSH TABLES");
 
-    //mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0 ,31));
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
 
     stmt.execute("FLUSH PRIVILEGES");
   }
