@@ -89,7 +89,9 @@ public class PooledConnectionTest extends BaseTest {
   @Test(expected = SQLException.class)
   public void testPooledConnectionException() throws Exception {
     Assume.assumeTrue(
-        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"skysql".equals(System.getenv("srv"))
+                && !"skysql-ha".equals(System.getenv("srv"))
+                && !"galera".equals(System.getenv("srv")));
 
     ConnectionPoolDataSource ds =
         new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);

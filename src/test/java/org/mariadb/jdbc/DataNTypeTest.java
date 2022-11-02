@@ -208,38 +208,44 @@ public class DataNTypeTest extends BaseTest {
 
   @Test
   public void testSetObjectNCharacter() throws Exception {
-    PreparedStatement stmt =
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("START TRANSACTION");
+
+    try (PreparedStatement prepStmt =
         sharedConnection.prepareStatement(
-            "insert into testSetObjectNCharacter (id, strm) values (?,?)");
-    String toInsert = "Øabcdefgh\njklmn\"";
+            "insert into testSetObjectNCharacter (id, strm) values (?,?)")) {
+      String toInsert = "Øabcdefgh\njklmn\"";
 
-    stmt.setInt(1, 1);
-    stmt.setObject(2, new StringReader(toInsert));
-    stmt.execute();
+      prepStmt.setInt(1, 1);
+      prepStmt.setObject(2, new StringReader(toInsert));
+      prepStmt.execute();
 
-    stmt.setInt(1, 2);
-    stmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR);
-    stmt.execute();
+      prepStmt.setInt(1, 2);
+      prepStmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR);
+      prepStmt.execute();
 
-    stmt.setInt(1, 3);
-    stmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR, 3);
-    stmt.execute();
+      prepStmt.setInt(1, 3);
+      prepStmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR, 3);
+      prepStmt.execute();
 
-    ResultSet rs =
-        sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
-    assertTrue(rs.next());
-    Reader reader1 = rs.getObject(2, Reader.class);
-    assertNotNull(reader1);
-    assertTrue(rs.getObject(2) instanceof String);
-    assertTrue(rs.getCharacterStream(2) instanceof Reader);
-    checkCharStream(rs.getCharacterStream(2), toInsert);
+      ResultSet rs =
+              sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
+      assertTrue(rs.next());
+      Reader reader1 = rs.getObject(2, Reader.class);
+      assertNotNull(reader1);
+      assertTrue(rs.getObject(2) instanceof String);
+      assertTrue(rs.getCharacterStream(2) instanceof Reader);
+      checkCharStream(rs.getCharacterStream(2), toInsert);
 
-    assertTrue(rs.next());
-    assertTrue(rs.getObject(2) instanceof String);
-    checkCharStream(rs.getCharacterStream(2), toInsert);
+      assertTrue(rs.next());
+      assertTrue(rs.getObject(2) instanceof String);
+      checkCharStream(rs.getCharacterStream(2), toInsert);
 
-    assertTrue(rs.next());
-    checkCharStream(rs.getCharacterStream(2), toInsert.substring(0, 3));
+      assertTrue(rs.next());
+      checkCharStream(rs.getCharacterStream(2), toInsert.substring(0, 3));
+    } finally {
+      sharedConnection.rollback();
+    }
   }
 
   private void checkCharStream(Reader reader, String comparedValue) throws Exception {
