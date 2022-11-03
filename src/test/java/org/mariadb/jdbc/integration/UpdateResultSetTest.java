@@ -609,78 +609,83 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS updateBlob");
     stmt.execute("CREATE TABLE updateBlob(id int not null primary key, strm blob)");
-    PreparedStatement prep =
-        sharedConn.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
-    byte[] theBlob = {1, 2, 3, 4, 5, 6};
-    InputStream stream = new ByteArrayInputStream(theBlob);
+    stmt.execute("START TRANSACTION ");
+    try {
+      PreparedStatement prep =
+              sharedConn.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
+      byte[] theBlob = {1, 2, 3, 4, 5, 6};
+      InputStream stream = new ByteArrayInputStream(theBlob);
 
-    prep.setInt(1, 1);
-    prep.setBlob(2, stream);
-    prep.execute();
+      prep.setInt(1, 1);
+      prep.setBlob(2, stream);
+      prep.execute();
 
-    byte[] updatedBlob = "abcdef".getBytes(StandardCharsets.UTF_8);
+      byte[] updatedBlob = "abcdef".getBytes(StandardCharsets.UTF_8);
 
-    try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement(
-            "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
+      try (PreparedStatement preparedStatement =
+                   sharedConn.prepareStatement(
+                           "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        ResultSet rs = preparedStatement.executeQuery();
+        assertTrue(rs.next());
 
-      rs.updateBlob(2, new ByteArrayInputStream(updatedBlob));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateBlob(2, new ByteArrayInputStream(updatedBlob));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateBlob(2, new ByteArrayInputStream(updatedBlob), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateBlob(2, new ByteArrayInputStream(updatedBlob), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateBlob("strm", new ByteArrayInputStream(updatedBlob), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateClob(2, new StringReader("abcdef"));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateClob(2, new StringReader("abcdef"));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateClob("strm", new StringReader("abcdef"));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateClob("strm", new StringReader("abcdef"));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateClob(2, new StringReader("abcdef"), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateClob(2, new StringReader("abcdef"), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateClob("strm", new StringReader("abcdef"), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateClob("strm", new StringReader("abcdef"), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateNClob(2, new StringReader("abcdef"));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateNClob(2, new StringReader("abcdef"));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateNClob("strm", new StringReader("abcdef"));
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateNClob("strm", new StringReader("abcdef"));
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateNClob(2, new StringReader("abcdef"), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
+        rs.updateNClob(2, new StringReader("abcdef"), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
 
-      rs.updateNClob("strm", new StringReader("abcdef"), 20L);
-      rs.updateRow();
-      checkResult(rs, updatedBlob);
-    }
+        rs.updateNClob("strm", new StringReader("abcdef"), 20L);
+        rs.updateRow();
+        checkResult(rs, updatedBlob);
+      }
 
-    try (PreparedStatement preparedStatement =
-        sharedConn.prepareStatement(
-            "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
-      ResultSet rs = preparedStatement.executeQuery();
-      assertTrue(rs.next());
-      checkResult(rs, updatedBlob);
+      try (PreparedStatement preparedStatement =
+                   sharedConn.prepareStatement(
+                           "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+        ResultSet rs = preparedStatement.executeQuery();
+        assertTrue(rs.next());
+        checkResult(rs, updatedBlob);
+      }
+    } finally {
+      sharedConn.rollback();
     }
   }
 
