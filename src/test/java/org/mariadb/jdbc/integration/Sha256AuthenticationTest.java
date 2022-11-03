@@ -77,8 +77,8 @@ public class Sha256AuthenticationTest extends Common {
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User4'@'%'");
-    //mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0 ,31));
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
   }
 

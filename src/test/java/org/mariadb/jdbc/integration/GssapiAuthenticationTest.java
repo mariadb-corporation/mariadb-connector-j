@@ -4,13 +4,11 @@
 
 package org.mariadb.jdbc.integration;
 
+import java.sql.*;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
-import java.sql.*;
-
 public class GssapiAuthenticationTest extends Common {
-
 
   @Test
   public void nativePassword() throws Exception {
@@ -22,8 +20,11 @@ public class GssapiAuthenticationTest extends Common {
       // eat
     }
     System.out.println("user name:" + System.getProperty("user.name"));
-    stmt.execute("CREATE USER "+System.getProperty("user.name") + " IDENTIFIED VIA gssapi as 'GROUP:Administrators'");
-    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO "+System.getProperty("user.name"));
+    stmt.execute(
+        "CREATE USER "
+            + System.getProperty("user.name")
+            + " IDENTIFIED VIA gssapi as 'GROUP:Administrators'");
+    stmt.execute("GRANT ALL PRIVILEGES ON *.* TO " + System.getProperty("user.name"));
 
     String gssapiUrl = String.format("jdbc:mariadb://%s:%s/%s", hostname, port, database);
     try (Connection con = DriverManager.getConnection(gssapiUrl)) {

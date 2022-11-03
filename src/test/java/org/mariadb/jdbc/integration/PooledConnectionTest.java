@@ -240,8 +240,8 @@ public class PooledConnectionTest extends Common {
               + sharedConn.getCatalog()
               + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
-    //mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0 ,31));
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);

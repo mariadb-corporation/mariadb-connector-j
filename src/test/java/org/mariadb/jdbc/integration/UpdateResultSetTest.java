@@ -612,7 +612,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("START TRANSACTION ");
     try {
       PreparedStatement prep =
-              sharedConn.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
+          sharedConn.prepareStatement("insert into updateBlob (id, strm) values (?,?)");
       byte[] theBlob = {1, 2, 3, 4, 5, 6};
       InputStream stream = new ByteArrayInputStream(theBlob);
 
@@ -623,8 +623,10 @@ public class UpdateResultSetTest extends Common {
       byte[] updatedBlob = "abcdef".getBytes(StandardCharsets.UTF_8);
 
       try (PreparedStatement preparedStatement =
-                   sharedConn.prepareStatement(
-                           "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+          sharedConn.prepareStatement(
+              "select * from updateBlob",
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_UPDATABLE)) {
         ResultSet rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
 
@@ -678,8 +680,10 @@ public class UpdateResultSetTest extends Common {
       }
 
       try (PreparedStatement preparedStatement =
-                   sharedConn.prepareStatement(
-                           "select * from updateBlob", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+          sharedConn.prepareStatement(
+              "select * from updateBlob",
+              ResultSet.TYPE_FORWARD_ONLY,
+              ResultSet.CONCUR_UPDATABLE)) {
         ResultSet rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
         checkResult(rs, updatedBlob);
