@@ -229,7 +229,7 @@ public class DataNTypeTest extends BaseTest {
       prepStmt.execute();
 
       ResultSet rs =
-              sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
+          sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
       assertTrue(rs.next());
       Reader reader1 = rs.getObject(2, Reader.class);
       assertNotNull(reader1);
