@@ -862,8 +862,10 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    // stmt.execute("FLUSH PRIVILEGES");
+
+    //mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0 ,31));
+    stmt.execute("FLUSH PRIVILEGES");
 
     int testPort = port;
     if (System.getenv("TEST_PAM_PORT") != null) {

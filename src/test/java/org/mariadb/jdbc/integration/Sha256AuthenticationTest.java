@@ -77,9 +77,8 @@ public class Sha256AuthenticationTest extends Common {
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User4'@'%'");
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
+    //mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0 ,31));
     stmt.execute("FLUSH PRIVILEGES");
   }
 
@@ -111,7 +110,6 @@ public class Sha256AuthenticationTest extends Common {
     stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser@'%'");
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     stmt.execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
       con.isValid(1);
@@ -129,7 +127,6 @@ public class Sha256AuthenticationTest extends Common {
         !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
@@ -142,7 +139,6 @@ public class Sha256AuthenticationTest extends Common {
         !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     File tempFile = File.createTempFile("log", ".tmp");
     Common.assertThrowsContains(
@@ -160,7 +156,6 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User3&allowPublicKeyRetrieval&password=!Passw0rd3Works")) {
@@ -173,7 +168,6 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     try (Connection con =
@@ -212,7 +206,6 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isWindows() && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
@@ -225,7 +218,6 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(!isMariaDBServer() && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
 
     Common.assertThrowsContains(
