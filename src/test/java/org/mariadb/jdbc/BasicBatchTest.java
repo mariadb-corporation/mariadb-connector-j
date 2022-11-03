@@ -107,7 +107,7 @@ public class BasicBatchTest extends BaseTest {
   public void batchTest() throws SQLException {
     batchTest(sharedConnection, 1);
     try (Connection con = openNewConnection(mDefUrl + "&useBulkStmts=true")) {
-      batchTest(con, Statement.SUCCESS_NO_INFO);
+      batchTest(con, isMariadbServer() ? Statement.SUCCESS_NO_INFO : 1);
     }
   }
 
