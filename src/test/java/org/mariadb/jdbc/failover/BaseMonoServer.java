@@ -191,6 +191,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
         fail("not have thrown error !");
       } catch (SQLException e) {
         restartProxy(masterServerId);
+        Thread.sleep(10);
         st.execute("drop table if exists selectFailoverTrans" + jobId);
         assertEquals("error type not normal", "25S03", e.getSQLState());
       }
