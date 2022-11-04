@@ -7,6 +7,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.client.column.UuidColumn;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
@@ -349,9 +350,11 @@ public interface ColumnDecoder extends Column {
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
     DataType.ColumnConstructor constructor =
-        (flags & ColumnFlags.UNSIGNED) == 0
-            ? dataType.getColumnConstructor()
-            : dataType.getUnsignedColumnConstructor();
+        (extTypeName != null && extTypeName.equals("uuid"))
+            ? UuidColumn::new
+            : (flags & ColumnFlags.UNSIGNED) == 0
+                ? dataType.getColumnConstructor()
+                : dataType.getUnsignedColumnConstructor();
     return constructor.create(
         buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }

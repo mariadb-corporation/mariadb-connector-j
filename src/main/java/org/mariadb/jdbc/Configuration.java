@@ -81,6 +81,7 @@ public class Configuration {
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
+  private boolean uuidAsString = false;
   private boolean tcpKeepAlive = true;
   private int tcpKeepIdle = 0;
   private int tcpKeepCount = 0;
@@ -174,6 +175,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       boolean tcpKeepAlive,
+      boolean uuidAsString,
       int tcpKeepIdle,
       int tcpKeepCount,
       int tcpKeepInterval,
@@ -245,6 +247,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     this.tcpKeepAlive = tcpKeepAlive;
+    this.uuidAsString = uuidAsString;
     this.tcpKeepIdle = tcpKeepIdle;
     this.tcpKeepCount = tcpKeepCount;
     this.tcpKeepInterval = tcpKeepInterval;
@@ -309,6 +312,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       Boolean tcpKeepAlive,
+      Boolean uuidAsString,
       Integer tcpKeepIdle,
       Integer tcpKeepCount,
       Integer tcpKeepInterval,
@@ -383,6 +387,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
+    if (uuidAsString != null) this.uuidAsString = uuidAsString;
     if (tcpKeepIdle != null) this.tcpKeepIdle = tcpKeepIdle;
     if (tcpKeepCount != null) this.tcpKeepCount = tcpKeepCount;
     if (tcpKeepInterval != null) this.tcpKeepInterval = tcpKeepInterval;
@@ -748,6 +753,7 @@ public class Configuration {
         this.pipe,
         this.localSocket,
         this.tcpKeepAlive,
+        this.uuidAsString,
         this.tcpKeepIdle,
         this.tcpKeepCount,
         this.tcpKeepInterval,
@@ -962,6 +968,15 @@ public class Configuration {
    */
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
+  }
+
+  /**
+   * must uuid fields return as String and not java.util.UUID
+   *
+   * @return must UUID return as String and not uuid
+   */
+  public boolean uuidAsString() {
+    return uuidAsString;
   }
 
   /**
@@ -1672,6 +1687,7 @@ public class Configuration {
     private String pipe;
     private String localSocket;
     private Boolean tcpKeepAlive;
+    private Boolean uuidAsString;
     private Integer tcpKeepIdle;
     private Integer tcpKeepCount;
     private Integer tcpKeepInterval;
@@ -1930,6 +1946,17 @@ public class Configuration {
      */
     public Builder tcpKeepAlive(Boolean tcpKeepAlive) {
       this.tcpKeepAlive = tcpKeepAlive;
+      return this;
+    }
+
+    /**
+     * Indicate if UUID fields must returns as String
+     *
+     * @param uuidAsString value
+     * @return this {@link Builder}
+     */
+    public Builder uuidAsString(Boolean uuidAsString) {
+      this.uuidAsString = uuidAsString;
       return this;
     }
 
@@ -2589,6 +2616,7 @@ public class Configuration {
               this.pipe,
               this.localSocket,
               this.tcpKeepAlive,
+              this.uuidAsString,
               this.tcpKeepIdle,
               this.tcpKeepCount,
               this.tcpKeepInterval,
