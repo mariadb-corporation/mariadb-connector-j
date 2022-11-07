@@ -830,7 +830,7 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS testMoveToInsertRow");
     stmt.execute("CREATE TABLE testMoveToInsertRow(t2 text, t1 text, id int primary key)");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         con.prepareStatement(
             "select id, t1, t2 from testMoveToInsertRow",
@@ -872,8 +872,12 @@ public class UpdateResultSetTest extends Common {
       assertEquals(3, rs.getInt("id"));
       assertEquals("other-t1-value", rs.getString("t1"));
       assertNull(rs.getString("t2"));
+    } finally {
+      con.commit();
     }
 
+    stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
             "select id, t1, t2 from testMoveToInsertRow",
@@ -913,6 +917,8 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.next());
       assertEquals(5, rs.getInt("id"));
       assertEquals("t1-5", rs.getString("t1"));
+    } finally {
+      sharedConn.rollback();
     }
   }
 
