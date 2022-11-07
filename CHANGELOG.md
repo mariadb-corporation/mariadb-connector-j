@@ -1,4 +1,14 @@
 # Change Log
+## [2.7.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.7) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.6...2.7.7)
+
+* CONJ-1021 GSSAPI authentication might result in connection reset
+* CONJ-1019 DatabaseMetaData.getImportedKeys should return real value for PK_NAME column
+* CONJ-1016 avoid splitting BULK command into multiple commands in case of prepareStatement.setNull() use
+* CONJ-1011 correcting possible NPE when using statement.cancel() that coincide with statement.close() in another thread
+* CONJ-1007 only fix socket descriptor issue for unix socket
+
+
 ## [2.7.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.6) (Jun 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.5...2.7.6)
 
