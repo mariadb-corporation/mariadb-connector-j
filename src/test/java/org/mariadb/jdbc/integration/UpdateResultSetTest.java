@@ -875,9 +875,14 @@ public class UpdateResultSetTest extends Common {
       assertEquals(3, rs.getInt("id"));
       assertEquals("other-t1-value", rs.getString("t1"));
       assertNull(rs.getString("t2"));
+    } finally {
+      con.commit();
     }
+
+    stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
-        con.prepareStatement(
+        sharedConn.prepareStatement(
             "select id, t1, t2 from testMoveToInsertRow",
             ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_UPDATABLE)) {
@@ -915,8 +920,9 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.next());
       assertEquals(5, rs.getInt("id"));
       assertEquals("t1-5", rs.getString("t1"));
+    } finally {
+      sharedConn.rollback();
     }
-    con.rollback();
   }
 
   @Test
