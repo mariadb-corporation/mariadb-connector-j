@@ -121,8 +121,8 @@ public class Common {
 
   public static boolean exactVersion(int major, int minor, int patch) {
     return sharedConn.getContext().getVersion().getMajorVersion() == major
-            && sharedConn.getContext().getVersion().getMinorVersion() == minor
-            && sharedConn.getContext().getVersion().getPatchVersion() == patch;
+        && sharedConn.getContext().getVersion().getMinorVersion() == minor
+        && sharedConn.getContext().getVersion().getPatchVersion() == patch;
   }
 
   public static Connection createCon() throws SQLException {

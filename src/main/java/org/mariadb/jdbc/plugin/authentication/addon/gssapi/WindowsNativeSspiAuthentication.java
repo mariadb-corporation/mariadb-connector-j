@@ -53,7 +53,6 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
           new SspiUtil.ManagedSecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
       clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
 
-
     } while (true);
 
     clientContext.dispose();
