@@ -20,10 +20,7 @@ public class GssapiAuthenticationTest extends Common {
       // eat
     }
     System.out.println("user name:" + System.getProperty("user.name"));
-    stmt.execute(
-        "CREATE USER "
-            + System.getProperty("user.name")
-            + " IDENTIFIED VIA gssapi as 'GROUP:Administrators'");
+    stmt.execute("CREATE USER " + System.getProperty("user.name") + " IDENTIFIED VIA gssapi");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO " + System.getProperty("user.name"));
 
     String gssapiUrl = String.format("jdbc:mariadb://%s:%s/%s", hostname, port, database);
