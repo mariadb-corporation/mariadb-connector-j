@@ -1,5 +1,20 @@
 # Change Log
 
+## [3.0.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.9) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.8...3.0.9)
+* 2.7.7 merge
+* CONJ-1012	stored procedure register output parameter as null if set before registerOutParameter command
+* CONJ-1017 Calendar possible race condition, cause wrong timestamp setting
+
+## [2.7.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.7) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.6...2.7.7)
+
+* CONJ-1021 GSSAPI authentication might result in connection reset
+* CONJ-1019 DatabaseMetaData.getImportedKeys should return real value for PK_NAME column
+* CONJ-1016 avoid splitting BULK command into multiple commands in case of prepareStatement.setNull() use
+* CONJ-1011 correcting possible NPE when using statement.cancel() that coincide with statement.close() in another thread
+* CONJ-1007 Socket file descriptors are leaked after connecting with unix socket if DB is not up running
+
 ## [3.0.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.8) (Sept 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.7...3.0.8)
 

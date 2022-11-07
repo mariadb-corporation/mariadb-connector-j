@@ -231,23 +231,26 @@ public class TimeCodec implements Codec<Time> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    cal.setTime((Time) value);
-    cal.set(Calendar.DAY_OF_MONTH, 1);
-    if (cal.get(Calendar.MILLISECOND) > 0) {
-      encoder.writeByte((byte) 12);
-      encoder.writeByte((byte) 0);
-      encoder.writeInt(0);
-      encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte((byte) cal.get(Calendar.MINUTE));
-      encoder.writeByte((byte) cal.get(Calendar.SECOND));
-      encoder.writeInt(cal.get(Calendar.MILLISECOND) * 1000);
-    } else {
-      encoder.writeByte((byte) 8); // length
-      encoder.writeByte((byte) 0);
-      encoder.writeInt(0);
-      encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
-      encoder.writeByte((byte) cal.get(Calendar.MINUTE));
-      encoder.writeByte((byte) cal.get(Calendar.SECOND));
+    synchronized (cal) {
+      cal.clear();
+      cal.setTime((Time) value);
+      cal.set(Calendar.DAY_OF_MONTH, 1);
+      if (cal.get(Calendar.MILLISECOND) > 0) {
+        encoder.writeByte((byte) 12);
+        encoder.writeByte((byte) 0);
+        encoder.writeInt(0);
+        encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
+        encoder.writeByte((byte) cal.get(Calendar.MINUTE));
+        encoder.writeByte((byte) cal.get(Calendar.SECOND));
+        encoder.writeInt(cal.get(Calendar.MILLISECOND) * 1000);
+      } else {
+        encoder.writeByte((byte) 8); // length
+        encoder.writeByte((byte) 0);
+        encoder.writeInt(0);
+        encoder.writeByte((byte) cal.get(Calendar.HOUR_OF_DAY));
+        encoder.writeByte((byte) cal.get(Calendar.MINUTE));
+        encoder.writeByte((byte) cal.get(Calendar.SECOND));
+      }
     }
   }
 
