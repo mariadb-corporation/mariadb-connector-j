@@ -132,6 +132,7 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testMultipleTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.executeQuery("INSERT INTO testMultipleTable1(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testMultipleTable2(t1) values ('2')");
 
@@ -146,6 +147,8 @@ public class UpdateResultSetTest extends Common {
           SQLFeatureNotSupportedException.class,
           () -> rs.updateString("t1", "new value"),
           "ResultSet cannot be updated. The result-set contains fields on different tables");
+    } finally {
+      sharedConn.rollback();
     }
   }
 
