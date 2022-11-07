@@ -88,6 +88,8 @@ public class Sha256AuthenticationTest extends BaseTest {
   @Test
   public void sha256PluginTestWithoutServerRsaKey() throws SQLException {
     Assume.assumeTrue(!Platform.isWindows() && minVersion(8, 0, 0));
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
 
     try (Connection conn =
         DriverManager.getConnection(
@@ -169,6 +171,9 @@ public class Sha256AuthenticationTest extends BaseTest {
   @Test
   public void cachingSha256PluginTestWithoutServerRsaKey() throws SQLException {
     Assume.assumeTrue(minVersion(8, 0, 0));
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assume.assumeTrue(!isMariadbServer() && !exactVersion(8, 0, 31));
+
     try (Connection conn =
         DriverManager.getConnection(
             "jdbc:mariadb://"
