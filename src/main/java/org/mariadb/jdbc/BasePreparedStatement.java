@@ -13,7 +13,7 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -105,7 +105,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @return metadata list
    */
-  public Column[] getMeta() {
+  public ColumnDecoder[] getMeta() {
     return this.prepareResult.getColumns();
   }
 
@@ -114,7 +114,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @param ci metadata columns
    */
-  public void updateMeta(Column[] ci) {
+  public void updateMeta(ColumnDecoder[] ci) {
     this.prepareResult.setColumns(ci);
   }
 

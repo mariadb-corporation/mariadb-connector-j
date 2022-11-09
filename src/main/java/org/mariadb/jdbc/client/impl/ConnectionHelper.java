@@ -21,6 +21,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.SocketHelper;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.SocketHandlerFunction;
@@ -121,7 +122,7 @@ public final class ConnectionHelper {
         throw new SQLException(
             "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
-      setSocketOption(conf, socket);
+      SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null
@@ -138,32 +139,6 @@ public final class ConnectionHelper {
               hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
           "08000",
           ioe);
-    }
-  }
-
-  /**
-   * Set socket option
-   *
-   * @param conf configuration
-   * @param socket socket
-   * @throws IOException if any socket error occurs
-   */
-  public static void setSocketOption(final Configuration conf, final Socket socket)
-      throws IOException {
-    socket.setTcpNoDelay(true);
-    socket.setSoTimeout(conf.socketTimeout());
-    if (conf.tcpKeepAlive()) {
-      socket.setKeepAlive(true);
-    }
-    if (conf.tcpAbortiveClose()) {
-      socket.setSoLinger(true, 0);
-    }
-
-    // Bind the socket to a particular interface if the connection property
-    // localSocketAddress has been defined.
-    if (conf.localSocketAddress() != null) {
-      InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
-      socket.bind(localAddress);
     }
   }
 
@@ -279,7 +254,7 @@ public final class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readReusablePacket();
 
     authentication_loop:
     while (true) {

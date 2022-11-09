@@ -13,10 +13,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -111,7 +108,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
     return LocalDateTime.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && type.isAssignableFrom(LocalDateTime.class);
   }
@@ -122,8 +119,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDateTime decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
-      throws SQLDataException {
+  public LocalDateTime decodeText(
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
     int[] parts;
     switch (column.getType()) {
       case BLOB:
@@ -178,7 +175,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
       case YEAR:
         int year = Integer.parseInt(buf.readAscii(length));
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         return LocalDateTime.of(year, 1, 1, 0, 0);
 
       default:
@@ -190,8 +187,8 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDateTime decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
-      throws SQLDataException {
+  public LocalDateTime decodeBinary(
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
     int year = 1970;
     int month = 1;
     long dayOfMonth = 1;
@@ -275,7 +272,7 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
       case YEAR:
         year = buf.readUnsignedShort();
-        if (column.getLength() <= 2) year += year >= 70 ? 1900 : 2000;
+        if (column.getColumnLength() <= 2) year += year >= 70 ? 1900 : 2000;
         break;
       default:
         buf.skip(length);

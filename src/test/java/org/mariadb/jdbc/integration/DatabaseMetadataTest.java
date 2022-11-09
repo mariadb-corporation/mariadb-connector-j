@@ -840,7 +840,7 @@ public class DatabaseMetadataTest extends Common {
       ResultSet rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
 
       assertTrue(rs.next());
-      assertEquals(Types.BIT, rs.getInt(5));
+      assertEquals(Types.BOOLEAN, rs.getInt(5));
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
 
@@ -859,57 +859,70 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void testTransformedBitIsBoolean() throws SQLException {
-    try (Connection con = createCon("transformedBitIsBoolean=true")) {
-      testTransformedBitIsBoolean(con);
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=true")) {
+      testTransformedBitIsBoolean(con, true, true);
+    }
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=false")) {
+      testTransformedBitIsBoolean(con, true, false);
+    }
+    try (Connection con = createCon("tinyInt1isBit=false&transformedBitIsBoolean=true")) {
+      testTransformedBitIsBoolean(con, false, true);
     }
     try (Connection con = createCon("transformedBitIsBoolean=true")) {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
-      testTransformedBitIsBoolean(con);
+      testTransformedBitIsBoolean(con, true, true);
     }
   }
 
-  private void testTransformedBitIsBoolean(Connection con) throws SQLException {
+  private void testTransformedBitIsBoolean(
+      Connection con, boolean tinyInt1isBit, boolean transformedBitIsBoolean) throws SQLException {
     try {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute(
           "CREATE TABLE IF NOT EXISTS `tinyInt1\nisBitCols`(id1 tinyint(1), id2 tinyint(2))");
       stmt.execute("INSERT INTO `tinyInt1\nisBitCols` VALUES (1,2)");
 
-      ResultSet rs1 =
-          sharedConn.createStatement().executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
+      ResultSet rs1 = con.createStatement().executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
       assertTrue(rs1.next());
-      assertEquals(Boolean.TRUE, rs1.getObject(1));
-      assertEquals(2, rs1.getObject(2));
+      if (tinyInt1isBit) {
+        assertEquals(Boolean.TRUE, rs1.getObject(1));
+        assertEquals(2, rs1.getObject(2));
+      } else {
+        assertEquals(1, rs1.getObject(1));
+        assertEquals(2, rs1.getObject(2));
+      }
 
       ResultSetMetaData rsm = rs1.getMetaData();
-      assertEquals(Types.BIT, rsm.getColumnType(1));
-      assertEquals("BIT", rsm.getColumnTypeName(1));
+      if (tinyInt1isBit) {
+        if (transformedBitIsBoolean) {
+          assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
+          assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
+        } else {
+          assertEquals(Types.BIT, rsm.getColumnType(1));
+          assertEquals("BIT", rsm.getColumnTypeName(1));
+        }
+      } else {
+        assertEquals(Types.TINYINT, rsm.getColumnType(1));
+        assertEquals("TINYINT", rsm.getColumnTypeName(1));
+      }
 
-      rs1 = stmt.executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
-      assertTrue(rs1.next());
-      assertEquals(Boolean.TRUE, rs1.getObject(1));
-      assertEquals(2, rs1.getObject(2));
-
-      rsm = rs1.getMetaData();
-      assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
-      assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
-
-      DatabaseMetaData dbmd = sharedConn.getMetaData();
+      DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
 
       assertTrue(rs.next());
-      assertEquals("BIT", rs.getString(6));
-      assertEquals(Types.BIT, rs.getInt(5));
-      assertTrue(rs.next());
-      assertEquals(Types.TINYINT, rs.getInt(5));
-
-      dbmd = con.getMetaData();
-      rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
-
-      assertTrue(rs.next());
-      assertEquals("BOOLEAN", rs.getString(6));
-      assertEquals(Types.BOOLEAN, rs.getInt(5));
+      if (tinyInt1isBit) {
+        if (transformedBitIsBoolean) {
+          assertEquals(Types.BOOLEAN, rs.getInt(5));
+          assertEquals("BOOLEAN", rs.getString(6));
+        } else {
+          assertEquals(Types.BIT, rs.getInt(5));
+          assertEquals("BIT", rs.getString(6));
+        }
+      } else {
+        assertEquals(Types.TINYINT, rs.getInt(5));
+        assertEquals("TINYINT", rs.getString(6));
+      }
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
 
@@ -1595,19 +1608,6 @@ public class DatabaseMetadataTest extends Common {
     ResultSet rs = dmd.getColumns(sharedConn.getCatalog(), null, "maxcharlength", null);
     assertTrue(rs.next());
     assertEquals(rs.getInt("COLUMN_SIZE"), 1);
-  }
-
-  @Test
-  public void conj72() throws Exception {
-    try (Connection connection = createCon("&tinyInt1isBit=true")) {
-      connection.createStatement().execute("insert into conj72 values(1)");
-      ResultSet rs =
-          connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
-      assertTrue(rs.next());
-      assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
-      ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
-      assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
-    }
   }
 
   @Test

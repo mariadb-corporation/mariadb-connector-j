@@ -12,10 +12,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.MariaDbClob;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -40,7 +37,7 @@ public class ClobCodec implements Codec<Clob> {
     return Clob.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && (type.isAssignableFrom(Clob.class) || type.isAssignableFrom(NClob.class));
   }
@@ -50,13 +47,14 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public Clob decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Clob decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }
 
   @SuppressWarnings("fallthrough")
-  private Clob getClob(ReadableByteBuf buf, int length, Column column) throws SQLDataException {
+  private Clob getClob(ReadableByteBuf buf, int length, ColumnDecoder column)
+      throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
@@ -85,7 +83,7 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public Clob decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Clob decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }

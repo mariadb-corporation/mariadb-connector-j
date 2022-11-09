@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.socket.Writer;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.LoggerHelper;
@@ -46,9 +46,9 @@ public class PacketWriter implements Writer {
   /** buffer position */
   protected int pos = 4;
   /** packet sequence */
-  protected final MutableInt sequence;
+  protected final MutableByte sequence;
   /** compressed packet sequence */
-  protected final MutableInt compressSequence;
+  protected final MutableByte compressSequence;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.
@@ -63,8 +63,8 @@ public class PacketWriter implements Writer {
       OutputStream out,
       int maxQuerySizeToLog,
       Integer maxAllowedPacket,
-      MutableInt sequence,
-      MutableInt compressSequence) {
+      MutableByte sequence,
+      MutableByte compressSequence) {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -343,8 +343,14 @@ public class PacketWriter implements Writer {
   }
 
   public void writeAscii(String str) throws IOException {
-    byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
-    writeBytes(arr, 0, arr.length);
+    int len = str.length();
+    if (len > buf.length - pos) {
+      byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
+      writeBytes(arr, 0, arr.length);
+    }
+    for (int off = 0; off < len; ) {
+      this.buf[this.pos++] = (byte) str.charAt(off++);
+    }
   }
 
   public void writeString(String str) throws IOException {
@@ -702,6 +708,20 @@ public class PacketWriter implements Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
+
+    // if buf is big, and last query doesn't use at least half of it, resize buf to default
+    // value
+    if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
+      buf = new byte[SMALL_BUFFER_SIZE];
+    }
+
+    pos = 4;
+    cmdLength = 0;
+    mark = -1;
+  }
+
+  public void flushPipeline() throws IOException {
+    writeSocket(false);
 
     // if buf is big, and last query doesn't use at least half of it, resize buf to default
     // value

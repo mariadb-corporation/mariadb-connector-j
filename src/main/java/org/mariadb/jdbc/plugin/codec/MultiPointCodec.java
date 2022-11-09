@@ -7,10 +7,7 @@ package org.mariadb.jdbc.plugin.codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.Geometry;
@@ -27,7 +24,7 @@ public class MultiPointCodec implements Codec<MultiPoint> {
     return MultiPoint.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.GEOMETRY && type.isAssignableFrom(MultiPoint.class);
   }
 
@@ -36,14 +33,14 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   }
 
   @Override
-  public MultiPoint decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public MultiPoint decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
-  public MultiPoint decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
-      throws SQLDataException {
+  public MultiPoint decodeBinary(
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
       Geometry geo = Geometry.getGeometry(buf, length - 4, column);

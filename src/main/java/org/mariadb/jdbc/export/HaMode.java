@@ -16,7 +16,7 @@ public enum HaMode {
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      return HaMode.getAvailableHostRandomOrder(hostAddresses, denyList, primary);
+      return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
   /** sequential: driver will always connect according to connection string order */
@@ -28,13 +28,16 @@ public enum HaMode {
       return getAvailableHostInOrder(hostAddresses, denyList, primary);
     }
   },
-  /** load-balance: driver will randomly connect to any host, permitting balancing connections */
+  /**
+   * load-balance: driver will connect to any host using round-robin, permitting balancing
+   * connections
+   */
   LOADBALANCE("load-balance") {
     public Optional<HostAddress> getAvailableHost(
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
-      return HaMode.getAvailableHostRandomOrder(hostAddresses, denyList, primary);
+      return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
   /** no ha-mode. Connect to first host only */
@@ -48,6 +51,8 @@ public enum HaMode {
   };
 
   private final String value;
+  private HostAddress lastRoundRobinPrimaryHost = null;
+  private HostAddress lastRoundRobinSecondaryHost = null;
 
   HaMode(String value) {
     this.value = value;
@@ -97,27 +102,51 @@ public enum HaMode {
 
   /**
    * return hosts of corresponding type (primary or not) without blacklisted hosts. hosts in
-   * blacklist reaching blacklist timeout will be present. Order is random.
+   * blacklist reaching blacklist timeout will be present, RoundRobin Order.
    *
+   * @param haMode current haMode
    * @param hostAddresses hosts
    * @param denyList blacklist
    * @param primary returns primary hosts or replica
    * @return list without denied hosts
    */
-  public static Optional<HostAddress> getAvailableHostRandomOrder(
-      List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary) {
-    // use in order not blacklisted server
-    List<HostAddress> loopAddress = new ArrayList<>(hostAddresses);
+  public static Optional<HostAddress> getAvailableRoundRobinHost(
+      HaMode haMode,
+      List<HostAddress> hostAddresses,
+      ConcurrentMap<HostAddress, Long> denyList,
+      boolean primary) {
+    HostAddress lastChosenHost =
+        primary ? haMode.lastRoundRobinPrimaryHost : haMode.lastRoundRobinSecondaryHost;
 
-    // ensure denied server have not reached denied timeout
-    denyList.entrySet().stream()
-        .filter(e -> e.getValue() < System.currentTimeMillis())
-        .forEach(e -> denyList.remove(e.getKey()));
+    List<HostAddress> loopList;
+    if (lastChosenHost == null) {
+      loopList = hostAddresses;
+    } else {
+      int lastChosenIndex = hostAddresses.indexOf(lastChosenHost);
+      loopList = new ArrayList<>();
+      loopList.addAll(hostAddresses.subList(lastChosenIndex + 1, hostAddresses.size()));
+      loopList.addAll(hostAddresses.subList(0, lastChosenIndex + 1));
+    }
 
-    loopAddress.removeAll(denyList.keySet());
-
-    Collections.shuffle(loopAddress);
-    return loopAddress.stream().filter(e -> e.primary == primary).findFirst();
+    for (HostAddress hostAddress : loopList) {
+      if (hostAddress.primary == primary) {
+        if (denyList.containsKey(hostAddress)) {
+          // take in account denied server that have reached denied timeout
+          if (denyList.get(hostAddress) > System.currentTimeMillis()) {
+            continue;
+          } else {
+            denyList.remove(hostAddress);
+          }
+        }
+        if (primary) {
+          haMode.lastRoundRobinPrimaryHost = hostAddress;
+        } else {
+          haMode.lastRoundRobinSecondaryHost = hostAddress;
+        }
+        return Optional.of(hostAddress);
+      }
+    }
+    return Optional.empty();
   }
 
   /**

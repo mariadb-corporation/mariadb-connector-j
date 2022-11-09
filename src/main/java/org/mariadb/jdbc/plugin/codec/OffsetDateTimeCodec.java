@@ -12,10 +12,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -44,7 +41,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
     return OffsetDateTime.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && type.isAssignableFrom(OffsetDateTime.class);
   }
@@ -55,7 +52,8 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeText(
-      ReadableByteBuf buf, int length, Column column, Calendar calParam) throws SQLDataException {
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      throws SQLDataException {
 
     switch (column.getType()) {
       case DATETIME:
@@ -87,7 +85,8 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeBinary(
-      ReadableByteBuf buf, int length, Column column, Calendar calParam) throws SQLDataException {
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      throws SQLDataException {
 
     switch (column.getType()) {
       case DATETIME:

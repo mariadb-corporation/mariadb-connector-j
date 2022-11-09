@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -13,6 +15,8 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 /**
@@ -46,6 +50,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  * <br>
  */
 public class Configuration {
+  private static final Logger logger = Loggers.getLogger(Configuration.class);
 
   // standard options
   private String user = null;
@@ -76,6 +81,7 @@ public class Configuration {
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
+  private boolean uuidAsString = false;
   private boolean tcpKeepAlive = true;
   private int tcpKeepIdle = 0;
   private int tcpKeepCount = 0;
@@ -101,7 +107,7 @@ public class Configuration {
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;
-
+  private boolean disablePipeline = false;
   // prepare
   private boolean cachePrepStmts = true;
   private int prepStmtCacheSize = 250;
@@ -116,7 +122,7 @@ public class Configuration {
   // meta
   private boolean blankTableNameMeta = false;
   private boolean tinyInt1isBit = true;
-  private boolean transformedBitIsBoolean = false;
+  private boolean transformedBitIsBoolean = true;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
   private boolean includeInnodbStatusInDeadlockExceptions = false;
@@ -169,6 +175,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       boolean tcpKeepAlive,
+      boolean uuidAsString,
       int tcpKeepIdle,
       int tcpKeepCount,
       int tcpKeepInterval,
@@ -189,6 +196,7 @@ public class Configuration {
       boolean useCompression,
       boolean useAffectedRows,
       boolean useBulkStmts,
+      boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
       boolean useServerPrepStmts,
@@ -239,6 +247,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     this.tcpKeepAlive = tcpKeepAlive;
+    this.uuidAsString = uuidAsString;
     this.tcpKeepIdle = tcpKeepIdle;
     this.tcpKeepCount = tcpKeepCount;
     this.tcpKeepInterval = tcpKeepInterval;
@@ -259,6 +268,7 @@ public class Configuration {
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
     this.useBulkStmts = useBulkStmts;
+    this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
     this.useServerPrepStmts = useServerPrepStmts;
@@ -302,6 +312,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       Boolean tcpKeepAlive,
+      Boolean uuidAsString,
       Integer tcpKeepIdle,
       Integer tcpKeepCount,
       Integer tcpKeepInterval,
@@ -327,6 +338,7 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean useBulkStmts,
+      Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
       Boolean createDatabaseIfNotExist,
@@ -375,6 +387,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
+    if (uuidAsString != null) this.uuidAsString = uuidAsString;
     if (tcpKeepIdle != null) this.tcpKeepIdle = tcpKeepIdle;
     if (tcpKeepCount != null) this.tcpKeepCount = tcpKeepCount;
     if (tcpKeepInterval != null) this.tcpKeepInterval = tcpKeepInterval;
@@ -406,6 +419,7 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
@@ -654,9 +668,19 @@ public class Configuration {
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
+        Properties deprecatedDesc = new Properties();
+        try (InputStream inputStream =
+            Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+          deprecatedDesc.load(inputStream);
+        } catch (IOException io) {
+          // eat
+        }
+        logger.warn(deprecatedDesc.getProperty("useSsl"));
         if (isSet("trustServerCertificate", nonMappedOptions)) {
           builder.sslMode("trust");
+          logger.warn(deprecatedDesc.getProperty("trustServerCertificate"));
         } else if (isSet("disableSslHostnameVerification", nonMappedOptions)) {
+          logger.warn(deprecatedDesc.getProperty("disableSslHostnameVerification"));
           builder.sslMode("verify-ca");
         } else {
           builder.sslMode("verify-full");
@@ -729,6 +753,7 @@ public class Configuration {
         this.pipe,
         this.localSocket,
         this.tcpKeepAlive,
+        this.uuidAsString,
         this.tcpKeepIdle,
         this.tcpKeepCount,
         this.tcpKeepInterval,
@@ -749,6 +774,7 @@ public class Configuration {
         this.useCompression,
         this.useAffectedRows,
         this.useBulkStmts,
+        this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
         this.useServerPrepStmts,
@@ -942,6 +968,15 @@ public class Configuration {
    */
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
+  }
+
+  /**
+   * must uuid fields return as String and not java.util.UUID
+   *
+   * @return must UUID return as String and not uuid
+   */
+  public boolean uuidAsString() {
+    return uuidAsString;
   }
 
   /**
@@ -1158,6 +1193,15 @@ public class Configuration {
    */
   public boolean useBulkStmts() {
     return useBulkStmts;
+  }
+
+  /**
+   * Disable pipeline.
+   *
+   * @return is pipeline disabled.
+   */
+  public boolean disablePipeline() {
+    return disablePipeline;
   }
 
   /**
@@ -1643,6 +1687,7 @@ public class Configuration {
     private String pipe;
     private String localSocket;
     private Boolean tcpKeepAlive;
+    private Boolean uuidAsString;
     private Integer tcpKeepIdle;
     private Integer tcpKeepCount;
     private Integer tcpKeepInterval;
@@ -1667,7 +1712,7 @@ public class Configuration {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
-
+    private Boolean disablePipeline;
     // prepare
     private Boolean cachePrepStmts;
     private Integer prepStmtCacheSize;
@@ -1901,6 +1946,17 @@ public class Configuration {
      */
     public Builder tcpKeepAlive(Boolean tcpKeepAlive) {
       this.tcpKeepAlive = tcpKeepAlive;
+      return this;
+    }
+
+    /**
+     * Indicate if UUID fields must returns as String
+     *
+     * @param uuidAsString value
+     * @return this {@link Builder}
+     */
+    public Builder uuidAsString(Boolean uuidAsString) {
+      this.uuidAsString = uuidAsString;
       return this;
     }
 
@@ -2232,6 +2288,17 @@ public class Configuration {
     }
 
     /**
+     * Disable pipeline
+     *
+     * @param disablePipeline disable pipeline.
+     * @return this {@link Builder}
+     */
+    public Builder disablePipeline(Boolean disablePipeline) {
+      this.disablePipeline = disablePipeline;
+      return this;
+    }
+
+    /**
      * Permit to force autocommit connection value
      *
      * @param autocommit autocommit value
@@ -2549,6 +2616,7 @@ public class Configuration {
               this.pipe,
               this.localSocket,
               this.tcpKeepAlive,
+              this.uuidAsString,
               this.tcpKeepIdle,
               this.tcpKeepCount,
               this.tcpKeepInterval,
@@ -2574,6 +2642,7 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.useBulkStmts,
+              this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
               this.createDatabaseIfNotExist,

@@ -110,11 +110,7 @@ public class Sha256AuthenticationTest extends Common {
     stmt.execute("grant all on `" + sharedConn.getCatalog() + "`.* TO tmpUser@'%'");
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
-    stmt.execute("FLUSH PRIVILEGES");
-
+    stmt.execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=tmpUser&password=!Passw0rd3Works")) {
       con.isValid(1);
     }
@@ -132,7 +128,6 @@ public class Sha256AuthenticationTest extends Common {
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
-
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
     }
@@ -145,7 +140,6 @@ public class Sha256AuthenticationTest extends Common {
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
-
     File tempFile = File.createTempFile("log", ".tmp");
     Common.assertThrowsContains(
         SQLException.class,

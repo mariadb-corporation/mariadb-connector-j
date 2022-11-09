@@ -10,10 +10,7 @@ import java.time.*;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -42,7 +39,7 @@ public class InstantCodec implements Codec<Instant> {
     return Instant.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Instant.class);
   }
 
@@ -51,7 +48,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public Instant decodeText(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public Instant decodeText(
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -60,7 +58,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public Instant decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public Instant decodeBinary(
+      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);

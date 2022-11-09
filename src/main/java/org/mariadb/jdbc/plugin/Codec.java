@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
@@ -34,7 +34,7 @@ public interface Codec<T> {
    * @param type java return class
    * @return true if codec can decode it
    */
-  boolean canDecode(Column column, Class<?> type);
+  boolean canDecode(ColumnDecoder column, Class<?> type);
 
   /**
    * Can Codec encode the java object type
@@ -55,7 +55,10 @@ public interface Codec<T> {
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeText(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**
@@ -69,7 +72,10 @@ public interface Codec<T> {
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeBinary(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final int length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**

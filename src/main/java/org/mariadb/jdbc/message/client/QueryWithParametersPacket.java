@@ -32,6 +32,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
    * @param preSqlCmd additional pre command
    * @param parser command parser result
    * @param parameters parameters
+   * @param localInfileInputStream local infile input stream
    */
   public QueryWithParametersPacket(
       String preSqlCmd,

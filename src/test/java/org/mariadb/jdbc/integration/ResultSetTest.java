@@ -24,11 +24,12 @@ public class ResultSetTest extends Common {
 
   @AfterAll
   public static void after2() throws SQLException {
-    sharedConn.createStatement().execute("DROP TABLE resultsettest");
+    sharedConn.createStatement().execute("DROP TABLE IF EXISTS resultsettest");
   }
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS resultsettest");
     stmt.execute("CREATE TABLE resultsettest (t1 int not null primary key auto_increment, t2 int)");

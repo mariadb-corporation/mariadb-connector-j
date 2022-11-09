@@ -8,10 +8,7 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -41,7 +38,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
     return "byte[]";
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && ((type.isPrimitive() && type == Byte.TYPE && type.isArray())
             || type.isAssignableFrom(byte[].class));
@@ -52,12 +49,13 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public byte[] decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public byte[] decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }
 
-  private byte[] getBytes(ReadableByteBuf buf, int length, Column column) throws SQLDataException {
+  private byte[] getBytes(ReadableByteBuf buf, int length, ColumnDecoder column)
+      throws SQLDataException {
     switch (column.getType()) {
       case BIT:
       case BLOB:
@@ -80,7 +78,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public byte[] decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public byte[] decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }

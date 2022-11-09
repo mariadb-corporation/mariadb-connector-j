@@ -14,10 +14,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.BasePreparedStatement;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.result.UpdatableResult;
@@ -25,7 +23,6 @@ import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.export.ExceptionFactory;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.constants.ServerStatus;
@@ -115,7 +112,7 @@ public interface ClientMessage {
       ClientMessage message)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
 
     switch (buf.getByte()) {
 
@@ -139,7 +136,7 @@ public interface ClientMessage {
       case (byte) 0xfb:
         buf.skip(1); // skip header
         SQLException exception = null;
-
+        reader.getSequence().set((byte) 1);
         InputStream is = getLocalInfileInputStream();
         if (is == null) {
           String fileName = buf.readStringNullEnd();
@@ -207,25 +204,26 @@ public interface ClientMessage {
       default:
         int fieldCount = buf.readIntLengthEncodedNotNull();
 
-        Column[] ci;
+        ColumnDecoder[] ci;
         boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
         boolean skipMeta = canSkipMeta ? buf.readByte() == 0 : false;
         if (canSkipMeta && skipMeta) {
           ci = ((BasePreparedStatement) stmt).getMeta();
         } else {
           // read columns information's
-          ci = new Column[fieldCount];
+          ci = new ColumnDecoder[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
-                new ColumnDefinitionPacket(
-                    reader.readPacket(false, traceEnable), context.isExtendedInfo());
+                ColumnDecoder.decode(
+                    new StandardReadableByteBuf(reader.readPacket(traceEnable)),
+                    context.isExtendedInfo());
           }
         }
         if (canSkipMeta && !skipMeta) ((BasePreparedStatement) stmt).updateMeta(ci);
 
         // intermediate EOF
         if (!context.isEofDeprecated()) {
-          reader.readPacket(true, traceEnable);
+          reader.skipPacket();
         }
 
         // read resultSet
@@ -274,6 +272,11 @@ public interface ClientMessage {
     }
   }
 
+  /**
+   * Get current local infile input stream.
+   *
+   * @return default to null
+   */
   default InputStream getLocalInfileInputStream() {
     return null;
   }

@@ -10,6 +10,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
@@ -18,8 +19,8 @@ import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.BulkExecutePacket;
 import org.mariadb.jdbc.message.client.ExecutePacket;
+import org.mariadb.jdbc.message.client.PrepareExecutePacket;
 import org.mariadb.jdbc.message.client.PreparePacket;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ParameterList;
@@ -30,9 +31,7 @@ import org.mariadb.jdbc.util.ParameterList;
  */
 public class ServerPreparedStatement extends BasePreparedStatement {
   private static final Pattern PREPARABLE_STATEMENT_PATTERN =
-      Pattern.compile(
-          "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
-          Pattern.CASE_INSENSITIVE);
+      Pattern.compile("^(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)", Pattern.CASE_INSENSITIVE);
   private final boolean canCachePrepStmts;
   /**
    * Server prepare statement constructor
@@ -92,12 +91,8 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null)
       if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
-      if (prepareResult == null && con.getContext().hasClientCapability(STMT_BULK_OPERATIONS)) {
-        try {
-          executePipeline(cmd);
-        } catch (BatchUpdateException b) {
-          throw (SQLException) b.getCause();
-        }
+      if (prepareResult == null && con.getContext().permitPipeline()) {
+        executePipeline(cmd);
       } else {
         executeStandard(cmd);
       }
@@ -116,13 +111,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
   private void executePipeline(String cmd) throws SQLException {
     // server is 10.2+, permitting to execute last prepare with (-1) statement id.
     // Server send prepare, followed by execute, in one exchange.
-    PreparePacket prepare = new PreparePacket(cmd);
-    ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this, localInfileInputStream);
     try {
       List<Completion> res =
           con.getClient()
-              .executePipeline(
-                  new ClientMessage[] {prepare, execute},
+              .execute(
+                  new PrepareExecutePacket(cmd, parameters, this, localInfileInputStream),
                   this,
                   fetchSize,
                   maxRows,
@@ -441,7 +434,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       if (currResult instanceof Result) return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**

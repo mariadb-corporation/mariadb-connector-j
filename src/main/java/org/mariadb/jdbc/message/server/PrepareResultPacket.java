@@ -7,11 +7,8 @@ package org.mariadb.jdbc.message.server;
 import java.io.IOException;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
-import org.mariadb.jdbc.client.Client;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Completion;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
+import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.util.constants.Capabilities;
@@ -20,10 +17,43 @@ import org.mariadb.jdbc.util.log.Loggers;
 
 /** Prepare result packet See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion, Prepare {
+  static final ColumnDecoder CONSTANT_PARAMETER;
+
+  static {
+    byte[] bytes =
+        new byte[] {
+          0x03,
+          0x64,
+          0x65,
+          0x66,
+          0x00,
+          0x00,
+          0x00,
+          0x01,
+          0x3F,
+          0x00,
+          0x00,
+          0x0C,
+          0x3F,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x00,
+          0x06,
+          (byte) 0x80,
+          0x00,
+          0x00,
+          0x00,
+          0x00
+        };
+    CONSTANT_PARAMETER =
+        ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length), true);
+  }
 
   private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
-  private final Column[] parameters;
-  private Column[] columns;
+  private final ColumnDecoder[] parameters;
+  private ColumnDecoder[] columns;
 
   /** prepare statement id */
   protected int statementId;
@@ -43,29 +73,29 @@ public class PrepareResultPacket implements Completion, Prepare {
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
     final int numParams = buffer.readUnsignedShort();
-    this.parameters = new Column[numParams];
-    this.columns = new Column[numColumns];
+    this.parameters = new ColumnDecoder[numParams];
+    this.columns = new ColumnDecoder[numColumns];
 
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
-        parameters[i] =
-            new ColumnDefinitionPacket(
-                reader.readPacket(false, trace),
-                context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
+        // skipping packet, since there is no metadata information.
+        // might change when https://jira.mariadb.org/browse/MDEV-15031 is done
+        parameters[i] = CONSTANT_PARAMETER;
+        reader.skipPacket();
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
-            new ColumnDefinitionPacket(
-                reader.readPacket(false, trace),
+            ColumnDecoder.decode(
+                new StandardReadableByteBuf(reader.readPacket(trace)),
                 context.hasClientCapability(Capabilities.EXTENDED_TYPE_INFO));
       }
       if (!context.isEofDeprecated()) {
-        reader.readPacket(true, trace);
+        reader.skipPacket();
       }
     }
   }
@@ -101,15 +131,15 @@ public class PrepareResultPacket implements Completion, Prepare {
     return statementId;
   }
 
-  public Column[] getParameters() {
+  public ColumnDecoder[] getParameters() {
     return parameters;
   }
 
-  public Column[] getColumns() {
+  public ColumnDecoder[] getColumns() {
     return columns;
   }
 
-  public void setColumns(Column[] columns) {
+  public void setColumns(ColumnDecoder[] columns) {
     this.columns = columns;
   }
 }

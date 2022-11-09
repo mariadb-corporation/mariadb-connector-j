@@ -10,10 +10,14 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 
 /** Packet buffer */
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-
+  /** row data limit */
   private int limit;
+
+  /** buffer */
   public byte[] buf;
-  private int pos;
+
+  /** current position reading buffer */
+  public int pos;
 
   /**
    * Packet buffer constructor
@@ -25,6 +29,17 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
+  }
+
+  /**
+   * Packet buffer constructor, limit being the buffer length
+   *
+   * @param buf buffer
+   */
+  public StandardReadableByteBuf(byte[] buf) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = buf.length;
   }
 
   public int readableBytes() {
@@ -58,21 +73,22 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public void skipLengthEncoded() {
-    int len = buf[pos++] & 0xff;
-    if (len < 251) {
-      pos += len;
-    } else {
-      switch (len) {
-        case 252:
-          skip(readUnsignedShort());
-          break;
-        case 253:
-          skip(readUnsignedMedium());
-          break;
-        case 254:
-          skip((int) (4 + readUnsignedInt()));
-          break;
-      }
+    byte len = buf[pos++];
+    switch (len) {
+      case (byte) 251:
+        return;
+      case (byte) 252:
+        skip(readUnsignedShort());
+        return;
+      case (byte) 253:
+        skip(readUnsignedMedium());
+        return;
+      case (byte) 254:
+        skip((int) (4 + readUnsignedInt()));
+        return;
+      default:
+        pos += len & 0xff;
+        return;
     }
   }
 
@@ -81,7 +97,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
   }
 
-  public long atoi(int length) {
+  public long atoll(int length) {
     boolean negate = false;
     int idx = 0;
     long result = 0;
@@ -97,6 +113,14 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     }
 
     return (negate) ? -1 * result : result;
+  }
+
+  public long atoull(int length) {
+    long result = 0;
+    for (int idx = 0; idx < length; idx++) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+    return result;
   }
 
   public byte getByte() {

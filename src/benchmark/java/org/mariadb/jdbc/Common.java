@@ -38,7 +38,13 @@ public class Common {
 
     // connections
     protected Connection connectionText;
+    protected Connection connectionTextRewrite;
+
     protected Connection connectionBinary;
+
+    protected Connection connectionBinaryNoPipeline;
+    protected Connection connectionBinaryNoCache;
+
 
     @Param({"mysql", "mariadb"})
     String driver;
@@ -70,9 +76,33 @@ public class Common {
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
+        String jdbcUrlTextRewrite =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, false, false, "&rewriteBatchedStatements=true&useBulkStmts=false" + other);
+        connectionTextRewrite =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlTextRewrite, new Properties());
         connectionBinary =
                 ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                         .connect(jdbcUrlBinary, new Properties());
+
+        String jdbcUrlBinaryNoCache =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, true, false, "&prepStmtCacheSize=0" + other);
+
+        connectionBinaryNoCache =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlBinaryNoCache, new Properties());
+
+        String jdbcUrlBinaryNoCacheNoPipeline =
+                String.format(
+                        jdbcBase,
+                        driver, host, port, database, username, password, true, true, "&prepStmtCacheSize=0&cachePrepStmts=false&disablePipeline=true" + other);
+        connectionBinaryNoPipeline =
+                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                        .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -83,6 +113,9 @@ public class Common {
     public void doTearDown() throws SQLException {
       connectionText.close();
       connectionBinary.close();
+      connectionTextRewrite.close();
+      connectionBinaryNoCache.close();
+      connectionBinaryNoPipeline.close();
     }
   }
 
@@ -119,11 +152,29 @@ public class Common {
           sb2.append(")");
           stmt.executeUpdate(sb.toString());
           stmt.executeUpdate(sb2.toString());
+
+          stmt.execute("DROP TABLE IF EXISTS perfTestTextBatch");
+          try {
+            stmt.execute("INSTALL SONAME 'ha_blackhole'");
+          } catch (SQLException e) { }
+
+          String createTable = "CREATE TABLE perfTestTextBatch (id MEDIUMINT NOT NULL AUTO_INCREMENT,t0 text, PRIMARY KEY (id)) COLLATE='utf8mb4_unicode_ci'";
+          try {
+            stmt.execute(createTable + " ENGINE = BLACKHOLE");
+          } catch (SQLException e){
+            stmt.execute(createTable);
+          }
+
         }
       } catch (SQLException e) {
         e.printStackTrace();
       }
     }
   }
+
+
+
+
+
 
 }

@@ -7,7 +7,7 @@ package org.mariadb.jdbc.export;
 import java.sql.SQLException;
 import org.mariadb.jdbc.ServerPreparedStatement;
 import org.mariadb.jdbc.client.Client;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 
 /** Prepare packet COM_STMT_PREPARE (see https://mariadb.com/kb/en/com_stmt_prepare/) */
 public interface Prepare {
@@ -41,19 +41,19 @@ public interface Prepare {
    *
    * @return parameters metadata
    */
-  Column[] getParameters();
+  ColumnDecoder[] getParameters();
 
   /**
    * Prepare result-set columns
    *
    * @return result-set columns metadata
    */
-  Column[] getColumns();
+  ColumnDecoder[] getColumns();
 
   /**
    * set prepare result-set columns
    *
    * @param columns set result-set columns metadata
    */
-  void setColumns(Column[] columns);
+  void setColumns(ColumnDecoder[] columns);
 }

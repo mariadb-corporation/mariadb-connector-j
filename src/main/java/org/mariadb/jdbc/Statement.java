@@ -12,13 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.client.QueryPacket;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
@@ -97,6 +97,12 @@ public class Statement implements java.sql.Statement {
     return con.getExceptionFactory().of(this);
   }
 
+  /**
+   * Set current local infile stream
+   *
+   * @param inputStream stream
+   * @throws SQLException if statement is already closed
+   */
   public void setLocalInfileInputStream(InputStream inputStream) throws SQLException {
     checkNotClosed();
     localInfileInputStream = inputStream;
@@ -125,7 +131,7 @@ public class Statement implements java.sql.Statement {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
     if (currResult instanceof Result) return (Result) currResult;
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**
@@ -880,7 +886,7 @@ public class Statement implements java.sql.Statement {
       }
     }
 
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**

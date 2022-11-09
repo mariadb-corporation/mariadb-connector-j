@@ -11,10 +11,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.plugin.Codec;
 
@@ -70,7 +67,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
     return LocalDate.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(LocalDate.class);
   }
 
@@ -80,15 +77,15 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDate decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalDate decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case YEAR:
-        short y = (short) buf.atoi(length);
+        short y = (short) buf.atoull(length);
 
-        if (length == 2 && column.getLength() == 2) {
+        if (length == 2 && column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (y <= 69) {
             y += 2000;
@@ -152,7 +149,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDate decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalDate decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int year;
@@ -213,7 +210,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
         if (length == 0) return null;
         year = buf.readUnsignedShort();
 
-        if (column.getLength() == 2) {
+        if (column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (year <= 69) {
             year += 2000;

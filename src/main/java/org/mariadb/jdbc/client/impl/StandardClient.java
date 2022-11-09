@@ -4,10 +4,7 @@
 
 package org.mariadb.jdbc.client.impl;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
 import java.sql.ResultSet;
@@ -36,7 +33,7 @@ import org.mariadb.jdbc.client.result.StreamingResult;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.*;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.export.MaxAllowedPacketException;
 import org.mariadb.jdbc.export.Prepare;
@@ -57,8 +54,8 @@ import org.mariadb.jdbc.util.log.Loggers;
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
   private final Socket socket;
-  private final MutableInt sequence = new MutableInt();
-  private final MutableInt compressionSequence = new MutableInt();
+  private final MutableByte sequence = new MutableByte();
+  private final MutableByte compressionSequence = new MutableByte();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
@@ -95,8 +92,7 @@ public class StandardClient implements Client, AutoCloseable {
     this.lock = lock;
     this.hostAddress = hostAddress;
     this.exceptionFactory = new ExceptionFactory(conf, hostAddress);
-    this.disablePipeline =
-        Boolean.parseBoolean(conf.nonMappedOptions().getProperty("disablePipeline", "false"));
+    this.disablePipeline = conf.disablePipeline();
 
     String host = hostAddress != null ? hostAddress.host : null;
     this.socketTimeout = conf.socketTimeout();
@@ -106,7 +102,7 @@ public class StandardClient implements Client, AutoCloseable {
       // **********************************************************************
       // creating socket
       // **********************************************************************
-      OutputStream out = socket.getOutputStream();
+      OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 16384);
       InputStream in =
           conf.useReadAheadInput()
               ? new ReadAheadBufferedStream(socket.getInputStream())
@@ -117,7 +113,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       // read server handshake
-      ReadableByteBuf buf = reader.readPacket(true);
+      ReadableByteBuf buf = reader.readReusablePacket(logger.isTraceEnabled());
       if (buf.getByte() == -1) {
         ErrorPacket errorPacket = new ErrorPacket(buf, null);
         throw this.exceptionFactory.create(
@@ -157,7 +153,7 @@ public class StandardClient implements Client, AutoCloseable {
               hostAddress, socket, clientCapabilities, exchangeCharset, context, writer);
 
       if (sslSocket != null) {
-        out = sslSocket.getOutputStream();
+        out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
         in =
             conf.useReadAheadInput()
                 ? new ReadAheadBufferedStream(sslSocket.getInputStream())
@@ -652,18 +648,37 @@ public class StandardClient implements Client, AutoCloseable {
         streamStmt = null;
       }
       List<Completion> completions = new ArrayList<>();
-      while (nbResp-- > 0) {
-        readResults(
-            stmt,
-            message,
-            completions,
-            fetchSize,
-            maxRows,
-            resultSetConcurrency,
-            resultSetType,
-            closeOnCompletion);
+      try {
+        while (nbResp-- > 0) {
+          readResults(
+              stmt,
+              message,
+              completions,
+              fetchSize,
+              maxRows,
+              resultSetConcurrency,
+              resultSetType,
+              closeOnCompletion);
+        }
+        return completions;
+      } catch (SQLException e) {
+        while (nbResp-- > 0) {
+          try {
+            readResults(
+                stmt,
+                message,
+                completions,
+                fetchSize,
+                maxRows,
+                resultSetConcurrency,
+                resultSetType,
+                closeOnCompletion);
+          } catch (SQLException ee) {
+            // eat
+          }
+        }
+        throw e;
       }
-      return completions;
     }
   }
 
