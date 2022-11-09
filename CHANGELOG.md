@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.1.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.0) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.1.0)
+
+##### Notable Changes
+* CONJ-899 Support UUID Object
+* CONJ-916 when a failover occurs, log replayed transaction
+* CONJ-917 deprecated options use must be logged
+* CONJ-992 load balance distribution
+* CONJ-1008	default value for socket option useReadAheadInput
+* CONJ-1009	improve performance reading big result-set
+* CONJ-1014	avoid creating array when receiving server packet
+* CONJ-1015	pipelining sending multiple packet to socket
+
+##### Bugs Fixed
+* CONJ-1020	java 11 option setting ignored
+
 ## [3.0.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.9) (Nov 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.8...3.0.9)
 * 2.7.7 merge
