@@ -15,6 +15,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpOptions;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
@@ -37,11 +38,19 @@ public class BrowserAuthTest {
     TokenWaiterServer server = new TokenWaiterServer();
     String path = server.getListenPath();
     HttpClient httpclient = HttpClients.createDefault();
-    HttpPost httppost = new HttpPost(path);
 
+    HttpOptions httpOptions = new HttpOptions(path);
+    HttpResponse response = httpclient.execute(httpOptions);
+    assertEquals(response.getStatusLine().getStatusCode(), 204);
+    assertNull(response.getEntity());
+    assertEquals(response.getFirstHeader("Access-Control-Allow-Origin").getValue(), "*");
+    assertEquals(response.getFirstHeader("Allow").getValue(), "POST");
+
+    httpclient = HttpClients.createDefault();
+    HttpPost httppost = new HttpPost(path);
     StringEntity entity = new StringEntity(jwt);
     httppost.setEntity(entity);
-    HttpResponse response = httpclient.execute(httppost);
+    response = httpclient.execute(httppost);
 
     assertEquals(response.getStatusLine().getStatusCode(), 204);
     assertNull(response.getEntity());

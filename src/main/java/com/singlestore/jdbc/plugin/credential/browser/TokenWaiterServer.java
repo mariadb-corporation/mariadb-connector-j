@@ -105,6 +105,15 @@ public class TokenWaiterServer {
 
     public void handle(HttpExchange exchange) throws IOException {
       exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
+
+      // Special case for the OPTIONS request. Just return the Allow header with POST.
+      if (exchange.getRequestMethod().equals("OPTIONS")) {
+        exchange.getResponseHeaders().set("Allow", "POST");
+        exchange.sendResponseHeaders(204, -1);
+        exchange.close();
+        return;
+      }
+
       if (!exchange.getRequestMethod().equals("POST")) {
         error(exchange, 400, "POST expected");
         server.setHandleException(
