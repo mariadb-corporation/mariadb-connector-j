@@ -1075,6 +1075,10 @@ public class ConnectionTest extends Common {
   @Test
   public void localSocketAddress() throws SQLException {
     Assumptions.assumeTrue(
+            System.getenv("local") != null
+                    && "1".equals(System.getenv("local"))
+                    && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
