@@ -98,6 +98,10 @@ public class Common {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
 
+  public static boolean hasCapability(long capability) {
+    return sharedConn.getContext().hasClientCapability(capability);
+  }
+
   public static boolean runLongTest() {
     String runLongTest = System.getenv("RUN_LONG_TEST");
     if (runLongTest != null) {

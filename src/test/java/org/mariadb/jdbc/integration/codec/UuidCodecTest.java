@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.Common;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class UuidCodecTest extends CommonCodecTest {
 
@@ -32,7 +33,7 @@ public class UuidCodecTest extends CommonCodecTest {
   @BeforeAll
   public static void beforeAll2() throws SQLException {
     drop();
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 7, 0));
+    Assumptions.assumeTrue(hasCapability(Capabilities.EXTENDED_TYPE_INFO));
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE UuidCodec (t1 UUID, t2 UUID, t3 UUID, t4 UUID)");
     stmt.execute("CREATE TABLE UuidCodec2 (t1 UUID)");

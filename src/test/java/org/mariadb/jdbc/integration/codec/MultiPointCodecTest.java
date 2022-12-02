@@ -20,6 +20,7 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.MultiPoint;
 import org.mariadb.jdbc.type.Point;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class MultiPointCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
@@ -91,11 +92,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals(
           new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}),
           rs.getObject(1));
@@ -264,10 +261,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals("MULTIPOINT", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -275,10 +269,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
+            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
                 ? MultiPoint.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",

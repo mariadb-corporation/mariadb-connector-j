@@ -21,6 +21,7 @@ import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.Point;
 import org.mariadb.jdbc.type.Polygon;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class PolygonCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
@@ -144,11 +145,7 @@ public class PolygonCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -345,10 +342,7 @@ public class PolygonCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals("POLYGON", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -356,10 +350,7 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         (geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
+            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
                 ? Polygon.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]"),

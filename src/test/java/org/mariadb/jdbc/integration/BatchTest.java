@@ -457,7 +457,7 @@ public class BatchTest extends Common {
     }
 
     Calendar cal = Calendar.getInstance();
-
+    sharedConn.createStatement().execute("START TRANSACTION");
     int inserts = Stream.of(t1, t2).parallel().mapToInt(l -> insertTimestamp(l, cal)).sum();
     assertEquals(100, inserts);
     Statement stmt = sharedConn.createStatement();
@@ -470,6 +470,7 @@ public class BatchTest extends Common {
       rs.next();
       assertEquals(t2[i].getVal().toString(), rs.getTimestamp(2, cal).toString());
     }
+    sharedConn.commit();
   }
 
   private int insertTimestamp(TimestampCal[] vals, Calendar cal) {
@@ -477,7 +478,6 @@ public class BatchTest extends Common {
       try (PreparedStatement prep =
           con.prepareStatement("INSERT INTO timestampCal(val, id) VALUES (?,?)")) {
         for (int i = 0; i < vals.length; i++) {
-          System.out.println(vals[i]);
           prep.setTimestamp(1, vals[i].getVal(), cal);
           prep.setInt(2, vals[i].getId());
           prep.addBatch();
