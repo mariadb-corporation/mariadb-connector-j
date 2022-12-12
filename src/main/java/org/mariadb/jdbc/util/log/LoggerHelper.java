@@ -56,13 +56,14 @@ public final class LoggerHelper {
     hexaValue[8] = ' ';
 
     int pos = offset;
+    int line = 1;
     int posHexa = 0;
     int logLength = Math.min(dataLength, trunkLength);
     StringBuilder sb = new StringBuilder(logLength * 3);
     sb.append(
-        "+--------------------------------------------------+\n"
-            + "|  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-            + "+--------------------------------------------------+------------------+\n| ");
+        "       +--------------------------------------------------+\n"
+            + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
+            + "+------+--------------------------------------------------+------------------+\n|000000| ");
 
     while (pos < logLength + offset) {
       int byteValue = bytes[pos] & 0xFF;
@@ -75,7 +76,8 @@ public final class LoggerHelper {
       }
       if (posHexa == 16) {
         sb.append("| ").append(hexaValue).append(" |\n");
-        if (pos + 1 != logLength + offset) sb.append("| ");
+        if (pos + 1 != logLength + offset)
+          sb.append("|").append(mediumIntTohexa(line++)).append("| ");
         posHexa = 0;
       }
       pos++;
@@ -101,11 +103,17 @@ public final class LoggerHelper {
       sb.append("| ").append(hexaValue).append(" |\n");
     }
     if (dataLength > trunkLength) {
-      sb.append("+-------------------truncated----------------------+------------------+\n");
+      sb.append("+------+-------------------truncated----------------------+------------------+\n");
     } else {
-      sb.append("+--------------------------------------------------+------------------+\n");
+      sb.append("+------+--------------------------------------------------+------------------+\n");
     }
     return sb.toString();
+  }
+
+  private static String mediumIntTohexa(int value) {
+    String st = Integer.toHexString(value * 16);
+    while (st.length() < 6) st = "0" + st;
+    return st;
   }
 
   /**
