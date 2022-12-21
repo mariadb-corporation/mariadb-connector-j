@@ -617,54 +617,63 @@ public class Configuration {
       // loop on properties,
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
-      for (final Object keyObj : properties.keySet()) {
-        String realKey = OptionAliases.OPTIONS_ALIASES.get(keyObj);
-        if (realKey == null) realKey = keyObj.toString();
-        final Object propertyValue = properties.get(keyObj);
+      Properties remainingProperties = new Properties();
+      properties.forEach((key, val) -> remainingProperties.put(key, val));
 
-        if (propertyValue != null && realKey != null) {
-          try {
-            final Field field = Builder.class.getDeclaredField(realKey);
-            field.setAccessible(true);
-            if (field.getGenericType().equals(String.class)
-                && !propertyValue.toString().isEmpty()) {
-              field.set(builder, propertyValue);
-            } else if (field.getGenericType().equals(Boolean.class)) {
-              switch (propertyValue.toString().toLowerCase()) {
-                case "":
-                case "1":
-                case "true":
-                  field.set(builder, Boolean.TRUE);
-                  break;
+      for (Field field : Builder.class.getDeclaredFields()) {
+        if (remainingProperties.isEmpty()) break;
+        for (final Object keyObj : remainingProperties.keySet()) {
+          String realKey =
+              OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
+          if (realKey == null) realKey = keyObj.toString();
+          final Object propertyValue = remainingProperties.get(keyObj);
 
-                case "0":
-                case "false":
-                  field.set(builder, Boolean.FALSE);
-                  break;
+          if (propertyValue != null && realKey != null) {
+            if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
+              field.setAccessible(true);
+              remainingProperties.remove(keyObj);
 
-                default:
+              if (field.getGenericType().equals(String.class)
+                  && !propertyValue.toString().isEmpty()) {
+                field.set(builder, propertyValue);
+              } else if (field.getGenericType().equals(Boolean.class)) {
+                switch (propertyValue.toString().toLowerCase()) {
+                  case "":
+                  case "1":
+                  case "true":
+                    field.set(builder, Boolean.TRUE);
+                    break;
+
+                  case "0":
+                  case "false":
+                    field.set(builder, Boolean.FALSE);
+                    break;
+
+                  default:
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                            keyObj, propertyValue));
+                }
+              } else if (field.getGenericType().equals(Integer.class)) {
+                try {
+                  final Integer value = Integer.parseInt(propertyValue.toString());
+                  field.set(builder, value);
+                } catch (NumberFormatException n) {
                   throw new IllegalArgumentException(
                       String.format(
-                          "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                          "Optional parameter %s must be Integer, was '%s'",
                           keyObj, propertyValue));
-              }
-            } else if (field.getGenericType().equals(Integer.class)) {
-              try {
-                final Integer value = Integer.parseInt(propertyValue.toString());
-                field.set(builder, value);
-              } catch (NumberFormatException n) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "Optional parameter %s must be Integer, was '%s'", keyObj, propertyValue));
+                }
               }
             }
-          } catch (NoSuchFieldException nfe) {
-            // keep unknown option:
-            // those might be used in authentication or identity plugin
-            nonMappedOptions.put(keyObj, propertyValue);
           }
         }
       }
+
+      // keep unknown option:
+      // those might be used in authentication or identity plugin
+      remainingProperties.forEach((key, val) -> nonMappedOptions.put(key, val));
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {

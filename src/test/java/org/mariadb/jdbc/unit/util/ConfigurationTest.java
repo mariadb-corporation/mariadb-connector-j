@@ -307,6 +307,21 @@ public class ConfigurationTest {
   }
 
   @Test
+  public void nonCaseSensitiveOptions() throws Throwable {
+    Configuration conf =
+        Configuration.parse(
+            "jdbc:mariadb://localhost/test?useR=root&paSsword=toto&createdb=true"
+                + "&autoReConnect=true&prepStMtCacheSize=2&ConnectTimeout=5&socketTimeout=20");
+    assertEquals(5, conf.connectTimeout());
+    assertEquals(20, conf.socketTimeout());
+    assertEquals(2, conf.prepStmtCacheSize());
+    assertEquals("true", conf.nonMappedOptions().get("createdb"));
+    assertEquals("true", conf.nonMappedOptions().get("autoReConnect"));
+    assertEquals("root", conf.user());
+    assertEquals("toto", conf.password());
+  }
+
+  @Test
   public void wrongTypeParsing() {
     Common.assertThrowsContains(
         SQLException.class,
