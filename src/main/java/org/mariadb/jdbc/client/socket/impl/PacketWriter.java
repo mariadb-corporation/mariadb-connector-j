@@ -347,6 +347,7 @@ public class PacketWriter implements Writer {
     if (len > buf.length - pos) {
       byte[] arr = str.getBytes(StandardCharsets.US_ASCII);
       writeBytes(arr, 0, arr.length);
+      return;
     }
     for (int off = 0; off < len; ) {
       this.buf[this.pos++] = (byte) str.charAt(off++);
