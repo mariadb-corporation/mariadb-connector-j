@@ -325,6 +325,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
       capabilities |= MariaDbServerCapabilities.CONNECT_WITH_DB;
     }
+
+    if (Boolean.TRUE.equals(options.useSsl)) {
+      capabilities |= MariaDbServerCapabilities.SSL;
+    }
+
     return capabilities;
   }
 
