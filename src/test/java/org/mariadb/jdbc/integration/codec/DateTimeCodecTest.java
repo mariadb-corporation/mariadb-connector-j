@@ -408,6 +408,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
       try (Connection conGmtm8 = createCon("timezone=auto")) {
         getDateTimezoneTestGmtm8(conGmtm8, getPrepare(conGmtm8), TimeZone.getTimeZone("GMT-8"));
       }
+      TimeZone.setDefault(initialTz);
+      try (Connection conAuto = createCon("timezone=auto")) {
+        getDateTimezoneTestNormal(conAuto, getPrepare(conAuto));
+      }
+
     } finally {
       TimeZone.setDefault(initialTz);
     }
@@ -563,6 +568,47 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals("2010-01-12", rs.getDate(2).toString());
     }
     conGmt8.rollback();
+  }
+
+  public void getDateTimezoneTestNormal(Connection conAuto, ResultSet rs)
+          throws SQLException {
+
+    assertEquals("2010-01-12 01:55:12.0", rs.getObject(1, Timestamp.class).toString());
+
+    conAuto.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
+    try (PreparedStatement prep =
+                 conAuto.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1, 5);
+      prep.setString(2, "2010-01-12 01:55:12");
+      prep.execute();
+
+      prep.setInt(1, 6);
+      prep.setObject(2, "2010-01-12 11:55:12");
+      prep.execute();
+    }
+    conAuto.commit();
+
+    java.sql.Statement stmt = conAuto.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prepStmt = conAuto.prepareStatement("select * from DateTimeCodec3 order by id")) {
+      rs = prepStmt.executeQuery();
+      rs.next();
+      assertEquals(5, rs.getInt(1));
+      assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+
+      rs.next();
+
+      Timestamp tt = Timestamp.valueOf("2010-01-12 01:55:12");
+      int offset = TimeZone.getDefault().getOffset(tt.getTime());
+      int offsetHour = offset / (3_600_000);
+      if (offsetHour < 0) offsetHour = offsetHour * -1;
+
+      // test might fail if run in timezone with offset not rounded to hours
+      assertEquals("2010-01-12T11:55:12" + ((offset < 0) ? "-" : "+") + ((offsetHour < 10) ? "0" : offsetHour / 10) + (offsetHour % 10) + ":00", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 11:55:12.0", rs.getTimestamp(2).toString());
+    }
+    conAuto.rollback();
   }
 
   @Test

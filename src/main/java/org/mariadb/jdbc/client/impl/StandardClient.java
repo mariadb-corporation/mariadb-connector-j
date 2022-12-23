@@ -441,7 +441,7 @@ public class StandardClient implements Client, AutoCloseable {
             sessionCommands.add("time_zone='" + zoneOffset.getId() + "'");
           }
         } else {
-          sessionCommands.add("time_zone='" + conf.timezone() + "'");
+          sessionCommands.add("time_zone='" + clientZoneId.normalized() + "'");
         }
       }
     }
