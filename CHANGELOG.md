@@ -1,5 +1,12 @@
 # Change Log
 
+## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.0.10)
+
+* CONJ-1023	Connector/J doesn't set SSL cap bit in Handshake Response Packet
+* CONJ-1026	timezone=auto option failure on non-fixed-offset zone machine
+* CONJ-1032	Compatibility for deprecated arguments is case sensitive now
+
 ## [3.1.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.0) (Nov 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.1.0)
 
