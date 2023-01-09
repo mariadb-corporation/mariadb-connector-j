@@ -217,6 +217,9 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
 
+    if (configuration.sslMode() != SslMode.DISABLE) {
+      capabilities |= Capabilities.SSL;
+    }
     return capabilities & serverCapabilities;
   }
 
