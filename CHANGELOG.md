@@ -1,4 +1,13 @@
 # Change Log
+## [3.1.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.1) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.0...3.1.1)
+
+- 3.0.10 bug fix:
+  - CONJ-1023	Connector/J doesn't set SSL cap bit in Handshake Response Packet
+  - CONJ-1026	timezone=auto option failure on non-fixed-offset zone machine
+  - CONJ-1032	Compatibility for deprecated arguments is case sensitive now
+- CONJ-1036	org.mariadb.jdbc.client.socket.impl.PacketWriter.writeAscii() broken in 3.1.0
+
 
 ## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.0.10)
