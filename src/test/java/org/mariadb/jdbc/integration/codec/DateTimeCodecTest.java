@@ -570,14 +570,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     conGmt8.rollback();
   }
 
-  public void getDateTimezoneTestNormal(Connection conAuto, ResultSet rs)
-          throws SQLException {
+  public void getDateTimezoneTestNormal(Connection conAuto, ResultSet rs) throws SQLException {
 
     assertEquals("2010-01-12 01:55:12.0", rs.getObject(1, Timestamp.class).toString());
 
     conAuto.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
     try (PreparedStatement prep =
-                 conAuto.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+        conAuto.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
       prep.setInt(1, 5);
       prep.setString(2, "2010-01-12 01:55:12");
       prep.execute();
@@ -590,7 +589,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
     java.sql.Statement stmt = conAuto.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-    try (PreparedStatement prepStmt = conAuto.prepareStatement("select * from DateTimeCodec3 order by id")) {
+    try (PreparedStatement prepStmt =
+        conAuto.prepareStatement("select * from DateTimeCodec3 order by id")) {
       rs = prepStmt.executeQuery();
       rs.next();
       assertEquals(5, rs.getInt(1));
@@ -605,7 +605,17 @@ public class DateTimeCodecTest extends CommonCodecTest {
       if (offsetHour < 0) offsetHour = offsetHour * -1;
 
       // test might fail if run in timezone with offset not rounded to hours
-      assertEquals("2010-01-12T11:55:12" + ((offset < 0) ? "-" : "+") + ((offsetHour < 10) ? "0" : offsetHour / 10) + (offsetHour % 10) + ":00", rs.getObject(2, OffsetDateTime.class).toString());
+      if (offsetHour == 0) {
+        assertEquals("2010-01-12T11:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      } else {
+        assertEquals(
+            "2010-01-12T11:55:12"
+                + ((offset < 0) ? "-" : "+")
+                + ((offsetHour < 10) ? "0" : offsetHour / 10)
+                + (offsetHour % 10)
+                + ":00",
+            rs.getObject(2, OffsetDateTime.class).toString());
+      }
       assertEquals("2010-01-12 11:55:12.0", rs.getTimestamp(2).toString());
     }
     conAuto.rollback();
