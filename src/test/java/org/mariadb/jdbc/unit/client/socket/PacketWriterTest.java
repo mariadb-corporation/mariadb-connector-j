@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.client.socket.impl.PacketWriter;
 
-public class PackerWriterTest {
+public class PacketWriterTest {
 
   @Test
   public void growBuffer() throws IOException {
