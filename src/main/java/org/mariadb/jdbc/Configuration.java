@@ -618,20 +618,23 @@ public class Configuration {
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
       Properties remainingProperties = new Properties();
-      properties.forEach((key, val) -> remainingProperties.put(key, val));
+      remainingProperties.putAll(properties);
 
       for (Field field : Builder.class.getDeclaredFields()) {
         if (remainingProperties.isEmpty()) break;
-        for (final Object keyObj : remainingProperties.keySet()) {
+        for (Iterator<Map.Entry<Object, Object>> iterator =
+                remainingProperties.entrySet().iterator();
+            iterator.hasNext(); ) {
+          Map.Entry<Object, Object> entry = iterator.next();
           String realKey =
-              OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
-          if (realKey == null) realKey = keyObj.toString();
-          final Object propertyValue = remainingProperties.get(keyObj);
+              OptionAliases.OPTIONS_ALIASES.get(entry.getKey().toString().toLowerCase(Locale.ROOT));
+          if (realKey == null) realKey = entry.getKey().toString();
+          final Object propertyValue = entry.getValue();
 
           if (propertyValue != null && realKey != null) {
             if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
               field.setAccessible(true);
-              remainingProperties.remove(keyObj);
+              iterator.remove();
 
               if (field.getGenericType().equals(String.class)
                   && !propertyValue.toString().isEmpty()) {
@@ -653,7 +656,7 @@ public class Configuration {
                     throw new IllegalArgumentException(
                         String.format(
                             "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
-                            keyObj, propertyValue));
+                            entry.getKey(), propertyValue));
                 }
               } else if (field.getGenericType().equals(Integer.class)) {
                 try {
@@ -663,7 +666,7 @@ public class Configuration {
                   throw new IllegalArgumentException(
                       String.format(
                           "Optional parameter %s must be Integer, was '%s'",
-                          keyObj, propertyValue));
+                          entry.getKey(), propertyValue));
                 }
               }
             }
@@ -673,7 +676,7 @@ public class Configuration {
 
       // keep unknown option:
       // those might be used in authentication or identity plugin
-      remainingProperties.forEach((key, val) -> nonMappedOptions.put(key, val));
+      nonMappedOptions.putAll(remainingProperties);
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
