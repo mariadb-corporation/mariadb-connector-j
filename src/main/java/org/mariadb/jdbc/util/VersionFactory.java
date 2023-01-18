@@ -21,10 +21,11 @@ public final class VersionFactory {
               Version.class.getClassLoader().getResourceAsStream("mariadb.properties")) {
             if (inputStream == null) {
               System.out.println("property file 'mariadb.properties' not found in the classpath");
+            } else {
+              Properties prop = new Properties();
+              prop.load(inputStream);
+              tmpVersion = prop.getProperty("version");
             }
-            Properties prop = new Properties();
-            prop.load(inputStream);
-            tmpVersion = prop.getProperty("version");
           } catch (IOException e) {
             e.printStackTrace();
           }
