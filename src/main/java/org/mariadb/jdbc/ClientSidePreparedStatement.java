@@ -509,7 +509,8 @@ public class ClientSidePreparedStatement extends BasePrepareStatement {
             ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY,
             Statement.NO_GENERATED_KEYS,
-            exceptionFactory)) {
+            exceptionFactory,
+            false)) {
       resultSetMetaData = ssps.getMetaData();
       parameterMetaData = ssps.getParameterMetaData();
     } catch (Exception exception) {

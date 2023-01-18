@@ -902,12 +902,15 @@ public class StoredProcedureTest extends BaseTest {
 
     procDef.append(")\nBEGIN\nSELECT 1;\nEND");
     try (Statement stmt = sharedConnection.createStatement()) {
+      stmt.execute("DROP PROCEDURE IF EXISTS testHugeNumberOfParameters");
       stmt.execute("CREATE PROCEDURE testHugeNumberOfParameters" + procDef.toString());
 
       try (CallableStatement callableStatement =
           sharedConnection.prepareCall(
               "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
-        callableStatement.registerOutParameter(274, Types.VARCHAR);
+        for (int i = 0; i < 274; i++) {
+          callableStatement.registerOutParameter(i + 1, Types.VARCHAR);
+        }
         callableStatement.execute();
       }
       stmt.execute("DROP PROCEDURE testHugeNumberOfParameters");
@@ -1655,4 +1658,72 @@ public class StoredProcedureTest extends BaseTest {
 
     assertEquals(Timestamp.valueOf("2006-01-01 01:01:16"), cstmt.getTimestamp(2));
   }
+
+  @Test(timeout = 5000)
+  public void testNoKillRights() throws Exception {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("DROP USER IF EXISTS basicUser");
+    stmt.execute("CREATE USER basicUser");
+    stmt.execute("GRANT ALL ON *.* TO basicUser");
+    stmt.execute("DROP PROCEDURE IF EXISTS p_r_d");
+    stmt.execute(
+        String.format(
+            "CREATE DEFINER=%s PROCEDURE p_r_d() SQL SECURITY DEFINER\n"
+                + "BEGIN\n"
+                + "SELECT SLEEP(60), 'hello';\n"
+                + "END;",
+            username));
+    try (CallableStatement st = sharedConnection.prepareCall("CALL p_r_d()")) {
+      st.setQueryTimeout(1);
+      st.execute();
+      fail("must have thrown timeout exception");
+    } catch (SQLTimeoutException e) {
+      // expected error
+      assertTrue(
+          e.getMessage().contains("Query execution was interrupted (max_statement_time exceeded)"));
+    } finally {
+      stmt.execute("DROP USER basicUser");
+      stmt.execute("DROP PROCEDURE p_r_d");
+    }
+  }
+
+
+  @Test
+  public void callBatchInoutParam() throws SQLException {
+    // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+    cancelForVersion(10, 2, 2);
+    cancelForVersion(10, 2, 3);
+    cancelForVersion(10, 2, 4);
+
+    try (CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}")) {
+      storedProc.addBatch();
+      storedProc.addBatch();
+      storedProc.executeBatch();
+      fail("must have fails");
+    } catch (SQLException e) {
+      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+    }
+
+    try (CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}")) {
+      storedProc.registerOutParameter(1, 1);
+      storedProc.addBatch();
+      storedProc.addBatch();
+      storedProc.executeBatch();
+      fail("must have fails");
+    } catch (SQLException e) {
+      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+    }
+    try (CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}")) {
+      storedProc.registerOutParameter("p1", 1);
+      storedProc.addBatch();
+      storedProc.addBatch();
+      storedProc.executeBatch();
+      fail("must have fails");
+    } catch (SQLException e) {
+      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+    }
+
+  }
+
 }

@@ -58,7 +58,7 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -68,11 +68,11 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     implements CallableStatement, Cloneable {
 
   /** Information about parameters, merely from registerOutputParameter() and setXXX() calls. */
-  protected List<CallParameter> params;
+  protected Map<Integer, CallParameter> params = new HashMap<>();
 
   protected int[] outputParameterMapper = null;
   protected CallableParameterMetaData parameterMetadata;
-  protected boolean hasInOutParameters;
+  protected Boolean hasInOutParameters;
   private String database;
   private String procedureName;
 
@@ -106,7 +106,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
         resultSetScrollType,
         resultSetConcurrency,
         Statement.NO_GENERATED_KEYS,
-        exceptionFactory);
+        exceptionFactory,
+        true);
     this.database = database;
     this.procedureName = procedureName;
   }
@@ -129,13 +130,28 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   }
 
   /** Set in/out parameters value. */
-  public void setParametersVariables() {
-    hasInOutParameters = false;
-    for (CallParameter param : params) {
-      if (param != null && param.isOutput() && param.isInput()) {
-        hasInOutParameters = true;
-        break;
+  public void setParametersVariables() throws SQLException {
+    if (hasInOutParameters == null) {
+      boolean hasInOutParameters = false;
+      for (Map.Entry<Integer, CallParameter> entry : params.entrySet()) {
+        CallParameter param = entry.getValue();
+        if (param != null && param.isOutput() && param.isInput()) {
+          hasInOutParameters = true;
+          break;
+        }
       }
+      if (!hasInOutParameters) {
+        readMetadataFromDbIfRequired();
+      }
+      for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
+        int parameterMode = parameterMetadata.getParameterMode(i);
+        if (parameterMode == ParameterMetaData.parameterModeOut
+            || parameterMode == ParameterMetaData.parameterModeInOut) {
+          hasInOutParameters = true;
+          break;
+        }
+      }
+      this.hasInOutParameters = hasInOutParameters;
     }
   }
 
@@ -149,6 +165,35 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   private void readMetadataFromDbIfRequired() throws SQLException {
     if (parameterMetadata == null) {
       parameterMetadata = connection.getInternalParameterMetaData(procedureName, database, false);
+
+      // set parameters information
+      for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
+        CallParameter param = params.get(i - 1);
+        if (param == null) param = new CallParameter();
+        switch (parameterMetadata.getParameterMode(i)) {
+          case ParameterMetaData.parameterModeOut:
+            this.hasInOutParameters = true;
+            param.setOutput(true);
+            break;
+          case ParameterMetaData.parameterModeInOut:
+            this.hasInOutParameters = true;
+            param.setInput(true);
+            param.setOutput(true);
+            break;
+          case ParameterMetaData.parameterModeUnknown:
+          case ParameterMetaData.parameterModeIn:
+            param.setInput(true);
+            break;
+        }
+        param.setScale(parameterMetadata.getScale(i));
+        param.setName(parameterMetadata.getParameterName(i));
+        param.setCanBeNull(parameterMetadata.isNullable(i));
+        param.setClassName(parameterMetadata.getParameterClassName(i));
+        param.setPrecision(parameterMetadata.getPrecision(i));
+        param.setSigned(parameterMetadata.isSigned(i));
+        param.setTypeName(parameterMetadata.getParameterTypeName(i));
+        if (!params.containsKey(i - 1)) params.put(i - 1, param);
+      }
     }
   }
 
@@ -182,7 +227,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
     for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
       String name = parameterMetadata.getParameterName(i + 1);
       if (name != null && name.equalsIgnoreCase(parameterName)) {
-        if (outputParameterMapper[i] == -1) {
+        if (i >= outputParameterMapper.length || outputParameterMapper[i] == -1) {
           // this is not an outputParameter
           throw new SQLException(
               "Parameter '"
@@ -204,7 +249,8 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    */
   private int indexToOutputIndex(int parameterIndex) throws SQLException {
     try {
-      if (outputParameterMapper[parameterIndex - 1] == -1) {
+      if (parameterIndex > outputParameterMapper.length
+          || outputParameterMapper[parameterIndex - 1] == -1) {
         // this is not an outputParameter
         throw new SQLException(
             "Parameter in index '"
@@ -400,10 +446,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
 
   @Override
   public Object getObject(int parameterIndex) throws SQLException {
-    Class<?> classType =
-        ColumnType.classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
-    if (classType != null) {
-      return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
+    CallParameter param = params.get(parameterIndex - 1);
+    if (param != null) {
+      Class<?> classType = ColumnType.classFromJavaType(param.getOutputSqlType());
+      if (classType != null) {
+        return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
+      }
     }
     return getOutputResult().getObject(indexToOutputIndex(parameterIndex));
   }
@@ -411,9 +459,12 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   @Override
   public Object getObject(String parameterName) throws SQLException {
     int index = nameToIndex(parameterName);
-    Class<?> classType = ColumnType.classFromJavaType(getParameter(index).getOutputSqlType());
-    if (classType != null) {
-      return getOutputResult().getObject(indexToOutputIndex(index), classType);
+    CallParameter param = params.get(index - 1);
+    if (param != null) {
+      Class<?> classType = ColumnType.classFromJavaType(param.getOutputSqlType());
+      if (classType != null) {
+        return getOutputResult().getObject(indexToOutputIndex(index), classType);
+      }
     }
     return getOutputResult().getObject(indexToOutputIndex(index));
   }
@@ -573,10 +624,19 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    */
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    CallParameter callParameter = getParameter(parameterIndex);
-    callParameter.setOutputSqlType(sqlType);
-    callParameter.setTypeName(typeName);
-    callParameter.setOutput(true);
+    if (params.containsKey(parameterIndex - 1)) {
+      CallParameter param = params.get(parameterIndex - 1);
+      param.setOutputSqlType(sqlType);
+      param.setTypeName(typeName);
+      param.setOutput(true);
+    } else {
+      CallParameter param = new CallParameter();
+      param.setOutputSqlType(sqlType);
+      param.setTypeName(typeName);
+      param.setOutput(true);
+
+      params.put(parameterIndex - 1, param);
+    }
   }
 
   @Override
@@ -605,10 +665,18 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    */
   @Override
   public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
-    CallParameter callParameter = getParameter(parameterIndex);
-    callParameter.setOutput(true);
-    callParameter.setOutputSqlType(sqlType);
-    callParameter.setScale(scale);
+    if (params.containsKey(parameterIndex - 1)) {
+      CallParameter param = params.get(parameterIndex - 1);
+      param.setOutput(true);
+      param.setOutputSqlType(sqlType);
+      param.setScale(scale);
+    } else {
+      CallParameter param = new CallParameter();
+      param.setOutput(true);
+      param.setOutputSqlType(sqlType);
+      param.setScale(scale);
+      params.put(parameterIndex - 1, param);
+    }
   }
 
   @Override
@@ -663,6 +731,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
   }
 
   private CallParameter getParameter(int index) throws SQLException {
+
     if (index > params.size() || index <= 0) {
       throw new SQLException("No parameter with index " + index);
     }

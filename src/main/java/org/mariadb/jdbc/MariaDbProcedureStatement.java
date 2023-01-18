@@ -53,7 +53,7 @@
 package org.mariadb.jdbc;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.Map;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
@@ -97,24 +97,27 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
         exceptionFactory,
         database,
         procedureName);
-    setParamsAccordingToSetArguments();
-    setParametersVariables();
-  }
-
-  private void setParamsAccordingToSetArguments() {
-    params = new ArrayList<>(parameterCount);
-    for (int index = 0; index < parameterCount; index++) {
-      params.add(new CallParameter());
-    }
   }
 
   private void setInputOutputParameterMap() {
     if (outputParameterMapper == null) {
-      outputParameterMapper = new int[params.size()];
-      int currentOutputMapper = 1;
+      int len = 0;
+      if (serverPrepareResult == null) {
+        for (Integer key : params.keySet()) {
+          if (key + 1 > len) len = key + 1;
+        }
+      } else {
+        len = serverPrepareResult.getParamCount();
+      }
+      outputParameterMapper = new int[len];
 
-      for (int index = 0; index < params.size(); index++) {
-        outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
+      for (int i = 0; i < outputParameterMapper.length; i++) {
+        outputParameterMapper[i] = -1;
+      }
+      int currentOutputMapper = 1;
+      for (Map.Entry<Integer, CallParameter> entry : params.entrySet()) {
+        outputParameterMapper[entry.getKey()] =
+            entry.getValue().isOutput() ? currentOutputMapper++ : -1;
       }
     }
   }
@@ -158,7 +161,13 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
 
   public void setParameter(final int parameterIndex, final ParameterHolder holder)
       throws SQLException {
-    params.get(parameterIndex - 1).setInput(true);
+    if (params.containsKey(parameterIndex - 1)) {
+      params.get(parameterIndex - 1).setInput(true);
+    } else {
+      CallParameter param = new CallParameter();
+      param.setInput(true);
+      params.put(parameterIndex - 1, param);
+    }
     super.setParameter(parameterIndex, holder);
   }
 
@@ -184,9 +193,9 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
 
     setInputOutputParameterMap();
     // Set value for OUT parameters
-    for (int index = 0; index < params.size(); index++) {
-      if (!params.get(index).isInput()) {
-        super.setParameter(index + 1, new NullParameter());
+    for (Map.Entry<Integer, CallParameter> entry : params.entrySet()) {
+      if (!entry.getValue().isInput()) {
+        super.setParameter(entry.getKey() + 1, new NullParameter());
       }
     }
     validParameters();
@@ -194,6 +203,9 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement
 
   @Override
   public int[] executeBatch() throws SQLException {
+    if (hasInOutParameters == null) {
+      setParametersVariables();
+    }
     if (!hasInOutParameters) {
       return super.executeBatch();
     } else {
