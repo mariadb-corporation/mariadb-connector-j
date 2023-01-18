@@ -617,21 +617,17 @@ public class Configuration {
       // loop on properties,
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
-      Properties remainingProperties = new Properties();
-      properties.forEach((key, val) -> remainingProperties.put(key, val));
-
-      for (Field field : Builder.class.getDeclaredFields()) {
-        if (remainingProperties.isEmpty()) break;
-        for (final Object keyObj : remainingProperties.keySet()) {
-          String realKey =
-              OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
-          if (realKey == null) realKey = keyObj.toString();
-          final Object propertyValue = remainingProperties.get(keyObj);
-
-          if (propertyValue != null && realKey != null) {
+      for (final Object keyObj : properties.keySet()) {
+        String realKey =
+            OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
+        if (realKey == null) realKey = keyObj.toString();
+        final Object propertyValue = properties.get(keyObj);
+        if (propertyValue != null && realKey != null) {
+          boolean used = false;
+          for (Field field : Builder.class.getDeclaredFields()) {
             if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
               field.setAccessible(true);
-              remainingProperties.remove(keyObj);
+              used = true;
 
               if (field.getGenericType().equals(String.class)
                   && !propertyValue.toString().isEmpty()) {
@@ -668,12 +664,9 @@ public class Configuration {
               }
             }
           }
+          if (!used) nonMappedOptions.put(realKey, propertyValue);
         }
       }
-
-      // keep unknown option:
-      // those might be used in authentication or identity plugin
-      remainingProperties.forEach((key, val) -> nonMappedOptions.put(key, val));
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
