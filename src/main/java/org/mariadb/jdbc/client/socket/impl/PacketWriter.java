@@ -561,8 +561,10 @@ public class PacketWriter implements Writer {
           }
 
         } else {
-
           // not enough space in buf, will fill buf
+          if (buf.length <= pos) {
+            writeSocket(false);
+          }
           if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {
               if (QUOTE == bytes[i]) {
