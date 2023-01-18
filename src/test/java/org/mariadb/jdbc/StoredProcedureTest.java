@@ -1688,7 +1688,6 @@ public class StoredProcedureTest extends BaseTest {
     }
   }
 
-
   @Test
   public void callBatchInoutParam() throws SQLException {
     // cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
@@ -1702,7 +1701,8 @@ public class StoredProcedureTest extends BaseTest {
       storedProc.executeBatch();
       fail("must have fails");
     } catch (SQLException e) {
-      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+      Assert.assertTrue(
+          e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
     }
 
     try (CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}")) {
@@ -1712,7 +1712,8 @@ public class StoredProcedureTest extends BaseTest {
       storedProc.executeBatch();
       fail("must have fails");
     } catch (SQLException e) {
-      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+      Assert.assertTrue(
+          e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
     }
     try (CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}")) {
       storedProc.registerOutParameter("p1", 1);
@@ -1721,9 +1722,8 @@ public class StoredProcedureTest extends BaseTest {
       storedProc.executeBatch();
       fail("must have fails");
     } catch (SQLException e) {
-      Assert.assertTrue(e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
+      Assert.assertTrue(
+          e.getMessage().contains("executeBatch not permit for procedure with output parameter"));
     }
-
   }
-
 }
