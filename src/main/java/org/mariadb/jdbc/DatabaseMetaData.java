@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.util.*;
 import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
@@ -823,43 +824,60 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
 
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-                + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE,"
-                + DataTypeClause(conf)
-                + " TYPE_NAME, "
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN "
-                + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'date' THEN 10"
-                + "  WHEN 'datetime' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'timestamp' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
-                + "  ELSE "
-                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                + Integer.MAX_VALUE
-                + "), NUMERIC_PRECISION) "
-                + " END"
-                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
-                + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN "
-                + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
-                + " WHEN 'tinyint' THEN "
-                + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
-                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
-                + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-                + " LEAST(CHARACTER_OCTET_LENGTH,"
-                + Integer.MAX_VALUE
-                + ") CHAR_OCTET_LENGTH,"
-                + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-                + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-                + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
-                + " FROM INFORMATION_SCHEMA.COLUMNS");
+    ServerVersion version = connection.getContext().getVersion();
+    boolean supportsFractionalSeconds =
+        version.isMariaDBServer()
+            /* "In MariaDB 5.3 and later, the TIME, DATETIME, and TIMESTAMP types, along with the temporal
+            functions, CAST and dynamic columns, now support microseconds."
+            https://web.archive.org/web/20130928042640/https://mariadb.com/kb/en/microseconds-in-mariadb/
+            */
+            ? version.versionGreaterOrEqual(5, 3, 0)
+            // See https://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-4.html
+            : version.versionGreaterOrEqual(5, 6, 4);
+    StringBuilder sb = new StringBuilder();
+    sb.append(
+        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
+            + dataTypeClause("COLUMN_TYPE")
+            + " DATA_TYPE,"
+            + DataTypeClause(conf)
+            + " TYPE_NAME, "
+            + " CASE DATA_TYPE"
+            + "  WHEN 'date' THEN 10");
+    if (supportsFractionalSeconds) {
+      sb.append(
+          "  WHEN 'time' THEN "
+              + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+              + "  WHEN 'datetime' THEN "
+              + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+              + "  WHEN 'timestamp' THEN "
+              + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))");
+    } else {
+      // Older versions do not include the DATETIME_PRECISION column in INFORMATION_SCHEMA.COLUMNS.
+      sb.append(" WHEN 'time' THEN 10 WHEN 'datetime' THEN 19 WHEN 'timestamp' THEN 19");
+    }
+    sb.append(
+        (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
+            + "  ELSE "
+            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+            + Integer.MAX_VALUE
+            + "), NUMERIC_PRECISION) "
+            + " END"
+            + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
+            + " CONVERT (CASE DATA_TYPE"
+            + " WHEN 'year' THEN "
+            + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
+            + " WHEN 'tinyint' THEN "
+            + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
+            + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+            + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
+            + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+            + " LEAST(CHARACTER_OCTET_LENGTH,"
+            + Integer.MAX_VALUE
+            + ") CHAR_OCTET_LENGTH,"
+            + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+            + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
+            + " FROM INFORMATION_SCHEMA.COLUMNS");
     boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
