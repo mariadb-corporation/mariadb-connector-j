@@ -134,7 +134,11 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
               // retrieve public key from configuration or from server
               PublicKey publicKey;
               if (conf.serverRsaPublicKeyFile() != null) {
-                publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
+                if (conf.serverRsaPublicKeyFile().contains("BEGIN PUBLIC KEY")) {
+                  publicKey = generatePublicKey(conf.serverRsaPublicKeyFile().getBytes());
+                } else {
+                  publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
+                }
               } else {
                 // read public key from socket
                 if (!conf.allowPublicKeyRetrieval()) {

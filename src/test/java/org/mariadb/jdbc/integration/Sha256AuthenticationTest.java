@@ -15,7 +15,7 @@ public class Sha256AuthenticationTest extends Common {
 
   private static void dropUserWithoutError(org.mariadb.jdbc.Statement stmt, String user) {
     try {
-      stmt.execute("DROP USER " + user);
+      stmt.execute("DROP USER IF EXISTS " + user);
     } catch (SQLException e) {
       // eat
     }
@@ -63,6 +63,17 @@ public class Sha256AuthenticationTest extends Common {
     }
     if (rsaPublicKey == null) {
       rsaPublicKey = checkFileExists("../../ssl/public.key");
+    }
+
+    if (rsaPublicKey == null) {
+      ResultSet rs = stmt.executeQuery("SHOW STATUS like 'Caching_sha2_password_rsa_public_key'");
+      rs.next();
+      rsaPublicKey = rs.getString(2);
+      if ("".equals(rsaPublicKey)) rsaPublicKey = null;
+      if (rsaPublicKey != null) {
+        System.out.println(
+            "rsaPublicKey set from @@Caching_sha2_password_rsa_public_key:" + rsaPublicKey);
+      }
     }
 
     stmt.execute(
@@ -126,7 +137,7 @@ public class Sha256AuthenticationTest extends Common {
     Assumptions.assumeTrue(
         !isWindows() && !isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
+    Assumptions.assumeTrue(!isMariaDBServer() && !minVersion(8, 0, 31));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con = createCon("user=cachingSha256User2&allowPublicKeyRetrieval&password=")) {
       con.isValid(1);
@@ -155,7 +166,7 @@ public class Sha256AuthenticationTest extends Common {
   public void cachingSha256Allow() throws Exception {
     Assumptions.assumeTrue(!isMariaDBServer() && rsaPublicKey != null && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
+    Assumptions.assumeTrue(!isMariaDBServer() && !minVersion(8, 0, 31));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User3&allowPublicKeyRetrieval&password=!Passw0rd3Works")) {
@@ -205,7 +216,7 @@ public class Sha256AuthenticationTest extends Common {
   public void cachingSha256PluginTestWithoutServerRsaKey() throws Exception {
     Assumptions.assumeTrue(!isWindows() && minVersion(8, 0, 0));
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
+    Assumptions.assumeTrue(!isMariaDBServer() && !minVersion(8, 0, 31));
     sharedConn.createStatement().execute("FLUSH PRIVILEGES"); // reset cache
     try (Connection con =
         createCon("user=cachingSha256User&password=!Passw0rd3Works&allowPublicKeyRetrieval")) {
