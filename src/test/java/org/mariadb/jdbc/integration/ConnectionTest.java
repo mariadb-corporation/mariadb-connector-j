@@ -993,9 +993,16 @@ public class ConnectionTest extends Common {
     } catch (SQLException e) {
       // eat
     }
-
-    stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
-    stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
+    if (useOldNotation) {
+      stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+      stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    } else {
+      stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+      stmt.execute("GRANT SELECT on *.* to testSocket");
+    }
     // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
     Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
