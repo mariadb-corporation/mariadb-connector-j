@@ -731,9 +731,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream
 
         } else {
           // if buffer can't grows and space is full, need flush at first
-          if(buf.length <= pos) {
-        	flushBuffer(false);
-      	  }
+          if (buf.length <= pos) {
+            flushBuffer(false);
+          }
           // not enough space in buffer, will fill buffer
           if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {

@@ -1661,10 +1661,12 @@ public class StoredProcedureTest extends BaseTest {
 
   @Test(timeout = 5000)
   public void testNoKillRights() throws Exception {
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 1, 2));
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("DROP USER IF EXISTS basicUser");
-    stmt.execute("CREATE USER basicUser");
+    stmt.execute("CREATE USER basicUser IDENTIFIED BY '!Passw0rd3Works'");
     stmt.execute("GRANT ALL ON *.* TO basicUser");
     stmt.execute("DROP PROCEDURE IF EXISTS p_r_d");
     stmt.execute(
