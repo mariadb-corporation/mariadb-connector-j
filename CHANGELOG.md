@@ -1,4 +1,11 @@
 # Change Log
+## [2.7.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.8) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.7...2.7.8)
+
+* CONJ-1039 setQueryTimeout not honored by CallableStatement for procedures depending on security context
+* CONJ-1041 possible ArrayIndexOutOfBoundsException
+* CONJ-1023 set missing SSL capability in handshake after SSL exchanges
+
 ## [2.7.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.7) (Nov 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.6...2.7.7)
 
