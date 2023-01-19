@@ -33,7 +33,7 @@ install:
         connector-test-machine/launch.bat -t "$srv" -v "$v" -d testj
         ;;
       linux)
-        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -n 0 -l "$local" -p "$packet"
+        source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -l "$local" -p "$packet"
         ;;
     esac
 
