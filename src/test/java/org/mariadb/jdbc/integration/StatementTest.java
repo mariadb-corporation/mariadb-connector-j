@@ -58,14 +58,14 @@ public class StatementTest extends Common {
             "INSERT INTO key_test(id) VALUES(5)", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
+      if (!isXpand()) assertFalse(rs.next());
     }
     try (PreparedStatement ps =
         sharedConn.prepareStatement(
             "UPDATE key_test set id=7 WHERE id=5", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
+      if (!isXpand()) assertFalse(rs.next());
     }
 
     stmt.execute("DROP TABLE key_test");

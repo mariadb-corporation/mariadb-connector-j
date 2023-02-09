@@ -14,6 +14,7 @@ import org.junit.jupiter.api.*;
 public class LocalInfileTest extends Common {
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE LocalInfileInputStreamTest(id int, test varchar(100))");

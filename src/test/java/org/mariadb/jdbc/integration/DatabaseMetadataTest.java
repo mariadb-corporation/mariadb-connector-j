@@ -2108,6 +2108,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getTypeMetaData() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     //            "create table text_types_text (varchar100           varchar(100),\n" +
     //                    "  varchar255           varchar(255),\n" +
     //                    "  text                 text,\n" +

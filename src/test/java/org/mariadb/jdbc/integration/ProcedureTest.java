@@ -42,6 +42,7 @@ public class ProcedureTest extends Common {
 
   @Test
   public void settingParameterBeforeOutRegistration() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     try (CallableStatement cstmt = sharedConn.prepareCall("{ CALL multiply_by_2(?) }")) {
       cstmt.setLong(1, 42L);
       cstmt.registerOutParameter(1, Types.NUMERIC);

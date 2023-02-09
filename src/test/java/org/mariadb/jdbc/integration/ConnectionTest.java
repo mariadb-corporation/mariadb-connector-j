@@ -505,6 +505,8 @@ public class ConnectionTest extends Common {
           String strVal = result.getString("ATTR_VALUE");
           assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
         }
+      } catch (SQLException e) {
+        // eat exception when performance_schema.session_connect_attrs doesn't exists
       }
     }
   }

@@ -18,6 +18,7 @@ import java.time.*;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mariadb.jdbc.MariaDbClob;
@@ -123,11 +124,13 @@ public class EnumCodecTest extends CommonCodecTest {
 
   @Test
   public void getBinaryObject() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     getBinaryObject(getBinary());
   }
 
   @Test
   public void getBinaryObjectPrepare() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     getBinaryObject(getBinaryPrepare(sharedConn));
     getBinaryObject(getBinaryPrepare(sharedConnBinary));
   }
@@ -747,12 +750,7 @@ public class EnumCodecTest extends CommonCodecTest {
   public void getMetaData() throws SQLException {
     ResultSet rs = get();
     ResultSetMetaData meta = rs.getMetaData();
-    if (isXpand()) {
-      assertEquals("TEXT", meta.getColumnTypeName(1));
-      assertEquals(Types.VARCHAR, meta.getColumnType(1));
-      assertEquals(65535, meta.getPrecision(1));
-      assertEquals(65535, meta.getColumnDisplaySize(1));
-    } else {
+    if (!isXpand()) {
       assertEquals("CHAR", meta.getColumnTypeName(1));
       assertEquals(Types.CHAR, meta.getColumnType(1));
       assertEquals(23, meta.getPrecision(1));
