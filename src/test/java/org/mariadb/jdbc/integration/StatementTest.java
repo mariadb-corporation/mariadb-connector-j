@@ -961,4 +961,47 @@ public class StatementTest extends Common {
       con.rollback();
     }
   }
+
+  @Test
+  public void statementIdentifier() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    assertTrue(stmt.isSimpleIdentifier("good_$one"));
+    assertTrue(stmt.isSimpleIdentifier("anotherçone"));
+    assertFalse(stmt.isSimpleIdentifier("another'çone"));
+    assertFalse(stmt.isSimpleIdentifier(null));
+    assertFalse(stmt.isSimpleIdentifier(""));
+  }
+
+  @Test
+  public void statementEnquoteIdentifier() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+
+    assertEquals("good_$one", stmt.enquoteIdentifier("good_$one", false));
+    assertEquals("`good_$one`", stmt.enquoteIdentifier("good_$one", true));
+    assertEquals("`good_$one`", stmt.enquoteIdentifier("`good_$one`", true));
+    assertEquals("`🌟s`", stmt.enquoteIdentifier("🌟s", false));
+    assertEquals("`🌟s`", stmt.enquoteIdentifier("`🌟s`", false));
+    assertEquals("`good_``è``one`", stmt.enquoteIdentifier("good_`è`one", false));
+    try {
+      stmt.enquoteIdentifier("\u0000ff", true);
+      fail("must have thrown exception");
+    } catch (SQLException e) {
+      // expected
+    }
+  }
+
+  @Test
+  public void statementEnquoteString() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+
+    assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
+    assertEquals(
+        "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+  }
+
+  @Test
+  public void statementEnquoteNCharLiteral() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    assertEquals("N'good''one'", stmt.enquoteNCharLiteral("good'one"));
+  }
 }
