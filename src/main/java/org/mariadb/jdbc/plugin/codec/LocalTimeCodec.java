@@ -202,22 +202,24 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         return LocalTime.of(hour, minutes, seconds).plusNanos(microseconds * 1000);
 
       case TIME:
-        boolean negate = buf.readByte() == 1;
-        if (length > 4) {
-          buf.skip(4); // skip days
-          if (length > 7) {
-            hour = buf.readByte();
-            minutes = buf.readByte();
-            seconds = buf.readByte();
-            if (length > 8) {
-              microseconds = buf.readInt();
+        if (length > 0) {
+          boolean negate = buf.readByte() == 1;
+          if (length > 4) {
+            buf.skip(4); // skip days
+            if (length > 7) {
+              hour = buf.readByte();
+              minutes = buf.readByte();
+              seconds = buf.readByte();
+              if (length > 8) {
+                microseconds = buf.readInt();
+              }
             }
           }
-        }
-        if (negate) {
-          // negative
-          long nanos = (24 * 60 * 60 - (hour * 3600 + minutes * 60 + seconds));
-          return LocalTime.ofNanoOfDay(nanos * 1_000_000_000 - microseconds * 1000);
+          if (negate) {
+            // negative
+            long nanos = (24 * 60 * 60 - (hour * 3600 + minutes * 60 + seconds));
+            return LocalTime.ofNanoOfDay(nanos * 1_000_000_000 - microseconds * 1000);
+          }
         }
         return LocalTime.of(hour % 24, minutes, seconds, (int) microseconds * 1000);
 

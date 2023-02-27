@@ -411,8 +411,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
       TimeZone.setDefault(initialTz);
       try (Connection conAuto = createCon("timezone=auto")) {
         getDateTimezoneTestNormal(conAuto, getPrepare(conAuto));
+      } catch (SQLException e) {
+        assertTrue(e.getMessage().contains("Setting configured timezone 'auto' fail on server"));
+        assertTrue(e.getCause().getMessage().contains("Unknown or incorrect time zone:"));
       }
-
     } finally {
       TimeZone.setDefault(initialTz);
     }
@@ -787,6 +789,8 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
       assertNull(rs.getTimestamp(1));
       assertNull(rs.getTimestamp(2));
+      assertNull(rs.getObject(1, LocalDateTime.class));
+      assertNull(rs.getObject(2, LocalDateTime.class));
       assertEquals(
           LocalDateTime.parse("9999-12-31T00:00:00.00"), rs.getObject(3, LocalDateTime.class));
     }

@@ -199,23 +199,25 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
 
     switch (column.getType()) {
       case TIME:
-        // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        boolean negate = buf.readByte() == 1;
-        int day = buf.readInt();
-        hour = buf.readByte();
-        minutes = buf.readByte();
-        seconds = buf.readByte();
-        if (length > 8) {
-          microseconds = buf.readUnsignedInt();
-        }
+        if (length > 0) {
+          // specific case for TIME, to handle value not in 00:00:00-23:59:59
+          boolean negate = buf.readByte() == 1;
+          int day = buf.readInt();
+          hour = buf.readByte();
+          minutes = buf.readByte();
+          seconds = buf.readByte();
+          if (length > 8) {
+            microseconds = buf.readUnsignedInt();
+          }
 
-        if (negate) {
-          return LocalDateTime.of(1970, 1, 1, 0, 0)
-              .minusDays(day)
-              .minusHours(hour)
-              .minusMinutes(minutes)
-              .minusSeconds(seconds)
-              .minusNanos(microseconds * 1000);
+          if (negate) {
+            return LocalDateTime.of(1970, 1, 1, 0, 0)
+                .minusDays(day)
+                .minusHours(hour)
+                .minusMinutes(minutes)
+                .minusSeconds(seconds)
+                .minusNanos(microseconds * 1000);
+          }
         }
         break;
 

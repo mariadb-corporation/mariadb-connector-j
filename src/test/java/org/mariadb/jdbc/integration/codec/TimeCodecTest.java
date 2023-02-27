@@ -461,6 +461,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
     assertFalse(rs.wasNull());
+    assertEquals(LocalTime.parse("00:00"), rs.getObject(3, LocalTime.class));
+    assertEquals(LocalTime.parse("00:00"), rs.getObject(4, LocalTime.class));
     assertEquals(Duration.parse("PT0S"), rs.getObject(3, Duration.class));
     assertEquals(Duration.parse("PT0S"), rs.getObject(4, Duration.class));
     assertFalse(rs.wasNull());
@@ -519,6 +521,11 @@ public class TimeCodecTest extends CommonCodecTest {
         LocalDateTime.parse("1969-12-31T05:29:47.45"), rs.getObject(3, LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      rs.next();
+      assertEquals(LocalDateTime.parse("1970-01-01T00:00"), rs.getObject(3, LocalDateTime.class));
+      assertEquals(LocalDateTime.parse("1970-01-01T00:00"), rs.getObject(4, LocalDateTime.class));
+    }
   }
 
   @Test
