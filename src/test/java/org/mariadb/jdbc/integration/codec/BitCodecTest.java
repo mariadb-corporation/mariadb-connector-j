@@ -669,7 +669,7 @@ public class BitCodecTest extends CommonCodecTest {
     assertEquals("byte[]", meta.getColumnClassName(2));
     assertEquals("t2alias", meta.getColumnLabel(2));
     assertEquals("t2", meta.getColumnName(2));
-    assertEquals(Types.VARBINARY, meta.getColumnType(2));
+    assertEquals(Types.BIT, meta.getColumnType(2));
     assertEquals(4, meta.getPrecision(2));
     assertEquals(0, meta.getScale(2));
     assertEquals("", meta.getSchemaName(2));

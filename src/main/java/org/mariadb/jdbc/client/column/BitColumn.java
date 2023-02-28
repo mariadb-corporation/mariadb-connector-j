@@ -43,11 +43,11 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   public String defaultClassname(Configuration conf) {
-    return columnLength == 1 ? Boolean.class.getName() : "byte[]";
+    return columnLength == 1 && conf.transformedBitIsBoolean() ? Boolean.class.getName() : "byte[]";
   }
 
   public int getColumnType(Configuration conf) {
-    return columnLength == 1 ? Types.BOOLEAN : Types.VARBINARY;
+    return columnLength == 1 && conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
   }
 
   public String getColumnTypeName(Configuration conf) {
@@ -61,7 +61,7 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   @Override
   public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
       throws SQLDataException {
-    if (columnLength == 1) {
+    if (columnLength == 1 && conf.transformedBitIsBoolean()) {
       return ByteCodec.parseBit(buf, length) != 0;
     }
     byte[] arr = new byte[length];
