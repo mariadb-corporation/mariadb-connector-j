@@ -8,10 +8,10 @@ import static org.mariadb.jdbc.util.constants.Capabilities.LOCAL_FILES;
 
 import java.io.InputStream;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.DataType;
@@ -26,6 +26,22 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Statement implementation */
 public class Statement implements java.sql.Statement {
+  private static final Pattern identifierPattern =
+      Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
+  private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
+  private static final Map<String, String> mapper = new HashMap<>();
+
+  static {
+    mapper.put("\u0000", "\\0");
+    mapper.put("'", "\\\\'");
+    mapper.put("\"", "\\\\\"");
+    mapper.put("\b", "\\\\b");
+    mapper.put("\n", "\\\\n");
+    mapper.put("\r", "\\\\r");
+    mapper.put("\t", "\\\\t");
+    mapper.put("\u001A", "\\\\Z");
+    mapper.put("\\", "\\\\");
+  }
 
   private List<String> batchQueries;
 
@@ -1556,5 +1572,79 @@ public class Statement implements java.sql.Statement {
     } finally {
       localInfileInputStream = null;
     }
+  }
+
+  /**
+   * Enquote String value.
+   *
+   * @param val string value to enquote
+   * @return enquoted string value
+   * @throws SQLException -not possible-
+   */
+  @Override
+  public String enquoteLiteral(String val) throws SQLException {
+    Matcher matcher = escapePattern.matcher(val);
+    StringBuffer escapedVal = new StringBuffer("'");
+
+    while (matcher.find()) {
+      matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
+    }
+    matcher.appendTail(escapedVal);
+    escapedVal.append("'");
+    return escapedVal.toString();
+  }
+
+  /**
+   * Escaped identifier according to MariaDB requirement.
+   *
+   * @param identifier identifier
+   * @param alwaysQuote indicate if identifier must be enquoted even if not necessary.
+   * @return return escaped identifier, quoted when necessary or indicated with alwaysQuote.
+   * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
+   * @throws SQLException if containing u0000 character
+   */
+  @Override
+  public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
+    if (isSimpleIdentifier(identifier)) {
+      return alwaysQuote ? "`" + identifier + "`" : identifier;
+    } else {
+      if (identifier.contains("\u0000")) {
+        throw exceptionFactory().create("Invalid name - containing u0000 character", "42000");
+      }
+
+      if (identifier.matches("^`.+`$")) {
+        identifier = identifier.substring(1, identifier.length() - 1);
+      }
+      return "`" + identifier.replace("`", "``") + "`";
+    }
+  }
+
+  /**
+   * Retrieves whether identifier is a simple SQL identifier. The first character is an alphabetic
+   * character from a through z, or from A through Z The string only contains alphanumeric
+   * characters or the characters "_" and "$"
+   *
+   * @param identifier identifier
+   * @return true if identifier doesn't have to be quoted
+   * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
+   * @throws SQLException exception
+   */
+  @Override
+  public boolean isSimpleIdentifier(String identifier) throws SQLException {
+    return identifier != null
+        && !identifier.isEmpty()
+        && identifierPattern.matcher(identifier).matches();
+  }
+
+  /**
+  * Enquote utf8 value.
+  *
+  * @param val value to enquote
+  * @return enquoted String value
+  * @throws SQLException - not possible -
+  */
+  @Override
+  public String enquoteNCharLiteral(String val) throws SQLException {
+    return "N'" + val.replace("'", "''") + "'";
   }
 }
