@@ -1637,12 +1637,12 @@ public class Statement implements java.sql.Statement {
   }
 
   /**
-  * Enquote utf8 value.
-  *
-  * @param val value to enquote
-  * @return enquoted String value
-  * @throws SQLException - not possible -
-  */
+   * Enquote utf8 value.
+   *
+   * @param val value to enquote
+   * @return enquoted String value
+   * @throws SQLException - not possible -
+   */
   @Override
   public String enquoteNCharLiteral(String val) throws SQLException {
     return "N'" + val.replace("'", "''") + "'";
