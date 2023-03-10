@@ -142,6 +142,16 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void metaUnsigned() throws SQLException {
+    ResultSet typeInfo = sharedConn.getMetaData().getTypeInfo();
+    while (typeInfo.next()) {
+      Assertions.assertEquals(
+          typeInfo.getString("TYPE_NAME").contains("UNSIGNED"),
+          typeInfo.getBoolean("UNSIGNED_ATTRIBUTE"));
+    }
+  }
+
+  @Test
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
