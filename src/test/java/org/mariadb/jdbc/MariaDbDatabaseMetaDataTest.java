@@ -56,6 +56,7 @@ import static org.junit.Assert.*;
 
 import java.sql.*;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -112,6 +113,19 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
     assertEquals(yearAsDate ? "YEAR" : "SMALLINT", rs.getString(6));
     assertEquals(yearAsDate ? null : "5", rs.getString(7)); // column size
     assertEquals(yearAsDate ? null : "0", rs.getString(9)); // decimal digit
+  }
+
+  @Test
+  public void metaUnsigned() throws SQLException {
+    ResultSet typeInfo = sharedConnection.getMetaData().getTypeInfo();
+    while (typeInfo.next()) {
+      Assert.assertEquals(
+          String.format(
+              "type name: %s, UNSIGNED_ATTRIBUTE: %s",
+              typeInfo.getString("TYPE_NAME"), typeInfo.getBoolean("UNSIGNED_ATTRIBUTE")),
+          typeInfo.getString("TYPE_NAME").contains("UNSIGNED"),
+          typeInfo.getBoolean("UNSIGNED_ATTRIBUTE"));
+    }
   }
 
   @Test

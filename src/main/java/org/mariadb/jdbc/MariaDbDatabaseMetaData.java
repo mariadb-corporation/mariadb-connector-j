@@ -2802,9 +2802,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     };
 
     String[][] data = {
-      {"BIT", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BIT", "0", "0", "0", "0", "10"},
       {
-        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BOOL", "0", "0", "0", "0",
+        "BIT", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BIT", "0", "0", "0", "0", "10"
+      },
+      {
+        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOL", "0", "0", "0", "0",
         "10"
       },
       {
@@ -2817,7 +2819,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "TINYINT",
@@ -2837,7 +2839,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "TINYINT UNSIGNED",
@@ -2857,7 +2859,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "BIGINT",
@@ -2877,7 +2879,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "BIGINT UNSIGNED",
@@ -2897,7 +2899,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONG VARBINARY",
@@ -2917,7 +2919,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "MEDIUMBLOB",
@@ -2937,7 +2939,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONGBLOB",
@@ -2948,7 +2950,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "10"
       },
       {
-        "BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0", "0", "0",
+        "BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "\0", "0", "0", "BLOB", "0", "0", "0",
         "0", "10"
       },
       {
@@ -2961,7 +2963,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TINYBLOB",
@@ -2981,7 +2983,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "VARBINARY",
@@ -2992,7 +2994,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "10"
       },
       {
-        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY", "0", "0",
+        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "\0", "0", "0", "BINARY", "0", "0",
         "0", "0", "10"
       },
       {
@@ -3005,7 +3007,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONG VARCHAR",
@@ -3025,7 +3027,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "MEDIUMTEXT",
@@ -3045,7 +3047,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONGTEXT",
@@ -3056,7 +3058,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "10"
       },
       {
-        "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0", "0", "0",
+        "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "\0", "0", "0", "TEXT", "0", "0", "0",
         "0", "10"
       },
       {
@@ -3069,7 +3071,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TINYTEXT",
@@ -3080,7 +3082,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "10"
       },
       {
-        "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0", "0", "0",
+        "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "\0", "0", "0", "CHAR", "0", "0", "0",
         "0", "10"
       },
       {
@@ -3093,7 +3095,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "NUMERIC",
@@ -3113,7 +3115,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DECIMAL",
@@ -3133,7 +3135,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "INTEGER",
@@ -3153,7 +3155,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "INTEGER UNSIGNED",
@@ -3173,7 +3175,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "INT",
@@ -3193,7 +3195,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "INT UNSIGNED",
@@ -3213,7 +3215,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "MEDIUMINT",
@@ -3233,7 +3235,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "MEDIUMINT UNSIGNED",
@@ -3253,7 +3255,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "SMALLINT",
@@ -3273,7 +3275,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "SMALLINT UNSIGNED",
@@ -3293,7 +3295,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "FLOAT",
@@ -3313,7 +3315,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DOUBLE",
@@ -3333,7 +3335,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DOUBLE PRECISION",
@@ -3353,7 +3355,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "REAL",
@@ -3364,23 +3366,23 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "10"
       },
       {
-        "VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR", "0", "0",
+        "VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "\0", "0", "0", "VARCHAR", "0", "0",
         "0", "0", "10"
       },
       {
-        "ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "ENUM", "0", "0", "0",
+        "ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "\0", "0", "0", "ENUM", "0", "0", "0",
         "0", "10"
       },
       {
-        "SET", "12", "64", "'", "'", "", "1", "0", "3", "0", "0", "0", "SET", "0", "0", "0", "0",
+        "SET", "12", "64", "'", "'", "", "1", "0", "3", "\0", "0", "0", "SET", "0", "0", "0", "0",
         "10"
       },
       {
-        "DATE", "91", "10", "'", "'", "", "1", "0", "3", "0", "0", "0", "DATE", "0", "0", "0", "0",
+        "DATE", "91", "10", "'", "'", "", "1", "0", "3", "\0", "0", "0", "DATE", "0", "0", "0", "0",
         "10"
       },
       {
-        "TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIME", "0", "0", "0",
+        "TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "\0", "0", "0", "TIME", "0", "0", "0",
         "0", "10"
       },
       {
@@ -3393,7 +3395,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "DATETIME",
@@ -3413,7 +3415,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TIMESTAMP",
