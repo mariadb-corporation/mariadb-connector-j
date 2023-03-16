@@ -144,6 +144,8 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void metaUnsigned() throws SQLException {
     ResultSet typeInfo = sharedConn.getMetaData().getTypeInfo();
+    ResultSetMetaData rsmd = typeInfo.getMetaData();
+    assertEquals(Types.BOOLEAN, rsmd.getColumnType(typeInfo.findColumn("UNSIGNED_ATTRIBUTE")));
     while (typeInfo.next()) {
       Assertions.assertEquals(
           typeInfo.getString("TYPE_NAME").contains("UNSIGNED"),

@@ -6,9 +6,7 @@ package org.mariadb.jdbc.plugin.tls;
 
 import java.sql.SQLException;
 import java.util.ServiceLoader;
-
 import org.mariadb.jdbc.Driver;
-import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.TlsSocketPlugin;
 import org.mariadb.jdbc.plugin.tls.main.DefaultTlsSocketPlugin;
 
@@ -26,7 +24,8 @@ public final class TlsSocketPluginLoader {
   public static TlsSocketPlugin get(String type) throws SQLException {
     if (type == null) return new DefaultTlsSocketPlugin();
 
-    ServiceLoader<TlsSocketPlugin> loader = ServiceLoader.load(TlsSocketPlugin.class, Driver.class.getClassLoader());
+    ServiceLoader<TlsSocketPlugin> loader =
+        ServiceLoader.load(TlsSocketPlugin.class, Driver.class.getClassLoader());
 
     for (TlsSocketPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
