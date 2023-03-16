@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.1.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.3) (Mar 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.2...3.1.3)
+
+* CONJ-1054 Threadsafety issue when using CredentialPlugin in v3.x
+* CONJ-1056 JDBC connector reads incorrect data from unix socket when the text is too large
+* CONJ-1057 Wrong decoding of binary time with value "00:00:00"
+* CONJ-1058 JDBC 4.3 org.mariadb.jdbc.Statement enquote* methods implementation @peterhalicky
+* CONJ-1060 BIT default metadata doesn't take care of transformedBitIsBoolean option
+* report 2.7.9 bug fixes CONJ-1062 and CONJ-1063
+
+## [2.7.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.9) (Mar 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.8...2.7.9)
+
+* CONJ-1062 correcting TlsSocketPlugin to use Driver classloader
+* CONJ-1063 DatabaseMetaData.getTypeInfo() returns wrong value for UNSIGNED_ATTRIBUTE
+
 ## [3.1.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.2) (Jan 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.1...3.1.2)
 
