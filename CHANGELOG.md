@@ -1,4 +1,10 @@
 # Change Log
+## [2.7.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.9) (Mar 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.8...2.7.9)
+
+* CONJ-1062 correcting TlsSocketPlugin to use Driver classloader
+* CONJ-1063 DatabaseMetaData.getTypeInfo() returns wrong value for UNSIGNED_ATTRIBUTE
+
 ## [2.7.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.8) (Jan 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.7...2.7.8)
 
