@@ -79,7 +79,7 @@ public class Configuration {
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
-  private boolean tcpKeepAlive = false;
+  private boolean tcpKeepAlive = true;
   private int tcpKeepIdle = 0;
   private int tcpKeepCount = 0;
   private int tcpKeepInterval = 0;
