@@ -93,7 +93,7 @@ public class PreparedStatementTest extends Common {
       paramMeta.getParameterTypeName(1);
 
       // verification
-      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1 ORDER BY t1");
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
       assertEquals(10, rs.getInt(2));
@@ -104,7 +104,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 12);
       assertFalse(preparedStatement.execute());
 
-      rs = stmt.executeQuery("SELECT * FROM prepare1 WHERE t1 > 5");
+      rs = stmt.executeQuery("SELECT * FROM prepare1 WHERE t1 > 5 ORDER BY t1");
       assertTrue(rs.next());
       assertEquals(7, rs.getInt(1));
       assertEquals(12, rs.getInt(2));
@@ -112,7 +112,7 @@ public class PreparedStatementTest extends Common {
     }
 
     try (PreparedStatement preparedStatement =
-        conn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ?")) {
+        conn.prepareStatement("SELECT * FROM prepare1 WHERE t1 > ? ORDER BY t1")) {
       preparedStatement.setInt(1, 4);
       assertTrue(preparedStatement.execute());
       ResultSet rs = preparedStatement.getResultSet();
@@ -165,7 +165,7 @@ public class PreparedStatementTest extends Common {
   }
 
   @Test
-  public void executeUpdate() throws SQLException {
+  public void executeUpdateTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("TRUNCATE prepare1");
     try (PreparedStatement preparedStatement =
@@ -186,7 +186,7 @@ public class PreparedStatementTest extends Common {
       assertFalse(rs0.next());
 
       // verification
-      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM prepare1 ORDER BY t1");
       assertTrue(rs.next());
       assertEquals(5, rs.getInt(1));
       assertEquals(10, rs.getInt(2));
@@ -401,7 +401,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 10);
       preparedStatement.addBatch();
       res = preparedStatement.executeBatch();
-      assertEquals(1, res.length);
+      assertEquals(2, res.length);
       res = preparedStatement.executeBatch();
       assertEquals(0, res.length);
     }
@@ -415,7 +415,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(2, 45);
       preparedStatement.addBatch();
       int[] res = preparedStatement.executeBatch();
-      assertEquals(2, res.length);
+      assertEquals(4, res.length);
     }
 
     try (PreparedStatement preparedStatement =

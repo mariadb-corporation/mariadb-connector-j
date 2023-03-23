@@ -111,7 +111,7 @@ public class LocalInfileTest extends Common {
           "LOAD DATA LOCAL INFILE '"
               + temp.getCanonicalPath().replace("\\", "/")
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
-      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2 ORDER BY id");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertEquals("hello", rs.getString(2));
@@ -128,7 +128,7 @@ public class LocalInfileTest extends Common {
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       stmt.executeBatch();
 
-      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2 ORDER BY id");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertEquals("hello", rs.getString(2));
@@ -236,7 +236,7 @@ public class LocalInfileTest extends Common {
           "LOAD DATA LOCAL INFILE '"
               + fileName
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
-      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2 ORDER BY id");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertEquals("hello", rs.getString(2));
@@ -254,7 +254,7 @@ public class LocalInfileTest extends Common {
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       stmt.executeBatch();
 
-      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2 ORDER BY id");
       assertTrue(rs.next());
       assertEquals(1, rs.getInt(1));
       assertEquals("hello", rs.getString(2));
@@ -281,7 +281,7 @@ public class LocalInfileTest extends Common {
           "LOAD DATA LOCAL INFILE '"
               + fileName
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
-      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2 ORDER BY id");
       assertTrue(rs.next());
       assertEquals(3, rs.getInt(1));
       assertEquals("foo", rs.getString(2));

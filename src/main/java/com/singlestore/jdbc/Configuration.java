@@ -142,6 +142,7 @@ public class Configuration {
   private Codec<?>[] codecs = null;
 
   private boolean useMysqlVersion = false;
+  private boolean rewriteBatchedStatements = false;
 
   private Configuration() {}
 
@@ -207,7 +208,8 @@ public class Configuration {
       boolean registerJmxPool,
       int poolValidMinDelay,
       boolean useResetConnection,
-      boolean useMysqlVersion) {
+      boolean useMysqlVersion,
+      boolean rewriteBatchedStatements) {
     this.user = user;
     this.password = password;
     this.database = database;
@@ -270,6 +272,7 @@ public class Configuration {
     this.poolValidMinDelay = poolValidMinDelay;
     this.useResetConnection = useResetConnection;
     this.useMysqlVersion = useMysqlVersion;
+    this.rewriteBatchedStatements = rewriteBatchedStatements;
     this.initialUrl = buildUrl(this);
   }
 
@@ -335,7 +338,8 @@ public class Configuration {
       String geometryDefaultType,
       String restrictedAuth,
       Properties nonMappedOptions,
-      Boolean useMysqlVersion)
+      Boolean useMysqlVersion,
+      Boolean rewriteBatchedStatements)
       throws SQLException {
     this.database = database;
     this.addresses = addresses;
@@ -424,6 +428,7 @@ public class Configuration {
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
     if (useMysqlVersion != null) this.useMysqlVersion = useMysqlVersion;
+    if (rewriteBatchedStatements != null) this.rewriteBatchedStatements = rewriteBatchedStatements;
 
     // *************************************************************
     // host primary check
@@ -723,7 +728,8 @@ public class Configuration {
         this.registerJmxPool,
         this.poolValidMinDelay,
         this.useResetConnection,
-        this.useMysqlVersion);
+        this.useMysqlVersion,
+        this.rewriteBatchedStatements);
   }
 
   public String database() {
@@ -987,6 +993,10 @@ public class Configuration {
     return useMysqlVersion;
   }
 
+  public boolean rewriteBatchedStatements() {
+    return rewriteBatchedStatements;
+  }
+
   /**
    * ToString implementation.
    *
@@ -1221,6 +1231,8 @@ public class Configuration {
     private Boolean useResetConnection;
 
     private Boolean useMysqlVersion;
+
+    private Boolean rewriteBatchedStatements;
 
     public Builder user(String user) {
       this.user = nullOrEmpty(user);
@@ -1663,6 +1675,11 @@ public class Configuration {
       return this;
     }
 
+    public Builder rewriteBatchedStatements(Boolean rewriteBatchedStatements) {
+      this.rewriteBatchedStatements = rewriteBatchedStatements;
+      return this;
+    }
+
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1727,7 +1744,8 @@ public class Configuration {
               this.geometryDefaultType,
               this.restrictedAuth,
               this._nonMappedOptions,
-              this.useMysqlVersion);
+              this.useMysqlVersion,
+              this.rewriteBatchedStatements);
       conf.initialUrl = buildUrl(conf);
       return conf;
     }
