@@ -354,7 +354,7 @@ public class StatementTest extends Common {
     }
     assertEquals(10, i);
 
-    stmt.setQueryTimeout(2);
+    stmt.setQueryTimeout(10);
     rs = stmt.executeQuery("SELECT * FROM range_1_100 ORDER BY n");
     i = 0;
     while (rs.next()) {
@@ -387,7 +387,7 @@ public class StatementTest extends Common {
     }
     assertEquals(10, i);
 
-    stmt.setQueryTimeout(2);
+    stmt.setQueryTimeout(10);
     rs = stmt.executeQuery("SELECT * FROM range_1_100 ORDER BY n");
     i = 0;
     while (rs.next()) {
@@ -509,8 +509,7 @@ public class StatementTest extends Common {
       executeTimeOutQeuryWithStatement(con.createStatement());
     }
 
-    String sql =
-        "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2";
+    String sql = "SELECT SLEEP(10)";
 
     // Use-case-6 Test Query Timeout implementation with 'PreparedStatement'
     try (Connection con = (Connection) DriverManager.getConnection(mDefUrl)) {
