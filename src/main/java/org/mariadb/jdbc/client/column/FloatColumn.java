@@ -52,7 +52,8 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
   }
 
   public String getColumnTypeName(Configuration conf) {
-    return "FLOAT";
+    if (isSigned()) return "FLOAT";
+    return "FLOAT UNSIGNED";
   }
 
   @Override

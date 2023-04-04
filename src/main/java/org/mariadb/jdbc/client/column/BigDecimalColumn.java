@@ -53,7 +53,8 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
   }
 
   public String getColumnTypeName(Configuration conf) {
-    return "DECIMAL";
+    if (isSigned()) return "DECIMAL";
+    return "DECIMAL UNSIGNED";
   }
 
   public int getPrecision() {

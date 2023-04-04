@@ -52,7 +52,8 @@ public class DoubleColumn extends ColumnDefinitionPacket implements ColumnDecode
   }
 
   public String getColumnTypeName(Configuration conf) {
-    return "DOUBLE";
+    if (isSigned()) return "DOUBLE";
+    return "DOUBLE UNSIGNED";
   }
 
   @Override
