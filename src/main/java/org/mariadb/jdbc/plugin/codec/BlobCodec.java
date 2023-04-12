@@ -56,24 +56,12 @@ public class BlobCodec implements Codec<Blob> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
         return buf.readBlob(length);
 
       default:
@@ -91,24 +79,12 @@ public class BlobCodec implements Codec<Blob> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
         buf.skip(length);
         return new MariaDbBlob(buf.buf(), buf.pos() - length, length);
 
