@@ -74,15 +74,21 @@ public class InstantCodec implements Codec<Instant> {
     Instant instant = (Instant) val;
 
     encoder.writeByte('\'');
-    ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());
-    if (calParam != null) {
-      zonedDateTime = zonedDateTime.withZoneSameInstant(calParam.getTimeZone().toZoneId());
+    if (calParam == null && "UTC".equals(ZoneId.systemDefault().getId())) {
+      // reusing ISO6801 format, replacing T by space and removing Z
+      encoder.writeAscii(instant.toString().replace('T', ' '));
+      encoder.pos(encoder.pos() - 1); // remove 'Z'
+    } else {
+      ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());
+      if (calParam != null) {
+        zonedDateTime = zonedDateTime.withZoneSameInstant(calParam.getTimeZone().toZoneId());
+      }
+      encoder.writeAscii(
+          zonedDateTime.format(
+              instant.getNano() != 0
+                  ? LocalDateTimeCodec.TIMESTAMP_FORMAT
+                  : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     }
-    encoder.writeAscii(
-        zonedDateTime.format(
-            instant.getNano() != 0
-                ? LocalDateTimeCodec.TIMESTAMP_FORMAT
-                : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     encoder.writeByte('\'');
   }
 
