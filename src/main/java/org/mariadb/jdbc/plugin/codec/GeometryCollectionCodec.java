@@ -9,6 +9,7 @@ import java.sql.SQLDataException;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
@@ -32,23 +33,25 @@ public class GeometryCollectionCodec implements Codec<GeometryCollection> {
 
   @Override
   public GeometryCollection decodeText(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
   public GeometryCollection decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
-      Geometry geo = Geometry.getGeometry(buf, length - 4, column);
+      Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
       if (geo instanceof GeometryCollection) return (GeometryCollection) geo;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as GeometryCollection",
               geo.getClass().getName()));
     }
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as GeometryCollection", column.getType()));
   }

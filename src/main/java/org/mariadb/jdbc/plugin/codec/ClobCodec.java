@@ -14,6 +14,7 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -47,13 +48,13 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public Clob decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Clob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }
 
   @SuppressWarnings("fallthrough")
-  private Clob getClob(ReadableByteBuf buf, int length, ColumnDecoder column)
+  private Clob getClob(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
       throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
@@ -61,7 +62,7 @@ public class ClobCodec implements Codec<Clob> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Clob", column.getType()));
         }
@@ -71,19 +72,20 @@ public class ClobCodec implements Codec<Clob> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        Clob clob = new MariaDbClob(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        Clob clob = new MariaDbClob(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return clob;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Clob", column.getType()));
     }
   }
 
   @Override
-  public Clob decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Clob decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }

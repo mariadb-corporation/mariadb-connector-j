@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Integer codec */
@@ -56,7 +57,7 @@ public class IntCodec implements Codec<Integer> {
   @Override
   public Integer decodeText(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException {
@@ -66,7 +67,7 @@ public class IntCodec implements Codec<Integer> {
   @Override
   public Integer decodeBinary(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException {

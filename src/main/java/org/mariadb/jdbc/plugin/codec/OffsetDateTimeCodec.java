@@ -14,6 +14,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** OffsetDateTime codec */
@@ -52,7 +53,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeText(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -66,7 +67,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           return OffsetDateTime.parse(val);
         } catch (Throwable e) {
@@ -76,7 +77,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
             String.format(
                 "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format(
                 "value of type %s cannot be decoded as OffsetDateTime", column.getType()));
@@ -85,7 +86,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -99,7 +100,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           return OffsetDateTime.parse(val);
         } catch (Throwable e) {
@@ -110,7 +111,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
                 "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format(
                 "value of type %s cannot be decoded as OffsetDateTime", column.getType()));

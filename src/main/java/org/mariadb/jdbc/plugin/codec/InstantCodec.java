@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Instant codec */
@@ -49,7 +50,7 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public Instant decodeText(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -59,7 +60,7 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public Instant decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);

@@ -10,6 +10,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.plugin.codec.ByteCodec;
 
@@ -59,48 +60,49 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     if (columnLength == 1 && conf.transformedBitIsBoolean()) {
       return ByteCodec.parseBit(buf, length) != 0;
     }
-    byte[] arr = new byte[length];
+    byte[] arr = new byte[length.get()];
     buf.readBytes(arr);
     return arr;
   }
 
   @Override
-  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     return getDefaultText(conf, buf, length);
   }
 
   @Override
-  public boolean decodeBooleanText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public boolean decodeBooleanText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     return ByteCodec.parseBit(buf, length) != 0;
   }
 
   @Override
-  public boolean decodeBooleanBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public boolean decodeBooleanBinary(ReadableByteBuf buf, MutableInt length)
+      throws SQLDataException {
     return ByteCodec.parseBit(buf, length) != 0;
   }
 
   @Override
-  public byte decodeByteText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public byte decodeByteText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     byte val = buf.readByte();
-    if (length > 1) buf.skip(length - 1);
+    if (length.get() > 1) buf.skip(length.get() - 1);
     return val;
   }
 
   @Override
-  public byte decodeByteBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public byte decodeByteBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     return decodeByteText(buf, length);
   }
 
   @Override
-  public String decodeStringText(ReadableByteBuf buf, int length, Calendar cal)
+  public String decodeStringText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    byte[] bytes = new byte[length];
+    byte[] bytes = new byte[length.get()];
     buf.readBytes(bytes);
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
     sb.append("b'");
@@ -119,9 +121,9 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public String decodeStringBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public String decodeStringBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    byte[] bytes = new byte[length];
+    byte[] bytes = new byte[length.get()];
     buf.readBytes(bytes);
     StringBuilder sb = new StringBuilder(bytes.length * Byte.SIZE + 3);
     sb.append("b'");
@@ -140,9 +142,9 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public short decodeShortText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public short decodeShortText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     long result = 0;
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length.get(); i++) {
       byte b = buf.readByte();
       result = (result << 8) + (b & 0xff);
     }
@@ -153,14 +155,14 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public short decodeShortBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public short decodeShortBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     return decodeShortText(buf, length);
   }
 
   @Override
-  public int decodeIntText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public int decodeIntText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     long result = 0;
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length.get(); i++) {
       byte b = buf.readByte();
       result = (result << 8) + (b & 0xff);
     }
@@ -172,9 +174,9 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public int decodeIntBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public int decodeIntBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     long result = 0;
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length.get(); i++) {
       byte b = buf.readByte();
       result = (result << 8) + (b & 0xff);
     }
@@ -188,9 +190,9 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public long decodeLongText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public long decodeLongText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     long result = 0;
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length.get(); i++) {
       byte b = buf.readByte();
       result = (result << 8) + (b & 0xff);
     }
@@ -198,74 +200,74 @@ public class BitColumn extends ColumnDefinitionPacket implements ColumnDecoder {
   }
 
   @Override
-  public long decodeLongBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public long decodeLongBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     return decodeLongText(buf, length);
   }
 
   @Override
-  public float decodeFloatText(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
+  public float decodeFloatText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
   }
 
   @Override
-  public float decodeFloatBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
+  public float decodeFloatBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Float", dataType));
   }
 
   @Override
-  public double decodeDoubleText(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
+  public double decodeDoubleText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
   }
 
   @Override
-  public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
-    buf.skip(length);
+  public double decodeDoubleBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Double", dataType));
   }
 
   @Override
-  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+  public Date decodeDateText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
 
   @Override
-  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Date decodeDateBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
   }
 
   @Override
-  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+  public Time decodeTimeText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
 
   @Override
-  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Time decodeTimeBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
   }
 
   @Override
-  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }
 
   @Override
-  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }

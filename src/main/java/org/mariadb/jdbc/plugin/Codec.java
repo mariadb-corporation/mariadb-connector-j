@@ -12,6 +12,7 @@ import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 
 /**
  * Codec interface, to describe how a certain type of data must be encoded / decoded
@@ -48,7 +49,7 @@ public interface Codec<T> {
    * Decode from a mysql packet text encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
@@ -56,7 +57,7 @@ public interface Codec<T> {
    */
   T decodeText(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt fieldLength,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException;
@@ -65,7 +66,7 @@ public interface Codec<T> {
    * Decode from a mysql packet binary encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
@@ -73,7 +74,7 @@ public interface Codec<T> {
    */
   T decodeBinary(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt fieldLength,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException;

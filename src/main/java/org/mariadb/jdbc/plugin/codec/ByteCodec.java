@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Byte codec */
@@ -47,16 +48,16 @@ public class ByteCodec implements Codec<Byte> {
    * @param length encoded length
    * @return long value
    */
-  public static long parseBit(ReadableByteBuf buf, int length) {
-    if (length == 1) {
+  public static long parseBit(ReadableByteBuf buf, MutableInt length) {
+    if (length.get() == 1) {
       return buf.readUnsignedByte();
     }
     long val = 0;
     int idx = 0;
     do {
-      val += ((long) buf.readUnsignedByte()) << (8 * length);
+      val += ((long) buf.readUnsignedByte()) << (8 * length.get());
       idx++;
-    } while (idx < length);
+    } while (idx < length.get());
     return val;
   }
 
@@ -76,7 +77,7 @@ public class ByteCodec implements Codec<Byte> {
   @Override
   public Byte decodeText(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException {
@@ -86,7 +87,7 @@ public class ByteCodec implements Codec<Byte> {
   @Override
   public Byte decodeBinary(
       final ReadableByteBuf buffer,
-      final int length,
+      final MutableInt length,
       final ColumnDecoder column,
       final Calendar cal)
       throws SQLDataException {

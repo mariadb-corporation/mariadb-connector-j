@@ -9,6 +9,7 @@ import java.sql.SQLDataException;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.Geometry;
 import org.mariadb.jdbc.type.MultiPoint;
@@ -33,23 +34,25 @@ public class MultiPointCodec implements Codec<MultiPoint> {
   }
 
   @Override
-  public MultiPoint decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public MultiPoint decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
   public MultiPoint decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
-      Geometry geo = Geometry.getGeometry(buf, length - 4, column);
+      Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
       if (geo instanceof MultiPoint) return (MultiPoint) geo;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as MultiPoint", geo.getClass().getName()));
     }
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as MultiPoint", column.getType()));
   }

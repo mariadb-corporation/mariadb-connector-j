@@ -569,6 +569,9 @@ public class VarcharCodecTest extends CommonCodecTest {
             + TimeZone.getDefault().getDSTSavings(),
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTimestamp(2));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -598,6 +601,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         () -> rs.getObject(1, LocalDateTime.class),
         "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as LocalDateTime");
     assertNull(rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -626,6 +630,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         () -> rs.getObject(1, LocalDate.class),
         "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
     assertNull(rs.getObject(2, LocalDate.class));
+    assertTrue(rs.wasNull());
   }
 
   @Test

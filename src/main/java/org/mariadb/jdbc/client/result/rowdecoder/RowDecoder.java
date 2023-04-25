@@ -21,7 +21,7 @@ public interface RowDecoder {
    * @param fieldLength field length
    * @return true if last value was null
    */
-  boolean wasNull(byte[] nullBitmap, MutableInt fieldIndex, int fieldLength);
+  boolean wasNull(byte[] nullBitmap, MutableInt fieldIndex, MutableInt fieldLength);
 
   /**
    * Position the read index on buffer to data at indicated index.
@@ -59,7 +59,7 @@ public interface RowDecoder {
       Codec<T> codec,
       Calendar calendar,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex)
       throws SQLException;
@@ -80,7 +80,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -97,7 +97,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
 
   /**
@@ -114,7 +114,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to Date.
@@ -131,7 +131,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
   /**
@@ -149,7 +149,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
   /**
@@ -167,7 +167,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
   /**
@@ -184,7 +184,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to int.
@@ -200,7 +200,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to String.
@@ -216,7 +216,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to long.
@@ -232,7 +232,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to float.
@@ -248,7 +248,7 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
   /**
    * Decode data according to double.
@@ -264,6 +264,6 @@ public interface RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException;
 }

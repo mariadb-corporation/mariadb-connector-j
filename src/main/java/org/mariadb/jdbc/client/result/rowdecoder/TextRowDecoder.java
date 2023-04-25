@@ -21,7 +21,7 @@ public class TextRowDecoder implements RowDecoder {
       Codec<T> codec,
       Calendar cal,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex)
       throws SQLException {
@@ -34,7 +34,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].getDefaultText(conf, rowBuf, fieldLength);
   }
@@ -44,7 +44,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeStringText(rowBuf, fieldLength, null);
   }
@@ -53,7 +53,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeByteText(rowBuf, fieldLength);
   }
@@ -62,7 +62,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeBooleanText(rowBuf, fieldLength);
   }
@@ -71,7 +71,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeDateText(rowBuf, fieldLength, cal);
@@ -81,7 +81,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeTimeText(rowBuf, fieldLength, cal);
@@ -91,7 +91,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeTimestampText(rowBuf, fieldLength, cal);
@@ -101,7 +101,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeShortText(rowBuf, fieldLength);
   }
@@ -110,7 +110,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeIntText(rowBuf, fieldLength);
   }
@@ -119,7 +119,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeLongText(rowBuf, fieldLength);
   }
@@ -128,7 +128,7 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeFloatText(rowBuf, fieldLength);
   }
@@ -137,13 +137,13 @@ public class TextRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeDoubleText(rowBuf, fieldLength);
   }
 
-  public boolean wasNull(byte[] nullBitmap, MutableInt fieldIndex, int fieldLength) {
-    return fieldLength == NULL_LENGTH;
+  public boolean wasNull(byte[] nullBitmap, MutableInt fieldIndex, MutableInt fieldLength) {
+    return fieldLength.get() == NULL_LENGTH;
   }
 
   /**

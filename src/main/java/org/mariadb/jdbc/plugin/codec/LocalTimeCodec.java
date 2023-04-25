@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.plugin.codec;
 
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
+
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDateTime;
@@ -16,6 +18,7 @@ import java.util.EnumSet;
 import java.util.TimeZone;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** LocalTime codec */
@@ -46,7 +49,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
    * @return hour/minutes/seconds/microseconds array
    * @throws SQLDataException if parsing error occurs
    */
-  public static int[] parseTime(ReadableByteBuf buf, int length, ColumnDecoder column)
+  public static int[] parseTime(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
       throws SQLDataException {
     int initialPos = buf.pos();
     int[] parts = new int[5];
@@ -55,13 +58,13 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     int partLength = 0;
     byte b;
     int i = 0;
-    if (length > 0 && buf.getByte() == '-') {
+    if (length.get() > 0 && buf.getByte() == '-') {
       buf.skip();
       i++;
       parts[0] = -1;
     }
 
-    for (; i < length; i++) {
+    for (; i < length.get(); i++) {
       b = buf.readByte();
       if (b == ':' || b == '.') {
         idx++;
@@ -70,7 +73,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       }
       if (b < '0' || b > '9') {
         buf.pos(initialPos);
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         throw new SQLDataException(
             String.format("%s value '%s' cannot be decoded as Time", column.getType(), val));
       }
@@ -80,7 +83,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
     if (idx < 2) {
       buf.pos(initialPos);
-      String val = buf.readString(length);
+      String val = buf.readString(length.get());
       throw new SQLDataException(
           String.format("%s value '%s' cannot be decoded as Time", column.getType(), val));
     }
@@ -108,15 +111,19 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalTime decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public LocalTime decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readString(length));
-        if (parts == null) return null;
+        parts = LocalDateTimeCodec.parseTimestamp(buf.readString(length.get()));
+        if (parts == null) {
+          length.set(NULL_LENGTH);
+          return null;
+        }
         return LocalTime.of(parts[3], parts[4], parts[5], parts[6]);
 
       case TIME:
@@ -134,7 +141,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
@@ -144,7 +151,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           if (val.contains(" ")) {
             ZoneId tz =
@@ -161,7 +168,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
     }
@@ -169,7 +176,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalTime decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public LocalTime decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int hour = 0;
@@ -179,38 +187,48 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        if (length == 0) return null;
+        if (length.get() == 0) {
+          length.set(NULL_LENGTH);
+          return null;
+        }
 
         int year = buf.readUnsignedShort();
         int month = buf.readByte();
         int dayOfMonth = buf.readByte();
 
-        if (length > 4) {
+        if (length.get() > 4) {
           hour = buf.readByte();
           minutes = buf.readByte();
           seconds = buf.readByte();
 
-          if (length > 7) {
+          if (length.get() > 7) {
             microseconds = buf.readInt();
           }
         }
 
         // xpand workaround https://jira.mariadb.org/browse/XPT-274
-        if (year == 0 && month == 0 && dayOfMonth == 0 && hour == 0 && minutes == 0 && seconds == 0)
+        if (year == 0
+            && month == 0
+            && dayOfMonth == 0
+            && hour == 0
+            && minutes == 0
+            && seconds == 0) {
+          length.set(NULL_LENGTH);
           return null;
+        }
 
         return LocalTime.of(hour, minutes, seconds).plusNanos(microseconds * 1000);
 
       case TIME:
-        if (length > 0) {
+        if (length.get() > 0) {
           boolean negate = buf.readByte() == 1;
-          if (length > 4) {
+          if (length.get() > 4) {
             buf.skip(4); // skip days
-            if (length > 7) {
+            if (length.get() > 7) {
               hour = buf.readByte();
               minutes = buf.readByte();
               seconds = buf.readByte();
-              if (length > 8) {
+              if (length.get() > 8) {
                 microseconds = buf.readInt();
               }
             }
@@ -228,7 +246,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
@@ -238,7 +256,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case VARSTRING:
       case VARCHAR:
       case STRING:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           if (val.contains(" ")) {
             ZoneId tz =
@@ -255,7 +273,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
     }

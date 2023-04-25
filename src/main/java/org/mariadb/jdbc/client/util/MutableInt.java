@@ -6,7 +6,15 @@ package org.mariadb.jdbc.client.util;
 
 /** Mutable int */
 public class MutableInt {
-  private int value = -1;
+  public MutableInt() {
+    this.value = -1;
+  }
+
+  public MutableInt(int value) {
+    this.value = value;
+  }
+
+  private int value;
 
   /**
    * Set new sequence value

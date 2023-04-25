@@ -13,6 +13,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Time codec */
@@ -52,14 +53,15 @@ public class TimeCodec implements Codec<Time> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Time decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Time decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return column.decodeTimeText(buf, length, cal);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Time decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+  public Time decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     return column.decodeTimeBinary(buf, length, calParam);
   }

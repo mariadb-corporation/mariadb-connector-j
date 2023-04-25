@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.plugin.codec;
 
+import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
+
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.Duration;
@@ -11,6 +13,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Duration codec */
@@ -46,15 +49,19 @@ public class DurationCodec implements Codec<Duration> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Duration decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Duration decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length));
-        if (parts == null) return null;
+        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
+        if (parts == null) {
+          length.set(NULL_LENGTH);
+          return null;
+        }
         return Duration.ZERO
             .plusDays(parts[2] - 1)
             .plusHours(parts[3])
@@ -67,7 +74,7 @@ public class DurationCodec implements Codec<Duration> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Duration", column.getType()));
         }
@@ -89,7 +96,7 @@ public class DurationCodec implements Codec<Duration> {
         return d;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }
@@ -97,7 +104,8 @@ public class DurationCodec implements Codec<Duration> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Duration decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Duration decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     long days = 0;
@@ -108,15 +116,15 @@ public class DurationCodec implements Codec<Duration> {
     switch (column.getType()) {
       case TIME:
         boolean negate = false;
-        if (length > 0) {
+        if (length.get() > 0) {
           negate = buf.readUnsignedByte() == 0x01;
-          if (length > 4) {
+          if (length.get() > 4) {
             days = buf.readUnsignedInt();
-            if (length > 7) {
+            if (length.get() > 7) {
               hours = buf.readByte();
               minutes = buf.readByte();
               seconds = buf.readByte();
-              if (length > 8) {
+              if (length.get() > 8) {
                 microseconds = buf.readInt();
               }
             }
@@ -135,23 +143,28 @@ public class DurationCodec implements Codec<Duration> {
 
       case TIMESTAMP:
       case DATETIME:
-        if (length == 0) return null;
+        if (length.get() == 0) {
+          length.set(NULL_LENGTH);
+          return null;
+        }
         int year = buf.readUnsignedShort();
         int month = buf.readByte();
         days = buf.readByte();
-        if (length > 4) {
+        if (length.get() > 4) {
           hours = buf.readByte();
           minutes = buf.readByte();
           seconds = buf.readByte();
 
-          if (length > 7) {
+          if (length.get() > 7) {
             microseconds = buf.readUnsignedInt();
           }
         }
 
         // xpand workaround https://jira.mariadb.org/browse/XPT-274
-        if (year == 0 && month == 0 && days == 0 && hours == 0 && minutes == 0 && seconds == 0)
+        if (year == 0 && month == 0 && days == 0 && hours == 0 && minutes == 0 && seconds == 0) {
+          length.set(NULL_LENGTH);
           return null;
+        }
 
         return Duration.ZERO
             .plusDays(days - 1)
@@ -174,7 +187,7 @@ public class DurationCodec implements Codec<Duration> {
         return d;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }

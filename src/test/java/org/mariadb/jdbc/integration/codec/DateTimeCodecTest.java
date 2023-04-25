@@ -103,6 +103,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      assertTrue(rs.next());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
+    }
   }
 
   @Test
@@ -394,6 +401,22 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
       assertNull(rs.getTime(1));
       assertNull(rs.getTime(2));
+      assertNull(rs.getDate(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getDate(2));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, ZonedDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -759,6 +782,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTime(1));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -780,6 +804,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, Duration.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -806,6 +831,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTime(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -832,6 +860,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getDate(1));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -861,7 +892,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(2, Timestamp.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
     }
@@ -893,9 +928,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(2, LocalDateTime.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           LocalDateTime.parse("9999-12-31T00:00:00.00"), rs.getObject(3, LocalDateTime.class));
     }
@@ -934,7 +973,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
       assertEquals(
           ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00.00"), ZoneId.systemDefault())
               .toInstant(),
@@ -977,7 +1018,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, OffsetDateTime.class));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(2, OffsetDateTime.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           OffsetDateTime.ofInstant(
               Timestamp.valueOf("9999-12-31 00:00:00.00").toInstant(), ZoneId.systemDefault()),
