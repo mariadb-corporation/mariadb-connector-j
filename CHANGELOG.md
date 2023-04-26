@@ -1,5 +1,13 @@
 # Change Log
 
+## [3.1.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.4) (Apr 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.3...3.1.4)
+
+* CONJ-1065 wrong Resultset.wasNull() for zero-date timestamps
+* CONJ-1070	getBlob on TEXT columns throw Exception
+* CONJ-1071	Error response during Bulk execution might result in connection wrong state
+* CONJ-1067	When some numeric data types are set to UNSIGNED, ResultSetMetaData.getColumnTypeName() does not return UNSIGNED
+
 ## [3.1.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.3) (Mar 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.2...3.1.3)
 
