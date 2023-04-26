@@ -19,7 +19,8 @@ public class GssapiAuthenticationTest extends Common {
     } catch (SQLException e) {
       // eat
     }
-    System.out.println("user name:" + System.getProperty("user.name"));
+
+    stmt.execute("DROP USER IF EXISTS " + System.getProperty("user.name"));
     stmt.execute("CREATE USER " + System.getProperty("user.name") + " IDENTIFIED VIA gssapi");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO " + System.getProperty("user.name"));
 
