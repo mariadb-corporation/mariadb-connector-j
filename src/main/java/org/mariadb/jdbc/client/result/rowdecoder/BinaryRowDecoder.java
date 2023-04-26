@@ -33,7 +33,7 @@ public class BinaryRowDecoder implements RowDecoder {
       Codec<T> codec,
       Calendar cal,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex)
       throws SQLException {
@@ -46,7 +46,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].getDefaultBinary(conf, rowBuf, fieldLength);
   }
@@ -55,7 +55,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeStringBinary(rowBuf, fieldLength, null);
   }
@@ -64,7 +64,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeByteBinary(rowBuf, fieldLength);
   }
@@ -73,7 +73,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeBooleanBinary(rowBuf, fieldLength);
   }
@@ -82,7 +82,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeDateBinary(rowBuf, fieldLength, cal);
@@ -92,7 +92,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeTimeBinary(rowBuf, fieldLength, cal);
@@ -102,7 +102,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength,
+      MutableInt fieldLength,
       Calendar cal)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeTimestampBinary(rowBuf, fieldLength, cal);
@@ -112,7 +112,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeShortBinary(rowBuf, fieldLength);
   }
@@ -121,7 +121,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeIntBinary(rowBuf, fieldLength);
   }
@@ -130,7 +130,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeLongBinary(rowBuf, fieldLength);
   }
@@ -139,7 +139,7 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeFloatBinary(rowBuf, fieldLength);
   }
@@ -148,13 +148,14 @@ public class BinaryRowDecoder implements RowDecoder {
       ColumnDecoder[] metadataList,
       final MutableInt fieldIndex,
       StandardReadableByteBuf rowBuf,
-      int fieldLength)
+      MutableInt fieldLength)
       throws SQLException {
     return metadataList[fieldIndex.get()].decodeDoubleBinary(rowBuf, fieldLength);
   }
 
-  public boolean wasNull(byte[] nullBitmap, final MutableInt fieldIndex, int fieldLength) {
-    return (nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) > 0;
+  public boolean wasNull(byte[] nullBitmap, final MutableInt fieldIndex, MutableInt fieldLength) {
+    return (nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) > 0
+        || fieldLength.get() == NULL_LENGTH;
   }
 
   /**
@@ -216,7 +217,7 @@ public class BinaryRowDecoder implements RowDecoder {
       fieldIndex.incrementAndGet();
     }
 
-    if (wasNull(nullBitmap, fieldIndex, 0)) {
+    if ((nullBitmap[(fieldIndex.get() + 2) / 8] & (1 << ((fieldIndex.get() + 2) % 8))) > 0) {
       return NULL_LENGTH;
     }
 

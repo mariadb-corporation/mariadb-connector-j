@@ -13,6 +13,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** ZonedDateTime codec */
@@ -51,7 +52,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   @Override
   public ZonedDateTime decodeText(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -62,7 +63,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   @Override
   public ZonedDateTime decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar calParam)
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);

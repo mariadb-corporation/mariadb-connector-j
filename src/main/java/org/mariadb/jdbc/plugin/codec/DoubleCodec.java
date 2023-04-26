@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Double codec */
@@ -53,14 +54,16 @@ public class DoubleCodec implements Codec<Double> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Double decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Double decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return column.decodeDoubleText(buf, length);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Double decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Double decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return column.decodeDoubleBinary(buf, length);
   }

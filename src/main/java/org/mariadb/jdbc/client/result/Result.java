@@ -70,7 +70,7 @@ public abstract class Result implements ResultSet, Completion {
   /** reusable row buffer decoder */
   protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
 
-  private int fieldLength;
+  private MutableInt fieldLength = new MutableInt(0);
 
   /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
@@ -408,10 +408,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public String getString(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeString(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -420,10 +420,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return false;
     }
     return rowDecoder.decodeBoolean(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -432,10 +432,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public byte getByte(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0;
     }
     return rowDecoder.decodeByte(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -444,10 +444,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public short getShort(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0;
     }
     return rowDecoder.decodeShort(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -456,10 +456,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public int getInt(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0;
     }
     return rowDecoder.decodeInt(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -468,10 +468,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public long getLong(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0L;
     }
     return rowDecoder.decodeLong(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -487,10 +487,10 @@ public abstract class Result implements ResultSet, Completion {
    */
   public BigInteger getBigInteger(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -512,10 +512,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public float getFloat(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0F;
     }
     return rowDecoder.decodeFloat(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -524,10 +524,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public double getDouble(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return 0D;
     }
     return rowDecoder.decodeDouble(metadataList, fieldIndex, rowBuf, fieldLength);
@@ -537,10 +537,10 @@ public abstract class Result implements ResultSet, Completion {
   @Deprecated
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     BigDecimal d =
@@ -553,10 +553,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public byte[] getBytes(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -566,10 +566,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Date getDate(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, null);
@@ -578,10 +578,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Time getTime(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, null);
@@ -590,10 +590,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, null);
@@ -602,10 +602,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -616,10 +616,10 @@ public abstract class Result implements ResultSet, Completion {
   @Deprecated
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -629,10 +629,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -749,10 +749,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Object getObject(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.defaultDecode(
@@ -767,10 +767,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Reader getCharacterStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -785,10 +785,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -1165,10 +1165,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Blob getBlob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -1178,10 +1178,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Clob getClob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -1225,10 +1225,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Date getDate(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeDate(metadataList, fieldIndex, rowBuf, fieldLength, cal);
@@ -1242,10 +1242,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Time getTime(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeTime(metadataList, fieldIndex, rowBuf, fieldLength, cal);
@@ -1259,10 +1259,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decodeTimestamp(metadataList, fieldIndex, rowBuf, fieldLength, cal);
@@ -1276,10 +1276,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public URL getURL(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
 
@@ -1392,10 +1392,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public NClob getNClob(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return (NClob)
@@ -1440,10 +1440,10 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public Reader getNCharacterStream(int columnIndex) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
-    if (fieldLength == NULL_LENGTH) {
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
+    if (fieldLength.get() == NULL_LENGTH) {
       return null;
     }
     return rowDecoder.decode(
@@ -1605,9 +1605,9 @@ public abstract class Result implements ResultSet, Completion {
   @SuppressWarnings("unchecked")
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
     checkIndex(columnIndex);
-    fieldLength =
+    fieldLength.set(
         rowDecoder.setPosition(
-            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList);
+            columnIndex - 1, fieldIndex, maxIndex, rowBuf, nullBitmap, metadataList));
     Calendar calendar = null;
     if (wasNull()) {
       if (type.isPrimitive()) {
@@ -1629,7 +1629,7 @@ public abstract class Result implements ResultSet, Completion {
             (Codec<T>) codec, calendar, rowBuf, fieldLength, metadataList, fieldIndex);
       }
     }
-    rowBuf.skip(fieldLength);
+    rowBuf.skip(fieldLength.get());
     throw new SQLException(
         String.format("Type %s not supported type for %s type", type, column.getType().name()));
   }

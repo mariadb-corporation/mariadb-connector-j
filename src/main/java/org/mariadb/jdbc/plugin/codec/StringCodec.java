@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -62,13 +63,19 @@ public class StringCodec implements Codec<String> {
   }
 
   public String decodeText(
-      final ReadableByteBuf buf, final int length, final ColumnDecoder column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
     return column.decodeStringText(buf, length, cal);
   }
 
   public String decodeBinary(
-      final ReadableByteBuf buf, final int length, final ColumnDecoder column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
     return column.decodeStringBinary(buf, length, cal);
   }

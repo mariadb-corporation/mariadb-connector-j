@@ -106,6 +106,31 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void unsignedMetadataResult() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS unsignedMetadataResult");
+    stmt.execute(
+        "CREATE TABLE unsignedMetadataResult("
+            + "c0 TINYINT UNSIGNED, "
+            + "c1 SMALLINT UNSIGNED, "
+            + "c2 MEDIUMINT UNSIGNED, "
+            + "c3 INTEGER UNSIGNED, "
+            + "c4 BIGINT UNSIGNED, "
+            + "c5 DOUBLE UNSIGNED, "
+            + "c6 FLOAT UNSIGNED, "
+            + "c7 DECIMAL UNSIGNED)");
+    stmt.execute("INSERT INTO unsignedMetadataResult VALUES(10,11,12,13,14,15,16,17)");
+    assertTrue(stmt.execute("SELECT * FROM unsignedMetadataResult"));
+
+    ResultSet rs = stmt.getResultSet();
+    ResultSetMetaData rsMetaData = rs.getMetaData();
+    for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+      assertTrue(rsMetaData.getColumnTypeName(i).contains("UNSIGNED"));
+    }
+    stmt.execute("DROP TABLE unsignedMetadataResult");
+  }
+
+  @Test
   public void getConnection() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());

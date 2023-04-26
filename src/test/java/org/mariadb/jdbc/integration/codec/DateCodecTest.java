@@ -88,6 +88,17 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      assertTrue(rs.next());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, ZonedDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+    }
   }
 
   @Test

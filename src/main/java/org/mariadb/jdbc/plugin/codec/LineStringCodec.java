@@ -9,6 +9,7 @@ import java.sql.SQLDataException;
 import java.util.Calendar;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.type.*;
 
@@ -31,23 +32,25 @@ public class LineStringCodec implements Codec<LineString> {
   }
 
   @Override
-  public LineString decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public LineString decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
   public LineString decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      throws SQLDataException {
     if (column.getType() == DataType.GEOMETRY) {
       buf.skip(4); // SRID
-      Geometry geo = Geometry.getGeometry(buf, length - 4, column);
+      Geometry geo = Geometry.getGeometry(buf, length.get() - 4, column);
       if (geo instanceof LineString) return (LineString) geo;
       throw new SQLDataException(
           String.format(
               "Geometric type %s cannot be decoded as LineString", geo.getClass().getName()));
     }
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as LineString", column.getType()));
   }

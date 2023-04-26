@@ -16,6 +16,7 @@ import java.util.EnumSet;
 import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -50,34 +51,22 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Blob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
-        return buf.readBlob(length);
+        return buf.readBlob(length.get());
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Blob", column.getType()));
     }
@@ -85,35 +74,24 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Blob decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
       case VARSTRING:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
       case BIT:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
       case BLOB:
       case GEOMETRY:
-        if (!column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format(
-                  "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
-        }
-        buf.skip(length);
-        return new MariaDbBlob(buf.buf(), buf.pos() - length, length);
+        buf.skip(length.get());
+        return new MariaDbBlob(buf.buf(), buf.pos() - length.get(), length.get());
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Blob", column.getType()));
     }

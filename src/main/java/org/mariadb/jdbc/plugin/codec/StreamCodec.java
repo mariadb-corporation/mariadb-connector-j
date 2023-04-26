@@ -10,6 +10,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -38,7 +39,8 @@ public class StreamCodec implements Codec<InputStream> {
   }
 
   @Override
-  public InputStream decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public InputStream decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -48,11 +50,11 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return is;
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Stream", column.getType()));
     }
@@ -60,7 +62,8 @@ public class StreamCodec implements Codec<InputStream> {
 
   @Override
   public InputStream decodeBinary(
-      ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
+      throws SQLDataException {
     switch (column.getType()) {
       case STRING:
       case VARCHAR:
@@ -69,11 +72,11 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return is;
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Stream", column.getType()));
     }

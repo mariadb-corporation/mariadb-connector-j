@@ -14,6 +14,7 @@ import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** UUID codec */
@@ -38,13 +39,19 @@ public class UuidCodec implements Codec<UUID> {
   }
 
   public UUID decodeText(
-      final ReadableByteBuf buf, final int length, final ColumnDecoder column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
     return UUID.fromString(column.decodeStringText(buf, length, cal));
   }
 
   public UUID decodeBinary(
-      final ReadableByteBuf buf, final int length, final ColumnDecoder column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
     return UUID.fromString(column.decodeStringBinary(buf, length, cal));
   }

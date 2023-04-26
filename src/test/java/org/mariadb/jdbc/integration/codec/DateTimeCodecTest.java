@@ -103,6 +103,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      assertTrue(rs.next());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
+    }
   }
 
   @Test
@@ -394,6 +401,22 @@ public class DateTimeCodecTest extends CommonCodecTest {
       rs.next();
       assertNull(rs.getTime(1));
       assertNull(rs.getTime(2));
+      assertNull(rs.getDate(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getDate(2));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, ZonedDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -408,6 +431,14 @@ public class DateTimeCodecTest extends CommonCodecTest {
       try (Connection conGmtm8 = createCon("timezone=auto")) {
         getDateTimezoneTestGmtm8(conGmtm8, getPrepare(conGmtm8), TimeZone.getTimeZone("GMT-8"));
       }
+      try (Connection conGmtm8 = createCon("timezone=auto&useServerPrepStmts=true")) {
+        getDateTimezoneTestGmtm8(conGmtm8, getPrepare(conGmtm8), TimeZone.getTimeZone("GMT-8"));
+      }
+      TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+      try (Connection conUtc = createCon("timezone=UTC")) {
+        getDateTimezoneTestUtc(conUtc, getPrepare(conUtc), TimeZone.getTimeZone("UTC"));
+      }
+
       TimeZone.setDefault(initialTz);
       try (Connection conAuto = createCon("timezone=auto")) {
         getDateTimezoneTestNormal(conAuto, getPrepare(conAuto));
@@ -446,6 +477,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
       prep.setInt(1, 4);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12-04:00"));
+      prep.execute();
+
+      prep.setInt(1, 5);
+      prep.setObject(2, Instant.parse("2010-01-12T17:55:13.152Z"));
       prep.execute();
     }
     conGmt8.commit();
@@ -492,6 +527,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals(1263333312000L, rs.getTimestamp(2).getTime());
       assertEquals("2010-01-13 05:55:12.000000", rs.getString(2));
       assertEquals("2010-01-13", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T17:55:13.152Z", rs.getObject(2, Instant.class).toString());
     }
     conGmt8.rollback();
   }
@@ -522,6 +560,10 @@ public class DateTimeCodecTest extends CommonCodecTest {
 
       prep.setInt(1, 4);
       prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12+04:00"));
+      prep.execute();
+
+      prep.setInt(1, 5);
+      prep.setObject(2, Instant.parse("2010-01-12T17:55:13.152Z"));
       prep.execute();
     }
     conGmt8.commit();
@@ -568,6 +610,92 @@ public class DateTimeCodecTest extends CommonCodecTest {
       assertEquals(1263304512000L, rs.getTimestamp(2).getTime());
       assertEquals("2010-01-12 05:55:12.000000", rs.getString(2));
       assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T17:55:13.152Z", rs.getObject(2, Instant.class).toString());
+    }
+    conGmt8.rollback();
+  }
+
+  public void getDateTimezoneTestUtc(Connection conGmt8, ResultSet rs, TimeZone tz)
+      throws SQLException {
+
+    assertEquals("2010-01-12T01:55:12Z", rs.getObject(1, OffsetDateTime.class).toString());
+
+    conGmt8.createStatement().execute("TRUNCATE TABLE DateTimeCodec3");
+    try (PreparedStatement prep =
+        conGmt8.prepareStatement("INSERT INTO DateTimeCodec3 values (?,?)")) {
+      prep.setInt(1, -2);
+      prep.setString(2, "2010-01-12 01:55:12");
+      prep.execute();
+
+      prep.setInt(1, 1);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
+      prep.execute();
+
+      prep.setInt(1, 2);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12-01:00"));
+      prep.execute();
+
+      prep.setInt(1, 3);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T01:55:12Z"));
+      prep.execute();
+
+      prep.setInt(1, 4);
+      prep.setObject(2, OffsetDateTime.parse("2010-01-12T17:55:12+04:00"));
+      prep.execute();
+
+      prep.setInt(1, 5);
+      prep.setObject(2, Instant.parse("2010-01-12T17:55:13.152Z"));
+      prep.execute();
+    }
+    conGmt8.commit();
+
+    java.sql.Statement stmt = conGmt8.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prepStmt = conGmt8.prepareStatement("select * from DateTimeCodec3")) {
+      rs = prepStmt.executeQuery();
+      rs.next();
+      assertEquals("2010-01-12T01:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+
+      rs.next();
+      assertEquals("2010-01-12T01:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263261312000L, rs.getTimestamp(2).getTime());
+      assertEquals(
+          "2010-01-12 02:55:12.0",
+          rs.getTimestamp(2, Calendar.getInstance(TimeZone.getTimeZone("GMT-1:00"))).toString());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+      assertEquals(
+          "2010-01-12",
+          rs.getDate(2, Calendar.getInstance(TimeZone.getTimeZone("UTC"))).toString());
+      assertEquals("2010-01-12T01:55:12", rs.getObject(2, LocalDateTime.class).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T02:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 02:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263264912000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 02:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T01:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 01:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263261312000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 01:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T13:55:12Z", rs.getObject(2, OffsetDateTime.class).toString());
+      assertEquals("2010-01-12 13:55:12.0", rs.getTimestamp(2).toString());
+      assertEquals(1263304512000L, rs.getTimestamp(2).getTime());
+      assertEquals("2010-01-12 13:55:12.000000", rs.getString(2));
+      assertEquals("2010-01-12", rs.getDate(2).toString());
+
+      rs.next();
+      assertEquals("2010-01-12T17:55:13.152Z", rs.getObject(2, Instant.class).toString());
     }
     conGmt8.rollback();
   }
@@ -654,6 +782,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTime(1));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -675,6 +804,7 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, Duration.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -701,6 +831,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTime(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalTime.class));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -727,6 +860,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getDate(1));
+      assertTrue(rs.wasNull());
     }
   }
 
@@ -756,7 +892,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(2, Timestamp.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           Timestamp.valueOf("9999-12-31 00:00:00.00").getTime(), rs.getTimestamp(3).getTime());
     }
@@ -788,9 +928,13 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(2, LocalDateTime.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           LocalDateTime.parse("9999-12-31T00:00:00.00"), rs.getObject(3, LocalDateTime.class));
     }
@@ -829,7 +973,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getTimestamp(1));
+      assertTrue(rs.wasNull());
       assertNull(rs.getTimestamp(2));
+      assertTrue(rs.wasNull());
       assertEquals(
           ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00.00"), ZoneId.systemDefault())
               .toInstant(),
@@ -872,7 +1018,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     if (isMariaDBServer()) {
       rs.next();
       assertNull(rs.getObject(1, OffsetDateTime.class));
+      assertTrue(rs.wasNull());
       assertNull(rs.getObject(2, OffsetDateTime.class));
+      assertTrue(rs.wasNull());
       assertEquals(
           OffsetDateTime.ofInstant(
               Timestamp.valueOf("9999-12-31 00:00:00.00").toInstant(), ZoneId.systemDefault()),

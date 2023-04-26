@@ -21,6 +21,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.Common;
@@ -685,19 +686,26 @@ public class EnumCodecTest extends CommonCodecTest {
   }
 
   @Test
-  public void getBlob() throws SQLException {
+  public void getBlob() throws Exception {
     getBlob(get());
   }
 
   @Test
-  public void getBlobPrepare() throws SQLException {
+  public void getBlobPrepare() throws Exception {
     getBlob(getPrepare(sharedConn));
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) {
-    Common.assertThrowsContains(
-        SQLDataException.class, () -> rs.getBlob(1), " (not binary) cannot be decoded as Blob");
+  public void getBlob(ResultSet rs) throws Exception {
+    assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBlob(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

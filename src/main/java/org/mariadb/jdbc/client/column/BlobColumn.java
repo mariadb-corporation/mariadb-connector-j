@@ -13,6 +13,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.util.CharsetEncodingLength;
 
 /** Column metadata definition */
@@ -103,42 +104,43 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     if (isBinary()) {
-      return buf.readBlob(length);
+      return buf.readBlob(length.get());
     }
-    return buf.readString(length);
+    return buf.readString(length.get());
   }
 
   @Override
-  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     return getDefaultText(conf, buf, length);
   }
 
   @Override
-  public boolean decodeBooleanText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public boolean decodeBooleanText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Boolean", dataType));
     }
-    String s = buf.readAscii(length);
+    String s = buf.readAscii(length.get());
     return !"0".equals(s);
   }
 
   @Override
-  public boolean decodeBooleanBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public boolean decodeBooleanBinary(ReadableByteBuf buf, MutableInt length)
+      throws SQLDataException {
     return decodeBooleanText(buf, length);
   }
 
   @Override
-  public byte decodeByteText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public byte decodeByteText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     long result;
     if (!isBinary()) {
       // TEXT column
-      String str2 = buf.readString(length);
+      String str2 = buf.readString(length.get());
       try {
         result = new BigDecimal(str2).setScale(0, RoundingMode.DOWN).longValue();
       } catch (NumberFormatException nfe) {
@@ -151,35 +153,35 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
 
       return (byte) result;
     }
-    if (length > 0) {
+    if (length.get() > 0) {
       byte b = buf.readByte();
-      buf.skip(length - 1);
+      buf.skip(length.get() - 1);
       return b;
     }
     throw new SQLDataException("empty String value cannot be decoded as Byte");
   }
 
   @Override
-  public byte decodeByteBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public byte decodeByteBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     return decodeByteText(buf, length);
   }
 
   @Override
-  public String decodeStringText(ReadableByteBuf buf, int length, Calendar cal)
+  public String decodeStringText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    return buf.readString(length);
+    return buf.readString(length.get());
   }
 
   @Override
-  public String decodeStringBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public String decodeStringBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    return buf.readString(length);
+    return buf.readString(length.get());
   }
 
   @Override
-  public short decodeShortText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public short decodeShortText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Short", dataType));
     }
@@ -187,9 +189,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public short decodeShortBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public short decodeShortBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Short", dataType));
     }
@@ -197,9 +199,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public int decodeIntText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public int decodeIntText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Integer", dataType));
     }
@@ -207,9 +209,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public int decodeIntBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public int decodeIntBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Integer", dataType));
     }
@@ -217,27 +219,27 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public long decodeLongText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public long decodeLongText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
     }
     return super.decodeLongText(buf, length);
   }
 
   @Override
-  public long decodeLongBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public long decodeLongBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Long", dataType));
     }
     return super.decodeLongBinary(buf, length);
   }
 
   @Override
-  public float decodeFloatText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public float decodeFloatText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Float", dataType));
     }
@@ -245,9 +247,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public float decodeFloatBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public float decodeFloatBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Float", dataType));
     }
@@ -255,9 +257,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public double decodeDoubleText(ReadableByteBuf buf, int length) throws SQLDataException {
+  public double decodeDoubleText(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Double", dataType));
     }
@@ -265,9 +267,9 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public double decodeDoubleBinary(ReadableByteBuf buf, int length) throws SQLDataException {
+  public double decodeDoubleBinary(ReadableByteBuf buf, MutableInt length) throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Double", dataType));
     }
@@ -275,50 +277,50 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public Date decodeDateText(ReadableByteBuf buf, int length, Calendar cal)
+  public Date decodeDateText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
     }
     return super.decodeDateText(buf, length, cal);
   }
 
   @Override
-  public Date decodeDateBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Date decodeDateBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Date", dataType));
     }
     return super.decodeDateBinary(buf, length, cal);
   }
 
   @Override
-  public Time decodeTimeText(ReadableByteBuf buf, int length, Calendar cal)
+  public Time decodeTimeText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
     }
     return super.decodeTimeText(buf, length, cal);
   }
 
   @Override
-  public Time decodeTimeBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Time decodeTimeBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(String.format("Data type %s cannot be decoded as Time", dataType));
     }
     return super.decodeTimeBinary(buf, length, cal);
   }
 
   @Override
-  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Timestamp", dataType));
     }
@@ -326,10 +328,10 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   }
 
   @Override
-  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
     if (isBinary()) {
-      buf.skip(length);
+      buf.skip(length.get());
       throw new SQLDataException(
           String.format("Data type %s cannot be decoded as Timestamp", dataType));
     }

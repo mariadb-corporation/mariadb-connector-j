@@ -22,6 +22,7 @@ import java.util.TimeZone;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mariadb.jdbc.MariaDbBlob;
 import org.mariadb.jdbc.MariaDbClob;
 import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.integration.Common;
@@ -568,6 +569,9 @@ public class VarcharCodecTest extends CommonCodecTest {
             + TimeZone.getDefault().getDSTSavings(),
         rs.getTimestamp("t2alias", Calendar.getInstance(TimeZone.getTimeZone("UTC"))).getTime());
     assertFalse(rs.wasNull());
+    rs.next();
+    assertNull(rs.getTimestamp(2));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -597,6 +601,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         () -> rs.getObject(1, LocalDateTime.class),
         "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as LocalDateTime");
     assertNull(rs.getObject(2, LocalDateTime.class));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -625,6 +630,7 @@ public class VarcharCodecTest extends CommonCodecTest {
         () -> rs.getObject(1, LocalDate.class),
         "value 'aaaa-bb-cc' (VARSTRING) cannot be decoded as Date");
     assertNull(rs.getObject(2, LocalDate.class));
+    assertTrue(rs.wasNull());
   }
 
   @Test
@@ -781,11 +787,16 @@ public class VarcharCodecTest extends CommonCodecTest {
     getBlob(getPrepare(sharedConnBinary));
   }
 
-  public void getBlob(ResultSet rs) {
-    Common.assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getBlob(1),
-        "Data type VARSTRING (not binary) cannot be decoded as Blob");
+  public void getBlob(ResultSet rs) throws Exception {
+    assertStreamEquals(new MariaDbBlob("0".getBytes()), rs.getBlob(1));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob(2));
+    assertStreamEquals(new MariaDbBlob("1".getBytes()), rs.getBlob("t2alias"));
+    assertFalse(rs.wasNull());
+    assertStreamEquals(new MariaDbBlob("some🌟".getBytes(StandardCharsets.UTF_8)), rs.getBlob(3));
+    assertFalse(rs.wasNull());
+    assertNull(rs.getBlob(4));
+    assertTrue(rs.wasNull());
   }
 
   @Test

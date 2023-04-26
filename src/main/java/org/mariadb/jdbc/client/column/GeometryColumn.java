@@ -10,6 +10,7 @@ import java.util.Locale;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.codec.*;
 import org.mariadb.jdbc.type.*;
 
@@ -79,35 +80,35 @@ public class GeometryColumn extends BlobColumn {
   }
 
   @Override
-  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultText(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
       buf.skip(4); // SRID
-      return Geometry.getGeometry(buf, length - 4, this);
+      return Geometry.getGeometry(buf, length.get() - 4, this);
     }
-    byte[] arr = new byte[length];
+    byte[] arr = new byte[length.get()];
     buf.readBytes(arr);
     return arr;
   }
 
   @Override
-  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, int length)
+  public Object getDefaultBinary(final Configuration conf, ReadableByteBuf buf, MutableInt length)
       throws SQLDataException {
     return getDefaultText(conf, buf, length);
   }
 
   @Override
-  public Timestamp decodeTimestampText(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }
 
   @Override
-  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, int length, Calendar cal)
+  public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar cal)
       throws SQLDataException {
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Timestamp", dataType));
   }

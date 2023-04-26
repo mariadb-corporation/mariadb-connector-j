@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Date codec */
@@ -49,14 +50,15 @@ public class DateCodec implements Codec<Date> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Date decodeText(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Date decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return column.decodeDateText(buf, length, cal);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Date decodeBinary(ReadableByteBuf buf, int length, ColumnDecoder column, Calendar cal)
+  public Date decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return column.decodeDateBinary(buf, length, cal);
   }
