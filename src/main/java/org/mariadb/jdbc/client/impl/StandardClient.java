@@ -543,7 +543,7 @@ public class StandardClient implements Client, AutoCloseable {
       boolean canRedo)
       throws SQLException {
     List<Completion> results = new ArrayList<>();
-
+    int perMsgCounter = 0;
     int readCounter = 0;
     int[] responseMsg = new int[messages.length];
     try {
@@ -566,7 +566,7 @@ public class StandardClient implements Client, AutoCloseable {
         }
         while (readCounter < messages.length) {
           readCounter++;
-          for (int j = 0; j < responseMsg[readCounter - 1]; j++) {
+          for (perMsgCounter = 0; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
             results.addAll(
                 readResponse(
                     stmt,
@@ -583,6 +583,23 @@ public class StandardClient implements Client, AutoCloseable {
     } catch (SQLException sqlException) {
       if (!closed) {
         // read remaining results
+        perMsgCounter++;
+        for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
+          try {
+            results.addAll(
+                readResponse(
+                    stmt,
+                    messages[readCounter - 1],
+                    fetchSize,
+                    maxRows,
+                    resultSetConcurrency,
+                    resultSetType,
+                    closeOnCompletion));
+          } catch (SQLException e) {
+            // eat
+          }
+        }
+
         for (int i = readCounter; i < messages.length; i++) {
           for (int j = 0; j < responseMsg[i]; j++) {
             try {
