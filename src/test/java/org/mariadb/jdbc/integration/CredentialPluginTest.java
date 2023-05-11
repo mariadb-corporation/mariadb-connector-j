@@ -50,8 +50,6 @@ public class CredentialPluginTest extends Common {
       stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY '!Passw0rd3Works'");
       stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'identityUser'@'%'");
     }
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
   }
 

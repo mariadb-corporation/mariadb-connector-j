@@ -863,8 +863,6 @@ public class ConnectionTest extends Common {
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
 
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     int testPort = port;
@@ -1003,8 +1001,6 @@ public class ConnectionTest extends Common {
       stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
       stmt.execute("GRANT SELECT on *.* to testSocket");
     }
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     String url =

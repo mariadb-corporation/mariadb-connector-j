@@ -12,7 +12,7 @@ public class GssapiAuthenticationTest extends Common {
 
   @Test
   public void nativePassword() throws Exception {
-    Assumptions.assumeTrue(isWindows());
+    Assumptions.assumeTrue(isWindows() && isMariaDBServer());
     Statement stmt = sharedConn.createStatement();
     try {
       stmt.execute("INSTALL SONAME 'auth_gssapi'");
