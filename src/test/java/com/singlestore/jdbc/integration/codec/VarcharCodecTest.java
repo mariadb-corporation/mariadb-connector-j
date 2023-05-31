@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ public class VarcharCodecTest extends CommonCodecTest {
             + "('', '', '', null, 4)");
     stmt.execute(
         createRowstore()
-            + " TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
+            + " TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(40)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
         "CREATE TABLE StringCodecWrong (t1 VARCHAR(20), id INT) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
@@ -942,6 +943,9 @@ public class VarcharCodecTest extends CommonCodecTest {
       prep.setInt(1, 14);
       prep.setNString(2, "e" + fourByteUnicode + "12");
       prep.execute();
+      prep.setInt(1, 15);
+      prep.setObject(2, UUID.fromString("08b669ae-ff94-11ed-be56-0242ac120002"));
+      prep.execute();
     }
 
     ResultSet rs =
@@ -1092,6 +1096,10 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("http://f" + fourByteUnicode + "15", rs.getObject("t1", empty));
     assertEquals("http://f" + fourByteUnicode + "15", rs.getURL(2).toString());
     assertEquals("http://f" + fourByteUnicode + "15", rs.getURL("t1").toString());
+    assertTrue(rs.next());
+    assertEquals("08b669ae-ff94-11ed-be56-0242ac120002", rs.getString(2));
+    assertEquals(
+        UUID.fromString("08b669ae-ff94-11ed-be56-0242ac120002"), rs.getObject(2, UUID.class));
   }
 
   @Test

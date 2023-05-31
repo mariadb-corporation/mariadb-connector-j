@@ -135,6 +135,10 @@ public class BinaryCodecTest extends CommonCodecTest {
         LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault()));
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, OffsetTime.class);
+    testObject(
+        rs,
+        Instant.class,
+        LocalDateTime.parse("2011-01-01T00:00").atZone(ZoneId.systemDefault()).toInstant());
   }
 
   @Test

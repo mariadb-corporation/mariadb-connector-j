@@ -11,6 +11,8 @@ com.singlestore.jdbc.codec.list.DoubleCodec
 com.singlestore.jdbc.codec.list.DurationCodec
 com.singlestore.jdbc.codec.list.FloatCodec
 com.singlestore.jdbc.codec.list.IntCodec
+com.singlestore.jdbc.codec.list.InstantCodec
+com.singlestore.jdbc.codec.list.OffsetDateTimeCodec
 com.singlestore.jdbc.codec.list.LineStringCodec
 com.singlestore.jdbc.codec.list.LocalDateCodec
 com.singlestore.jdbc.codec.list.LocalDateTimeCodec
@@ -22,6 +24,7 @@ com.singlestore.jdbc.codec.list.ReaderCodec
 com.singlestore.jdbc.codec.list.ShortCodec
 com.singlestore.jdbc.codec.list.StreamCodec
 com.singlestore.jdbc.codec.list.StringCodec
+com.singlestore.jdbc.codec.list.UuidCodec
 com.singlestore.jdbc.codec.list.TimeCodec
 com.singlestore.jdbc.codec.list.TimestampCodec
 com.singlestore.jdbc.codec.list.ZonedDateTimeCodec

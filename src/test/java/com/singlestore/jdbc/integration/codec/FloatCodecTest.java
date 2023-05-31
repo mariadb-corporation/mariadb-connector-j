@@ -15,6 +15,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.time.*;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -113,6 +114,8 @@ public class FloatCodecTest extends CommonCodecTest {
     testErrObject(rs, ZonedDateTime.class);
     testErrObject(rs, OffsetDateTime.class);
     testErrObject(rs, LocalDateTime.class);
+    testErrObject(rs, Instant.class);
+    testErrObject(rs, UUID.class);
     testErrObject(rs, OffsetTime.class);
     testObject(rs, Boolean.class, Boolean.FALSE);
     testErrObject(rs, Clob.class);

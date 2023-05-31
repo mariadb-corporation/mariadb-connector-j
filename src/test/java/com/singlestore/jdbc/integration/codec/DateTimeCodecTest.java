@@ -29,9 +29,11 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
@@ -150,6 +152,16 @@ public class DateTimeCodecTest extends CommonCodecTest {
         ZonedDateTime.class,
         LocalDateTime.parse("2010-01-12T01:55:12").atZone(ZoneId.systemDefault()));
     testObject(rs, java.util.Date.class, Date.valueOf("2010-01-12"));
+    testObject(
+        rs,
+        Instant.class,
+        LocalDateTime.parse("2010-01-12T01:55:12").atZone(ZoneId.systemDefault()).toInstant());
+    testObject(
+        rs,
+        OffsetDateTime.class,
+        LocalDateTime.parse("2010-01-12T01:55:12")
+            .atZone(ZoneId.systemDefault())
+            .toOffsetDateTime());
   }
 
   @Test
@@ -804,6 +816,20 @@ public class DateTimeCodecTest extends CommonCodecTest {
       prep.setInt(1, 16);
       prep.setObject(2, Timestamp.valueOf("2016-12-12 01:55:12.654"));
       prep.execute();
+      prep.setInt(1, 17);
+      prep.setObject(
+          2,
+          LocalDateTime.parse("2017-01-12T01:55:12.111")
+              .atZone(ZoneId.systemDefault())
+              .toInstant());
+      prep.execute();
+      prep.setInt(1, 18);
+      prep.setObject(
+          2,
+          LocalDateTime.parse("2018-02-12T01:50:12.000")
+              .atZone(ZoneId.systemDefault())
+              .toOffsetDateTime());
+      prep.execute();
     }
 
     ResultSet rs =
@@ -891,5 +917,15 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals(Timestamp.valueOf("2016-12-12 01:55:12"), rs.getTimestamp(2));
     assertTrue(rs.next());
     assertEquals(Timestamp.valueOf("2016-12-12 01:55:12.654"), rs.getTimestamp(2));
+    assertTrue(rs.next());
+    assertEquals(
+        LocalDateTime.parse("2017-01-12T01:55:12.111").atZone(ZoneId.systemDefault()).toInstant(),
+        rs.getObject(2, Instant.class));
+    assertTrue(rs.next());
+    assertEquals(
+        LocalDateTime.parse("2018-02-12T01:50:12.000")
+            .atZone(ZoneId.systemDefault())
+            .toOffsetDateTime(),
+        rs.getObject(2, OffsetDateTime.class));
   }
 }

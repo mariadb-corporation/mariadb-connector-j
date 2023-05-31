@@ -125,6 +125,10 @@ public class DateCodecTest extends CommonCodecTest {
         ZonedDateTime.class,
         LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()));
     testObject(rs, java.util.Date.class, Date.valueOf("2010-01-12"));
+    testObject(
+        rs,
+        Instant.class,
+        LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()).toInstant());
   }
 
   @Test
@@ -464,6 +468,28 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(
         LocalDateTime.parse("2010-01-12T00:00:00"), rs.getObject("t1alias", LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
+    assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getInstant() throws SQLException {
+    getInstant(get());
+  }
+
+  @Test
+  public void getInstantPrepare() throws SQLException {
+    getInstant(getPrepare(sharedConn));
+    getInstant(getPrepare(sharedConnBinary));
+  }
+
+  public void getInstant(ResultSet rs) throws SQLException {
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()).toInstant(),
+        rs.getObject(1, Instant.class));
+    assertEquals(
+        LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()).toInstant(),
+        rs.getObject("t1alias", Instant.class));
+    assertNull(rs.getObject(4, Instant.class));
     assertTrue(rs.wasNull());
   }
 
