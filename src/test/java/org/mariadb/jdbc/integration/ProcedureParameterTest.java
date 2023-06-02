@@ -51,6 +51,22 @@ public class ProcedureParameterTest extends Common {
   }
 
   @Test
+  public void callWithoutBracket() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+            !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
+
+    CallableStatement stmt = sharedConn.prepareCall("call useParameterName(?)");
+    stmt.setInt(1, 1);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    int res = rs.getInt(1);
+    assertEquals(res, 1);
+  }
+
+  @Test
   public void callWithStrangeParameter() throws SQLException {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
