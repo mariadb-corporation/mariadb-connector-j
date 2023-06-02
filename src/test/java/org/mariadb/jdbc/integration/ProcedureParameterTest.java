@@ -54,7 +54,7 @@ public class ProcedureParameterTest extends Common {
   public void callWithoutBracket() throws Exception {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
-            !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
     // https://jira.mariadb.org/browse/XPT-267
     Assumptions.assumeFalse(isXpand());
 

@@ -82,7 +82,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
         KeyStore ks;
         try {
-          ks = KeyStore.getInstance(KeyStore.getDefaultType());
+          ks =
+              KeyStore.getInstance(
+                  conf.trustStoreType() != null
+                      ? conf.trustStoreType()
+                      : KeyStore.getDefaultType());
         } catch (GeneralSecurityException generalSecurityEx) {
           throw exceptionFactory.create(
               "Failed to create keystore instance", "08000", generalSecurityEx);

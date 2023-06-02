@@ -189,6 +189,16 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
+    // wrong keystore type
+    assertThrows(
+        SQLInvalidAuthorizationSpecException.class,
+        () ->
+            createCon(
+                baseMutualOptions
+                    + "&sslMode=trust&trustStoreType=JKS&keyStore="
+                    + System.getenv("TEST_DB_CLIENT_PKCS")
+                    + "&keyStorePassword=kspass",
+                sslPort));
     // with URL
     boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
     try (Connection con =

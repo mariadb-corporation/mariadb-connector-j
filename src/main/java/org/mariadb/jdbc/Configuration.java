@@ -98,6 +98,7 @@ public class Configuration {
   private String keyStore = null;
   private String keyStorePassword = null;
   private String keyStoreType = null;
+  private String trustStoreType = null;
   private String enabledSslCipherSuites = null;
   private String enabledSslProtocolSuites = null;
 
@@ -189,6 +190,7 @@ public class Configuration {
       String keyStore,
       String keyStorePassword,
       String keyStoreType,
+      String trustStoreType,
       String enabledSslCipherSuites,
       String enabledSslProtocolSuites,
       boolean allowMultiQueries,
@@ -261,6 +263,7 @@ public class Configuration {
     this.keyStore = keyStore;
     this.keyStorePassword = keyStorePassword;
     this.keyStoreType = keyStoreType;
+    this.trustStoreType = trustStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
     this.allowMultiQueries = allowMultiQueries;
@@ -365,6 +368,7 @@ public class Configuration {
       String keyStore,
       String keyStorePassword,
       String keyStoreType,
+      String trustStoreType,
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
@@ -461,6 +465,7 @@ public class Configuration {
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
+    if (trustStoreType != null) this.trustStoreType = trustStoreType;
 
     // *************************************************************
     // host primary check
@@ -769,6 +774,7 @@ public class Configuration {
         this.keyStore,
         this.keyStorePassword,
         this.keyStoreType,
+        this.trustStoreType,
         this.enabledSslCipherSuites,
         this.enabledSslProtocolSuites,
         this.allowMultiQueries,
@@ -905,6 +911,15 @@ public class Configuration {
    */
   public String keyStoreType() {
     return keyStoreType;
+  }
+
+  /**
+   * trust store type (to replace default javax.net.ssl.keyStoreType system property)
+   *
+   * @return trust store type
+   */
+  public String trustStoreType() {
+    return trustStoreType;
   }
 
   /**
@@ -1705,6 +1720,7 @@ public class Configuration {
     private String keyStore;
     private String keyStorePassword;
     private String keyStoreType;
+    private String trustStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
 
@@ -1810,6 +1826,17 @@ public class Configuration {
      */
     public Builder keyStoreType(String keyStoreType) {
       this.keyStoreType = nullOrEmpty(keyStoreType);
+      return this;
+    }
+
+    /**
+     * trust store type
+     *
+     * @param trustStoreType trust store type
+     * @return this {@link Builder}
+     */
+    public Builder trustStoreType(String trustStoreType) {
+      this.trustStoreType = nullOrEmpty(trustStoreType);
       return this;
     }
 
@@ -2671,6 +2698,7 @@ public class Configuration {
               this.keyStore,
               this.keyStorePassword,
               this.keyStoreType,
+              this.trustStoreType,
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,
