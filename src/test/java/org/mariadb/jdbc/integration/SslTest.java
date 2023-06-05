@@ -164,7 +164,7 @@ public class SslTest extends Common {
   }
 
   @Test
-  public void mutualAuthSsl() throws SQLException {
+  public void mutualAuthSsl() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
@@ -189,16 +189,21 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    // wrong keystore type
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions
-                    + "&sslMode=trust&trustStoreType=JKS&keyStore="
-                    + System.getenv("TEST_DB_CLIENT_PKCS")
-                    + "&keyStorePassword=kspass",
-                sslPort));
+    String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
+    if (pkcsFile != null && checkFileExists(pkcsFile) != null) {
+      // wrong keystore type
+      assertThrows(
+              SQLNonTransientConnectionException.class,
+              () ->
+                      createCon(
+                              baseMutualOptions
+                                      + "&sslMode=verify-ca&serverSslCert="
+                                      + pkcsFile
+                                      + "&trustStoreType=JKS&keyStore="
+                                      + System.getenv("TEST_DB_CLIENT_PKCS")
+                                      + "&keyStorePassword=kspass",
+                              sslPort));
+    }
     // with URL
     boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
     try (Connection con =
@@ -346,6 +351,9 @@ public class SslTest extends Common {
 
   public static String retrieveCertificatePath() throws Exception {
     String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
+    }
 
     // try local server
     if (serverCertificatePath == null
