@@ -35,20 +35,21 @@ public class OkPacket implements Completion {
     if (buf.readableBytes() > 0 && context.hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       buf.skip(buf.readIntLengthEncodedNotNull()); // skip info
       while (buf.readableBytes() > 0) {
-        if (buf.readIntLengthEncodedNotNull() > 0) {
-          switch (buf.readByte()) {
+        ReadableByteBuf sessionStateBuf = buf.readLengthBuffer();
+        while (sessionStateBuf.readableBytes() > 0) {
+          switch (sessionStateBuf.readByte()) {
             case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-              buf.readIntLengthEncodedNotNull();
-              String variable = buf.readString(buf.readIntLengthEncodedNotNull());
-              Integer len = buf.readLength();
-              String value = len == null ? null : buf.readString(len);
+              ReadableByteBuf tmpBuf2 = sessionStateBuf.readLengthBuffer();
+              String variable = tmpBuf2.readString(tmpBuf2.readIntLengthEncodedNotNull());
+              Integer len = tmpBuf2.readLength();
+              String value = len == null ? null : tmpBuf2.readString(len);
               logger.debug("System variable change:  {} = {}", variable, value);
               break;
 
             case StateChange.SESSION_TRACK_SCHEMA:
-              buf.readIntLengthEncodedNotNull();
-              Integer dbLen = buf.readLength();
-              String database = dbLen == null ? null : buf.readString(dbLen);
+              sessionStateBuf.readIntLengthEncodedNotNull();
+              Integer dbLen = sessionStateBuf.readLength();
+              String database = dbLen == null ? null : sessionStateBuf.readString(dbLen);
               context.setDatabase(database.isEmpty() ? null : database);
               logger.debug("Database change: is '{}'", database);
               break;
