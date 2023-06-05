@@ -303,12 +303,12 @@ public interface ClientMessage {
    */
   static boolean validateLocalFileName(
       String sql, Parameters parameters, String fileName, Context context) {
-    Pattern pattern =
-        Pattern.compile(
-            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-                + fileName
-                + "'",
-            Pattern.CASE_INSENSITIVE);
+    String reg =
+        "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + "'";
+
+    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
     if (pattern.matcher(sql).find()) {
       return true;
     }
@@ -321,7 +321,9 @@ public interface ClientMessage {
       if (pattern.matcher(sql).find() && parameters.size() > 0) {
         String paramString = parameters.get(0).bestEffortStringValue(context);
         if (paramString != null) {
-          return paramString.toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+          return paramString
+              .toLowerCase()
+              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
         }
         return true;
       }

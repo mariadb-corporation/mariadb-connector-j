@@ -193,16 +193,16 @@ public class SslTest extends Common {
     if (pkcsFile != null && checkFileExists(pkcsFile) != null) {
       // wrong keystore type
       assertThrows(
-              SQLNonTransientConnectionException.class,
-              () ->
-                      createCon(
-                              baseMutualOptions
-                                      + "&sslMode=verify-ca&serverSslCert="
-                                      + pkcsFile
-                                      + "&trustStoreType=JKS&keyStore="
-                                      + System.getenv("TEST_DB_CLIENT_PKCS")
-                                      + "&keyStorePassword=kspass",
-                              sslPort));
+          SQLNonTransientConnectionException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=verify-ca&serverSslCert="
+                      + pkcsFile
+                      + "&trustStoreType=JKS&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS")
+                      + "&keyStorePassword=kspass",
+                  sslPort));
     }
     // with URL
     boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
