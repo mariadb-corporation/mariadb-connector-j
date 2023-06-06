@@ -7,7 +7,7 @@ import java.sql.Types;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Statement;
 
-public class BulkStmtSplitError extends Common {
+public class BulkStmtSplitErrorTest extends Common {
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -42,7 +42,7 @@ public class BulkStmtSplitError extends Common {
       // eat
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT count(*) FROM agent");
+    ResultSet rs = stmt.executeQuery("SELECT count(*) FROM BulkStmtSplitError");
     Assertions.assertTrue(rs.next());
     Assertions.assertEquals(2, rs.getInt(1));
   }
