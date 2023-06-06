@@ -233,6 +233,17 @@ public class Common {
     return Driver.connect(conf);
   }
 
+  public static Connection createBasicCon(String option, Integer sslPort) throws SQLException {
+    Configuration conf =
+        Configuration.parse(mDefUrl.substring(0, mDefUrl.indexOf("?")) + "?" + option);
+    if (sslPort != null) {
+      for (HostAddress hostAddress : conf.addresses()) {
+        hostAddress.port = sslPort;
+      }
+    }
+    return Driver.connect(conf);
+  }
+
   @AfterEach
   public void afterEach1() throws SQLException {
     sharedConn.isValid(2000);

@@ -191,7 +191,7 @@ public class UpdateResultSetTest extends Common {
       rs.updateString(2, "0-1");
       rs.insertRow();
     }
-
+    stmt.execute("FLUSH TABLES");
     ResultSet rs = stmt.executeQuery("SELECT * FROM testAutoIncrement");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -419,7 +419,7 @@ public class UpdateResultSetTest extends Common {
 
       assertFalse(rs.next());
     }
-
+    stmt.execute("FLUSH TABLES");
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -497,7 +497,7 @@ public class UpdateResultSetTest extends Common {
       assertNotNull(rs.getDate(3));
       assertFalse(rs.next());
     }
-
+    stmt.execute("FLUSH TABLES");
     ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault");
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));

@@ -84,9 +84,13 @@ public class SslTest extends Common {
 
   private String getSslVersion(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
-    if (rs.next()) {
-      return rs.getString(2);
+    if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
+      return "ok";
+    } else {
+      ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
+      if (rs.next()) {
+        return rs.getString(2);
+      }
     }
     return null;
   }
@@ -164,6 +168,29 @@ public class SslTest extends Common {
   }
 
   @Test
+  public void errorUsingWrongTypeOfKeystore() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
+    Assumptions.assumeTrue(pkcsFile != null);
+
+    if (checkFileExists(pkcsFile) != null) {
+      // wrong keystore type
+      assertThrows(
+          SQLNonTransientConnectionException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=verify-ca&serverSslCert="
+                      + pkcsFile
+                      + "&trustStoreType=JKS&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS")
+                      + "&keyStorePassword=kspass",
+                  sslPort));
+    }
+  }
+
+  @Test
   public void mutualAuthSsl() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -189,21 +216,6 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
-    if (pkcsFile != null && checkFileExists(pkcsFile) != null) {
-      // wrong keystore type
-      assertThrows(
-          SQLNonTransientConnectionException.class,
-          () ->
-              createCon(
-                  baseMutualOptions
-                      + "&sslMode=verify-ca&serverSslCert="
-                      + pkcsFile
-                      + "&trustStoreType=JKS&keyStore="
-                      + System.getenv("TEST_DB_CLIENT_PKCS")
-                      + "&keyStorePassword=kspass",
-                  sslPort));
-    }
     // with URL
     boolean isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
     try (Connection con =
@@ -323,15 +335,17 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-
-    assertThrows(
+    assertThrowsContains(
         SQLNonTransientConnectionException.class,
-        () -> createCon(baseOptions + "&sslMode=VERIFY_CA", sslPort));
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
+        () -> createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort),
+        "unable to find valid certification");
+    if (!"maxscale".equals(System.getenv("srv"))) {
+      assertThrows(
+              SQLInvalidAuthorizationSpecException.class,
+              () ->
+                      createBasicCon(
+                              baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
+    }
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {
