@@ -341,10 +341,11 @@ public class SslTest extends Common {
         "unable to find valid certification");
     if (!"maxscale".equals(System.getenv("srv"))) {
       assertThrows(
-              SQLInvalidAuthorizationSpecException.class,
-              () ->
-                      createBasicCon(
-                              baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createBasicCon(
+                  baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath,
+                  sslPort));
     }
   }
 
