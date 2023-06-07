@@ -1051,7 +1051,10 @@ public class StatementTest extends Common {
     assertEquals(5, rs.getInt(1));
     assertFalse(rs.next());
 
-    try (PreparedStatement prep = sharedConn.prepareStatement("INSERT IGNORE INTO tt(id, t1) VALUES (?,?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement(
+            "INSERT IGNORE INTO tt(id, t1) VALUES (?,?)",
+            java.sql.Statement.RETURN_GENERATED_KEYS)) {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
@@ -1071,7 +1074,10 @@ public class StatementTest extends Common {
       assertFalse(rs.next());
     }
 
-    try (PreparedStatement prep = sharedConnBinary.prepareStatement("INSERT IGNORE INTO tt(id, t1) VALUES (?,?)", java.sql.Statement.RETURN_GENERATED_KEYS)) {
+    try (PreparedStatement prep =
+        sharedConnBinary.prepareStatement(
+            "INSERT IGNORE INTO tt(id, t1) VALUES (?,?)",
+            java.sql.Statement.RETURN_GENERATED_KEYS)) {
       prep.setInt(1, 5);
       prep.setString(2, "t55");
       prep.addBatch();
@@ -1090,6 +1096,5 @@ public class StatementTest extends Common {
       assertEquals(9, rs.getInt(1));
       assertFalse(rs.next());
     }
-
   }
 }
