@@ -141,7 +141,7 @@ public class Connection implements java.sql.Connection {
       boolean useBinary)
       throws SQLException {
     checkNotClosed();
-    if (useBinary) {
+    if (useBinary && !sql.startsWith("/*text*/")) {
       try {
         return new ServerPreparedStatement(
             NativeSql.parse(sql, client.getContext()),

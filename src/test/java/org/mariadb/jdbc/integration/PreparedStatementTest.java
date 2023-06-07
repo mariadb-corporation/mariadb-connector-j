@@ -1266,4 +1266,20 @@ public class PreparedStatementTest extends Common {
           preparedStatement.toString());
     }
   }
+
+  @Test
+  public void textPrefix() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries")) {
+
+      try (PreparedStatement prep = con.prepareStatement("/*text*/SET @name := ?; SELECT @name ")) {
+        prep.setString(1, "test");
+        prep.executeQuery();
+        assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        ResultSet rs = prep.getResultSet();
+        assertTrue(rs.next());
+        assertEquals("test", rs.getString(1));
+      }
+
+    }
+  }
 }
