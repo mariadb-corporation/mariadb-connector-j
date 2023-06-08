@@ -884,4 +884,64 @@ public class ConfigurationTest {
             .build()
             .useMysqlMetadata());
   }
+
+  @Test
+  public void toConf() throws SQLException {
+    assertTrue(
+        Configuration.toConf("jdbc:mariadb://localhost/test")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb://localhost/test\n"
+                    + "Unknown options : None\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * database : test\n"
+                    + "\n"
+                    + "default options :"));
+    assertTrue(
+        Configuration.toConf(
+                "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true&")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true\n"
+                    + "Unknown options : \n"
+                    + " * nonExisting : \n"
+                    + " * nonExistingWithValue : tt\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * addresses : [address=(host=host1)(port=3305)(type=primary), address=(host=host2)(port=3307)(type=replica)]\n"
+                    + " * autocommit : false\n"
+                    + " * createDatabaseIfNotExist : true\n"
+                    + " * database : db\n"
+                    + " * haMode : LOADBALANCE\n"
+                    + " * password : ***\n"
+                    + " * timezone : UTC\n"
+                    + " * user : me\n"
+                    + "\n"
+                    + "default options :\n"
+                    + " * allowLocalInfile : true\n"
+                    + " * allowMultiQueries : false\n"
+                    + " * allowPublicKeyRetrieval : false"));
+
+    assertTrue(
+        Configuration.toConf(
+                "jdbc:mariadb://localhost/test?user=root&sslMode=verify-ca&serverSslCert=/tmp/t.pem&trustStoreType=JKS&keyStore=/tmp/keystore&keyStorePassword=kspass")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=kspass&trustStoreType=JKS\n"
+                    + "Unknown options : None\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * database : test\n"
+                    + " * keyStore : /tmp/keystore\n"
+                    + " * keyStorePassword : kspass\n"
+                    + " * serverSslCert : /tmp/t.pem\n"
+                    + " * sslMode : VERIFY_CA\n"
+                    + " * trustStoreType : JKS\n"
+                    + " * user : root\n"
+                    + "\n"
+                    + "default options :\n"
+                    + " * addresses : [address=(host=localhost)(port=3306)(type=primary)]\n"
+                    + " * allowLocalInfile : true"));
+  }
 }

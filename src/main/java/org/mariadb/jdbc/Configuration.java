@@ -1511,6 +1511,125 @@ public class Configuration {
     return initialUrl;
   }
 
+  /**
+   * Permit to have string information on how string is parsed. example :
+   * Configuration.toConf("jdbc:mariadb://localhost/test") will return a String containing: <code>
+   * Configuration:
+   *  * resulting Url : jdbc:mariadb://localhost/test
+   * Unknown options : None
+   *
+   * Non default options :
+   *  * database : test
+   *
+   * default options :
+   *  * user : null
+   *  ...
+   * </code>
+   *
+   * @param url url string
+   * @return string describing the configuration parsed from url
+   * @throws SQLException if parsing fails
+   */
+  public static String toConf(String url) throws SQLException {
+    Configuration conf = Configuration.parseInternal(url, new Properties());
+    StringBuilder sb = new StringBuilder();
+    StringBuilder sbUnknownOpts = new StringBuilder();
+
+    if (conf.nonMappedOptions.isEmpty()) {
+      sbUnknownOpts.append("None");
+    } else {
+      for (Map.Entry entry : conf.nonMappedOptions.entrySet()) {
+        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
+      }
+    }
+    sb.append("Configuration:")
+        .append("\n * resulting Url : ")
+        .append(conf.initialUrl)
+        .append("\nUnknown options : ")
+        .append(sbUnknownOpts)
+        .append("\n")
+        .append("\nNon default options : ");
+
+    Configuration defaultConf = Configuration.parse("jdbc:mariadb://localhost/");
+    StringBuilder sbDefaultOpts = new StringBuilder();
+    StringBuilder sbDifferentOpts = new StringBuilder();
+    try {
+      List<String> propertyToSkip = Arrays.asList(new String[] {"initialUrl", "logger", "codecs", "$jacocoData"});
+      Field[] fields = Configuration.class.getDeclaredFields();
+      Arrays.sort(fields, Comparator.comparing(Field::getName));
+
+      for (Field field : fields) {
+        if (!propertyToSkip.contains(field.getName())) {
+          Object fieldValue = field.get(conf);
+          if (fieldValue == null) {
+            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                .append("\n * ")
+                .append(field.getName())
+                .append(" : ")
+                .append(fieldValue);
+          } else {
+            if (field.getName().equals("haMode")) {
+              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                  .append("\n * ")
+                  .append(field.getName())
+                  .append(" : ")
+                  .append(fieldValue);
+              continue;
+            }
+            switch (fieldValue.getClass().getSimpleName()) {
+              case "String":
+              case "Boolean":
+              case "HaMode":
+              case "TransactionIsolation":
+              case "Integer":
+              case "SslMode":
+                (Objects.equals(fieldValue, field.get(defaultConf))
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "ArrayList":
+                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+
+              case "Properties":
+                break;
+              default:
+                throw new IllegalArgumentException("field type not expected for fields " + field.getName());
+            }
+          }
+        }
+      }
+
+      String diff = sbDifferentOpts.toString();
+      if (diff.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(diff);
+      }
+
+      sb.append("\n\ndefault options :");
+      String same = sbDefaultOpts.toString();
+      if (same.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(same);
+      }
+
+    } catch (IllegalArgumentException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Wrong parsing", e);
+    }
+    return sb.toString();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
