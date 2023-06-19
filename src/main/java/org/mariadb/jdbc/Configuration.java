@@ -1554,7 +1554,8 @@ public class Configuration {
     StringBuilder sbDefaultOpts = new StringBuilder();
     StringBuilder sbDifferentOpts = new StringBuilder();
     try {
-      List<String> propertyToSkip = Arrays.asList(new String[] {"initialUrl", "logger", "codecs", "$jacocoData"});
+      List<String> propertyToSkip =
+          Arrays.asList(new String[] {"initialUrl", "logger", "codecs", "$jacocoData"});
       Field[] fields = Configuration.class.getDeclaredFields();
       Arrays.sort(fields, Comparator.comparing(Field::getName));
 
@@ -1603,7 +1604,8 @@ public class Configuration {
               case "Properties":
                 break;
               default:
-                throw new IllegalArgumentException("field type not expected for fields " + field.getName());
+                throw new IllegalArgumentException(
+                    "field type not expected for fields " + field.getName());
             }
           }
         }

@@ -1271,7 +1271,8 @@ public class PreparedStatementTest extends Common {
   public void textPrefix() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries")) {
 
-      try (PreparedStatement prep = con.prepareStatement("/*client prepare*/SET @name := ?; SELECT @name ")) {
+      try (PreparedStatement prep =
+          con.prepareStatement("/*client prepare*/SET @name := ?; SELECT @name ")) {
         prep.setString(1, "test");
         prep.executeQuery();
         assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
