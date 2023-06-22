@@ -15,7 +15,12 @@ import com.singlestore.jdbc.util.options.OptionAliases;
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,8 +55,8 @@ import java.util.regex.Pattern;
  * <br>
  */
 public class Configuration {
-  private static final Logger logger = Loggers.getLogger(Configuration.class);
 
+  private final Logger logger;
   private static final Pattern URL_PARAMETER =
       Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
 
@@ -143,8 +148,12 @@ public class Configuration {
 
   private boolean useMysqlVersion = false;
   private boolean rewriteBatchedStatements = false;
+  private String consoleLogLevel = null;
+  private String consoleLogFilepath = null;
 
-  private Configuration() {}
+  private Configuration() {
+    this.logger = Loggers.getLogger(Configuration.class);
+  }
 
   private Configuration(
       String user,
@@ -209,7 +218,9 @@ public class Configuration {
       int poolValidMinDelay,
       boolean useResetConnection,
       boolean useMysqlVersion,
-      boolean rewriteBatchedStatements) {
+      boolean rewriteBatchedStatements,
+      String consoleLogLevel,
+      String consoleLogFilepath) {
     this.user = user;
     this.password = password;
     this.database = database;
@@ -274,6 +285,9 @@ public class Configuration {
     this.useMysqlVersion = useMysqlVersion;
     this.rewriteBatchedStatements = rewriteBatchedStatements;
     this.initialUrl = buildUrl(this);
+    this.consoleLogLevel = consoleLogLevel;
+    this.consoleLogFilepath = consoleLogFilepath;
+    this.logger = Loggers.getLogger(Configuration.class);
   }
 
   private Configuration(
@@ -339,8 +353,14 @@ public class Configuration {
       String restrictedAuth,
       Properties nonMappedOptions,
       Boolean useMysqlVersion,
-      Boolean rewriteBatchedStatements)
+      Boolean rewriteBatchedStatements,
+      String consoleLogLevel,
+      String consoleLogFilepath)
       throws SQLException {
+    this.consoleLogLevel = consoleLogLevel;
+    this.consoleLogFilepath = consoleLogFilepath;
+    Loggers.resetLoggerFactoryProperties(this.consoleLogLevel, this.consoleLogFilepath);
+    this.logger = Loggers.getLogger(Configuration.class);
     this.database = database;
     this.addresses = addresses;
     this.nonMappedOptions = nonMappedOptions;
@@ -729,7 +749,9 @@ public class Configuration {
         this.poolValidMinDelay,
         this.useResetConnection,
         this.useMysqlVersion,
-        this.rewriteBatchedStatements);
+        this.rewriteBatchedStatements,
+        this.consoleLogLevel,
+        this.consoleLogFilepath);
   }
 
   public String database() {
@@ -997,6 +1019,14 @@ public class Configuration {
     return rewriteBatchedStatements;
   }
 
+  public String getConsoleLogLevel() {
+    return consoleLogLevel;
+  }
+
+  public String getConsoleLogFilepath() {
+    return consoleLogFilepath;
+  }
+
   /**
    * ToString implementation.
    *
@@ -1233,6 +1263,8 @@ public class Configuration {
     private Boolean useMysqlVersion;
 
     private Boolean rewriteBatchedStatements;
+    private String consoleLogLevel;
+    private String consoleLogFilepath;
 
     public Builder user(String user) {
       this.user = nullOrEmpty(user);
@@ -1680,6 +1712,16 @@ public class Configuration {
       return this;
     }
 
+    public Builder consoleLogLevel(String consoleLogLevel) {
+      this.consoleLogLevel = consoleLogLevel;
+      return this;
+    }
+
+    public Builder consoleLogFilepath(String consoleLogFilepath) {
+      this.consoleLogFilepath = consoleLogFilepath;
+      return this;
+    }
+
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1745,7 +1787,9 @@ public class Configuration {
               this.restrictedAuth,
               this._nonMappedOptions,
               this.useMysqlVersion,
-              this.rewriteBatchedStatements);
+              this.rewriteBatchedStatements,
+              this.consoleLogLevel,
+              this.consoleLogFilepath);
       conf.initialUrl = buildUrl(conf);
       return conf;
     }

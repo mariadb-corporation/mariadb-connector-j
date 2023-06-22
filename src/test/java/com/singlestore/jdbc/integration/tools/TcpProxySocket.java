@@ -7,14 +7,17 @@ package com.singlestore.jdbc.integration.tools;
 
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
-  private static final Logger logger = Loggers.getLogger(TcpProxySocket.class);
-
+  private final Logger logger;
   private final String host;
   private final int remoteport;
   private int localport;
@@ -36,6 +39,7 @@ public class TcpProxySocket implements Runnable {
     this.remoteport = remoteport;
     ss = new ServerSocket(0);
     this.localport = ss.getLocalPort();
+    this.logger = Loggers.getLogger(TcpProxySocket.class);
   }
 
   public int getLocalPort() {

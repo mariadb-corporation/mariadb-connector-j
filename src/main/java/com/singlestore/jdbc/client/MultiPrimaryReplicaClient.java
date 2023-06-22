@@ -14,7 +14,6 @@ import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
-import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -31,7 +30,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * supported proxy class.
  */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
-  private static final Logger logger = Loggers.getLogger(MultiPrimaryReplicaClient.class);
   protected long waitTimeout;
   private Client replicaClient;
   private Client primaryClient;
@@ -94,7 +92,8 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
   protected void reConnect() throws SQLException {
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
-    logger.info("Connection error on {}", currentClient.getHostAddress());
+    Loggers.getLogger(MultiPrimaryReplicaClient.class)
+        .info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;
       if (oldClient.isPrimary()) {

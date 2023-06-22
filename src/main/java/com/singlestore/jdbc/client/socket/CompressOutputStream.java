@@ -6,15 +6,12 @@
 package com.singlestore.jdbc.client.socket;
 
 import com.singlestore.jdbc.util.MutableInt;
-import com.singlestore.jdbc.util.log.Logger;
-import com.singlestore.jdbc.util.log.Loggers;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
 
 public class CompressOutputStream extends OutputStream {
-  private static final Logger logger = Loggers.getLogger(CompressOutputStream.class);
 
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
 

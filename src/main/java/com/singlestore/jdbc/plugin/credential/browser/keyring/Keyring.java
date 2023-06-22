@@ -7,13 +7,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.singlestore.jdbc.plugin.credential.browser.ExpiringCredential;
-import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 
 public interface Keyring {
   String STORAGE_KEY = "SingleStore JDBC Safe Storage";
-  Logger logger = Loggers.getLogger(Keyring.class);
 
   ExpiringCredential getCredential();
 
@@ -50,11 +48,12 @@ public interface Keyring {
         return new MacKeyring();
       }
     } catch (Exception e) {
-      logger.warn(
-          "Could not connect to a "
-              + System.getProperty("os.name")
-              + " OS keyring. Credentials will not be persisted between sessions.",
-          e);
+      Loggers.getLogger(Keyring.class)
+          .warn(
+              "Could not connect to a "
+                  + System.getProperty("os.name")
+                  + " OS keyring. Credentials will not be persisted between sessions.",
+              e);
     }
     return null;
   }

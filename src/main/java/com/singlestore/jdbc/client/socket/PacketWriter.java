@@ -20,7 +20,7 @@ import java.util.Arrays;
 public class PacketWriter {
 
   public static final int SMALL_BUFFER_SIZE = 8192;
-  private static final Logger logger = Loggers.getLogger(PacketWriter.class);
+  private final Logger logger;
   private static final byte QUOTE = (byte) '\'';
   private static final byte DBL_QUOTE = (byte) '"';
   private static final byte ZERO_BYTE = (byte) '\0';
@@ -58,6 +58,7 @@ public class PacketWriter {
     this.cmdLength = 0;
     this.sequence = sequence;
     this.compressSequence = compressSequence;
+    this.logger = Loggers.getLogger(PacketWriter.class);
   }
 
   public int pos() {

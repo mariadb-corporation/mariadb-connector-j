@@ -12,8 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class TcpProxy {
-  private static final Logger logger = Loggers.getLogger(TcpProxy.class);
-
+  private final Logger logger;
   private final String host;
   private TcpProxySocket socket;
 
@@ -28,6 +27,7 @@ public class TcpProxy {
     this.host = host;
     socket = new TcpProxySocket(host, remoteport);
     Executors.newSingleThreadScheduledExecutor().schedule(socket, 0, TimeUnit.MILLISECONDS);
+    this.logger = Loggers.getLogger(TcpProxy.class);
   }
 
   public void stop() {

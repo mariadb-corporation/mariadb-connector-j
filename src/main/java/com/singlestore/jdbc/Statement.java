@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Statement implements java.sql.Statement {
-  private static final Logger logger = Loggers.getLogger(Statement.class);
+  private final Logger logger;
 
   protected final int resultSetType;
   protected final int resultSetConcurrency;
@@ -62,6 +62,7 @@ public class Statement implements java.sql.Statement {
     this.canUseServerTimeout = canUseServerTimeout;
     this.canUseServerMaxRows = canUseServerMaxRows;
     this.fetchSize = defaultFetchSize;
+    this.logger = Loggers.getLogger(Statement.class);
   }
 
   protected ExceptionFactory exceptionFactory() {

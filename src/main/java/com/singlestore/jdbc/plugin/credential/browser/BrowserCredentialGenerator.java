@@ -12,11 +12,12 @@ import java.util.concurrent.TimeoutException;
 import org.apache.http.client.utils.URIBuilder;
 
 public class BrowserCredentialGenerator {
-  private static final Logger logger = Loggers.getLogger(BrowserCredentialGenerator.class);
+  private final Logger logger;
   protected String baseURL;
 
   public BrowserCredentialGenerator(String baseURL) {
     this.baseURL = baseURL;
+    this.logger = Loggers.getLogger(BrowserCredentialGenerator.class);
   }
 
   public ExpiringCredential getCredential(String email) throws SQLException {

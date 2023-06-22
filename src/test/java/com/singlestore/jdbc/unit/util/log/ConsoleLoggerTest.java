@@ -5,10 +5,16 @@
 
 package com.singlestore.jdbc.unit.util.log;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.util.log.ConsoleLogger;
-import java.io.*;
+import com.singlestore.jdbc.util.log.ConsoleLogger.CONSOLE_LOG_LEVEL;
+import com.singlestore.jdbc.util.log.ConsoleLogger.ConsoleLoggerKey;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 
@@ -16,16 +22,19 @@ public class ConsoleLoggerTest {
 
   @Test
   public void logger() throws IOException {
-    logger(true);
-    logger(false);
+    logger(CONSOLE_LOG_LEVEL.TRACE);
+    logger(CONSOLE_LOG_LEVEL.INFO);
   }
 
-  public void logger(boolean logDebug) throws IOException {
+  public void logger(CONSOLE_LOG_LEVEL logLevel) throws IOException {
     try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
       try (ByteArrayOutputStream err = new ByteArrayOutputStream()) {
 
         ConsoleLogger logger =
-            new ConsoleLogger("test", new PrintStream(out), new PrintStream(err), logDebug);
+            new ConsoleLogger(
+                new ConsoleLoggerKey("test", logLevel, null),
+                new PrintStream(out),
+                new PrintStream(err));
 
         assertEquals("test", logger.getName());
         assertTrue(logger.isErrorEnabled());
@@ -45,47 +54,37 @@ public class ConsoleLoggerTest {
         logger.warn("warn msg3 {} {}", 1, "t");
         logger.warn("warn msg2", new SQLException("test"));
 
-        assertEquals(logDebug, logger.isDebugEnabled());
+        assertEquals(logLevel == CONSOLE_LOG_LEVEL.TRACE, logger.isDebugEnabled());
         logger.debug("debug msg");
         logger.debug("debug msg3 {} {}", 1, "t");
         logger.debug("debug msg2", new SQLException("test"));
 
-        assertEquals(logDebug, logger.isTraceEnabled());
+        assertEquals(logLevel == CONSOLE_LOG_LEVEL.TRACE, logger.isTraceEnabled());
         logger.trace("trace msg");
         logger.trace("trace msg3 {} {}", 1, "t");
         logger.trace("trace msg2", new SQLException("test"));
 
-        String errSt = new String(err.toByteArray());
-        String outSt = new String(out.toByteArray());
+        String errSt = err.toString();
+        String outSt = out.toString();
 
-        assertTrue(
-            errSt.contains(
-                "[ERROR] (main) error msg\n"
-                    + "[ERROR] (main) error msg3 1 t\n"
-                    + "[ERROR] (main) error msg4 null\n"
-                    + "[ERROR] (main) null\n"
-                    + "[ERROR] (main) error msg2 - java.sql.SQLException: test"));
-        assertTrue(
-            errSt.contains(
-                "[ WARN] (main) warn msg\n"
-                    + "[ WARN] (main) warn msg3 1 t\n"
-                    + "[ WARN] (main) warn msg2 - java.sql.SQLException: test"));
-        assertTrue(
-            outSt.contains(
-                "[ INFO] (main) info msg\n"
-                    + "[ INFO] (main) info msg3 1 t\n"
-                    + "[ INFO] (main) info msg2 - java.sql.SQLException: test"));
-        if (logDebug) {
-          assertTrue(
-              outSt.contains(
-                  "[DEBUG] (main) debug msg\n"
-                      + "[DEBUG] (main) debug msg3 1 t\n"
-                      + "[DEBUG] (main) debug msg2 - java.sql.SQLException: test"));
-          assertTrue(
-              outSt.contains(
-                  "[TRACE] (main) trace msg\n"
-                      + "[TRACE] (main) trace msg3 1 t\n"
-                      + "[TRACE] (main) trace msg2 - java.sql.SQLException: test"));
+        assertTrue(errSt.contains("[main] ERROR test error msg"));
+        assertTrue(errSt.contains("[main] ERROR test error msg3 1 t"));
+        assertTrue(errSt.contains("[main] ERROR test error msg4 null"));
+        assertTrue(errSt.contains("[main] ERROR test null"));
+        assertTrue(errSt.contains("[main] ERROR test error msg2 - java.sql.SQLException: test"));
+        assertTrue(errSt.contains("[main] WARN test warn msg"));
+        assertTrue(errSt.contains("[main] WARN test warn msg3 1 t"));
+        assertTrue(errSt.contains("[main] WARN test warn msg2 - java.sql.SQLException: test"));
+        assertTrue(outSt.contains("[main] INFO test info msg"));
+        assertTrue(outSt.contains("[main] INFO test info msg3 1 t"));
+        assertTrue(outSt.contains("[main] INFO test info msg2 - java.sql.SQLException: test"));
+        if (logLevel == CONSOLE_LOG_LEVEL.TRACE) {
+          assertTrue(outSt.contains("[main] DEBUG test debug msg"));
+          assertTrue(outSt.contains("[main] DEBUG test debug msg3 1 t"));
+          assertTrue(outSt.contains("[main] DEBUG test debug msg2 - java.sql.SQLException: test"));
+          assertTrue(outSt.contains("[main] TRACE test trace msg"));
+          assertTrue(outSt.contains("[main] TRACE test trace msg3 1 t"));
+          assertTrue(outSt.contains("[main] TRACE test trace msg2 - java.sql.SQLException: test"));
         } else {
           assertFalse(outSt.contains("[DEBUG]"));
           assertFalse(outSt.contains("[TRACE]"));

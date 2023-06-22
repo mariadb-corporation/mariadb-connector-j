@@ -4,6 +4,8 @@
 package com.singlestore.jdbc.plugin.credential.browser.keyring;
 
 import com.singlestore.jdbc.plugin.credential.browser.ExpiringCredential;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
@@ -18,8 +20,11 @@ public class MacKeyring implements Keyring {
   private static final Charset CHARSET = StandardCharsets.UTF_8;
   private final SecurityLibrary secLib;
 
+  private final Logger logger;
+
   public MacKeyring() {
-    secLib = LibManager.getInstance();
+    this.secLib = LibManager.getInstance();
+    this.logger = Loggers.getLogger(MacKeyring.class);
   }
 
   @Override

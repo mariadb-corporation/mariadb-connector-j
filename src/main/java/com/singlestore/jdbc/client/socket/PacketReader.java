@@ -20,8 +20,7 @@ public class PacketReader {
 
   private static final int REUSABLE_BUFFER_LENGTH = 1024;
   private static final int MAX_PACKET_SIZE = 0xffffff;
-  private static final Logger logger = Loggers.getLogger(PacketReader.class);
-
+  private final Logger logger;
   private final byte[] header = new byte[4];
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
   private final InputStream inputStream;
@@ -41,6 +40,7 @@ public class PacketReader {
     this.inputStream = in;
     this.maxQuerySizeToLog = conf.maxQuerySizeToLog();
     this.sequence = sequence;
+    this.logger = Loggers.getLogger(PacketReader.class);
   }
 
   /**
@@ -69,6 +69,9 @@ public class PacketReader {
     // Read 4 byte header
     // ***************************************************
     int remaining = 4;
+    if (traceEnable) {
+      logger.trace("read header is started, remaining bytes: {}", remaining);
+    }
     int off = 0;
     do {
       int count = inputStream.read(header, off, remaining);
@@ -77,6 +80,9 @@ public class PacketReader {
             "unexpected end of stream, read "
                 + off
                 + " bytes from 4 (socket was closed by server)");
+      }
+      if (traceEnable) {
+        logger.trace("read {} bytes header is finished", count);
       }
       remaining -= count;
       off += count;
@@ -98,6 +104,9 @@ public class PacketReader {
     // Read content
     // ***************************************************
     remaining = lastPacketLength;
+    if (traceEnable) {
+      logger.trace("read content is started, remaining bytes: {}", remaining);
+    }
     off = 0;
     do {
       int count = inputStream.read(rawBytes, off, remaining);
@@ -108,6 +117,9 @@ public class PacketReader {
                 + " bytes from "
                 + lastPacketLength
                 + " (socket was closed by server)");
+      }
+      if (traceEnable) {
+        logger.trace("read {} bytes content is finished", count);
       }
       remaining -= count;
       off += count;
@@ -127,11 +139,17 @@ public class PacketReader {
       int packetLength;
       do {
         remaining = 4;
+        if (traceEnable) {
+          logger.trace("read header is started, remaining bytes: {}", remaining);
+        }
         off = 0;
         do {
           int count = inputStream.read(header, off, remaining);
           if (count < 0) {
             throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+          }
+          if (traceEnable) {
+            logger.trace("read {} bytes header is finished", count);
           }
           remaining -= count;
           off += count;
@@ -149,6 +167,9 @@ public class PacketReader {
         // Read content
         // ***************************************************
         remaining = packetLength;
+        if (traceEnable) {
+          logger.trace("read content is started, remaining bytes: {}", remaining);
+        }
         off = currentbufLength;
         do {
           int count = inputStream.read(rawBytes, off, remaining);
@@ -158,6 +179,9 @@ public class PacketReader {
                     + (packetLength - remaining)
                     + " bytes from "
                     + packetLength);
+          }
+          if (traceEnable) {
+            logger.trace("read {} bytes content is finished", count);
           }
           remaining -= count;
           off += count;

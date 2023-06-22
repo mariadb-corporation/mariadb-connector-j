@@ -12,7 +12,6 @@ import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 
 public final class ErrorPacket implements ServerMessage {
-  private static final Logger logger = Loggers.getLogger(ErrorPacket.class);
   private final short errorCode;
   private final String message;
   private final String sqlState;
@@ -29,6 +28,7 @@ public final class ErrorPacket implements ServerMessage {
   public ErrorPacket(ReadableByteBuf buf, Context context) {
     buf.skip();
     this.errorCode = buf.readShort();
+    Logger logger = Loggers.getLogger(ErrorPacket.class);
     byte next = buf.getByte(buf.pos());
     if (next == (byte) '#') {
       buf.skip(); // skip '#'

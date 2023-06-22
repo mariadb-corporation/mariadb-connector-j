@@ -11,7 +11,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
@@ -21,7 +25,6 @@ import javax.security.auth.x500.X500Principal;
 
 public class HostnameVerifier {
 
-  private static final Logger logger = Loggers.getLogger(HostnameVerifier.class);
   private static final Pattern IP_V4 =
       Pattern.compile(
           "^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
@@ -199,6 +202,7 @@ public class HostnameVerifier {
       return; // no validation if no host (possible for name pipe)
     }
     String lowerCaseHost = host.toLowerCase(Locale.ROOT);
+    Logger logger = Loggers.getLogger(HostnameVerifier.class);
     try {
       // ***********************************************************
       // RFC 6125 : check Subject Alternative Name (SAN)

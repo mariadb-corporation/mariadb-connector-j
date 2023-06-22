@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.unit.util.log;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.util.log.ConsoleLogger;
 import com.singlestore.jdbc.util.log.JdkLogger;
@@ -22,14 +22,14 @@ public class LoggerFactoryTest {
     System.clearProperty(Loggers.TEST_ENABLE_SLF4J);
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
     System.clearProperty(Loggers.CONSOLE_DEBUG_PROPERTY);
-    Loggers.init();
+    Loggers.resetLoggerFactoryProperties(null, null);
   }
 
   @Test
   public void defaultSlf4j() {
     System.clearProperty(Loggers.TEST_ENABLE_SLF4J);
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
-    Loggers.init();
+    Loggers.resetLoggerFactoryProperties(null, null);
     assertTrue(Loggers.getLogger("test") instanceof Slf4JLogger);
   }
 
@@ -37,7 +37,10 @@ public class LoggerFactoryTest {
   public void commonLogger() {
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "false");
     System.setProperty(Loggers.FALLBACK_PROPERTY, "JDK");
-    Loggers.init();
+    Loggers.resetLoggerFactoryProperties("INFO", null);
+    assertTrue(Loggers.getLogger("test") instanceof JdkLogger);
+    System.setProperty(Loggers.TEST_ENABLE_SLF4J, "true");
+    Loggers.resetLoggerFactoryProperties("INFO", null);
     assertTrue(Loggers.getLogger("test") instanceof JdkLogger);
   }
 
@@ -45,10 +48,13 @@ public class LoggerFactoryTest {
   public void consoleLogger() {
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "false");
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
-    Loggers.init();
+    Loggers.resetLoggerFactoryProperties("INFO", null);
     assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
     System.setProperty(Loggers.CONSOLE_DEBUG_PROPERTY, "true");
-    Loggers.init();
+    Loggers.resetLoggerFactoryProperties("DEBUG", null);
+    assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
+    System.setProperty(Loggers.TEST_ENABLE_SLF4J, "true");
+    Loggers.resetLoggerFactoryProperties("INFO", null);
     assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
   }
 }

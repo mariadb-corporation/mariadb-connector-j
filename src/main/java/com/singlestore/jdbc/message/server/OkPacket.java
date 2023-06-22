@@ -13,18 +13,17 @@ import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 
 public class OkPacket implements Completion {
-  private static final Logger logger = Loggers.getLogger(OkPacket.class);
 
   private final long affectedRows;
   private final long lastInsertId;
 
   public OkPacket(ReadableByteBuf buf, Context context) {
+    Logger logger = Loggers.getLogger(OkPacket.class);
     buf.skip(); // ok header
     this.affectedRows = buf.readLengthNotNull();
     this.lastInsertId = buf.readLengthNotNull();
     context.setServerStatus(buf.readUnsignedShort());
     context.setWarning(buf.readUnsignedShort());
-
     if ((context.getServerCapabilities() & Capabilities.CLIENT_SESSION_TRACK) != 0
         && buf.readableBytes() > 0) {
       buf.skip(buf.readLengthNotNull()); // skip info

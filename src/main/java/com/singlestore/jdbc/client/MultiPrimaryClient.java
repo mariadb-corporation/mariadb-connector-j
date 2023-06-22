@@ -19,10 +19,16 @@ import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.util.constants.ConnectionState;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
-import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
-import java.sql.*;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTransientConnectionException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
@@ -36,7 +42,6 @@ import java.util.concurrent.locks.ReentrantLock;
  * supported proxy class.
  */
 public class MultiPrimaryClient implements Client {
-  private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
   protected final long deniedListTimeout;
@@ -139,7 +144,8 @@ public class MultiPrimaryClient implements Client {
 
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
-    logger.info("Connection error on {}", currentClient.getHostAddress());
+    Loggers.getLogger(MultiPrimaryClient.class)
+        .info("Connection error on {}", currentClient.getHostAddress());
     try {
       Client oldClient = currentClient;
       // remove cached prepare from existing server prepare statement

@@ -6,30 +6,34 @@
 package com.singlestore.jdbc.util.log;
 
 import java.io.PrintStream;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.regex.Matcher;
 
 @SuppressWarnings("ALL")
 public class ConsoleLogger implements Logger {
 
-  private final String name;
+  private static final DateTimeFormatter FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss*SSSZZZZ");
+  private ConsoleLoggerKey identifier;
   private final PrintStream err;
   private final PrintStream log;
-  private final boolean logDebugLvl;
 
-  public ConsoleLogger(String name, PrintStream log, PrintStream err, boolean logDebugLvl) {
-    this.name = name;
-    this.log = log;
-    this.err = err;
-    this.logDebugLvl = logDebugLvl;
+  public ConsoleLogger(ConsoleLoggerKey identifier, PrintStream log, PrintStream err) {
+    this.identifier = identifier;
+    this.log = log == null ? System.out : log;
+    this.err = err == null ? System.err : err;
   }
 
-  ConsoleLogger(String name, boolean logDebugLvl) {
-    this(name, System.out, System.err, logDebugLvl);
+  public ConsoleLogger(ConsoleLoggerKey identifier) {
+    this(identifier, System.out, System.err);
   }
 
   @Override
   public String getName() {
-    return this.name;
+    return this.identifier.name;
   }
 
   final String format(String from, Object... arguments) {
@@ -46,129 +50,247 @@ public class ConsoleLogger implements Logger {
 
   @Override
   public boolean isTraceEnabled() {
-    return logDebugLvl;
+    return identifier.logLevel.getLevel() >= CONSOLE_LOG_LEVEL.TRACE.getLevel();
   }
 
   @Override
   public synchronized void trace(String msg) {
-    if (!logDebugLvl) {
+    if (!isTraceEnabled()) {
       return;
     }
-    this.log.format("[TRACE] (%s) %s\n", Thread.currentThread().getName(), msg);
+    this.log.format(
+        "%s [%s] TRACE %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg);
   }
 
   @Override
   public synchronized void trace(String format, Object... arguments) {
-    if (!logDebugLvl) {
+    if (!isTraceEnabled()) {
       return;
     }
     this.log.format(
-        "[TRACE] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+        "%s [%s] TRACE %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), format(format, arguments));
   }
 
   @Override
   public synchronized void trace(String msg, Throwable t) {
-    if (!logDebugLvl) {
+    if (!isTraceEnabled()) {
       return;
     }
-    this.log.format("[TRACE] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+    this.log.format(
+        "%s [%s] TRACE %s %s - %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg, t);
     t.printStackTrace(this.log);
   }
 
   @Override
   public boolean isDebugEnabled() {
-    return logDebugLvl;
+    return this.identifier.logLevel.getLevel() >= CONSOLE_LOG_LEVEL.DEBUG.getLevel();
   }
 
   @Override
   public synchronized void debug(String msg) {
-    if (!logDebugLvl) {
+    if (!isDebugEnabled()) {
       return;
     }
-    this.log.format("[DEBUG] (%s) %s\n", Thread.currentThread().getName(), msg);
+    this.log.format(
+        "%s [%s] DEBUG %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg);
   }
 
   @Override
   public synchronized void debug(String format, Object... arguments) {
-    if (!logDebugLvl) {
+    if (!isDebugEnabled()) {
       return;
     }
     this.log.format(
-        "[DEBUG] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+        "%s [%s] DEBUG %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), format(format, arguments));
   }
 
   @Override
   public synchronized void debug(String msg, Throwable t) {
-    if (!logDebugLvl) {
+    if (!isDebugEnabled()) {
       return;
     }
-    this.log.format("[DEBUG] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+    this.log.format(
+        "%s [%s] DEBUG %s %s - %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg, t);
     t.printStackTrace(this.log);
   }
 
   @Override
   public boolean isInfoEnabled() {
-    return true;
+    return this.identifier.logLevel.getLevel() >= CONSOLE_LOG_LEVEL.INFO.getLevel();
   }
 
   @Override
   public synchronized void info(String msg) {
-    this.log.format("[ INFO] (%s) %s\n", Thread.currentThread().getName(), msg);
+    if (!isInfoEnabled()) {
+      return;
+    }
+    this.log.format(
+        "%s [%s] INFO %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg);
   }
 
   @Override
   public synchronized void info(String format, Object... arguments) {
+    if (!isInfoEnabled()) {
+      return;
+    }
     this.log.format(
-        "[ INFO] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+        "%s [%s] INFO %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), format(format, arguments));
   }
 
   @Override
   public synchronized void info(String msg, Throwable t) {
-    this.log.format("[ INFO] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+    if (!isInfoEnabled()) {
+      return;
+    }
+    this.log.format(
+        "%s [%s] INFO %s %s - %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg, t);
     t.printStackTrace(this.log);
   }
 
   @Override
   public boolean isWarnEnabled() {
-    return true;
+    return this.identifier.logLevel.getLevel() >= CONSOLE_LOG_LEVEL.WARN.getLevel();
   }
 
   @Override
   public synchronized void warn(String msg) {
-    this.err.format("[ WARN] (%s) %s\n", Thread.currentThread().getName(), msg);
+    if (!isWarnEnabled()) {
+      return;
+    }
+    this.err.format(
+        "%s [%s] WARN %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg);
   }
 
   @Override
   public synchronized void warn(String format, Object... arguments) {
+    if (!isWarnEnabled()) {
+      return;
+    }
     this.err.format(
-        "[ WARN] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+        "%s [%s] WARN %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), format(format, arguments));
   }
 
   @Override
   public synchronized void warn(String msg, Throwable t) {
-    this.err.format("[ WARN] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+    if (!isWarnEnabled()) {
+      return;
+    }
+    this.err.format(
+        "%s [%s] WARN %s %s - %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg, t);
     t.printStackTrace(this.err);
   }
 
   @Override
   public boolean isErrorEnabled() {
-    return true;
+    return this.identifier.logLevel.getLevel() >= CONSOLE_LOG_LEVEL.ERROR.getLevel();
   }
 
   @Override
   public synchronized void error(String msg) {
-    this.err.format("[ERROR] (%s) %s\n", Thread.currentThread().getName(), msg);
+    if (!isErrorEnabled()) {
+      return;
+    }
+    this.err.format(
+        "%s [%s] ERROR %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg);
   }
 
   @Override
   public synchronized void error(String format, Object... arguments) {
+    if (!isErrorEnabled()) {
+      return;
+    }
     this.err.format(
-        "[ERROR] (%s) %s\n", Thread.currentThread().getName(), format(format, arguments));
+        "%s [%s] ERROR %s %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), format(format, arguments));
   }
 
   @Override
   public synchronized void error(String msg, Throwable t) {
-    this.err.format("[ERROR] (%s) %s - %s\n", Thread.currentThread().getName(), msg, t);
+    if (!isErrorEnabled()) {
+      return;
+    }
+    this.err.format(
+        "%s [%s] ERROR %s %s - %s\n",
+        currentTimestamp(), Thread.currentThread().getName(), getName(), msg, t);
     t.printStackTrace(this.err);
+  }
+
+  private static String currentTimestamp() {
+    ZonedDateTime zdt = ZonedDateTime.now();
+    return zdt.format(FORMATTER);
+  }
+
+  public static enum CONSOLE_LOG_LEVEL {
+    ERROR(0),
+    WARN(1),
+    INFO(2),
+    DEBUG(3),
+    TRACE(4);
+
+    private int level;
+
+    CONSOLE_LOG_LEVEL(int level) {
+      this.level = level;
+    }
+
+    public int getLevel() {
+      return level;
+    }
+
+    public static CONSOLE_LOG_LEVEL fromLevelName(String name) {
+      return Arrays.stream(values())
+          .filter(v -> v.name().equalsIgnoreCase(name))
+          .findFirst()
+          .orElse(null);
+    }
+  }
+
+  public static final class ConsoleLoggerKey {
+
+    private final String name;
+    private final CONSOLE_LOG_LEVEL logLevel;
+    private final String logFilePath;
+
+    public ConsoleLoggerKey(String name, CONSOLE_LOG_LEVEL logLevel, String logFilePath) {
+      this.name = name;
+      this.logLevel = logLevel;
+      this.logFilePath = logFilePath;
+    }
+
+    public String getLogFilePath() {
+      return logFilePath;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      ConsoleLoggerKey that = (ConsoleLoggerKey) o;
+      return Objects.equals(name, that.name)
+          && logLevel == that.logLevel
+          && Objects.equals(logFilePath, that.logFilePath);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, logLevel, logFilePath);
+    }
   }
 }

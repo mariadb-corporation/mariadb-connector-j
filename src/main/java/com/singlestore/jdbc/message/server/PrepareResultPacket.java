@@ -6,7 +6,8 @@
 package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
-import com.singlestore.jdbc.client.*;
+import com.singlestore.jdbc.client.Client;
+import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.context.Context;
 import com.singlestore.jdbc.client.socket.PacketReader;
 import com.singlestore.jdbc.util.constants.Capabilities;
@@ -17,13 +18,13 @@ import java.sql.SQLException;
 
 /** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
 public class PrepareResultPacket implements Completion {
-  private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final ColumnDefinitionPacket[] parameters;
   private ColumnDefinitionPacket[] columns;
   protected int statementId;
 
   public PrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
       throws IOException {
+    Logger logger = Loggers.getLogger(PrepareResultPacket.class);
     boolean trace = logger.isTraceEnabled();
     buffer.readByte(); /* skip COM_STMT_PREPARE_OK */
     this.statementId = buffer.readInt();

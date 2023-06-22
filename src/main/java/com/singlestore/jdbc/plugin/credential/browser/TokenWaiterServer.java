@@ -12,8 +12,6 @@ import com.auth0.jwt.exceptions.SignatureGenerationException;
 import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.singlestore.jdbc.plugin.credential.Credential;
-import com.singlestore.jdbc.util.log.Logger;
-import com.singlestore.jdbc.util.log.Loggers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -30,7 +28,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class TokenWaiterServer {
-  private static final Logger logger = Loggers.getLogger(TokenWaiterServer.class);
   // time to wait for a JWT to be received before throwing in seconds.
   // Public for test purposes
   public static int WAIT_TIMEOUT = 300;

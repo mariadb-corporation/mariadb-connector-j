@@ -4,6 +4,8 @@
 package com.singlestore.jdbc.plugin.credential.browser.keyring;
 
 import com.singlestore.jdbc.plugin.credential.browser.ExpiringCredential;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -14,10 +16,12 @@ public class LinuxKeyring implements Keyring {
   private static final Map<String, String> ATTRIBUTES =
       Collections.singletonMap("application", "singlestore-jdbc");
   final SimpleCollection collection;
+  private final Logger logger;
 
   public LinuxKeyring() throws IOException {
     try {
-      collection = new SimpleCollection();
+      this.collection = new SimpleCollection();
+      this.logger = Loggers.getLogger(LinuxKeyring.class);
     } catch (IOException e) {
       throw new IOException("Error while accessing GNOME Keyring", e);
     }

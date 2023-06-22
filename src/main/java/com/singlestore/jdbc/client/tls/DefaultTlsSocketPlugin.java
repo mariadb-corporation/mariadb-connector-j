@@ -9,9 +9,13 @@ import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.SslMode;
 import com.singlestore.jdbc.plugin.tls.TlsSocketPlugin;
 import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
-import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
@@ -24,10 +28,15 @@ import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
-import javax.net.ssl.*;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
-  private static final Logger logger = Loggers.getLogger(DefaultTlsSocketPlugin.class);
 
   private static KeyManager loadClientCerts(
       String keyStoreUrl,
@@ -110,7 +119,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               };
         } catch (SQLException queryException) {
           trustManager = null;
-          logger.error("Error loading trust manager from system properties", queryException);
+          Loggers.getLogger(DefaultTlsSocketPlugin.class)
+              .error("Error loading trust manager from system properties", queryException);
         }
       } else if (conf.serverSslCert() != null) {
 
@@ -170,7 +180,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
               };
         } catch (SQLException queryException) {
           keyManager = null;
-          logger.error("Error loading key manager from system properties", queryException);
+          Loggers.getLogger(DefaultTlsSocketPlugin.class)
+              .error("Error loading key manager from system properties", queryException);
         }
       }
     }
@@ -211,7 +222,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       X509Certificate cert = (X509Certificate) certs[0];
       HostnameVerifier.verify(host, cert, serverThreadId);
     } catch (SSLException ex) {
-      logger.info(ex.getMessage(), ex);
+      Loggers.getLogger(DefaultTlsSocketPlugin.class).info(ex.getMessage(), ex);
       throw ex;
     }
   }

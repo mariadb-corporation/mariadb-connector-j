@@ -6,8 +6,6 @@
 package com.singlestore.jdbc.plugin.credential;
 
 import com.singlestore.jdbc.Driver;
-import com.singlestore.jdbc.util.log.Logger;
-import com.singlestore.jdbc.util.log.Loggers;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;
@@ -23,7 +21,6 @@ public final class CredentialPluginLoader {
 
   private static final ServiceLoader<CredentialPlugin> loader =
       ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
-  private static final Logger logger = Loggers.getLogger(CredentialPluginLoader.class);
 
   /**
    * Get current Identity plugin according to option `identityType`.

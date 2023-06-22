@@ -17,18 +17,24 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class Pool implements AutoCloseable, PoolMBean {
 
-  private static final Logger logger = Loggers.getLogger(Pool.class);
-
+  private final Logger logger;
   private static final int POOL_STATE_OK = 0;
   private static final int POOL_STATE_CLOSING = 1;
 
@@ -54,7 +60,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @param poolExecutor pools common executor
    */
   public Pool(Configuration conf, int poolIndex, ScheduledThreadPoolExecutor poolExecutor) {
-
+    this.logger = Loggers.getLogger(Pool.class);
     this.conf = conf;
     poolTag = generatePoolTag(poolIndex);
 

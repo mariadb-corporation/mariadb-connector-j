@@ -50,7 +50,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLSocket;
 
 public class ClientImpl implements Client, AutoCloseable {
-  private static final Logger logger = Loggers.getLogger(ClientImpl.class);
+
   protected final ExceptionFactory exceptionFactory;
   private Socket socket;
   private final MutableInt sequence = new MutableInt();
@@ -146,7 +146,8 @@ public class ClientImpl implements Client, AutoCloseable {
           || sqlException.getErrorCode() == 2628) {
         BrowserCredentialPlugin credPlugin = (BrowserCredentialPlugin) conf.credentialPlugin();
         // clear both local cache and keyring to force re-acquiring the token
-        logger.debug("Failed to connect with the JWT, retrying browser auth");
+        Loggers.getLogger(ClientImpl.class)
+            .debug("Failed to connect with the JWT, retrying browser auth");
         credPlugin.clearKeyring();
         credPlugin.clearLocalCache();
         this.closed = false;
@@ -353,6 +354,7 @@ public class ClientImpl implements Client, AutoCloseable {
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
+      Logger logger = Loggers.getLogger(ClientImpl.class);
       if (logger.isDebugEnabled() && message.description() != null) {
         logger.debug("execute query: {}", message.description());
       }
@@ -663,7 +665,7 @@ public class ClientImpl implements Client, AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException {
     try {
-      boolean traceEnable = logger.isTraceEnabled();
+      boolean traceEnable = Loggers.getLogger(ClientImpl.class).isTraceEnabled();
       Completion completion =
           message.readPacket(
               stmt,
