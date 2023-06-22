@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class InternalPoolConnection extends SingleStorePoolConnection {
   private final AtomicLong lastUsed;
+  private boolean failed;
 
   /**
    * Constructor.
@@ -34,5 +35,13 @@ public class InternalPoolConnection extends SingleStorePoolConnection {
   /** Set last poolConnection use to now. */
   public void lastUsedToNow() {
     lastUsed.set(System.nanoTime());
+  }
+
+  public boolean isFailed() {
+    return failed;
+  }
+
+  public void setFailed(boolean failed) {
+    this.failed = failed;
   }
 }

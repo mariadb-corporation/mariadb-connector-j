@@ -155,8 +155,12 @@ public class PooledConnectionTest extends Common {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
       assertTrue(
           contents.contains(
-              "removed from pool SingleStore-pool due to having throw a Connection exception (total:1, active:1, pending:0)"));
-      assertTrue(contents.contains("closing pool SingleStore-pool (total:1, active:0, pending:0)"));
+              "removed from pool SingleStore-pool due to having throw a Connection exception (total:0, active:0, pending:0)"));
+      // if connection is failed connection pool sends add new connection request asynchronously
+      // sometimes it can have 2 connections created instead of 1
+      assertTrue(
+          contents.contains("closing pool SingleStore-pool (total:1, active:0, pending:0)")
+              || contents.contains("closing pool SingleStore-pool (total:2, active:1, pending:0)"));
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);
     }
