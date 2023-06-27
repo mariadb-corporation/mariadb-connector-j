@@ -7,11 +7,9 @@ package org.mariadb.jdbc;
 import java.sql.*;
 import java.sql.Statement;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import org.mariadb.jdbc.client.DataType;
+import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
@@ -202,7 +200,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   private ResultSet getImportedKeys(
       String tableDef, String tableName, String catalog, org.mariadb.jdbc.Connection connection)
-      throws ParseException {
+      throws Exception, SQLException {
+    boolean importedKeysWithConstraintNames =
+        Boolean.parseBoolean(
+            conf.nonMappedOptions().getProperty("importedKeysWithConstraintNames", "true"));
     String[] columnNames = {
       "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
       "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
@@ -255,7 +256,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           onDeleteReferenceAction = getImportedKeyAction(referenceAction);
         }
       }
-
+      Map<String, Map<String[], String>> externalInfos = new HashMap<>();
       for (int i = 0; i < primaryKeyCols.size(); i++) {
 
         String[] row = new String[columnNames.length];
@@ -274,7 +275,37 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         row[9] = Integer.toString(onUpdateReferenceAction); // UPDATE_RULE
         row[10] = Integer.toString(onDeleteReferenceAction); // DELETE_RULE
         row[11] = constraintName.name; // FK_NAME
-        row[12] = null; // PK_NAME - unlike using information_schema, cannot know constraint name
+        if (importedKeysWithConstraintNames) {
+          String ext =
+              (pkTable.schema == null ? "" : quoteIdentifier(pkTable.schema) + ".")
+                  + quoteIdentifier(pkTable.name);
+          if (!externalInfos.containsKey(ext)) {
+            externalInfos.put(ext, getExtImportedKeys(ext, connection));
+          }
+          row[12] = null; // PK_NAME
+          Map<String[], String> externalInfo = externalInfos.get(ext);
+          if (externalInfo != null) {
+            for (Map.Entry<String[], String> entry : externalInfo.entrySet()) {
+              boolean foundAll = true;
+
+              for (String keyPart : entry.getKey()) {
+                boolean foundKey = false;
+                for (Identifier keyCol : primaryKeyCols) {
+                  if (keyCol.name.equals(keyPart)) {
+                    foundKey = true;
+                    break;
+                  }
+                }
+                if (!foundKey) foundAll = false;
+              }
+              if (foundAll) {
+                row[12] = entry.getValue();
+              }
+            }
+          }
+        } else {
+          row[12] = null; // PK_NAME
+        }
         row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable); // DEFERRABILITY
         data.add(row);
       }
@@ -299,6 +330,41 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         });
     return CompleteResult.createResultSet(
         columnNames, dataTypes, arr, connection.getContext(), ColumnFlags.PRIMARY_KEY);
+  }
+
+  private Map<String[], String> getExtImportedKeys(
+      String tableName, org.mariadb.jdbc.Connection connection) throws SQLException {
+    ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE " + tableName);
+    rs.next();
+    String refTableDef = rs.getString(2);
+    Map<String[], String> res = new HashMap<>();
+    String[] parts = refTableDef.split("\n");
+    for (int i = 1; i < parts.length - 1; i++) {
+      String part = parts[i].trim();
+      if (part.startsWith("`")) {
+        // field
+        continue;
+      }
+      if (part.startsWith("PRIMARY KEY") || part.startsWith("UNIQUE KEY")) {
+        String name = "PRIMARY";
+        if (part.indexOf("`") < part.indexOf("(")) {
+          int offset = part.indexOf("`");
+          name = part.substring(offset + 1, part.indexOf("`", offset + 1));
+        }
+
+        String subPart = part.substring(part.indexOf("(") + 1, part.lastIndexOf(")"));
+        List<String> cols = new ArrayList<>();
+        int pos = 0;
+        while (pos < subPart.length()) {
+          pos = subPart.indexOf("`", pos);
+          int endpos = subPart.indexOf("`", pos + 1);
+          cols.add(subPart.substring(pos + 1, endpos));
+          pos = endpos + 1;
+        }
+        res.put(cols.toArray(new String[0]), name);
+      }
+    }
+    return res;
   }
 
   /**
@@ -758,43 +824,60 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
       throws SQLException {
 
-    StringBuilder sb =
-        new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-                + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE,"
-                + DataTypeClause(conf)
-                + " TYPE_NAME, "
-                + " CASE DATA_TYPE"
-                + "  WHEN 'time' THEN "
-                + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'date' THEN 10"
-                + "  WHEN 'datetime' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + "  WHEN 'timestamp' THEN "
-                + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
-                + (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
-                + "  ELSE "
-                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-                + Integer.MAX_VALUE
-                + "), NUMERIC_PRECISION) "
-                + " END"
-                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
-                + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN "
-                + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
-                + " WHEN 'tinyint' THEN "
-                + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
-                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
-                + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-                + " LEAST(CHARACTER_OCTET_LENGTH,"
-                + Integer.MAX_VALUE
-                + ") CHAR_OCTET_LENGTH,"
-                + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-                + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-                + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
-                + " FROM INFORMATION_SCHEMA.COLUMNS");
+    ServerVersion version = connection.getContext().getVersion();
+    boolean supportsFractionalSeconds =
+        version.isMariaDBServer()
+            /* "In MariaDB 5.3 and later, the TIME, DATETIME, and TIMESTAMP types, along with the temporal
+            functions, CAST and dynamic columns, now support microseconds."
+            https://web.archive.org/web/20130928042640/https://mariadb.com/kb/en/microseconds-in-mariadb/
+            */
+            ? version.versionGreaterOrEqual(5, 3, 0)
+            // See https://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-4.html
+            : version.versionGreaterOrEqual(5, 6, 4);
+    StringBuilder sb = new StringBuilder();
+    sb.append(
+        "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
+            + dataTypeClause("COLUMN_TYPE")
+            + " DATA_TYPE,"
+            + DataTypeClause(conf)
+            + " TYPE_NAME, "
+            + " CASE DATA_TYPE"
+            + "  WHEN 'date' THEN 10");
+    if (supportsFractionalSeconds) {
+      sb.append(
+          "  WHEN 'time' THEN "
+              + "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))"
+              + "  WHEN 'datetime' THEN "
+              + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))"
+              + "  WHEN 'timestamp' THEN "
+              + "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))");
+    } else {
+      // Older versions do not include the DATETIME_PRECISION column in INFORMATION_SCHEMA.COLUMNS.
+      sb.append(" WHEN 'time' THEN 10 WHEN 'datetime' THEN 19 WHEN 'timestamp' THEN 19");
+    }
+    sb.append(
+        (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
+            + "  ELSE "
+            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+            + Integer.MAX_VALUE
+            + "), NUMERIC_PRECISION) "
+            + " END"
+            + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
+            + " CONVERT (CASE DATA_TYPE"
+            + " WHEN 'year' THEN "
+            + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
+            + " WHEN 'tinyint' THEN "
+            + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
+            + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+            + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
+            + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+            + " LEAST(CHARACTER_OCTET_LENGTH,"
+            + Integer.MAX_VALUE
+            + ") CHAR_OCTET_LENGTH,"
+            + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+            + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
+            + " FROM INFORMATION_SCHEMA.COLUMNS");
     boolean firstCondition = catalogCond(true, sb, "TABLE_SCHEMA", catalog);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
@@ -2606,9 +2689,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     };
 
     String[][] data = {
-      {"BIT", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BIT", "0", "0", "0", "0", "10"},
       {
-        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BOOL", "0", "0", "0", "0",
+        "BIT", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BIT", "0", "0", "0", "0", "10"
+      },
+      {
+        "BOOL", "-7", "1", "", "", "", "1", "1", "3", "\0", "0", "0", "BOOL", "0", "0", "0", "0",
         "10"
       },
       {
@@ -2621,7 +2706,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "TINYINT",
@@ -2641,7 +2726,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "TINYINT UNSIGNED",
@@ -2661,7 +2746,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "BIGINT",
@@ -2681,7 +2766,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "BIGINT UNSIGNED",
@@ -2701,7 +2786,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONG VARBINARY",
@@ -2721,7 +2806,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "MEDIUMBLOB",
@@ -2741,7 +2826,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONGBLOB",
@@ -2752,7 +2837,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0", "0", "0",
+        "BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "\0", "0", "0", "BLOB", "0", "0", "0",
         "0", "10"
       },
       {
@@ -2765,7 +2850,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TINYBLOB",
@@ -2785,7 +2870,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "1",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "VARBINARY",
@@ -2796,7 +2881,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY", "0", "0",
+        "BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "\0", "0", "0", "BINARY", "0", "0",
         "0", "0", "10"
       },
       {
@@ -2809,7 +2894,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONG VARCHAR",
@@ -2829,7 +2914,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "MEDIUMTEXT",
@@ -2849,7 +2934,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "LONGTEXT",
@@ -2860,7 +2945,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0", "0", "0",
+        "TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "\0", "0", "0", "TEXT", "0", "0", "0",
         "0", "10"
       },
       {
@@ -2873,7 +2958,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TINYTEXT",
@@ -2884,7 +2969,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0", "0", "0",
+        "CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "\0", "0", "0", "CHAR", "0", "0", "0",
         "0", "10"
       },
       {
@@ -2897,7 +2982,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "NUMERIC",
@@ -2917,7 +3002,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DECIMAL",
@@ -2937,7 +3022,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "INTEGER",
@@ -2957,7 +3042,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "INTEGER UNSIGNED",
@@ -2977,7 +3062,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "INT",
@@ -2997,7 +3082,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "INT UNSIGNED",
@@ -3017,7 +3102,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "MEDIUMINT",
@@ -3037,7 +3122,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "MEDIUMINT UNSIGNED",
@@ -3057,7 +3142,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\0",
         "0",
         "1",
         "SMALLINT",
@@ -3077,7 +3162,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "1",
+        "\1",
         "0",
         "1",
         "SMALLINT UNSIGNED",
@@ -3097,7 +3182,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "FLOAT",
@@ -3117,7 +3202,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DOUBLE",
@@ -3137,7 +3222,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "DOUBLE PRECISION",
@@ -3157,7 +3242,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "1",
         "REAL",
@@ -3168,23 +3253,23 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "10"
       },
       {
-        "VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR", "0", "0",
+        "VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "\0", "0", "0", "VARCHAR", "0", "0",
         "0", "0", "10"
       },
       {
-        "ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "ENUM", "0", "0", "0",
+        "ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "\0", "0", "0", "ENUM", "0", "0", "0",
         "0", "10"
       },
       {
-        "SET", "12", "64", "'", "'", "", "1", "0", "3", "0", "0", "0", "SET", "0", "0", "0", "0",
+        "SET", "12", "64", "'", "'", "", "1", "0", "3", "\0", "0", "0", "SET", "0", "0", "0", "0",
         "10"
       },
       {
-        "DATE", "91", "10", "'", "'", "", "1", "0", "3", "0", "0", "0", "DATE", "0", "0", "0", "0",
+        "DATE", "91", "10", "'", "'", "", "1", "0", "3", "\0", "0", "0", "DATE", "0", "0", "0", "0",
         "10"
       },
       {
-        "TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIME", "0", "0", "0",
+        "TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "\0", "0", "0", "TIME", "0", "0", "0",
         "0", "10"
       },
       {
@@ -3197,7 +3282,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "DATETIME",
@@ -3217,7 +3302,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         "1",
         "0",
         "3",
-        "0",
+        "\0",
         "0",
         "0",
         "TIMESTAMP",

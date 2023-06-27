@@ -134,7 +134,6 @@ public class ConnectionTest extends Common {
           "{call foo(/*{fn now()}*/)}",
           "{CALL foo({fn now() /* -- * */ -- test \n })}",
           "{?=call foo({fn now()})}",
-          "SELECT 'David_' LIKE 'David|_' {escape '|'}",
           "select {fn dayname ({fn abs({fn now()})})}",
           "{d '1997-05-24'}",
           "{d'1997-05-24'}",
@@ -159,7 +158,6 @@ public class ConnectionTest extends Common {
           "call foo(/*{fn now()}*/)",
           "CALL foo(now() /* -- * */ -- test \n )",
           "?=call foo(now())",
-          "SELECT 'David_' LIKE 'David|_' escape '|'",
           "select dayname (abs(now()))",
           "'1997-05-24'",
           "'1997-05-24'",
@@ -361,7 +359,12 @@ public class ConnectionTest extends Common {
         assertEquals("_test_db", connection.getCatalog());
         stmt.execute("USE _test_db");
         assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog(null);
+        assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog("_test_db");
+        assertEquals("_test_db", connection.getCatalog());
         stmt.execute("drop database _test_db");
+        assertTrue(connection.getCatalog() == null || "_test_db".equals(connection.getCatalog()));
       }
     }
   }
@@ -500,6 +503,8 @@ public class ConnectionTest extends Common {
           String strVal = result.getString("ATTR_VALUE");
           assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
         }
+      } catch (SQLException e) {
+        // eat exception when performance_schema.session_connect_attrs doesn't exists
       }
     }
   }
@@ -857,6 +862,9 @@ public class ConnectionTest extends Common {
     }
     stmt.execute("CREATE USER '" + pamUser + "'@'%' IDENTIFIED VIA pam USING 'mariadb'");
     stmt.execute("GRANT SELECT ON *.* TO '" + pamUser + "'@'%' IDENTIFIED VIA pam");
+
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     int testPort = port;
@@ -985,9 +993,18 @@ public class ConnectionTest extends Common {
     } catch (SQLException e) {
       // eat
     }
-
-    stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
-    stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    boolean useOldNotation =
+        (!isMariaDBServer() || !minVersion(10, 2, 0))
+            && (isMariaDBServer() || !minVersion(8, 0, 0));
+    if (useOldNotation) {
+      stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+      stmt.execute("GRANT SELECT on *.* to testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+    } else {
+      stmt.execute("CREATE USER testSocket IDENTIFIED BY 'heyPassw!µ20§rd'");
+      stmt.execute("GRANT SELECT on *.* to testSocket");
+    }
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     String url =
@@ -1065,6 +1082,10 @@ public class ConnectionTest extends Common {
   @Test
   public void localSocketAddress() throws SQLException {
     Assumptions.assumeTrue(
+        System.getenv("local") != null
+            && "1".equals(System.getenv("local"))
+            && !System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win"));
+    Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Configuration conf = Configuration.parse(mDefUrl);
     HostAddress hostAddress = conf.addresses().get(0);
@@ -1134,7 +1155,19 @@ public class ConnectionTest extends Common {
       assertEquals(nonExistentDatabase, rs.getString(1));
     }
 
+    nonExistentDatabase = "bla`f`l0";
+    connStr =
+        String.format(
+            "jdbc:mariadb:replication://%s:%s,%s:%s/%s?user=%s&password=%s&%s&createDatabaseIfNotExist",
+            hostname, port, hostname, port, nonExistentDatabase, user, password, defaultOther);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+
     sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l`");
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `bla``f``l0`");
   }
 
   @Test

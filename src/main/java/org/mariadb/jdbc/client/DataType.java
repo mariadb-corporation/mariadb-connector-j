@@ -4,35 +4,37 @@
 
 package org.mariadb.jdbc.client;
 
+import org.mariadb.jdbc.client.column.*;
+
 public enum DataType {
-  OLDDECIMAL(0),
-  TINYINT(1),
-  SMALLINT(2),
-  INTEGER(3),
-  FLOAT(4),
-  DOUBLE(5),
-  NULL(6),
-  TIMESTAMP(7),
-  BIGINT(8),
-  MEDIUMINT(9),
-  DATE(10),
-  TIME(11),
-  DATETIME(12),
-  YEAR(13),
-  NEWDATE(14),
-  VARCHAR(15),
-  BIT(16),
-  JSON(245),
-  DECIMAL(246),
-  ENUM(247),
-  SET(248),
-  TINYBLOB(249),
-  MEDIUMBLOB(250),
-  LONGBLOB(251),
-  BLOB(252),
-  VARSTRING(253),
-  STRING(254),
-  GEOMETRY(255);
+  OLDDECIMAL(0, BigDecimalColumn::new, BigDecimalColumn::new),
+  TINYINT(1, SignedTinyIntColumn::new, UnsignedTinyIntColumn::new),
+  SMALLINT(2, SignedSmallIntColumn::new, UnsignedSmallIntColumn::new),
+  INTEGER(3, SignedIntColumn::new, UnsignedIntColumn::new),
+  FLOAT(4, FloatColumn::new, FloatColumn::new),
+  DOUBLE(5, DoubleColumn::new, DoubleColumn::new),
+  NULL(6, StringColumn::new, StringColumn::new),
+  TIMESTAMP(7, TimestampColumn::new, TimestampColumn::new),
+  BIGINT(8, SignedBigIntColumn::new, UnsignedBigIntColumn::new),
+  MEDIUMINT(9, SignedMediumIntColumn::new, UnsignedMediumIntColumn::new),
+  DATE(10, DateColumn::new, DateColumn::new),
+  TIME(11, TimeColumn::new, TimeColumn::new),
+  DATETIME(12, TimestampColumn::new, TimestampColumn::new),
+  YEAR(13, YearColumn::new, YearColumn::new),
+  NEWDATE(14, DateColumn::new, DateColumn::new),
+  VARCHAR(15, StringColumn::new, StringColumn::new),
+  BIT(16, BitColumn::new, BitColumn::new),
+  JSON(245, JsonColumn::new, JsonColumn::new),
+  DECIMAL(246, BigDecimalColumn::new, BigDecimalColumn::new),
+  ENUM(247, StringColumn::new, StringColumn::new),
+  SET(248, StringColumn::new, StringColumn::new),
+  TINYBLOB(249, BlobColumn::new, BlobColumn::new),
+  MEDIUMBLOB(250, BlobColumn::new, BlobColumn::new),
+  LONGBLOB(251, BlobColumn::new, BlobColumn::new),
+  BLOB(252, BlobColumn::new, BlobColumn::new),
+  VARSTRING(253, StringColumn::new, StringColumn::new),
+  STRING(254, StringColumn::new, StringColumn::new),
+  GEOMETRY(255, GeometryColumn::new, GeometryColumn::new);
 
   static final DataType[] typeMap;
 
@@ -44,9 +46,16 @@ public enum DataType {
   }
 
   private final int mariadbType;
+  private final ColumnConstructor columnConstructor;
+  private final ColumnConstructor unsignedColumnConstructor;
 
-  DataType(int mariadbType) {
+  DataType(
+      int mariadbType,
+      ColumnConstructor columnConstructor,
+      ColumnConstructor unsignedColumnConstructor) {
     this.mariadbType = mariadbType;
+    this.columnConstructor = columnConstructor;
+    this.unsignedColumnConstructor = unsignedColumnConstructor;
   }
 
   public int get() {
@@ -55,5 +64,28 @@ public enum DataType {
 
   public static DataType of(int typeValue) {
     return typeMap[typeValue];
+  }
+
+  public ColumnConstructor getColumnConstructor() {
+    return columnConstructor;
+  }
+
+  public ColumnConstructor getUnsignedColumnConstructor() {
+    return unsignedColumnConstructor;
+  }
+
+  @FunctionalInterface
+  public interface ColumnConstructor {
+
+    ColumnDecoder create(
+        ReadableByteBuf buf,
+        int charset,
+        long length,
+        DataType dataType,
+        byte decimals,
+        int flags,
+        int[] stringPos,
+        String extTypeName,
+        String extTypeFormat);
   }
 }

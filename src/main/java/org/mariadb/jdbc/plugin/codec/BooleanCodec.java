@@ -5,15 +5,12 @@
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Boolean codec */
@@ -47,7 +44,7 @@ public class BooleanCodec implements Codec<Boolean> {
     return Boolean.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && ((type.isPrimitive() && type == Boolean.TYPE) || type.isAssignableFrom(Boolean.class));
   }
@@ -57,131 +54,21 @@ public class BooleanCodec implements Codec<Boolean> {
   }
 
   public Boolean decodeText(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
-    return decodeTextBoolean(buffer, length, column);
-  }
-
-  /**
-   * Decode text data
-   *
-   * @param buf packet buffer
-   * @param length data length
-   * @param column column metadata
-   * @return decoded value
-   * @throws SQLDataException if decoding error
-   */
-  @SuppressWarnings("fallthrough")
-  public boolean decodeTextBoolean(ReadableByteBuf buf, int length, Column column)
-      throws SQLDataException {
-    switch (column.getType()) {
-      case BIT:
-        return ByteCodec.parseBit(buf, length) != 0;
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Boolean", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case VARSTRING:
-      case STRING:
-      case TINYINT:
-      case SMALLINT:
-      case MEDIUMINT:
-      case INTEGER:
-      case BIGINT:
-      case YEAR:
-        String s = buf.readAscii(length);
-        return !"0".equals(s);
-
-      case DECIMAL:
-      case OLDDECIMAL:
-      case FLOAT:
-      case DOUBLE:
-        return new BigDecimal(buf.readAscii(length)).intValue() != 0;
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Boolean", column.getType()));
-    }
+    return column.decodeBooleanText(buffer, length);
   }
 
   public Boolean decodeBinary(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
-    return decodeBinaryBoolean(buffer, length, column);
-  }
-
-  /**
-   * Decode binary data
-   *
-   * @param buf packet buffer
-   * @param length data length
-   * @param column column metadata
-   * @return decoded value
-   * @throws SQLDataException if decoding error
-   */
-  @SuppressWarnings("fallthrough")
-  public boolean decodeBinaryBoolean(ReadableByteBuf buf, int length, Column column)
-      throws SQLDataException {
-    switch (column.getType()) {
-      case BIT:
-        return ByteCodec.parseBit(buf, length) != 0;
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Boolean", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if it has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case VARSTRING:
-      case STRING:
-        return !"0".equals(buf.readAscii(length));
-
-      case DECIMAL:
-      case OLDDECIMAL:
-        return new BigDecimal(buf.readAscii(length)).intValue() != 0;
-
-      case FLOAT:
-        return ((int) buf.readFloat()) != 0;
-
-      case DOUBLE:
-        return ((int) buf.readDouble()) != 0;
-
-      case TINYINT:
-        return buf.readByte() != 0;
-
-      case YEAR:
-      case SMALLINT:
-        return buf.readShort() != 0;
-
-      case MEDIUMINT:
-      case INTEGER:
-        return buf.readInt() != 0;
-      case BIGINT:
-        return buf.readLong() != 0;
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Boolean", column.getType()));
-    }
+    return column.decodeBooleanBinary(buffer, length);
   }
 
   @Override

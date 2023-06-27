@@ -56,6 +56,9 @@ public interface ReadableByteBuf {
    */
   void skip(int length);
 
+  /** Skip length encoded value */
+  void skipLengthEncoded();
+
   /**
    * Read Blob at current position
    *
@@ -111,6 +114,21 @@ public interface ReadableByteBuf {
    */
   int skipIdentifier();
 
+  /**
+   * Fast signed long parsing
+   *
+   * @param length data length
+   * @return long value
+   */
+  long atoll(int length);
+
+  /**
+   * Fast unsigned long parsing
+   *
+   * @param length data length
+   * @return long value
+   */
+  long atoull(int length);
   /**
    * Read encoded length value see
    * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers

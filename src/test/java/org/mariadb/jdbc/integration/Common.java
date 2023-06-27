@@ -47,7 +47,7 @@ public class Common {
       String val = System.getenv("TEST_REQUIRE_TLS");
       if ("1".equals(val)) {
         String cert = System.getenv("TEST_DB_SERVER_CERT");
-        defaultOther = "sslMode=verify-full&serverSslCert=" + cert;
+        defaultOther = "&sslMode=verify-full&serverSslCert=" + cert;
       } else {
         defaultOther = get("DB_OTHER", prop);
       }
@@ -57,9 +57,12 @@ public class Common {
       password = get("DB_PASSWORD", prop);
       database = get("DB_DATABASE", prop);
       mDefUrl =
-          String.format(
-              "jdbc:mariadb://%s:%s/%s?user=%s&password=%s&%s",
-              hostname, port, database, user, password, defaultOther);
+          password == null || password.isEmpty()
+              ? String.format(
+                  "jdbc:mariadb://%s:%s/%s?user=%s%s", hostname, port, database, user, defaultOther)
+              : String.format(
+                  "jdbc:mariadb://%s:%s/%s?user=%s&password=%s%s",
+                  hostname, port, database, user, password, defaultOther);
 
     } catch (IOException io) {
       io.printStackTrace();
@@ -95,6 +98,10 @@ public class Common {
     return sharedConn.getContext().getVersion().isMariaDBServer();
   }
 
+  public static boolean hasCapability(long capability) {
+    return sharedConn.getContext().hasClientCapability(capability);
+  }
+
   public static boolean runLongTest() {
     String runLongTest = System.getenv("RUN_LONG_TEST");
     if (runLongTest != null) {
@@ -114,6 +121,12 @@ public class Common {
 
   public static boolean minVersion(int major, int minor, int patch) {
     return sharedConn.getContext().getVersion().versionGreaterOrEqual(major, minor, patch);
+  }
+
+  public static boolean exactVersion(int major, int minor, int patch) {
+    return sharedConn.getContext().getVersion().getMajorVersion() == major
+        && sharedConn.getContext().getVersion().getMinorVersion() == minor
+        && sharedConn.getContext().getVersion().getPatchVersion() == patch;
   }
 
   public static Connection createCon() throws SQLException {
@@ -195,6 +208,10 @@ public class Common {
     } catch (SQLException e) {
       return false;
     }
+  }
+
+  public boolean isWindows() {
+    return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
   public void cancelForVersion(int major, int minor) {

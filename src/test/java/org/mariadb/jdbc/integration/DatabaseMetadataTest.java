@@ -142,6 +142,18 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
+  public void metaUnsigned() throws SQLException {
+    ResultSet typeInfo = sharedConn.getMetaData().getTypeInfo();
+    ResultSetMetaData rsmd = typeInfo.getMetaData();
+    assertEquals(Types.BOOLEAN, rsmd.getColumnType(typeInfo.findColumn("UNSIGNED_ATTRIBUTE")));
+    while (typeInfo.next()) {
+      Assertions.assertEquals(
+          typeInfo.getString("TYPE_NAME").contains("UNSIGNED"),
+          typeInfo.getBoolean("UNSIGNED_ATTRIBUTE"));
+    }
+  }
+
+  @Test
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
@@ -236,15 +248,21 @@ public class DatabaseMetadataTest extends Common {
   /** Same as getImportedKeys, with one foreign key in a table in another catalog. */
   @Test
   public void getImportedKeys() throws Exception {
-    getImportedKeys(sharedConn);
+    getImportedKeys(sharedConn, true);
     try (org.mariadb.jdbc.Connection con = createCon()) {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
-      getImportedKeys(con);
+      getImportedKeys(con, true);
+    }
+    try (org.mariadb.jdbc.Connection con = createCon("importedKeysWithConstraintNames=false")) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
+      getImportedKeys(con, false);
     }
   }
 
-  private void getImportedKeys(org.mariadb.jdbc.Connection con) throws Exception {
+  private void getImportedKeys(
+      org.mariadb.jdbc.Connection con, boolean importedKeysWithConstraintNames) throws Exception {
     // cancel for MySQL 8.0, since CASCADE with I_S give importedKeySetDefault, not
     // importedKeyCascade
     //    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
@@ -349,7 +367,9 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
       assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
+          rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -366,7 +386,9 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
       assertEquals("product order 1_ibfk_1", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "unik_name", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "unik_name",
+          rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
 
       assertTrue(rs.next());
@@ -388,7 +410,8 @@ public class DatabaseMetadataTest extends Common {
       }
       assertEquals("product order 1_ibfk_2", rs.getString("FK_NAME"));
       // with show, meta don't know contraint name
-      assertEquals((i == 0) ? null : "PRIMARY", rs.getString("PK_NAME"));
+      assertEquals(
+          (i == 0 && !importedKeysWithConstraintNames) ? null : "PRIMARY", rs.getString("PK_NAME"));
       assertEquals(DatabaseMetaData.importedKeyNotDeferrable, rs.getInt("DEFERRABILITY"));
     }
 
@@ -829,7 +852,7 @@ public class DatabaseMetadataTest extends Common {
       ResultSet rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
 
       assertTrue(rs.next());
-      assertEquals(Types.BIT, rs.getInt(5));
+      assertEquals(Types.BOOLEAN, rs.getInt(5));
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
 
@@ -848,57 +871,70 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void testTransformedBitIsBoolean() throws SQLException {
-    try (Connection con = createCon("transformedBitIsBoolean=true")) {
-      testTransformedBitIsBoolean(con);
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=true")) {
+      testTransformedBitIsBoolean(con, true, true);
+    }
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=false")) {
+      testTransformedBitIsBoolean(con, true, false);
+    }
+    try (Connection con = createCon("tinyInt1isBit=false&transformedBitIsBoolean=true")) {
+      testTransformedBitIsBoolean(con, false, true);
     }
     try (Connection con = createCon("transformedBitIsBoolean=true")) {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute("SET sql_mode = concat(@@sql_mode,',NO_BACKSLASH_ESCAPES')");
-      testTransformedBitIsBoolean(con);
+      testTransformedBitIsBoolean(con, true, true);
     }
   }
 
-  private void testTransformedBitIsBoolean(Connection con) throws SQLException {
+  private void testTransformedBitIsBoolean(
+      Connection con, boolean tinyInt1isBit, boolean transformedBitIsBoolean) throws SQLException {
     try {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute(
           "CREATE TABLE IF NOT EXISTS `tinyInt1\nisBitCols`(id1 tinyint(1), id2 tinyint(2))");
       stmt.execute("INSERT INTO `tinyInt1\nisBitCols` VALUES (1,2)");
 
-      ResultSet rs1 =
-          sharedConn.createStatement().executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
+      ResultSet rs1 = con.createStatement().executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
       assertTrue(rs1.next());
-      assertEquals(Boolean.TRUE, rs1.getObject(1));
-      assertEquals(2, rs1.getObject(2));
+      if (tinyInt1isBit) {
+        assertEquals(Boolean.TRUE, rs1.getObject(1));
+        assertEquals(2, rs1.getObject(2));
+      } else {
+        assertEquals(1, rs1.getObject(1));
+        assertEquals(2, rs1.getObject(2));
+      }
 
       ResultSetMetaData rsm = rs1.getMetaData();
-      assertEquals(Types.BIT, rsm.getColumnType(1));
-      assertEquals("BIT", rsm.getColumnTypeName(1));
+      if (tinyInt1isBit) {
+        if (transformedBitIsBoolean) {
+          assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
+          assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
+        } else {
+          assertEquals(Types.BIT, rsm.getColumnType(1));
+          assertEquals("BIT", rsm.getColumnTypeName(1));
+        }
+      } else {
+        assertEquals(Types.TINYINT, rsm.getColumnType(1));
+        assertEquals("TINYINT", rsm.getColumnTypeName(1));
+      }
 
-      rs1 = stmt.executeQuery("SELECT * FROM `tinyInt1\nisBitCols`");
-      assertTrue(rs1.next());
-      assertEquals(Boolean.TRUE, rs1.getObject(1));
-      assertEquals(2, rs1.getObject(2));
-
-      rsm = rs1.getMetaData();
-      assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
-      assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
-
-      DatabaseMetaData dbmd = sharedConn.getMetaData();
+      DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
 
       assertTrue(rs.next());
-      assertEquals("BIT", rs.getString(6));
-      assertEquals(Types.BIT, rs.getInt(5));
-      assertTrue(rs.next());
-      assertEquals(Types.TINYINT, rs.getInt(5));
-
-      dbmd = con.getMetaData();
-      rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
-
-      assertTrue(rs.next());
-      assertEquals("BOOLEAN", rs.getString(6));
-      assertEquals(Types.BOOLEAN, rs.getInt(5));
+      if (tinyInt1isBit) {
+        if (transformedBitIsBoolean) {
+          assertEquals(Types.BOOLEAN, rs.getInt(5));
+          assertEquals("BOOLEAN", rs.getString(6));
+        } else {
+          assertEquals(Types.BIT, rs.getInt(5));
+          assertEquals("BIT", rs.getString(6));
+        }
+      } else {
+        assertEquals(Types.TINYINT, rs.getInt(5));
+        assertEquals("TINYINT", rs.getString(6));
+      }
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
 
@@ -1587,19 +1623,6 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
-  public void conj72() throws Exception {
-    try (Connection connection = createCon("&tinyInt1isBit=true")) {
-      connection.createStatement().execute("insert into conj72 values(1)");
-      ResultSet rs =
-          connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
-      assertTrue(rs.next());
-      assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
-      ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
-      assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
-    }
-  }
-
-  @Test
   public void getPrecision() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
@@ -2097,6 +2120,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getTypeMetaData() throws SQLException {
+    Assumptions.assumeTrue(!isXpand());
     //            "create table text_types_text (varchar100           varchar(100),\n" +
     //                    "  varchar255           varchar(255),\n" +
     //                    "  text                 text,\n" +

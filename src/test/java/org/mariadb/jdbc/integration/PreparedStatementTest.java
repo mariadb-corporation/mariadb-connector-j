@@ -80,6 +80,9 @@ public class PreparedStatementTest extends Common {
     try (Connection con = createCon("&useServerPrepStmts")) {
       execute(con);
     }
+    try (Connection con = createCon("&useServerPrepStmts&cachePrepStmts=false")) {
+      execute(con);
+    }
   }
 
   private void execute(Connection conn) throws SQLException {
@@ -1121,7 +1124,7 @@ public class PreparedStatementTest extends Common {
     assertTrue(sharedConnBinary.isValid(1));
   }
 
-  private String generateLongText(int len) {
+  public static String generateLongText(int len) {
     int leftLimit = 97; // letter 'a'
     int rightLimit = 122; // letter 'z'
     Random random = new Random();

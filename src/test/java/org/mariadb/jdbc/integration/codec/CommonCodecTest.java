@@ -90,16 +90,25 @@ public class CommonCodecTest extends Common {
     }
   }
 
+  void testErrObject(ResultSet rs, Class<?> objClass, int index) throws SQLException {
+    Assertions.assertThrows(SQLException.class, () -> rs.getObject(index, objClass));
+    Assertions.assertThrows(
+        SQLException.class, () -> rs.getObject("t" + index + "alias", objClass));
+  }
+
   void testErrObject(ResultSet rs, Class<?> objClass) throws SQLException {
-    Assertions.assertThrows(SQLException.class, () -> rs.getObject(1, objClass));
-    Assertions.assertThrows(SQLException.class, () -> rs.getObject("t1alias", objClass));
+    testErrObject(rs, objClass, 1);
     assertNull(rs.getObject(4, objClass));
     assertNull(rs.getObject("t4alias", objClass));
   }
 
+  void testArrObject(ResultSet rs, byte[] exp, int index) throws SQLException {
+    assertArrayEquals(exp, (byte[]) rs.getObject(index, (Class<?>) byte[].class));
+    assertArrayEquals(exp, (byte[]) rs.getObject("t" + index + "alias", (Class<?>) byte[].class));
+  }
+
   void testArrObject(ResultSet rs, byte[] exp) throws SQLException {
-    assertArrayEquals(exp, (byte[]) rs.getObject(1, (Class<?>) byte[].class));
-    assertArrayEquals(exp, (byte[]) rs.getObject("t1alias", (Class<?>) byte[].class));
+    testArrObject(rs, exp, 1);
     assertNull(rs.getObject(4, (Class<?>) byte[].class));
     assertNull(rs.getObject("t4alias", (Class<?>) byte[].class));
   }

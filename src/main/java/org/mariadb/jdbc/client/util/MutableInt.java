@@ -4,16 +4,24 @@
 
 package org.mariadb.jdbc.client.util;
 
-/** Mutable int, permitting to update packet sequence */
+/** Mutable int */
 public class MutableInt {
-  private byte value = -1;
+  public MutableInt() {
+    this.value = -1;
+  }
+
+  public MutableInt(int value) {
+    this.value = value;
+  }
+
+  private int value;
 
   /**
    * Set new sequence value
    *
    * @param value new value
    */
-  public void set(byte value) {
+  public void set(int value) {
     this.value = value;
   }
 
@@ -22,7 +30,7 @@ public class MutableInt {
    *
    * @return value
    */
-  public byte get() {
+  public int get() {
     return this.value;
   }
 
@@ -31,7 +39,7 @@ public class MutableInt {
    *
    * @return new value
    */
-  public byte incrementAndGet() {
+  public int incrementAndGet() {
     return ++value;
   }
 }

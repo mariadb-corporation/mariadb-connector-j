@@ -20,6 +20,7 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.Point;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class LineStringCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
@@ -90,11 +91,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals(
           new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true),
           rs.getObject(1));
@@ -251,10 +248,7 @@ public class LineStringCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals("LINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -263,10 +257,7 @@ public class LineStringCodecTest extends CommonCodecTest {
 
     assertEquals(
         geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
+            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
                 ? LineString.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",
@@ -288,6 +279,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LineStringCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     LineString ls1 =
         new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true);
     LineString ls2 =
@@ -333,6 +325,7 @@ public class LineStringCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, LineString.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, LineString.class));
+    con.commit();
   }
 
   @Test

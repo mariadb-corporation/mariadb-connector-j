@@ -88,6 +88,17 @@ public class DateCodecTest extends CommonCodecTest {
     assertFalse(rs.wasNull());
     assertNull(rs.getDate(4));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      assertTrue(rs.next());
+      assertNull(rs.getObject(1));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, ZonedDateTime.class));
+      assertTrue(rs.wasNull());
+      assertNull(rs.getObject(1, LocalDate.class));
+      assertTrue(rs.wasNull());
+    }
   }
 
   @Test
@@ -722,7 +733,7 @@ public class DateCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO DateCodec2(t1) VALUES (?)")) {
       prep.setDate(1, Date.valueOf("2010-01-12"));
       prep.execute();
@@ -805,5 +816,6 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-12-31"), rs.getDate(2));
+    con.commit();
   }
 }

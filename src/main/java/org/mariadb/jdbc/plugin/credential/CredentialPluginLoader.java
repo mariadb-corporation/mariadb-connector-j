@@ -15,9 +15,6 @@ import org.mariadb.jdbc.plugin.CredentialPlugin;
  */
 public final class CredentialPluginLoader {
 
-  private static final ServiceLoader<CredentialPlugin> loader =
-      ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
-
   /**
    * Get current Identity plugin according to option `identityType`.
    *
@@ -27,6 +24,9 @@ public final class CredentialPluginLoader {
    */
   public static CredentialPlugin get(String type) throws SQLException {
     if (type == null) return null;
+
+    ServiceLoader<CredentialPlugin> loader =
+        ServiceLoader.load(CredentialPlugin.class, Driver.class.getClassLoader());
 
     for (CredentialPlugin implClass : loader) {
       if (type.equals(implClass.type())) {

@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.Statement;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.socket.Reader;
 
@@ -23,7 +23,7 @@ import org.mariadb.jdbc.client.socket.Reader;
  * possibility:
  *
  * <ul>
- *   <li>With >= MariaDB server, you can use the query "SET STATEMENT net_write_timeout=10000 FOR
+ *   <li>With &gt; MariaDB server, you can use the query "SET STATEMENT net_write_timeout=10000 FOR
  *       XXX" with XXX your "normal" query. This will indicate that specifically for this query,
  *       net_write_timeout will be set to a longer time (10000 in this example).
  *   <li>for non mariadb servers, a specific query will have to temporarily set net_write_timeout
@@ -64,7 +64,7 @@ public class StreamingResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      Column[] metadataList,
+      ColumnDecoder[] metadataList,
       Reader reader,
       Context context,
       int fetchSize,
@@ -153,7 +153,7 @@ public class StreamingResult extends Result {
     checkClose();
     if (rowPointer < dataSize - 1) {
       rowPointer++;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     } else {
       if (!loaded) {
@@ -170,7 +170,7 @@ public class StreamingResult extends Result {
           // resultSet has been cleared. next value is pointer 0.
           rowPointer = 0;
           if (dataSize > 0) {
-            row.setRow(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         } else {
@@ -178,17 +178,17 @@ public class StreamingResult extends Result {
           // results have been added to current resultSet
           rowPointer++;
           if (dataSize > rowPointer) {
-            row.setRow(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         }
-        row.setRow(null);
+        setNullRowBuf();
         return false;
       }
 
       // all data are reads and pointer is after last
       rowPointer = dataSize;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
   }
@@ -243,7 +243,7 @@ public class StreamingResult extends Result {
   public void beforeFirst() throws SQLException {
     checkClose();
     checkNotForwardOnly();
-    row.setRow(null);
+    setNullRowBuf();
     rowPointer = -1;
   }
 
@@ -252,7 +252,7 @@ public class StreamingResult extends Result {
     checkClose();
     checkNotForwardOnly();
     fetchRemaining();
-    row.setRow(null);
+    setNullRowBuf();
     rowPointer = dataSize;
   }
 
@@ -263,10 +263,10 @@ public class StreamingResult extends Result {
 
     rowPointer = 0;
     if (dataSize > 0) {
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 
@@ -276,10 +276,10 @@ public class StreamingResult extends Result {
     fetchRemaining();
     rowPointer = dataSize - 1;
     if (dataSize > 0) {
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 
@@ -299,13 +299,13 @@ public class StreamingResult extends Result {
 
     if (idx == 0) {
       rowPointer = -1;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
 
     if (idx > 0 && idx <= dataSize) {
       rowPointer = idx - 1;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
 
@@ -315,22 +315,22 @@ public class StreamingResult extends Result {
     if (idx > 0) {
       if (idx <= dataSize) {
         rowPointer = idx - 1;
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
 
       rowPointer = dataSize; // go to afterLast() position
-      row.setRow(null);
+      setNullRowBuf();
 
     } else {
 
       if (dataSize + idx >= 0) {
         // absolute position reverse from ending resultSet
         rowPointer = dataSize + idx;
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
-      row.setRow(null);
+      setNullRowBuf();
       rowPointer = -1; // go to before first position
     }
     return false;
@@ -343,21 +343,21 @@ public class StreamingResult extends Result {
     if (newPos <= -1) {
       checkNotForwardOnly();
       rowPointer = -1;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
 
     while (newPos >= dataSize) {
       if (loaded) {
         rowPointer = dataSize;
-        row.setRow(null);
+        setNullRowBuf();
         return false;
       }
       addStreamingValue();
     }
 
     rowPointer = newPos;
-    row.setRow(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -368,11 +368,11 @@ public class StreamingResult extends Result {
     if (rowPointer > -1) {
       rowPointer--;
       if (rowPointer != -1) {
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 

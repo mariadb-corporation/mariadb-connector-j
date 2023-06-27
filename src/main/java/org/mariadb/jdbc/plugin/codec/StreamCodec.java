@@ -8,11 +8,9 @@ import java.io.*;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -36,12 +34,13 @@ public class StreamCodec implements Codec<InputStream> {
     return InputStream.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(InputStream.class);
   }
 
   @Override
-  public InputStream decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public InputStream decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -51,18 +50,19 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return is;
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Stream", column.getType()));
     }
   }
 
   @Override
-  public InputStream decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public InputStream decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case STRING:
@@ -72,11 +72,11 @@ public class StreamCodec implements Codec<InputStream> {
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
-        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        ByteArrayInputStream is = new ByteArrayInputStream(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return is;
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Stream", column.getType()));
     }

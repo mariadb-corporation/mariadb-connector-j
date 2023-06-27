@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 
 /**
  * Compression handler, permitting decompression of mysql packet if needed. When compression is set,
@@ -17,7 +17,7 @@ import org.mariadb.jdbc.client.util.MutableInt;
  */
 public class CompressInputStream extends InputStream {
   private final InputStream in;
-  private final MutableInt sequence;
+  private final MutableByte sequence;
 
   private final byte[] header = new byte[7];
 
@@ -31,7 +31,7 @@ public class CompressInputStream extends InputStream {
    * @param in socket input stream
    * @param compressionSequence compression sequence
    */
-  public CompressInputStream(InputStream in, MutableInt compressionSequence) {
+  public CompressInputStream(InputStream in, MutableByte compressionSequence) {
     this.in = in;
     this.sequence = compressionSequence;
   }
@@ -193,7 +193,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
-    throw new IOException("Skip from compress socket not implemented");
+    return read(new byte[(int) n], 0, (int) n);
   }
 
   /**

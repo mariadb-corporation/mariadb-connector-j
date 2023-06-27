@@ -21,6 +21,7 @@ import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.LineString;
 import org.mariadb.jdbc.type.MultiLineString;
 import org.mariadb.jdbc.type.Point;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class MultiLineStringCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
@@ -132,11 +133,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals(ls1, rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(ls2, rs.getObject(2));
@@ -322,10 +319,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals("MULTILINESTRING", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -333,10 +327,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
+            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
                 ? MultiLineString.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",
@@ -358,7 +349,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE MultiLineStringCodec2");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO MultiLineStringCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
@@ -392,6 +383,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, MultiLineString.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, MultiLineString.class));
+    con.commit();
   }
 
   @Test

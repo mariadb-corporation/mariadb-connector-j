@@ -14,8 +14,7 @@ public class Select_1 extends Common {
   @Benchmark
   public int run(MyState state) throws Throwable {
     try (Statement st = state.connectionText.createStatement()) {
-      int rnd = (int) (Math.random() * 1000);
-      ResultSet rs = st.executeQuery("select " + rnd);
+      ResultSet rs = st.executeQuery("select 1");
       rs.next();
       return rs.getInt(1);
     }

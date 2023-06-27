@@ -669,7 +669,7 @@ public class BitCodecTest extends CommonCodecTest {
     assertEquals("byte[]", meta.getColumnClassName(2));
     assertEquals("t2alias", meta.getColumnLabel(2));
     assertEquals("t2", meta.getColumnName(2));
-    assertEquals(Types.VARBINARY, meta.getColumnType(2));
+    assertEquals(Types.BIT, meta.getColumnType(2));
     assertEquals(4, meta.getPrecision(2));
     assertEquals(0, meta.getScale(2));
     assertEquals("", meta.getSchemaName(2));
@@ -685,6 +685,7 @@ public class BitCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BitCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO BitCodec2(t1) VALUES (?)")) {
       prep.setObject(1, BitSet.valueOf(new byte[] {0x00, 0x01}));
       prep.execute();
@@ -740,5 +741,6 @@ public class BitCodecTest extends CommonCodecTest {
     assertNull(rs.getBytes(2));
     assertTrue(rs.next());
     assertEquals("b'100'", rs.getString(2));
+    con.commit();
   }
 }

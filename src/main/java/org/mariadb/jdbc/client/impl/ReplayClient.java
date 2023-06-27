@@ -17,9 +17,12 @@ import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.Loggers;
 
 /** Replay client wrapper */
 public class ReplayClient extends StandardClient {
+  private static final Logger logger = Loggers.getLogger(ReplayClient.class);
 
   /**
    * Constructor
@@ -142,11 +145,13 @@ public class ReplayClient extends StandardClient {
             PreparePacket preparePacket = new PreparePacket(cmd);
             sendQuery(preparePacket);
             prepare = (PrepareResultPacket) readPacket(preparePacket);
+            logger.info("replayed command after failover: " + preparePacket.description());
           }
           responseNo = querySaver.reEncode(writer, context, prepare);
         } else {
           responseNo = querySaver.reEncode(writer, context, null);
         }
+        logger.info("replayed command after failover: " + querySaver.description());
         for (int j = 0; j < responseNo; j++) {
           readResponse(querySaver);
         }

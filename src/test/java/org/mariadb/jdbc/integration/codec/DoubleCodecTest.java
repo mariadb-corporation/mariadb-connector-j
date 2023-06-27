@@ -696,6 +696,7 @@ public class DoubleCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DoubleCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO DoubleCodec2(t1) VALUES (?)")) {
       prep.setDouble(1, 1D);
       prep.execute();
@@ -771,5 +772,6 @@ public class DoubleCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(30D, rs.getDouble(2));
+    con.commit();
   }
 }

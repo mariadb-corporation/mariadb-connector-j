@@ -8,10 +8,11 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.Calendar;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 
 /**
  * Codec interface, to describe how a certain type of data must be encoded / decoded
@@ -34,7 +35,7 @@ public interface Codec<T> {
    * @param type java return class
    * @return true if codec can decode it
    */
-  boolean canDecode(Column column, Class<?> type);
+  boolean canDecode(ColumnDecoder column, Class<?> type);
 
   /**
    * Can Codec encode the java object type
@@ -48,28 +49,34 @@ public interface Codec<T> {
    * Decode from a mysql packet text encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeText(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt fieldLength,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**
    * Decode from a mysql packet binary encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeBinary(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt fieldLength,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**

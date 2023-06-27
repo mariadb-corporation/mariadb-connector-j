@@ -60,7 +60,7 @@ public final class PreparePacket implements ClientMessage {
       ClientMessage message)
       throws IOException, SQLException {
 
-    ReadableByteBuf buf = reader.readPacket(true, traceEnable);
+    ReadableByteBuf buf = reader.readReusablePacket(traceEnable);
     // *********************************************************************************************************
     // * ERROR response
     // *********************************************************************************************************

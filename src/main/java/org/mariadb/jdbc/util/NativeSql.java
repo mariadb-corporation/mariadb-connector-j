@@ -141,11 +141,10 @@ public final class NativeSql {
 
   private static String resolveEscapes(String escaped, Context context) throws SQLException {
     int endIndex = escaped.length() - 1;
-    String escapedLower = escaped.toLowerCase(Locale.ROOT);
     if (escaped.startsWith("{fn ")) {
       String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex), context);
       return parse(resolvedParams, context);
-    } else if (escapedLower.startsWith("{oj ")) {
+    } else if (escaped.startsWith("{oj ")) {
       // Outer join
       // the server supports "oj" in any case, even "oJ"
       return parse(escaped.substring(4, endIndex), context);
@@ -170,10 +169,7 @@ public final class NativeSql {
     } else if (escaped.startsWith("{call ") || escaped.startsWith("{CALL ")) {
       // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC
       // spec.
-
       return parse(escaped.substring(1, endIndex), context);
-    } else if (escaped.startsWith("{escape ")) {
-      return escaped.substring(1, endIndex);
     } else if (escaped.startsWith("{?")) {
       // likely ?=call(...)
       return parse(escaped.substring(1, endIndex), context);

@@ -763,6 +763,7 @@ public class BinaryCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BinaryCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO BinaryCodec2(t1) VALUES (?)")) {
       prep.setClob(1, new MariaDbClob("e🌟1".getBytes(StandardCharsets.UTF_8)));
       prep.execute();
@@ -828,5 +829,6 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertNull(rs.getClob(2));
     assertTrue(rs.next());
     assertNull(rs.getClob(2));
+    con.commit();
   }
 }

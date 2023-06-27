@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.client.context;
 
+import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
+
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.PrepareCache;
@@ -90,6 +92,10 @@ public class BaseContext implements Context {
     return (clientCapabilities & flag) > 0;
   }
 
+  public boolean permitPipeline() {
+    return !conf.disablePipeline() && (clientCapabilities & STMT_BULK_OPERATIONS) > 0;
+  }
+
   public int getServerStatus() {
     return serverStatus;
   }
@@ -151,7 +157,7 @@ public class BaseContext implements Context {
   }
 
   public void resetPrepareCache() {
-    prepareCache.reset();
+    if (prepareCache != null) prepareCache.reset();
   }
 
   public int getStateFlag() {

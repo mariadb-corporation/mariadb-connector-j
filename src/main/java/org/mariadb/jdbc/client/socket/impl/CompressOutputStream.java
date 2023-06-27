@@ -8,16 +8,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.DeflaterOutputStream;
-import org.mariadb.jdbc.client.util.MutableInt;
+import org.mariadb.jdbc.client.util.MutableByte;
 
 /**
  * Compression writer handler Permit to wrap standard packet to compressed packet ( 7 byte header).
- * Driver will compress packet only if packet size is meaningful (1536 bytes) > to one TCP packet.
+ * Driver will compress packet only if packet size is meaningful (1536 bytes) &gt; to one TCP
+ * packet.
  */
 public class CompressOutputStream extends OutputStream {
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
   private final OutputStream out;
-  private final MutableInt sequence;
+  private final MutableByte sequence;
   private final byte[] header = new byte[7];
   private byte[] longPacketBuffer = null;
 
@@ -27,7 +28,7 @@ public class CompressOutputStream extends OutputStream {
    * @param out socket output stream
    * @param compressionSequence compression sequence
    */
-  public CompressOutputStream(OutputStream out, MutableInt compressionSequence) {
+  public CompressOutputStream(OutputStream out, MutableByte compressionSequence) {
     this.out = out;
     this.sequence = compressionSequence;
   }
@@ -131,6 +132,7 @@ public class CompressOutputStream extends OutputStream {
 
         out.write(header, 0, 7);
         out.write(compressedBytes, 0, compressLen);
+        out.flush();
       }
     }
   }

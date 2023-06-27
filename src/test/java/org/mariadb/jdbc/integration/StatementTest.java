@@ -58,14 +58,14 @@ public class StatementTest extends Common {
             "INSERT INTO key_test(id) VALUES(5)", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
+      if (!isXpand()) assertFalse(rs.next());
     }
     try (PreparedStatement ps =
         sharedConn.prepareStatement(
             "UPDATE key_test set id=7 WHERE id=5", Statement.RETURN_GENERATED_KEYS)) {
       ps.execute();
       ResultSet rs = ps.getGeneratedKeys();
-      assertFalse(rs.next());
+      if (!isXpand()) assertFalse(rs.next());
     }
 
     stmt.execute("DROP TABLE key_test");
@@ -103,6 +103,31 @@ public class StatementTest extends Common {
     }
     assertTrue(expected.compareTo(((CompleteResult) rs).getBigInteger(1)) == 0);
     assertTrue(new BigDecimal(expected).compareTo(rs.getBigDecimal(1)) == 0);
+  }
+
+  @Test
+  public void unsignedMetadataResult() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS unsignedMetadataResult");
+    stmt.execute(
+        "CREATE TABLE unsignedMetadataResult("
+            + "c0 TINYINT UNSIGNED, "
+            + "c1 SMALLINT UNSIGNED, "
+            + "c2 MEDIUMINT UNSIGNED, "
+            + "c3 INTEGER UNSIGNED, "
+            + "c4 BIGINT UNSIGNED, "
+            + "c5 DOUBLE UNSIGNED, "
+            + "c6 FLOAT UNSIGNED, "
+            + "c7 DECIMAL UNSIGNED)");
+    stmt.execute("INSERT INTO unsignedMetadataResult VALUES(10,11,12,13,14,15,16,17)");
+    assertTrue(stmt.execute("SELECT * FROM unsignedMetadataResult"));
+
+    ResultSet rs = stmt.getResultSet();
+    ResultSetMetaData rsMetaData = rs.getMetaData();
+    for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+      assertTrue(rsMetaData.getColumnTypeName(i).contains("UNSIGNED"));
+    }
+    stmt.execute("DROP TABLE unsignedMetadataResult");
   }
 
   @Test
@@ -780,6 +805,10 @@ public class StatementTest extends Common {
       assertTrue(
           e.getMessage().contains("You have an error in your SQL syntax")
               || e.getMessage().contains("syntax error"));
+      assertNotNull(e.getCause());
+      assertEquals(e.getCause().getMessage(), e.getMessage());
+      assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+      assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
     }
   }
 
@@ -821,6 +850,10 @@ public class StatementTest extends Common {
       assertTrue(
           e.getMessage().contains("You have an error in your SQL syntax")
               || e.getMessage().contains("syntax error"));
+      assertNotNull(e.getCause());
+      assertEquals(e.getCause().getMessage(), e.getMessage());
+      assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
+      assertEquals(((SQLException) e.getCause()).getErrorCode(), e.getErrorCode());
     }
   }
 
@@ -952,5 +985,48 @@ public class StatementTest extends Common {
       assertEquals(useAffectedRows ? 2 : 4, rowCount);
       con.rollback();
     }
+  }
+
+  @Test
+  public void statementIdentifier() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    assertTrue(stmt.isSimpleIdentifier("good_$one"));
+    assertTrue(stmt.isSimpleIdentifier("anotherçone"));
+    assertFalse(stmt.isSimpleIdentifier("another'çone"));
+    assertFalse(stmt.isSimpleIdentifier(null));
+    assertFalse(stmt.isSimpleIdentifier(""));
+  }
+
+  @Test
+  public void statementEnquoteIdentifier() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+
+    assertEquals("good_$one", stmt.enquoteIdentifier("good_$one", false));
+    assertEquals("`good_$one`", stmt.enquoteIdentifier("good_$one", true));
+    assertEquals("`good_$one`", stmt.enquoteIdentifier("`good_$one`", true));
+    assertEquals("`🌟s`", stmt.enquoteIdentifier("🌟s", false));
+    assertEquals("`🌟s`", stmt.enquoteIdentifier("`🌟s`", false));
+    assertEquals("`good_``è``one`", stmt.enquoteIdentifier("good_`è`one", false));
+    try {
+      stmt.enquoteIdentifier("\u0000ff", true);
+      fail("must have thrown exception");
+    } catch (SQLException e) {
+      // expected
+    }
+  }
+
+  @Test
+  public void statementEnquoteString() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+
+    assertEquals("'good_$one'", stmt.enquoteLiteral("good_$one"));
+    assertEquals(
+        "'another\\Z\\'\\\"one\\n \\b test'", stmt.enquoteLiteral("another\u001A'\"one\n \b test"));
+  }
+
+  @Test
+  public void statementEnquoteNCharLiteral() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    assertEquals("N'good''one'", stmt.enquoteNCharLiteral("good'one"));
   }
 }

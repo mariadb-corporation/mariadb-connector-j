@@ -21,6 +21,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.SocketHelper;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
 import org.mariadb.jdbc.client.socket.impl.SocketHandlerFunction;
@@ -121,7 +122,7 @@ public final class ConnectionHelper {
         throw new SQLException(
             "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
-      setSocketOption(conf, socket);
+      SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null
@@ -142,40 +143,17 @@ public final class ConnectionHelper {
   }
 
   /**
-   * Set socket option
-   *
-   * @param conf configuration
-   * @param socket socket
-   * @throws IOException if any socket error occurs
-   */
-  public static void setSocketOption(final Configuration conf, final Socket socket)
-      throws IOException {
-    socket.setTcpNoDelay(true);
-    socket.setSoTimeout(conf.socketTimeout());
-    if (conf.tcpKeepAlive()) {
-      socket.setKeepAlive(true);
-    }
-    if (conf.tcpAbortiveClose()) {
-      socket.setSoLinger(true, 0);
-    }
-
-    // Bind the socket to a particular interface if the connection property
-    // localSocketAddress has been defined.
-    if (conf.localSocketAddress() != null) {
-      InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
-      socket.bind(localAddress);
-    }
-  }
-
-  /**
    * Initialize client capability according to configuration and server capabilities.
    *
    * @param configuration configuration
    * @param serverCapabilities server capabilities
+   * @param hostAddress host address server
    * @return client capabilities
    */
   public static long initializeClientCapabilities(
-      final Configuration configuration, final long serverCapabilities) {
+      final Configuration configuration,
+      final long serverCapabilities,
+      final HostAddress hostAddress) {
     long capabilities =
         Capabilities.IGNORE_SPACE
             | Capabilities.CLIENT_PROTOCOL_41
@@ -230,10 +208,18 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.COMPRESS;
     }
 
-    if (configuration.database() != null && !configuration.createDatabaseIfNotExist()) {
+    // connect to database directly if not needed to be created, or if slave, since cannot be
+    // created
+    if (configuration.database() != null
+        && (!configuration.createDatabaseIfNotExist()
+            || (configuration.createDatabaseIfNotExist()
+                && (hostAddress != null && !hostAddress.primary)))) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
 
+    if (configuration.sslMode() != SslMode.DISABLE) {
+      capabilities |= Capabilities.SSL;
+    }
     return capabilities & serverCapabilities;
   }
 
@@ -271,7 +257,7 @@ public final class ConnectionHelper {
 
     writer.permitTrace(true);
     Configuration conf = context.getConf();
-    ReadableByteBuf buf = reader.readPacket(false);
+    ReadableByteBuf buf = reader.readReusablePacket();
 
     authentication_loop:
     while (true) {

@@ -25,10 +25,11 @@ public class DataSourceTest extends Common {
     ds.setUrl(mDefUrl);
     testDs(ds);
 
-    ds = new MariaDbDataSource();
-    ds.setPassword("ttt");
-    ds.setUrl(mDefUrl);
-    assertThrows(SQLException.class, ds::getConnection);
+    MariaDbDataSource ds2 = new MariaDbDataSource();
+    ds2.setUrl(mDefUrl);
+    ds2.setPassword("ttt");
+    ds2.setUser("ttt");
+    assertThrows(SQLException.class, ds2::getConnection);
   }
 
   private void testDs(MariaDbDataSource ds) throws SQLException {
@@ -150,6 +151,8 @@ public class DataSourceTest extends Common {
               + sharedConn.getCatalog()
               + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
+    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
+    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     DataSource ds = new MariaDbDataSource(mDefUrl + "&allowPublicKeyRetrieval");

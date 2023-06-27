@@ -10,11 +10,9 @@ import java.math.BigInteger;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** BigInteger codec */
@@ -48,7 +46,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
     return BigInteger.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(BigInteger.class);
   }
 
@@ -58,7 +56,8 @@ public class BigIntegerCodec implements Codec<BigInteger> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public BigInteger decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public BigInteger decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -66,14 +65,14 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case DOUBLE:
       case DECIMAL:
       case OLDDECIMAL:
-        return new BigDecimal(buf.readAscii(length)).toBigInteger();
+        return new BigDecimal(buf.readAscii(length.get())).toBigInteger();
 
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
         }
@@ -83,7 +82,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case VARCHAR:
       case VARSTRING:
       case STRING:
-        String str2 = buf.readString(length);
+        String str2 = buf.readString(length.get());
         try {
           return new BigDecimal(str2).toBigInteger();
         } catch (NumberFormatException nfe) {
@@ -93,7 +92,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
 
       case BIT:
         long result = 0;
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length.get(); i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
         }
@@ -105,10 +104,10 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case INTEGER:
       case BIGINT:
       case YEAR:
-        return new BigInteger(buf.readAscii(length));
+        return new BigInteger(buf.readAscii(length.get()));
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
     }
@@ -116,13 +115,14 @@ public class BigIntegerCodec implements Codec<BigInteger> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public BigInteger decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public BigInteger decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     switch (column.getType()) {
       case BIT:
         long result = 0;
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length.get(); i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
         }
@@ -161,7 +161,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         return BigDecimal.valueOf(buf.readDouble()).toBigInteger();
 
       case DECIMAL:
-        return new BigDecimal(buf.readAscii(length)).toBigInteger();
+        return new BigDecimal(buf.readAscii(length.get())).toBigInteger();
 
       case BIGINT:
         if (column.isSigned()) return BigInteger.valueOf(buf.readLong());
@@ -178,7 +178,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
         }
@@ -188,7 +188,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
       case VARCHAR:
       case VARSTRING:
       case STRING:
-        String str = buf.readString(length);
+        String str = buf.readString(length.get());
         try {
           return new BigInteger(str);
         } catch (NumberFormatException nfe) {
@@ -197,7 +197,7 @@ public class BigIntegerCodec implements Codec<BigInteger> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigInteger", column.getType()));
     }

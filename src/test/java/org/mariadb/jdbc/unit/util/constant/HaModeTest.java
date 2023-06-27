@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc.unit.util.constant;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -67,19 +69,33 @@ public class HaModeTest {
     Assertions.assertTrue(res.isPresent());
     Assertions.assertEquals(host1, res.get());
 
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host2, res.get());
+    int replica1 = 0;
+    int replica2 = 0;
+    for (int i = 0; i < 1000; i++) {
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      if (host2.equals(res.get())) replica1++;
+      if (host3.equals(res.get())) replica2++;
+    }
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
+    replica1 = 0;
+    replica2 = 0;
     denyList.putIfAbsent(host2, System.currentTimeMillis() - 10);
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host2, res.get());
+    for (int i = 0; i < 1000; i++) {
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      if (host2.equals(res.get())) replica1++;
+      if (host3.equals(res.get())) replica2++;
+    }
+    assertTrue(replica1 > 350 && replica2 > 350, "bad distribution :" + replica1 + "/" + replica2);
 
-    denyList.putIfAbsent(host2, System.currentTimeMillis() + 1000);
-    res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
-    Assertions.assertTrue(res.isPresent());
-    Assertions.assertEquals(host3, res.get());
+    for (int i = 0; i < 1000; i++) {
+      denyList.putIfAbsent(host2, System.currentTimeMillis() + 1000);
+      res = HaMode.REPLICATION.getAvailableHost(available, denyList, false);
+      Assertions.assertTrue(res.isPresent());
+      Assertions.assertEquals(host3, res.get());
+    }
   }
 
   @Test
@@ -100,21 +116,30 @@ public class HaModeTest {
     available.add(host6);
 
     ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
-    Map<HostAddress, Integer> res = loopPercReturn(available, denyList);
-    Integer use = res.get(host1);
-    Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
+    Map<HostAddress, Integer> res = loopPercReturn(available, denyList, true);
+    Assertions.assertEquals(334, res.get(host1));
+    Assertions.assertEquals(333, res.get(host2));
+    Assertions.assertEquals(333, res.get(host3));
 
-    denyList.putIfAbsent(host1, System.currentTimeMillis() + 10000);
+    denyList.putIfAbsent(host1, System.currentTimeMillis() + 1000000);
 
-    res = loopPercReturn(available, denyList);
-    use = res.get(host2);
-    Assertions.assertTrue(
-        use > 400 && use < 600, "Expect 50% host2 and 50% host 3, but was " + use);
+    res = loopPercReturn(available, denyList, true);
+    Assertions.assertEquals(null, res.get(host1));
+    Assertions.assertEquals(500, res.get(host2));
+    Assertions.assertEquals(500, res.get(host3));
+
     denyList.clear();
+    denyList.putIfAbsent(host1, System.currentTimeMillis() - 1000000);
 
-    res = loopPercReturn(available, denyList);
-    use = res.get(host1);
-    Assertions.assertTrue(use > 250 && use < 400, "Expect 33% host1, 33% host2 and 33% host 3");
+    res = loopPercReturn(available, denyList, true);
+    Assertions.assertEquals(334, res.get(host1));
+    Assertions.assertEquals(333, res.get(host2));
+    Assertions.assertEquals(333, res.get(host3));
+
+    res = loopPercReturn(available, denyList, false);
+    Assertions.assertEquals(334, res.get(host4));
+    Assertions.assertEquals(333, res.get(host5));
+    Assertions.assertEquals(333, res.get(host6));
   }
 
   @Test
@@ -135,10 +160,10 @@ public class HaModeTest {
   }
 
   private Map<HostAddress, Integer> loopPercReturn(
-      List<HostAddress> available, ConcurrentMap<HostAddress, Long> denyList) {
+      List<HostAddress> available, ConcurrentMap<HostAddress, Long> denyList, boolean primary) {
     Map<HostAddress, Integer> resMap = new HashMap<>();
     for (int i = 0; i < 1000; i++) {
-      Optional<HostAddress> res = HaMode.LOADBALANCE.getAvailableHost(available, denyList, true);
+      Optional<HostAddress> res = HaMode.LOADBALANCE.getAvailableHost(available, denyList, primary);
       if (res.isPresent()) {
         if (resMap.containsKey(res.get())) {
           resMap.put(res.get(), resMap.get(res.get()) + 1);

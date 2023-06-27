@@ -21,6 +21,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
    * @param lock thread lock object
    * @param canUseServerTimeout can use server timeout
    * @param canUseServerMaxRows can use server max rows
+   * @param canCachePrepStmts can cache server prepared result
    * @param resultSetType result set type
    * @param resultSetConcurrency concurrency type
    * @throws SQLException if any error occurs
@@ -33,6 +34,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
       ReentrantLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
+      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency)
       throws SQLException {
@@ -44,6 +46,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
         procedureName,
         canUseServerTimeout,
         canUseServerMaxRows,
+        canCachePrepStmts,
         resultSetType,
         resultSetConcurrency,
         0);

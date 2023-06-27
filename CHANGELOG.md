@@ -1,4 +1,109 @@
 # Change Log
+
+## [3.1.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.4) (Apr 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.3...3.1.4)
+
+* CONJ-1065 wrong Resultset.wasNull() for zero-date timestamps
+* CONJ-1070	getBlob on TEXT columns throw Exception
+* CONJ-1071	Error response during Bulk execution might result in connection wrong state
+* CONJ-1067	When some numeric data types are set to UNSIGNED, ResultSetMetaData.getColumnTypeName() does not return UNSIGNED
+
+## [3.1.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.3) (Mar 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.2...3.1.3)
+
+* CONJ-1054 Threadsafety issue when using CredentialPlugin in v3.x
+* CONJ-1056 JDBC connector reads incorrect data from unix socket when the text is too large
+* CONJ-1057 Wrong decoding of binary time with value "00:00:00"
+* CONJ-1058 JDBC 4.3 org.mariadb.jdbc.Statement enquote* methods implementation @peterhalicky
+* CONJ-1060 BIT default metadata doesn't take care of transformedBitIsBoolean option
+* report 2.7.9 bug fixes CONJ-1062 and CONJ-1063
+
+## [2.7.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.9) (Mar 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.8...2.7.9)
+
+* CONJ-1062 correcting TlsSocketPlugin to use Driver classloader
+* CONJ-1063 DatabaseMetaData.getTypeInfo() returns wrong value for UNSIGNED_ATTRIBUTE
+
+## [3.1.2](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.2) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.1...3.1.2)
+
+* CONJ-1040 possible ConcurrentModificationException when connecting
+* CONJ-1041 possible ArrayIndexOutOfBoundsException
+
+## [2.7.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.8) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.7...2.7.8)
+
+* CONJ-1039 setQueryTimeout not honored by CallableStatement for procedures depending on security context
+* CONJ-1041 possible ArrayIndexOutOfBoundsException
+* CONJ-1023 set missing SSL capability in handshake after SSL exchanges
+
+
+## [3.1.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.1) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.0...3.1.1)
+
+- 3.0.10 bug fix:
+  - CONJ-1023	Connector/J doesn't set SSL cap bit in Handshake Response Packet
+  - CONJ-1026	timezone=auto option failure on non-fixed-offset zone machine
+  - CONJ-1032	Compatibility for deprecated arguments is case sensitive now
+- CONJ-1036	org.mariadb.jdbc.client.socket.impl.PacketWriter.writeAscii() broken in 3.1.0
+
+
+## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.0.10)
+
+* CONJ-1023	Connector/J doesn't set SSL cap bit in Handshake Response Packet
+* CONJ-1026	timezone=auto option failure on non-fixed-offset zone machine
+* CONJ-1032	Compatibility for deprecated arguments is case sensitive now
+
+## [3.1.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.0) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.1.0)
+
+##### Notable Changes
+* CONJ-899 Support UUID Object
+* CONJ-916 when a failover occurs, log replayed transaction
+* CONJ-917 deprecated options use must be logged
+* CONJ-992 load balance distribution
+* CONJ-1008	default value for socket option useReadAheadInput
+* CONJ-1009	improve performance reading big result-set
+* CONJ-1014	avoid creating array when receiving server packet
+* CONJ-1015	pipelining sending multiple packet to socket
+
+##### Bugs Fixed
+* CONJ-1020	java 11 option setting ignored
+
+## [3.0.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.9) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.8...3.0.9)
+* 2.7.7 merge
+* CONJ-1012	stored procedure register output parameter as null if set before registerOutParameter command
+* CONJ-1017 Calendar possible race condition, cause wrong timestamp setting
+
+## [2.7.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.7) (Nov 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.6...2.7.7)
+
+* CONJ-1021 GSSAPI authentication might result in connection reset
+* CONJ-1019 DatabaseMetaData.getImportedKeys should return real value for PK_NAME column
+* CONJ-1016 avoid splitting BULK command into multiple commands in case of prepareStatement.setNull() use
+* CONJ-1011 correcting possible NPE when using statement.cancel() that coincide with statement.close() in another thread
+* CONJ-1007 Socket file descriptors are leaked after connecting with unix socket if DB is not up running
+
+## [3.0.8](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.8) (Sept 2022)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.7...3.0.8)
+
+##### Notable Changes
+* small performance improvement
+  * [CONJ-1010] improve client side prepared parameter parameter substitution
+  
+##### Bugs Fixed
+* [CONJ-997] regression in 3.x when using option galeraAllowedState resulting in an IndexOutOfBoundsException
+* [CONJ-1002] 2nd failover reconnection ignores default database/schema setting when not set by connection string
+* [CONJ-1003] replication configuration always use 1st replica on 3.0
+* [CONJ-996] BatchUpdateException doesn't inherited the SQLState & vendorCode from the cause SQL exception
+* [CONJ-1006] disabling cachePrepStmts with useServerPrepStmts might result in Exception
+* [CONJ-1007] Socket file descriptors are leaked after connecting with unix socket if DB is not up running
+* [CONJ-1010] improve client side prepare statement parameter substitution
+* [CONJ-999] setting createDatabaseIfNotExist option use on read-only server will refuse connection on 3.0
+
+
 ## [3.0.7](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.7) (Jul 2022)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.6...3.0.7)
 

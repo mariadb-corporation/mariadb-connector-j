@@ -12,13 +12,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.locks.ReentrantLock;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.ClientMessage;
 import org.mariadb.jdbc.message.client.*;
-import org.mariadb.jdbc.message.server.ColumnDefinitionPacket;
 import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.util.ClientParser;
@@ -290,7 +290,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (currResult instanceof Result) {
       return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**
@@ -509,7 +509,12 @@ public class ClientPreparedStatement extends BasePreparedStatement {
   @Override
   public void close() throws SQLException {
     if (prepareResult != null) {
-      prepareResult.close(this.con.getClient());
+      lock.lock();
+      try {
+        prepareResult.close(this.con.getClient());
+      } finally {
+        lock.unlock();
+      }
     }
     con.fireStatementClosed(this);
     super.close();

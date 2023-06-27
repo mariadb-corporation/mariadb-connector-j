@@ -18,10 +18,16 @@ public class ClientPreparedStatementParsingTest extends Common {
         (sharedConn.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
     ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
     assertEquals(paramNumber, parser.getParamCount());
-
-    for (int i = 0; i < partsMulti.length; i++) {
-      assertEquals(partsMulti[i], new String(parser.getQueryParts().get(i)));
+    int pos = 0;
+    int paramPos = parser.getQuery().length;
+    for (int i = 0; i < parser.getParamPositions().size(); i++) {
+      paramPos = parser.getParamPositions().get(i);
+      assertEquals(partsMulti[i], new String(parser.getQuery(), pos, paramPos - pos));
+      pos = paramPos + 1;
     }
+    assertEquals(
+        partsMulti[partsMulti.length - 1],
+        new String(parser.getQuery(), pos, parser.getQuery().length - pos));
   }
 
   @Test

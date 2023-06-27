@@ -10,11 +10,9 @@ import java.time.*;
 import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
-import org.mariadb.jdbc.client.Column;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.DataType;
-import org.mariadb.jdbc.client.ReadableByteBuf;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.client.util.MutableInt;
 import org.mariadb.jdbc.plugin.Codec;
 
 /** Instant codec */
@@ -42,7 +40,7 @@ public class InstantCodec implements Codec<Instant> {
     return Instant.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Instant.class);
   }
 
@@ -51,7 +49,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public Instant decodeText(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public Instant decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -60,7 +59,8 @@ public class InstantCodec implements Codec<Instant> {
   }
 
   @Override
-  public Instant decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public Instant decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);
@@ -75,15 +75,21 @@ public class InstantCodec implements Codec<Instant> {
     Instant instant = (Instant) val;
 
     encoder.writeByte('\'');
-    ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());
-    if (calParam != null) {
-      zonedDateTime = zonedDateTime.withZoneSameInstant(calParam.getTimeZone().toZoneId());
+    if (calParam == null && "UTC".equals(ZoneId.systemDefault().getId())) {
+      // reusing ISO6801 format, replacing T by space and removing Z
+      encoder.writeAscii(instant.toString().replace('T', ' '));
+      encoder.pos(encoder.pos() - 1); // remove 'Z'
+    } else {
+      ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, ZoneId.systemDefault());
+      if (calParam != null) {
+        zonedDateTime = zonedDateTime.withZoneSameInstant(calParam.getTimeZone().toZoneId());
+      }
+      encoder.writeAscii(
+          zonedDateTime.format(
+              instant.getNano() != 0
+                  ? LocalDateTimeCodec.TIMESTAMP_FORMAT
+                  : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     }
-    encoder.writeAscii(
-        zonedDateTime.format(
-            instant.getNano() != 0
-                ? LocalDateTimeCodec.TIMESTAMP_FORMAT
-                : LocalDateTimeCodec.TIMESTAMP_FORMAT_NO_FRACTIONAL));
     encoder.writeByte('\'');
   }
 

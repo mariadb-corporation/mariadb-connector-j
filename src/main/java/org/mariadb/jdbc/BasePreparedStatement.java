@@ -13,7 +13,7 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.client.Column;
+import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -105,7 +105,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @return metadata list
    */
-  public Column[] getMeta() {
+  public ColumnDecoder[] getMeta() {
     return this.prepareResult.getColumns();
   }
 
@@ -114,7 +114,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @param ci metadata columns
    */
-  public void updateMeta(Column[] ci) {
+  public void updateMeta(ColumnDecoder[] ci) {
     this.prepareResult.setColumns(ci);
   }
 
@@ -294,7 +294,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setBoolean(int parameterIndex, boolean x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(BooleanCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(BooleanCodec.INSTANCE, x));
   }
 
   /**
@@ -310,7 +310,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setByte(int parameterIndex, byte x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(ByteCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(ByteCodec.INSTANCE, x));
   }
 
   /**
@@ -326,7 +326,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setShort(int parameterIndex, short x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(ShortCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(ShortCodec.INSTANCE, x));
   }
 
   /**
@@ -342,7 +342,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setInt(int parameterIndex, int x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(IntCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(IntCodec.INSTANCE, x));
   }
 
   /**
@@ -358,7 +358,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setLong(int parameterIndex, long x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(LongCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(LongCodec.INSTANCE, x));
   }
 
   /**
@@ -374,7 +374,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setFloat(int parameterIndex, float x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(FloatCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(FloatCodec.INSTANCE, x));
   }
 
   /**
@@ -390,7 +390,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setDouble(int parameterIndex, double x) throws SQLException {
     checkIndex(parameterIndex);
-    parameters.set(parameterIndex - 1, new Parameter<>(DoubleCodec.INSTANCE, x));
+    parameters.set(parameterIndex - 1, new NonNullParameter<>(DoubleCodec.INSTANCE, x));
   }
 
   /**

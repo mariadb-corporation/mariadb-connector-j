@@ -119,6 +119,6 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       out.flush();
     }
 
-    return in.readPacket(true);
+    return in.readReusablePacket();
   }
 }

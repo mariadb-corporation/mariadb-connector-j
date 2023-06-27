@@ -4,6 +4,8 @@
 
 package org.mariadb.jdbc;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -13,6 +15,8 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.log.Logger;
+import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
 
 /**
@@ -46,6 +50,7 @@ import org.mariadb.jdbc.util.options.OptionAliases;
  * <br>
  */
 public class Configuration {
+  private static final Logger logger = Loggers.getLogger(Configuration.class);
 
   // standard options
   private String user = null;
@@ -76,6 +81,7 @@ public class Configuration {
       DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
   private String pipe = null;
   private String localSocket = null;
+  private boolean uuidAsString = false;
   private boolean tcpKeepAlive = true;
   private int tcpKeepIdle = 0;
   private int tcpKeepCount = 0;
@@ -83,7 +89,7 @@ public class Configuration {
   private boolean tcpAbortiveClose = false;
   private String localSocketAddress = null;
   private int socketTimeout = 0;
-  private boolean useReadAheadInput = true;
+  private boolean useReadAheadInput = false;
   private String tlsSocketType = null;
 
   // SSL
@@ -101,7 +107,7 @@ public class Configuration {
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
   private boolean useBulkStmts = true;
-
+  private boolean disablePipeline = false;
   // prepare
   private boolean cachePrepStmts = true;
   private int prepStmtCacheSize = 250;
@@ -116,7 +122,7 @@ public class Configuration {
   // meta
   private boolean blankTableNameMeta = false;
   private boolean tinyInt1isBit = true;
-  private boolean transformedBitIsBoolean = false;
+  private boolean transformedBitIsBoolean = true;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
   private boolean includeInnodbStatusInDeadlockExceptions = false;
@@ -169,6 +175,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       boolean tcpKeepAlive,
+      boolean uuidAsString,
       int tcpKeepIdle,
       int tcpKeepCount,
       int tcpKeepInterval,
@@ -189,6 +196,7 @@ public class Configuration {
       boolean useCompression,
       boolean useAffectedRows,
       boolean useBulkStmts,
+      boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
       boolean useServerPrepStmts,
@@ -239,6 +247,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     this.tcpKeepAlive = tcpKeepAlive;
+    this.uuidAsString = uuidAsString;
     this.tcpKeepIdle = tcpKeepIdle;
     this.tcpKeepCount = tcpKeepCount;
     this.tcpKeepInterval = tcpKeepInterval;
@@ -259,6 +268,7 @@ public class Configuration {
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
     this.useBulkStmts = useBulkStmts;
+    this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
     this.useServerPrepStmts = useServerPrepStmts;
@@ -302,6 +312,7 @@ public class Configuration {
       String pipe,
       String localSocket,
       Boolean tcpKeepAlive,
+      Boolean uuidAsString,
       Integer tcpKeepIdle,
       Integer tcpKeepCount,
       Integer tcpKeepInterval,
@@ -327,6 +338,7 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean useBulkStmts,
+      Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
       Boolean createDatabaseIfNotExist,
@@ -375,6 +387,7 @@ public class Configuration {
     this.pipe = pipe;
     this.localSocket = localSocket;
     if (tcpKeepAlive != null) this.tcpKeepAlive = tcpKeepAlive;
+    if (uuidAsString != null) this.uuidAsString = uuidAsString;
     if (tcpKeepIdle != null) this.tcpKeepIdle = tcpKeepIdle;
     if (tcpKeepCount != null) this.tcpKeepCount = tcpKeepCount;
     if (tcpKeepInterval != null) this.tcpKeepInterval = tcpKeepInterval;
@@ -406,6 +419,7 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
@@ -604,59 +618,71 @@ public class Configuration {
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
       for (final Object keyObj : properties.keySet()) {
-        String realKey = OptionAliases.OPTIONS_ALIASES.get(keyObj);
+        String realKey =
+            OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
         if (realKey == null) realKey = keyObj.toString();
         final Object propertyValue = properties.get(keyObj);
-
         if (propertyValue != null && realKey != null) {
-          try {
-            final Field field = Builder.class.getDeclaredField(realKey);
-            field.setAccessible(true);
-            if (field.getGenericType().equals(String.class)
-                && !propertyValue.toString().isEmpty()) {
-              field.set(builder, propertyValue);
-            } else if (field.getGenericType().equals(Boolean.class)) {
-              switch (propertyValue.toString().toLowerCase()) {
-                case "":
-                case "1":
-                case "true":
-                  field.set(builder, Boolean.TRUE);
-                  break;
+          boolean used = false;
+          for (Field field : Builder.class.getDeclaredFields()) {
+            if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
+              field.setAccessible(true);
+              used = true;
 
-                case "0":
-                case "false":
-                  field.set(builder, Boolean.FALSE);
-                  break;
+              if (field.getGenericType().equals(String.class)
+                  && !propertyValue.toString().isEmpty()) {
+                field.set(builder, propertyValue);
+              } else if (field.getGenericType().equals(Boolean.class)) {
+                switch (propertyValue.toString().toLowerCase()) {
+                  case "":
+                  case "1":
+                  case "true":
+                    field.set(builder, Boolean.TRUE);
+                    break;
 
-                default:
+                  case "0":
+                  case "false":
+                    field.set(builder, Boolean.FALSE);
+                    break;
+
+                  default:
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                            keyObj, propertyValue));
+                }
+              } else if (field.getGenericType().equals(Integer.class)) {
+                try {
+                  final Integer value = Integer.parseInt(propertyValue.toString());
+                  field.set(builder, value);
+                } catch (NumberFormatException n) {
                   throw new IllegalArgumentException(
                       String.format(
-                          "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                          "Optional parameter %s must be Integer, was '%s'",
                           keyObj, propertyValue));
-              }
-            } else if (field.getGenericType().equals(Integer.class)) {
-              try {
-                final Integer value = Integer.parseInt(propertyValue.toString());
-                field.set(builder, value);
-              } catch (NumberFormatException n) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "Optional parameter %s must be Integer, was '%s'", keyObj, propertyValue));
+                }
               }
             }
-          } catch (NoSuchFieldException nfe) {
-            // keep unknown option:
-            // those might be used in authentication or identity plugin
-            nonMappedOptions.put(keyObj, propertyValue);
           }
+          if (!used) nonMappedOptions.put(realKey, propertyValue);
         }
       }
 
       // for compatibility with 2.x
       if (isSet("useSsl", nonMappedOptions) || isSet("useSSL", nonMappedOptions)) {
+        Properties deprecatedDesc = new Properties();
+        try (InputStream inputStream =
+            Driver.class.getClassLoader().getResourceAsStream("deprecated.properties")) {
+          deprecatedDesc.load(inputStream);
+        } catch (IOException io) {
+          // eat
+        }
+        logger.warn(deprecatedDesc.getProperty("useSsl"));
         if (isSet("trustServerCertificate", nonMappedOptions)) {
           builder.sslMode("trust");
+          logger.warn(deprecatedDesc.getProperty("trustServerCertificate"));
         } else if (isSet("disableSslHostnameVerification", nonMappedOptions)) {
+          logger.warn(deprecatedDesc.getProperty("disableSslHostnameVerification"));
           builder.sslMode("verify-ca");
         } else {
           builder.sslMode("verify-full");
@@ -729,6 +755,7 @@ public class Configuration {
         this.pipe,
         this.localSocket,
         this.tcpKeepAlive,
+        this.uuidAsString,
         this.tcpKeepIdle,
         this.tcpKeepCount,
         this.tcpKeepInterval,
@@ -749,6 +776,7 @@ public class Configuration {
         this.useCompression,
         this.useAffectedRows,
         this.useBulkStmts,
+        this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
         this.useServerPrepStmts,
@@ -942,6 +970,15 @@ public class Configuration {
    */
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
+  }
+
+  /**
+   * must uuid fields return as String and not java.util.UUID
+   *
+   * @return must UUID return as String and not uuid
+   */
+  public boolean uuidAsString() {
+    return uuidAsString;
   }
 
   /**
@@ -1158,6 +1195,15 @@ public class Configuration {
    */
   public boolean useBulkStmts() {
     return useBulkStmts;
+  }
+
+  /**
+   * Disable pipeline.
+   *
+   * @return is pipeline disabled.
+   */
+  public boolean disablePipeline() {
+    return disablePipeline;
   }
 
   /**
@@ -1643,6 +1689,7 @@ public class Configuration {
     private String pipe;
     private String localSocket;
     private Boolean tcpKeepAlive;
+    private Boolean uuidAsString;
     private Integer tcpKeepIdle;
     private Integer tcpKeepCount;
     private Integer tcpKeepInterval;
@@ -1667,7 +1714,7 @@ public class Configuration {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
-
+    private Boolean disablePipeline;
     // prepare
     private Boolean cachePrepStmts;
     private Integer prepStmtCacheSize;
@@ -1901,6 +1948,17 @@ public class Configuration {
      */
     public Builder tcpKeepAlive(Boolean tcpKeepAlive) {
       this.tcpKeepAlive = tcpKeepAlive;
+      return this;
+    }
+
+    /**
+     * Indicate if UUID fields must returns as String
+     *
+     * @param uuidAsString value
+     * @return this {@link Builder}
+     */
+    public Builder uuidAsString(Boolean uuidAsString) {
+      this.uuidAsString = uuidAsString;
       return this;
     }
 
@@ -2232,6 +2290,17 @@ public class Configuration {
     }
 
     /**
+     * Disable pipeline
+     *
+     * @param disablePipeline disable pipeline.
+     * @return this {@link Builder}
+     */
+    public Builder disablePipeline(Boolean disablePipeline) {
+      this.disablePipeline = disablePipeline;
+      return this;
+    }
+
+    /**
      * Permit to force autocommit connection value
      *
      * @param autocommit autocommit value
@@ -2549,6 +2618,7 @@ public class Configuration {
               this.pipe,
               this.localSocket,
               this.tcpKeepAlive,
+              this.uuidAsString,
               this.tcpKeepIdle,
               this.tcpKeepCount,
               this.tcpKeepInterval,
@@ -2574,6 +2644,7 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.useBulkStmts,
+              this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
               this.createDatabaseIfNotExist,

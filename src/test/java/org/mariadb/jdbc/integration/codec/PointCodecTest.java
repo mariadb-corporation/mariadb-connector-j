@@ -18,6 +18,7 @@ import org.mariadb.jdbc.Statement;
 import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.type.GeometryCollection;
 import org.mariadb.jdbc.type.Point;
+import org.mariadb.jdbc.util.constants.Capabilities;
 
 public class PointCodecTest extends CommonCodecTest {
   public static org.mariadb.jdbc.Connection geoConn;
@@ -87,11 +88,7 @@ public class PointCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs, boolean defaultGeo) throws SQLException {
-    if (defaultGeo
-        && isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (defaultGeo && hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals(new Point(10, 1), rs.getObject(1));
       assertFalse(rs.wasNull());
       assertEquals(new Point(1.5, 18), rs.getObject(2));
@@ -182,10 +179,7 @@ public class PointCodecTest extends CommonCodecTest {
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
-    if (isMariaDBServer()
-        && minVersion(10, 5, 1)
-        && !"maxscale".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
+    if (hasCapability(Capabilities.EXTENDED_TYPE_INFO)) {
       assertEquals("POINT", meta.getColumnTypeName(1));
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
@@ -193,10 +187,7 @@ public class PointCodecTest extends CommonCodecTest {
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals(
         geoDefault
-            ? ((isMariaDBServer()
-                    && minVersion(10, 5, 1)
-                    && !"maxscale".equals(System.getenv("srv"))
-                    && !"skysql-ha".equals(System.getenv("srv")))
+            ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
                 ? Point.class.getName()
                 : GeometryCollection.class.getName())
             : "byte[]",
@@ -219,6 +210,7 @@ public class PointCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE PointCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(t1) VALUES (?)")) {
       prep.setObject(1, new Point(52.1, 12.8));
       prep.execute();
@@ -250,6 +242,7 @@ public class PointCodecTest extends CommonCodecTest {
     assertEquals(new Point(2.2, 3.3), rs.getObject(2, Point.class));
     assertTrue(rs.next());
     assertEquals(new Point(2, 3), rs.getObject(2, Point.class));
+    con.commit();
   }
 
   @Test

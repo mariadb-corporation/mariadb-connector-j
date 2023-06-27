@@ -175,12 +175,12 @@ public class DecimalCodecTest extends CommonCodecTest {
   }
 
   public void getStringZerofill(ResultSet rs) throws SQLException {
-    assertEquals("0000000000", rs.getString(1));
+    assertEquals(isXpand() ? "0" : "0000000000", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertEquals("0105.210000", rs.getString(2));
-    assertEquals("0105.210000", rs.getString("t2alias"));
+    assertEquals(isXpand() ? "105.210000" : "0105.210000", rs.getString(2));
+    assertEquals(isXpand() ? "105.210000" : "0105.210000", rs.getString("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals("0000001.600", rs.getString(3));
+    assertEquals(isXpand() ? "1.600" : "0000001.600", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getString(4));
     assertTrue(rs.wasNull());
@@ -806,6 +806,7 @@ public class DecimalCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DecimalCodec3");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO DecimalCodec3(t1) VALUES (?)")) {
       prep.setBigDecimal(1, BigDecimal.valueOf(1));
@@ -910,5 +911,6 @@ public class DecimalCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
+    con.commit();
   }
 }

@@ -32,6 +32,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
    * @param preSqlCmd additional pre command
    * @param parser command parser result
    * @param parameters parameters
+   * @param localInfileInputStream local infile input stream
    */
   public QueryWithParametersPacket(
       String preSqlCmd,
@@ -65,18 +66,18 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
     encoder.initPacket();
     encoder.writeByte(0x03);
     if (preSqlCmd != null) encoder.writeAscii(preSqlCmd);
-    if (parser.getParamCount() == 0) {
-      encoder.writeBytes(parser.getQueryParts().get(0));
+    if (parser.getParamPositions().size() == 0) {
+      encoder.writeBytes(parser.getQuery());
     } else {
-      encoder.writeBytes(parser.getQueryParts().get(0));
-      for (int i = 0; i < parser.getParamCount(); i++) {
-        if (parameters.get(i).isNull()) {
-          encoder.writeAscii("null");
-        } else {
-          parameters.get(i).encodeText(encoder, context);
-        }
-        encoder.writeBytes(parser.getQueryParts().get(i + 1));
+      int pos = 0;
+      int paramPos;
+      for (int i = 0; i < parser.getParamPositions().size(); i++) {
+        paramPos = parser.getParamPositions().get(i);
+        encoder.writeBytes(parser.getQuery(), pos, paramPos - pos);
+        pos = paramPos + 1;
+        parameters.get(i).encodeText(encoder, context);
       }
+      encoder.writeBytes(parser.getQuery(), pos, parser.getQuery().length - pos);
     }
     encoder.flush();
     return 1;

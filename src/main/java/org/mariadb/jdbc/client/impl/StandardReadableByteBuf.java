@@ -10,10 +10,14 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 
 /** Packet buffer */
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-
+  /** row data limit */
   private int limit;
-  private byte[] buf;
-  private int pos;
+
+  /** buffer */
+  public byte[] buf;
+
+  /** current position reading buffer */
+  public int pos;
 
   /**
    * Packet buffer constructor
@@ -25,6 +29,17 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
+  }
+
+  /**
+   * Packet buffer constructor, limit being the buffer length
+   *
+   * @param buf buffer
+   */
+  public StandardReadableByteBuf(byte[] buf) {
+    this.pos = 0;
+    this.buf = buf;
+    this.limit = buf.length;
   }
 
   public int readableBytes() {
@@ -57,9 +72,55 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     pos += length;
   }
 
+  public void skipLengthEncoded() {
+    byte len = buf[pos++];
+    switch (len) {
+      case (byte) 251:
+        return;
+      case (byte) 252:
+        skip(readUnsignedShort());
+        return;
+      case (byte) 253:
+        skip(readUnsignedMedium());
+        return;
+      case (byte) 254:
+        skip((int) (4 + readUnsignedInt()));
+        return;
+      default:
+        pos += len & 0xff;
+        return;
+    }
+  }
+
   public MariaDbBlob readBlob(int length) {
     pos += length;
     return MariaDbBlob.safeMariaDbBlob(buf, pos - length, length);
+  }
+
+  public long atoll(int length) {
+    boolean negate = false;
+    int idx = 0;
+    long result = 0;
+
+    if (length > 0 && buf[pos] == 45) { // minus sign
+      negate = true;
+      pos++;
+      idx++;
+    }
+
+    while (idx++ < length) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+
+    return (negate) ? -1 * result : result;
+  }
+
+  public long atoull(int length) {
+    long result = 0;
+    for (int idx = 0; idx < length; idx++) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+    return result;
   }
 
   public byte getByte() {
@@ -76,20 +137,20 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public long readLongLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252: // 0xfc
         return readUnsignedShort();
       case 253: // 0xfd
         return readUnsignedMedium();
-      case 254: // 0xfe
+      default: // 0xfe
         return readLong();
-      default:
-        return type;
     }
   }
 
   public int readIntLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252:
         return readUnsignedShort();
@@ -108,7 +169,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int len = readLength();
+    int len = readIntLengthEncodedNotNull();
     pos += len;
     return pos;
   }
@@ -138,11 +199,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public short readShort() {
-    return (short) ((buf[pos++] & 0xff) | (buf[pos++] << 8));
+    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
   }
 
   public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) | (buf[pos++] << 8)) & 0xffff;
+    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
   }
 
   public int readMedium() {

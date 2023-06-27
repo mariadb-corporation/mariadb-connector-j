@@ -461,6 +461,8 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject(2, Duration.class));
     assertEquals(Duration.parse("PT838H59M58.999999S"), rs.getObject("t2alias", Duration.class));
     assertFalse(rs.wasNull());
+    assertEquals(LocalTime.parse("00:00"), rs.getObject(3, LocalTime.class));
+    assertEquals(LocalTime.parse("00:00"), rs.getObject(4, LocalTime.class));
     assertEquals(Duration.parse("PT0S"), rs.getObject(3, Duration.class));
     assertEquals(Duration.parse("PT0S"), rs.getObject(4, Duration.class));
     assertFalse(rs.wasNull());
@@ -519,6 +521,11 @@ public class TimeCodecTest extends CommonCodecTest {
         LocalDateTime.parse("1969-12-31T05:29:47.45"), rs.getObject(3, LocalDateTime.class));
     assertNull(rs.getObject(4, LocalDateTime.class));
     assertTrue(rs.wasNull());
+    if (isMariaDBServer()) {
+      rs.next();
+      assertEquals(LocalDateTime.parse("1970-01-01T00:00"), rs.getObject(3, LocalDateTime.class));
+      assertEquals(LocalDateTime.parse("1970-01-01T00:00"), rs.getObject(4, LocalDateTime.class));
+    }
   }
 
   @Test
@@ -756,6 +763,7 @@ public class TimeCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE TimeCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     Time tt = Time.valueOf("01:55:12");
     tt.setTime(tt.getTime() + 120);
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO TimeCodec2(t1) VALUES (?)")) {
@@ -849,5 +857,6 @@ public class TimeCodecTest extends CommonCodecTest {
     assertEquals(Time.valueOf("05:29:47").getTime() + 450, rs.getTime(2).getTime());
     assertTrue(rs.next());
     assertEquals(Time.valueOf("05:29:57").getTime(), rs.getTime(2).getTime());
+    con.commit();
   }
 }

@@ -5,6 +5,7 @@
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -49,23 +50,27 @@ public class MultiPacketTest extends Common {
       prep.execute();
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
     assertEquals("2", rs.getString(1));
   }
 
   @Test
-  public void bigByte2Send() throws SQLException {
+  public void bigByte2Send() throws Throwable {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("TRUNCATE multiPacketTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         sharedConnBinary.prepareStatement("INSERT INTO multiPacketTest VALUE (?,?)")) {
+      prep.setString(1, "test1");
+      prep.setByte(2, (byte) 1);
+      prep.execute();
       prep.setString(1, new String(arr2, 0, 16 * 1024 * 1024 - 21));
       prep.setByte(2, (byte) 2);
       prep.execute();
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
+    assertTrue(rs.next());
     assertEquals("2", rs.getString(1));
   }
 
@@ -81,7 +86,7 @@ public class MultiPacketTest extends Common {
       prep.execute();
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
     assertEquals("2", rs.getString(1));
   }
 
@@ -97,7 +102,7 @@ public class MultiPacketTest extends Common {
       prep.execute();
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
     assertEquals("2", rs.getString(1));
   }
 
@@ -113,7 +118,7 @@ public class MultiPacketTest extends Common {
       prep.execute();
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
     assertEquals("2", rs.getString(1));
   }
 
@@ -138,7 +143,7 @@ public class MultiPacketTest extends Common {
       }
     }
     ResultSet rs = stmt.executeQuery("SELECT t2 FROM multiPacketTest");
-    rs.next();
+    assertTrue(rs.next(), "expected rows");
     assertEquals(new String(arr2, 0, 30_000), rs.getString(1));
     rs.next();
     assertEquals(new String(arr2, 0, 70_000), rs.getString(1));

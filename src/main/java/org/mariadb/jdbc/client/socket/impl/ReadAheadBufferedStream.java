@@ -32,7 +32,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   }
 
   /**
-   * Returing byte array, from cache of reading socket if needed.
+   * Returning byte array, from cache of reading socket if needed.
    *
    * @param externalBuf buf to fill
    * @param off offset

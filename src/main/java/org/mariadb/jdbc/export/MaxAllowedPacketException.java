@@ -7,8 +7,8 @@ package org.mariadb.jdbc.export;
 import java.io.IOException;
 
 /**
- * Dedicate exception when error is due to sending packet with size > to server max_allowed_packet,
- * that would cause server to drop connection
+ * Dedicate exception when error is due to sending packet with size &gt; to server
+ * max_allowed_packet, that would cause server to drop connection
  */
 public class MaxAllowedPacketException extends IOException {
 
