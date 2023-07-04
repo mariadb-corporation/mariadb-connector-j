@@ -549,7 +549,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     StringBuilder sql =
         new StringBuilder(
             "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                + " (CASE WHEN TABLE_TYPE = 'BASE TABLE' THEN 'TABLE'"
+                + " WHEN TABLE_TYPE = 'SYSTEM VIEW' THEN 'VIEW' ELSE TABLE_TYPE END) AS TABLE_TYPE,"
                 + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                 + " NULL REF_GENERATION"
                 + " FROM INFORMATION_SCHEMA.TABLES "
@@ -574,9 +575,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           mustAddType = false;
           continue;
         }
-        String type =
-            "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(types[i]);
-        sqlType.append(type);
+        if ("information_schema".equalsIgnoreCase(catalog) && "VIEW".equals(types[i])) {
+          sqlType.append("'SYSTEM VIEW'");
+        } else {
+          String type = "TABLE".equals(types[i]) ? "'BASE TABLE'" : escapeQuote(types[i]);
+          sqlType.append(type);
+        }
       }
       sqlType.append(")");
       if (mustAddType) sql.append(sqlType);

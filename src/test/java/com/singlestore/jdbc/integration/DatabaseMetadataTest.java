@@ -362,6 +362,9 @@ public class DatabaseMetadataTest extends Common {
             "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
     assertEquals(true, rs.next());
     assertEquals(false, rs.next());
+    rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES", new String[] {"VIEW"});
+    assertEquals(true, rs.next());
+    assertEquals(false, rs.next());
     rs = dbmd.getTables(null, null, "TABLE_PRIVILEGES", new String[] {"TABLE"});
     assertEquals(false, rs.next());
   }
@@ -386,6 +389,21 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("TABLE", tableType);
     // see for possible values
     // https://docs.oracle.com/javase/7/docs/api/java/sql/DatabaseMetaData.html#getTableTypes%28%29
+  }
+
+  @Test
+  public void testGetTable4() throws SQLException {
+    DatabaseMetaData dbmd = sharedConn.getMetaData();
+    ResultSet rs =
+        dbmd.getTables(
+            "information_schema", null, "TABLE_PRIVILEGES", new String[] {"SYSTEM VIEW"});
+    assertEquals(true, rs.next());
+    String tableType = rs.getString("TABLE_TYPE");
+    assertEquals("VIEW", tableType);
+    rs = dbmd.getTables("information_schema", null, "TABLE_PRIVILEGES", new String[] {"VIEW"});
+    assertEquals(true, rs.next());
+    tableType = rs.getString("TABLE_TYPE");
+    assertEquals("VIEW", tableType);
   }
 
   @Test
