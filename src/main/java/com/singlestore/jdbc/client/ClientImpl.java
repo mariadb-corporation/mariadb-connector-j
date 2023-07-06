@@ -499,7 +499,7 @@ public class ClientImpl implements Client, AutoCloseable {
     if (stmt != null && stmt.getQueryTimeout() > 0) {
       Timer cancelTimer = new Timer();
       try {
-        cancelTimer.schedule(getTimerTask(), stmt.getQueryTimeout());
+        cancelTimer.schedule(getTimerTask(), stmt.getQueryTimeout() * 1000);
         sendQuery(message);
         return readResponse(
             stmt,

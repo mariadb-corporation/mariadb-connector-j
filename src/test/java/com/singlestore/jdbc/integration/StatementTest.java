@@ -440,21 +440,27 @@ public class StatementTest extends Common {
     stmt.close();
   }
 
-  public void executeTimeOutQeuryWithStatement(Statement stmt) {
+  public void executeTimeOutQeuryWithStatement(Statement stmt) throws SQLException {
+    stmt.setQueryTimeout(2);
+    assertEquals(2, stmt.getQueryTimeout());
+    stmt.execute("SELECT SLEEP(1)");
+
     SQLNonTransientConnectionException exception =
         assertThrows(
             SQLNonTransientConnectionException.class,
             () -> {
               stmt.setQueryTimeout(1);
               assertEquals(1, stmt.getQueryTimeout());
-              stmt.execute(
-                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
-                      + ".tables as t2");
+              stmt.execute("SELECT SLEEP(2)");
             });
     assertTrue(exception.getMessage().endsWith("query timed out"));
   }
 
-  public void executeTimeOutQeuryWithPrepareStatement(PreparedStatement stmt) {
+  public void executeTimeOutQeuryWithPrepareStatement(PreparedStatement stmt) throws SQLException {
+    stmt.setQueryTimeout(3);
+    assertEquals(3, stmt.getQueryTimeout());
+    stmt.executeQuery();
+
     SQLNonTransientConnectionException exception =
         assertThrows(
             SQLNonTransientConnectionException.class,
@@ -509,7 +515,7 @@ public class StatementTest extends Common {
       executeTimeOutQeuryWithStatement(con.createStatement());
     }
 
-    String sql = "SELECT SLEEP(10)";
+    String sql = "SELECT SLEEP(2)";
 
     // Use-case-6 Test Query Timeout implementation with 'PreparedStatement'
     try (Connection con = (Connection) DriverManager.getConnection(mDefUrl)) {
