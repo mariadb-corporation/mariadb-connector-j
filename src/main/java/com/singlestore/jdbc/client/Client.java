@@ -6,11 +6,9 @@
 package com.singlestore.jdbc.client;
 
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.message.client.ClientMessage;
-import com.singlestore.jdbc.message.server.Completion;
-import com.singlestore.jdbc.message.server.PrepareResultPacket;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
+import com.singlestore.jdbc.export.ExceptionFactory;
+import com.singlestore.jdbc.export.Prepare;
+import com.singlestore.jdbc.message.ClientMessage;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -51,7 +49,7 @@ public interface Client extends AutoCloseable {
       boolean closeOnCompletion)
       throws SQLException;
 
-  void closePrepare(PrepareResultPacket prepare) throws SQLException;
+  void closePrepare(Prepare prepare) throws SQLException;
 
   void abort(Executor executor) throws SQLException;
 

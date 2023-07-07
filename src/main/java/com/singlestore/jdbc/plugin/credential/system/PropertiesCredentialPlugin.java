@@ -7,8 +7,8 @@ package com.singlestore.jdbc.plugin.credential.system;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.plugin.credential.Credential;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.Credential;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 
 /**
  * Authentication using java system properties.

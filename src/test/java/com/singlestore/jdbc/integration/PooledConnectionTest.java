@@ -5,7 +5,9 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -13,7 +15,11 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
-import com.singlestore.jdbc.*;
+import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.HostAddress;
+import com.singlestore.jdbc.SingleStoreDataSource;
+import com.singlestore.jdbc.SingleStorePoolDataSource;
+import com.singlestore.jdbc.export.SslMode;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import com.singlestore.jdbc.pool.InternalPoolConnection;
 import com.singlestore.jdbc.pool.Pool;
@@ -22,10 +28,18 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.sql.*;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
-import javax.sql.*;
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
+import javax.sql.StatementEvent;
+import javax.sql.StatementEventListener;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +74,7 @@ public class PooledConnectionTest extends Common {
 
   @Test
   public void testPoolInvalidIdleTime() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             new SingleStorePoolDataSource(
@@ -103,7 +117,7 @@ public class PooledConnectionTest extends Common {
       pc.close();
       Thread.sleep(200);
       proxy.stop();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> ds.getPooledConnection(),
           "No connection available within the specified time");

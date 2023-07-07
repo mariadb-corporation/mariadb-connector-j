@@ -7,6 +7,7 @@ package com.singlestore.jdbc.plugin.authentication;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Driver;
+import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.ServiceLoader;

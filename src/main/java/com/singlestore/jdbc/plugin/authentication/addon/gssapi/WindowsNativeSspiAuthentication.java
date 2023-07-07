@@ -6,8 +6,8 @@
 package com.singlestore.jdbc.plugin.authentication.addon.gssapi;
 
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.client.socket.Writer;
 import com.sun.jna.platform.win32.Sspi;
 import com.sun.jna.platform.win32.SspiUtil;
 import java.io.IOException;
@@ -27,8 +27,8 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
    * @throws IOException if socket error
    */
   public void authenticate(
-      final PacketWriter out,
-      final PacketReader in,
+      final Writer out,
+      final Reader in,
       final String servicePrincipalName,
       final String jaasApplicationName,
       final String mechanisms)

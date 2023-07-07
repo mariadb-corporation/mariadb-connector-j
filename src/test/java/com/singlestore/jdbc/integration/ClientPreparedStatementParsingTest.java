@@ -8,7 +8,6 @@ package com.singlestore.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.ClientPreparedStatement;
-import com.singlestore.jdbc.Common;
 import java.sql.*;
 import java.util.concurrent.locks.ReentrantLock;
 import org.junit.jupiter.api.Test;

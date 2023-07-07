@@ -5,8 +5,9 @@
 
 package com.singlestore.jdbc.message.server;
 
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.StateChange;
 import com.singlestore.jdbc.util.log.Logger;

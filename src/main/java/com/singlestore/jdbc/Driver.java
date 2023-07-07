@@ -5,7 +5,11 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.*;
+import com.singlestore.jdbc.client.Client;
+import com.singlestore.jdbc.client.impl.MultiPrimaryClient;
+import com.singlestore.jdbc.client.impl.MultiPrimaryReplicaClient;
+import com.singlestore.jdbc.client.impl.ReplayClient;
+import com.singlestore.jdbc.client.impl.StandardClient;
 import com.singlestore.jdbc.pool.Pools;
 import com.singlestore.jdbc.util.VersionFactory;
 import java.io.IOException;
@@ -49,8 +53,8 @@ public final class Driver implements java.sql.Driver {
             configuration.addresses().isEmpty() ? null : configuration.addresses().get(0);
         client =
             configuration.transactionReplay()
-                ? new ClientReplayImpl(configuration, hostAddress, lock, false)
-                : new ClientImpl(configuration, hostAddress, lock, false);
+                ? new ReplayClient(configuration, hostAddress, lock, false)
+                : new StandardClient(configuration, hostAddress, lock, false);
         break;
     }
     return new Connection(configuration, lock, client);

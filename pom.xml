@@ -73,9 +73,9 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bom</artifactId>
-                <version>1.11.996</version>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.17.24</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -108,6 +108,22 @@
                         <goals>
                             <goal>compile</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>compile-java-9</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>9</release>
+                            <source>9</source>
+                            <target>9</target>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+                            </compileSourceRoots>
+                            <multiReleaseOutput>true</multiReleaseOutput>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>compile-java-11</id>
@@ -155,6 +171,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
+                            <Automatic-Module-Name>com.singlestore.jdbc</Automatic-Module-Name>
                             <Multi-Release>true</Multi-Release>
                         </manifestEntries>
                     </archive>
@@ -292,8 +309,8 @@
 
         <!--AWS-IAM BROWSER credential plugin dependency-->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-rds</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>rds</artifactId>
             <optional>true</optional>
         </dependency>
 

@@ -5,9 +5,10 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.codec.Parameter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.Parameter;
+import com.singlestore.jdbc.message.ClientMessage;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -16,23 +17,21 @@ import java.sql.SQLException;
  *
  * <p>Permit to send ONE value in a dedicated packet. The advantage is when length is unknown, to
  * stream easily data to socket
- *
- * <p>https://mariadb.com/kb/en/com_stmt_send_long_data/
  */
 public final class LongDataPacket implements ClientMessage {
 
   private final int statementId;
-  private final Parameter<?> parameter;
+  private final Parameter parameter;
   private final int index;
 
-  public LongDataPacket(int statementId, Parameter<?> parameter, int index) {
+  public LongDataPacket(int statementId, Parameter parameter, int index) {
     this.statementId = statementId;
     this.parameter = parameter;
     this.index = index;
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  public int encode(Writer writer, Context context) throws IOException, SQLException {
     writer.initPacket();
     writer.writeByte(0x18);
     writer.writeInt(statementId);

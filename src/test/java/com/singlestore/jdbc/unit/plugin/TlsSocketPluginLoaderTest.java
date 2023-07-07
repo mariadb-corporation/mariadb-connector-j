@@ -7,9 +7,9 @@ package com.singlestore.jdbc.unit.plugin;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.client.tls.DefaultTlsSocketPlugin;
-import com.singlestore.jdbc.plugin.tls.TlsSocketPlugin;
+import com.singlestore.jdbc.integration.Common;
+import com.singlestore.jdbc.plugin.TlsSocketPlugin;
 import com.singlestore.jdbc.plugin.tls.TlsSocketPluginLoader;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;

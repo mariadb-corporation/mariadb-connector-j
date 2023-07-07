@@ -5,14 +5,24 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.singlestore.jdbc.*;
+import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Connection;
+import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.export.SslMode;
 import com.singlestore.jdbc.integration.tools.TcpProxy;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -110,7 +120,7 @@ public class MultiHostTest extends Common {
         stmt.execute("SELECT 1 INTO @con");
         proxy.restart(50);
 
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLException.class,
             () -> stmt.executeQuery("SELECT @con"),
             "Unknown user-defined variable");
@@ -196,7 +206,7 @@ public class MultiHostTest extends Common {
     rs.next();
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt2.executeQuery("SHOW USERS"),
         "Socket error during result streaming");
@@ -209,11 +219,11 @@ public class MultiHostTest extends Common {
 
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.abort(Runnable::run),
         "Connection is closed");
@@ -260,7 +270,7 @@ public class MultiHostTest extends Common {
         Thread.sleep(20);
         con.setReadOnly(false);
 
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLException.class,
             () -> stmt.executeQuery("SELECT @con"),
             "Unknown user-defined variable");
@@ -326,7 +336,7 @@ public class MultiHostTest extends Common {
     assertEquals(1, rs.getInt(1));
     proxy.restart(50);
     Statement stmt2 = con.createStatement();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> stmt2.executeQuery("SHOW USERS"),
         "Socket error during result streaming");
@@ -339,11 +349,11 @@ public class MultiHostTest extends Common {
 
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.abort(Runnable::run),
         "Connection is closed");

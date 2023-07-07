@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.Collections;
@@ -54,13 +53,13 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void propertiesIdentityTest() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=PROPERTY&user=identityUser"),
         "Access denied");
 
     System.setProperty("singlestore.user", "identityUser");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=PROPERTY&pwdKey=myPwdKey"),
         "Access denied");
@@ -99,7 +98,7 @@ public class CredentialPluginTest extends Common {
 
   @Test
   public void unknownCredentialTest() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=UNKNOWN"),
         "No identity plugin registered with the type \"UNKNOWN\"");
@@ -109,7 +108,7 @@ public class CredentialPluginTest extends Common {
   public void envsIdentityTest() throws Exception {
     Map<String, String> tmpEnv = new HashMap<>();
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
         "Access denied");
@@ -117,7 +116,7 @@ public class CredentialPluginTest extends Common {
     tmpEnv.put("myPwdKey", "!Passw0rd3Works");
     setEnv(tmpEnv);
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("&user=toto&credentialType=ENV&pwdKey=myPwdKey"),
         "Access denied");

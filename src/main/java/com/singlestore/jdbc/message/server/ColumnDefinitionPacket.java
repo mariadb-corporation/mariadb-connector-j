@@ -6,17 +6,37 @@
 package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.codec.Codec;
-import com.singlestore.jdbc.codec.DataType;
-import com.singlestore.jdbc.codec.list.*;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
+import com.singlestore.jdbc.message.ServerMessage;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.codec.BigDecimalCodec;
+import com.singlestore.jdbc.plugin.codec.BigIntegerCodec;
+import com.singlestore.jdbc.plugin.codec.BitSetCodec;
+import com.singlestore.jdbc.plugin.codec.BlobCodec;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
+import com.singlestore.jdbc.plugin.codec.ByteCodec;
+import com.singlestore.jdbc.plugin.codec.DateCodec;
+import com.singlestore.jdbc.plugin.codec.DoubleCodec;
+import com.singlestore.jdbc.plugin.codec.FloatCodec;
+import com.singlestore.jdbc.plugin.codec.IntCodec;
+import com.singlestore.jdbc.plugin.codec.LineStringCodec;
+import com.singlestore.jdbc.plugin.codec.LongCodec;
+import com.singlestore.jdbc.plugin.codec.PointCodec;
+import com.singlestore.jdbc.plugin.codec.PolygonCodec;
+import com.singlestore.jdbc.plugin.codec.ShortCodec;
+import com.singlestore.jdbc.plugin.codec.StringCodec;
+import com.singlestore.jdbc.plugin.codec.TimeCodec;
+import com.singlestore.jdbc.plugin.codec.TimestampCodec;
 import com.singlestore.jdbc.util.CharsetEncodingLength;
 import com.singlestore.jdbc.util.constants.ColumnFlags;
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 import java.util.Objects;
 
-public class ColumnDefinitionPacket implements ServerMessage {
+public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   private final ReadableByteBuf buf;
   private final int charset;
@@ -128,7 +148,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
     }
 
     return new ColumnDefinitionPacket(
-        new ReadableByteBuf(null, arr, arr.length),
+        new StandardReadableByteBuf(null, arr, arr.length),
         33,
         len,
         type,
@@ -157,7 +177,7 @@ public class ColumnDefinitionPacket implements ServerMessage {
     return buf.readString(buf.readLength());
   }
 
-  public String getColumn() {
+  public String getColumnName() {
     buf.pos(stringPos[4]);
     return buf.readString(buf.readLength());
   }

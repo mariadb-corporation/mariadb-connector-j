@@ -5,21 +5,26 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
-import com.singlestore.jdbc.codec.DataType;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.QueryPacket;
 import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
-import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ServerStatus;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.InputStream;
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -65,7 +70,7 @@ public class Statement implements java.sql.Statement {
     this.logger = Loggers.getLogger(Statement.class);
   }
 
-  protected ExceptionFactory exceptionFactory() {
+  private ExceptionFactory exceptionFactory() {
     return con.getExceptionFactory().of(this);
   }
 

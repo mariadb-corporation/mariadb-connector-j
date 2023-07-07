@@ -6,27 +6,24 @@
 package com.singlestore.jdbc.message.client;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.codec.Parameter;
-import com.singlestore.jdbc.codec.list.ByteArrayCodec;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.Parameter;
+import com.singlestore.jdbc.client.util.Parameters;
+import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
-import com.singlestore.jdbc.util.ParameterList;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import java.io.IOException;
 import java.sql.SQLException;
 
-/** See https://mariadb.com/kb/en/com_stmt_execute/ for documentation */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private ParameterList parameters;
+  private Parameters parameters;
   private final String command;
   private final ServerPreparedStatement prep;
-  private PrepareResultPacket prepareResult;
+  private Prepare prepareResult;
 
   public ExecutePacket(
-      PrepareResultPacket prepareResult,
-      ParameterList parameters,
-      String command,
-      ServerPreparedStatement prep) {
+      Prepare prepareResult, Parameters parameters, String command, ServerPreparedStatement prep) {
     this.parameters = parameters;
     this.prepareResult = prepareResult;
     this.command = command;
@@ -41,14 +38,16 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   public void ensureReplayable(Context context) throws IOException, SQLException {
     int parameterCount = parameters.size();
     for (int i = 0; i < parameterCount; i++) {
-      Parameter<?> p = parameters.get(i);
+      Parameter p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
+        this.parameters.set(
+            i, new com.singlestore.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
       }
     }
   }
 
-  public int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  @Override
+  public int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
 
     int statementId =
@@ -60,7 +59,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
     // send long data value in separate packet
     for (int i = 0; i < parameterCount; i++) {
-      Parameter<?> p = parameters.get(i);
+      Parameter p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
         new LongDataPacket(statementId, p, i).encode(writer, context);
       }
@@ -85,7 +84,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
       // Store types of parameters in first in first package that is sent to the server.
       for (int i = 0; i < parameterCount; i++) {
-        Parameter<?> p = parameters.get(i);
+        Parameter p = parameters.get(i);
         writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
         if (p.isNull()) {
@@ -98,7 +97,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
 
       // send not null parameter, not long data
       for (int i = 0; i < parameterCount; i++) {
-        Parameter<?> p = parameters.get(i);
+        Parameter p = parameters.get(i);
         if (!p.isNull() && !p.canEncodeLongData()) {
           p.encodeBinary(writer);
         }

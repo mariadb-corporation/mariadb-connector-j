@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.SingleStoreClob;
@@ -77,7 +76,7 @@ public class PreparedStatementParametersTest extends Common {
       prep.setInt(1, 1);
       prep.execute();
       prep.clearParameters();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> prep.execute(), "Parameter at position 1 is not set");
     }
   }
@@ -335,19 +334,19 @@ public class PreparedStatementParametersTest extends Common {
 
   private void checkNotSupported(Connection con, boolean text) throws SQLException {
     try (PreparedStatement preparedStatement = con.prepareStatement("SELECT * FROM prepareParam")) {
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> preparedStatement.setRef(1, null),
           "REF parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> preparedStatement.setArray(1, null),
           "Array parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> preparedStatement.setRowId(1, null),
           "RowId parameter are not supported");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> preparedStatement.setSQLXML(1, null),
           "SQLXML parameter are not supported");
@@ -509,7 +508,7 @@ public class PreparedStatementParametersTest extends Common {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setString(2, st);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> prep.execute(),
           "Packet too big for current server max_allowed_packet value");
@@ -545,7 +544,7 @@ public class PreparedStatementParametersTest extends Common {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO bigTest VALUES (?, ?)")) {
       prep.setInt(1, 1);
       prep.setString(2, st);
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLNonTransientConnectionException.class,
           () -> prep.execute(),
           "Packet too big for current server max_allowed_packet value");

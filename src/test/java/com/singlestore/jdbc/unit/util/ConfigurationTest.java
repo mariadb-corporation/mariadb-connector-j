@@ -5,10 +5,21 @@
 
 package com.singlestore.jdbc.unit.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import com.singlestore.jdbc.*;
-import com.singlestore.jdbc.util.constants.HaMode;
+import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.Driver;
+import com.singlestore.jdbc.HostAddress;
+import com.singlestore.jdbc.TransactionIsolation;
+import com.singlestore.jdbc.export.HaMode;
+import com.singlestore.jdbc.export.SslMode;
+import com.singlestore.jdbc.integration.Common;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -152,10 +163,9 @@ public class ConfigurationTest extends Common {
             .database("DB")
             .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
-            .autocommit(false)
             .build();
     assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB?autocommit=false",
+        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB",
         conf.initialUrl());
   }
 
@@ -782,7 +792,6 @@ public class ConfigurationTest extends Common {
             .useAffectedRows(true)
             .useServerPrepStmts(true)
             .connectionAttributes("bla=bla")
-            .autocommit(false)
             .includeThreadDumpInDeadlockExceptions(true)
             .servicePrincipalName("SPN")
             .defaultFetchSize(10)
@@ -792,6 +801,7 @@ public class ConfigurationTest extends Common {
             .enabledSslProtocolSuites("TLSv1.2")
             .transactionReplay(true)
             .pool(true)
+            .autocommit(false)
             .poolName("myPool")
             .maxPoolSize(16)
             .minPoolSize(12)

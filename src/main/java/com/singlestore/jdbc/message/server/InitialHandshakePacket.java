@@ -6,6 +6,7 @@
 package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.message.ServerMessage;
 import com.singlestore.jdbc.util.constants.Capabilities;
 
 public final class InitialHandshakePacket implements ServerMessage {

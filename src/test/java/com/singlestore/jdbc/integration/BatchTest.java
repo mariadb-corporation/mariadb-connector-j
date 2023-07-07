@@ -5,14 +5,20 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.singlestore.jdbc.ClientPreparedStatement;
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import java.sql.*;
-import org.junit.jupiter.api.*;
+import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class BatchTest extends Common {
 
@@ -62,14 +68,14 @@ public class BatchTest extends Common {
 
       prep.setInt(1, 5);
       prep.setString(3, "wrong position");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> prep.addBatch(), "Parameter at position 2 is not set");
 
       prep.setInt(1, 5);
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class, () -> prep.addBatch(), "Parameter at " + "position 1 is not set");
     }
   }
@@ -236,7 +242,7 @@ public class BatchTest extends Common {
       prep.setInt(1, 1);
       prep.setString(2, "val3");
       prep.addBatch();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           BatchUpdateException.class,
           () -> prep.executeBatch(),
           "Duplicate entry '1' for key 'PRIMARY'");

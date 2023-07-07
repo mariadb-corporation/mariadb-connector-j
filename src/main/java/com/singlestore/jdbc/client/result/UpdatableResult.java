@@ -8,17 +8,44 @@ package com.singlestore.jdbc.client.result;
 import com.singlestore.jdbc.BasePreparedStatement;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.codec.*;
-import com.singlestore.jdbc.codec.list.*;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.codec.BinaryRowDecoder;
+import com.singlestore.jdbc.codec.Parameter;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.codec.BigDecimalCodec;
+import com.singlestore.jdbc.plugin.codec.BlobCodec;
+import com.singlestore.jdbc.plugin.codec.BooleanCodec;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
+import com.singlestore.jdbc.plugin.codec.ByteCodec;
+import com.singlestore.jdbc.plugin.codec.ClobCodec;
+import com.singlestore.jdbc.plugin.codec.DateCodec;
+import com.singlestore.jdbc.plugin.codec.DoubleCodec;
+import com.singlestore.jdbc.plugin.codec.FloatCodec;
+import com.singlestore.jdbc.plugin.codec.IntCodec;
+import com.singlestore.jdbc.plugin.codec.LongCodec;
+import com.singlestore.jdbc.plugin.codec.ReaderCodec;
+import com.singlestore.jdbc.plugin.codec.ShortCodec;
+import com.singlestore.jdbc.plugin.codec.StreamCodec;
+import com.singlestore.jdbc.plugin.codec.StringCodec;
+import com.singlestore.jdbc.plugin.codec.TimeCodec;
+import com.singlestore.jdbc.plugin.codec.TimestampCodec;
 import com.singlestore.jdbc.util.ParameterList;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLType;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 public class UpdatableResult extends CompleteResult {
   private static final int STATE_STANDARD = 0;
@@ -41,8 +68,8 @@ public class UpdatableResult extends CompleteResult {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      com.singlestore.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
@@ -70,7 +97,7 @@ public class UpdatableResult extends CompleteResult {
     // check that resultSet concern one table and database exactly
     database = null;
     table = null;
-    for (ColumnDefinitionPacket columnDefinition : metadataList) {
+    for (Column columnDefinition : metadataList) {
       if (columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
@@ -91,7 +118,7 @@ public class UpdatableResult extends CompleteResult {
     }
 
     // check that listed column contain primary field
-    for (ColumnDefinitionPacket col : metadataList) {
+    for (Column col : metadataList) {
       if (col.isPrimaryKey()) {
         isAutoincrementPk = col.isAutoIncrement();
         return;
@@ -399,8 +426,9 @@ public class UpdatableResult extends CompleteResult {
 
         int paramPos = 0;
         for (int pos = 0; pos < metadataList.length; pos++) {
-          ColumnDefinitionPacket colInfo = metadataList[pos];
-          Parameter<?> param = parameters.size() > pos ? parameters.get(pos) : null;
+          Column colInfo = metadataList[pos];
+          com.singlestore.jdbc.client.util.Parameter param =
+              parameters.size() > pos ? parameters.get(pos) : null;
           if (param != null) {
             ((BasePreparedStatement) insertPreparedStatement).setParameter(paramPos++, param);
           } else if (!colInfo.isPrimaryKey() && !colInfo.hasDefault()) {
@@ -444,15 +472,16 @@ public class UpdatableResult extends CompleteResult {
     boolean firstParam = true;
 
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
 
-      Parameter<?> param = parameters.size() > pos ? parameters.get(pos) : null;
+      com.singlestore.jdbc.client.util.Parameter param =
+          parameters.size() > pos ? parameters.get(pos) : null;
       if (param != null) {
         if (!firstParam) {
           insertSql.append(",");
           valueClause.append(", ");
         }
-        insertSql.append("`").append(colInfo.getColumn()).append("`");
+        insertSql.append("`").append(colInfo.getColumnName()).append("`");
         valueClause.append("?");
         firstParam = false;
       } else {
@@ -460,14 +489,14 @@ public class UpdatableResult extends CompleteResult {
           throw exceptionFactory.create(
               String.format(
                   "Cannot call insertRow() not setting value for primary key %s",
-                  colInfo.getColumn()));
+                  colInfo.getColumnName()));
         } else {
           if (!firstParam) {
             insertSql.append(",");
             valueClause.append(", ");
           }
           firstParam = false;
-          insertSql.append("`").append(colInfo.getColumn()).append("`");
+          insertSql.append("`").append(colInfo.getColumnName()).append("`");
           if (!colInfo.hasDefault()) {
             valueClause.append("?");
           } else {
@@ -488,18 +517,18 @@ public class UpdatableResult extends CompleteResult {
 
     boolean firstPrimary = true;
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
       if (pos != 0) {
         selectSql.append(",");
       }
-      selectSql.append("`").append(colInfo.getColumn()).append("`");
+      selectSql.append("`").append(colInfo.getColumnName()).append("`");
 
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
         firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumn()).append("` = ? ");
+        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
     selectSql
@@ -528,12 +557,12 @@ public class UpdatableResult extends CompleteResult {
     int fieldsPrimaryIndex = 0;
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
       for (int pos = 0; pos < metadataList.length; pos++) {
-        ColumnDefinitionPacket colInfo = metadataList[pos];
+        Column colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
           if ((state != STATE_STANDARD) && parameters.size() > pos && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
-            Parameter<?> value = parameters.get(pos);
+            com.singlestore.jdbc.client.util.Parameter value = parameters.get(pos);
             ((BasePreparedStatement) refreshPreparedStatement)
                 .setParameter(fieldsPrimaryIndex++, value);
           } else {
@@ -555,14 +584,14 @@ public class UpdatableResult extends CompleteResult {
     boolean firstUpdate = true;
     boolean firstPrimary = true;
     for (int pos = 0; pos < metadataList.length; pos++) {
-      ColumnDefinitionPacket colInfo = metadataList[pos];
+      Column colInfo = metadataList[pos];
 
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
         firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumn()).append("` = ? ");
+        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
 
       if (parameters.size() > pos && parameters.get(pos) != null) {
@@ -570,7 +599,7 @@ public class UpdatableResult extends CompleteResult {
           updateSql.append(",");
         }
         firstUpdate = false;
-        updateSql.append("`").append(colInfo.getColumn()).append("` = ? ");
+        updateSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
     if (firstUpdate) return null;
@@ -611,7 +640,7 @@ public class UpdatableResult extends CompleteResult {
           int fieldsIndex = 0;
           for (int pos = 0; pos < metadataList.length; pos++) {
             if (parameters.size() > pos) {
-              Parameter<?> param = parameters.get(pos);
+              com.singlestore.jdbc.client.util.Parameter param = parameters.get(pos);
               if (param != null) {
                 ((BasePreparedStatement) preparedStatement).setParameter(fieldsIndex++, param);
               }
@@ -619,7 +648,7 @@ public class UpdatableResult extends CompleteResult {
           }
 
           for (int pos = 0; pos < metadataList.length; pos++) {
-            ColumnDefinitionPacket colInfo = metadataList[pos];
+            Column colInfo = metadataList[pos];
             if (colInfo.isPrimaryKey()) {
               preparedStatement.setObject(++fieldsIndex, getObject(pos + 1));
             }
@@ -654,13 +683,13 @@ public class UpdatableResult extends CompleteResult {
     StringBuilder deleteSql =
         new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
     boolean firstPrimary = true;
-    for (ColumnDefinitionPacket colInfo : metadataList) {
+    for (Column colInfo : metadataList) {
       if (colInfo.isPrimaryKey()) {
         if (!firstPrimary) {
           deleteSql.append("AND ");
         }
         firstPrimary = false;
-        deleteSql.append("`").append(colInfo.getColumn()).append("` = ? ");
+        deleteSql.append("`").append(colInfo.getColumnName()).append("` = ? ");
       }
     }
 
@@ -675,7 +704,7 @@ public class UpdatableResult extends CompleteResult {
 
       int fieldsPrimaryIndex = 1;
       for (int pos = 0; pos < metadataList.length; pos++) {
-        ColumnDefinitionPacket colInfo = metadataList[pos];
+        Column colInfo = metadataList[pos];
         if (colInfo.isPrimaryKey()) {
           deletePreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1));
         }
@@ -874,7 +903,7 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void updateCharacterStream(int columnIndex, Reader x) throws SQLException {
+  public void updateCharacterStream(int columnIndex, java.io.Reader x) throws SQLException {
     checkUpdatable(columnIndex);
     parameters.set(columnIndex - 1, new Parameter<>(ReaderCodec.INSTANCE, x));
   }
@@ -890,7 +919,7 @@ public class UpdatableResult extends CompleteResult {
   }
 
   @Override
-  public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
+  public void updateCharacterStream(String columnLabel, java.io.Reader reader) throws SQLException {
     updateCharacterStream(row.getIndex(columnLabel), reader);
   }
 

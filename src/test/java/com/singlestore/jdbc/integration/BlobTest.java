@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.SingleStoreBlob;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,15 +54,15 @@ public class BlobTest extends Common {
   public void getBinaryStream() throws SQLException {
     SingleStoreBlob blob = new SingleStoreBlob(bytes);
     assureInputStreamEqual(bytes, blob.getBinaryStream(1, 6));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> assureInputStreamEqual(new byte[] {0, 1, 2, 3, 4, 5, 0}, blob.getBinaryStream(1, 7)),
         "Out of range (position + length - 1 > streamSize)");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> assureInputStreamEqual(new byte[] {0, 1, 2, 3, 4, 5, 0}, blob.getBinaryStream(-2, 7)),
         "Out of range (position should be > 0)");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> assureInputStreamEqual(new byte[] {0, 1, 2, 3, 4, 5, 0}, blob.getBinaryStream(20, 7)),
         "Out of range (position > stream size)");
@@ -119,11 +118,11 @@ public class BlobTest extends Common {
 
     assertEquals(3, blob2.position(new SingleStoreBlob(new byte[] {4, 5}), 2));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> blob2.position(new byte[] {4, 5}, -2),
         "Out of range (position should be > 0, " + "but is -2)");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> blob2.position(new byte[] {4, 5}, 20),
         "Out of range (start > stream size)");
@@ -225,13 +224,13 @@ public class BlobTest extends Common {
     assertArrayEquals(new byte[] {2, 3, 4, 10, 11, 12}, blob4.getBytes(1, 6));
 
     SingleStoreBlob blob5 = new SingleStoreBlob(new byte[] {0, 1, 2, 3, 4, 5}, 2, 3);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> blob5.setBinaryStream(0), "Invalid position in blob");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         IOException.class,
         () -> blob5.setBinaryStream(2).write(new byte[] {1}, 0, -5),
         "Invalid len -5");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         IOException.class,
         () -> blob5.setBinaryStream(2).write(new byte[] {1}, -2, 1),
         "Invalid offset -2");
@@ -299,9 +298,9 @@ public class BlobTest extends Common {
 
   @Test
   public void expectedErrors() {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         IllegalArgumentException.class, () -> new SingleStoreBlob(null), "byte array is null");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         IllegalArgumentException.class,
         () -> new SingleStoreBlob(null, 0, 2),
         "byte array is null");

@@ -5,8 +5,8 @@ package com.singlestore.jdbc.plugin.credential.browser;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.plugin.credential.Credential;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.Credential;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 import com.singlestore.jdbc.plugin.credential.browser.keyring.Keyring;
 import java.sql.SQLException;
 

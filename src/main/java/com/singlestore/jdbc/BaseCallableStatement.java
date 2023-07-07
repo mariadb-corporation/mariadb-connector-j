@@ -7,15 +7,35 @@ package com.singlestore.jdbc;
 
 import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.codec.Parameter;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.util.NativeSql;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
+import java.sql.SQLXML;
 import java.sql.Statement;
-import java.util.*;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
@@ -24,7 +44,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   protected final String procedureName;
   protected CallableParameterMetaData parameterMetaData = null;
   protected final Set<Integer> outputParameters = new HashSet<>();
-  protected Result outputResult = null;
+  private Result outputResult = null;
 
   public BaseCallableStatement(
       String sql,
@@ -53,6 +73,11 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   }
 
   public abstract boolean isFunction();
+
+  protected void outputResultFromRes(int i) throws SQLException {
+    this.outputResult = (Result) this.results.remove(this.results.size() - i);
+    this.outputResult.next();
+  }
 
   /**
    * Registers the OUT parameter in ordinal position <code>parameterIndex</code> to the JDBC type
@@ -2029,6 +2054,10 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   @Override
   public SQLXML getSQLXML(String parameterName) throws SQLException {
     throw exceptionFactory().notSupported("SQLXML are not supported");
+  }
+
+  private ExceptionFactory exceptionFactory() {
+    return con.getExceptionFactory().of(this);
   }
 
   /**

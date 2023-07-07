@@ -5,12 +5,12 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.codec.Parameter;
-import com.singlestore.jdbc.codec.list.ByteArrayCodec;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.Parameter;
+import com.singlestore.jdbc.client.util.Parameters;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import com.singlestore.jdbc.util.ClientParser;
-import com.singlestore.jdbc.util.ParameterList;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -18,10 +18,9 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   private final String preSqlCmd;
   private final ClientParser parser;
-  private ParameterList parameters;
+  private Parameters parameters;
 
-  public QueryWithParametersPacket(
-      String preSqlCmd, ClientParser parser, ParameterList parameters) {
+  public QueryWithParametersPacket(String preSqlCmd, ClientParser parser, Parameters parameters) {
     this.preSqlCmd = preSqlCmd;
     this.parser = parser;
     this.parameters = parameters;
@@ -31,9 +30,10 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   public void ensureReplayable(Context context) throws IOException, SQLException {
     int parameterCount = parameters.size();
     for (int i = 0; i < parameterCount; i++) {
-      Parameter<?> p = parameters.get(i);
+      Parameter p = parameters.get(i);
       if (!p.isNull() && p.canEncodeLongData()) {
-        this.parameters.set(i, new Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
+        this.parameters.set(
+            i, new com.singlestore.jdbc.codec.Parameter<>(ByteArrayCodec.INSTANCE, p.encodeData()));
       }
     }
   }
@@ -43,7 +43,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter encoder, Context context) throws IOException, SQLException {
+  public int encode(Writer encoder, Context context) throws IOException, SQLException {
     encoder.initPacket();
     encoder.writeByte(0x03);
     if (!preSqlCmd.isEmpty()) encoder.writeAscii(preSqlCmd);

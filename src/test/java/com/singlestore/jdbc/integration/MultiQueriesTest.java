@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
 import java.sql.*;

@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.SingleStorePoolDataSource;
 import com.singlestore.jdbc.pool.PoolThreadFactory;
 import com.singlestore.jdbc.pool.Pools;
@@ -246,8 +245,6 @@ public class PoolDataSourceTest extends Common {
     }
   }
 
-  // TODO: PLAT-5847
-  @Disabled
   @Test
   public void testResetAutoCommitOption() throws SQLException {
     try (SingleStorePoolDataSource pool =
@@ -607,7 +604,7 @@ public class PoolDataSourceTest extends Common {
 
   @Test
   public void various() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> new SingleStorePoolDataSource("jdbc:notSingleStore"),
         "Wrong SingleStoreDB url");
@@ -616,7 +613,7 @@ public class PoolDataSourceTest extends Common {
             mDefUrl + "&maxPoolSize=1&poolName=myPool&connectTimeout=2000")) {
       assertNotNull(pool.unwrap(com.singlestore.jdbc.SingleStorePoolDataSource.class));
       assertNotNull(pool.unwrap(ConnectionPoolDataSource.class));
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () -> pool.unwrap(String.class),
           "Datasource is not a wrapper for java.lang.String");

@@ -7,9 +7,9 @@ package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.client.Client;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
+import com.singlestore.jdbc.client.socket.Reader;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ public final class CachedPrepareResultPacket extends PrepareResultPacket {
   private final AtomicBoolean cached = new AtomicBoolean();
   private final List<ServerPreparedStatement> statements = new ArrayList<>();
 
-  public CachedPrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
+  public CachedPrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     super(buffer, reader, context);
   }

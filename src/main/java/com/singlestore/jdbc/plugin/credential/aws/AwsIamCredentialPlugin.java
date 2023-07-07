@@ -9,8 +9,8 @@ import static java.time.LocalDateTime.now;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.plugin.credential.Credential;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.Credential;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * accessKeyId, secretKey, region.
  *
  * @see <a
- *     href="https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html">DefaultAWSCredentialsProviderChain</a>
+ *     href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/DefaultCredentialsProvider.html">DefaultCredentialsProvider</a>
  * @see <a
  *     href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/regions/providers/DefaultAwsRegionProviderChain.html">DefaultAwsRegionProviderChain</a>
  */
@@ -54,12 +54,12 @@ public class AwsIamCredentialPlugin implements CredentialPlugin {
   public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress)
       throws SQLException {
     try {
-      Class.forName("com.amazonaws.auth.BasicAWSCredentials");
+      Class.forName("software.amazon.awssdk.auth.credentials.AwsBasicCredentials");
     } catch (ClassNotFoundException ex) {
       throw new SQLException(
           "Identity plugin 'AWS-IAM' is used without having AWS SDK in "
               + "classpath. "
-              + "Please add 'com.amazonaws:aws-java-sdk-rds' to classpath");
+              + "Please add 'software.amazon.awssdk:rds' to classpath");
     }
     this.generator = new AwsCredentialGenerator(conf.nonMappedOptions(), conf.user(), hostAddress);
     this.key = new KeyCache(conf, conf.user(), hostAddress);

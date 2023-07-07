@@ -93,7 +93,7 @@ public class SslTest extends Common {
             sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             createCon(
@@ -128,7 +128,7 @@ public class SslTest extends Common {
       }
 
       String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               DriverManager.getConnection(
@@ -143,7 +143,7 @@ public class SslTest extends Common {
       assertNotNull(getSslVersion(con));
     }
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon(baseOptions + "&sslMode=VERIFY_FULL&serverSslCert=" + urlPath, sslPort),
         "DNS host \"localhost\" doesn't correspond to certificate CN \"test-memsql-server\"");

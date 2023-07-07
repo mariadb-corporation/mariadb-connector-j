@@ -5,8 +5,8 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.result.Result;
-import com.singlestore.jdbc.message.server.Completion;
 import java.sql.CallableStatement;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,9 +49,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
     for (int i = 1; i <= Math.min(this.results.size(), 2); i++) {
       Completion compl = this.results.get(this.results.size() - i);
       if (compl instanceof Result && (((Result) compl).isOutputParameter())) {
-        this.outputResult = (Result) compl;
-        this.outputResult.next();
-        this.results.remove(this.results.size() - i);
+        outputResultFromRes(i);
       }
     }
   }

@@ -6,8 +6,9 @@
 package com.singlestore.jdbc;
 
 import com.singlestore.jdbc.client.Client;
-import com.singlestore.jdbc.client.ClientImpl;
-import com.singlestore.jdbc.client.context.Context;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.impl.StandardClient;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.ChangeDbPacket;
 import com.singlestore.jdbc.message.client.PingPacket;
 import com.singlestore.jdbc.message.client.QueryPacket;
@@ -16,14 +17,29 @@ import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ConnectionState;
 import com.singlestore.jdbc.util.constants.ServerStatus;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Clob;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLPermission;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Struct;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.sql.*;
+import javax.sql.ConnectionEvent;
 
 public class Connection implements java.sql.Connection {
 
@@ -70,7 +86,8 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli = new ClientImpl(conf, client.getHostAddress(), new ReentrantLock(), true)) {
+    try (Client cli =
+        new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()));
     }
   }
@@ -714,7 +731,7 @@ public class Connection implements java.sql.Connection {
           setNetworkTimeout(null, conf.socketTimeout());
         }
         if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit());
+          setAutoCommit(conf.autocommit() == null ? true : conf.autocommit());
         }
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());

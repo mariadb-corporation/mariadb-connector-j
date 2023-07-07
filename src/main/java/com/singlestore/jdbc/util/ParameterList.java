@@ -5,26 +5,29 @@
 
 package com.singlestore.jdbc.util;
 
-import com.singlestore.jdbc.codec.Parameter;
+import com.singlestore.jdbc.client.util.Parameter;
+import com.singlestore.jdbc.client.util.Parameters;
 import java.util.Arrays;
 
-public class ParameterList implements Cloneable {
-  Parameter<?>[] elementData;
+public class ParameterList implements Parameters, Cloneable {
+
+  Parameter[] elementData;
   int length;
 
   public ParameterList(int defaultSize) {
-    elementData = new Parameter<?>[defaultSize];
+    elementData = new Parameter[defaultSize];
     length = 0;
   }
 
   public ParameterList() {
-    elementData = new Parameter<?>[10];
+    elementData = new Parameter[10];
     length = 0;
   }
 
-  public Parameter<?> get(int index) {
-    if (index + 1 > length)
+  public Parameter get(int index) {
+    if (index + 1 > length) {
       throw new ArrayIndexOutOfBoundsException("wrong index " + index + " length:" + length);
+    }
     return elementData[index];
   }
 
@@ -35,10 +38,14 @@ public class ParameterList implements Cloneable {
     return true;
   }
 
-  public void set(int index, Parameter<?> element) {
-    if (elementData.length < index + 1) grow(index + 1);
+  public void set(int index, Parameter element) {
+    if (elementData.length < index + 1) {
+      grow(index + 1);
+    }
     elementData[index] = element;
-    if (index + 1 > length) length = index + 1;
+    if (index + 1 > length) {
+      length = index + 1;
+    }
   }
 
   public int size() {
@@ -54,7 +61,9 @@ public class ParameterList implements Cloneable {
   @Override
   public ParameterList clone() {
     ParameterList param = new ParameterList(length);
-    if (length >= 0) System.arraycopy(elementData, 0, param.elementData, 0, length);
+    if (length >= 0) {
+      System.arraycopy(elementData, 0, param.elementData, 0, length);
+    }
     param.length = length;
     return param;
   }

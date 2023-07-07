@@ -7,22 +7,24 @@ package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.client.Client;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.IOException;
 import java.sql.SQLException;
 
-/** See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
-public class PrepareResultPacket implements Completion {
-  private final ColumnDefinitionPacket[] parameters;
-  private ColumnDefinitionPacket[] columns;
+public class PrepareResultPacket implements Completion, Prepare {
+  private final Column[] parameters;
+  private Column[] columns;
   protected int statementId;
 
-  public PrepareResultPacket(ReadableByteBuf buffer, PacketReader reader, Context context)
+  public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     Logger logger = Loggers.getLogger(PrepareResultPacket.class);
     boolean trace = logger.isTraceEnabled();
@@ -30,8 +32,8 @@ public class PrepareResultPacket implements Completion {
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
     final int numParams = buffer.readUnsignedShort();
-    this.parameters = new ColumnDefinitionPacket[numParams];
-    this.columns = new ColumnDefinitionPacket[numColumns];
+    this.parameters = new Column[numParams];
+    this.columns = new Column[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
@@ -71,15 +73,15 @@ public class PrepareResultPacket implements Completion {
     return statementId;
   }
 
-  public ColumnDefinitionPacket[] getParameters() {
+  public Column[] getParameters() {
     return parameters;
   }
 
-  public ColumnDefinitionPacket[] getColumns() {
+  public Column[] getColumns() {
     return columns;
   }
 
-  public void setColumns(ColumnDefinitionPacket[] columns) {
+  public void setColumns(Column[] columns) {
     this.columns = columns;
   }
 }

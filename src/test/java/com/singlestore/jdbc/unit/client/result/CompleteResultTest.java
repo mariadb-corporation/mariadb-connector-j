@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.unit.client.result;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.singlestore.jdbc.Common;
+import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.result.CompleteResult;
-import com.singlestore.jdbc.codec.DataType;
+import com.singlestore.jdbc.integration.Common;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;

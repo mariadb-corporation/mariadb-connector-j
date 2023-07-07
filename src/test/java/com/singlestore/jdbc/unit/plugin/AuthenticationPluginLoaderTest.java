@@ -5,11 +5,11 @@
 
 package com.singlestore.jdbc.unit.plugin;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Configuration;
-import com.singlestore.jdbc.plugin.authentication.AuthenticationPlugin;
+import com.singlestore.jdbc.integration.Common;
+import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import com.singlestore.jdbc.plugin.authentication.AuthenticationPluginLoader;
 import com.singlestore.jdbc.plugin.authentication.standard.NativePasswordPlugin;
 import java.sql.SQLException;

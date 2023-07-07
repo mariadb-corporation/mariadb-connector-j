@@ -5,9 +5,10 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.message.server.PrepareResultPacket;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.export.Prepare;
+import com.singlestore.jdbc.message.ClientMessage;
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -17,12 +18,12 @@ public interface RedoableClientMessage extends ClientMessage {
 
   default void ensureReplayable(Context context) throws IOException, SQLException {}
 
-  default int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  default int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context);
   }
 
-  default int reEncode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  default int reEncode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context, newPrepareResult);
   }

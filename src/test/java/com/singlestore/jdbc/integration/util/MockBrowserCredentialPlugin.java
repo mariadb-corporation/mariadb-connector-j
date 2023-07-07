@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 import com.singlestore.jdbc.plugin.credential.browser.BrowserCredentialGenerator;
 import com.singlestore.jdbc.plugin.credential.browser.BrowserCredentialPlugin;
 import java.io.ByteArrayOutputStream;

@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.util;
 
-import com.singlestore.jdbc.client.context.Context;
+import com.singlestore.jdbc.client.Context;
 import java.sql.SQLException;
 import java.util.Locale;
 

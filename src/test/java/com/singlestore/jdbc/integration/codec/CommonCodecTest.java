@@ -7,7 +7,7 @@ package com.singlestore.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
+import com.singlestore.jdbc.integration.Common;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;

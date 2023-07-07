@@ -5,8 +5,9 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.message.ClientMessage;
 import java.io.IOException;
 
 public final class SslRequestPacket implements ClientMessage {
@@ -24,7 +25,7 @@ public final class SslRequestPacket implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.writeInt((int) clientCapabilities);
     writer.writeInt(1024 * 1024 * 1024);
     writer.writeByte(exchangeCharset); // 1 byte

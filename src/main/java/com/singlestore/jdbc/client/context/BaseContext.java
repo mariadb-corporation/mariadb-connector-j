@@ -6,16 +6,18 @@
 package com.singlestore.jdbc.client.context;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.PrepareCache;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.server.InitialHandshakePacket;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ConnectionState;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 
 public class BaseContext implements Context {
 
   private final long threadId;
   private final long serverCapabilities;
+  private final long clientCapabilities;
   private final byte[] seed;
   private final boolean eofDeprecated;
   private final boolean skipMeta;
@@ -38,6 +40,7 @@ public class BaseContext implements Context {
     this.threadId = handshake.getThreadId();
     this.seed = handshake.getSeed();
     this.serverCapabilities = handshake.getCapabilities();
+    this.clientCapabilities = clientCapabilities;
     this.serverStatus = handshake.getServerStatus();
     this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
     this.skipMeta = (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
@@ -54,6 +57,21 @@ public class BaseContext implements Context {
 
   public byte[] getSeed() {
     return seed;
+  }
+
+  @Override
+  public boolean hasServerCapability(long flag) {
+    return (serverCapabilities & flag) > 0;
+  }
+
+  @Override
+  public boolean hasClientCapability(long flag) {
+    return (clientCapabilities & flag) > 0;
+  }
+
+  @Override
+  public boolean permitPipeline() {
+    return !conf.disablePipeline();
   }
 
   public long getServerCapabilities() {
@@ -115,6 +133,11 @@ public class BaseContext implements Context {
 
   public PrepareCache getPrepareCache() {
     return prepareCache;
+  }
+
+  @Override
+  public void resetPrepareCache() {
+    if (prepareCache != null) prepareCache.reset();
   }
 
   public int getStateFlag() {

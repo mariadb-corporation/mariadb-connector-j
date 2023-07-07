@@ -6,9 +6,9 @@
 package com.singlestore.jdbc.client.result;
 
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.codec.DataType;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,8 +26,8 @@ public class CompleteResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      com.singlestore.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,

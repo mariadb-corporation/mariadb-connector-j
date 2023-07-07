@@ -7,9 +7,7 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.SingleStoreDataSource;
-import java.io.*;
 import java.sql.*;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
@@ -72,7 +70,7 @@ public class DataSourceTest extends Common {
     DataSource ds = new SingleStoreDataSource(mDefUrl);
     ds.unwrap(javax.sql.DataSource.class);
     ds.unwrap(SingleStoreDataSource.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> ds.unwrap(String.class),
         "Datasource is not a wrapper for java.lang.String");
@@ -80,7 +78,7 @@ public class DataSourceTest extends Common {
     assertTrue(ds.isWrapperFor(javax.sql.DataSource.class));
     assertTrue(ds.isWrapperFor(SingleStoreDataSource.class));
     assertFalse(ds.isWrapperFor(String.class));
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> new SingleStoreDataSource("jdbc:wrongUrl"),
         "Wrong SingleStoreDB url: jdbc:wrongUrl");

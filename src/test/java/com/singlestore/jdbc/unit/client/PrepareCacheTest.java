@@ -5,9 +5,10 @@
 
 package com.singlestore.jdbc.unit.client;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import com.singlestore.jdbc.client.PrepareCache;
+import com.singlestore.jdbc.client.impl.PrepareCache;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import org.junit.jupiter.api.Test;
 

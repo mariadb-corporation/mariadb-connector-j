@@ -6,11 +6,11 @@
 package com.singlestore.jdbc.plugin.authentication.addon;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.plugin.authentication.AuthenticationPlugin;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
@@ -38,8 +38,8 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
-      throws IOException {
+  @Override
+  public ReadableByteBuf process(Writer out, Reader in, Context context) throws IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();
     } else {

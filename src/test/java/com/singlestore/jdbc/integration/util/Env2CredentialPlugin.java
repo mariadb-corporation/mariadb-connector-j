@@ -5,8 +5,8 @@
 
 package com.singlestore.jdbc.integration.util;
 
-import com.singlestore.jdbc.plugin.credential.Credential;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.plugin.Credential;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 
 /**
  * Authentication using environment variable.

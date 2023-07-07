@@ -2,7 +2,7 @@
 
 package com.singlestore.jdbc.client.tls;
 
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;

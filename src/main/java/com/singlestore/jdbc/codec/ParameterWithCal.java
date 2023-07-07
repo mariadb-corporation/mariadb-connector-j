@@ -5,8 +5,9 @@
 
 package com.singlestore.jdbc.codec;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -21,12 +22,12 @@ public class ParameterWithCal<T> extends Parameter<T> {
   }
 
   @Override
-  public void encodeText(PacketWriter encoder, Context context) throws IOException, SQLException {
+  public void encodeText(Writer encoder, Context context) throws IOException, SQLException {
     codec.encodeText(encoder, context, this.value, this.cal, length);
   }
 
   @Override
-  public void encodeBinary(PacketWriter encoder) throws IOException, SQLException {
+  public void encodeBinary(Writer encoder) throws IOException, SQLException {
     codec.encodeBinary(encoder, this.value, this.cal, length);
   }
 }

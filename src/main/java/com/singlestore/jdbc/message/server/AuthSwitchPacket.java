@@ -6,6 +6,7 @@
 package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.message.ServerMessage;
 import java.util.Arrays;
 
 public class AuthSwitchPacket implements ServerMessage {

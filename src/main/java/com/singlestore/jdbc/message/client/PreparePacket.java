@@ -8,15 +8,16 @@ package com.singlestore.jdbc.message.client;
 import com.singlestore.jdbc.BasePreparedStatement;
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.*;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.export.ExceptionFactory;
+import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.server.CachedPrepareResultPacket;
-import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.ErrorPacket;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,7 +30,7 @@ public final class PreparePacket implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x16);
     writer.writeString(this.sql);
@@ -45,8 +46,8 @@ public final class PreparePacket implements ClientMessage {
       int resultSetConcurrency,
       int resultSetType,
       boolean closeOnCompletion,
-      PacketReader reader,
-      PacketWriter writer,
+      Reader reader,
+      Writer writer,
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
@@ -69,14 +70,17 @@ public final class PreparePacket implements ClientMessage {
     if (context.getConf().useServerPrepStmts()
         && context.getConf().cachePrepStmts()
         && sql.length() < 8192) {
-      CachedPrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
+      PrepareResultPacket prepare = new CachedPrepareResultPacket(buf, reader, context);
       PrepareResultPacket previousCached =
-          context
-              .getPrepareCache()
-              .put(
-                  sql,
-                  prepare,
-                  stmt instanceof ServerPreparedStatement ? (ServerPreparedStatement) stmt : null);
+          (PrepareResultPacket)
+              context
+                  .getPrepareCache()
+                  .put(
+                      sql,
+                      prepare,
+                      stmt instanceof ServerPreparedStatement
+                          ? (ServerPreparedStatement) stmt
+                          : null);
       if (stmt != null) {
         ((BasePreparedStatement) stmt)
             .setPrepareResult(previousCached != null ? previousCached : prepare);

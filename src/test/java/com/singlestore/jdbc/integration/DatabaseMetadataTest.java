@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Statement;
 import java.sql.*;
 import org.junit.jupiter.api.*;
@@ -795,7 +794,7 @@ public class DatabaseMetadataTest extends Common {
   @Test
   public void getBestRowIdentifier() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.getBestRowIdentifier(null, null, null, 0, true),
         "'table' parameter cannot be null in getBestRowIdentifier()");
@@ -967,7 +966,7 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getColumnPrivilegesBasic() throws SQLException {
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.getMetaData().getColumnPrivileges(null, null, null, null),
         "'table' parameter must not be null");
@@ -1462,7 +1461,7 @@ public class DatabaseMetadataTest extends Common {
     Statement stmt = sharedConn.createStatement();
     DatabaseMetaData meta = sharedConn.getMetaData();
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.getIndexInfo(null, null, null, true, true),
         "'table' parameter must not be null");
@@ -1583,7 +1582,7 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(meta.autoCommitFailureClosesAllResultSets());
 
     meta.unwrap(java.sql.DatabaseMetaData.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> meta.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");

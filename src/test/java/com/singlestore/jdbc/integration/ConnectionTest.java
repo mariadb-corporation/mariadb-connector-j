@@ -5,22 +5,41 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import com.singlestore.jdbc.*;
+import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.integration.util.SocketFactoryTest;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.NClob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLPermission;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 @DisplayName("Connection Test")
 public class ConnectionTest extends Common {
@@ -49,14 +68,14 @@ public class ConnectionTest extends Common {
       assertEquals(50, con.getNetworkTimeout());
       Statement stmt = con.createStatement();
       stmt.execute("SELECT 1");
-      assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(0.1)"), "");
+      Common.assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(0.1)"), "");
     }
 
     try (Connection con = createCon("&socketTimeout=500")) {
       assertEquals(500, con.getNetworkTimeout());
       Statement stmt = con.createStatement();
       stmt.execute("SELECT SLEEP(0.1)");
-      assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(1)"), "");
+      Common.assertThrowsContains(SQLException.class, () -> stmt.execute("SELECT SLEEP(1)"), "");
     }
 
     try (Connection con = createCon("&socketTimeout=0")) {
@@ -295,7 +314,7 @@ public class ConnectionTest extends Common {
   @Test
   public void checkFixedData() throws SQLException {
     sharedConn.unwrap(java.sql.Connection.class);
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> sharedConn.unwrap(String.class),
         "The receiver is not a wrapper for java.lang.String");
@@ -488,12 +507,12 @@ public class ConnectionTest extends Common {
   @Test
   public void netWorkTimeout() throws SQLException {
     Connection con = createCon();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> con.setNetworkTimeout(Runnable::run, -200),
         "Connection.setNetworkTimeout cannot be called with a negative timeout");
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> con.setNetworkTimeout(Runnable::run, 200),
         "Connection.setNetworkTimeout cannot be called on a closed connection");
@@ -602,7 +621,7 @@ public class ConnectionTest extends Common {
         createCon("user=test_pam&password=test_pass&restrictedAuth=mysql_clear_password")) {
       connection.getCatalog();
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("user=test_pam&password=test_pass&restrictedAuth=other"),
         "Client restrict authentication plugin to a limited set of authentication");
@@ -633,11 +652,11 @@ public class ConnectionTest extends Common {
       connection.getCatalog();
     }
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=JWT&user=jwt_user&password=" + jwt),
         "unable to find valid certification path to requested target");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=JWT&sslMode=trust&user=jwt_user&password=" + "invalid_jwt"),
         minVersion(7, 8, 0)
@@ -751,7 +770,7 @@ public class ConnectionTest extends Common {
       assertTrue(rs.next());
     }
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class,
         () ->
             DriverManager.getConnection(
@@ -804,7 +823,7 @@ public class ConnectionTest extends Common {
     try (Connection conn = createCon("socketFactory=" + SocketFactoryTest.class.getName())) {
       conn.isValid(1);
     }
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> createCon("socketFactory=wrongClass"),
         "Socket factory failed to initialized with option \"socketFactory\" set to \"wrongClass\"");
@@ -831,7 +850,7 @@ public class ConnectionTest extends Common {
     Connection con = createCon();
     con.setReadOnly(true);
     con.close();
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
@@ -869,7 +888,6 @@ public class ConnectionTest extends Common {
 
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_PROGRESS));
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_COM_MULTI));
-    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS));
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO));
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA));
 

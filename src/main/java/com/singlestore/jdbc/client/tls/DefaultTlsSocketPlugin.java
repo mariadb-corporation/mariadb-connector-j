@@ -6,9 +6,9 @@
 package com.singlestore.jdbc.client.tls;
 
 import com.singlestore.jdbc.Configuration;
-import com.singlestore.jdbc.SslMode;
-import com.singlestore.jdbc.plugin.tls.TlsSocketPlugin;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
+import com.singlestore.jdbc.export.ExceptionFactory;
+import com.singlestore.jdbc.export.SslMode;
+import com.singlestore.jdbc.plugin.TlsSocketPlugin;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.io.ByteArrayInputStream;
 import java.io.File;

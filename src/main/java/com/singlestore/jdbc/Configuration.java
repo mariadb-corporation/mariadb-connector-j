@@ -5,10 +5,11 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.codec.Codec;
-import com.singlestore.jdbc.plugin.credential.CredentialPlugin;
+import com.singlestore.jdbc.export.HaMode;
+import com.singlestore.jdbc.export.SslMode;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 import com.singlestore.jdbc.plugin.credential.CredentialPluginLoader;
-import com.singlestore.jdbc.util.constants.HaMode;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import com.singlestore.jdbc.util.options.OptionAliases;
@@ -71,13 +72,12 @@ public class Configuration {
   private Properties nonMappedOptions = null;
 
   // various
-  private boolean autocommit = true;
+  private Boolean autocommit = null;
   private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
-
   // socket
   private String socketFactory = null;
   private int connectTimeout =
@@ -111,6 +111,7 @@ public class Configuration {
   private boolean allowLocalInfile = false;
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
+  private boolean disablePipeline = false;
 
   // prepare
   private boolean cachePrepStmts = true;
@@ -163,7 +164,7 @@ public class Configuration {
       List<HostAddress> addresses,
       HaMode haMode,
       Properties nonMappedOptions,
-      boolean autocommit,
+      Boolean autocommit,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -196,6 +197,7 @@ public class Configuration {
       boolean allowLocalInfile,
       boolean useCompression,
       boolean useAffectedRows,
+      boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
       boolean useServerPrepStmts,
@@ -262,6 +264,7 @@ public class Configuration {
     this.allowLocalInfile = allowLocalInfile;
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
+    this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
     this.useServerPrepStmts = useServerPrepStmts;
@@ -287,9 +290,9 @@ public class Configuration {
     this.useResetConnection = useResetConnection;
     this.useMysqlVersion = useMysqlVersion;
     this.rewriteBatchedStatements = rewriteBatchedStatements;
-    this.initialUrl = buildUrl(this);
     this.consoleLogLevel = consoleLogLevel;
     this.consoleLogFilepath = consoleLogFilepath;
+    this.initialUrl = buildUrl(this);
     this.logger = Loggers.getLogger(Configuration.class);
   }
 
@@ -325,6 +328,7 @@ public class Configuration {
       Boolean dumpQueriesOnException,
       Integer prepStmtCacheSize,
       Boolean useAffectedRows,
+      Boolean disablePipeline,
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean autocommit,
@@ -409,6 +413,7 @@ public class Configuration {
     if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
     if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
     if (useAffectedRows != null) this.useAffectedRows = useAffectedRows;
+    if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (autocommit != null) this.autocommit = autocommit;
@@ -731,6 +736,7 @@ public class Configuration {
         this.allowLocalInfile,
         this.useCompression,
         this.useAffectedRows,
+        this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
         this.useServerPrepStmts,
@@ -921,6 +927,10 @@ public class Configuration {
     return useAffectedRows;
   }
 
+  public boolean disablePipeline() {
+    return disablePipeline;
+  }
+
   public boolean useServerPrepStmts() {
     return useServerPrepStmts;
   }
@@ -929,7 +939,12 @@ public class Configuration {
     return connectionAttributes;
   }
 
-  public boolean autocommit() {
+  /**
+   * Force session autocommit on connection creation
+   *
+   * @return autocommit forced value
+   */
+  public Boolean autocommit() {
     return autocommit;
   }
 
@@ -1237,6 +1252,7 @@ public class Configuration {
     private Boolean allowLocalInfile;
     private Boolean useCompression;
     private Boolean useAffectedRows;
+    private Boolean disablePipeline;
 
     // prepare
     private Boolean cachePrepStmts;
@@ -1612,18 +1628,23 @@ public class Configuration {
       return this;
     }
 
+    public Builder disablePipeline(Boolean disablePipeline) {
+      this.disablePipeline = disablePipeline;
+      return this;
+    }
+
     public Builder useServerPrepStmts(Boolean useServerPrepStmts) {
       this.useServerPrepStmts = useServerPrepStmts;
       return this;
     }
 
-    public Builder connectionAttributes(String connectionAttributes) {
-      this.connectionAttributes = nullOrEmpty(connectionAttributes);
+    public Builder autocommit(Boolean autocommit) {
+      this.autocommit = autocommit;
       return this;
     }
 
-    public Builder autocommit(Boolean autocommit) {
-      this.autocommit = autocommit;
+    public Builder connectionAttributes(String connectionAttributes) {
+      this.connectionAttributes = nullOrEmpty(connectionAttributes);
       return this;
     }
 
@@ -1772,6 +1793,7 @@ public class Configuration {
               this.dumpQueriesOnException,
               this.prepStmtCacheSize,
               this.useAffectedRows,
+              this.disablePipeline,
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.autocommit,

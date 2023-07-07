@@ -5,7 +5,7 @@ package com.singlestore.jdbc.plugin.credential.browser;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.singlestore.jdbc.plugin.credential.Credential;
+import com.singlestore.jdbc.plugin.Credential;
 import java.time.Instant;
 
 public class ExpiringCredential {

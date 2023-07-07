@@ -6,11 +6,12 @@
 package com.singlestore.jdbc.plugin.authentication.addon;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.plugin.authentication.AuthenticationPlugin;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import com.singlestore.jdbc.plugin.authentication.addon.gssapi.GssUtility;
 import com.singlestore.jdbc.plugin.authentication.addon.gssapi.GssapiAuth;
 import com.singlestore.jdbc.plugin.authentication.addon.gssapi.StandardGssapiAuthentication;
@@ -55,7 +56,6 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   /**
    * Process gssapi plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
    *
    * @param out out stream
    * @param in in stream
@@ -64,9 +64,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws IOException, SQLException {
-    ReadableByteBuf buf = new ReadableByteBuf(in.getSequence(), seed, seed.length);
+    ReadableByteBuf buf = new StandardReadableByteBuf(in.getSequence(), seed, seed.length);
 
     final String serverSpn = buf.readStringNullEnd();
     // using provided connection string SPN if set, or if not, using to server information

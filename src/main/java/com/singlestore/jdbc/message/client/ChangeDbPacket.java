@@ -5,8 +5,8 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
 import java.io.IOException;
 
 public final class ChangeDbPacket implements RedoableClientMessage {
@@ -18,7 +18,7 @@ public final class ChangeDbPacket implements RedoableClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x02);
     writer.writeString(this.database);

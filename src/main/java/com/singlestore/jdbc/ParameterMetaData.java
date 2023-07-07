@@ -5,16 +5,16 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import java.sql.SQLException;
 
 public class ParameterMetaData implements java.sql.ParameterMetaData {
 
-  private final ColumnDefinitionPacket[] params;
+  private final Column[] params;
   private final ExceptionFactory exceptionFactory;
 
-  public ParameterMetaData(ExceptionFactory exceptionFactory, ColumnDefinitionPacket[] params) {
+  protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
     this.params = params;
     this.exceptionFactory = exceptionFactory;
   }
@@ -122,7 +122,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getTypeName();
+    return params[idx - 1].getType().name();
   }
 
   /**

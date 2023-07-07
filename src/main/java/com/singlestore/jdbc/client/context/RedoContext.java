@@ -7,12 +7,12 @@ package com.singlestore.jdbc.client.context;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.PrepareCache;
-import com.singlestore.jdbc.client.TransactionSaver;
-import com.singlestore.jdbc.message.client.ClientMessage;
+import com.singlestore.jdbc.client.impl.TransactionSaver;
+import com.singlestore.jdbc.export.ExceptionFactory;
+import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.client.RedoableClientMessage;
 import com.singlestore.jdbc.message.server.InitialHandshakePacket;
 import com.singlestore.jdbc.util.constants.ServerStatus;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 
 public class RedoContext extends BaseContext {
 

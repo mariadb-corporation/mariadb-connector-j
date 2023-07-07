@@ -6,11 +6,11 @@
 package com.singlestore.jdbc.plugin.authentication.standard;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
-import com.singlestore.jdbc.client.socket.PacketWriter;
-import com.singlestore.jdbc.plugin.authentication.AuthenticationPlugin;
+import com.singlestore.jdbc.client.socket.Reader;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.plugin.AuthenticationPlugin;
 import com.singlestore.jdbc.plugin.authentication.standard.ed25519.math.GroupElement;
 import com.singlestore.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519ScalarOps;
 import com.singlestore.jdbc.plugin.authentication.standard.ed25519.spec.EdDSANamedCurveTable;
@@ -102,7 +102,8 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
    * @return response packet
    * @throws IOException if socket error
    */
-  public ReadableByteBuf process(PacketWriter out, PacketReader in, Context context)
+  @Override
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
       throws SQLException, IOException {
     if (authenticationData == null) {
       out.writeEmptyPacket();

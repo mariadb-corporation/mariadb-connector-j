@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.SingleStoreClob;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -139,7 +138,7 @@ public class ClobTest extends Common {
     String ss = clob2.getSubString(1, 12);
     assertEquals("czg🙏fgzzz", clob2.getSubString(1, 12));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob2.setString(2, "abcd", 2, -2), "len must be > 0");
     clob2.setString(2, "abcd", 2, 2);
     assertEquals("ccd🙏f", clob2.getSubString(1, 6));
@@ -164,18 +163,19 @@ public class ClobTest extends Common {
     clob2.truncate(3);
     assertEquals("cld", clob2.getSubString(1, 20));
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-1, "7"), "position must be >= 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(1, null), "cannot add null string");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-1, null, 1, 2), "cannot add null string");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(0, "dd", -1, 2), "offset must be >= 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.getSubString(-1, 7), "position must be >= 1");
-    assertThrowsContains(SQLException.class, () -> clob.getSubString(1, -7), "length must be > 0");
-    assertThrowsContains(
+    Common.assertThrowsContains(
+        SQLException.class, () -> clob.getSubString(1, -7), "length must be > 0");
+    Common.assertThrowsContains(
         SQLException.class, () -> clob.setString(-2, "rrr"), "position must be >= 0");
   }
 
@@ -214,36 +214,36 @@ public class ClobTest extends Common {
         new byte[] {0x10, (byte) 0x20, (byte) 0x0a, (byte) 0xff, (byte) 0x6F, (byte) 0x6F};
     final byte[] utf8Wrong4bytes2 = new byte[] {-16, (byte) -97, (byte) -103};
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong2bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(new byte[] {(byte) 225}).length(),
         "invalid UTF8");
 
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong3bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong4bytes).length(),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(new byte[] {(byte) 225}).truncate(2),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong2bytes).truncate(2),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong3bytes).truncate(3),
         "invalid UTF8");
-    assertThrowsContains(
+    Common.assertThrowsContains(
         UncheckedIOException.class,
         () -> new SingleStoreClob(utf8Wrong4bytes2).truncate(4),
         "invalid UTF8");

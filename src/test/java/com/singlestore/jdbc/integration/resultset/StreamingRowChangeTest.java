@@ -7,8 +7,8 @@ package com.singlestore.jdbc.integration.resultset;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.junit.jupiter.api.AfterAll;

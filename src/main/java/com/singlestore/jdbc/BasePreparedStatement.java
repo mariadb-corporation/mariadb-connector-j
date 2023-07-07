@@ -5,26 +5,63 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.codec.*;
-import com.singlestore.jdbc.codec.list.*;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
-import com.singlestore.jdbc.message.server.PrepareResultPacket;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.util.Parameters;
+import com.singlestore.jdbc.codec.Parameter;
+import com.singlestore.jdbc.codec.ParameterWithCal;
+import com.singlestore.jdbc.export.ExceptionFactory;
+import com.singlestore.jdbc.export.Prepare;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.codec.BigDecimalCodec;
+import com.singlestore.jdbc.plugin.codec.BlobCodec;
+import com.singlestore.jdbc.plugin.codec.BooleanCodec;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
+import com.singlestore.jdbc.plugin.codec.ByteCodec;
+import com.singlestore.jdbc.plugin.codec.ClobCodec;
+import com.singlestore.jdbc.plugin.codec.DateCodec;
+import com.singlestore.jdbc.plugin.codec.DoubleCodec;
+import com.singlestore.jdbc.plugin.codec.FloatCodec;
+import com.singlestore.jdbc.plugin.codec.IntCodec;
+import com.singlestore.jdbc.plugin.codec.LongCodec;
+import com.singlestore.jdbc.plugin.codec.ReaderCodec;
+import com.singlestore.jdbc.plugin.codec.ShortCodec;
+import com.singlestore.jdbc.plugin.codec.StreamCodec;
+import com.singlestore.jdbc.plugin.codec.StringCodec;
+import com.singlestore.jdbc.plugin.codec.TimeCodec;
+import com.singlestore.jdbc.plugin.codec.TimestampCodec;
 import com.singlestore.jdbc.util.ParameterList;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
+import java.sql.NClob;
 import java.sql.ParameterMetaData;
-import java.util.*;
+import java.sql.PreparedStatement;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Calendar;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
-  protected ParameterList parameters;
-  protected List<ParameterList> batchParameters;
+  protected Parameters parameters;
+  protected List<Parameters> batchParameters;
   protected final String sql;
-  protected PrepareResultPacket prepareResult = null;
+  protected Prepare prepareResult = null;
 
   public BasePreparedStatement(
       String sql,
@@ -48,15 +85,15 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     this.sql = sql;
   }
 
-  public void setPrepareResult(PrepareResultPacket prepareResult) {
+  public void setPrepareResult(Prepare prepareResult) {
     this.prepareResult = prepareResult;
   }
 
-  public ColumnDefinitionPacket[] getMeta() {
+  public Column[] getMeta() {
     return this.prepareResult.getColumns();
   }
 
-  public void updateMeta(ColumnDefinitionPacket[] ci) {
+  public void updateMeta(Column[] ci) {
     this.prepareResult.setColumns(ci);
   }
 
@@ -76,11 +113,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   public abstract ParameterMetaData getParameterMetaData() throws SQLException;
 
-  public void setParameters(ParameterList parameters) {
+  public void setParameters(Parameters parameters) {
     this.parameters = parameters;
   }
 
-  public void setParameter(int index, Parameter<?> param) {
+  public void setParameter(int index, com.singlestore.jdbc.client.util.Parameter param) {
     parameters.set(index, param);
   }
 
@@ -969,6 +1006,10 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
   @Override
   public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
     throw exceptionFactory().notSupported("SQLXML parameter are not supported");
+  }
+
+  private ExceptionFactory exceptionFactory() {
+    return con.getExceptionFactory().of(this);
   }
 
   /**

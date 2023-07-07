@@ -5,19 +5,30 @@
 
 package com.singlestore.jdbc.client.result;
 
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketReader;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
 import com.singlestore.jdbc.codec.BinaryRowDecoder;
-import com.singlestore.jdbc.codec.Codec;
 import com.singlestore.jdbc.codec.RowDecoder;
 import com.singlestore.jdbc.codec.TextRowDecoder;
-import com.singlestore.jdbc.codec.list.*;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
-import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.ErrorPacket;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.codec.BigDecimalCodec;
+import com.singlestore.jdbc.plugin.codec.BigIntegerCodec;
+import com.singlestore.jdbc.plugin.codec.BlobCodec;
+import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
+import com.singlestore.jdbc.plugin.codec.ClobCodec;
+import com.singlestore.jdbc.plugin.codec.DateCodec;
+import com.singlestore.jdbc.plugin.codec.ReaderCodec;
+import com.singlestore.jdbc.plugin.codec.StreamCodec;
+import com.singlestore.jdbc.plugin.codec.StringCodec;
+import com.singlestore.jdbc.plugin.codec.TimeCodec;
+import com.singlestore.jdbc.plugin.codec.TimestampCodec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
-import com.singlestore.jdbc.util.exceptions.ExceptionFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -35,11 +46,11 @@ public abstract class Result implements ResultSet, Completion {
 
   protected final int resultSetType;
   protected final ExceptionFactory exceptionFactory;
-  protected final PacketReader reader;
+  protected final com.singlestore.jdbc.client.socket.Reader reader;
   protected final Context context;
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  protected final ColumnDefinitionPacket[] metadataList;
+  protected final Column[] metadataList;
   protected final RowDecoder row;
   protected int dataSize = 0;
   protected byte[][] data;
@@ -56,8 +67,8 @@ public abstract class Result implements ResultSet, Completion {
       com.singlestore.jdbc.Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      ColumnDefinitionPacket[] metadataList,
-      PacketReader reader,
+      Column[] metadataList,
+      com.singlestore.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
@@ -101,14 +112,14 @@ public abstract class Result implements ResultSet, Completion {
       case (byte) 0xFF:
         loaded = true;
         ErrorPacket errorPacket =
-            new ErrorPacket(new ReadableByteBuf(null, buf, buf.length), context);
+            new ErrorPacket(new StandardReadableByteBuf(null, buf, buf.length), context);
         throw exceptionFactory.create(
             errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorCode());
 
       case (byte) 0xFE:
         if ((context.isEofDeprecated() && buf.length < 16777215)
             || (!context.isEofDeprecated() && buf.length < 8)) {
-          ReadableByteBuf readBuf = new ReadableByteBuf(null, buf, buf.length);
+          ReadableByteBuf readBuf = new StandardReadableByteBuf(null, buf, buf.length);
           readBuf.skip(); // skip header
           int serverStatus;
           int warnings;
@@ -821,7 +832,7 @@ public abstract class Result implements ResultSet, Completion {
   }
 
   public void useAliasAsName() {
-    for (ColumnDefinitionPacket packet : metadataList) {
+    for (Column packet : metadataList) {
       packet.useAliasAsName();
     }
     forceAlias = true;

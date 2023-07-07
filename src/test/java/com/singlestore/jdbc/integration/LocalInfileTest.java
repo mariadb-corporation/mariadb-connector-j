@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import java.io.*;
 import java.sql.*;
 import java.util.Locale;
@@ -45,7 +44,7 @@ public class LocalInfileTest extends Common {
   public void defaultThrowExceptions() throws Exception {
     try (Connection con = createCon()) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
@@ -54,7 +53,7 @@ public class LocalInfileTest extends Common {
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           BatchUpdateException.class,
           () -> stmt.executeBatch(),
           "LOAD DATA LOCAL is disabled by your client configuration");
@@ -65,7 +64,7 @@ public class LocalInfileTest extends Common {
   public void wrongFile() throws Exception {
     try (Connection con = createCon("allowLocalInfile")) {
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
@@ -84,7 +83,7 @@ public class LocalInfileTest extends Common {
       tempFile.deleteOnExit();
       tempFile.setReadable(false);
       Statement stmt = con.createStatement();
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(
@@ -318,7 +317,7 @@ public class LocalInfileTest extends Common {
       stmt.setNextLocalInfileInputStream(new ErrorStream(data));
 
       stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
-      assertThrowsContains(
+      Common.assertThrowsContains(
           SQLException.class,
           () ->
               stmt.execute(

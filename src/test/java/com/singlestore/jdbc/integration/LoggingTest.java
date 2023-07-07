@@ -14,7 +14,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.FileAppender;
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.SingleStorePoolDataSource;
 import com.singlestore.jdbc.Statement;

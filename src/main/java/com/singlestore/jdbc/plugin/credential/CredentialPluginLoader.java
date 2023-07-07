@@ -6,6 +6,7 @@
 package com.singlestore.jdbc.plugin.credential;
 
 import com.singlestore.jdbc.Driver;
+import com.singlestore.jdbc.plugin.CredentialPlugin;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.SQLException;

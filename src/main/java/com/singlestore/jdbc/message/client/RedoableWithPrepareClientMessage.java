@@ -7,8 +7,9 @@ package com.singlestore.jdbc.message.client;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.client.Client;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -19,15 +20,16 @@ public interface RedoableWithPrepareClientMessage extends RedoableClientMessage 
 
   ServerPreparedStatement prep();
 
-  default int encode(PacketWriter writer, Context context) throws IOException, SQLException {
+  default int encode(Writer writer, Context context) throws IOException, SQLException {
     return encode(writer, context, null);
   }
 
-  int encode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  @Override
+  int encode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException;
 
   @Override
-  default int reEncode(PacketWriter writer, Context context, PrepareResultPacket newPrepareResult)
+  default int reEncode(Writer writer, Context context, Prepare newPrepareResult)
       throws IOException, SQLException {
     return encode(writer, context, newPrepareResult);
   }

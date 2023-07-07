@@ -6,10 +6,11 @@
 package com.singlestore.jdbc.message.client;
 
 import com.singlestore.jdbc.Configuration;
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.message.ClientMessage;
+import com.singlestore.jdbc.plugin.Credential;
 import com.singlestore.jdbc.plugin.authentication.standard.NativePasswordPlugin;
-import com.singlestore.jdbc.plugin.credential.Credential;
 import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import java.io.IOException;
@@ -55,21 +56,20 @@ public final class HandshakeResponse implements ClientMessage {
     this.exchangeCharset = exchangeCharset;
   }
 
-  private static void writeStringLengthAscii(PacketWriter encoder, String value)
-      throws IOException {
+  private static void writeStringLengthAscii(Writer encoder, String value) throws IOException {
     byte[] valBytes = value.getBytes(StandardCharsets.US_ASCII);
     encoder.writeLength(valBytes.length);
     encoder.writeBytes(valBytes);
   }
 
-  private static void writeStringLength(PacketWriter encoder, String value) throws IOException {
+  private static void writeStringLength(Writer encoder, String value) throws IOException {
     byte[] valBytes = value.getBytes(StandardCharsets.UTF_8);
     encoder.writeLength(valBytes.length);
     encoder.writeBytes(valBytes);
   }
 
   private static void writeConnectAttributes(
-      PacketWriter writer, String connectionAttributes, String host) throws IOException {
+      Writer writer, String connectionAttributes, String host) throws IOException {
 
     writer.mark();
     writer.writeInt(0);
@@ -124,7 +124,7 @@ public final class HandshakeResponse implements ClientMessage {
   }
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
 
     final byte[] authData;
     if ("mysql_clear_password".equals(authenticationPluginType)) {

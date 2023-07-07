@@ -5,12 +5,14 @@
 
 package com.singlestore.jdbc.codec;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.DataType;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLException;
 
-public class Parameter<T> {
+public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public static final Parameter<?> NULL_PARAMETER =
       new Parameter(null, null) {
@@ -41,15 +43,15 @@ public class Parameter<T> {
     this.length = length;
   }
 
-  public void encodeText(PacketWriter encoder, Context context) throws IOException, SQLException {
+  public void encodeText(Writer encoder, Context context) throws IOException, SQLException {
     codec.encodeText(encoder, context, this.value, null, length);
   }
 
-  public void encodeBinary(PacketWriter encoder) throws IOException, SQLException {
+  public void encodeBinary(Writer encoder) throws IOException, SQLException {
     codec.encodeBinary(encoder, this.value, null, length);
   }
 
-  public void encodeLongData(PacketWriter encoder) throws IOException, SQLException {
+  public void encodeLongData(Writer encoder) throws IOException, SQLException {
     codec.encodeLongData(encoder, this.value, length);
   }
 

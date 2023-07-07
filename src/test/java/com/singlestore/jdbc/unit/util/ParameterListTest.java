@@ -5,10 +5,12 @@
 
 package com.singlestore.jdbc.unit.util;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.singlestore.jdbc.codec.Parameter;
-import com.singlestore.jdbc.codec.list.StringCodec;
+import com.singlestore.jdbc.plugin.codec.StringCodec;
 import com.singlestore.jdbc.util.ParameterList;
 import org.junit.jupiter.api.Test;
 

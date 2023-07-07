@@ -5,19 +5,23 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
-import com.singlestore.jdbc.message.client.ClientMessage;
+import com.singlestore.jdbc.client.util.Parameters;
+import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.ExecutePacket;
 import com.singlestore.jdbc.message.client.PreparePacket;
 import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
-import com.singlestore.jdbc.message.server.Completion;
 import com.singlestore.jdbc.message.server.OkPacket;
-import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.util.ParameterList;
-import com.singlestore.jdbc.util.constants.Capabilities;
-import java.sql.*;
-import java.util.*;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -73,48 +77,9 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     String cmd = escapeTimeout(sql);
     if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
-      long serverCapabilities = con.getContext().getServerCapabilities();
-      if (prepareResult == null
-          && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0) {
-        try {
-          executePipeline(cmd);
-        } catch (BatchUpdateException b) {
-          throw (SQLException) b.getCause();
-        }
-      } else {
-        executeStandard(cmd);
-      }
+      executeStandard(cmd);
     } finally {
       lock.unlock();
-    }
-  }
-
-  /**
-   * Send COM_STMT_PREPARE + COM_STMT_EXECUTE, then read for the 2 answers
-   *
-   * @param cmd command
-   * @throws SQLException if IOException / Command error
-   */
-  private void executePipeline(String cmd) throws SQLException {
-    // server is 10.2+, permitting to execute last prepare with (-1) statement id.
-    // Server send prepare, followed by execute, in one exchange.
-    PreparePacket prepare = new PreparePacket(cmd);
-    ExecutePacket execute = new ExecutePacket(null, parameters, cmd, this);
-    try {
-      List<Completion> res =
-          con.getClient()
-              .executePipeline(
-                  new ClientMessage[] {prepare, execute},
-                  this,
-                  fetchSize,
-                  maxRows,
-                  resultSetConcurrency,
-                  resultSetType,
-                  closeOnCompletion);
-      results = res.subList(1, res.size());
-    } catch (SQLException ex) {
-      results = null;
-      throw ex;
     }
   }
 
@@ -136,94 +101,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
                 closeOnCompletion);
   }
 
-  private List<Completion> executeInternalPreparedBatch() throws SQLException {
+  private void executeInternalPreparedBatch() throws SQLException {
     checkNotClosed();
     String cmd = escapeTimeout(sql);
-    long serverCapabilities = con.getContext().getServerCapabilities();
-    if (batchParameters.size() > 1
-        && (serverCapabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS) > 0
-        && (!con.getContext().getConf().allowLocalInfile()
-            || (serverCapabilities & Capabilities.LOCAL_FILES) == 0)) {
-      return executeBatchPipeline(cmd);
-    } else {
-      return executeBatchStandard(cmd);
-    }
-  }
-
-  /**
-   * Send COM_STMT_PREPARE + X * COM_STMT_EXECUTE, then read for the all answers
-   *
-   * @param cmd command
-   * @throws SQLException if Command error
-   */
-  private List<Completion> executeBatchPipeline(String cmd) throws SQLException {
-    if (prepareResult == null) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
-    // server is 10.2+, permitting to execute last prepare with (-1) statement id.
-    // Server send prepare, followed by execute, in one exchange.
-    int maxCmd = 250;
-    List<Completion> res = new ArrayList<>();
-    try {
-      int index = 0;
-      if (prepareResult == null) {
-        res.addAll(executeBunchPrepare(cmd, index, maxCmd));
-        index += maxCmd;
-      }
-
-      while (index < batchParameters.size()) {
-        res.addAll(executeBunch(cmd, index, maxCmd));
-        index += maxCmd;
-      }
-
-      results = res;
-      return results;
-
-    } catch (SQLException bue) {
-      results = null;
-      throw exceptionFactory().createBatchUpdate(res, batchParameters.size(), bue);
-    }
-  }
-
-  private List<Completion> executeBunch(String cmd, int index, int maxCmd) throws SQLException {
-    int maxCmdToSend = Math.min(batchParameters.size() - index, maxCmd);
-    ClientMessage[] packets = new ClientMessage[maxCmdToSend];
-    for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i - index] = new ExecutePacket(prepareResult, batchParameters.get(i), cmd, this);
-    }
-    return con.getClient()
-        .executePipeline(
-            packets,
-            this,
-            0,
-            maxRows,
-            ResultSet.CONCUR_READ_ONLY,
-            ResultSet.TYPE_FORWARD_ONLY,
-            closeOnCompletion);
-  }
-
-  private List<Completion> executeBunchPrepare(String cmd, int index, int maxCmd)
-      throws SQLException {
-    int maxCmdToSend = Math.min(batchParameters.size() - index, maxCmd);
-    ClientMessage[] packets = new ClientMessage[maxCmdToSend + 1];
-    packets[0] = new PreparePacket(cmd);
-    for (int i = index; i < index + maxCmdToSend; i++) {
-      packets[i + 1 - index] = new ExecutePacket(null, batchParameters.get(i), cmd, this);
-    }
-    List<Completion> res =
-        con.getClient()
-            .executePipeline(
-                packets,
-                this,
-                0,
-                maxRows,
-                ResultSet.CONCUR_READ_ONLY,
-                ResultSet.TYPE_FORWARD_ONLY,
-                closeOnCompletion);
-    // in case of failover, prepare is done in failover, skipping prepare result
-    if (res.get(0) instanceof PrepareResultPacket) {
-      return res.subList(1, res.size());
-    } else {
-      return res;
-    }
+    executeBatchStandard(cmd);
   }
 
   /**
@@ -232,11 +113,11 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @param cmd command
    * @throws SQLException if IOException / Command error
    */
-  private List<Completion> executeBatchStandard(String cmd) throws SQLException {
+  private void executeBatchStandard(String cmd) throws SQLException {
     // send COM_STMT_PREPARE
     List<Completion> tmpResults = new ArrayList<>();
     SQLException error = null;
-    for (ParameterList batchParameter : batchParameters) {
+    for (Parameters batchParameter : batchParameters) {
       // prepare is in loop, because if connection fail, prepare is reset, and need to be re
       // prepared
       if (prepareResult == null) {
@@ -257,7 +138,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       throw exceptionFactory().createBatchUpdate(tmpResults, batchParameters.size(), error);
     }
     this.results = tmpResults;
-    return tmpResults;
   }
 
   /**
@@ -521,18 +401,16 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
     lock.lock();
     try {
-      List<Completion> res = executeInternalPreparedBatch();
-      results = res;
-
+      executeInternalPreparedBatch();
       int[] updates = new int[batchParameters.size()];
-      if (res.size() != batchParameters.size()) {
+      if (results.size() != batchParameters.size()) {
         for (int i = 0; i < batchParameters.size(); i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < Math.min(res.size(), batchParameters.size()); i++) {
-          if (res.get(i) instanceof OkPacket) {
-            updates[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+        for (int i = 0; i < Math.min(results.size(), batchParameters.size()); i++) {
+          if (results.get(i) instanceof OkPacket) {
+            updates[i] = (int) ((OkPacket) results.get(i)).getAffectedRows();
           } else {
             updates[i] = com.singlestore.jdbc.Statement.SUCCESS_NO_INFO;
           }
@@ -547,23 +425,25 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     }
   }
 
+  private ExceptionFactory exceptionFactory() {
+    return con.getExceptionFactory().of(this);
+  }
+
   @Override
   public long[] executeLargeBatch() throws SQLException {
     checkNotClosed();
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
     lock.lock();
     try {
-      List<Completion> res = executeInternalPreparedBatch();
-      results = res;
-
+      executeInternalPreparedBatch();
       long[] updates = new long[batchParameters.size()];
-      if (res.size() != batchParameters.size()) {
+      if (results.size() != batchParameters.size()) {
         for (int i = 0; i < batchParameters.size(); i++) {
           updates[i] = Statement.SUCCESS_NO_INFO;
         }
       } else {
-        for (int i = 0; i < res.size(); i++) {
-          updates[i] = ((OkPacket) res.get(i)).getAffectedRows();
+        for (int i = 0; i < results.size(); i++) {
+          updates[i] = ((OkPacket) results.get(i)).getAffectedRows();
         }
       }
 

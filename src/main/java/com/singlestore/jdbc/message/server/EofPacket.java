@@ -5,8 +5,9 @@
 
 package com.singlestore.jdbc.message.server;
 
+import com.singlestore.jdbc.client.Completion;
+import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.context.Context;
 
 public class EofPacket implements Completion {
 

@@ -6,8 +6,10 @@
 package com.singlestore.jdbc.codec;
 
 import com.singlestore.jdbc.Configuration;
+import com.singlestore.jdbc.client.Column;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
+import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
+import com.singlestore.jdbc.plugin.Codec;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.util.*;
@@ -15,15 +17,15 @@ import java.util.*;
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private final Configuration conf;
-  protected final ReadableByteBuf readBuf = new ReadableByteBuf(null, null, 0);
-  protected final ColumnDefinitionPacket[] columns;
+  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, null, 0);
+  protected final Column[] columns;
 
   protected int length;
   protected int index;
   protected final int columnCount;
   private Map<String, Integer> mapper = null;
 
-  public RowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
+  public RowDecoder(int columnCount, Column[] columns, Configuration conf) {
     this.columnCount = columnCount;
     this.columns = columns;
     this.conf = conf;
@@ -64,7 +66,7 @@ public abstract class RowDecoder {
       return null;
     }
 
-    ColumnDefinitionPacket column = columns[index - 1];
+    Column column = columns[index - 1];
     // type generic, return "natural" java type
     if (Object.class.equals(type) || type == null) {
       Codec<T> defaultCodec = ((Codec<T>) column.getDefaultCodec(conf));
@@ -78,7 +80,7 @@ public abstract class RowDecoder {
     }
     readBuf.skip(length);
     throw new SQLException(
-        String.format("Type %s not supported type for %s type", type, column.getTypeName()));
+        String.format("Type %s not supported type for %s type", type, column.getType().name()));
   }
 
   public abstract boolean wasNull();
@@ -177,7 +179,7 @@ public abstract class RowDecoder {
     if (mapper == null) {
       mapper = new HashMap<>();
       for (int i = 0; i < columnCount; i++) {
-        ColumnDefinitionPacket ci = columns[i];
+        Column ci = columns[i];
         String columnAlias = ci.getColumnAlias();
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);

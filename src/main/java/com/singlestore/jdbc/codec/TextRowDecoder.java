@@ -6,14 +6,21 @@
 package com.singlestore.jdbc.codec;
 
 import com.singlestore.jdbc.Configuration;
-import com.singlestore.jdbc.codec.list.*;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
+import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.plugin.Codec;
+import com.singlestore.jdbc.plugin.codec.BooleanCodec;
+import com.singlestore.jdbc.plugin.codec.ByteCodec;
+import com.singlestore.jdbc.plugin.codec.DoubleCodec;
+import com.singlestore.jdbc.plugin.codec.FloatCodec;
+import com.singlestore.jdbc.plugin.codec.IntCodec;
+import com.singlestore.jdbc.plugin.codec.LongCodec;
+import com.singlestore.jdbc.plugin.codec.ShortCodec;
 import java.sql.SQLException;
 import java.util.Calendar;
 
 public class TextRowDecoder extends RowDecoder {
 
-  public TextRowDecoder(int columnCount, ColumnDefinitionPacket[] columns, Configuration conf) {
+  public TextRowDecoder(int columnCount, Column[] columns, Configuration conf) {
     super(columnCount, columns, conf);
   }
 

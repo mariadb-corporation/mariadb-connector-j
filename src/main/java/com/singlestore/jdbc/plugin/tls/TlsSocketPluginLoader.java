@@ -6,6 +6,7 @@
 package com.singlestore.jdbc.plugin.tls;
 
 import com.singlestore.jdbc.client.tls.DefaultTlsSocketPlugin;
+import com.singlestore.jdbc.plugin.TlsSocketPlugin;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
 

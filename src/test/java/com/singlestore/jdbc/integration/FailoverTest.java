@@ -5,13 +5,18 @@
 
 package com.singlestore.jdbc.integration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.util.constants.HaMode;
-import java.sql.*;
+import com.singlestore.jdbc.export.HaMode;
+import java.sql.BatchUpdateException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -73,7 +78,7 @@ public class FailoverTest extends Common {
         assertFalse(con.getAutoCommit());
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLException.class,
             () -> stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test3')"),
             "In progress transaction was lost");
@@ -109,7 +114,7 @@ public class FailoverTest extends Common {
       stmt.executeUpdate("INSERT INTO transaction_failover (test) VALUES ('test2')");
       proxy.restart(1000);
       if (transactionReplay) {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLException.class,
             () -> con.commit(),
             "Driver has reconnect connection after a communications failure");
@@ -124,7 +129,7 @@ public class FailoverTest extends Common {
         assertFalse(con.getAutoCommit());
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, con.getTransactionIsolation());
       } else {
-        assertThrowsContains(
+        Common.assertThrowsContains(
             SQLException.class, () -> con.commit(), "In progress transaction was lost");
       }
     }
@@ -168,7 +173,7 @@ public class FailoverTest extends Common {
         if (transactionReplay) {
           p.execute();
         } else {
-          assertThrowsContains(
+          Common.assertThrowsContains(
               SQLTransientConnectionException.class,
               p::execute,
               "In progress transaction was lost");

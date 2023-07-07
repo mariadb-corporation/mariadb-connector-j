@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.util.constants.HaMode;
+import com.singlestore.jdbc.export.HaMode;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;

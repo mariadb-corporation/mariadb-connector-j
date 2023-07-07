@@ -5,8 +5,9 @@
 
 package com.singlestore.jdbc.message.client;
 
-import com.singlestore.jdbc.client.context.Context;
-import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.client.Context;
+import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.message.ClientMessage;
 import java.io.IOException;
 
 public final class PingPacket implements ClientMessage {
@@ -14,7 +15,7 @@ public final class PingPacket implements ClientMessage {
   public static final PingPacket INSTANCE = new PingPacket();
 
   @Override
-  public int encode(PacketWriter writer, Context context) throws IOException {
+  public int encode(Writer writer, Context context) throws IOException {
     writer.initPacket();
     writer.writeByte(0x0e);
     writer.flush();

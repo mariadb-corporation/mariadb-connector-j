@@ -5,14 +5,19 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
-import com.singlestore.jdbc.codec.DataType;
 import com.singlestore.jdbc.util.Version;
 import com.singlestore.jdbc.util.VersionFactory;
 import com.singlestore.jdbc.util.constants.ServerStatus;
-import java.sql.*;
+import java.sql.PseudoColumnUsage;
+import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.sql.Types;
 
 public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 

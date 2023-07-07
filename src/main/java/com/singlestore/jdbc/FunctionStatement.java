@@ -5,9 +5,10 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.result.Result;
+import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.util.ParameterList;
-import java.sql.*;
+import java.sql.CallableStatement;
+import java.sql.SQLException;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FunctionStatement extends BaseCallableStatement implements CallableStatement {
@@ -44,14 +45,15 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
 
   @Override
   protected void handleParameterOutput() throws SQLException {
-    this.outputResult = (Result) this.results.remove(this.results.size() - 1);
-    this.outputResult.next();
+    this.outputResultFromRes(1);
   }
 
   @Override
   public void registerOutParameter(int index, int sqlType) throws SQLException {
-    if (index <= 0 || index > 1) {
-      throw exceptionFactory().create(String.format("wrong parameter index %s", index));
+    if (index != 1) {
+      throw con.getExceptionFactory()
+          .of(this)
+          .create(String.format("wrong parameter index %s", index));
     }
     super.registerOutParameter(index, sqlType);
   }
@@ -59,7 +61,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
   @Override
   protected void validParameters() throws SQLException {
     // remove first parameter, as it's an output param only
-    ParameterList newParameters = new ParameterList(parameters.size() - 1);
+    Parameters newParameters = new ParameterList(parameters.size() - 1);
     for (int i = 0; i < parameters.size() - 1; i++) {
       newParameters.set(i, parameters.get(i + 1));
     }

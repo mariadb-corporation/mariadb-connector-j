@@ -5,7 +5,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.plugin.credential.CredentialPluginLoader;
 import com.singlestore.jdbc.plugin.credential.browser.BrowserCredentialPlugin;

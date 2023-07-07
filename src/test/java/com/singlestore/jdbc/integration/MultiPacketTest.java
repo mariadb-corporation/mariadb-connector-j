@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.singlestore.jdbc.Common;
 import com.singlestore.jdbc.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
