@@ -863,7 +863,6 @@ public class ConnectionTest extends Common {
     assertTrue((capabilities & Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) > 0);
 
     assertEquals(0, (capabilities & Capabilities.COMPRESS));
-    assertEquals(0, (capabilities & Capabilities.CONNECT_ATTRS));
     assertEquals(0, (capabilities & Capabilities.CLIENT_SESSION_TRACK));
     assertEquals(0, (capabilities & Capabilities.CLIENT_DEPRECATE_EOF));
     assertEquals(0, (capabilities & Capabilities.COMPRESS));
@@ -873,5 +872,11 @@ public class ConnectionTest extends Common {
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_STMT_BULK_OPERATIONS));
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO));
     assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA));
+
+    if (minVersion(8, 1, 0)) {
+      assertTrue((capabilities & Capabilities.CONNECT_ATTRS) > 0);
+    } else {
+      assertEquals(0, (capabilities & Capabilities.CONNECT_ATTRS));
+    }
   }
 }

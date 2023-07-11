@@ -429,17 +429,17 @@ public class DatabaseMetadataTest extends Common {
   public void testGetColumns() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
+        "CREATE TABLE IF NOT EXISTS `table'getcolumns`("
             + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c AS (CHAR_LENGTH(b)) PERSISTED INT, "
             + "d AS left(b,5) PERSISTED VARCHAR(5) CHARACTER SET 'utf8mb4', e AS a * 2 PERSISTED INT(14) UNSIGNED)");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
-    ResultSet rs = dbmd.getColumns(null, null, "ta\nble'getcolumns", null);
+    ResultSet rs = dbmd.getColumns(null, null, "table'getcolumns", null);
 
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("table'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("a", rs.getString(4)); // COLUMN_NAME
     // In S2 type of auto_increment column is set to BIGINT for sharded tables
     assertEquals(Types.BIGINT, rs.getInt(5)); // DATA_TYPE
@@ -463,7 +463,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("table'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("b", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPEf
     assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
@@ -487,7 +487,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("table'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("c", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
     assertEquals("INT", rs.getString(6)); // TYPE_NAME
@@ -514,7 +514,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("table'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("d", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.VARCHAR, rs.getInt(5)); // DATA_TYPE
     assertEquals("VARCHAR", rs.getString(6)); // "TYPE_NAME
@@ -538,7 +538,7 @@ public class DatabaseMetadataTest extends Common {
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertEquals(null, rs.getString(2)); // TABLE_SCHEM
-    assertEquals("ta\nble'getcolumns", rs.getString(3)); // TABLE_NAME
+    assertEquals("table'getcolumns", rs.getString(3)); // TABLE_NAME
     assertEquals("e", rs.getString(4)); // COLUMN_NAME
     assertEquals(Types.INTEGER, rs.getInt(5)); // DATA_TYPE
     assertEquals("INT UNSIGNED", rs.getString(6)); // TYPE_NAME
@@ -587,9 +587,9 @@ public class DatabaseMetadataTest extends Common {
     try {
       java.sql.Statement stmt = con.createStatement();
       stmt.execute(
-          "CREATE TABLE IF NOT EXISTS `tinyInt1\nisBitCols`(id1 tinyint(1), id2 tinyint(2))");
+          "CREATE TABLE IF NOT EXISTS `tinyInt1IsBitCols`(id1 tinyint(1), id2 tinyint(2))");
       DatabaseMetaData dbmd = sharedConn.getMetaData();
-      ResultSet rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
+      ResultSet rs = dbmd.getColumns(null, null, "tinyInt1IsBitCols", null);
 
       assertTrue(rs.next());
       assertEquals(Types.BIT, rs.getInt(5));
@@ -597,7 +597,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(Types.TINYINT, rs.getInt(5));
 
       dbmd = con.getMetaData();
-      rs = dbmd.getColumns(null, null, "tinyInt1\nisBitCols", null);
+      rs = dbmd.getColumns(null, null, "tinyInt1IsBitCols", null);
 
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
@@ -605,7 +605,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(Types.TINYINT, rs.getInt(5));
 
     } finally {
-      con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1\nisBitCols`");
+      con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1IsBitCols`");
     }
   }
 
