@@ -29,6 +29,7 @@ public final class ClosePreparePacket implements ClientMessage {
   /** send packet to socket */
   @Override
   public int encode(Writer writer, Context context) throws IOException {
+    assert statementId != 0;
     writer.initPacket();
     writer.writeByte(0x19);
     writer.writeInt(statementId);
