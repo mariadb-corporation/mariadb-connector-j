@@ -71,9 +71,9 @@ jobs:
           path: target/surefire-reports
       - store_artifacts: # store the jar as an artifact
           # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: target/singlestore-jdbc-client-1.1.7.jar
+          path: target/singlestore-jdbc-client-1.1.8.jar
       - store_artifacts:
-          path: target/singlestore-jdbc-client-1.1.7-browser-sso-uber.jar
+          path: target/singlestore-jdbc-client-1.1.8-browser-sso-uber.jar
       # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
   publish:
     machine:
