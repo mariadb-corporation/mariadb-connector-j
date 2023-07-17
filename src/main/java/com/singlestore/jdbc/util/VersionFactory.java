@@ -22,13 +22,19 @@ public final class VersionFactory {
         if (instance == null) {
           String tmpVersion = "unknown";
           try (InputStream inputStream =
-              Version.class.getClassLoader().getResourceAsStream("singlestore.properties")) {
+              Version.class
+                  .getClassLoader()
+                  .getResourceAsStream("singlestore-jdbc-client.properties")) {
             if (inputStream == null) {
-              logger.warn("Property file 'singlestore.properties' not found in the classpath");
+              logger.warn(
+                  "Property file 'singlestore-jdbc-client.properties' not found in the classpath");
             } else {
               Properties prop = new Properties();
               prop.load(inputStream);
-              tmpVersion = prop.getProperty("version");
+              String propVersion = prop.getProperty("version");
+              if (propVersion != null) {
+                tmpVersion = prop.getProperty("version");
+              }
             }
           } catch (IOException e) {
             logger.warn("Failed to retrieve driver version: " + e.getMessage());
