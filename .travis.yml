@@ -51,8 +51,8 @@ jobs:
     - stage: Minimal
       env: srv=mariadb v=10.6 packet=8
       name: "CS 10.6"
-    - env: srv=mariadb-es v=10.6
-      name: "ES 10.6"
+    - env: srv=mariadb-es
+      name: "ES latest"
       if: type = push AND fork = false
 
     - stage: Enterprise
@@ -60,6 +60,9 @@ jobs:
       name: "ES 10.4"
     - env: srv=mariadb-es v=10.5
       name: "ES 10.5"
+    - env: srv=mariadb-es v=10.6
+      name: "ES 10.6"
+      if: type = push AND fork = false
     - env: srv=maxscale
       name: "Maxscale"
     - env: srv=xpand TEST_DB_OTHER="&initSql=SET NAMES UTF8"
