@@ -97,6 +97,7 @@ public class Configuration {
   private String serverSslCert = null;
   private String keyStore = null;
   private String keyStorePassword = null;
+  private String keyPassword = null;
   private String keyStoreType = null;
   private String trustStoreType = null;
   private String enabledSslCipherSuites = null;
@@ -189,6 +190,7 @@ public class Configuration {
       String serverSslCert,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
       String trustStoreType,
       String enabledSslCipherSuites,
@@ -262,6 +264,7 @@ public class Configuration {
     this.serverSslCert = serverSslCert;
     this.keyStore = keyStore;
     this.keyStorePassword = keyStorePassword;
+    this.keyPassword = keyPassword;
     this.keyStoreType = keyStoreType;
     this.trustStoreType = trustStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
@@ -367,6 +370,7 @@ public class Configuration {
       String serverSslCert,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
       String trustStoreType,
       Boolean useReadAheadInput,
@@ -464,6 +468,7 @@ public class Configuration {
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
+    if (keyPassword != null) this.keyPassword = keyPassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
     if (trustStoreType != null) this.trustStoreType = trustStoreType;
 
@@ -773,6 +778,7 @@ public class Configuration {
         this.serverSslCert,
         this.keyStore,
         this.keyStorePassword,
+        this.keyPassword,
         this.keyStoreType,
         this.trustStoreType,
         this.enabledSslCipherSuites,
@@ -902,6 +908,15 @@ public class Configuration {
    */
   public String keyStorePassword() {
     return keyStorePassword;
+  }
+
+  /**
+   * key store alias password
+   *
+   * @return key store alias password
+   */
+  public String keyPassword() {
+    return keyPassword;
   }
 
   /**
@@ -1840,6 +1855,7 @@ public class Configuration {
     private String serverSslCert;
     private String keyStore;
     private String keyStorePassword;
+    private String keyPassword;
     private String keyStoreType;
     private String trustStoreType;
     private String enabledSslCipherSuites;
@@ -1936,6 +1952,17 @@ public class Configuration {
      */
     public Builder keyStorePassword(String keyStorePassword) {
       this.keyStorePassword = nullOrEmpty(keyStorePassword);
+      return this;
+    }
+
+    /**
+     * Client keystore alias password
+     *
+     * @param keyPassword client store alias password
+     * @return this {@link Builder}
+     */
+    public Builder keyPassword(String keyPassword) {
+      this.keyPassword = nullOrEmpty(keyPassword);
       return this;
     }
 
@@ -2818,6 +2845,7 @@ public class Configuration {
               this.serverSslCert,
               this.keyStore,
               this.keyStorePassword,
+              this.keyPassword,
               this.keyStoreType,
               this.trustStoreType,
               this.useReadAheadInput,

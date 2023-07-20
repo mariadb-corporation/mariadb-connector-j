@@ -35,6 +35,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static KeyManager loadClientCerts(
       String keyStoreUrl,
       String keyStorePassword,
+      String keyPassword,
       String storeType,
       ExceptionFactory exceptionFactory)
       throws SQLException {
@@ -42,11 +43,13 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     try {
       try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
         char[] keyStorePasswordChars =
-            keyStorePassword == null ? null : keyStorePassword.toCharArray();
+            keyStorePassword == null ? null : (keyStorePassword == "") ? null : keyStorePassword.toCharArray();
+        char[] keyStoreChars =
+            (keyPassword == null) ? keyStorePasswordChars : (keyPassword == "") ? null : keyPassword.toCharArray();
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);
-        return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
+        return new MariaDbX509KeyManager(ks, keyStoreChars);
       }
     } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
@@ -133,7 +136,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       keyManager =
           new KeyManager[] {
             loadClientCerts(
-                conf.keyStore(), conf.keyStorePassword(), conf.keyStoreType(), exceptionFactory)
+                conf.keyStore(),
+                conf.keyStorePassword(),
+                conf.keyPassword(),
+                conf.keyStoreType(),
+                exceptionFactory)
           };
     } else {
       String keyStore = System.getProperty("javax.net.ssl.keyStore");
@@ -144,7 +151,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         try {
           keyManager =
               new KeyManager[] {
-                loadClientCerts(keyStore, keyStorePassword, keyStoreType, exceptionFactory)
+                loadClientCerts(
+                    keyStore, keyStorePassword, keyStorePassword, keyStoreType, exceptionFactory)
               };
         } catch (SQLException queryException) {
           keyManager = null;
