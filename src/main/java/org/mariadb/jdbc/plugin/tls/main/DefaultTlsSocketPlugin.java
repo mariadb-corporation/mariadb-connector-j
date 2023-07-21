@@ -43,9 +43,13 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     try {
       try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
         char[] keyStorePasswordChars =
-            keyStorePassword == null ? null : (keyStorePassword == "") ? null : keyStorePassword.toCharArray();
+            keyStorePassword == null
+                ? null
+                : (keyStorePassword == "") ? null : keyStorePassword.toCharArray();
         char[] keyStoreChars =
-            (keyPassword == null) ? keyStorePasswordChars : (keyPassword == "") ? null : keyPassword.toCharArray();
+            (keyPassword == null)
+                ? keyStorePasswordChars
+                : (keyPassword == "") ? null : keyPassword.toCharArray();
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);

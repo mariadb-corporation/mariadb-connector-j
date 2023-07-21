@@ -30,7 +30,6 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.SslRequestPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
-import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
@@ -221,24 +220,6 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.SSL;
     }
     return capabilities & serverCapabilities;
-  }
-
-  /**
-   * Default collation used for string exchanges with server. Always return 4 bytes utf8 collation
-   * for server that permit it.
-   *
-   * @param handshake initial handshake packet
-   * @return collation byte
-   */
-  public static byte decideLanguage(InitialHandshakePacket handshake) {
-    short serverLanguage = handshake.getDefaultCollation();
-    // return current server utf8mb4 collation
-    return (byte)
-        ((serverLanguage == 45 // utf8mb4_general_ci
-                || serverLanguage == 46 // utf8mb4_bin
-                || (serverLanguage >= 224 && serverLanguage <= 247))
-            ? serverLanguage
-            : 224); // UTF8MB4_UNICODE_CI;
   }
 
   /**

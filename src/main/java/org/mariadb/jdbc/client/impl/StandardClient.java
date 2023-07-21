@@ -143,14 +143,17 @@ public class StandardClient implements Client, AutoCloseable {
       this.reader.setServerThreadId(handshake.getThreadId(), hostAddress);
       this.writer.setServerThreadId(handshake.getThreadId(), hostAddress);
 
-      byte exchangeCharset = ConnectionHelper.decideLanguage(handshake);
-
       // **********************************************************************
       // changing to SSL socket if needed
       // **********************************************************************
       SSLSocket sslSocket =
           ConnectionHelper.sslWrapper(
-              hostAddress, socket, clientCapabilities, exchangeCharset, context, writer);
+              hostAddress,
+              socket,
+              clientCapabilities,
+              (byte) handshake.getDefaultCollation(),
+              context,
+              writer);
 
       if (sslSocket != null) {
         out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
@@ -178,7 +181,7 @@ public class StandardClient implements Client, AutoCloseable {
               conf,
               host,
               clientCapabilities,
-              exchangeCharset)
+              (byte) handshake.getDefaultCollation())
           .encode(writer, context);
       writer.flush();
 
@@ -324,6 +327,7 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
+    commands.add("SET NAMES utf8mb4");
 
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
