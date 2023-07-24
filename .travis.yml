@@ -48,6 +48,8 @@ jobs:
     - env: srv=build
     - env: srv=xpand TEST_DB_OTHER="&initSql=SET NAMES UTF8"
     - env: srv=mariadb-es local=1
+    - env: srv=skysql
+    - env: srv=skysql-ha
   include:
     - stage: Minimal
       env: srv=mariadb v=10.6 packet=8
