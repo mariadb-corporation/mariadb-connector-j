@@ -110,7 +110,9 @@ public class StandardClient implements Client, AutoCloseable {
 
       assignStream(out, in, conf, null);
 
-      if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
+      if (conf.connectTimeout() > 0) {
+        setSocketTimeout(conf.connectTimeout());
+      } else if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
 
       // read server handshake
       ReadableByteBuf buf = reader.readReusablePacket(logger.isTraceEnabled());
@@ -204,6 +206,7 @@ public class StandardClient implements Client, AutoCloseable {
       if (!skipPostCommands) {
         postConnectionQueries();
       }
+      setSocketTimeout(conf.socketTimeout());
 
     } catch (IOException ioException) {
       destroySocket();
