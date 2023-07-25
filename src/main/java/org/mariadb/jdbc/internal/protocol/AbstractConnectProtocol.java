@@ -221,9 +221,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
       socket = Utils.createSocket(options, host);
       socket.setTcpNoDelay(options.tcpNoDelay);
 
-      if (options.socketTimeout != null) {
+      if (options.connectTimeout > 0) {
+        socket.setSoTimeout(options.connectTimeout);
+      } else if (options.socketTimeout != null && options.socketTimeout > 0) {
         socket.setSoTimeout(options.socketTimeout);
       }
+
       if (options.tcpKeepAlive) {
         socket.setKeepAlive(true);
       }
@@ -600,9 +603,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     this.reader.setServerThreadId(this.serverThreadId, isMasterConnection());
     this.writer.setServerThreadId(this.serverThreadId, isMasterConnection());
 
-    if (this.options.socketTimeout != null) {
-      this.socketTimeout = this.options.socketTimeout;
-    }
     if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
       eofDeprecated = true;
     }
@@ -871,11 +871,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void postConnectionQueries() throws SQLException {
     try {
-
-      if (options.usePipelineAuth
-          && (options.socketTimeout == null
-              || options.socketTimeout == 0
-              || options.socketTimeout > 500)) {
+      Integer timeout = options.connectTimeout > 0 ? options.connectTimeout : options.socketTimeout;
+      if (options.usePipelineAuth && (timeout == null || timeout == 0 || timeout > 500)) {
         // set a timeout to avoid hang in case server doesn't support pipelining
         socket.setSoTimeout(500);
       }
@@ -922,14 +919,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
       activeStreamingResult = null;
       hostFailed = false;
 
-      if (options.usePipelineAuth) {
-        // reset timeout to configured value
-        if (options.socketTimeout != null) {
-          socket.setSoTimeout(options.socketTimeout);
-        } else {
-          socket.setSoTimeout(0);
-        }
-      }
+      this.socketTimeout = options.socketTimeout == null ? 0 : options.socketTimeout;
+      socket.setSoTimeout(this.socketTimeout);
 
     } catch (SocketTimeoutException timeoutException) {
       destroySocket();
