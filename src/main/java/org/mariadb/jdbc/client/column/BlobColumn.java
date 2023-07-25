@@ -99,6 +99,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
     if (!isBinary()) {
       Integer maxWidth2 = CharsetEncodingLength.maxCharlen.get(charset);
       if (maxWidth2 != null) return (int) (columnLength / maxWidth2);
+      return (int) columnLength / 4;
     }
     return (int) columnLength;
   }

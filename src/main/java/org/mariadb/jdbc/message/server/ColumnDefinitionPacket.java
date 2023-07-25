@@ -124,6 +124,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
             || dataType == DataType.LONGBLOB)) {
       Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
       if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
     }
     return (int) columnLength;
   }

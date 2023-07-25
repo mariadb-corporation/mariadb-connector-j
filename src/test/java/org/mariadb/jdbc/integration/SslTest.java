@@ -282,7 +282,7 @@ public class SslTest extends Common {
   @Test
   public void certificateMandatorySsl() throws Throwable {
     Assumptions.assumeTrue(
-            !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 

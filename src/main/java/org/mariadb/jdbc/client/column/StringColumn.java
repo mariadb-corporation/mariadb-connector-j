@@ -99,7 +99,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
   public int getPrecision() {
     Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
     if (maxWidth == null) {
-      return (int) columnLength;
+      return (int) columnLength / 4;
     }
     return (int) (columnLength / maxWidth);
   }
