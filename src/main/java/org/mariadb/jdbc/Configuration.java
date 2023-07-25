@@ -1553,7 +1553,7 @@ public class Configuration {
     if (conf.nonMappedOptions.isEmpty()) {
       sbUnknownOpts.append("None");
     } else {
-      for (Map.Entry entry : conf.nonMappedOptions.entrySet()) {
+      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
         sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
       }
     }
@@ -1615,7 +1615,7 @@ public class Configuration {
                     .append(field.getName())
                     .append(" : ")
                     .append(fieldValue);
-
+                break;
               case "Properties":
                 break;
               default:
