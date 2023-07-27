@@ -332,13 +332,16 @@ public class PolygonCodecTest extends CommonCodecTest {
 
   @Test
   public void getMetaData() throws SQLException {
-    getMetaData(sharedConn, false);
+    getMetaData(sharedConn, false, false);
     try (org.mariadb.jdbc.Connection con = createCon("geometryDefaultType=default")) {
-      getMetaData(con, true);
+      getMetaData(con, true, false);
+    }
+    try (org.mariadb.jdbc.Connection con = createCon("useCatalogTerm=Schema")) {
+      getMetaData(con, false, true);
     }
   }
 
-  private void getMetaData(org.mariadb.jdbc.Connection con, boolean geoDefault)
+  private void getMetaData(org.mariadb.jdbc.Connection con, boolean geoDefault, boolean useSchema)
       throws SQLException {
     ResultSet rs = getPrepare(con);
     ResultSetMetaData meta = rs.getMetaData();
@@ -347,7 +350,8 @@ public class PolygonCodecTest extends CommonCodecTest {
     } else {
       assertEquals("GEOMETRY", meta.getColumnTypeName(1));
     }
-    assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
+    assertEquals(useSchema ? "def" : database, meta.getCatalogName(1));
+    assertEquals(useSchema ? database : "", meta.getSchemaName(1));
     assertEquals(
         (geoDefault
             ? (hasCapability(Capabilities.EXTENDED_TYPE_INFO)
@@ -360,7 +364,6 @@ public class PolygonCodecTest extends CommonCodecTest {
     assertEquals(Types.VARBINARY, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
-    assertEquals("", meta.getSchemaName(1));
   }
 
   @Test

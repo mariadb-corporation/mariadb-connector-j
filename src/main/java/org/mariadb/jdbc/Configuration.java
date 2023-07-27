@@ -15,6 +15,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -58,7 +59,6 @@ public class Configuration {
   private String database = null;
   private List<HostAddress> addresses = null;
   private HaMode haMode = HaMode.NONE;
-
   private String initialUrl = null;
   private Properties nonMappedOptions = null;
 
@@ -66,6 +66,7 @@ public class Configuration {
   private String timezone = null;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
+  private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
@@ -164,6 +165,7 @@ public class Configuration {
       String timezone,
       Boolean autocommit,
       boolean useMysqlMetadata,
+      CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
@@ -238,6 +240,7 @@ public class Configuration {
     this.timezone = timezone;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
@@ -347,6 +350,7 @@ public class Configuration {
       Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
@@ -430,6 +434,18 @@ public class Configuration {
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (useCatalogTerm != null) {
+      if (!"CATALOG".equalsIgnoreCase(useCatalogTerm)
+          && !"SCHEMA".equalsIgnoreCase(useCatalogTerm)) {
+        throw new IllegalArgumentException(
+            "useCatalogTerm can only have CATALOG/SCHEMA value, current set value is "
+                + useCatalogTerm);
+      }
+      this.useCatalogTerm =
+          "CATALOG".equalsIgnoreCase(useCatalogTerm)
+              ? CatalogTerm.UseCatalog
+              : CatalogTerm.UseSchema;
+    }
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
@@ -752,6 +768,7 @@ public class Configuration {
         this.timezone,
         this.autocommit,
         this.useMysqlMetadata,
+        this.useCatalogTerm,
         this.createDatabaseIfNotExist,
         this.transactionIsolation,
         this.defaultFetchSize,
@@ -1255,6 +1272,15 @@ public class Configuration {
   }
 
   /**
+   * Indicating using Catalog or Schema
+   *
+   * @return Indicating using Catalog or Schema
+   */
+  public CatalogTerm useCatalogTerm() {
+    return useCatalogTerm;
+  }
+
+  /**
    * create database if not exist
    *
    * @return create database if not exist
@@ -1599,6 +1625,7 @@ public class Configuration {
               case "TransactionIsolation":
               case "Integer":
               case "SslMode":
+              case "CatalogTerm":
                 (Objects.equals(fieldValue, field.get(defaultConf))
                         ? sbDefaultOpts
                         : sbDifferentOpts)
@@ -1825,6 +1852,7 @@ public class Configuration {
     private String timezone;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
@@ -2499,6 +2527,26 @@ public class Configuration {
     }
 
     /**
+     * "schema" and "database" are server synonymous. Connector historically get/set database using
+     * Connection.setCatalog()/getCatalog(), setSchema()/getSchema() being no-op This parameter
+     * indicate to change that behavior to use Schema in place of Catalog. Behavior will change
+     *
+     * <ul>
+     *   <li>database change will be done with either Connection.setCatalog()/getCatalog() or
+     *       Connection.setSchema()/getSchema()
+     *   <li>DatabaseMetadata methods that use catalog or schema filtering
+     *   <li>ResultsetMetadata database will be retrieved
+     * </ul>
+     *
+     * @param useCatalogTerm use CATALOG/SCHEMA
+     * @return this {@link Builder}
+     */
+    public Builder useCatalogTerm(String useCatalogTerm) {
+      this.useCatalogTerm = useCatalogTerm;
+      return this;
+    }
+
+    /**
      * Create database if not exist. This is mainly for test, since does require an additional query
      * after connection
      *
@@ -2822,6 +2870,7 @@ public class Configuration {
               this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
+              this.useCatalogTerm,
               this.createDatabaseIfNotExist,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,

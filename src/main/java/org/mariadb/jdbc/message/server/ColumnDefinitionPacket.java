@@ -69,6 +69,10 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.extTypeFormat = extTypeFormat;
   }
 
+  public String getCatalog() {
+    return "def";
+  }
+
   public String getSchema() {
     buf.pos(stringPos[0]);
     return buf.readString(buf.readIntLengthEncodedNotNull());

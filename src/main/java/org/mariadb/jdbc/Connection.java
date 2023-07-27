@@ -22,6 +22,7 @@ import org.mariadb.jdbc.message.client.QueryPacket;
 import org.mariadb.jdbc.message.client.ResetPacket;
 import org.mariadb.jdbc.util.NativeSql;
 import org.mariadb.jdbc.util.constants.Capabilities;
+import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ConnectionState;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
@@ -297,7 +298,27 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public String getCatalog() throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseCatalog) return getDatabase();
+    return "def";
+  }
 
+  @Override
+  public void setCatalog(String catalog) throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseCatalog) setDatabase(catalog);
+  }
+
+  @Override
+  public String getSchema() throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseSchema) return getDatabase();
+    return null;
+  }
+
+  @Override
+  public void setSchema(String schema) throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseSchema) setDatabase(schema);
+  }
+
+  private String getDatabase() throws SQLException {
     if (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)) {
       return client.getContext().getDatabase();
     }
@@ -309,20 +330,19 @@ public class Connection implements java.sql.Connection {
     return client.getContext().getDatabase();
   }
 
-  @Override
-  public void setCatalog(String catalog) throws SQLException {
+  private void setDatabase(String database) throws SQLException {
     // null catalog means keep current.
     // there is no possibility to set no database when one is selected
-    if (catalog == null
+    if (database == null
         || (client.getContext().hasClientCapability(Capabilities.CLIENT_SESSION_TRACK)
-            && catalog.equals(client.getContext().getDatabase()))) {
+            && database.equals(client.getContext().getDatabase()))) {
       return;
     }
     lock.lock();
     try {
       getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      client.execute(new ChangeDbPacket(catalog), true);
-      client.getContext().setDatabase(catalog);
+      client.execute(new ChangeDbPacket(database), true);
+      client.getContext().setDatabase(database);
     } finally {
       lock.unlock();
     }
@@ -708,18 +728,6 @@ public class Connection implements java.sql.Connection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     throw exceptionFactory.notSupported("Struct type is not supported");
-  }
-
-  @Override
-  public String getSchema() {
-    // We support only catalog
-    return null;
-  }
-
-  @Override
-  public void setSchema(String schema) {
-    // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will
-    // silently ignore this request."
   }
 
   @Override

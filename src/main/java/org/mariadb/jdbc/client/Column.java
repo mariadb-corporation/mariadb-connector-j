@@ -7,6 +7,13 @@ package org.mariadb.jdbc.client;
 public interface Column {
 
   /**
+   * get column catalog
+   *
+   * @return column catalog
+   */
+  String getCatalog();
+
+  /**
    * get column schema
    *
    * @return column schema
