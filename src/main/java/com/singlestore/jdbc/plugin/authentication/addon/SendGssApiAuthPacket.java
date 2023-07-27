@@ -33,6 +33,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   private byte[] seed;
   private String optionServicePrincipalName;
+  private String optionJaasApplicationName;
 
   @Override
   public String type() {
@@ -49,6 +50,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   public void initialize(String authenticationData, byte[] seed, Configuration conf) {
     this.seed = seed;
     this.optionServicePrincipalName = conf.servicePrincipalName();
+    this.optionJaasApplicationName = conf.jaasApplicationName();
   }
 
   /**
@@ -70,12 +72,15 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     // using provided connection string SPN if set, or if not, using to server information
     final String servicePrincipalName =
         (optionServicePrincipalName != null) ? optionServicePrincipalName : serverSpn;
+    final String jaasApplicationName =
+        (optionJaasApplicationName != null) ? optionJaasApplicationName : "";
+
     String mechanisms = buf.readStringNullEnd();
     if (mechanisms.isEmpty()) {
       mechanisms = "Kerberos";
     }
 
-    gssapiAuth.authenticate(out, in, servicePrincipalName, mechanisms);
+    gssapiAuth.authenticate(out, in, servicePrincipalName, jaasApplicationName, mechanisms);
 
     return in.readPacket(true);
   }

@@ -8,6 +8,8 @@ package com.singlestore.jdbc.plugin.authentication.addon.gssapi;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.PacketReader;
 import com.singlestore.jdbc.client.socket.PacketWriter;
+import com.singlestore.jdbc.util.log.Logger;
+import com.singlestore.jdbc.util.log.Loggers;
 import java.io.*;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
@@ -19,12 +21,15 @@ import org.ietf.jgss.*;
 
 public class StandardGssapiAuthentication implements GssapiAuth {
 
+  private final Logger logger = Loggers.getLogger(StandardGssapiAuthentication.class);;
+
   /**
    * Process default GSS plugin authentication.
    *
    * @param out out stream
    * @param in in stream
    * @param servicePrincipalName service principal name
+   * @param jaasApplicationName entry name in JAAS Login Configuration File
    * @param mechanisms gssapi mechanism
    * @throws IOException if socket error
    * @throws SQLException in any Exception occur
@@ -33,6 +38,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
       final PacketWriter out,
       final PacketReader in,
       final String servicePrincipalName,
+      final String jaasApplicationName,
       String mechanisms)
       throws SQLException, IOException {
 
@@ -42,8 +48,12 @@ public class StandardGssapiAuthentication implements GssapiAuth {
               + "Please set server variable \"gssapi-principal-name\" or set option \"servicePrincipalName\"",
           "28000");
     }
+    // set default jaasEntryName to Krb5ConnectorContext
+    String jaasEntryName =
+        "".equals(jaasApplicationName) ? "Krb5ConnectorContext" : jaasApplicationName;
 
     if (System.getProperty("java.security.auth.login.config") == null) {
+      logger.debug("Using temp jaas.conf as java.security.auth.login.config");
       final File jaasConfFile;
       try {
         jaasConfFile = File.createTempFile("jaas.conf", null);
@@ -62,9 +72,13 @@ public class StandardGssapiAuthentication implements GssapiAuth {
       }
 
       System.setProperty("java.security.auth.login.config", jaasConfFile.getCanonicalPath());
+    } else {
+      logger.debug(
+          "Using {} as java.security.auth.login.config",
+          System.getProperty("java.security.auth.login.config"));
     }
     try {
-      LoginContext loginContext = new LoginContext("Krb5ConnectorContext");
+      LoginContext loginContext = new LoginContext(jaasEntryName);
       // attempt authentication
       loginContext.login();
       final Subject mySubject = loginContext.getSubject();

@@ -13,6 +13,10 @@ import java.sql.SQLException;
 public interface GssapiAuth {
 
   void authenticate(
-      PacketWriter writer, PacketReader in, String servicePrincipalName, String mechanisms)
+      PacketWriter writer,
+      PacketReader in,
+      String servicePrincipalName,
+      String jaasApplicationName,
+      String mechanisms)
       throws SQLException, IOException;
 }
