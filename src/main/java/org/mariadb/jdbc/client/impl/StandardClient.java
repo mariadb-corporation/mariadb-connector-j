@@ -130,12 +130,14 @@ public class StandardClient implements Client, AutoCloseable {
       this.context =
           conf.transactionReplay()
               ? new RedoContext(
+                  hostAddress,
                   handshake,
                   clientCapabilities,
                   conf,
                   this.exceptionFactory,
                   new PrepareCache(conf.prepStmtCacheSize(), this))
               : new BaseContext(
+                  hostAddress,
                   handshake,
                   clientCapabilities,
                   conf,
@@ -314,7 +316,7 @@ public class StandardClient implements Client, AutoCloseable {
     }
 
     String serverTz = conf.timezone() != null ? handleTimezone() : null;
-    String sessionVariableQuery = createSessionVariableQuery(serverTz);
+    String sessionVariableQuery = createSessionVariableQuery(serverTz, context);
     if (sessionVariableQuery != null) commands.add(sessionVariableQuery);
 
     if (hostAddress != null
@@ -330,7 +332,8 @@ public class StandardClient implements Client, AutoCloseable {
       commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
       commands.add(String.format("USE `%s`", escapedDb));
     }
-    commands.add("SET NAMES utf8mb4");
+    if (context.getCharset() == null || !"utf8mb4".equals(context.getCharset()))
+      commands.add("SET NAMES utf8mb4");
 
     if (conf.initSql() != null) {
       commands.add(conf.initSql());
@@ -397,9 +400,10 @@ public class StandardClient implements Client, AutoCloseable {
    * Create session variable if configuration requires additional commands.
    *
    * @param serverTz server timezone
+   * @param context context
    * @return sql setting session command
    */
-  public String createSessionVariableQuery(String serverTz) {
+  public String createSessionVariableQuery(String serverTz, Context context) {
     // In JDBC, connection must start in autocommit mode
     // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
     // avoid this command.
@@ -459,12 +463,12 @@ public class StandardClient implements Client, AutoCloseable {
           && ((major >= 8 && context.getVersion().versionGreaterOrEqual(8, 0, 3))
               || (major < 8 && context.getVersion().versionGreaterOrEqual(5, 7, 20)))) {
         sessionCommands.add(
-            "transaction_isolation='" + conf.transactionIsolation().getValue() + "'");
+            "@@session.transaction_isolation='" + conf.transactionIsolation().getValue() + "'");
       } else {
-        sessionCommands.add("tx_isolation='" + conf.transactionIsolation().getValue() + "'");
+        sessionCommands.add(
+            "@@session.tx_isolation='" + conf.transactionIsolation().getValue() + "'");
       }
     }
-
     if (!sessionCommands.isEmpty()) {
       return "set " + sessionCommands.stream().collect(Collectors.joining(","));
     }

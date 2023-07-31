@@ -135,7 +135,7 @@ public interface Context {
    *
    * @return connection transaction isolation level
    */
-  int getTransactionIsolationLevel();
+  Integer getTransactionIsolationLevel();
 
   /**
    * Set current connection transaction isolation level
@@ -170,4 +170,28 @@ public interface Context {
    * @param state indicate that some connection state has changed
    */
   void addStateFlag(int state);
+
+  /**
+   * Indicate server charset change
+   *
+   * @param charset server charset
+   */
+  void setCharset(String charset);
+
+  /**
+   * Indicate server connection Id (not truncated)
+   *
+   * @param connectionId connection id
+   */
+  void setThreadId(long connectionId);
+
+  /** Indicate the number of connection on this server */
+  void setTreadsConnected(long threadsConnected);
+
+  /**
+   * Retrieve current charset if session state get it
+   *
+   * @return current charset
+   */
+  String getCharset();
 }

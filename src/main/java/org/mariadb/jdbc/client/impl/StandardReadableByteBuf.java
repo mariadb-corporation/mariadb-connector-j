@@ -280,9 +280,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public StandardReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
-    byte[] tmp = new byte[len];
-    readBytes(tmp);
-    return new StandardReadableByteBuf(tmp, len);
+
+    StandardReadableByteBuf b = new StandardReadableByteBuf(buf, pos + len);
+    b.pos = pos;
+    pos += len;
+    return b;
   }
 
   public String readString(int length) {

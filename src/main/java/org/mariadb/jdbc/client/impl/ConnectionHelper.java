@@ -30,6 +30,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.SslRequestPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
+import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
@@ -273,11 +274,7 @@ public final class ConnectionHelper {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-          buf.skip(); // 0x00 OkPacket Header
-          buf.readLongLengthEncodedNotNull(); // skip affectedRows
-          buf.readLongLengthEncodedNotNull(); // skip insert id
-          // insertId
-          context.setServerStatus(buf.readShort());
+          new OkPacket(buf, context);
           break authentication_loop;
 
         default:

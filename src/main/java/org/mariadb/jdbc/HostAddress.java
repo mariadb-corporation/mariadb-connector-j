@@ -22,6 +22,8 @@ public class HostAddress {
   /** primary node */
   public Boolean primary;
 
+  public Long threadsConnected;
+
   /**
    * Constructor.
    *

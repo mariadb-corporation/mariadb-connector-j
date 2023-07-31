@@ -39,11 +39,25 @@ public class OkPacket implements Completion {
         while (sessionStateBuf.readableBytes() > 0) {
           switch (sessionStateBuf.readByte()) {
             case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-              ReadableByteBuf tmpBuf2 = sessionStateBuf.readLengthBuffer();
-              String variable = tmpBuf2.readString(tmpBuf2.readIntLengthEncodedNotNull());
-              Integer len = tmpBuf2.readLength();
-              String value = len == null ? null : tmpBuf2.readString(len);
-              logger.debug("System variable change:  {} = {}", variable, value);
+              ReadableByteBuf tmpBufsv;
+              do {
+                tmpBufsv = sessionStateBuf.readLengthBuffer();
+                String variableSv = tmpBufsv.readString(tmpBufsv.readIntLengthEncodedNotNull());
+                Integer lenSv = tmpBufsv.readLength();
+                String valueSv = lenSv == null ? null : tmpBufsv.readString(lenSv);
+                logger.debug("System variable change:  {} = {}", variableSv, valueSv);
+                switch (variableSv) {
+                  case "character_set_client":
+                    context.setCharset(valueSv);
+                    break;
+                  case "connection_id":
+                    context.setThreadId(Long.parseLong(valueSv));
+                    break;
+                  case "threads_Connected":
+                    context.setTreadsConnected(Long.parseLong(valueSv));
+                    break;
+                }
+              } while (tmpBufsv.readableBytes() > 0);
               break;
 
             case StateChange.SESSION_TRACK_SCHEMA:
@@ -55,7 +69,7 @@ public class OkPacket implements Completion {
               break;
 
             default:
-              buf.skip(buf.readIntLengthEncodedNotNull());
+              // buf.skip(buf.readIntLengthEncodedNotNull());
           }
         }
       }
