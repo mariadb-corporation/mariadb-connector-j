@@ -12,7 +12,7 @@ import org.mariadb.jdbc.export.HaMode;
 
 /** Host entry */
 public class HostAddress {
-
+  private long CONNECTED_VALUE_TIMEOUT = 3*60*1000; // 3 minutes
   /** host address */
   public final String host;
 
@@ -22,7 +22,8 @@ public class HostAddress {
   /** primary node */
   public Boolean primary;
 
-  public Long threadsConnected;
+  private Long threadsConnected;
+  private Long threadConnectedTimeout;
 
   /**
    * Constructor.
@@ -191,5 +192,22 @@ public class HostAddress {
   @Override
   public int hashCode() {
     return Objects.hash(host, port, primary);
+  }
+
+  public void setThreadsConnected(long threadsConnected) {
+    this.threadsConnected = threadsConnected;
+    this.threadConnectedTimeout = System.currentTimeMillis() + CONNECTED_VALUE_TIMEOUT;
+  }
+
+  public Long getThreadsConnected() {
+    return threadsConnected;
+  }
+  public void forceThreadsConnected(long threadsConnected, long threadConnectedTimeout) {
+    this.threadsConnected = threadsConnected;
+    this.threadConnectedTimeout = threadConnectedTimeout;
+  }
+
+  public Long getThreadConnectedTimeout() {
+    return threadConnectedTimeout;
   }
 }

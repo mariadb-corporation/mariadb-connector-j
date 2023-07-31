@@ -16,6 +16,8 @@ public enum HaMode {
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
+      HostAddress hostWithLessConnection = getHostWithLessConnections(hostAddresses, denyList, primary);
+      if (hostWithLessConnection != null) return Optional.of(hostWithLessConnection);
       return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
@@ -37,6 +39,8 @@ public enum HaMode {
         List<HostAddress> hostAddresses,
         ConcurrentMap<HostAddress, Long> denyList,
         boolean primary) {
+      HostAddress hostWithLessConnection = getHostWithLessConnections(hostAddresses, denyList, primary);
+      if (hostWithLessConnection != null) return Optional.of(hostWithLessConnection);
       return HaMode.getAvailableRoundRobinHost(this, hostAddresses, denyList, primary);
     }
   },
@@ -56,6 +60,14 @@ public enum HaMode {
 
   HaMode(String value) {
     this.value = value;
+  }
+
+  /**
+   * For testing purpose only
+   */
+  public void resetLast() {
+    lastRoundRobinPrimaryHost = null;
+    lastRoundRobinSecondaryHost = null;
   }
 
   /**
@@ -98,6 +110,40 @@ public enum HaMode {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * If all hosts not blacklisted connection number are known, choose the host with the less connections.
+   * @param hostAddresses host addresses
+   * @param denyList blacklist
+   * @param primary requires primary host
+   * @return the host with less connection, or null if unknown.
+   */
+  public static HostAddress getHostWithLessConnections(List<HostAddress> hostAddresses, ConcurrentMap<HostAddress, Long> denyList, boolean primary) {
+    long currentTime = System.currentTimeMillis();
+    HostAddress hostAddressWithLessConnections = null;
+
+    for (HostAddress hostAddress : hostAddresses) {
+      if (hostAddress.primary == primary) {
+        if (denyList.containsKey(hostAddress)) {
+          // take in account denied server that have reached denied timeout
+          if (denyList.get(hostAddress) > System.currentTimeMillis()) {
+            continue;
+          } else {
+            denyList.remove(hostAddress);
+          }
+        }
+
+        // All host must have recently been connected
+        if (hostAddress.getThreadConnectedTimeout() == null || hostAddress.getThreadConnectedTimeout() < currentTime) {
+          return null;
+        }
+        if (hostAddressWithLessConnections == null || hostAddressWithLessConnections.getThreadsConnected() > hostAddress.getThreadsConnected()) {
+          hostAddressWithLessConnections = hostAddress;
+        }
+      }
+    }
+    return hostAddressWithLessConnections;
   }
 
   /**

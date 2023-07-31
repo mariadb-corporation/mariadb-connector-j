@@ -189,7 +189,7 @@ public class BaseContext implements Context {
   }
 
   public void setTreadsConnected(long threadsConnected) {
-    if (hostAddress != null) hostAddress.threadsConnected = threadsConnected;
+    if (hostAddress != null) hostAddress.setThreadsConnected(threadsConnected);
   }
 
   public String getCharset() {
