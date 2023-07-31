@@ -96,6 +96,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   public void isAfterLast(Statement stmt) throws SQLException {
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -110,6 +111,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.isAfterLast());
     assertFalse(rs.next());
     assertFalse(rs.isAfterLast());
+    sharedConn.rollback();
   }
 
   @Test

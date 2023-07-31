@@ -1067,9 +1067,11 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   private void wrongUtf8(Connection con, String wrong) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO StringCodecWrong VALUES ('" + wrong + "')");
     ResultSet rs = stmt.executeQuery("SELECT * FROM StringCodecWrong");
     rs.next();
     assertEquals(wrong, rs.getString(1));
+    con.rollback();
   }
 }

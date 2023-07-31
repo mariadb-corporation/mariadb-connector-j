@@ -80,8 +80,8 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testNoPrimaryKey() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO testnoprimarykey VALUES (1, 't1'), (2, 't2')");
-
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
             "SELECT * FROM testnoprimarykey",
@@ -94,11 +94,13 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateString(1, "1"),
           "ResultSet cannot be updated. Cannot update rows, since no primary field is present in query");
     }
+    sharedConn.rollback();
   }
 
   @Test
   public void testBasicPrimaryKey() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO testbasicprimarykey VALUES (1, 't1'), (2, 't2')");
 
     try (PreparedStatement preparedStatement =
@@ -113,6 +115,7 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateString(1, "val"),
           "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
     }
+    sharedConn.rollback();
   }
 
   @Test
@@ -155,6 +158,7 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testOneNoTable() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.executeQuery("INSERT INTO testOneNoTable(t1) values ('1')");
 
     try (PreparedStatement preparedStatement =
@@ -170,11 +174,13 @@ public class UpdateResultSetTest extends Common {
           "ResultSet cannot be updated. "
               + "The result-set contains fields without without any database/table information");
     }
+    sharedConn.rollback();
   }
 
   @Test
   public void testAutoIncrement() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement pstmt =
         sharedConn.prepareStatement("INSERT INTO testAutoIncrement(t1) values (?)");
     pstmt.setString(1, "1");
@@ -200,6 +206,7 @@ public class UpdateResultSetTest extends Common {
     assertEquals(2, rs.getInt(1));
     assertEquals("0-1", rs.getString(2));
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
@@ -216,6 +223,8 @@ public class UpdateResultSetTest extends Common {
         "CREATE TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
         "CREATE TABLE testConnectorJ.testMultipleDatabase(`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+
     stmt.executeQuery("INSERT INTO testMultipleDatabase(t1) values ('1')");
     stmt.executeQuery("INSERT INTO testConnectorJ.testMultipleDatabase(t2) values ('2')");
 
@@ -233,6 +242,7 @@ public class UpdateResultSetTest extends Common {
           () -> rs.updateString("t1", "new value"),
           "The result-set contains more than one database");
     }
+    sharedConn.rollback();
   }
 
   @Test
@@ -292,6 +302,8 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void testUpdateWhenFetch() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+
     PreparedStatement pstmt =
         sharedConn.prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
     for (int i = 1; i < 100; i++) {
@@ -373,6 +385,7 @@ public class UpdateResultSetTest extends Common {
       assertEquals(i + "-2", rs.getString(3));
     }
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
@@ -385,6 +398,7 @@ public class UpdateResultSetTest extends Common {
             + "`t1` VARCHAR(50) NOT NULL,"
             + "`t2` VARCHAR(50) NULL default 'default-value',"
             + "PRIMARY KEY (`id`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -432,6 +446,7 @@ public class UpdateResultSetTest extends Common {
     assertEquals("default-value", rs.getString(3));
 
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
@@ -444,6 +459,7 @@ public class UpdateResultSetTest extends Common {
             + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
             + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
             + "PRIMARY KEY (`id`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
 
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
@@ -510,6 +526,7 @@ public class UpdateResultSetTest extends Common {
     assertNotNull(rs.getDate(3));
 
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
@@ -524,6 +541,7 @@ public class UpdateResultSetTest extends Common {
             + "PRIMARY KEY (`id`,`id2`))");
 
     stmt = sharedConn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO testDelete values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
 
     try (PreparedStatement preparedStatement =
@@ -554,6 +572,7 @@ public class UpdateResultSetTest extends Common {
     rs.absolute(1);
     rs.deleteRow();
     Common.assertThrowsContains(SQLException.class, () -> rs.getInt(1), "wrong row position");
+    sharedConn.rollback();
   }
 
   @Test
@@ -566,6 +585,7 @@ public class UpdateResultSetTest extends Common {
             + "`id2` INT NOT NULL,"
             + "`t1` VARCHAR(50),"
             + "PRIMARY KEY (`id`,`id2`))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute(
         "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
     try (PreparedStatement preparedStatement =
@@ -605,6 +625,7 @@ public class UpdateResultSetTest extends Common {
     assertEquals("4", rs.getString(3));
 
     assertFalse(rs.next());
+    sharedConn.rollback();
   }
 
   @Test
@@ -791,7 +812,7 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS refreshRow");
     stmt.execute("CREATE TABLE refreshRow(id int not null primary key, strm text)");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     java.sql.Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     st.execute("INSERT INTO refreshRow values (1, '555')");
@@ -817,6 +838,7 @@ public class UpdateResultSetTest extends Common {
 
     assertFalse(rs.next());
     assertThrows(SQLException.class, rs::refreshRow);
+    con.rollback();
   }
 
   @Test
@@ -941,7 +963,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("CREATE TABLE cancelRowUpdatesTest(c text, id int primary key)");
     stmt.execute("INSERT INTO cancelRowUpdatesTest(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
     stmt.execute("FLUSH TABLES");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         con.prepareStatement(
             "select id,c from cancelRowUpdatesTest order by id",
@@ -966,6 +988,7 @@ public class UpdateResultSetTest extends Common {
       assertTrue(rs.next());
       assertEquals("2bis", rs.getString("c"));
     }
+    con.rollback();
   }
 
   @Test
@@ -982,6 +1005,7 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS deleteRows");
     stmt.execute("CREATE TABLE deleteRows(c text, id int primary key)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO deleteRows(id,c) values (1,'1'), (2,'2'),(3,'3'),(4,'4')");
 
     try (PreparedStatement preparedStatement =
@@ -1005,6 +1029,7 @@ public class UpdateResultSetTest extends Common {
       rs.deleteRow();
       assertEquals(2, rs.getInt("id"));
     }
+    con.rollback();
   }
 
   @Test
@@ -1012,6 +1037,7 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS updatePosTest");
     stmt.execute("CREATE TABLE updatePosTest(c text, id int primary key)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO updatePosTest(id,c) values (1,'1')");
 
     try (PreparedStatement preparedStatement =
@@ -1043,6 +1069,7 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class, rs::deleteRow, "Current position is after the last row");
     }
+    sharedConn.rollback();
   }
 
   /**
@@ -1056,6 +1083,7 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS repeatedFieldUpdatable");
     stmt.execute(
         "CREATE TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1))");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
     PreparedStatement preparedStatement =
@@ -1067,11 +1095,13 @@ public class UpdateResultSetTest extends Common {
     while (rs.next()) {
       rs.getObject(3);
     }
+    sharedConn.rollback();
   }
 
   @Test
   public void updatableDefaultPrimaryField() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && minVersion(10, 2, 0));
+    sharedConn.createStatement().execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     String sql = "SELECT t.* FROM testDefaultUUID t WHERE 1 = 2";
     try (PreparedStatement pstmt =
         sharedConn.prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
@@ -1105,6 +1135,7 @@ public class UpdateResultSetTest extends Common {
       assertEquals("de6f7774-e399-11ea-aa68-c8348e0fed44", rs.getString(1));
       assertEquals("x", rs.getString(2));
     }
+    sharedConn.rollback();
   }
 
   @Test
@@ -1141,6 +1172,7 @@ public class UpdateResultSetTest extends Common {
   @Test
   public void addAfterDataFull() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    sharedConn.createStatement().execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute(
         "INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'), ('8'), ('9'), ('10')");
     try (PreparedStatement preparedStatement =
@@ -1155,5 +1187,6 @@ public class UpdateResultSetTest extends Common {
       for (int i = 0; i < 11; i++) rs.next();
       assertEquals("11", rs.getString("t1"));
     }
+    sharedConn.rollback();
   }
 }

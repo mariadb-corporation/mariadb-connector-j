@@ -69,6 +69,7 @@ public class MultiQueriesTest extends Common {
   public void allowMultiQueriesFetchTest() throws SQLException {
     try (Connection connection = createCon("&allowMultiQueries=true")) {
       try (Statement stmt = connection.createStatement()) {
+        stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
         stmt.setFetchSize(1);
         stmt.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
         do {

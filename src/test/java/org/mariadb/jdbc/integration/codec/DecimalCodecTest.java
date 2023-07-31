@@ -776,6 +776,7 @@ public class DecimalCodecTest extends CommonCodecTest {
 
   @Test
   public void setParameter() throws SQLException {
+    sharedConn.createStatement().execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         sharedConn.prepareStatement("INSERT INTO DecimalCodec2 VALUE (?, ?, ?, ?)")) {
       prep.setBigDecimal(1, new BigDecimal("789.123"));
@@ -795,6 +796,7 @@ public class DecimalCodecTest extends CommonCodecTest {
           () -> prep.setObject(4, this),
           "Type org.mariadb.jdbc.integration.codec.DecimalCodecTest not supported type");
     }
+    sharedConn.rollback();
   }
 
   @Test

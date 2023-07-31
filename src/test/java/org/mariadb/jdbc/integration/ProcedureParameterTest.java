@@ -102,15 +102,15 @@ public class ProcedureParameterTest extends Common {
     Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
+    stmt.execute("DROP PROCEDURE IF EXISTS basic_proc2");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
+        "CREATE PROCEDURE basic_proc2 (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
             + "set t3 = t1 * t5;\n"
             + "set t1 = t2 * t1;\n"
             + "set t4 = 'return data';\n"
             + "END");
     try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call basic_proc(?,?,?,?)}")) {
+        sharedConn.prepareCall("{call basic_proc2(?,?,?,?)}")) {
       ParameterMetaData meta = callableStatement.getParameterMetaData();
       assertEquals(5, meta.getParameterCount());
       assertEquals("int", meta.getParameterClassName(1));

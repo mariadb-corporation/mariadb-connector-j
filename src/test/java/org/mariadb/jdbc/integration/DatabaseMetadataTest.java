@@ -371,6 +371,7 @@ public class DatabaseMetadataTest extends Common {
     //    Assumptions.assumeFalse(!isMariaDBServer() && minVersion(8, 0, 0));
     Assumptions.assumeFalse(isXpand());
     java.sql.Statement st = con.createStatement();
+    st.execute("USE " + database);
     st.execute("DROP TABLE IF EXISTS `product order 1`");
     st.execute("DROP TABLE IF EXISTS `other sch'ema`.`product order.2`");
     st.execute("DROP DATABASE IF EXISTS `other sch'ema`");
@@ -1012,16 +1013,16 @@ public class DatabaseMetadataTest extends Common {
     // Xpand doesn't support PERSISTENT keyword
     Assumptions.assumeFalse(isXpand());
     try (Connection con = createCon("&useCatalogTerm=Schema")) {
-
+      System.out.println(con.getSchema());
       java.sql.Statement stmt = con.createStatement();
       if (minVersion(10, 2, 0) || !isMariaDBServer()) {
         stmt.execute(
-            "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
+            "CREATE TABLE IF NOT EXISTS "+database+".`ta\nble'getcolumns`("
                 + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
                 + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
       } else {
         stmt.execute(
-            "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
+            "CREATE TABLE IF NOT EXISTS \"+database+\".`ta\nble'getcolumns`("
                 + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
                 + "d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET 'utf8mb4'");
       }
@@ -1151,6 +1152,7 @@ public class DatabaseMetadataTest extends Common {
   private void testGetColumnstinyInt1isBit(Connection con) throws SQLException {
     try {
       java.sql.Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
       stmt.execute(
           "CREATE TABLE IF NOT EXISTS `tinyInt1\nisBitCols`(id1 tinyint(1), id2 tinyint(2))");
       stmt.execute("INSERT INTO `tinyInt1\nisBitCols` VALUES (1,2)");
@@ -1184,6 +1186,7 @@ public class DatabaseMetadataTest extends Common {
 
     } finally {
       con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1\nisBitCols`");
+      con.rollback();
     }
   }
 
@@ -1209,6 +1212,7 @@ public class DatabaseMetadataTest extends Common {
       Connection con, boolean tinyInt1isBit, boolean transformedBitIsBoolean) throws SQLException {
     try {
       java.sql.Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
       stmt.execute(
           "CREATE TABLE IF NOT EXISTS `tinyInt1\nisBitCols`(id1 tinyint(1), id2 tinyint(2))");
       stmt.execute("INSERT INTO `tinyInt1\nisBitCols` VALUES (1,2)");
@@ -1258,6 +1262,7 @@ public class DatabaseMetadataTest extends Common {
 
     } finally {
       con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1\nisBitCols`");
+      con.rollback();
     }
   }
 

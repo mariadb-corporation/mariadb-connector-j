@@ -234,6 +234,7 @@ public class ReadResultSetTest extends Common {
   @Test
   public void isBeforeFirstFetchTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.setFetchSize(1);
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     assertTrue(rs.isBeforeFirst());
@@ -244,5 +245,6 @@ public class ReadResultSetTest extends Common {
     rs.close();
     Common.assertThrowsContains(
         SQLException.class, rs::isBeforeFirst, "Operation not permit on a closed resultSet");
+    sharedConn.rollback();
   }
 }
