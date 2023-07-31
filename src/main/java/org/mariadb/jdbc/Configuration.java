@@ -68,6 +68,7 @@ public class Configuration {
   private boolean useMysqlMetadata = false;
   private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
+  private boolean useLocalSessionState = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -167,6 +168,7 @@ public class Configuration {
       boolean useMysqlMetadata,
       CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
+      boolean useLocalSessionState,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -242,6 +244,7 @@ public class Configuration {
     this.useMysqlMetadata = useMysqlMetadata;
     this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -352,6 +355,7 @@ public class Configuration {
       Boolean useMysqlMetadata,
       String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
+      Boolean useLocalSessionState,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -447,6 +451,7 @@ public class Configuration {
               : CatalogTerm.UseSchema;
     }
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -770,6 +775,7 @@ public class Configuration {
         this.useMysqlMetadata,
         this.useCatalogTerm,
         this.createDatabaseIfNotExist,
+        this.useLocalSessionState,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -1287,6 +1293,17 @@ public class Configuration {
    */
   public boolean createDatabaseIfNotExist() {
     return createDatabaseIfNotExist;
+  }
+
+  /**
+   * use local state to avoid unnecessary queries. This means application must use JDBC dedicated
+   * methods, like connection.setTransactionIsolation and never queries like "SET SESSION
+   * TRANSACTION ISOLATION LEVEL X" directly
+   *
+   * @return can use local state
+   */
+  public boolean useLocalSessionState() {
+    return useLocalSessionState;
   }
 
   /**
@@ -1854,6 +1871,7 @@ public class Configuration {
     private Boolean useMysqlMetadata;
     private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
+    private Boolean useLocalSessionState;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -2559,6 +2577,19 @@ public class Configuration {
     }
 
     /**
+     * indicate if connector can use local state to avoid unnecessary queries. This means
+     * application must use JDBC dedicated methods, like connection.setTransactionIsolation and
+     * never queries like "SET SESSION TRANSACTION ISOLATION LEVEL X" directly
+     *
+     * @param useLocalSessionState can driver rely on local state
+     * @return this {@link Builder}
+     */
+    public Builder useLocalSessionState(Boolean useLocalSessionState) {
+      this.useLocalSessionState = useLocalSessionState;
+      return this;
+    }
+
+    /**
      * On dead-lock exception must add innodb status in exception error message. If enabled, an
      * additional command will be done to retrieve innodb status when dead-lock occurs.
      *
@@ -2872,6 +2903,7 @@ public class Configuration {
               this.useMysqlMetadata,
               this.useCatalogTerm,
               this.createDatabaseIfNotExist,
+              this.useLocalSessionState,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,

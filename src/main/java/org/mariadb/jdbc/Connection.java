@@ -350,15 +350,18 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public int getTransactionIsolation() throws SQLException {
+    if (conf.useLocalSessionState() && client.getContext().getTransactionIsolationLevel() != null) {
+      return client.getContext().getTransactionIsolationLevel();
+    }
 
-    String sql = "SELECT @@tx_isolation";
+    String sql = "SELECT @@session.tx_isolation";
 
     if (!client.getContext().getVersion().isMariaDBServer()) {
       if ((client.getContext().getVersion().getMajorVersion() >= 8
               && client.getContext().getVersion().versionGreaterOrEqual(8, 0, 3))
           || (client.getContext().getVersion().getMajorVersion() < 8
               && client.getContext().getVersion().versionGreaterOrEqual(5, 7, 20))) {
-        sql = "SELECT @@transaction_isolation";
+        sql = "SELECT @@session.transaction_isolation";
       }
     }
 
@@ -389,6 +392,12 @@ public class Connection implements java.sql.Connection {
 
   @Override
   public void setTransactionIsolation(int level) throws SQLException {
+    if (conf.useLocalSessionState()
+        && client.getContext().getTransactionIsolationLevel() != null
+        && level == client.getContext().getTransactionIsolationLevel()) {
+      return;
+    }
+
     String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
     switch (level) {
       case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
