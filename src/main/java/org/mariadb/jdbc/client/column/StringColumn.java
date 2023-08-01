@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.column;
 
@@ -99,7 +99,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
   public int getPrecision() {
     Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
     if (maxWidth == null) {
-      return (int) columnLength;
+      return (int) columnLength / 4;
     }
     return (int) (columnLength / maxWidth);
   }

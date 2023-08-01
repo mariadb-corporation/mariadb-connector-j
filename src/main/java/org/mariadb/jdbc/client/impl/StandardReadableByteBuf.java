@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.impl;
 
@@ -280,9 +280,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   public StandardReadableByteBuf readLengthBuffer() {
     int len = this.readIntLengthEncodedNotNull();
-    byte[] tmp = new byte[len];
-    readBytes(tmp);
-    return new StandardReadableByteBuf(tmp, len);
+
+    StandardReadableByteBuf b = new StandardReadableByteBuf(buf, pos + len);
+    b.pos = pos;
+    pos += len;
+    return b;
   }
 
   public String readString(int length) {

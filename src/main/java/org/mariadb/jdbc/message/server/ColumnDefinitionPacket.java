@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.message.server;
 
@@ -69,6 +69,10 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.extTypeFormat = extTypeFormat;
   }
 
+  public String getCatalog() {
+    return "def";
+  }
+
   public String getSchema() {
     buf.pos(stringPos[0]);
     return buf.readString(buf.readIntLengthEncodedNotNull());
@@ -124,6 +128,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
             || dataType == DataType.LONGBLOB)) {
       Integer maxWidth = CharsetEncodingLength.maxCharlen.get(charset);
       if (maxWidth != null) return (int) (columnLength / maxWidth);
+      return (int) (columnLength / 4);
     }
     return (int) columnLength;
   }

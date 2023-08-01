@@ -2,11 +2,9 @@
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
 
-package org.mariadb.jdbc.util;
+package org.mariadb.jdbc.util.constants;
 
-public interface PrepareResult {
-
-  String getSql();
-
-  int getParamCount();
+public enum CatalogTerm {
+  UseCatalog,
+  UseSchema
 }

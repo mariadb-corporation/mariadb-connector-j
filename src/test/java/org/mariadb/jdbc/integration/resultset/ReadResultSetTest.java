@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration.resultset;
 
@@ -234,6 +234,7 @@ public class ReadResultSetTest extends Common {
   @Test
   public void isBeforeFirstFetchTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.setFetchSize(1);
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     assertTrue(rs.isBeforeFirst());
@@ -244,5 +245,6 @@ public class ReadResultSetTest extends Common {
     rs.close();
     Common.assertThrowsContains(
         SQLException.class, rs::isBeforeFirst, "Operation not permit on a closed resultSet");
+    sharedConn.rollback();
   }
 }

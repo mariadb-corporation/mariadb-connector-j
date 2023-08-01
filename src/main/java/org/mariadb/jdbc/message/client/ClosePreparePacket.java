@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.message.client;
 
@@ -29,6 +29,7 @@ public final class ClosePreparePacket implements ClientMessage {
   /** send packet to socket */
   @Override
   public int encode(Writer writer, Context context) throws IOException {
+    assert statementId != 0;
     writer.initPacket();
     writer.writeByte(0x19);
     writer.writeInt(statementId);

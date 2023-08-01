@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -69,6 +69,7 @@ public class MultiQueriesTest extends Common {
   public void allowMultiQueriesFetchTest() throws SQLException {
     try (Connection connection = createCon("&allowMultiQueries=true")) {
       try (Statement stmt = connection.createStatement()) {
+        stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
         stmt.setFetchSize(1);
         stmt.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
         do {

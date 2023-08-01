@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
+
 package org.mariadb.jdbc.integration;
 
 import java.sql.PreparedStatement;
@@ -7,7 +11,7 @@ import java.sql.Types;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.Statement;
 
-public class BulkStmtSplitError extends Common {
+public class BulkStmtSplitErrorTest extends Common {
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -42,7 +46,7 @@ public class BulkStmtSplitError extends Common {
       // eat
     }
 
-    ResultSet rs = stmt.executeQuery("SELECT count(*) FROM agent");
+    ResultSet rs = stmt.executeQuery("SELECT count(*) FROM BulkStmtSplitError");
     Assertions.assertTrue(rs.next());
     Assertions.assertEquals(2, rs.getInt(1));
   }

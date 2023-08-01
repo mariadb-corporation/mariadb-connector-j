@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.impl;
 
@@ -30,7 +30,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.message.client.SslRequestPacket;
 import org.mariadb.jdbc.message.server.AuthSwitchPacket;
 import org.mariadb.jdbc.message.server.ErrorPacket;
-import org.mariadb.jdbc.message.server.InitialHandshakePacket;
+import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.plugin.AuthenticationPlugin;
 import org.mariadb.jdbc.plugin.Credential;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
@@ -181,7 +181,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.CLIENT_INTERACTIVE;
     }
 
-    if (configuration.useBulkStmts()) {
+    if (configuration.useBulkStmts() || configuration.useBulkStmtsForInserts()) {
       capabilities |= Capabilities.STMT_BULK_OPERATIONS;
     }
 
@@ -221,24 +221,6 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.SSL;
     }
     return capabilities & serverCapabilities;
-  }
-
-  /**
-   * Default collation used for string exchanges with server. Always return 4 bytes utf8 collation
-   * for server that permit it.
-   *
-   * @param handshake initial handshake packet
-   * @return collation byte
-   */
-  public static byte decideLanguage(InitialHandshakePacket handshake) {
-    short serverLanguage = handshake.getDefaultCollation();
-    // return current server utf8mb4 collation
-    return (byte)
-        ((serverLanguage == 45 // utf8mb4_general_ci
-                || serverLanguage == 46 // utf8mb4_bin
-                || (serverLanguage >= 224 && serverLanguage <= 247))
-            ? serverLanguage
-            : 224); // UTF8MB4_UNICODE_CI;
   }
 
   /**
@@ -292,11 +274,7 @@ public final class ConnectionHelper {
           // OK_Packet -> Authenticated !
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
-          buf.skip(); // 0x00 OkPacket Header
-          buf.readLongLengthEncodedNotNull(); // skip affectedRows
-          buf.readLongLengthEncodedNotNull(); // skip insert id
-          // insertId
-          context.setServerStatus(buf.readShort());
+          new OkPacket(buf, context);
           break authentication_loop;
 
         default:

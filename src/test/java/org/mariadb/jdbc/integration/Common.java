@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -225,6 +225,17 @@ public class Common {
 
   public static Connection createCon(String option, Integer sslPort) throws SQLException {
     Configuration conf = Configuration.parse(mDefUrl + "&" + option);
+    if (sslPort != null) {
+      for (HostAddress hostAddress : conf.addresses()) {
+        hostAddress.port = sslPort;
+      }
+    }
+    return Driver.connect(conf);
+  }
+
+  public static Connection createBasicCon(String option, Integer sslPort) throws SQLException {
+    Configuration conf =
+        Configuration.parse(mDefUrl.substring(0, mDefUrl.indexOf("?")) + "?" + option);
     if (sslPort != null) {
       for (HostAddress hostAddress : conf.addresses()) {
         hostAddress.port = sslPort;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -88,6 +88,7 @@ public class PreparedStatementTest extends Common {
   private void execute(Connection conn) throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("TRUNCATE prepare1");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         conn.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(1, 5);
@@ -179,6 +180,8 @@ public class PreparedStatementTest extends Common {
       assertEquals(7, rs.getInt(1));
       assertEquals(12, rs.getInt(2));
       assertFalse(rs.next());
+    } finally {
+      conn.rollback();
     }
   }
 
@@ -191,6 +194,7 @@ public class PreparedStatementTest extends Common {
   public void executeWithoutAllParameters(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(2, 10);
@@ -207,12 +211,14 @@ public class PreparedStatementTest extends Common {
       assertEquals(10, rs.getInt(2));
       assertFalse(rs.next());
     }
+    con.rollback();
   }
 
   @Test
   public void executeUpdate() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("TRUNCATE prepare1");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?)")) {
       preparedStatement.setInt(1, 5);
@@ -247,6 +253,8 @@ public class PreparedStatementTest extends Common {
           SQLException.class,
           preparedStatement::executeUpdate,
           "the given SQL statement produces an unexpected ResultSet object");
+    } finally {
+      sharedConn.rollback();
     }
   }
 
@@ -287,6 +295,7 @@ public class PreparedStatementTest extends Common {
     Statement stmt = con.createStatement();
     stmt.execute("DROP TABLE IF EXISTS prepare10");
     stmt.execute("CREATE TABLE prepare10 (t1 int not null primary key auto_increment, t2 int)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO prepare10(t1, t2) VALUES (5,10), (40,20), (127,45)");
     try (PreparedStatement preparedStatement =
         con.prepareStatement("SELECT * FROM prepare10 WHERE t1 > ?")) {
@@ -324,6 +333,7 @@ public class PreparedStatementTest extends Common {
       preparedStatement.setInt(1, 20);
       preparedStatement.executeQuery();
     }
+    con.rollback();
   }
 
   @Test
@@ -468,7 +478,8 @@ public class PreparedStatementTest extends Common {
   public void executeBatchMultiple() throws SQLException {
     // xpand don't support DO command
     Assumptions.assumeFalse(isXpand());
-    try (Connection con = createCon("allowMultiQueries&useBulkStmts=false")) {
+    try (Connection con =
+        createCon("allowMultiQueries&useBulkStmts=false&useBulkStmtsForInserts=false")) {
       executeBatchMultiple(con);
     }
   }
@@ -476,6 +487,7 @@ public class PreparedStatementTest extends Common {
   private void executeBatchMultiple(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE prepare1");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement preparedStatement =
         con.prepareStatement("INSERT INTO prepare1(t1, t2) VALUES (?,?);DO 1")) {
       int[] res = preparedStatement.executeBatch();
@@ -513,6 +525,7 @@ public class PreparedStatementTest extends Common {
       assertEquals(45, rs.getInt(2));
       assertFalse(rs.next());
     }
+    con.rollback();
   }
 
   @Test
@@ -926,6 +939,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS largeMaxRows");
     stmt.setFetchSize(3);
     stmt.execute("CREATE TABLE largeMaxRows(id int)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO largeMaxRows(id) VALUE (?)")) {
       for (int i = 1; i < 51; i++) {
         prep.setInt(1, i);
@@ -981,6 +995,7 @@ public class PreparedStatementTest extends Common {
       prep.setQueryTimeout(0);
       prep.setQueryTimeout(0);
     }
+    con.rollback();
   }
 
   @Test
@@ -1006,6 +1021,7 @@ public class PreparedStatementTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS large_max_rows_batch");
     stmt.setFetchSize(3);
     stmt.execute("CREATE TABLE large_max_rows_batch(id int)");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO large_max_rows_batch(id) VALUE (?)")) {
       prepareInsert(prep);
@@ -1028,6 +1044,7 @@ public class PreparedStatementTest extends Common {
     ResultSet rs = stmt.executeQuery("SELECT count(*) FROM large_max_rows_batch");
     rs.next();
     assertEquals(12, rs.getInt(1));
+    con.rollback();
   }
 
   @Test
@@ -1264,6 +1281,22 @@ public class PreparedStatementTest extends Common {
           prefix
               + "{sql:'INSERT INTO prepare1(t1, t2) VALUES (?,?)', parameters:[158.9876543210,'test','unusedParam']}",
           preparedStatement.toString());
+    }
+  }
+
+  @Test
+  public void textPrefix() throws SQLException {
+    try (Connection con = createCon("&useServerPrepStmts&allowMultiQueries")) {
+
+      try (PreparedStatement prep =
+          con.prepareStatement("/*client prepare*/SET @name := ?; SELECT @name ")) {
+        prep.setString(1, "test");
+        prep.executeQuery();
+        assertTrue(prep.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+        ResultSet rs = prep.getResultSet();
+        assertTrue(rs.next());
+        assertEquals("test", rs.getString(1));
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.context;
 
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.impl.TransactionSaver;
 import org.mariadb.jdbc.export.ExceptionFactory;
@@ -21,6 +22,7 @@ public class RedoContext extends BaseContext {
   /**
    * Constructor
    *
+   * @param hostAddress host address
    * @param handshake server handshake
    * @param clientCapabilities client capabilities
    * @param conf configuration
@@ -28,12 +30,13 @@ public class RedoContext extends BaseContext {
    * @param prepareCache LRU prepare cache
    */
   public RedoContext(
+      HostAddress hostAddress,
       InitialHandshakePacket handshake,
       long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
-    super(handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
+    super(hostAddress, handshake, clientCapabilities, conf, exceptionFactory, prepareCache);
     this.transactionSaver = new TransactionSaver(conf.transactionReplaySize());
   }
 

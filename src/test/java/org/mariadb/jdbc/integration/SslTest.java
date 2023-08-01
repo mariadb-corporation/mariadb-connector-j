@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -44,8 +44,6 @@ public class SslTest extends Common {
     createSslUser("mutualAuthUser", "REQUIRE X509");
 
     Statement stmt = sharedConn.createStatement();
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(isMariaDBServer() || (!isMariaDBServer() && !exactVersion(8, 0, 31)));
     stmt.execute("FLUSH PRIVILEGES");
     sslPort =
         System.getenv("TEST_MAXSCALE_TLS_PORT") == null
@@ -86,9 +84,13 @@ public class SslTest extends Common {
 
   private String getSslVersion(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
-    ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
-    if (rs.next()) {
-      return rs.getString(2);
+    if ("maxscale".equals(System.getenv("srv")) || "skysql-ha".equals(System.getenv("srv"))) {
+      return "ok";
+    } else {
+      ResultSet rs = stmt.executeQuery("show STATUS  LIKE 'Ssl_version'");
+      if (rs.next()) {
+        return rs.getString(2);
+      }
     }
     return null;
   }
@@ -166,7 +168,30 @@ public class SslTest extends Common {
   }
 
   @Test
-  public void mutualAuthSsl() throws SQLException {
+  public void errorUsingWrongTypeOfKeystore() throws Exception {
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    String pkcsFile = System.getenv("TEST_DB_CLIENT_PKCS");
+    Assumptions.assumeTrue(pkcsFile != null);
+
+    if (checkFileExists(pkcsFile) != null) {
+      // wrong keystore type
+      assertThrows(
+          SQLNonTransientConnectionException.class,
+          () ->
+              createCon(
+                  baseMutualOptions
+                      + "&sslMode=verify-ca&serverSslCert="
+                      + pkcsFile
+                      + "&trustStoreType=JKS&keyStore="
+                      + System.getenv("TEST_DB_CLIENT_PKCS")
+                      + "&keyStorePassword=kspass",
+                  sslPort));
+    }
+  }
+
+  @Test
+  public void mutualAuthSsl() throws Exception {
     Assumptions.assumeTrue(
         !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     Assumptions.assumeTrue(System.getenv("TEST_DB_CLIENT_PKCS") != null);
@@ -256,7 +281,8 @@ public class SslTest extends Common {
 
   @Test
   public void certificateMandatorySsl() throws Throwable {
-
+    Assumptions.assumeTrue(
+        !"maxscale".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
     String serverCertPath = retrieveCertificatePath();
     Assumptions.assumeTrue(serverCertPath != null, "Canceled, server certificate not provided");
 
@@ -310,15 +336,18 @@ public class SslTest extends Common {
         createCon(baseOptions + "&sslMode=VERIFY_CA&serverSslCert=" + certificateString, sslPort)) {
       assertNotNull(getSslVersion(con));
     }
-
-    assertThrows(
+    assertThrowsContains(
         SQLNonTransientConnectionException.class,
-        () -> createCon(baseOptions + "&sslMode=VERIFY_CA", sslPort));
-    assertThrows(
-        SQLInvalidAuthorizationSpecException.class,
-        () ->
-            createCon(
-                baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath, sslPort));
+        () -> createBasicCon(baseOptions + "&sslMode=VERIFY_CA", sslPort),
+        "unable to find valid certification");
+    if (!"maxscale".equals(System.getenv("srv"))) {
+      assertThrows(
+          SQLInvalidAuthorizationSpecException.class,
+          () ->
+              createBasicCon(
+                  baseMutualOptions + "&sslMode=VERIFY_CA&serverSslCert=" + serverCertPath,
+                  sslPort));
+    }
   }
 
   private String getServerCertificate(String serverCertPath) throws SQLException {
@@ -338,6 +367,9 @@ public class SslTest extends Common {
 
   public static String retrieveCertificatePath() throws Exception {
     String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
+    }
 
     // try local server
     if (serverCertificatePath == null

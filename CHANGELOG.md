@@ -1,5 +1,36 @@
 # Change Log
 
+
+## [3.2.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.2.0) (Aug 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.4...3.2.0)
+
+##### Notable Changes
+* CONJ-920 Java batched statements with optimistic locking failing. the option `useBulkStmts` is now disable by default, a new option `useBulkStmtsForInserts` is enable by default, permetting using bulk for INSERT commands only. This permits optimistic behavior working by default.
+* CONJ-1084	When using maxscale 23.08.0+, and a maxscale node fails, connector will now priorize reconnection to the maxscale node having less connection, to ensure repartition after failover
+* CONJ-1088	Implement `databaseTerm` option for mysql compatibility
+* CONJ-1096 adding option `useLocalSessionState` to permit avoiding queries when application only use JDBC methods.
+
+##### Bugs Fixed
+* CONJ-1075 LOAD DATA INFILE is broken on windows
+* CONJ-1079 getGeneratedKeys after batch will not return all generated id's if first batch command return no generated id.
+* CONJ-1080 maridb Java connector sslMode=verify-ca complaining unable to find trust certificate.
+* CONJ-1082 Multiple session system variables parsing fails
+* CONJ-1083	Using /*client prepare*/ prefix to force client side prepared statement
+* CONJ-1091	can't make a connection when the Read Replica DB is in a hang state when SocketTimeout=0 set
+* CONJ-1092 ensure respecting server collation
+* CONJ-1094	Missing mariadb/mysql collation
+
+
+## [3.0.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.11) (Aug 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.10...3.0.11)
+
+* CONJ-1089	correcting 3.0.10 incompatibility with in java 8
+
+## [2.7.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.10) (Aug 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.9...2.7.10)
+
+* CONJ-1091 Ensure setting connectTimeout as timeout for socket timeout until connection is done. This permit to set a connectTimeout, while socketTimeout can still be set to 0
+
 ## [3.1.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.4) (Apr 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.3...3.1.4)
 

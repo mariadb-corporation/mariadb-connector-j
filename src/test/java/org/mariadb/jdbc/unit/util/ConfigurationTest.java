@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.unit.util;
 
@@ -15,6 +15,7 @@ import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.export.HaMode;
 import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.integration.Common;
+import org.mariadb.jdbc.util.constants.CatalogTerm;
 
 @SuppressWarnings("ConstantConditions")
 public class ConfigurationTest {
@@ -828,6 +829,7 @@ public class ConfigurationTest {
             .keyStore("/tmp")
             .keyStorePassword("MyPWD")
             .keyStoreType("JKS")
+            .trustStoreType("JKS")
             .geometryDefaultType("default")
             .registerJmxPool(false)
             .tcpKeepCount(50)
@@ -838,16 +840,32 @@ public class ConfigurationTest {
             .useReadAheadInput(true)
             .cachePrepStmts(false)
             .serverSslCert("mycertPath")
+            .useLocalSessionState(true)
             .serverRsaPublicKeyFile("RSAPath")
             .allowPublicKeyRetrieval(true)
             .createDatabaseIfNotExist(true)
             .disablePipeline(true)
             .maxAllowedPacket(8000)
             .initSql("SET @@a='10'")
+            .useCatalogTerm("schema")
             .build();
     assertEquals(
-        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&useBulkStmts=false&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
+        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=UseSchema&createDatabaseIfNotExist=true&useLocalSessionState=true&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
+  }
+
+  @Test
+  public void useCatalogTerm() throws SQLException {
+    Configuration conf =
+        Configuration.parse("jdbc:mariadb://localhost/test?useCatalogTerm=Catalog");
+    assertEquals(conf.useCatalogTerm(), CatalogTerm.UseCatalog);
+
+    conf = Configuration.parse("jdbc:mariadb://localhost/test?useCatalogTerm=Schema");
+    assertEquals(conf.useCatalogTerm(), CatalogTerm.UseSchema);
+
+    assertThrows(
+        SQLException.class,
+        () -> Configuration.parse("jdbc:mariadb://localhost/test?useCatalogTerm=Wrong"));
   }
 
   @Test
@@ -882,5 +900,65 @@ public class ConfigurationTest {
             .useMysqlMetadata(null)
             .build()
             .useMysqlMetadata());
+  }
+
+  @Test
+  public void toConf() throws SQLException {
+    assertTrue(
+        Configuration.toConf("jdbc:mariadb://localhost/test")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb://localhost/test\n"
+                    + "Unknown options : None\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * database : test\n"
+                    + "\n"
+                    + "default options :"));
+    assertTrue(
+        Configuration.toConf(
+                "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true&")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true\n"
+                    + "Unknown options : \n"
+                    + " * nonExisting : \n"
+                    + " * nonExistingWithValue : tt\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * addresses : [address=(host=host1)(port=3305)(type=primary), address=(host=host2)(port=3307)(type=replica)]\n"
+                    + " * autocommit : false\n"
+                    + " * createDatabaseIfNotExist : true\n"
+                    + " * database : db\n"
+                    + " * haMode : LOADBALANCE\n"
+                    + " * password : ***\n"
+                    + " * timezone : UTC\n"
+                    + " * user : me\n"
+                    + "\n"
+                    + "default options :\n"
+                    + " * allowLocalInfile : true\n"
+                    + " * allowMultiQueries : false\n"
+                    + " * allowPublicKeyRetrieval : false"));
+
+    assertTrue(
+        Configuration.toConf(
+                "jdbc:mariadb://localhost/test?user=root&sslMode=verify-ca&serverSslCert=/tmp/t.pem&trustStoreType=JKS&keyStore=/tmp/keystore&keyStorePassword=kspass")
+            .startsWith(
+                "Configuration:\n"
+                    + " * resulting Url : jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=kspass&trustStoreType=JKS\n"
+                    + "Unknown options : None\n"
+                    + "\n"
+                    + "Non default options : \n"
+                    + " * database : test\n"
+                    + " * keyStore : /tmp/keystore\n"
+                    + " * keyStorePassword : kspass\n"
+                    + " * serverSslCert : /tmp/t.pem\n"
+                    + " * sslMode : VERIFY_CA\n"
+                    + " * trustStoreType : JKS\n"
+                    + " * user : root\n"
+                    + "\n"
+                    + "default options :\n"
+                    + " * addresses : [address=(host=localhost)(port=3306)(type=primary)]\n"
+                    + " * allowLocalInfile : true"));
   }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.plugin.tls.main;
 
@@ -35,6 +35,7 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
   private static KeyManager loadClientCerts(
       String keyStoreUrl,
       String keyStorePassword,
+      String keyPassword,
       String storeType,
       ExceptionFactory exceptionFactory)
       throws SQLException {
@@ -42,11 +43,17 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
     try {
       try (InputStream inStream = loadFromUrl(keyStoreUrl)) {
         char[] keyStorePasswordChars =
-            keyStorePassword == null ? null : keyStorePassword.toCharArray();
+            keyStorePassword == null
+                ? null
+                : (keyStorePassword == "") ? null : keyStorePassword.toCharArray();
+        char[] keyStoreChars =
+            (keyPassword == null)
+                ? keyStorePasswordChars
+                : (keyPassword == "") ? null : keyPassword.toCharArray();
         KeyStore ks =
             KeyStore.getInstance(storeType != null ? storeType : KeyStore.getDefaultType());
         ks.load(inStream, keyStorePasswordChars);
-        return new MariaDbX509KeyManager(ks, keyStorePasswordChars);
+        return new MariaDbX509KeyManager(ks, keyStoreChars);
       }
     } catch (IOException | GeneralSecurityException ex) {
       throw exceptionFactory.create(
@@ -82,7 +89,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
         KeyStore ks;
         try {
-          ks = KeyStore.getInstance(KeyStore.getDefaultType());
+          ks =
+              KeyStore.getInstance(
+                  conf.trustStoreType() != null
+                      ? conf.trustStoreType()
+                      : KeyStore.getDefaultType());
         } catch (GeneralSecurityException generalSecurityEx) {
           throw exceptionFactory.create(
               "Failed to create keystore instance", "08000", generalSecurityEx);
@@ -129,7 +140,11 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
       keyManager =
           new KeyManager[] {
             loadClientCerts(
-                conf.keyStore(), conf.keyStorePassword(), conf.keyStoreType(), exceptionFactory)
+                conf.keyStore(),
+                conf.keyStorePassword(),
+                conf.keyPassword(),
+                conf.keyStoreType(),
+                exceptionFactory)
           };
     } else {
       String keyStore = System.getProperty("javax.net.ssl.keyStore");
@@ -140,7 +155,8 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         try {
           keyManager =
               new KeyManager[] {
-                loadClientCerts(keyStore, keyStorePassword, keyStoreType, exceptionFactory)
+                loadClientCerts(
+                    keyStore, keyStorePassword, keyStorePassword, keyStoreType, exceptionFactory)
               };
         } catch (SQLException queryException) {
           keyManager = null;

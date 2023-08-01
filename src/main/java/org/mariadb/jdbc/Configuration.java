@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc;
 
@@ -15,6 +15,7 @@ import org.mariadb.jdbc.export.SslMode;
 import org.mariadb.jdbc.plugin.Codec;
 import org.mariadb.jdbc.plugin.CredentialPlugin;
 import org.mariadb.jdbc.plugin.credential.CredentialPluginLoader;
+import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 import org.mariadb.jdbc.util.options.OptionAliases;
@@ -58,7 +59,6 @@ public class Configuration {
   private String database = null;
   private List<HostAddress> addresses = null;
   private HaMode haMode = HaMode.NONE;
-
   private String initialUrl = null;
   private Properties nonMappedOptions = null;
 
@@ -66,7 +66,9 @@ public class Configuration {
   private String timezone = null;
   private Boolean autocommit = null;
   private boolean useMysqlMetadata = false;
+  private CatalogTerm useCatalogTerm = CatalogTerm.UseCatalog;
   private boolean createDatabaseIfNotExist = false;
+  private boolean useLocalSessionState = false;
   private TransactionIsolation transactionIsolation = null;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -97,7 +99,9 @@ public class Configuration {
   private String serverSslCert = null;
   private String keyStore = null;
   private String keyStorePassword = null;
+  private String keyPassword = null;
   private String keyStoreType = null;
+  private String trustStoreType = null;
   private String enabledSslCipherSuites = null;
   private String enabledSslProtocolSuites = null;
 
@@ -106,7 +110,8 @@ public class Configuration {
   private boolean allowLocalInfile = true;
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
-  private boolean useBulkStmts = true;
+  private boolean useBulkStmts = false;
+  private boolean useBulkStmtsForInserts = true;
   private boolean disablePipeline = false;
   // prepare
   private boolean cachePrepStmts = true;
@@ -162,7 +167,9 @@ public class Configuration {
       String timezone,
       Boolean autocommit,
       boolean useMysqlMetadata,
+      CatalogTerm useCatalogTerm,
       boolean createDatabaseIfNotExist,
+      boolean useLocalSessionState,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -188,7 +195,9 @@ public class Configuration {
       String serverSslCert,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
+      String trustStoreType,
       String enabledSslCipherSuites,
       String enabledSslProtocolSuites,
       boolean allowMultiQueries,
@@ -196,6 +205,7 @@ public class Configuration {
       boolean useCompression,
       boolean useAffectedRows,
       boolean useBulkStmts,
+      boolean useBulkStmtsForInserts,
       boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
@@ -234,7 +244,9 @@ public class Configuration {
     this.timezone = timezone;
     this.autocommit = autocommit;
     this.useMysqlMetadata = useMysqlMetadata;
+    this.useCatalogTerm = useCatalogTerm;
     this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    this.useLocalSessionState = useLocalSessionState;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -260,7 +272,9 @@ public class Configuration {
     this.serverSslCert = serverSslCert;
     this.keyStore = keyStore;
     this.keyStorePassword = keyStorePassword;
+    this.keyPassword = keyPassword;
     this.keyStoreType = keyStoreType;
+    this.trustStoreType = trustStoreType;
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.enabledSslProtocolSuites = enabledSslProtocolSuites;
     this.allowMultiQueries = allowMultiQueries;
@@ -268,6 +282,7 @@ public class Configuration {
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
     this.useBulkStmts = useBulkStmts;
+    this.useBulkStmtsForInserts = useBulkStmtsForInserts;
     this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
@@ -338,10 +353,13 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean useBulkStmts,
+      Boolean useBulkStmtsForInserts,
       Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
+      String useCatalogTerm,
       Boolean createDatabaseIfNotExist,
+      Boolean useLocalSessionState,
       Boolean includeInnodbStatusInDeadlockExceptions,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
@@ -364,7 +382,9 @@ public class Configuration {
       String serverSslCert,
       String keyStore,
       String keyStorePassword,
+      String keyPassword,
       String keyStoreType,
+      String trustStoreType,
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
@@ -419,10 +439,24 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (useBulkStmtsForInserts != null) this.useBulkStmtsForInserts = useBulkStmtsForInserts;
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
+    if (useCatalogTerm != null) {
+      if (!"CATALOG".equalsIgnoreCase(useCatalogTerm)
+          && !"SCHEMA".equalsIgnoreCase(useCatalogTerm)) {
+        throw new IllegalArgumentException(
+            "useCatalogTerm can only have CATALOG/SCHEMA value, current set value is "
+                + useCatalogTerm);
+      }
+      this.useCatalogTerm =
+          "CATALOG".equalsIgnoreCase(useCatalogTerm)
+              ? CatalogTerm.UseCatalog
+              : CatalogTerm.UseSchema;
+    }
     if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    if (useLocalSessionState != null) this.useLocalSessionState = useLocalSessionState;
     if (includeInnodbStatusInDeadlockExceptions != null)
       this.includeInnodbStatusInDeadlockExceptions = includeInnodbStatusInDeadlockExceptions;
     if (includeThreadDumpInDeadlockExceptions != null)
@@ -460,7 +494,9 @@ public class Configuration {
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
     if (keyStore != null) this.keyStore = keyStore;
     if (keyStorePassword != null) this.keyStorePassword = keyStorePassword;
+    if (keyPassword != null) this.keyPassword = keyPassword;
     if (keyStoreType != null) this.keyStoreType = keyStoreType;
+    if (trustStoreType != null) this.trustStoreType = trustStoreType;
 
     // *************************************************************
     // host primary check
@@ -742,7 +778,9 @@ public class Configuration {
         this.timezone,
         this.autocommit,
         this.useMysqlMetadata,
+        this.useCatalogTerm,
         this.createDatabaseIfNotExist,
+        this.useLocalSessionState,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -768,7 +806,9 @@ public class Configuration {
         this.serverSslCert,
         this.keyStore,
         this.keyStorePassword,
+        this.keyPassword,
         this.keyStoreType,
+        this.trustStoreType,
         this.enabledSslCipherSuites,
         this.enabledSslProtocolSuites,
         this.allowMultiQueries,
@@ -776,6 +816,7 @@ public class Configuration {
         this.useCompression,
         this.useAffectedRows,
         this.useBulkStmts,
+        this.useBulkStmtsForInserts,
         this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
@@ -899,12 +940,30 @@ public class Configuration {
   }
 
   /**
+   * key store alias password
+   *
+   * @return key store alias password
+   */
+  public String keyPassword() {
+    return keyPassword;
+  }
+
+  /**
    * key store type (to replace default javax.net.ssl.keyStoreType system property)
    *
    * @return key store type
    */
   public String keyStoreType() {
     return keyStoreType;
+  }
+
+  /**
+   * trust store type (to replace default javax.net.ssl.keyStoreType system property)
+   *
+   * @return trust store type
+   */
+  public String trustStoreType() {
+    return trustStoreType;
   }
 
   /**
@@ -1198,6 +1257,16 @@ public class Configuration {
   }
 
   /**
+   * Use server COM_STMT_BULK for batching inserts. if useBulkStmts is enabled,
+   * useBulkStmtsForInserts will be as well
+   *
+   * @return use server bulk command for inserts
+   */
+  public boolean useBulkStmtsForInserts() {
+    return useBulkStmtsForInserts;
+  }
+
+  /**
    * Disable pipeline.
    *
    * @return is pipeline disabled.
@@ -1225,12 +1294,32 @@ public class Configuration {
   }
 
   /**
+   * Indicating using Catalog or Schema
+   *
+   * @return Indicating using Catalog or Schema
+   */
+  public CatalogTerm useCatalogTerm() {
+    return useCatalogTerm;
+  }
+
+  /**
    * create database if not exist
    *
    * @return create database if not exist
    */
   public boolean createDatabaseIfNotExist() {
     return createDatabaseIfNotExist;
+  }
+
+  /**
+   * use local state to avoid unnecessary queries. This means application must use JDBC dedicated
+   * methods, like connection.setTransactionIsolation and never queries like "SET SESSION
+   * TRANSACTION ISOLATION LEVEL X" directly
+   *
+   * @return can use local state
+   */
+  public boolean useLocalSessionState() {
+    return useLocalSessionState;
   }
 
   /**
@@ -1496,6 +1585,128 @@ public class Configuration {
     return initialUrl;
   }
 
+  /**
+   * Permit to have string information on how string is parsed. example :
+   * Configuration.toConf("jdbc:mariadb://localhost/test") will return a String containing: <code>
+   * Configuration:
+   *  * resulting Url : jdbc:mariadb://localhost/test
+   * Unknown options : None
+   *
+   * Non default options :
+   *  * database : test
+   *
+   * default options :
+   *  * user : null
+   *  ...
+   * </code>
+   *
+   * @param url url string
+   * @return string describing the configuration parsed from url
+   * @throws SQLException if parsing fails
+   */
+  public static String toConf(String url) throws SQLException {
+    Configuration conf = Configuration.parseInternal(url, new Properties());
+    StringBuilder sb = new StringBuilder();
+    StringBuilder sbUnknownOpts = new StringBuilder();
+
+    if (conf.nonMappedOptions.isEmpty()) {
+      sbUnknownOpts.append("None");
+    } else {
+      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
+        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
+      }
+    }
+    sb.append("Configuration:")
+        .append("\n * resulting Url : ")
+        .append(conf.initialUrl)
+        .append("\nUnknown options : ")
+        .append(sbUnknownOpts)
+        .append("\n")
+        .append("\nNon default options : ");
+
+    Configuration defaultConf = Configuration.parse("jdbc:mariadb://localhost/");
+    StringBuilder sbDefaultOpts = new StringBuilder();
+    StringBuilder sbDifferentOpts = new StringBuilder();
+    try {
+      List<String> propertyToSkip =
+          Arrays.asList(new String[] {"initialUrl", "logger", "codecs", "$jacocoData"});
+      Field[] fields = Configuration.class.getDeclaredFields();
+      Arrays.sort(fields, Comparator.comparing(Field::getName));
+
+      for (Field field : fields) {
+        if (!propertyToSkip.contains(field.getName())) {
+          Object fieldValue = field.get(conf);
+          if (fieldValue == null) {
+            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                .append("\n * ")
+                .append(field.getName())
+                .append(" : ")
+                .append(fieldValue);
+          } else {
+            if (field.getName().equals("haMode")) {
+              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                  .append("\n * ")
+                  .append(field.getName())
+                  .append(" : ")
+                  .append(fieldValue);
+              continue;
+            }
+            switch (fieldValue.getClass().getSimpleName()) {
+              case "String":
+              case "Boolean":
+              case "HaMode":
+              case "TransactionIsolation":
+              case "Integer":
+              case "SslMode":
+              case "CatalogTerm":
+                (Objects.equals(fieldValue, field.get(defaultConf))
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "ArrayList":
+                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "Properties":
+                break;
+              default:
+                throw new IllegalArgumentException(
+                    "field type not expected for fields " + field.getName());
+            }
+          }
+        }
+      }
+
+      String diff = sbDifferentOpts.toString();
+      if (diff.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(diff);
+      }
+
+      sb.append("\n\ndefault options :");
+      String same = sbDefaultOpts.toString();
+      if (same.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(same);
+      }
+
+    } catch (IllegalArgumentException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Wrong parsing", e);
+    }
+    return sb.toString();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -1674,7 +1885,9 @@ public class Configuration {
     private String timezone;
     private Boolean autocommit;
     private Boolean useMysqlMetadata;
+    private String useCatalogTerm;
     private Boolean createDatabaseIfNotExist;
+    private Boolean useLocalSessionState;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private Integer maxAllowedPacket;
@@ -1704,7 +1917,9 @@ public class Configuration {
     private String serverSslCert;
     private String keyStore;
     private String keyStorePassword;
+    private String keyPassword;
     private String keyStoreType;
+    private String trustStoreType;
     private String enabledSslCipherSuites;
     private String enabledSslProtocolSuites;
 
@@ -1714,6 +1929,7 @@ public class Configuration {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
+    private Boolean useBulkStmtsForInserts;
     private Boolean disablePipeline;
     // prepare
     private Boolean cachePrepStmts;
@@ -1803,6 +2019,17 @@ public class Configuration {
     }
 
     /**
+     * Client keystore alias password
+     *
+     * @param keyPassword client store alias password
+     * @return this {@link Builder}
+     */
+    public Builder keyPassword(String keyPassword) {
+      this.keyPassword = nullOrEmpty(keyPassword);
+      return this;
+    }
+
+    /**
      * Key store type
      *
      * @param keyStoreType key store type
@@ -1810,6 +2037,17 @@ public class Configuration {
      */
     public Builder keyStoreType(String keyStoreType) {
       this.keyStoreType = nullOrEmpty(keyStoreType);
+      return this;
+    }
+
+    /**
+     * trust store type
+     *
+     * @param trustStoreType trust store type
+     * @return this {@link Builder}
+     */
+    public Builder trustStoreType(String trustStoreType) {
+      this.trustStoreType = nullOrEmpty(trustStoreType);
       return this;
     }
 
@@ -2290,6 +2528,18 @@ public class Configuration {
     }
 
     /**
+     * Use server dedicated bulk batch command for insert (if useBulkStmts is enabled,
+     * useBulkStmtsForInserts will be enabled as well)
+     *
+     * @param useBulkStmtsForInserts use server bulk batch command.
+     * @return this {@link Builder}
+     */
+    public Builder useBulkStmtsForInserts(Boolean useBulkStmtsForInserts) {
+      this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+      return this;
+    }
+
+    /**
      * Disable pipeline
      *
      * @param disablePipeline disable pipeline.
@@ -2324,6 +2574,26 @@ public class Configuration {
     }
 
     /**
+     * "schema" and "database" are server synonymous. Connector historically get/set database using
+     * Connection.setCatalog()/getCatalog(), setSchema()/getSchema() being no-op This parameter
+     * indicate to change that behavior to use Schema in place of Catalog. Behavior will change
+     *
+     * <ul>
+     *   <li>database change will be done with either Connection.setCatalog()/getCatalog() or
+     *       Connection.setSchema()/getSchema()
+     *   <li>DatabaseMetadata methods that use catalog or schema filtering
+     *   <li>ResultsetMetadata database will be retrieved
+     * </ul>
+     *
+     * @param useCatalogTerm use CATALOG/SCHEMA
+     * @return this {@link Builder}
+     */
+    public Builder useCatalogTerm(String useCatalogTerm) {
+      this.useCatalogTerm = useCatalogTerm;
+      return this;
+    }
+
+    /**
      * Create database if not exist. This is mainly for test, since does require an additional query
      * after connection
      *
@@ -2332,6 +2602,19 @@ public class Configuration {
      */
     public Builder createDatabaseIfNotExist(Boolean createDatabaseIfNotExist) {
       this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+      return this;
+    }
+
+    /**
+     * indicate if connector can use local state to avoid unnecessary queries. This means
+     * application must use JDBC dedicated methods, like connection.setTransactionIsolation and
+     * never queries like "SET SESSION TRANSACTION ISOLATION LEVEL X" directly
+     *
+     * @param useLocalSessionState can driver rely on local state
+     * @return this {@link Builder}
+     */
+    public Builder useLocalSessionState(Boolean useLocalSessionState) {
+      this.useLocalSessionState = useLocalSessionState;
       return this;
     }
 
@@ -2644,10 +2927,13 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.useBulkStmts,
+              this.useBulkStmtsForInserts,
               this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,
+              this.useCatalogTerm,
               this.createDatabaseIfNotExist,
+              this.useLocalSessionState,
               this.includeInnodbStatusInDeadlockExceptions,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,
@@ -2670,7 +2956,9 @@ public class Configuration {
               this.serverSslCert,
               this.keyStore,
               this.keyStorePassword,
+              this.keyPassword,
               this.keyStoreType,
+              this.trustStoreType,
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,

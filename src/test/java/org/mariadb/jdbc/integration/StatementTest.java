@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -1028,5 +1028,73 @@ public class StatementTest extends Common {
   public void statementEnquoteNCharLiteral() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     assertEquals("N'good''one'", stmt.enquoteNCharLiteral("good'one"));
+  }
+
+  @Test
+  public void generatedKey() throws SQLException {
+    java.sql.Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS tt");
+    stmt.execute("CREATE TABLE tt (id int PRIMARY KEY NOT NULL AUTO_INCREMENT, t1 varchar(10))");
+    stmt.execute("INSERT INTO tt(t1) VALUES ('t1'), ('t2'), ('t3')");
+    stmt.execute("FLUSH TABLES");
+
+    stmt.executeBatch();
+    stmt.addBatch("UPDATE tt set t1 = 't-1' WHERE id = 1");
+    stmt.addBatch("INSERT INTO tt(t1) VALUES ('t4')");
+    stmt.addBatch("INSERT INTO tt(t1) VALUES ('t5')");
+    stmt.addBatch("UPDATE tt set t1 = 't-6' WHERE id = 1");
+    stmt.executeBatch();
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(4, rs.getInt(1));
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(1));
+    assertFalse(rs.next());
+
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement(
+            "INSERT IGNORE INTO tt(id, t1) VALUES (?,?)",
+            java.sql.Statement.RETURN_GENERATED_KEYS)) {
+      prep.setInt(1, 5);
+      prep.setString(2, "t55");
+      prep.addBatch();
+      prep.setInt(1, 6);
+      prep.setString(2, "t6");
+      prep.addBatch();
+      prep.setNull(1, Types.INTEGER);
+      prep.setString(2, "t7");
+      prep.addBatch();
+      prep.executeBatch();
+
+      rs = prep.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(6, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(7, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+
+    try (PreparedStatement prep =
+        sharedConnBinary.prepareStatement(
+            "INSERT IGNORE INTO tt(id, t1) VALUES (?,?)",
+            java.sql.Statement.RETURN_GENERATED_KEYS)) {
+      prep.setInt(1, 5);
+      prep.setString(2, "t55");
+      prep.addBatch();
+      prep.setInt(1, 8);
+      prep.setString(2, "t8");
+      prep.addBatch();
+      prep.setNull(1, Types.INTEGER);
+      prep.setString(2, "t9");
+      prep.addBatch();
+      prep.executeBatch();
+
+      rs = prep.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(8, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(9, rs.getInt(1));
+      assertFalse(rs.next());
+    }
   }
 }

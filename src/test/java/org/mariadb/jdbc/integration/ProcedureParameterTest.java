@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -51,6 +51,22 @@ public class ProcedureParameterTest extends Common {
   }
 
   @Test
+  public void callWithoutBracket() throws Exception {
+    // error MXS-3929 for maxscale 6.2.0
+    Assumptions.assumeTrue(
+        !sharedConn.getMetaData().getDatabaseProductVersion().contains("maxScale-6.2.0"));
+    // https://jira.mariadb.org/browse/XPT-267
+    Assumptions.assumeFalse(isXpand());
+
+    CallableStatement stmt = sharedConn.prepareCall("call useParameterName(?)");
+    stmt.setInt(1, 1);
+    ResultSet rs = stmt.executeQuery();
+    assertTrue(rs.next());
+    int res = rs.getInt(1);
+    assertEquals(res, 1);
+  }
+
+  @Test
   public void callWithStrangeParameter() throws SQLException {
     // error MXS-3929 for maxscale 6.2.0
     Assumptions.assumeTrue(
@@ -86,15 +102,15 @@ public class ProcedureParameterTest extends Common {
     Assumptions.assumeFalse(isXpand());
 
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
+    stmt.execute("DROP PROCEDURE IF EXISTS basic_proc2");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
+        "CREATE PROCEDURE basic_proc2 (INOUT t1 INT, IN t2 MEDIUMINT unsigned, OUT t3 DECIMAL(8,3), OUT t4 VARCHAR(20), IN t5 SMALLINT) BEGIN \n"
             + "set t3 = t1 * t5;\n"
             + "set t1 = t2 * t1;\n"
             + "set t4 = 'return data';\n"
             + "END");
     try (CallableStatement callableStatement =
-        sharedConn.prepareCall("{call basic_proc(?,?,?,?)}")) {
+        sharedConn.prepareCall("{call basic_proc2(?,?,?,?)}")) {
       ParameterMetaData meta = callableStatement.getParameterMetaData();
       assertEquals(5, meta.getParameterCount());
       assertEquals("int", meta.getParameterClassName(1));

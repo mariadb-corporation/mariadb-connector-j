@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc;
 
@@ -12,7 +12,7 @@ import org.mariadb.jdbc.export.HaMode;
 
 /** Host entry */
 public class HostAddress {
-
+  private long CONNECTED_VALUE_TIMEOUT = 3 * 60 * 1000; // 3 minutes
   /** host address */
   public final String host;
 
@@ -21,6 +21,9 @@ public class HostAddress {
 
   /** primary node */
   public Boolean primary;
+
+  private Long threadsConnected;
+  private Long threadConnectedTimeout;
 
   /**
    * Constructor.
@@ -189,5 +192,23 @@ public class HostAddress {
   @Override
   public int hashCode() {
     return Objects.hash(host, port, primary);
+  }
+
+  public void setThreadsConnected(long threadsConnected) {
+    this.threadsConnected = threadsConnected;
+    this.threadConnectedTimeout = System.currentTimeMillis() + CONNECTED_VALUE_TIMEOUT;
+  }
+
+  public Long getThreadsConnected() {
+    return threadsConnected;
+  }
+
+  public void forceThreadsConnected(long threadsConnected, long threadConnectedTimeout) {
+    this.threadsConnected = threadsConnected;
+    this.threadConnectedTimeout = threadConnectedTimeout;
+  }
+
+  public Long getThreadConnectedTimeout() {
+    return threadConnectedTimeout;
   }
 }

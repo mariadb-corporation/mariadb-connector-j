@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration.resultset;
 
@@ -96,6 +96,7 @@ public class StreamingRowChangeTest extends Common {
   }
 
   public void isAfterLast(Statement stmt) throws SQLException {
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -110,6 +111,7 @@ public class StreamingRowChangeTest extends Common {
     assertFalse(rs.isAfterLast());
     assertFalse(rs.next());
     assertFalse(rs.isAfterLast());
+    sharedConn.rollback();
   }
 
   @Test

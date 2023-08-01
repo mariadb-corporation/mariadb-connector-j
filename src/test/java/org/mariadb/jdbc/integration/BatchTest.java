@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -80,36 +80,56 @@ public class BatchTest extends Common {
 
   @Test
   public void differentParameterType() throws SQLException {
-    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=false")) {
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
-    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts=true")) {
+    try (Connection con =
+        createCon("&useServerPrepStmts=false&useBulkStmts&useBulkStmtsForInserts")) {
       differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con =
-        createCon("&useServerPrepStmts=false&useBulkStmts=true&disablePipeline")) {
+        createCon(
+            "&useServerPrepStmts=false&useBulkStmtsForInserts&useBulkStmts&disablePipeline")) {
       differentParameterType(con, isMariaDBServer() && !isXpand());
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
       differentParameterType(con, false);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile=false")) {
+    try (Connection con =
+        createCon("&useServerPrepStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
+      differentParameterType(con, false);
+    }
+    try (Connection con =
+        createCon(
+            "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
+      differentParameterType(con, isMariaDBServer() && !isXpand());
+    }
+    try (Connection con = createCon("&useServerPrepStmts=false&useBulkStmts&allowLocalInfile")) {
       differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con = createCon("&useServerPrepStmts=false&allowLocalInfile")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
-    }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts=false")) {
       differentParameterType(con, false);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts")) {
-      differentParameterType(con, isMariaDBServer() && !isXpand());
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts=false")) {
+      differentParameterType(con, false);
     }
-    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&allowLocalInfile=false")) {
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmtsForInserts")) {
+      differentParameterType(con, false);
+    }
+    try (Connection con = createCon("&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts")) {
       differentParameterType(con, isMariaDBServer() && !isXpand());
     }
     try (Connection con =
-        createCon("&useServerPrepStmts&useBulkStmts=false&disablePipeline=true")) {
+        createCon(
+            "&useServerPrepStmts&useBulkStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
+      differentParameterType(con, isMariaDBServer() && !isXpand());
+    }
+    try (Connection con =
+        createCon("&useServerPrepStmts&useBulkStmtsForInserts&allowLocalInfile=false")) {
+      differentParameterType(con, false);
+    }
+    try (Connection con =
+        createCon("&useServerPrepStmts&useBulkStmtsForInserts=false&disablePipeline=true")) {
       differentParameterType(con, false);
     }
   }
@@ -118,6 +138,7 @@ public class BatchTest extends Common {
       throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BatchTest(t1, t2) VALUES (?,?)")) {
       prep.setInt(1, 1);
@@ -132,15 +153,9 @@ public class BatchTest extends Common {
       prep.addBatch();
       int[] res = prep.executeBatch();
       assertEquals(3, res.length);
-      if (expectSuccessUnknown) {
-        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
-        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
-        assertEquals(Statement.SUCCESS_NO_INFO, res[2]);
-      } else {
-        assertEquals(1, res[0]);
-        assertEquals(1, res[1]);
-        assertEquals(1, res[2]);
-      }
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
+      assertEquals(1, res[2]);
     }
     ResultSet rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
@@ -166,13 +181,8 @@ public class BatchTest extends Common {
       prep.addBatch();
       int[] res = prep.executeBatch();
       assertEquals(2, res.length);
-      if (expectSuccessUnknown) {
-        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
-        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
-      } else {
-        assertEquals(1, res[0]);
-        assertEquals(1, res[1]);
-      }
+      assertEquals(1, res[0]);
+      assertEquals(1, res[1]);
     }
     rs = stmt.executeQuery("SELECT * FROM BatchTest");
     assertTrue(rs.next());
@@ -241,21 +251,45 @@ public class BatchTest extends Common {
     assertEquals(2, rs.getInt(1));
     assertEquals("2", rs.getString(2));
     assertFalse(rs.next());
+
+    try (PreparedStatement prep =
+        con.prepareStatement("UPDATE BatchTest SET t1=t1+10 WHERE t1=?")) {
+      prep.setInt(1, 1);
+      prep.addBatch();
+
+      prep.setInt(1, 2);
+      prep.addBatch();
+      int[] res = prep.executeBatch();
+      if (expectSuccessUnknown) {
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+      } else {
+        assertEquals(1, res[0]);
+        assertEquals(1, res[1]);
+      }
+    }
+    con.rollback();
   }
 
   @Test
   public void largeBatch() throws SQLException {
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < 64; i++) {
       boolean useServerPrepStmts = (i & 2) > 0;
       boolean useBulkStmts = (i & 4) > 0;
       boolean allowLocalInfile = (i & 8) > 0;
       boolean useCompression = (i & 16) > 0;
+      boolean useBulkStmtsForInserts = (i & 32) > 0;
 
-      try (Connection con =
-          createCon(
-              String.format(
-                  "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s",
-                  useServerPrepStmts, useBulkStmts, allowLocalInfile, useCompression))) {
+      String confString =
+          String.format(
+              "&useServerPrepStmts=%s&useBulkStmts=%s&allowLocalInfile=%s&useCompression=%s&useBulkStmtsForInserts=%s",
+              useServerPrepStmts,
+              useBulkStmts,
+              allowLocalInfile,
+              useCompression,
+              useBulkStmtsForInserts);
+      try (Connection con = createCon(confString)) {
+        System.out.println("########################################" + confString);
         largeBatch(con);
       }
     }

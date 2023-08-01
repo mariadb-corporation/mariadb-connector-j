@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration.codec;
 
@@ -1067,9 +1067,11 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   private void wrongUtf8(Connection con, String wrong) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO StringCodecWrong VALUES ('" + wrong + "')");
     ResultSet rs = stmt.executeQuery("SELECT * FROM StringCodecWrong");
     rs.next();
     assertEquals(wrong, rs.getString(1));
+    con.rollback();
   }
 }

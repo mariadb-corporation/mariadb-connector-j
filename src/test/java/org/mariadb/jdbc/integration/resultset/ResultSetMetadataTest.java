@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration.resultset;
 
@@ -44,6 +44,7 @@ public class ResultSetMetadataTest extends Common {
   @Test
   public void metaDataTest() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("insert into test_rsmd (id_col,nullable_col,unikey_col) values (null, 'hej', 9)");
     ResultSet rs =
         stmt.executeQuery(
@@ -103,6 +104,7 @@ public class ResultSetMetadataTest extends Common {
     assertTrue(rsmd2.isReadOnly(1));
     assertFalse(rsmd2.isWritable(1));
     assertFalse(rsmd2.isDefinitelyWritable(1));
+    sharedConn.rollback();
   }
 
   @Test
@@ -119,6 +121,7 @@ public class ResultSetMetadataTest extends Common {
   @Test
   public void conj84() throws Exception {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO resultsetmetadatatest1 VALUES (1, 'foo')");
     stmt.execute("INSERT INTO resultsetmetadatatest2 VALUES (2, 'bar')");
     ResultSet rs =
@@ -133,6 +136,7 @@ public class ResultSetMetadataTest extends Common {
     assertEquals(rs.findColumn("resultsetmetadatatest1.name"), 2);
     assertEquals(rs.findColumn("resultsetmetadatatest2.id"), 3);
     assertEquals(rs.findColumn("resultsetmetadatatest2.name"), 4);
+    sharedConn.rollback();
   }
 
   @Test
@@ -142,7 +146,7 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("DROP TABLE IF EXISTS testAlias2");
     stmt.execute("CREATE TABLE testAlias(id int, name varchar(20))");
     stmt.execute("CREATE TABLE testAlias2(id2 int, name2 varchar(20))");
-
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("INSERT INTO testAlias VALUES (1, 'foo')");
     stmt.execute("INSERT INTO testAlias2 VALUES (2, 'bar')");
     ResultSet rs =
@@ -186,6 +190,7 @@ public class ResultSetMetadataTest extends Common {
         sqle, () -> rs.findColumn("alias2.name22"), "Unknown label 'alias2.name22'");
     Common.assertThrowsContains(sqle, () -> rs.findColumn(""), "Unknown label ''");
     Common.assertThrowsContains(sqle, () -> rs.findColumn(null), "null is not a valid label value");
+    sharedConn.rollback();
   }
 
   @Test

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -282,6 +282,56 @@ public class LocalInfileTest extends Common {
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE '"
               + temp.getCanonicalPath().replace("\\", "/")
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      stmt.addBatch("SET UNIQUE_CHECKS=1");
+      stmt.executeBatch();
+
+      rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello2", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      assertFalse(rs.next());
+    } finally {
+      temp.delete();
+    }
+  }
+
+  @Test
+  public void loadDataBasicWindows() throws Exception {
+    Assumptions.assumeTrue(checkLocal());
+    Assumptions.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    File temp = File.createTempFile("dummyloadDataBasic", ".txt");
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+      bw.write("1\thello2\n2\tworld\n");
+    }
+
+    try (Connection con = createCon("allowLocalInfile")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.execute(
+          "LOAD DATA LOCAL INFILE '"
+              + temp.getCanonicalPath().replace("\\", "\\\\")
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello2", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      while (rs.next()) {
+        System.out.println(rs.getString(2));
+      }
+      assertFalse(rs.next());
+
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.addBatch(
+          "LOAD DATA LOCAL INFILE '"
+              + temp.getCanonicalPath().replace("\\", "\\\\")
               + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
       stmt.executeBatch();

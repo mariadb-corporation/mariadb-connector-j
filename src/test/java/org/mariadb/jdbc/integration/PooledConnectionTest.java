@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration;
 
@@ -79,7 +79,7 @@ public class PooledConnectionTest extends Common {
     }
 
     try (MariaDbPoolDataSource ds =
-        new MariaDbPoolDataSource(url + "&poolValidMinDelay=1&connectTimeout=10&maxPoolSize=1")) {
+        new MariaDbPoolDataSource(url + "&poolValidMinDelay=1&connectTimeout=500&maxPoolSize=1")) {
 
       PooledConnection pc = ds.getPooledConnection();
       pc.getConnection().isValid(1);
@@ -240,8 +240,6 @@ public class PooledConnectionTest extends Common {
               + sharedConn.getCatalog()
               + ".* TO 'dsUser'@'%' IDENTIFIED BY 'MySup8%rPassw@ord'");
     }
-    // mysql 8.0.31 broken public key retrieval, so avoid FLUSHING for now
-    Assumptions.assumeTrue(!isMariaDBServer() && !exactVersion(8, 0, 31));
     stmt.execute("FLUSH PRIVILEGES");
 
     ConnectionPoolDataSource ds = new MariaDbDataSource(mDefUrl);

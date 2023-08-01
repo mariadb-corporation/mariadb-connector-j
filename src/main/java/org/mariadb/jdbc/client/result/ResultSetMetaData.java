@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.result;
 
@@ -10,6 +10,7 @@ import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.client.Column;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.export.ExceptionFactory;
+import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
 
 /** Result-set metadata */
@@ -165,6 +166,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getCatalogName(int column) throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseSchema) return getColumn(column).getCatalog();
     return getColumn(column).getSchema();
   }
 
@@ -215,7 +217,8 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
     return getColumn(column).getTable();
   }
 
-  public String getSchemaName(int column) {
+  public String getSchemaName(int column) throws SQLException {
+    if (conf.useCatalogTerm() == CatalogTerm.UseSchema) return getColumn(column).getSchema();
     return "";
   }
 

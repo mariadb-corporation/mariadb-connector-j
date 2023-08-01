@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.integration.resultset;
 
@@ -43,6 +43,7 @@ public class RowChangeTest extends Common {
   @Test
   public void isAfterLast() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = stmt.executeQuery("SELECT * FROM ResultSetTest");
     for (int i = 1; i < 9; i++) {
       assertTrue(rs.next());
@@ -52,6 +53,7 @@ public class RowChangeTest extends Common {
     assertFalse(rs.isAfterLast());
     assertFalse(rs.next());
     assertTrue(rs.isAfterLast());
+    sharedConn.rollback();
   }
 
   @Test

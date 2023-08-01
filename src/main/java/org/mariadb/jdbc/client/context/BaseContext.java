@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
 import org.mariadb.jdbc.Configuration;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.Context;
 import org.mariadb.jdbc.client.PrepareCache;
 import org.mariadb.jdbc.client.ServerVersion;
@@ -17,7 +18,7 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 /** Context (current connection state) of a connection */
 public class BaseContext implements Context {
 
-  private final long threadId;
+  private long threadId;
   private final long serverCapabilities;
   private final long clientCapabilities;
   private final byte[] seed;
@@ -28,6 +29,8 @@ public class BaseContext implements Context {
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
 
+  private String charset;
+
   /** Server status context */
   protected int serverStatus;
 
@@ -35,7 +38,7 @@ public class BaseContext implements Context {
   private String database;
 
   /** Server current transaction isolation level */
-  private int transactionIsolationLevel;
+  private Integer transactionIsolationLevel;
 
   /** Server current warning count */
   private int warning;
@@ -46,9 +49,12 @@ public class BaseContext implements Context {
   /** Connection state use flag */
   private int stateFlag = 0;
 
+  private final HostAddress hostAddress;
+
   /**
    * Constructor of connection context
    *
+   * @param hostAddress host address
    * @param handshake server handshake
    * @param clientCapabilities client capabilities
    * @param conf connection configuration
@@ -56,11 +62,13 @@ public class BaseContext implements Context {
    * @param prepareCache LRU prepare cache
    */
   public BaseContext(
+      HostAddress hostAddress,
       InitialHandshakePacket handshake,
       long clientCapabilities,
       Configuration conf,
       ExceptionFactory exceptionFactory,
       PrepareCache prepareCache) {
+    this.hostAddress = hostAddress;
     this.threadId = handshake.getThreadId();
     this.seed = handshake.getSeed();
     this.serverCapabilities = handshake.getCapabilities();
@@ -144,7 +152,7 @@ public class BaseContext implements Context {
     return conf;
   }
 
-  public int getTransactionIsolationLevel() {
+  public Integer getTransactionIsolationLevel() {
     return transactionIsolationLevel;
   }
 
@@ -170,5 +178,21 @@ public class BaseContext implements Context {
 
   public void addStateFlag(int state) {
     stateFlag |= state;
+  }
+
+  public void setCharset(String charset) {
+    this.charset = charset;
+  }
+
+  public void setThreadId(long connectionId) {
+    threadId = connectionId;
+  }
+
+  public void setTreadsConnected(long threadsConnected) {
+    if (hostAddress != null) hostAddress.setThreadsConnected(threadsConnected);
+  }
+
+  public String getCharset() {
+    return charset;
   }
 }
