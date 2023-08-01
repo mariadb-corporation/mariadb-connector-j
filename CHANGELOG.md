@@ -1,4 +1,9 @@
 # Change Log
+## [2.7.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.10) (Aug 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.9...2.7.10)
+
+* CONJ-1091 Ensure setting connectTimeout as timeout for socket timeout until connection is done. This permit to set a connectTimeout, while socketTimeout can still be set to 0
+
 ## [2.7.9](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.9) (Mar 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.8...2.7.9)
 
