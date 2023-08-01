@@ -1,5 +1,10 @@
 # Change Log
 
+## [3.0.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.11) (Aug 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.10...3.0.11)
+
+* CONJ-1089	correcting 3.0.10 incompatibility with in java 8
+
 ## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.9...3.0.10)
 
