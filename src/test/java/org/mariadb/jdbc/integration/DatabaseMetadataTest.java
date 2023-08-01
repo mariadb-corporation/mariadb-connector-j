@@ -1017,7 +1017,9 @@ public class DatabaseMetadataTest extends Common {
       java.sql.Statement stmt = con.createStatement();
       if (minVersion(10, 2, 0) || !isMariaDBServer()) {
         stmt.execute(
-            "CREATE TABLE IF NOT EXISTS "+database+".`ta\nble'getcolumns`("
+            "CREATE TABLE IF NOT EXISTS "
+                + database
+                + ".`ta\nble'getcolumns`("
                 + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
                 + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
       } else {

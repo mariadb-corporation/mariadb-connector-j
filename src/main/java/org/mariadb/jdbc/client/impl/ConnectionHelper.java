@@ -181,7 +181,7 @@ public final class ConnectionHelper {
       capabilities |= Capabilities.CLIENT_INTERACTIVE;
     }
 
-    if (configuration.useBulkStmts()) {
+    if (configuration.useBulkStmts() || configuration.useBulkStmtsForInserts()) {
       capabilities |= Capabilities.STMT_BULK_OPERATIONS;
     }
 

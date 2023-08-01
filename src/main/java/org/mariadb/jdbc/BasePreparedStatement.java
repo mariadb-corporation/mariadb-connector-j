@@ -13,6 +13,7 @@ import java.sql.Date;
 import java.sql.ParameterMetaData;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 import org.mariadb.jdbc.client.ColumnDecoder;
 import org.mariadb.jdbc.client.util.Parameters;
 import org.mariadb.jdbc.codec.*;
@@ -24,6 +25,8 @@ import org.mariadb.jdbc.util.ParameterList;
 
 /** Common methods for prepare statement, for client and server prepare statement. */
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
+  private static final Pattern INSERT_STATEMENT_PATTERN =
+      Pattern.compile("^(\\s*\\/\\*([^*]|\\*[^/])*\\*\\/)*\\s*(INSERT)", Pattern.CASE_INSENSITIVE);
 
   /** parameters */
   protected Parameters parameters;
@@ -36,6 +39,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   /** PREPARE command result */
   protected Prepare prepareResult = null;
+
+  protected Boolean isCommandInsert = null;
 
   /**
    * Constructor
@@ -89,6 +94,11 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     }
     sb.append("]");
     return sb.toString();
+  }
+
+  protected void checkIfInsertCommand() {
+    if (isCommandInsert == null)
+      isCommandInsert = (sql == null) ? false : INSERT_STATEMENT_PATTERN.matcher(sql).find();
   }
 
   /**

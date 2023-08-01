@@ -110,7 +110,8 @@ public class Configuration {
   private boolean allowLocalInfile = true;
   private boolean useCompression = false;
   private boolean useAffectedRows = false;
-  private boolean useBulkStmts = true;
+  private boolean useBulkStmts = false;
+  private boolean useBulkStmtsForInserts = true;
   private boolean disablePipeline = false;
   // prepare
   private boolean cachePrepStmts = true;
@@ -204,6 +205,7 @@ public class Configuration {
       boolean useCompression,
       boolean useAffectedRows,
       boolean useBulkStmts,
+      boolean useBulkStmtsForInserts,
       boolean disablePipeline,
       boolean cachePrepStmts,
       int prepStmtCacheSize,
@@ -280,6 +282,7 @@ public class Configuration {
     this.useCompression = useCompression;
     this.useAffectedRows = useAffectedRows;
     this.useBulkStmts = useBulkStmts;
+    this.useBulkStmtsForInserts = useBulkStmtsForInserts;
     this.disablePipeline = disablePipeline;
     this.cachePrepStmts = cachePrepStmts;
     this.prepStmtCacheSize = prepStmtCacheSize;
@@ -350,6 +353,7 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean useBulkStmts,
+      Boolean useBulkStmtsForInserts,
       Boolean disablePipeline,
       Boolean autocommit,
       Boolean useMysqlMetadata,
@@ -435,6 +439,7 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (useBulkStmts != null) this.useBulkStmts = useBulkStmts;
+    if (useBulkStmtsForInserts != null) this.useBulkStmtsForInserts = useBulkStmtsForInserts;
     if (disablePipeline != null) this.disablePipeline = disablePipeline;
     if (autocommit != null) this.autocommit = autocommit;
     if (useMysqlMetadata != null) this.useMysqlMetadata = useMysqlMetadata;
@@ -811,6 +816,7 @@ public class Configuration {
         this.useCompression,
         this.useAffectedRows,
         this.useBulkStmts,
+        this.useBulkStmtsForInserts,
         this.disablePipeline,
         this.cachePrepStmts,
         this.prepStmtCacheSize,
@@ -1248,6 +1254,16 @@ public class Configuration {
    */
   public boolean useBulkStmts() {
     return useBulkStmts;
+  }
+
+  /**
+   * Use server COM_STMT_BULK for batching inserts. if useBulkStmts is enabled,
+   * useBulkStmtsForInserts will be as well
+   *
+   * @return use server bulk command for inserts
+   */
+  public boolean useBulkStmtsForInserts() {
+    return useBulkStmtsForInserts;
   }
 
   /**
@@ -1913,6 +1929,7 @@ public class Configuration {
     private Boolean useCompression;
     private Boolean useAffectedRows;
     private Boolean useBulkStmts;
+    private Boolean useBulkStmtsForInserts;
     private Boolean disablePipeline;
     // prepare
     private Boolean cachePrepStmts;
@@ -2511,6 +2528,18 @@ public class Configuration {
     }
 
     /**
+     * Use server dedicated bulk batch command for insert (if useBulkStmts is enabled,
+     * useBulkStmtsForInserts will be enabled as well)
+     *
+     * @param useBulkStmtsForInserts use server bulk batch command.
+     * @return this {@link Builder}
+     */
+    public Builder useBulkStmtsForInserts(Boolean useBulkStmtsForInserts) {
+      this.useBulkStmtsForInserts = useBulkStmtsForInserts;
+      return this;
+    }
+
+    /**
      * Disable pipeline
      *
      * @param disablePipeline disable pipeline.
@@ -2898,6 +2927,7 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.useBulkStmts,
+              this.useBulkStmtsForInserts,
               this.disablePipeline,
               this.autocommit,
               this.useMysqlMetadata,

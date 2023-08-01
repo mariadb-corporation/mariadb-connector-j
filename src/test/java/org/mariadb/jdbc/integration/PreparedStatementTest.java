@@ -478,7 +478,8 @@ public class PreparedStatementTest extends Common {
   public void executeBatchMultiple() throws SQLException {
     // xpand don't support DO command
     Assumptions.assumeFalse(isXpand());
-    try (Connection con = createCon("allowMultiQueries&useBulkStmts=false")) {
+    try (Connection con =
+        createCon("allowMultiQueries&useBulkStmts=false&useBulkStmtsForInserts=false")) {
       executeBatchMultiple(con);
     }
   }
