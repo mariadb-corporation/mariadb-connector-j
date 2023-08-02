@@ -73,6 +73,8 @@ public class Configuration {
 
   // various
   private Boolean autocommit = null;
+  private boolean createDatabaseIfNotExist = false;
+  private String initSql = null;
   private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
@@ -165,6 +167,8 @@ public class Configuration {
       HaMode haMode,
       Properties nonMappedOptions,
       Boolean autocommit,
+      boolean createDatabaseIfNotExist,
+      String initSql,
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
@@ -232,6 +236,8 @@ public class Configuration {
     this.haMode = haMode;
     this.nonMappedOptions = nonMappedOptions;
     this.autocommit = autocommit;
+    this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    this.initSql = initSql;
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
@@ -332,6 +338,8 @@ public class Configuration {
       Boolean useServerPrepStmts,
       String connectionAttributes,
       Boolean autocommit,
+      Boolean createDatabaseIfNotExist,
+      String initSql,
       Boolean includeThreadDumpInDeadlockExceptions,
       String servicePrincipalName,
       String jaasApplicationName,
@@ -417,6 +425,8 @@ public class Configuration {
     if (useServerPrepStmts != null) this.useServerPrepStmts = useServerPrepStmts;
     this.connectionAttributes = connectionAttributes;
     if (autocommit != null) this.autocommit = autocommit;
+    if (createDatabaseIfNotExist != null) this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+    if (initSql != null) this.initSql = initSql;
     if (includeThreadDumpInDeadlockExceptions != null)
       this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
     if (servicePrincipalName != null) this.servicePrincipalName = servicePrincipalName;
@@ -704,6 +714,8 @@ public class Configuration {
         this.haMode,
         this.nonMappedOptions,
         this.autocommit,
+        this.createDatabaseIfNotExist,
+        this.initSql,
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
@@ -950,6 +962,24 @@ public class Configuration {
 
   public boolean includeThreadDumpInDeadlockExceptions() {
     return includeThreadDumpInDeadlockExceptions;
+  }
+
+  /**
+   * create database if not exist
+   *
+   * @return create database if not exist
+   */
+  public boolean createDatabaseIfNotExist() {
+    return createDatabaseIfNotExist;
+  }
+
+  /**
+   * Execute initial command when connection is established
+   *
+   * @return initial SQL command
+   */
+  public String initSql() {
+    return initSql;
   }
 
   public String servicePrincipalName() {
@@ -1214,6 +1244,8 @@ public class Configuration {
 
     // various
     private Boolean autocommit;
+    private Boolean createDatabaseIfNotExist;
+    private String initSql;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
     private String geometryDefaultType;
@@ -1638,8 +1670,37 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Permit to force autocommit connection value
+     *
+     * @param autocommit autocommit value
+     * @return this {@link Builder}
+     */
     public Builder autocommit(Boolean autocommit) {
       this.autocommit = autocommit;
+      return this;
+    }
+
+    /**
+     * Create database if not exist. This is mainly for test, since does require an additional query
+     * after connection
+     *
+     * @param createDatabaseIfNotExist must driver create database if doesn't exist
+     * @return this {@link Builder}
+     */
+    public Builder createDatabaseIfNotExist(Boolean createDatabaseIfNotExist) {
+      this.createDatabaseIfNotExist = createDatabaseIfNotExist;
+      return this;
+    }
+
+    /**
+     * permit to execute an SQL command on connection creation
+     *
+     * @param initSql initial SQL command
+     * @return this {@link Builder}
+     */
+    public Builder initSql(String initSql) {
+      this.initSql = initSql;
       return this;
     }
 
@@ -1797,6 +1858,8 @@ public class Configuration {
               this.useServerPrepStmts,
               this.connectionAttributes,
               this.autocommit,
+              this.createDatabaseIfNotExist,
+              this.initSql,
               this.includeThreadDumpInDeadlockExceptions,
               this.servicePrincipalName,
               this.jaasApplicationName,

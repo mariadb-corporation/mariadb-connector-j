@@ -182,7 +182,10 @@ public final class ConnectionHelper {
     }
     // connect to database directly if not needed to be created, or if slave, since cannot be
     // created
-    if (configuration.database() != null) {
+    if (configuration.database() != null
+        && (!configuration.createDatabaseIfNotExist()
+            || (configuration.createDatabaseIfNotExist()
+                && (hostAddress != null && !hostAddress.primary)))) {
       capabilities |= Capabilities.CONNECT_WITH_DB;
     }
     return capabilities;

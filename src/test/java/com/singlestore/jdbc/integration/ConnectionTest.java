@@ -104,6 +104,52 @@ public class ConnectionTest extends Common {
   }
 
   @Test
+  public void createDatabaseIfNotExist() throws SQLException {
+    // ensure connecting without DB
+    String connStr =
+        String.format(
+            "jdbc:singlestore://%s:%s/?user=%s&password=%s&createDatabaseIfNotExist",
+            hostname, port, user, password);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      con.createStatement().executeQuery("SELECT 1");
+    }
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `blafl`");
+    String nonExistentDatabase = "blafl";
+    connStr =
+        String.format(
+            "jdbc:singlestore://%s:%s/%s?user=%s&password=%s&createDatabaseIfNotExist=true",
+            hostname, port, nonExistentDatabase, user, password);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+    nonExistentDatabase = "blafl0";
+    connStr =
+        String.format(
+            "jdbc:singlestore:replication://%s:%s,%s:%s/%s?user=%s&password=%s&createDatabaseIfNotExist",
+            hostname, port, hostname, port, nonExistentDatabase, user, password);
+    try (Connection con = DriverManager.getConnection(connStr)) {
+      ResultSet rs = con.createStatement().executeQuery("select DATABASE()");
+      assertTrue(rs.next());
+      assertEquals(nonExistentDatabase, rs.getString(1));
+    }
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `blafl`");
+    sharedConn.createStatement().execute("DROP DATABASE IF EXISTS `blafl0`");
+  }
+
+  @Test
+  public void initSQL() throws SQLException {
+    try (Connection con = createCon("&initSql=create view initSqlView as select 1")) {
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery("SELECT * from initSqlView");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      stmt.execute("DROP VIEW initSqlView");
+    }
+  }
+
+  @Test
   public void nativeSQL() throws SQLException {
     String[] inputs =
         new String[] {

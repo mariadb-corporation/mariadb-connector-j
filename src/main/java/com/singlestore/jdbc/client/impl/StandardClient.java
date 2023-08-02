@@ -54,6 +54,7 @@ import java.sql.SQLInvalidAuthorizationSpecException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLPermission;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -182,7 +183,9 @@ public class StandardClient implements Client, AutoCloseable {
 
       assignStream(out, in, conf, null);
 
-      if (conf.socketTimeout() > 0) setSocketTimeout(conf.socketTimeout());
+      if (conf.socketTimeout() > 0) {
+        setSocketTimeout(conf.socketTimeout());
+      }
 
       // read server handshake
       ReadableByteBuf buf = reader.readPacket(true);
@@ -340,6 +343,23 @@ public class StandardClient implements Client, AutoCloseable {
     if (conf.autocommit() != null) {
       commands.add("set autocommit=" + (conf.autocommit() ? "true" : "false"));
       resInd++;
+    }
+    if (conf.database() != null
+        && conf.createDatabaseIfNotExist()
+        && (hostAddress == null || hostAddress.primary)) {
+      String escapedDb = conf.database().replace("`", "``");
+      commands.add(String.format("CREATE DATABASE IF NOT EXISTS `%s`", escapedDb));
+      commands.add(String.format("USE `%s`", escapedDb));
+      resInd += 2;
+    }
+    if (conf.initSql() != null) {
+      commands.add(conf.initSql());
+      resInd++;
+    }
+    if (conf.nonMappedOptions().containsKey("initSql")) {
+      String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
+      commands.addAll(Arrays.asList(initialCommands));
+      resInd += initialCommands.length;
     }
     commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
     try {
@@ -666,8 +686,6 @@ public class StandardClient implements Client, AutoCloseable {
   /**
    * Read server response packet.
    *
-   * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response
-   *     packets</a>
    * @param stmt current statement (null if internal)
    * @param message current message
    * @param fetchSize default fetch size
@@ -675,6 +693,8 @@ public class StandardClient implements Client, AutoCloseable {
    * @param resultSetType type
    * @param closeOnCompletion must resultset close statement on completion
    * @throws SQLException if any exception
+   * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response
+   *     packets</a>
    */
   public Completion readPacket(
       com.singlestore.jdbc.Statement stmt,
