@@ -289,7 +289,6 @@ public class BatchTest extends Common {
               useCompression,
               useBulkStmtsForInserts);
       try (Connection con = createCon(confString)) {
-        System.out.println("########################################" + confString);
         largeBatch(con);
       }
     }
