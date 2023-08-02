@@ -19,6 +19,8 @@ public final class Loggers {
 
   private static Boolean slf4jEnabled;
   private static CONSOLE_LOG_LEVEL consoleLogLevel;
+  private static boolean printStackTrace;
+  private static int maxPrintStackSizeToLog;
   private static String consoleLogFilepath;
   private static PrintStream filePrintStream;
   public static final String FALLBACK_PROPERTY = "singlestore.logging.fallback";
@@ -48,7 +50,9 @@ public final class Loggers {
         final WeakReference<Logger> ref = slf4jLoggers.get(name);
         Logger cached = ref == null ? null : ref.get();
         if (cached == null) {
-          cached = new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(name));
+          cached =
+              new Slf4JLogger(
+                  org.slf4j.LoggerFactory.getLogger(name), printStackTrace, maxPrintStackSizeToLog);
           slf4jLoggers.put(name, new WeakReference<>(cached));
         }
         return cached;
@@ -67,7 +71,11 @@ public final class Loggers {
         final WeakReference<Logger> ref = jdkLoggers.get(name);
         Logger cached = ref == null ? null : ref.get();
         if (cached == null) {
-          cached = new JdkLogger(java.util.logging.Logger.getLogger(name));
+          cached =
+              new JdkLogger(
+                  java.util.logging.Logger.getLogger(name),
+                  printStackTrace,
+                  maxPrintStackSizeToLog);
           jdkLoggers.put(name, new WeakReference<>(cached));
         }
         return cached;
@@ -83,7 +91,12 @@ public final class Loggers {
     @Override
     public Logger apply(String name) {
       final ConsoleLoggerKey key =
-          new ConsoleLoggerKey(name, getConsoleLogLevel(), getConsoleLogFilepath());
+          new ConsoleLoggerKey(
+              name,
+              getConsoleLogLevel(),
+              getConsoleLogFilepath(),
+              printStackTrace,
+              maxPrintStackSizeToLog);
       synchronized (consoleLoggers) {
         final WeakReference<Logger> ref = consoleLoggers.get(key);
         Logger cached = ref == null ? null : ref.get();
@@ -96,8 +109,11 @@ public final class Loggers {
     }
   }
 
-  public static void resetLoggerFactoryProperties(String level, String path) {
+  public static void resetLoggerFactoryProperties(
+      String level, String path, boolean printTrace, int maxPrintStackSize) {
     synchronized (Loggers.class) {
+      printStackTrace = printTrace;
+      maxPrintStackSizeToLog = maxPrintStackSize;
       slf4jEnabled = level == null && path == null;
       consoleLogLevel = CONSOLE_LOG_LEVEL.fromLevelName(level);
       String error = null;
@@ -113,12 +129,6 @@ public final class Loggers {
       if (error != null) {
         getLogger(Loggers.class).error(error);
       }
-      getLogger(Loggers.class)
-          .info(
-              "Set logger factory properties: slf4jEnabled = {}, consoleLogLevel = {}, consoleLogFilepath = {}",
-              slf4jEnabled,
-              consoleLogLevel,
-              consoleLogFilepath);
     }
   }
 

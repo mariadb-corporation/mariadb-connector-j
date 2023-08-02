@@ -22,14 +22,14 @@ public class LoggerFactoryTest {
     System.clearProperty(Loggers.TEST_ENABLE_SLF4J);
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
     System.clearProperty(Loggers.CONSOLE_DEBUG_PROPERTY);
-    Loggers.resetLoggerFactoryProperties(null, null);
+    Loggers.resetLoggerFactoryProperties(null, null, false, 10);
   }
 
   @Test
   public void defaultSlf4j() {
     System.clearProperty(Loggers.TEST_ENABLE_SLF4J);
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
-    Loggers.resetLoggerFactoryProperties(null, null);
+    Loggers.resetLoggerFactoryProperties(null, null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof Slf4JLogger);
   }
 
@@ -37,10 +37,10 @@ public class LoggerFactoryTest {
   public void commonLogger() {
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "false");
     System.setProperty(Loggers.FALLBACK_PROPERTY, "JDK");
-    Loggers.resetLoggerFactoryProperties("INFO", null);
+    Loggers.resetLoggerFactoryProperties("INFO", null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof JdkLogger);
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "true");
-    Loggers.resetLoggerFactoryProperties("INFO", null);
+    Loggers.resetLoggerFactoryProperties("INFO", null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof JdkLogger);
   }
 
@@ -48,13 +48,13 @@ public class LoggerFactoryTest {
   public void consoleLogger() {
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "false");
     System.clearProperty(Loggers.FALLBACK_PROPERTY);
-    Loggers.resetLoggerFactoryProperties("INFO", null);
+    Loggers.resetLoggerFactoryProperties("INFO", null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
     System.setProperty(Loggers.CONSOLE_DEBUG_PROPERTY, "true");
-    Loggers.resetLoggerFactoryProperties("DEBUG", null);
+    Loggers.resetLoggerFactoryProperties("DEBUG", null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
     System.setProperty(Loggers.TEST_ENABLE_SLF4J, "true");
-    Loggers.resetLoggerFactoryProperties("INFO", null);
+    Loggers.resetLoggerFactoryProperties("INFO", null, false, 10);
     assertTrue(Loggers.getLogger("test") instanceof ConsoleLogger);
   }
 }

@@ -10,9 +10,23 @@ import org.slf4j.Logger;
 public class Slf4JLogger implements com.singlestore.jdbc.util.log.Logger {
 
   private final Logger logger;
+  private final boolean printStackTrace;
+  private final int maxPrintStackSize;
 
-  public Slf4JLogger(Logger logger) {
+  public Slf4JLogger(Logger logger, boolean printStackTrace, int maxPrintStackSize) {
     this.logger = logger;
+    this.printStackTrace = printStackTrace;
+    this.maxPrintStackSize = maxPrintStackSize;
+  }
+
+  @Override
+  public boolean printStackTrace() {
+    return this.printStackTrace;
+  }
+
+  @Override
+  public int maxStackTraceSizeToLog() {
+    return this.maxPrintStackSize;
   }
 
   @Override
@@ -28,11 +42,17 @@ public class Slf4JLogger implements com.singlestore.jdbc.util.log.Logger {
   @Override
   public void trace(String msg) {
     logger.trace(msg);
+    if (printStackTrace()) {
+      logger.trace(LoggerHelper.currentStackTrace(maxStackTraceSizeToLog()));
+    }
   }
 
   @Override
   public void trace(String format, Object... arguments) {
     logger.trace(format, arguments);
+    if (printStackTrace()) {
+      logger.trace(LoggerHelper.currentStackTrace(maxStackTraceSizeToLog()));
+    }
   }
 
   @Override

@@ -32,7 +32,7 @@ public class ConsoleLoggerTest {
 
         ConsoleLogger logger =
             new ConsoleLogger(
-                new ConsoleLoggerKey("test", logLevel, null),
+                new ConsoleLoggerKey("test", logLevel, null, false, 10),
                 new PrintStream(out),
                 new PrintStream(err));
 

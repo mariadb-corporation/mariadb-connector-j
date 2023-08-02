@@ -6,6 +6,11 @@
 package com.singlestore.jdbc.util.log;
 
 public interface Logger {
+
+  boolean printStackTrace();
+
+  int maxStackTraceSizeToLog();
+
   String getName();
 
   boolean isTraceEnabled();

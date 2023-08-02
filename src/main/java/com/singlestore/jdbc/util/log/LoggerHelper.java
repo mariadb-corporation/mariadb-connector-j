@@ -5,6 +5,9 @@
 
 package com.singlestore.jdbc.util.log;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 public final class LoggerHelper {
 
   private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -97,6 +100,14 @@ public final class LoggerHelper {
       sb.append("+--------------------------------------------------+------------------+\n");
     }
     return sb.toString();
+  }
+
+  public static String currentStackTrace(int limit) {
+    return Arrays.stream(Thread.currentThread().getStackTrace())
+        .skip(3)
+        .limit(limit)
+        .map(StackTraceElement::toString)
+        .collect(Collectors.joining("\n"));
   }
 
   public static String hex(

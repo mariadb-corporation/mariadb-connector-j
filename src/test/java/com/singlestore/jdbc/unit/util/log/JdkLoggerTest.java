@@ -71,7 +71,7 @@ public class JdkLoggerTest {
     java.util.logging.Logger log = Logger.getLogger("logger");
     log.addHandler(new BufHandler());
     log.setLevel(Level.FINEST);
-    JdkLogger logger = new JdkLogger(log);
+    JdkLogger logger = new JdkLogger(log, false, 10);
 
     assertEquals("logger", logger.getName());
     assertTrue(logger.isErrorEnabled());
