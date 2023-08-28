@@ -7,10 +7,8 @@ package org.mariadb.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.*;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.*;
 
 public class ConfigurationTest extends Common {
 
@@ -59,9 +57,21 @@ public class ConfigurationTest extends Common {
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
         assertTrue(rs.next());
+      } catch (SQLException e) {
+        // in case server check variable validity
+        Assertions.assertTrue(e.getCause().getMessage().contains("Unknown system variable 'some';f'"));
       }
       try (Connection connection =
           createCon("sessionVariables=session_track_system_variables=\"some\\\";f,'ff'\"")) {
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
+        assertTrue(rs.next());
+      } catch (SQLException e) {
+        // in case server check variable validity
+        Assertions.assertTrue(e.getCause().getMessage().contains("Unknown system variable 'some\";f'"));
+      }
+      try (Connection connection =
+                   createCon("sessionVariables=session_track_system_variables=connect_timeout")) {
         Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT @@session_track_system_variables");
         assertTrue(rs.next());
