@@ -488,7 +488,7 @@ public class MultiPrimaryClient implements Client {
   @Override
   public void close() throws SQLException {
     closed = true;
-    currentClient.close();
+    if (currentClient != null) currentClient.close();
   }
 
   @Override
