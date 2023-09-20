@@ -99,7 +99,7 @@ jobs:
       name: "CS 10.11"
     - env: srv=mariadb v=11.0 local=1
       name: "CS 11.0"
-    - env: srv=mariadb v=11.1-rc local=1
+    - env: srv=mariadb v=11.1 local=1
       name: "CS 11.1"
     - env: srv=mariadb v=10.6 packet=40
       jdk: openjdk17
