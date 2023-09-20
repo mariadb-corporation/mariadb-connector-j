@@ -60,7 +60,9 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
     return hashAlgo;
   }
 
-  /** @return the base (generator) */
+  /**
+   * @return the base (generator)
+   */
   public GroupElement getB() {
     return B;
   }
