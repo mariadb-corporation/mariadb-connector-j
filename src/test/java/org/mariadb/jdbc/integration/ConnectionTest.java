@@ -935,10 +935,9 @@ public class ConnectionTest extends Common {
 
   @Test
   public void windowsNamedPipe() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() || !minVersion(8, 0, 14));
     ResultSet rs = null;
     try {
-      rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket");
+      rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group");
     } catch (SQLException sqle) {
       // on non Windows system, named_pipe doesn't exist.
     }
@@ -948,10 +947,24 @@ public class ConnectionTest extends Common {
       Assumptions.assumeTrue(rs.getBoolean(1));
       String namedPipeName = rs.getString(2);
       System.out.println("namedPipeName:" + namedPipeName);
+      if (!isMariaDBServer() && minVersion(8, 0, 14)) {
+        String namedPipeFullAccess = rs.getString(3);
+        System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
+        Assumptions.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+      }
 
       // skip test if no namedPipeName was obtained because then we do not use a socket connection
       Assumptions.assumeTrue(namedPipeName != null);
-      try (Connection connection = createCon("pipe=" + namedPipeName)) {
+      String connUrl =
+              password == null || password.isEmpty()
+                      ? String.format(
+                      "jdbc:mariadb:///%s?user=%s%s", database, user, defaultOther)
+                      : String.format(
+                      "jdbc:mariadb:///%s?user=%s&password=%s%s",
+                      database, user, password, defaultOther);
+
+
+      try (Connection connection = DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
         java.sql.Statement stmt = connection.createStatement();
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
           assertTrue(rs2.next());
