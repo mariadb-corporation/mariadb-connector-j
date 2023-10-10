@@ -697,7 +697,16 @@ public class ConnectionTest extends Common {
         createCon("credentialType=JWT&sslMode=trust&user=jwt_user&password=" + jwt)) {
       connection.getCatalog();
     }
-
+    if (minVersion(8, 1, 20)) {
+      // Allow empty user
+      String jwtEmptyUserConnectionString =
+          String.format(
+              "jdbc:singlestore://%s:%s/?credentialType=JWT&sslMode=trust&password=%s",
+              hostname, port, jwt);
+      try (Connection connection = DriverManager.getConnection(jwtEmptyUserConnectionString)) {
+        connection.getCatalog();
+      }
+    }
     Common.assertThrowsContains(
         SQLException.class,
         () -> createCon("credentialType=JWT&user=jwt_user&password=" + jwt),

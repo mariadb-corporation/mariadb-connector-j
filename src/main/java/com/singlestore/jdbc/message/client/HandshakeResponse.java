@@ -140,7 +140,7 @@ public final class HandshakeResponse implements ClientMessage {
     writer.writeByte(exchangeCharset); // 1
 
     writer.writeBytes(new byte[19]); // 19
-    writer.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
+    writer.writeInt((int) (clientCapabilities >> 32));
 
     writer.writeString(username != null ? username : System.getProperty("user.name"));
     writer.writeByte(0x00);

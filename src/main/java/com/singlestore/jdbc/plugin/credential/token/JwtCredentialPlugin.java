@@ -36,7 +36,7 @@ public class JwtCredentialPlugin implements CredentialPlugin {
 
   @Override
   public CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress) {
-    this.userName = userName;
+    this.userName = userName == null ? "*" : userName;
     this.token = conf.password();
     return this;
   }
