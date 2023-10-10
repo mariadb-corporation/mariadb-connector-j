@@ -68,8 +68,8 @@ jobs:
     - env: srv=mariadb-es v=10.6
       name: "ES 10.6"
       if: type = push AND fork = false
-    - env: srv=mariadb-es-test v=23.06
-      name: "ES 23.06"
+    - env: srv=mariadb-es-test v=23.08
+      name: "ES 23.08"
       if: type = push AND fork = false
     - env: srv=maxscale
       name: "Maxscale"
@@ -99,7 +99,7 @@ jobs:
       name: "CS 10.11"
     - env: srv=mariadb v=11.0 local=1
       name: "CS 11.0"
-    - env: srv=mariadb v=11.1-rc local=1
+    - env: srv=mariadb v=11.1 local=1
       name: "CS 11.1"
     - env: srv=mariadb v=10.6 packet=40
       jdk: openjdk17
