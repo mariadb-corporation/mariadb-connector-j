@@ -1439,6 +1439,65 @@ public class DriverTest extends BaseTest {
     }
   }
 
+  @Test
+  public void namedPipeCancel() {
+    try (ResultSet rs =
+        sharedConnection
+            .createStatement()
+            .executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group")) {
+      assertTrue(rs.next());
+      if (rs.getBoolean(1)) {
+        String namedPipeName = rs.getString(2);
+        // skip test if no namedPipeName was obtained because then we do not use a socket connection
+        Assume.assumeTrue(namedPipeName != null);
+
+        if (!isMariadbServer() && minVersion(8, 0, 14)) {
+          String namedPipeFullAccess = rs.getString(3);
+          System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
+          Assume.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+        }
+        String connUrl =
+            String.format(
+                "jdbc:mariadb:///%s?user=%s&password=%s&%s",
+                database, username, password, defaultOther);
+
+        try (Connection connection =
+            DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
+          long start;
+          long normalExecutionTime;
+
+          try (PreparedStatement stmt =
+              connection.prepareStatement(
+                  "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
+            start = System.currentTimeMillis();
+            stmt.executeQuery();
+            normalExecutionTime = System.currentTimeMillis() - start;
+
+            start = System.currentTimeMillis();
+            stmt.setFetchSize(1);
+            stmt.executeQuery();
+            stmt.cancel();
+          }
+
+          long interruptedExecutionTime = System.currentTimeMillis() - start;
+
+          System.out.println(normalExecutionTime);
+          System.out.println(interruptedExecutionTime);
+          // normalExecutionTime = 1500
+          // interruptedExecutionTime = 77
+          assertTrue(
+              "interruptedExecutionTime:"
+                  + interruptedExecutionTime
+                  + " normalExecutionTime:"
+                  + normalExecutionTime,
+              interruptedExecutionTime < normalExecutionTime);
+        }
+      }
+    } catch (SQLException e) {
+      // not on windows
+    }
+  }
+
   /**
    * CONJ-435 : "All pipe instances are busy" exception on multiple connections to the same named
    * pipe.

@@ -1433,9 +1433,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return currentHost;
   }
 
+  public String getSocketIp() {
+    return this.socket.getInetAddress() == null
+        ? null
+        : this.socket.getInetAddress().getHostAddress();
+  }
+
   public void setHostAddress(HostAddress host) {
     this.currentHost = host;
-    this.readOnly = ParameterConstant.TYPE_REPLICA.equals(this.currentHost.type);
+    this.readOnly =
+        this.currentHost == null
+            ? false
+            : ParameterConstant.TYPE_REPLICA.equals(this.currentHost.type);
   }
 
   public String getHost() {

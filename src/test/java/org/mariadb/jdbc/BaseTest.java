@@ -92,6 +92,7 @@ public class BaseTest {
   protected static String database;
   protected static String username;
   protected static String password;
+  protected static String defaultOther;
   protected static Options options;
   protected static String parameters;
   protected static boolean testSingleHost;
@@ -106,7 +107,7 @@ public class BaseTest {
         BaseTest.class.getClassLoader().getResourceAsStream("conf.properties")) {
       Properties prop = new Properties();
       prop.load(inputStream);
-      String defaultOther;
+
       String val = System.getenv("TEST_REQUIRE_TLS");
       defaultOther = get("DB_OTHER", prop);
       if ("1".equals(val)) {

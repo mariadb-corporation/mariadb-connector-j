@@ -69,10 +69,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import javax.sql.rowset.serial.SerialException;
-import org.mariadb.jdbc.LocalInfileInterceptor;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
@@ -1362,7 +1359,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void cancelCurrentQuery() throws SQLException {
     try (MasterProtocol copiedProtocol =
         new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock(), traceCache)) {
-      copiedProtocol.setHostAddress(getHostAddress());
+      HostAddress currentHost = getHostAddress();
+      String currentIp = getSocketIp();
+      HostAddress hostAddress =
+          currentIp == null
+              ? currentHost
+              : new HostAddress(currentIp, currentHost.port, currentHost.type);
+      copiedProtocol.setHostAddress(hostAddress);
       copiedProtocol.connect();
       // no lock, because there is already a query running that possessed the lock.
       copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
