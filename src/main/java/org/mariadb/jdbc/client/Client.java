@@ -190,4 +190,11 @@ public interface Client extends AutoCloseable {
    * @return connection host
    */
   HostAddress getHostAddress();
+
+  /**
+   * Get current socket IP or null (for Pipe / unix socket)
+   *
+   * @return Socket current IP
+   */
+  String getSocketIp();
 }

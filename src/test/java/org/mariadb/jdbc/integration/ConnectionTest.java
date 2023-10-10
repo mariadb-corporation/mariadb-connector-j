@@ -14,6 +14,8 @@ import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.*;
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.integration.util.SocketFactoryBasicTest;
@@ -937,7 +939,10 @@ public class ConnectionTest extends Common {
   public void windowsNamedPipe() throws SQLException {
     ResultSet rs = null;
     try {
-      rs = sharedConn.createStatement().executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group");
+      rs =
+          sharedConn
+              .createStatement()
+              .executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group");
     } catch (SQLException sqle) {
       // on non Windows system, named_pipe doesn't exist.
     }
@@ -956,15 +961,14 @@ public class ConnectionTest extends Common {
       // skip test if no namedPipeName was obtained because then we do not use a socket connection
       Assumptions.assumeTrue(namedPipeName != null);
       String connUrl =
-              password == null || password.isEmpty()
-                      ? String.format(
-                      "jdbc:mariadb:///%s?user=%s%s", database, user, defaultOther)
-                      : String.format(
-                      "jdbc:mariadb:///%s?user=%s&password=%s%s",
-                      database, user, password, defaultOther);
+          password == null || password.isEmpty()
+              ? String.format("jdbc:mariadb:///%s?user=%s%s", database, user, defaultOther)
+              : String.format(
+                  "jdbc:mariadb:///%s?user=%s&password=%s%s",
+                  database, user, password, defaultOther);
 
-
-      try (Connection connection = DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
+      try (Connection connection =
+          DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
         java.sql.Statement stmt = connection.createStatement();
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
           assertTrue(rs2.next());
@@ -983,6 +987,60 @@ public class ConnectionTest extends Common {
         try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
           assertTrue(rs2.next());
         }
+      }
+    }
+  }
+
+  @Test
+  public void windowsNamedPipeCancel() throws SQLException {
+    Assumptions.assumeFalse(isMariaDBServer());
+    ResultSet rs = null;
+    try {
+      rs =
+          sharedConn
+              .createStatement()
+              .executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group");
+    } catch (SQLException sqle) {
+      // on non Windows system, named_pipe doesn't exist.
+    }
+    if (rs != null) {
+      assertTrue(rs.next());
+      System.out.println("named_pipe:" + rs.getString(1));
+      Assumptions.assumeTrue(rs.getBoolean(1));
+      String namedPipeName = rs.getString(2);
+      System.out.println("namedPipeName:" + namedPipeName);
+      if (!isMariaDBServer() && minVersion(8, 0, 14)) {
+        String namedPipeFullAccess = rs.getString(3);
+        System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
+        Assumptions.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+      }
+
+      // skip test if no namedPipeName was obtained because then we do not use a socket connection
+      Assumptions.assumeTrue(namedPipeName != null);
+      String connUrl =
+          password == null || password.isEmpty()
+              ? String.format("jdbc:mariadb:///%s?user=%s%s", database, user, defaultOther)
+              : String.format(
+                  "jdbc:mariadb:///%s?user=%s&password=%s%s",
+                  database, user, password, defaultOther);
+
+      try (Connection connection =
+          DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
+        Statement stmt = connection.createStatement();
+        stmt.cancel(); // will do nothing
+
+        ExecutorService exec = Executors.newFixedThreadPool(1);
+
+        Common.assertThrowsContains(
+            SQLTimeoutException.class,
+            () -> {
+              exec.execute(new StatementTest.CancelThread(stmt));
+              stmt.execute(
+                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
+                      + ".tables as t2");
+              exec.shutdown();
+            },
+            "Query execution was interrupted");
       }
     }
   }

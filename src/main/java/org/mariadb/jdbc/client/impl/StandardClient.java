@@ -1023,6 +1023,12 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  public String getSocketIp() {
+    return this.socket.getInetAddress() == null
+        ? null
+        : this.socket.getInetAddress().getHostAddress();
+  }
+
   public boolean isPrimary() {
     return hostAddress.primary;
   }

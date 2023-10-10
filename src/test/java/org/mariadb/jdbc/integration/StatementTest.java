@@ -619,8 +619,7 @@ public class StatementTest extends Common {
   @Test
   public void cancel() throws Exception {
     Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"maxscale".equals(System.getenv("srv"))
+        !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv"))
             && !isXpand());
@@ -937,7 +936,7 @@ public class StatementTest extends Common {
     assertTrue(stmt.isClosed());
   }
 
-  private static class CancelThread implements Runnable {
+  static class CancelThread implements Runnable {
 
     private final java.sql.Statement stmt;
 

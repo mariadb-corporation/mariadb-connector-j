@@ -537,6 +537,11 @@ public class MultiPrimaryClient implements Client {
     return currentClient.getHostAddress();
   }
 
+  @Override
+  public String getSocketIp() {
+    return currentClient.getSocketIp();
+  }
+
   public boolean isPrimary() {
     return true;
   }

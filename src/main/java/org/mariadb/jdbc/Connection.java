@@ -94,8 +94,15 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli =
-        new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
+    // prefer relying on IP compare to DNS if not using Unix socket/PIPE
+    String currentIp = client.getSocketIp();
+    HostAddress hostAddress =
+        currentIp == null
+            ? client.getHostAddress()
+            : HostAddress.from(
+                currentIp, client.getHostAddress().port, client.getHostAddress().primary);
+
+    try (Client cli = new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
     }
   }
