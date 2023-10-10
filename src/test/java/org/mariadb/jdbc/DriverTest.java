@@ -1407,13 +1407,27 @@ public class DriverTest extends BaseTest {
   @Test
   public void namedPipe() {
     try (ResultSet rs =
-        sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
+        sharedConnection
+            .createStatement()
+            .executeQuery("select @@named_pipe,@@socket,@@named_pipe_full_access_group")) {
       assertTrue(rs.next());
       if (rs.getBoolean(1)) {
         String namedPipeName = rs.getString(2);
         // skip test if no namedPipeName was obtained because then we do not use a socket connection
         Assume.assumeTrue(namedPipeName != null);
-        try (Connection connection = setConnection("&pipe=" + namedPipeName)) {
+
+        if (!isMariadbServer() && minVersion(8, 0, 14)) {
+          String namedPipeFullAccess = rs.getString(3);
+          System.out.println("namedPipeFullAccess:" + namedPipeFullAccess);
+          Assume.assumeTrue(namedPipeFullAccess != null && !namedPipeFullAccess.isEmpty());
+        }
+        String connUrl =
+            String.format(
+                "jdbc:mariadb:///%s?user=%s&password=%s&%s",
+                database, username, password, defaultOther);
+
+        try (Connection connection =
+            DriverManager.getConnection(connUrl + "&pipe=" + namedPipeName)) {
           Statement stmt = connection.createStatement();
           try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
             assertTrue(rs2.next());
