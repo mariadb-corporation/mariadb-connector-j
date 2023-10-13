@@ -44,4 +44,9 @@ public class InternalPoolConnection extends SingleStorePoolConnection {
   public void setFailed(boolean failed) {
     this.failed = failed;
   }
+
+  /** Reset last used time, to ensure next retrieval will validate connection before borrowing */
+  public void ensureValidation() {
+    lastUsed.set(0L);
+  }
 }

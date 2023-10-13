@@ -53,14 +53,29 @@ public final class ErrorPacket implements ServerMessage {
     }
   }
 
+  /**
+   * Error code
+   *
+   * @return error code
+   */
   public short getErrorCode() {
     return errorCode;
   }
 
+  /**
+   * Error message
+   *
+   * @return error message
+   */
   public String getMessage() {
     return message;
   }
 
+  /**
+   * SQL State
+   *
+   * @return SQLState
+   */
   public String getSqlState() {
     return sqlState;
   }

@@ -59,22 +59,27 @@ public class LineStringCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from LineStringCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private CompleteResult getPrepare(com.singlestore.jdbc.Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from LineStringCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    CompleteResult rs = (CompleteResult) stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -165,6 +170,7 @@ public class LineStringCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LineStringCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     LineString ls1 = new LineString("LINESTRING(0 0,0 10,10 0)");
     LineString ls2 = new LineString("LINESTRING(10 10,20 10,20 20,10 20,10 10)");
     try (PreparedStatement prep =
@@ -204,6 +210,7 @@ public class LineStringCodecTest extends CommonCodecTest {
     assertEquals(ls2, rs.getObject(2, LineString.class));
     assertTrue(rs.next());
     assertEquals(ls1, rs.getObject(2, LineString.class));
+    con.commit();
   }
 
   @Test

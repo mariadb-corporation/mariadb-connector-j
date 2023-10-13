@@ -34,11 +34,6 @@ public class NamedPipeSocket extends Socket {
     }
   }
 
-  @Override
-  public void connect(SocketAddress endpoint) throws IOException {
-    connect(endpoint, 0);
-  }
-
   /**
    * Name pipe connection.
    *
@@ -47,12 +42,9 @@ public class NamedPipeSocket extends Socket {
    * @throws IOException exception
    */
   public void connect(SocketAddress endpoint, int timeout) throws IOException {
-    String filename;
-    if (host == null || host.equals("localhost")) {
-      filename = "\\\\.\\pipe\\" + name;
-    } else {
-      filename = "\\\\" + host + "\\pipe\\" + name;
-    }
+    String filename =
+        String.format(
+            "\\\\%s\\pipe\\%s", (host == null || host.equals("localhost")) ? "." : host, name);
 
     // use a default timeout of 100ms if no timeout set.
     int usedTimeout = timeout == 0 ? 100 : timeout;
@@ -116,14 +108,7 @@ public class NamedPipeSocket extends Socket {
           }
 
           @Override
-          public void write(int value) throws IOException {
-            file.write(value);
-          }
-
-          @Override
-          public void write(byte[] bytes) throws IOException {
-            file.write(bytes);
-          }
+          public void write(int value) {}
         };
   }
 
@@ -143,14 +128,6 @@ public class NamedPipeSocket extends Socket {
     // do nothing
   }
 
-  public void setReceiveBufferSize(int size) {
-    // do nothing
-  }
-
-  public void setSendBufferSize(int size) {
-    // do nothing
-  }
-
   public void setSoLinger(boolean bool, int value) {
     // do nothing
   }
@@ -160,10 +137,7 @@ public class NamedPipeSocket extends Socket {
     // do nothing
   }
 
-  public void shutdownInput() {
-    // do nothing
-  }
-
+  @Override
   public void shutdownOutput() {
     // do nothing
   }

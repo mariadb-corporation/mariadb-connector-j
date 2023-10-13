@@ -12,6 +12,16 @@ import java.sql.SQLException;
 
 public interface GssapiAuth {
 
+  /**
+   * Authenticate
+   *
+   * @param writer socket writer
+   * @param in socket reader
+   * @param servicePrincipalName SPN
+   * @param mechanisms mechanisms
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for any other type of errors
+   */
   void authenticate(
       Writer writer,
       Reader in,

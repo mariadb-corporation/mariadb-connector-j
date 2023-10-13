@@ -7,37 +7,20 @@ package com.singlestore.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class ClientParser implements PrepareResult {
 
   private final String sql;
-  private final List<byte[]> queryParts;
-  private final boolean isMultiStatement;
+  private final byte[] query;
+  private List<Integer> paramPositions;
   private final int paramCount;
-  private static Map<String, ClientParser> cache = new LinkedHashMap<>(512);
 
-  private ClientParser(
-      String sql, List<byte[]> queryParts, int paramCount, boolean isMultiStatement) {
+  private ClientParser(String sql, byte[] query, List<Integer> paramPositions) {
     this.sql = sql;
-    this.queryParts = queryParts;
-    this.paramCount = paramCount;
-    this.isMultiStatement = isMultiStatement;
-  }
-
-  /**
-   * Create a new Client Parser Object required for the RewriteBatchedStatement requirement.
-   *
-   * @param queryString
-   * @param queryParts
-   * @param paramCount
-   * @return
-   */
-  public static ClientParser parameterPartsForRewriteBatchedStatement(
-      String queryString, List<byte[]> queryParts, int paramCount) {
-    return new ClientParser(queryString, queryParts, paramCount, false);
+    this.query = query;
+    this.paramPositions = paramPositions;
+    this.paramCount = paramPositions.size();
   }
 
   /**
@@ -52,22 +35,17 @@ public final class ClientParser implements PrepareResult {
    * @return ClientPrepareResult
    */
   public static ClientParser parameterParts(String queryString, boolean noBackslashEscapes) {
-    if (cache.containsKey(queryString)) return cache.get(queryString);
 
-    List<byte[]> partList = new ArrayList<>();
+    List<Integer> paramPositions = new ArrayList<>();
     LexState state = LexState.Normal;
-    char lastChar = '\0';
-    boolean endingSemicolon = false;
-    boolean isMultiStatement = false;
-
+    byte lastChar = 0x00;
     boolean singleQuotes = false;
-    int lastParameterPosition = 0;
 
-    char[] query = queryString.toCharArray();
+    byte[] query = queryString.getBytes(StandardCharsets.UTF_8);
     int queryLength = query.length;
     for (int i = 0; i < queryLength; i++) {
 
-      char car = query[i];
+      byte car = query[i];
       if (state == LexState.Escape
           && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
         state = LexState.String;
@@ -75,39 +53,39 @@ public final class ClientParser implements PrepareResult {
         continue;
       }
       switch (car) {
-        case '*':
-          if (state == LexState.Normal && lastChar == '/') {
+        case (byte) '*':
+          if (state == LexState.Normal && lastChar == (byte) '/') {
             state = LexState.SlashStarComment;
           }
           break;
 
-        case '/':
-          if (state == LexState.SlashStarComment && lastChar == '*') {
+        case (byte) '/':
+          if (state == LexState.SlashStarComment && lastChar == (byte) '*') {
             state = LexState.Normal;
-          } else if (state == LexState.Normal && lastChar == '/') {
+          } else if (state == LexState.Normal && lastChar == (byte) '/') {
             state = LexState.EOLComment;
           }
           break;
 
-        case '#':
+        case (byte) '#':
           if (state == LexState.Normal) {
             state = LexState.EOLComment;
           }
           break;
 
-        case '-':
-          if (state == LexState.Normal && lastChar == '-') {
+        case (byte) '-':
+          if (state == LexState.Normal && lastChar == (byte) '-') {
             state = LexState.EOLComment;
           }
           break;
 
-        case '\n':
+        case (byte) '\n':
           if (state == LexState.EOLComment) {
             state = LexState.Normal;
           }
           break;
 
-        case '"':
+        case (byte) '"':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = false;
@@ -118,7 +96,7 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case '\'':
+        case (byte) '\'':
           if (state == LexState.Normal) {
             state = LexState.String;
             singleQuotes = true;
@@ -129,7 +107,7 @@ public final class ClientParser implements PrepareResult {
           }
           break;
 
-        case '\\':
+        case (byte) '\\':
           if (noBackslashEscapes) {
             break;
           }
@@ -137,64 +115,38 @@ public final class ClientParser implements PrepareResult {
             state = LexState.Escape;
           }
           break;
-        case ';':
+        case (byte) '?':
           if (state == LexState.Normal) {
-            endingSemicolon = true;
+            paramPositions.add(i);
           }
           break;
-        case '?':
-          if (state == LexState.Normal) {
-            partList.add(
-                queryString.substring(lastParameterPosition, i).getBytes(StandardCharsets.UTF_8));
-            lastParameterPosition = i + 1;
-          }
-          break;
-        case '`':
+        case (byte) '`':
           if (state == LexState.Backtick) {
             state = LexState.Normal;
           } else if (state == LexState.Normal) {
             state = LexState.Backtick;
           }
           break;
-        default:
-          // multiple queries
-          if (state == LexState.Normal && endingSemicolon && ((byte) car >= 40)) {
-            endingSemicolon = false;
-            isMultiStatement = true;
-          }
-          break;
       }
       lastChar = car;
     }
-    if (lastParameterPosition == 0) {
-      partList.add(queryString.getBytes(StandardCharsets.UTF_8));
-    } else {
-      partList.add(
-          queryString
-              .substring(lastParameterPosition, queryLength)
-              .getBytes(StandardCharsets.UTF_8));
-    }
-
-    ClientParser clientParser =
-        new ClientParser(queryString, partList, partList.size() - 1, isMultiStatement);
-    if (queryString.length() < 16384) cache.put(queryString, clientParser);
-    return clientParser;
+    return new ClientParser(queryString, query, paramPositions);
   }
 
   public String getSql() {
     return sql;
   }
 
-  public List<byte[]> getQueryParts() {
-    return queryParts;
+  public byte[] getQuery() {
+    return query;
   }
 
   public int getParamCount() {
     return paramCount;
   }
 
-  public boolean isMultiStatement() {
-    return isMultiStatement;
+  public List<Integer> getParamPositions() {
+    return paramPositions;
   }
 
   enum LexState {

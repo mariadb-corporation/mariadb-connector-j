@@ -40,6 +40,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+/** Connection creation helper class */
 public final class ConnectionHelper {
 
   private static final SocketHandlerFunction socketHandler;
@@ -117,8 +118,11 @@ public final class ConnectionHelper {
       throws SQLException {
     Socket socket;
     try {
+      if (conf.pipe() == null && conf.localSocket() == null && hostAddress == null)
+        throw new SQLException(
+            "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
-      SocketHelper.setSocketOption(conf, socket);
+      setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null
@@ -130,12 +134,48 @@ public final class ConnectionHelper {
 
     } catch (IOException ioe) {
       throw new SQLNonTransientConnectionException(
-          String.format("Socket fail to connect to host:%s. %s", hostAddress, ioe.getMessage()),
+          String.format(
+              "Socket fail to connect to host:%s. %s",
+              hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
           "08000",
           ioe);
     }
   }
 
+  /**
+   * Set socket option
+   *
+   * @param conf configuration
+   * @param socket socket
+   * @throws IOException if any socket error occurs
+   */
+  public static void setSocketOption(final Configuration conf, final Socket socket)
+      throws IOException {
+    socket.setTcpNoDelay(true);
+    socket.setSoTimeout(conf.socketTimeout());
+    if (conf.tcpKeepAlive()) {
+      socket.setKeepAlive(true);
+    }
+    if (conf.tcpAbortiveClose()) {
+      socket.setSoLinger(true, 0);
+    }
+
+    // Bind the socket to a particular interface if the connection property
+    // localSocketAddress has been defined.
+    if (conf.localSocketAddress() != null) {
+      InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
+      socket.bind(localAddress);
+    }
+  }
+
+  /**
+   * Initialize client capability according to configuration and server capabilities.
+   *
+   * @param configuration configuration
+   * @param serverCapabilities server capabilities
+   * @param hostAddress host address server
+   * @return client capabilities
+   */
   public static long initializeClientCapabilities(
       final Configuration configuration,
       final long serverCapabilities,
@@ -151,11 +191,11 @@ public final class ConnectionHelper {
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
             | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO;
-
-    if (Boolean.parseBoolean(
-        configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
-      capabilities |= Capabilities.MARIADB_CLIENT_CACHE_METADATA;
+            | Capabilities.EXTENDED_TYPE_INFO;
+    if (configuration.useServerPrepStmts()
+        && Boolean.parseBoolean(
+            configuration.nonMappedOptions().getProperty("enableSkipMeta", "true"))) {
+      capabilities |= Capabilities.CACHE_METADATA;
     }
 
     if (!configuration.useAffectedRows()) {
@@ -210,6 +250,16 @@ public final class ConnectionHelper {
     return (byte) 33; // utf8_general_ci;
   }
 
+  /**
+   * Authentication swtich handler
+   *
+   * @param credential credential
+   * @param writer socket writer
+   * @param reader socket reader
+   * @param context connection context
+   * @throws IOException if any socket error occurs
+   * @throws SQLException if any other kind of issue occurs
+   */
   public static void authenticationHandler(
       Credential credential, Writer writer, Reader reader, Context context)
       throws SQLException, IOException {
@@ -252,8 +302,8 @@ public final class ConnectionHelper {
           // see https://mariadb.com/kb/en/library/ok_packet/
           // *************************************************************************************
           buf.skip(); // 0x00 OkPacket Header
-          buf.skip(buf.readLengthNotNull()); // affectedRows
-          buf.skip(buf.readLengthNotNull());
+          buf.readLongLengthEncodedNotNull(); // skip affectedRows
+          buf.readLongLengthEncodedNotNull(); // skip insert id
           // insertId
           context.setServerStatus(buf.readShort());
           break authentication_loop;

@@ -46,7 +46,11 @@ import java.sql.SQLException;
 import java.sql.SQLType;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+/** Updatable result implementation */
 public class UpdatableResult extends CompleteResult {
   private static final int STATE_STANDARD = 0;
   private static final int STATE_UPDATE = 1;
@@ -57,13 +61,30 @@ public class UpdatableResult extends CompleteResult {
   private String database;
   private String table;
   private boolean canInsert;
+  private boolean canUpdate;
+  private String sqlStateError = "HY000";
   private boolean isAutoincrementPk;
   private int savedRowPointer;
-  private boolean canUpdate;
   private String changeError;
   private int state = STATE_STANDARD;
   private ParameterList parameters;
+  private String[] primaryCols;
 
+  /**
+   * Constructor
+   *
+   * @param stmt statement that initiate this result
+   * @param binaryProtocol are rows binary encoded
+   * @param maxRows maximum rows
+   * @param metadataList columns metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close on completion
+   * @param traceEnable must network exchanges be logged
+   * @throws IOException if any socket error occurs
+   * @throws SQLException for other kind of error
+   */
   public UpdatableResult(
       Statement stmt,
       boolean binaryProtocol,
@@ -101,17 +122,20 @@ public class UpdatableResult extends CompleteResult {
       if (columnDefinition.getTable().isEmpty()) {
         cannotUpdateInsertRow(
             "The result-set contains fields without without any database/table information");
+        sqlStateError = "0A000";
         return;
       }
 
       if (database != null && !database.equals(columnDefinition.getSchema())) {
         cannotUpdateInsertRow("The result-set contains more than one database");
+        sqlStateError = "0A000";
         return;
       }
       database = columnDefinition.getSchema();
 
       if (table != null && !table.equals(columnDefinition.getTable())) {
         cannotUpdateInsertRow("The result-set contains fields on different tables");
+        sqlStateError = "0A000";
         return;
       }
       table = columnDefinition.getTable();
@@ -121,37 +145,56 @@ public class UpdatableResult extends CompleteResult {
     for (Column col : metadataList) {
       if (col.isPrimaryKey()) {
         isAutoincrementPk = col.isAutoIncrement();
-        return;
+        if (isAutoincrementPk) {
+          primaryCols = new String[] {col.getColumnName()};
+          return;
+        }
       }
     }
 
-    canUpdate = false;
-    changeError = "Cannot update rows, since primary field is not present in query";
-
-    // check that table contain a generated primary field
+    // check that table contains a generated primary field
     // to check if insert are still possible
     ResultSet rs =
         statement
             .getConnection()
             .createStatement()
             .executeQuery("SHOW COLUMNS FROM `" + database + "`.`" + table + "`");
-
+    List<String> primaryColumns = new ArrayList<>();
     while (rs.next()) {
       if ("PRI".equals(rs.getString("Key"))) {
+        primaryColumns.add(rs.getString("Field"));
+        boolean keyPresent = false;
+        for (Column col : metadataList) {
+          if (rs.getString("Field").equals(col.getColumnName())) {
+            keyPresent = true;
+          }
+        }
         boolean canBeNull = "YES".equals(rs.getString("Null"));
         boolean hasDefault = rs.getString("Default") != null;
         boolean generated = rs.getString("Extra") != null && !rs.getString("Extra").isEmpty();
         isAutoincrementPk =
             rs.getString("Extra") != null && rs.getString("Extra").contains("auto_increment");
-        if (!canBeNull && !hasDefault && !generated) {
+        if (!keyPresent && !canBeNull && !hasDefault && !generated) {
           canInsert = false;
           changeError =
               String.format("primary field `%s` is not present in query", rs.getString("Field"));
         }
-        return;
+        if (!keyPresent) {
+          canUpdate = false;
+          changeError =
+              String.format(
+                  "Cannot update rows, since primary field %s is not present in query",
+                  rs.getString("Field"));
+        }
       }
     }
-    canInsert = false;
+
+    if (primaryColumns.isEmpty()) {
+      canUpdate = false;
+      changeError = "Cannot update rows, since no primary field is present in query";
+    } else {
+      primaryCols = primaryColumns.toArray(new String[0]);
+    }
   }
 
   private void cannotUpdateInsertRow(String reason) {
@@ -431,7 +474,8 @@ public class UpdatableResult extends CompleteResult {
               parameters.size() > pos ? parameters.get(pos) : null;
           if (param != null) {
             ((BasePreparedStatement) insertPreparedStatement).setParameter(paramPos++, param);
-          } else if (!colInfo.isPrimaryKey() && !colInfo.hasDefault()) {
+          } else if (!Arrays.asList(primaryCols).contains(colInfo.getColumnName())
+              && !colInfo.hasDefault()) {
             ((BasePreparedStatement) insertPreparedStatement)
                 .setParameter(paramPos++, Parameter.NULL_PARAMETER);
           }
@@ -485,7 +529,8 @@ public class UpdatableResult extends CompleteResult {
         valueClause.append("?");
         firstParam = false;
       } else {
-        if (colInfo.isPrimaryKey() && !colInfo.isAutoIncrement()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())
+            && !colInfo.isAutoIncrement()) {
           throw exceptionFactory.create(
               String.format(
                   "Cannot call insertRow() not setting value for primary key %s",
@@ -523,7 +568,7 @@ public class UpdatableResult extends CompleteResult {
       }
       selectSql.append("`").append(colInfo.getColumnName()).append("`");
 
-      if (colInfo.isPrimaryKey()) {
+      if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
         if (!firstPrimary) {
           whereClause.append("AND ");
         }
@@ -558,7 +603,7 @@ public class UpdatableResult extends CompleteResult {
     try (PreparedStatement refreshPreparedStatement = prepareRefreshStmt()) {
       for (int pos = 0; pos < metadataList.length; pos++) {
         Column colInfo = metadataList[pos];
-        if (colInfo.isPrimaryKey()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
           if ((state != STATE_STANDARD) && parameters.size() > pos && parameters.get(pos) != null) {
             // Row has just been updated using updateRow() methods.
             // updateRow might have changed primary key, so must use the new value.
@@ -582,17 +627,17 @@ public class UpdatableResult extends CompleteResult {
     StringBuilder whereClause = new StringBuilder(" WHERE ");
 
     boolean firstUpdate = true;
-    boolean firstPrimary = true;
+
+    for (int pos = 0; pos < primaryCols.length; pos++) {
+      String key = primaryCols[pos];
+      if (pos != 0) {
+        whereClause.append("AND ");
+      }
+      whereClause.append("`").append(key).append("` = ? ");
+    }
+
     for (int pos = 0; pos < metadataList.length; pos++) {
       Column colInfo = metadataList[pos];
-
-      if (colInfo.isPrimaryKey()) {
-        if (!firstPrimary) {
-          whereClause.append("AND ");
-        }
-        firstPrimary = false;
-        whereClause.append("`").append(colInfo.getColumnName()).append("` = ? ");
-      }
 
       if (parameters.size() > pos && parameters.get(pos) != null) {
         if (!firstUpdate) {
@@ -649,7 +694,7 @@ public class UpdatableResult extends CompleteResult {
 
           for (int pos = 0; pos < metadataList.length; pos++) {
             Column colInfo = metadataList[pos];
-            if (colInfo.isPrimaryKey()) {
+            if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
               preparedStatement.setObject(++fieldsIndex, getObject(pos + 1));
             }
           }
@@ -670,7 +715,7 @@ public class UpdatableResult extends CompleteResult {
       throw exceptionFactory.create("Cannot call deleteRow() when inserting a new row");
     }
     if (!canUpdate) {
-      throw exceptionFactory.create("ResultSet cannot be updated. " + changeError);
+      throw exceptionFactory.create("ResultSet cannot be updated. " + changeError, sqlStateError);
     }
     if (rowPointer < 0) {
       throw new SQLDataException("Current position is before the first row", "22023");
@@ -684,7 +729,7 @@ public class UpdatableResult extends CompleteResult {
         new StringBuilder("DELETE FROM `" + database + "`.`" + table + "` WHERE ");
     boolean firstPrimary = true;
     for (Column colInfo : metadataList) {
-      if (colInfo.isPrimaryKey()) {
+      if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
         if (!firstPrimary) {
           deleteSql.append("AND ");
         }
@@ -705,7 +750,7 @@ public class UpdatableResult extends CompleteResult {
       int fieldsPrimaryIndex = 1;
       for (int pos = 0; pos < metadataList.length; pos++) {
         Column colInfo = metadataList[pos];
-        if (colInfo.isPrimaryKey()) {
+        if (Arrays.asList(primaryCols).contains(colInfo.getColumnName())) {
           deletePreparedStatement.setObject(fieldsPrimaryIndex++, getObject(pos + 1));
         }
       }

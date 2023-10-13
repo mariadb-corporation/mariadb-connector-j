@@ -5,6 +5,7 @@
 
 package com.singlestore.jdbc.export;
 
+/** SSl requirement */
 public enum SslMode {
   // NO SSL
   DISABLE("disable", new String[] {"DISABLED", "0", "false"}),
@@ -25,7 +26,12 @@ public enum SslMode {
     this.value = value;
     this.aliases = aliases;
   }
-
+  /**
+   * Create SSLMode from enumeration value, or aliases
+   *
+   * @param value enumeration value or alias
+   * @return SSLMode if corresponding enumeration value or alias found
+   */
   public static SslMode from(String value) {
     for (SslMode sslMode : values()) {
       if (sslMode.value.equalsIgnoreCase(value) || sslMode.name().equalsIgnoreCase(value)) {

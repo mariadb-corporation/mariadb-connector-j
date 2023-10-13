@@ -62,25 +62,30 @@ public class SmallIntCodecTest extends CommonCodecTest {
 
   private ResultSet get(String table) throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con, String table) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -917,7 +922,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("SMALLINT", meta.getColumnTypeName(1));
+    assertEquals("SMALLINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.lang.Integer", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
@@ -939,6 +944,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE SmallIntCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO SmallIntCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -955,6 +961,9 @@ public class SmallIntCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 5);
       prep.setObject(2, null, Types.SMALLINT);
+      prep.execute();
+      prep.setInt(1, 6);
+      prep.setObject(2, "4", Types.SMALLINT);
       prep.execute();
     }
     ResultSet rs =
@@ -995,6 +1004,9 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
 
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
+
     rs = stmt.executeQuery("SELECT * FROM SmallIntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals((short) 45, rs.getShort(2));
@@ -1013,5 +1025,9 @@ public class SmallIntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(4, rs.getShort(2));
+    con.commit();
   }
 }

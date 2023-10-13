@@ -98,12 +98,8 @@ public class ConfigurationTest extends Common {
             .addHost("local", 3306, true)
             .haMode(HaMode.REPLICATION)
             .build();
-    assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB",
-        conf.initialUrl());
-    assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB",
-        conf.toString());
+    assertEquals("jdbc:singlestore:replication://local/DB", conf.initialUrl());
+    assertEquals("jdbc:singlestore:replication://local/DB", conf.toString());
     assertEquals(
         Configuration.parse(
             "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB"),
@@ -117,9 +113,7 @@ public class ConfigurationTest extends Common {
             .haMode(HaMode.REPLICATION)
             .build();
 
-    assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary),address=(host=host2)(port=3307)(type=replica)/DB",
-        conf.initialUrl());
+    assertEquals("jdbc:singlestore:replication://local,host2:3307/DB", conf.initialUrl());
 
     conf =
         new Configuration.Builder()
@@ -128,9 +122,7 @@ public class ConfigurationTest extends Common {
             .haMode(HaMode.REPLICATION)
             .socketTimeout(50)
             .build();
-    assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB?socketTimeout=50",
-        conf.initialUrl());
+    assertEquals("jdbc:singlestore:replication://local/DB?socketTimeout=50", conf.initialUrl());
 
     conf =
         new Configuration.Builder()
@@ -142,7 +134,7 @@ public class ConfigurationTest extends Common {
             .socketTimeout(50)
             .build();
     assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary),address=(host=local)(port=3307)(type=replica),address=(host=local)(port=3308)(type=replica)/DB?socketTimeout=50",
+        "jdbc:singlestore:replication://local,local:3307,local:3308/DB?socketTimeout=50",
         conf.initialUrl());
 
     conf =
@@ -162,11 +154,10 @@ public class ConfigurationTest extends Common {
         new Configuration.Builder()
             .database("DB")
             .addHost("local", 3306, true)
+            .autocommit(false)
             .haMode(HaMode.REPLICATION)
             .build();
-    assertEquals(
-        "jdbc:singlestore:replication://address=(host=local)(port=3306)(type=primary)/DB",
-        conf.initialUrl());
+    assertEquals("jdbc:singlestore:replication://local/DB?autocommit=false", conf.initialUrl());
   }
 
   @Test
@@ -374,25 +365,23 @@ public class ConfigurationTest extends Common {
   public void testJdbcParserSimpleIpv4basic() throws SQLException {
     String url = "jdbc:singlestore://master:3306,slave1:3307,slave2:3308/database";
     Configuration conf = Configuration.parse(url);
-    assertEquals(
-        "jdbc:singlestore://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=primary),address=(host=slave2)(port=3308)(type=primary)/database",
-        conf.initialUrl());
+    assertEquals("jdbc:singlestore://master,slave1:3307,slave2:3308/database", conf.initialUrl());
     url =
         "jdbc:singlestore://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:singlestore://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        "jdbc:singlestore://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
         conf.initialUrl());
     url =
         "jdbc:singlestore://address=(host=master)(port=3306)(type=master),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:singlestore://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        "jdbc:singlestore://master,address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
         conf.initialUrl());
     url = "jdbc:singlestore:replication://master:3306,slave1:3307,slave2:3308/database";
     conf = Configuration.parse(url);
     assertEquals(
-        "jdbc:singlestore:replication://address=(host=master)(port=3306)(type=primary),address=(host=slave1)(port=3307)(type=replica),address=(host=slave2)(port=3308)(type=replica)/database",
+        "jdbc:singlestore:replication://master,slave1:3307,slave2:3308/database",
         conf.initialUrl());
   }
 
@@ -822,7 +811,7 @@ public class ConfigurationTest extends Common {
             .serverSslCert("mycertPath")
             .build();
     assertEquals(
-        "jdbc:singlestore://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=pwd&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true",
+        "jdbc:singlestore://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&autocommit=false&defaultFetchSize=10&maxQuerySizeToLog=100&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=false&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=true&useCompression=true&useAffectedRows=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true",
         conf.toString());
   }
 

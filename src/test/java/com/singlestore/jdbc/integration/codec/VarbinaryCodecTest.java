@@ -30,6 +30,7 @@ public class VarbinaryCodecTest extends CommonCodecTest {
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS VarbinaryCodec");
+    stmt.execute("DROP TABLE IF EXISTS VarbinaryCodec2");
   }
 
   @BeforeAll
@@ -41,27 +42,33 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     stmt.execute(
         "INSERT INTO VarbinaryCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
             + " '23:54:51.840010', null, 2)");
+    stmt.execute("CREATE TABLE VarbinaryCodec2 (t1 VARBINARY(20), id INT)");
   }
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.closeOnCompletion();
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from VarbinaryCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from VarbinaryCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -716,5 +723,55 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
     assertEquals(20, meta.getColumnDisplaySize(1));
+  }
+
+  @Test
+  public void sendParam() throws Exception {
+    sendParam(sharedConn);
+    sendParam(sharedConnBinary);
+  }
+
+  private void sendParam(Connection con) throws Exception {
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("TRUNCATE TABLE VarbinaryCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement prep =
+        con.prepareStatement("INSERT INTO VarbinaryCodec2(t1, id) VALUES (?, ?)")) {
+      prep.setBytes(1, null);
+      prep.setInt(2, 1);
+      prep.execute();
+      prep.setBytes(1, "e🌟1".getBytes(StandardCharsets.UTF_8));
+      prep.setInt(2, 2);
+      prep.execute();
+      prep.setNull(1, Types.BLOB);
+      prep.setInt(2, 3);
+      prep.execute();
+
+      prep.setObject(1, "e🌟2".getBytes(StandardCharsets.UTF_8));
+      prep.setInt(2, 4);
+      prep.execute();
+      prep.setObject(1, "e🌟3".getBytes(StandardCharsets.UTF_8), Types.VARBINARY);
+      prep.setInt(2, 5);
+      prep.execute();
+    }
+
+    ResultSet rs =
+        con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+            .executeQuery("SELECT * FROM VarbinaryCodec2 order by id");
+    assertTrue(rs.next());
+    assertNull(rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟1".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertNull(rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟2".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+
+    assertTrue(rs.next());
+    assertArrayEquals("e🌟3".getBytes(StandardCharsets.UTF_8), rs.getBytes(1));
+    con.commit();
   }
 }

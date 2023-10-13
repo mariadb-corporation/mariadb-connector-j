@@ -18,6 +18,22 @@ public class StreamingResult extends Result {
   private int dataFetchTime;
   private int fetchSize;
 
+  /**
+   * Constructor
+   *
+   * @param stmt statement that initiate this result
+   * @param binaryProtocol is result-set binary encoded
+   * @param maxRows maximum row number
+   * @param metadataList column metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param fetchSize fetch size
+   * @param lock thread safe locker
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on completion
+   * @param traceEnable can network log be logged
+   * @throws SQLException if any error occurs
+   */
   public StreamingResult(
       Statement stmt,
       boolean binaryProtocol,

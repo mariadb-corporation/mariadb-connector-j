@@ -15,11 +15,24 @@ public final class SslRequestPacket implements ClientMessage {
   private final long clientCapabilities;
   private final byte exchangeCharset;
 
+  /**
+   * Constructor
+   *
+   * @param clientCapabilities client capabilities
+   * @param exchangeCharset connection charset to set
+   */
   private SslRequestPacket(long clientCapabilities, byte exchangeCharset) {
     this.clientCapabilities = clientCapabilities;
     this.exchangeCharset = exchangeCharset;
   }
 
+  /**
+   * Create ssl request packet
+   *
+   * @param clientCapabilities client capabilities
+   * @param exchangeCharset connection charset
+   * @return ssl request packet
+   */
   public static SslRequestPacket create(long clientCapabilities, byte exchangeCharset) {
     return new SslRequestPacket(clientCapabilities, exchangeCharset);
   }

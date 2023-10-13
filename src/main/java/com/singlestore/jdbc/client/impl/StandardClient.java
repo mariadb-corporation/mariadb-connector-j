@@ -52,7 +52,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLInvalidAuthorizationSpecException;
 import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLPermission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -79,7 +78,6 @@ public class StandardClient implements Client, AutoCloseable {
   private com.singlestore.jdbc.Statement streamStmt = null;
   private ClientMessage streamMsg = null;
   private int socketTimeout;
-  private int waitTimeout;
   protected boolean timeOut;
 
   private TimerTask getTimerTask() {
@@ -100,7 +98,7 @@ public class StandardClient implements Client, AutoCloseable {
                     // force end by executing an KILL connection
                     try (StandardClient cli =
                         new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
-                      cli.execute(new QueryPacket("KILL " + context.getThreadId()));
+                      cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
                     } catch (SQLException e) {
                       // eat
                     }
@@ -131,6 +129,15 @@ public class StandardClient implements Client, AutoCloseable {
     };
   }
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @param lock thread locker
+   * @param skipPostCommands must connection post command be skipped
+   * @throws SQLException if connection fails
+   */
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -302,7 +309,9 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   private void assignStream(OutputStream out, InputStream in, Configuration conf, Long threadId) {
-    this.writer = new PacketWriter(out, conf.maxQuerySizeToLog(), sequence, compressionSequence);
+    this.writer =
+        new PacketWriter(
+            out, conf.maxQuerySizeToLog(), conf.maxAllowedPacket(), sequence, compressionSequence);
     this.writer.setServerThreadId(threadId, hostAddress);
 
     this.reader = new PacketReader(in, conf, sequence);
@@ -370,26 +379,37 @@ public class StandardClient implements Client, AutoCloseable {
       }
       res =
           executePipeline(
-              msgs, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+              msgs,
+              null,
+              0,
+              0L,
+              ResultSet.CONCUR_READ_ONLY,
+              ResultSet.TYPE_FORWARD_ONLY,
+              false,
+              true);
 
       // read max allowed packet
       Result result = (Result) res.get(resInd);
       result.next();
-
-      waitTimeout = Integer.parseInt(result.getString(2));
-      writer.setMaxAllowedPacket(Integer.parseInt(result.getString(1)));
-
     } catch (SQLException sqlException) {
       throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
   }
 
+  @Override
   public void setReadOnly(boolean readOnly) throws SQLException {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
     }
   }
 
+  /**
+   * Send client message to server
+   *
+   * @param message client message
+   * @return number of command send
+   * @throws SQLException if socket error occurs
+   */
   public int sendQuery(ClientMessage message) throws SQLException {
     checkNotClosed();
     try {
@@ -427,15 +447,31 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
-  public List<Completion> execute(ClientMessage message) throws SQLException {
+  @Override
+  public List<Completion> execute(ClientMessage message, boolean canRedo) throws SQLException {
     return execute(
-        message, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        null,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
-  public List<Completion> execute(ClientMessage message, com.singlestore.jdbc.Statement stmt)
+  public List<Completion> execute(
+      ClientMessage message, com.singlestore.jdbc.Statement stmt, boolean canRedo)
       throws SQLException {
     return execute(
-        message, stmt, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        stmt,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   public List<Completion> executePipeline(
@@ -445,7 +481,8 @@ public class StandardClient implements Client, AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> results = new ArrayList<>();
 
@@ -462,7 +499,8 @@ public class StandardClient implements Client, AutoCloseable {
                   maxRows,
                   resultSetConcurrency,
                   resultSetType,
-                  closeOnCompletion));
+                  closeOnCompletion,
+                  canRedo));
         }
       } else {
         for (int i = 0; i < messages.length; i++) {
@@ -485,22 +523,23 @@ public class StandardClient implements Client, AutoCloseable {
       }
       return results;
     } catch (SQLException sqlException) {
-
-      // read remaining results
-      for (int i = readCounter; i < messages.length; i++) {
-        for (int j = 0; j < responseMsg[i]; j++) {
-          try {
-            results.addAll(
-                readResponse(
-                    stmt,
-                    messages[i],
-                    fetchSize,
-                    maxRows,
-                    resultSetConcurrency,
-                    resultSetType,
-                    closeOnCompletion));
-          } catch (SQLException e) {
-            // eat
+      if (!closed) {
+        // read remaining results
+        for (int i = readCounter; i < messages.length; i++) {
+          for (int j = 0; j < responseMsg[i]; j++) {
+            try {
+              results.addAll(
+                  readResponse(
+                      stmt,
+                      messages[i],
+                      fetchSize,
+                      maxRows,
+                      resultSetConcurrency,
+                      resultSetType,
+                      closeOnCompletion));
+            } catch (SQLException e) {
+              // eat
+            }
           }
         }
       }
@@ -532,7 +571,8 @@ public class StandardClient implements Client, AutoCloseable {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
 
     if (stmt != null && stmt.getQueryTimeout() > 0) {
@@ -564,6 +604,19 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read server responses for a client message
+   *
+   * @param stmt statement that issue the message
+   * @param message client message sent
+   * @param fetchSize fetch size
+   * @param maxRows maximum number of rows
+   * @param resultSetConcurrency concurrency
+   * @param resultSetType result-set type
+   * @param closeOnCompletion close statement on resultset completion
+   * @return list of result
+   * @throws SQLException if any error occurs
+   */
   public List<Completion> readResponse(
       com.singlestore.jdbc.Statement stmt,
       ClientMessage message,
@@ -591,6 +644,12 @@ public class StandardClient implements Client, AutoCloseable {
     return completions;
   }
 
+  /**
+   * Read server response
+   *
+   * @param message client message that was sent
+   * @throws SQLException if any error occurs
+   */
   public void readResponse(ClientMessage message) throws SQLException {
     checkNotClosed();
     if (streamStmt != null) {
@@ -678,6 +737,13 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Read a MySQL packet from socket
+   *
+   * @param message client message issuing the result
+   * @return a mysql result
+   * @throws SQLException if any error occurs
+   */
   public Completion readPacket(ClientMessage message) throws SQLException {
     return readPacket(
         null, message, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
@@ -720,7 +786,8 @@ public class StandardClient implements Client, AutoCloseable {
               context,
               exceptionFactory,
               lock,
-              traceEnable);
+              traceEnable,
+              message);
       if (completion instanceof StreamingResult && !((StreamingResult) completion).loaded()) {
         streamStmt = stmt;
         streamMsg = message;
@@ -740,6 +807,11 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
+  /**
+   * Throw an exception if client is closed
+   *
+   * @throws SQLException if closed
+   */
   protected void checkNotClosed() throws SQLException {
     if (closed) {
       if (timeOut) {
@@ -777,11 +849,6 @@ public class StandardClient implements Client, AutoCloseable {
     }
   }
 
-  @Override
-  public int getWaitTimeout() {
-    return waitTimeout;
-  }
-
   public boolean isClosed() {
     return closed;
   }
@@ -791,12 +858,6 @@ public class StandardClient implements Client, AutoCloseable {
   }
 
   public void abort(Executor executor) throws SQLException {
-
-    SQLPermission sqlPermission = new SQLPermission("callAbort");
-    SecurityManager securityManager = System.getSecurityManager();
-    if (securityManager != null) {
-      securityManager.checkPermission(sqlPermission);
-    }
     if (executor == null) {
       throw exceptionFactory.create("Cannot abort the connection: null executor passed");
     }
@@ -806,13 +867,14 @@ public class StandardClient implements Client, AutoCloseable {
 
     if (!this.closed) {
       this.closed = true;
-
+      Loggers.getLogger(StandardClient.class)
+          .debug("aborting connection {}", context.getThreadId());
       if (!lockStatus) {
         // lock not available : query is running
         // force end by executing an KILL connection
         try (StandardClient cli =
             new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
-          cli.execute(new QueryPacket("KILL " + context.getThreadId()));
+          cli.execute(new QueryPacket("KILL " + context.getThreadId()), false);
         } catch (SQLException e) {
           // eat
         }

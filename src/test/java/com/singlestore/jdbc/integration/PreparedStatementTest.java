@@ -211,6 +211,33 @@ public class PreparedStatementTest extends Common {
     try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=false")) {
       executeQuery(con);
     }
+    try (Connection con = createCon("useServerPrepStmts=true&enableSkipMeta=true")) {
+      executeQuery(con);
+    }
+  }
+
+  @Test
+  public void tryMaybeNotPreparable() throws SQLException {
+    Assumptions.assumeFalse("7.5.10".equals(sharedConn.getMetaData().getDatabaseProductVersion()));
+    try (Connection con = createCon("useServerPrepStmts")) {
+      try (PreparedStatement prep = con.prepareStatement("CREATE TABLE maybeCreate(id int)")) {
+        prep.execute();
+      }
+    } finally {
+      sharedConn.createStatement().execute("DROP TABLE IF EXISTS maybeCreate");
+    }
+    try (Connection con = createCon("useServerPrepStmts")) {
+      try (PreparedStatement prep =
+          con.prepareStatement(
+              "CREATE PROCEDURE maybeProc(I DATE) AUTHORIZE AS CURRENT_USER AS\n"
+                  + "BEGIN \n"
+                  + "ECHO SELECT I;\n"
+                  + "END;")) {
+        prep.execute();
+      }
+    } finally {
+      sharedConn.createStatement().execute("DROP PROCEDURE IF EXISTS maybeProc");
+    }
   }
 
   private void executeQuery(Connection con) throws SQLException {

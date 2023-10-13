@@ -9,6 +9,7 @@ import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.codec.Parameter;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.util.NativeSql;
+import com.singlestore.jdbc.util.ParameterList;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -40,12 +41,38 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseCallableStatement extends ServerPreparedStatement
     implements CallableStatement {
+
+  /** Database name */
   protected final String databaseName;
+
+  /** Procedure name */
   protected final String procedureName;
+
+  /** parameter metadata */
   protected CallableParameterMetaData parameterMetaData = null;
+
+  /** Declared output parameters */
   protected final Set<Integer> outputParameters = new HashSet<>();
+
+  /** output parameter result */
   private Result outputResult = null;
 
+  /**
+   * Constructor
+   *
+   * @param sql sql command
+   * @param con connection
+   * @param lock thread safe lock
+   * @param databaseName database name
+   * @param procedureName procedure name
+   * @param canUseServerTimeout indicate if server support server timeout
+   * @param canUseServerMaxRows indicate if server support server max rows
+   * @param canCachePrepStmts can cache server prepared result
+   * @param resultSetType resultset type
+   * @param resultSetConcurrency resultset concurrency
+   * @param defaultFetchSize default fetch size
+   * @throws SQLException if prepare fails
+   */
   public BaseCallableStatement(
       String sql,
       Connection con,
@@ -54,6 +81,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
       String procedureName,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
+      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency,
       int defaultFetchSize)
@@ -64,6 +92,7 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
         lock,
         canUseServerTimeout,
         canUseServerMaxRows,
+        canCachePrepStmts,
         Statement.RETURN_GENERATED_KEYS,
         resultSetType,
         resultSetConcurrency,
@@ -72,8 +101,19 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     this.procedureName = procedureName;
   }
 
+  /**
+   * Indicate if callable statement is a function or a stored procedure
+   *
+   * @return indicate if is a function
+   */
   public abstract boolean isFunction();
 
+  /**
+   * Output result without output parameters
+   *
+   * @param i index
+   * @throws SQLException if any exception
+   */
   protected void outputResultFromRes(int i) throws SQLException {
     this.outputResult = (Result) this.results.remove(this.results.size() - i);
     this.outputResult.next();
@@ -109,6 +149,13 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
     checkIndex(parameterIndex);
     outputParameters.add(parameterIndex);
     parameters.set(parameterIndex - 1, Parameter.NULL_PARAMETER);
+  }
+
+  @Override
+  public void clearParameters() throws SQLException {
+    checkNotClosed();
+    parameters = new ParameterList();
+    outputParameters.stream().forEach(index -> parameters.set(index - 1, Parameter.NULL_PARAMETER));
   }
 
   private void checkIndex(int index) throws SQLException {

@@ -8,6 +8,7 @@ package com.singlestore.jdbc.integration.codec;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -42,22 +43,27 @@ public class FloatCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from FloatCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from FloatCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -421,6 +427,24 @@ public class FloatCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "Type class java.time.OffsetDateTime not supported type for FLOAT type");
+  }
+
+  @Test
   public void getAsciiStream() throws SQLException {
     getAsciiStream(get());
   }
@@ -689,6 +713,7 @@ public class FloatCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE FloatCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO FloatCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -705,6 +730,12 @@ public class FloatCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 5);
       prep.setObject(2, null, Types.DECIMAL);
+      prep.execute();
+      prep.setInt(1, 6);
+      prep.setObject(2, "3.2", Types.REAL);
+      prep.execute();
+      prep.setInt(1, 7);
+      prep.setObject(2, 3.3F, Types.REAL);
       prep.execute();
     }
     ResultSet rs =
@@ -736,10 +767,14 @@ public class FloatCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
-
     assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(3.2F, rs.getFloat(2));
+    assertTrue(rs.next());
+    assertEquals(3.3F, rs.getFloat(2));
 
     rs = stmt.executeQuery("SELECT * FROM FloatCodec2 ORDER BY id");
     assertTrue(rs.next());
@@ -759,5 +794,11 @@ public class FloatCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(0F, rs.getFloat(2));
     assertTrue(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(3.2F, rs.getFloat(2));
+    assertTrue(rs.next());
+    assertEquals(3.3F, rs.getFloat(2));
+    con.commit();
   }
 }

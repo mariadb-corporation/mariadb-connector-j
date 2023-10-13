@@ -73,14 +73,14 @@ public class IntCodec implements Codec<Integer> {
       case SMALLINT:
       case MEDIUMINT:
       case YEAR:
-        return (int) LongCodec.parseNotEmpty(buf, length);
+        return (int) buf.atoi(length);
 
       case INT:
-        result = LongCodec.parseNotEmpty(buf, length);
+        result = buf.atoi(length);
         break;
 
       case BIGINT:
-        result = LongCodec.parseNotEmpty(buf, length);
+        result = buf.atoi(length);
         if (result < 0 & !column.isSigned()) {
           throw new SQLDataException("int overflow");
         }

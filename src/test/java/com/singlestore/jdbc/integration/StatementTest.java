@@ -493,27 +493,6 @@ public class StatementTest extends Common {
     try (Connection con = createCon("transactionReplay=true&useServerPrepStmts=true")) {
       executeTimeOutQeuryWithStatement(con.createStatement());
     }
-
-    // Use-case-4 Test Query Timeout implementation with 'Statement', HAMode as 'Sequential' for
-    // 'MultiPrimaryClient'.
-    String urlWithHaMode =
-        mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:sequential:")
-            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
-            + "useServerPrepStmts=true";
-    try (Connection con = (Connection) DriverManager.getConnection(urlWithHaMode)) {
-      executeTimeOutQeuryWithStatement(con.createStatement());
-    }
-
-    // Use-case-5 Test Query Timeout implementation with 'Statement', HAMode as 'Replication' for
-    // 'MultiPrimaryReplicaClient'.
-    urlWithHaMode =
-        mDefUrl.replaceAll("jdbc:singlestore:", "jdbc:singlestore:replication:")
-            + (mDefUrl.indexOf("?") > 0 ? "&" : "?")
-            + "useServerPrepStmts=true";
-    try (Connection con = (Connection) DriverManager.getConnection(urlWithHaMode)) {
-      executeTimeOutQeuryWithStatement(con.createStatement());
-    }
-
     String sql = "SELECT SLEEP(2)";
 
     // Use-case-6 Test Query Timeout implementation with 'PreparedStatement'
@@ -544,6 +523,7 @@ public class StatementTest extends Common {
               sql,
               con,
               new ReentrantLock(),
+              false,
               false,
               false,
               ResultSet.FETCH_FORWARD,

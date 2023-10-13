@@ -488,20 +488,26 @@ public class PreparedStatementParametersTest extends Common {
   @Test
   @ExtendWith(SetMaxPacketExtension.class)
   public void bigSendError() throws SQLException {
-    Connection con = createCon();
-    Connection binaryCon = createCon("useServerPrepStmts=true");
-    assertEquals(getMaxAllowedPacket(con), SetMaxPacketExtension.smallMaxPacket);
-    assertEquals(getMaxAllowedPacket(binaryCon), SetMaxPacketExtension.smallMaxPacket);
-    char[] arr = new char[10 * 1024 * 1024];
+    int maxAllowedPacket = getMaxAllowedPacket(sharedConn);
+    Assumptions.assumeTrue(maxAllowedPacket < 32 * 1024 * 1024);
+    char[] arr = new char[maxAllowedPacket];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
+    boolean expectClosed = maxAllowedPacket > 16 * 1024 * 1024;
     String st = new String(arr);
-    bigSendError(con, st);
-    bigSendError(binaryCon, st);
+    try (Connection con = createCon()) {
+      bigSendError(con, st, expectClosed);
+    }
+    try (Connection con = createCon("useServerPrepStmts=true")) {
+      bigSendError(con, st, expectClosed);
+    }
+    try (Connection con = createCon("transactionReplay")) {
+      bigSendError(con, st, expectClosed);
+    }
   }
 
-  public void bigSendError(Connection con, String st) throws SQLException {
+  public void bigSendError(Connection con, String st, boolean expectClose) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE bigTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
@@ -510,34 +516,36 @@ public class PreparedStatementParametersTest extends Common {
       prep.setString(2, st);
       Common.assertThrowsContains(
           SQLException.class,
-          () -> prep.execute(),
+          prep::execute,
           "Packet too big for current server max_allowed_packet value");
-      assertFalse(con.isClosed());
+      assertEquals(expectClose, con.isClosed());
     }
-    con.commit();
+    if (!con.isClosed()) con.commit();
   }
 
   @Test
-  @ExtendWith(SetMaxPacketExtension.class)
   public void bigSendErrorMax() throws SQLException {
-    try (Connection con = createCon()) {
-      assertEquals(getMaxAllowedPacket(con), SetMaxPacketExtension.mediumMaxPacket);
-    }
-
-    char[] arr = new char[SetMaxPacketExtension.mediumMaxPacket + 100];
+    int maxAllowedPacket = getMaxAllowedPacket(sharedConn);
+    Assumptions.assumeTrue(
+        maxAllowedPacket > 16 * 1024 * 1024 && maxAllowedPacket < 100 * 1024 * 1024);
+    char[] arr = new char[maxAllowedPacket + 100];
     for (int pos = 0; pos < arr.length; pos++) {
       arr[pos] = (char) ('A' + (pos % 60));
     }
     String st = new String(arr);
-    try (Connection con = createCon()) {
-      bigSendErrorMax(con, st);
+    try (Connection con = createCon("maxAllowedPacket=" + maxAllowedPacket)) {
+      bigSendErrorMax(con, st, true);
     }
-    try (Connection con = createCon("useServerPrepStmts=true")) {
-      bigSendErrorMax(con, st);
+    try (Connection con =
+        createCon("useServerPrepStmts=true&maxAllowedPacket=" + maxAllowedPacket)) {
+      bigSendErrorMax(con, st, true);
+    }
+    try (Connection con = createCon("transactionReplay&maxAllowedPacket=" + maxAllowedPacket)) {
+      bigSendError(con, st, true);
     }
   }
 
-  public void bigSendErrorMax(Connection con, String st) throws SQLException {
+  public void bigSendErrorMax(Connection con, String st, boolean expectClose) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE bigTest");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
@@ -546,9 +554,9 @@ public class PreparedStatementParametersTest extends Common {
       prep.setString(2, st);
       Common.assertThrowsContains(
           SQLNonTransientConnectionException.class,
-          () -> prep.execute(),
+          prep::execute,
           "Packet too big for current server max_allowed_packet value");
-      assertTrue(con.isClosed());
+      assertEquals(expectClose, con.isClosed());
     }
   }
 

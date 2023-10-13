@@ -24,13 +24,28 @@ public class BaseContext implements Context {
   private final boolean extendedInfo;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
+  /** Server status context */
   protected int serverStatus;
+  /** Server current database */
   private String database;
+  /** Server current transaction isolation level */
   private int transactionIsolationLevel;
+  /** Server current warning count */
   private int warning;
+  /** LRU prepare cache object */
   private final PrepareCache prepareCache;
+  /** Connection state use flag */
   private int stateFlag = 0;
 
+  /**
+   * Constructor of connection context
+   *
+   * @param handshake server handshake
+   * @param clientCapabilities client capabilities
+   * @param conf connection configuration
+   * @param exceptionFactory connection exception factory
+   * @param prepareCache LRU prepare cache
+   */
   public BaseContext(
       InitialHandshakePacket handshake,
       long clientCapabilities,
@@ -43,8 +58,8 @@ public class BaseContext implements Context {
     this.clientCapabilities = clientCapabilities;
     this.serverStatus = handshake.getServerStatus();
     this.eofDeprecated = (clientCapabilities & Capabilities.CLIENT_DEPRECATE_EOF) > 0;
-    this.skipMeta = (serverCapabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA) > 0;
-    this.extendedInfo = (serverCapabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO) > 0;
+    this.skipMeta = (serverCapabilities & Capabilities.CACHE_METADATA) > 0;
+    this.extendedInfo = (serverCapabilities & Capabilities.EXTENDED_TYPE_INFO) > 0;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;

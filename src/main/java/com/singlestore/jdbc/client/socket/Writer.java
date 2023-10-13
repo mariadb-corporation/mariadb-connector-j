@@ -11,8 +11,26 @@ import java.io.IOException;
 /** Packet Writer interface */
 public interface Writer {
 
+  /**
+   * current buffer position
+   *
+   * @return current buffer position
+   */
   int pos();
 
+  /**
+   * Current buffer
+   *
+   * @return current buffer
+   */
+  byte[] buf();
+
+  /**
+   * Set current buffer position
+   *
+   * @param pos position
+   * @throws IOException if buffer cannot grow to position
+   */
   void pos(int pos) throws IOException;
 
   /**
@@ -110,12 +128,26 @@ public interface Writer {
    */
   void flush() throws IOException;
 
+  /**
+   * must a max allowed length exception be thrown
+   *
+   * @param length command length
+   * @return true if too big
+   */
   boolean throwMaxAllowedLength(int length);
 
+  /**
+   * Get current command length
+   *
+   * @return command length
+   */
   long getCmdLength();
 
-  void setMaxAllowedPacket(int maxAllowedPacket);
-
+  /**
+   * Indicate if logging trace are permitted
+   *
+   * @param permitTrace permits trace to be logged
+   */
   void permitTrace(boolean permitTrace);
 
   /**
@@ -126,10 +158,21 @@ public interface Writer {
    */
   void setServerThreadId(Long serverThreadId, HostAddress hostAddress);
 
+  /** mark position */
   void mark();
 
+  /**
+   * has some position been marked
+   *
+   * @return is marked
+   */
   boolean isMarked();
 
+  /**
+   * Current command has flushed packet to socket
+   *
+   * @return indicate if some packet have been flushed
+   */
   boolean hasFlushed();
 
   /**
@@ -139,6 +182,11 @@ public interface Writer {
    */
   void flushBufferStopAtMark() throws IOException;
 
+  /**
+   * Buffer has data after marked position
+   *
+   * @return indicate if there is data after marked position
+   */
   boolean bufIsDataAfterMark();
 
   /**
@@ -148,7 +196,13 @@ public interface Writer {
    */
   byte[] resetMark();
 
+  /** reset sequences and position for sending a new packet */
   void initPacket();
 
+  /**
+   * Close socket stream
+   *
+   * @throws IOException if any error occurs
+   */
   void close() throws IOException;
 }

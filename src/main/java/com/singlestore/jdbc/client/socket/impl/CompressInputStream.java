@@ -12,6 +12,10 @@ import java.io.InputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+/**
+ * Compression handler, permitting decompression of mysql packet if needed. When compression is set,
+ * using a 7 byte header to identify is packet is compressed or not.
+ */
 public class CompressInputStream extends InputStream {
   private final InputStream in;
   private final MutableInt sequence;
@@ -22,6 +26,12 @@ public class CompressInputStream extends InputStream {
   private int pos;
   private byte[] buf;
 
+  /**
+   * Constructor. When this handler is used, driver expect packet with 7 byte compression header
+   *
+   * @param in socket input stream
+   * @param compressionSequence compression sequence
+   */
   public CompressInputStream(InputStream in, MutableInt compressionSequence) {
     this.in = in;
     this.sequence = compressionSequence;
@@ -79,22 +89,19 @@ public class CompressInputStream extends InputStream {
     }
 
     int totalReads = 0;
-    while (true) {
 
+    do {
       if (end - pos <= 0) {
         retrieveBuffer();
       }
-
       // copy internal value to buf.
       int copyLength = Math.min(len - totalReads, end - pos);
       System.arraycopy(buf, pos, b, off + totalReads, copyLength);
       pos += copyLength;
       totalReads += copyLength;
+    } while (totalReads < len && super.available() > 0);
 
-      if (totalReads >= len || super.available() <= 0) {
-        return totalReads;
-      }
-    }
+    return totalReads;
   }
 
   private void retrieveBuffer() throws IOException {

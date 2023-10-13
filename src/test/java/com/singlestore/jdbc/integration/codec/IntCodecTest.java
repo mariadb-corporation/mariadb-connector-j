@@ -54,12 +54,14 @@ public class IntCodecTest extends CommonCodecTest {
 
   private ResultSet get(String table) throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
@@ -72,16 +74,20 @@ public class IntCodecTest extends CommonCodecTest {
   }
 
   private ResultSet getPrepare(Connection con, String table) throws SQLException {
-    try (PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    try (PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4"
                 + " as t4alias from "
                 + table
                 + " WHERE 1 > ? ORDER BY id")) {
-      stmt.setInt(1, 0);
-      ResultSet rs = stmt.executeQuery();
+      preparedStatement.setInt(1, 0);
+      ResultSet rs = preparedStatement.executeQuery();
       assertTrue(rs.next());
       return rs;
+    } finally {
+      con.commit();
     }
   }
 
@@ -971,6 +977,7 @@ public class IntCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE IntCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO IntCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -987,6 +994,12 @@ public class IntCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 5);
       prep.setObject(2, null, Types.INTEGER);
+      prep.execute();
+      prep.setInt(1, 6);
+      prep.setObject(2, "4", Types.INTEGER);
+      prep.execute();
+      prep.setInt(1, 7);
+      prep.setObject(2, 5, Types.VARCHAR);
       prep.execute();
     }
 
@@ -1029,6 +1042,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertEquals(25, rs.getInt(2));
     assertFalse(rs.wasNull());
 
+    assertTrue(rs.next());
+    assertEquals(4, rs.getInt(2));
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(2));
+
     rs = stmt.executeQuery("SELECT * FROM IntCodec2 ORDER BY id");
     assertTrue(rs.next());
     assertEquals(10, rs.getInt(2));
@@ -1048,5 +1066,11 @@ public class IntCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(25, rs.getInt(2));
     assertFalse(rs.wasNull());
+
+    assertTrue(rs.next());
+    assertEquals(4, rs.getInt(2));
+    assertFalse(rs.wasNull());
+
+    con.commit();
   }
 }

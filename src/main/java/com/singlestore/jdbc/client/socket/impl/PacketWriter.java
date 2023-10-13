@@ -17,10 +17,13 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+/** Packet writer */
 @SuppressWarnings("SameReturnValue")
 public class PacketWriter implements Writer {
 
+  /** initial buffer size */
   public static final int SMALL_BUFFER_SIZE = 8192;
+
   private final Logger logger;
   private static final byte QUOTE = (byte) '\'';
   private static final byte DBL_QUOTE = (byte) '"';
@@ -29,19 +32,24 @@ public class PacketWriter implements Writer {
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
   private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
-  protected final MutableInt sequence;
-  protected final MutableInt compressSequence;
   private final int maxQuerySizeToLog;
   private final OutputStream out;
-  protected byte[] buf;
-  protected int pos = 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
-  private int maxAllowedPacket = Integer.MAX_VALUE;
+  private Integer maxAllowedPacket;
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
   private int mark = -1;
   private boolean bufContainDataAfterMark = false;
+
+  /** internal buffer */
+  protected byte[] buf;
+  /** buffer position */
+  protected int pos = 4;
+  /** packet sequence */
+  protected final MutableInt sequence;
+  /** compressed packet sequence */
+  protected final MutableInt compressSequence;
 
   /**
    * Common feature to write data into socket, creating SingleStore Packet.
@@ -49,28 +57,52 @@ public class PacketWriter implements Writer {
    * @param out output stream
    * @param maxQuerySizeToLog maximum query size to log
    * @param sequence packet sequence
+   * @param maxAllowedPacket max allowed packet value if known
    * @param compressSequence compressed packet sequence
    */
   public PacketWriter(
-      OutputStream out, int maxQuerySizeToLog, MutableInt sequence, MutableInt compressSequence) {
+      OutputStream out,
+      int maxQuerySizeToLog,
+      Integer maxAllowedPacket,
+      MutableInt sequence,
+      MutableInt compressSequence) {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;
     this.cmdLength = 0;
     this.sequence = sequence;
     this.compressSequence = compressSequence;
+    this.maxAllowedPacket = maxAllowedPacket;
     this.logger = Loggers.getLogger(PacketWriter.class);
   }
 
+  /**
+   * get current position
+   *
+   * @return current position
+   */
+  @Override
   public int pos() {
     return pos;
   }
 
+  /**
+   * position setter
+   *
+   * @param pos new position
+   * @throws IOException if buffer is not big enough to contains new position
+   */
+  @Override
   public void pos(int pos) throws IOException {
     if (pos > buf.length) growBuffer(pos);
     this.pos = pos;
   }
 
+  /**
+   * get current command length
+   *
+   * @return current command length
+   */
   @Override
   public long getCmdLength() {
     return cmdLength;
@@ -390,12 +422,23 @@ public class PacketWriter implements Writer {
   }
 
   /**
+   * Current buffer
+   *
+   * @return current buffer
+   */
+  @Override
+  public byte[] buf() {
+    return buf;
+  }
+
+  /**
    * Write string to socket.
    *
    * @param str string
    * @param noBackslashEscapes escape method
    * @throws IOException if socket error occur
    */
+  @Override
   public void writeStringEscaped(String str, boolean noBackslashEscapes) throws IOException {
 
     int charsLength = str.length();
@@ -665,7 +708,6 @@ public class PacketWriter implements Writer {
    */
   public void flush() throws IOException {
     writeSocket(true);
-    out.flush();
     // if buf is big, and last query doesn't use at least half of it, resize buf to default
     // value
     if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) {
@@ -685,29 +727,23 @@ public class PacketWriter implements Writer {
    * @throws MaxAllowedPacketException if query has not to be send.
    */
   private void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
-    if (cmdLength + length >= maxAllowedPacket) {
-      // launch exception only if no packet has been send.
-      throw new MaxAllowedPacketException(
-          "query size ("
-              + (cmdLength + length)
-              + ") is >= to max_allowed_packet ("
-              + maxAllowedPacket
-              + ")",
-          cmdLength != 0);
+    if (maxAllowedPacket != null) {
+      if (cmdLength + length >= maxAllowedPacket) {
+        // launch exception only if no packet has been sent.
+        throw new MaxAllowedPacketException(
+            "query size ("
+                + (cmdLength + length)
+                + ") is >= to max_allowed_packet ("
+                + maxAllowedPacket
+                + ")",
+            cmdLength != 0);
+      }
     }
   }
 
-  @Override
   public boolean throwMaxAllowedLength(int length) {
-    return cmdLength + length >= maxAllowedPacket;
-  }
-
-  public void setMaxAllowedPacket(int maxAllowedPacket) {
-    this.maxAllowedPacket = maxAllowedPacket;
-    maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 4);
-    if (out instanceof CompressOutputStream) {
-      ((CompressOutputStream) out).setMaxAllowedPacket(maxAllowedPacket);
-    }
+    if (maxAllowedPacket != null) return cmdLength + length >= maxAllowedPacket;
+    return false;
   }
 
   public void permitTrace(boolean permitTrace) {
@@ -801,6 +837,7 @@ public class PacketWriter implements Writer {
       buf[3] = this.sequence.incrementAndGet();
       checkMaxAllowedLength(pos - 4);
       out.write(buf, 0, pos);
+      if (commandEnd) out.flush();
       cmdLength += pos - 4;
 
       if (logger.isTraceEnabled()) {

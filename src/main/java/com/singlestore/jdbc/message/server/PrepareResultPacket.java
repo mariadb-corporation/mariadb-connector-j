@@ -22,8 +22,17 @@ import java.sql.SQLException;
 public class PrepareResultPacket implements Completion, Prepare {
   private final Column[] parameters;
   private Column[] columns;
+  /** prepare statement id */
   protected int statementId;
 
+  /**
+   * Prepare packet constructor (parsing)
+   *
+   * @param buffer packet buffer
+   * @param reader packet reader
+   * @param context connection context
+   * @throws IOException if socket exception occurs
+   */
   public PrepareResultPacket(ReadableByteBuf buffer, Reader reader, Context context)
       throws IOException {
     Logger logger = Loggers.getLogger(PrepareResultPacket.class);
@@ -39,8 +48,7 @@ public class PrepareResultPacket implements Completion, Prepare {
         parameters[i] =
             new ColumnDefinitionPacket(
                 reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-                    > 0);
+                (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
       }
       if (!context.isEofDeprecated()) {
         reader.readPacket(true, trace);
@@ -51,8 +59,7 @@ public class PrepareResultPacket implements Completion, Prepare {
         columns[i] =
             new ColumnDefinitionPacket(
                 reader.readPacket(false, trace),
-                (context.getServerCapabilities() & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO)
-                    > 0);
+                (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
       }
       if (!context.isEofDeprecated()) {
         reader.readPacket(true, trace);
@@ -60,15 +67,33 @@ public class PrepareResultPacket implements Completion, Prepare {
     }
   }
 
+  /**
+   * Close prepare packet
+   *
+   * @param con current connection
+   * @throws SQLException if exception occurs
+   */
   public void close(Client con) throws SQLException {
     con.closePrepare(this);
   }
 
+  /**
+   * Decrement use of prepare packet, so closing it if last used
+   *
+   * @param con connection
+   * @param preparedStatement current prepared statement that was using prepare object
+   * @throws SQLException if exception occurs
+   */
   public void decrementUse(Client con, ServerPreparedStatement preparedStatement)
       throws SQLException {
     close(con);
   }
 
+  /**
+   * Get statement id
+   *
+   * @return statement id
+   */
   public int getStatementId() {
     return statementId;
   }

@@ -25,6 +25,11 @@ import java.util.concurrent.locks.ReentrantLock;
 public final class PreparePacket implements ClientMessage {
   private final String sql;
 
+  /**
+   * Construct prepare packet
+   *
+   * @param sql sql command
+   */
   public PreparePacket(String sql) {
     this.sql = sql;
   }
@@ -51,7 +56,8 @@ public final class PreparePacket implements ClientMessage {
       Context context,
       ExceptionFactory exceptionFactory,
       ReentrantLock lock,
-      boolean traceEnable)
+      boolean traceEnable,
+      ClientMessage message)
       throws IOException, SQLException {
 
     ReadableByteBuf buf = reader.readPacket(true, traceEnable);
@@ -96,6 +102,6 @@ public final class PreparePacket implements ClientMessage {
 
   @Override
   public String description() {
-    return sql;
+    return "PREPARE " + sql;
   }
 }

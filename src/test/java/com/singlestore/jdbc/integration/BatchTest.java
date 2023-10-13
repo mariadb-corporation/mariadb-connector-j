@@ -16,6 +16,7 @@ import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ public class BatchTest extends Common {
 
   @BeforeAll
   public static void beforeAll2() throws SQLException {
+    after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS BatchTest");
     stmt.execute(
@@ -38,14 +40,14 @@ public class BatchTest extends Common {
   @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
-      wrongParameter(con, true);
+      wrongParameter(con);
     }
     try (Connection con = createCon("&useServerPrepStmts=true")) {
-      wrongParameter(con, false);
+      wrongParameter(con);
     }
   }
 
-  public void wrongParameter(Connection con, boolean text) throws SQLException {
+  public void wrongParameter(Connection con) throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE BatchTest");
     try (PreparedStatement prep =
@@ -53,12 +55,12 @@ public class BatchTest extends Common {
       prep.setInt(1, 5);
       try {
         prep.addBatch();
-      } catch (SQLException e) {
+      } catch (SQLTransientConnectionException e) {
         assertTrue(e.getMessage().contains("Parameter at position 2 is not set"));
       }
       try {
         prep.addBatch();
-      } catch (SQLException e) {
+      } catch (SQLTransientConnectionException e) {
         assertTrue(
             e.getMessage().contains("Parameter at position 2 is not set")
                 || e.getMessage()
@@ -69,14 +71,15 @@ public class BatchTest extends Common {
       prep.setInt(1, 5);
       prep.setString(3, "wrong position");
       Common.assertThrowsContains(
-          SQLException.class, () -> prep.addBatch(), "Parameter at position 2 is not set");
+          SQLTransientConnectionException.class,
+          prep::addBatch,
+          "Parameter at position 2 is not set");
 
       prep.setInt(1, 5);
       prep.setString(2, "ok");
       prep.addBatch();
       prep.setString(2, "without position 1");
-      Common.assertThrowsContains(
-          SQLException.class, () -> prep.addBatch(), "Parameter at " + "position 1 is not set");
+      prep.addBatch();
     }
   }
 

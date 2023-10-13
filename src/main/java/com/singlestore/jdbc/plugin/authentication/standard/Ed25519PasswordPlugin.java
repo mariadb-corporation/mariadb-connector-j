@@ -27,6 +27,14 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
   private String authenticationData;
   private byte[] seed;
 
+  /**
+   * Sign password
+   *
+   * @param password password
+   * @param seed server seed
+   * @return encrypted value
+   * @throws SQLException if any error occurs
+   */
   private static byte[] ed25519SignWithPassword(final String password, final byte[] seed)
       throws SQLException {
 

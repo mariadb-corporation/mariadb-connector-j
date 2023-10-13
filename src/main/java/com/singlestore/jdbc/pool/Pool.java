@@ -8,9 +8,11 @@ package com.singlestore.jdbc.pool;
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Connection;
 import com.singlestore.jdbc.Driver;
+import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.lang.management.ManagementFactory;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -51,6 +53,7 @@ public class Pool implements AutoCloseable, PoolMBean {
   private final String poolTag;
   private final ScheduledThreadPoolExecutor poolExecutor;
   private final ScheduledFuture<?> scheduledFuture;
+  private int waitTimeout;
 
   /**
    * Create pool from configuration.
@@ -97,8 +100,14 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     // create minimal connection in pool
     try {
-      for (int i = 0; i < conf.minPoolSize(); i++) {
+      for (int i = 0; i < Math.max(1, conf.minPoolSize()); i++) {
         addConnection();
+      }
+      waitTimeout = 28800;
+      if (!idleConnections.isEmpty()) {
+        Statement stmt = idleConnections.getFirst().getConnection().createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@wait_timeout");
+        if (rs.next()) waitTimeout = rs.getInt(1);
       }
     } catch (SQLException sqle) {
       logger.error("error initializing pool connection", sqle);
@@ -114,17 +123,18 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       // ensure to have one worker if was timeout
       connectionAppender.prestartCoreThread();
-      connectionAppenderQueue.offer(
-          () -> {
-            if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
-                && totalConnection.get() < conf.maxPoolSize()) {
-              try {
-                addConnection();
-              } catch (SQLException sqle) {
-                // eat
-              }
-            }
-          });
+      boolean unused =
+          connectionAppenderQueue.offer(
+              () -> {
+                if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
+                    && totalConnection.get() < conf.maxPoolSize()) {
+                  try {
+                    addConnection();
+                  } catch (SQLException sqle) {
+                    logger.error("error adding connection to pool", sqle);
+                  }
+                }
+              });
     }
   }
 
@@ -147,10 +157,10 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       boolean shouldBeReleased = false;
       Connection con = item.getConnection();
-      if (con.getWaitTimeout() > 0) {
+      if (waitTimeout > 0) {
 
         // idle time is reaching server @@wait_timeout
-        if (idleTime > TimeUnit.SECONDS.toNanos(con.getWaitTimeout() - 45)) {
+        if (idleTime > TimeUnit.SECONDS.toNanos(waitTimeout - 45)) {
           shouldBeReleased = true;
         }
 
@@ -170,8 +180,9 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed due to inactivity (total:{}, active:{}, pending:{})",
               poolTag,
+              con.getThreadId(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -233,6 +244,11 @@ public class Pool implements AutoCloseable, PoolMBean {
             item.setFailed(true);
             totalConnection.decrementAndGet();
             boolean unused = idleConnections.remove(item);
+
+            // ensure that other connection will be validated before being use
+            // since one connection failed, better to assume the other might as well
+            idleConnections.forEach(InternalPoolConnection::ensureValidation);
+
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
             logger.debug(
@@ -301,8 +317,9 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed from pool due to failed validation (total:{}, active:{}, pending:{})",
               poolTag,
+              item.getConnection().getThreadId(),
               totalConnection.get(),
               getActiveConnections(),
               pendingRequestNumber.get());
@@ -421,7 +438,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         connectionAppender.shutdown();
 
         try {
-          connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+          boolean unused = connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException i) {
           // eat
         }
@@ -465,7 +482,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         } catch (Exception exception) {
           // eat
         }
-        connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+        boolean unused = connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
       }
     } catch (Exception e) {
       // eat

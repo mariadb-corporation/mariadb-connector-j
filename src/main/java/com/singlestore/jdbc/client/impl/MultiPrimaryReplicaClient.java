@@ -14,11 +14,9 @@ import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.message.ClientMessage;
-import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.log.Loggers;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
@@ -31,13 +29,22 @@ import java.util.concurrent.locks.ReentrantLock;
  * supported proxy class.
  */
 public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
+  /** timeout before retrying to reconnect failing host */
   protected long waitTimeout;
+
   private Client replicaClient;
   private Client primaryClient;
   private boolean requestReadOnly;
   private long nextTryReplica = -1;
   private long nextTryPrimary = -1;
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param lock thread locker
+   * @throws SQLException if any error occurs
+   */
   public MultiPrimaryReplicaClient(Configuration conf, ReentrantLock lock) throws SQLException {
     super(conf, lock);
     primaryClient = currentClient;
@@ -90,7 +97,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    * @throws SQLException if exception
    */
   @Override
-  protected void reConnect() throws SQLException {
+  protected Client reConnect() throws SQLException {
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
     Loggers.getLogger(MultiPrimaryReplicaClient.class)
@@ -155,22 +162,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
 
       // if reconnect succeed on replica / use master, no problem, continuing without interruption
       // if reconnect primary, then replay transaction / throw exception if was in transaction.
-      if (!requestReadOnly) {
-        if (conf.transactionReplay()) {
-          executeTransactionReplay(oldClient);
-        } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-          // transaction is lost, but connection is now up again.
-          // changing exception to SQLTransientConnectionException
-          throw new SQLTransientConnectionException(
-              String.format(
-                  "Driver has reconnect connection after a "
-                      + "communications "
-                      + "link "
-                      + "failure with %s. In progress transaction was lost",
-                  oldClient.getHostAddress()),
-              "25S03");
-        }
-      }
+      return requestReadOnly ? null : oldClient;
 
     } catch (SQLNonTransientConnectionException sqle) {
       currentClient = null;
@@ -190,11 +182,19 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     reconnectIfNeeded();
     return super.execute(
-        message, stmt, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+        message,
+        stmt,
+        fetchSize,
+        maxRows,
+        resultSetConcurrency,
+        resultSetType,
+        closeOnCompletion,
+        canRedo);
   }
 
   @Override
@@ -205,11 +205,19 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     reconnectIfNeeded();
     return super.executePipeline(
-        messages, stmt, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
+        messages,
+        stmt,
+        fetchSize,
+        maxRows,
+        resultSetConcurrency,
+        resultSetType,
+        closeOnCompletion,
+        canRedo);
   }
 
   @Override

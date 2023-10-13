@@ -18,6 +18,16 @@ public final class InitialHandshakePacket implements ServerMessage {
   private final short serverStatus;
   private final String authenticationPluginType;
 
+  /**
+   * parse result
+   *
+   * @param threadId server thread id
+   * @param seed seed
+   * @param capabilities server capabilities
+   * @param defaultCollation default server collation
+   * @param serverStatus server status flags
+   * @param authenticationPluginType default authentication plugin type
+   */
   private InitialHandshakePacket(
       long threadId,
       byte[] seed,
@@ -34,6 +44,12 @@ public final class InitialHandshakePacket implements ServerMessage {
     this.authenticationPluginType = authenticationPluginType;
   }
 
+  /**
+   * parsing packet
+   *
+   * @param reader packet reader
+   * @return Parsed packet
+   */
   public static InitialHandshakePacket decode(ReadableByteBuf reader) {
     byte protocolVersion = reader.readByte();
     if (protocolVersion != 0x0a) {
@@ -106,18 +122,38 @@ public final class InitialHandshakePacket implements ServerMessage {
         authenticationPluginType);
   }
 
+  /**
+   * Server thread id
+   *
+   * @return thread id
+   */
   public long getThreadId() {
     return threadId;
   }
 
+  /**
+   * Seed for authentication plugin encryption
+   *
+   * @return seed
+   */
   public byte[] getSeed() {
     return seed;
   }
 
+  /**
+   * Server capabilities
+   *
+   * @return server capabilities
+   */
   public long getCapabilities() {
     return capabilities;
   }
 
+  /**
+   * Server default collation
+   *
+   * @return server default collation
+   */
   public short getDefaultCollation() {
     return defaultCollation;
   }
@@ -126,6 +162,11 @@ public final class InitialHandshakePacket implements ServerMessage {
     return serverStatus;
   }
 
+  /**
+   * return authentication plugin type
+   *
+   * @return authentication plugin type
+   */
   public String getAuthenticationPluginType() {
     return authenticationPluginType;
   }

@@ -8,8 +8,12 @@ package com.singlestore.jdbc.codec;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.socket.impl.PacketWriter;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter {
@@ -44,7 +48,11 @@ public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter 
   }
 
   public void encodeText(Writer encoder, Context context) throws IOException, SQLException {
-    codec.encodeText(encoder, context, this.value, null, length);
+    if (value == null) {
+      encoder.writeAscii("null");
+    } else {
+      codec.encodeText(encoder, context, this.value, null, length);
+    }
   }
 
   public void encodeBinary(Writer encoder) throws IOException, SQLException {
@@ -69,5 +77,23 @@ public class Parameter<T> implements com.singlestore.jdbc.client.util.Parameter 
 
   public boolean isNull() {
     return value == null;
+  }
+
+  @Override
+  public String bestEffortStringValue(Context context) {
+    if (isNull()) return "null";
+    if (codec.canEncodeLongData()) {
+      Type it = codec.getClass().getGenericInterfaces()[0];
+      ParameterizedType parameterizedType = (ParameterizedType) it;
+      Type typeParameter = parameterizedType.getActualTypeArguments()[0];
+      return "<" + typeParameter + ">";
+    }
+    try {
+      PacketWriter writer = new PacketWriter(null, 0, 0xffffff, null, null);
+      codec.encodeText(writer, context, this.value, null, this.length);
+      return new String(writer.buf(), 4, writer.pos() - 4, StandardCharsets.UTF_8);
+    } catch (Throwable t) {
+      return null;
+    }
   }
 }

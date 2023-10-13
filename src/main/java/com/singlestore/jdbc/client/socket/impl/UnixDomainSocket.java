@@ -17,6 +17,7 @@ import java.net.SocketAddress;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/** Unix IPC socket */
 public class UnixDomainSocket extends Socket {
 
   private static final int AF_UNIX = 1;
@@ -36,6 +37,12 @@ public class UnixDomainSocket extends Socket {
   private OutputStream os;
   private boolean connected;
 
+  /**
+   * Constructor
+   *
+   * @param path unix path
+   * @throws IOException if any error occurs
+   */
   public UnixDomainSocket(String path) throws IOException {
     if (Platform.isWindows()) {
       throw new IOException("Unix domain sockets are not supported on Windows");
@@ -49,19 +56,71 @@ public class UnixDomainSocket extends Socket {
     }
   }
 
+  /**
+   * creates an endpoint for communication and returns a file descriptor that refers to that
+   * endpoint.
+   *
+   * @param domain domain
+   * @param type type
+   * @param protocol protocol
+   * @return file descriptor
+   * @throws LastErrorException if any error occurs
+   */
   public static native int socket(int domain, int type, int protocol) throws LastErrorException;
 
+  /**
+   * Connect socket
+   *
+   * @param sockfd file descriptor
+   * @param sockaddr socket address
+   * @param addrlen address length
+   * @return zero on success. -1 on error
+   * @throws LastErrorException if error occurs
+   */
   public static native int connect(int sockfd, SockAddr sockaddr, int addrlen)
       throws LastErrorException;
 
+  /**
+   * Receive a message from a socket
+   *
+   * @param fd file descriptor
+   * @param buffer buffer
+   * @param count length
+   * @param flags flag.
+   * @return zero on success. -1 on error
+   * @throws LastErrorException if error occurs
+   */
   public static native int recv(int fd, byte[] buffer, int count, int flags)
       throws LastErrorException;
 
+  /**
+   * Send a message to a socket
+   *
+   * @param fd file descriptor
+   * @param buffer buffer
+   * @param count length
+   * @param flags flag.
+   * @return zero on success. -1 on error
+   * @throws LastErrorException if error occurs
+   */
   public static native int send(int fd, byte[] buffer, int count, int flags)
       throws LastErrorException;
 
+  /**
+   * Close socket
+   *
+   * @param fd file descriptor
+   * @return zero on success. -1 on error
+   * @throws LastErrorException if error occurs
+   */
   public static native int close(int fd) throws LastErrorException;
 
+  /**
+   * return a description of the error code passed in the argument errnum.
+   *
+   * @param errno error pointer
+   * @return error description
+   */
   public static native String strerror(int errno);
 
   private static String formatError(LastErrorException lee) {
@@ -89,11 +148,6 @@ public class UnixDomainSocket extends Socket {
     }
   }
 
-  @Override
-  public void connect(SocketAddress endpoint) throws IOException {
-    connect(endpoint, 0);
-  }
-
   public void connect(SocketAddress endpoint, int timeout) throws IOException {
     try {
       int ret = connect(fd, sockaddr, sockaddr.size());
@@ -102,6 +156,10 @@ public class UnixDomainSocket extends Socket {
       }
       connected = true;
     } catch (LastErrorException lee) {
+      try {
+        close();
+      } catch (IOException e) {
+      }
       throw new IOException("native connect() failed : " + formatError(lee));
     }
     is = new UnixSocketInputStream();
@@ -121,14 +179,6 @@ public class UnixDomainSocket extends Socket {
   }
 
   public void setKeepAlive(boolean b) {
-    // do nothing
-  }
-
-  public void setReceiveBufferSize(int size) {
-    // do nothing
-  }
-
-  public void setSendBufferSize(int size) {
     // do nothing
   }
 
@@ -216,13 +266,6 @@ public class UnixDomainSocket extends Socket {
     }
 
     @Override
-    public void write(int value) throws IOException {
-      write(new byte[] {(byte) value});
-    }
-
-    @Override
-    public void write(byte[] bytes) throws IOException {
-      write(bytes, 0, bytes.length);
-    }
+    public void write(int value) throws IOException {}
   }
 }

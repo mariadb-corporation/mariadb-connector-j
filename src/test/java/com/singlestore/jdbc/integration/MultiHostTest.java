@@ -8,6 +8,7 @@ package com.singlestore.jdbc.integration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTransientConnectionException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +87,77 @@ public class MultiHostTest extends Common {
       Thread.sleep(50);
       con.isValid(1);
     }
+  }
+
+  @Test
+  public void closedConnectionMulti() throws Exception {
+
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    String url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//address=(host=localhost)(port=9999)(type=master),address=(host=%s)(port=%s)(type=master)/",
+                hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:singlestore:", "jdbc:singlestore:sequential:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    Connection con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+
+    url =
+        mDefUrl.replaceAll(
+            "//([^/]*)/",
+            String.format(
+                "//%s:%s,%s,%s/",
+                hostAddress.host, hostAddress.port, hostAddress.host, hostAddress.port));
+    url = url.replaceAll("jdbc:singlestore:", "jdbc:singlestore:replication:");
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    con =
+        (Connection)
+            DriverManager.getConnection(
+                url
+                    + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500&useServerPrepStmts&cachePrepStmts=false");
+    testClosedConn(con);
+  }
+
+  private void testClosedConn(Connection con) throws SQLException {
+    PreparedStatement prep = con.prepareStatement("SELECT ?");
+    PreparedStatement prep2 = con.prepareStatement("SELECT 1, ?");
+    prep2.setString(1, "1");
+    prep2.execute();
+    Statement stmt = con.createStatement();
+    stmt.setFetchSize(1);
+    ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
+    rs.next();
+
+    con.close();
+
+    prep.setString(1, "1");
+    assertThrowsContains(SQLException.class, () -> prep.execute(), "Connection is closed");
+    assertThrowsContains(SQLException.class, () -> prep2.execute(), "Connection is closed");
+    assertThrowsContains(SQLException.class, () -> prep2.close(), "Connection is closed");
+    con.close();
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.abort(null),
+        "Cannot abort the connection: null executor passed");
+    assertNotNull(con.getClient().getHostAddress());
+    assertThrowsContains(
+        SQLException.class,
+        () -> con.getClient().readStreamingResults(null, 0, 0, 0, 0, true),
+        "Connection is closed");
+    con.getClient().reset();
   }
 
   @Test
@@ -223,10 +296,7 @@ public class MultiHostTest extends Common {
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    Common.assertThrowsContains(
-        SQLNonTransientConnectionException.class,
-        () -> con.abort(Runnable::run),
-        "Connection is closed");
+    con.abort(Runnable::run); // no-op
 
     Connection con2 =
         (Connection)
@@ -261,7 +331,7 @@ public class MultiHostTest extends Common {
           (Connection)
               DriverManager.getConnection(
                   url
-                      + "waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
+                      + "&waitReconnectTimeout=300&deniedListTimeout=300&retriesAllDown=4&connectTimeout=500")) {
         Statement stmt = con.createStatement();
         stmt.execute("SELECT 1 INTO @con");
         con.setReadOnly(true);
@@ -270,10 +340,10 @@ public class MultiHostTest extends Common {
         Thread.sleep(20);
         con.setReadOnly(false);
 
-        Common.assertThrowsContains(
-            SQLException.class,
+        assertThrowsContains(
+            SQLTransientConnectionException.class,
             () -> stmt.executeQuery("SELECT @con"),
-            "Unknown user-defined variable");
+            "Driver has reconnect connection after a communications link failure with");
       }
     }
 
@@ -353,11 +423,7 @@ public class MultiHostTest extends Common {
         SQLNonTransientConnectionException.class,
         () -> con.setReadOnly(false),
         "Connection is closed");
-    Common.assertThrowsContains(
-        SQLNonTransientConnectionException.class,
-        () -> con.abort(Runnable::run),
-        "Connection is closed");
-
+    con.abort(Runnable::run); // no-op
     Connection con2 =
         (Connection)
             DriverManager.getConnection(

@@ -182,7 +182,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public int getPrecision(final int column) throws SQLException {
-    return (int) getColumn(column).getPrecision();
+    return getColumn(column).getPrecision();
   }
 
   /**
@@ -245,7 +245,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
     if (column.getType() == DataType.GEOMETRY && column.getExtTypeName() != null) {
       return column.getExtTypeName().toUpperCase(Locale.ROOT);
     }
-    return column.getTypeName();
+    return column.getTypeName(conf);
   }
 
   /**

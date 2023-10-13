@@ -13,6 +13,11 @@ public final class ChangeDbPacket implements RedoableClientMessage {
 
   private final String database;
 
+  /**
+   * Constructor to encode COM_INIT_DB packet
+   *
+   * @param database database
+   */
   public ChangeDbPacket(String database) {
     this.database = database;
   }

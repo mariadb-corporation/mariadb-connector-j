@@ -19,6 +19,6 @@ public final class ResetPacket implements ClientMessage {
     writer.initPacket();
     writer.writeByte(0x1f);
     writer.flush();
-    return 0;
+    return 1;
   }
 }

@@ -8,6 +8,7 @@ package com.singlestore.jdbc.integration.codec;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -43,22 +44,27 @@ public class DateCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DateCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -483,14 +489,42 @@ public class DateCodecTest extends CommonCodecTest {
   }
 
   public void getInstant(ResultSet rs) throws SQLException {
+    assertFalse(rs.wasNull());
     assertEquals(
-        LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()).toInstant(),
+        ZonedDateTime.of(LocalDateTime.parse("2010-01-12T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
         rs.getObject(1, Instant.class));
+    assertFalse(rs.wasNull());
     assertEquals(
-        LocalDateTime.parse("2010-01-12T00:00:00").atZone(ZoneId.systemDefault()).toInstant(),
-        rs.getObject("t1alias", Instant.class));
+        ZonedDateTime.of(LocalDateTime.parse("1000-01-01T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(2, Instant.class));
+    assertFalse(rs.wasNull());
+    assertEquals(
+        ZonedDateTime.of(LocalDateTime.parse("9999-12-31T00:00:00"), ZoneId.systemDefault())
+            .toInstant(),
+        rs.getObject(3, Instant.class));
+    assertFalse(rs.wasNull());
     assertNull(rs.getObject(4, Instant.class));
     assertTrue(rs.wasNull());
+  }
+
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
   }
 
   @Test
@@ -674,6 +708,7 @@ public class DateCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DateCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO DateCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -699,6 +734,9 @@ public class DateCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 8);
       prep.setDate(2, Date.valueOf("2010-01-12"), Calendar.getInstance());
+      prep.execute();
+      prep.setInt(1, 9);
+      prep.setObject(2, new java.util.Date(Date.valueOf("2010-12-13").getTime()));
       prep.execute();
     }
 
@@ -739,6 +777,10 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-12-13"), rs.getDate(2));
+    rs.updateObject(2, new java.util.Date(Date.valueOf("2010-12-31").getTime()), Types.DATE);
+    rs.updateRow();
 
     rs = stmt.executeQuery("SELECT * FROM DateCodec2 ORDER BY id");
     assertTrue(rs.next());
@@ -757,5 +799,8 @@ public class DateCodecTest extends CommonCodecTest {
     assertEquals(Date.valueOf("9999-12-31"), rs.getDate(2));
     assertTrue(rs.next());
     assertEquals(Date.valueOf("2010-01-12"), rs.getDate(2));
+    assertTrue(rs.next());
+    assertEquals(Date.valueOf("2010-12-31"), rs.getDate(2));
+    con.commit();
   }
 }

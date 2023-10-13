@@ -24,28 +24,27 @@ public class ParameterList implements Parameters, Cloneable {
     length = 0;
   }
 
+  @Override
   public Parameter get(int index) {
-    if (index + 1 > length) {
+    if (index >= length) {
       throw new ArrayIndexOutOfBoundsException("wrong index " + index + " length:" + length);
     }
     return elementData[index];
   }
 
+  @Override
   public boolean containsKey(int index) {
     if (index >= 0 && length > index) {
-      return elementData[index] == null;
+      return elementData[index] != null;
     }
-    return true;
+    return false;
   }
 
+  @Override
   public void set(int index, Parameter element) {
-    if (elementData.length < index + 1) {
-      grow(index + 1);
-    }
+    if (elementData.length <= index) grow(index + 1);
     elementData[index] = element;
-    if (index + 1 > length) {
-      length = index + 1;
-    }
+    if (index >= length) length = index + 1;
   }
 
   public int size() {
@@ -61,7 +60,7 @@ public class ParameterList implements Parameters, Cloneable {
   @Override
   public ParameterList clone() {
     ParameterList param = new ParameterList(length);
-    if (length >= 0) {
+    if (length > 0) {
       System.arraycopy(elementData, 0, param.elementData, 0, length);
     }
     param.length = length;

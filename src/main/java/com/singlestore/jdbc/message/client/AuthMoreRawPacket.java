@@ -10,10 +10,16 @@ import com.singlestore.jdbc.client.socket.Writer;
 import com.singlestore.jdbc.message.ClientMessage;
 import java.io.IOException;
 
+/** plugin additional exchanges. raw data with mysql header packet */
 public final class AuthMoreRawPacket implements ClientMessage {
 
   private final byte[] raw;
 
+  /**
+   * Constructor
+   *
+   * @param raw plugin exchange raw data
+   */
   public AuthMoreRawPacket(byte[] raw) {
     this.raw = raw;
   }

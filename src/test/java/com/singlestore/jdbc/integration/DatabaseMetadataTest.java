@@ -7,6 +7,7 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.Statement;
 import java.sql.*;
 import org.junit.jupiter.api.*;
@@ -43,6 +44,7 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists getBestRowIdentifier1");
     stmt.execute("drop table if exists getBestRowIdentifier2");
     stmt.execute("drop table if exists get_index_info");
+    stmt.execute("drop table if exists text_types_text");
   }
 
   @BeforeAll
@@ -171,6 +173,13 @@ public class DatabaseMetadataTest extends Common {
             + "t6 time(6)) AS BEGIN ECHO SELECT I; END");
     stmt.execute(
         "CREATE PROCEDURE testMetaCatalogProc(x int) RETURNS int AS \nBEGIN\n return 1; end\n");
+    stmt.execute(
+        "create table text_types_text (varchar100           varchar(100),\n"
+            + "  varchar255           varchar(255),\n"
+            + "  text                 text,\n"
+            + "  `tinytext`           tinytext,\n"
+            + "  `mediumtext`         mediumtext,\n"
+            + "  `longtext`           longtext)");
   }
 
   private static void checkType(String name, int actualType, String colName, int expectedType) {
@@ -350,6 +359,9 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(true, rs.next());
 
     rs = dbmd.getTables("", null, "prim_key", new String[] {"TABLE", null});
+    assertEquals(true, rs.next());
+
+    rs = dbmd.getTables(null, null, null, new String[] {"TABLE"});
     assertEquals(true, rs.next());
   }
 
@@ -603,6 +615,46 @@ public class DatabaseMetadataTest extends Common {
       assertTrue(rs.next());
       assertEquals(Types.TINYINT, rs.getInt(5));
 
+    } finally {
+      con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1IsBitCols`");
+    }
+  }
+
+  @Test
+  public void testTransformedBitIsBoolean() throws SQLException {
+    try (Connection con = createCon("transformedBitIsBoolean=true")) {
+      testTransformedBitIsBoolean(con);
+    }
+    try (Connection con = createCon("transformedBitIsBoolean=true&tinyInt1isBit=true")) {
+      testTransformedBitIsBoolean(con);
+    }
+  }
+
+  private void testTransformedBitIsBoolean(Connection con) throws SQLException {
+    try {
+      Configuration conf = ((com.singlestore.jdbc.Connection) con).getContext().getConf();
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute(
+          "CREATE TABLE IF NOT EXISTS `tinyInt1IsBitCols`(id1 TINYINT, id2 TINYINT UNSIGNED)");
+      stmt.execute("INSERT INTO `tinyInt1IsBitCols` VALUES (2,0)");
+
+      ResultSet rs1 = con.createStatement().executeQuery("SELECT * FROM `tinyInt1IsBitCols`");
+      assertTrue(rs1.next());
+      if (conf.tinyInt1isBit()) {
+        assertEquals(true, rs1.getObject(1));
+        assertEquals(false, rs1.getObject(2));
+        ResultSetMetaData rsm = rs1.getMetaData();
+        assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
+        assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
+      } else {
+        assertEquals(2, rs1.getObject(1));
+        assertEquals(0, rs1.getObject(2));
+        ResultSetMetaData rsm = rs1.getMetaData();
+        assertEquals(Types.TINYINT, rsm.getColumnType(1));
+        assertEquals("TINYINT", rsm.getColumnTypeName(1));
+        assertEquals(Types.SMALLINT, rsm.getColumnType(2));
+        assertEquals("TINYINT UNSIGNED", rsm.getColumnTypeName(2));
+      }
     } finally {
       con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1IsBitCols`");
     }

@@ -16,6 +16,7 @@ import com.singlestore.jdbc.plugin.codec.BigDecimalCodec;
 import com.singlestore.jdbc.plugin.codec.BigIntegerCodec;
 import com.singlestore.jdbc.plugin.codec.BitSetCodec;
 import com.singlestore.jdbc.plugin.codec.BlobCodec;
+import com.singlestore.jdbc.plugin.codec.BooleanCodec;
 import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import com.singlestore.jdbc.plugin.codec.ByteCodec;
 import com.singlestore.jdbc.plugin.codec.DateCodec;
@@ -36,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 import java.util.Objects;
 
+/** Column metadata definition */
 public class ColumnDefinitionPacket implements Column, ServerMessage {
 
   private final ReadableByteBuf buf;
@@ -46,26 +48,37 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   private final int flags;
   private final int[] stringPos;
   private final String extTypeName;
+  private final String extTypeFormat;
   private boolean useAliasAsName;
 
+  /**
+   * constructor for generated metadata
+   *
+   * @param buf buffer
+   * @param length length
+   * @param dataType server data type
+   * @param stringPos string information position
+   * @param flags columns flags
+   */
   private ColumnDefinitionPacket(
-      ReadableByteBuf buf,
-      int charset,
-      long length,
-      DataType dataType,
-      byte decimals,
-      int flags,
-      int[] stringPos) {
+      ReadableByteBuf buf, long length, DataType dataType, int[] stringPos, int flags) {
     this.buf = buf;
-    this.charset = charset;
+    this.charset = 33;
     this.length = length;
     this.dataType = dataType;
-    this.decimals = decimals;
+    this.decimals = (byte) 0;
     this.flags = flags;
     this.stringPos = stringPos;
     this.extTypeName = null;
+    this.extTypeFormat = null;
   }
 
+  /**
+   * Generate object from mysql packet
+   *
+   * @param buf mysql packet buffer
+   * @param extendedInfo support extended information
+   */
   public ColumnDefinitionPacket(ReadableByteBuf buf, boolean extendedInfo) {
     // skip first strings
     stringPos = new int[5];
@@ -78,6 +91,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
     if (extendedInfo) {
       String tmpTypeName = null;
+      String tmpTypeFormat = null;
 
       // fast skipping extended info (usually not set)
       if (buf.readByte() != 0) {
@@ -86,16 +100,24 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
 
         ReadableByteBuf subPacket = buf.readLengthBuffer();
         while (subPacket.readableBytes() > 0) {
-          if (subPacket.readByte() == 0) {
-            tmpTypeName = subPacket.readAscii(subPacket.readLength());
-          } else { // skip data
-            subPacket.skip(subPacket.readLength());
+          switch (subPacket.readByte()) {
+            case 0:
+              tmpTypeName = subPacket.readAscii(subPacket.readLength());
+              break;
+            case 1:
+              tmpTypeFormat = subPacket.readAscii(subPacket.readLength());
+              break;
+            default: // skip data
+              subPacket.skip(subPacket.readLength());
+              break;
           }
         }
       }
       extTypeName = tmpTypeName;
+      extTypeFormat = tmpTypeFormat;
     } else {
       extTypeName = null;
+      extTypeFormat = null;
     }
 
     this.buf = buf;
@@ -107,7 +129,15 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.decimals = buf.readByte();
   }
 
-  public static ColumnDefinitionPacket create(String name, DataType type) {
+  /**
+   * Generate column definition from name
+   *
+   * @param name column name
+   * @param type server type
+   * @param flags columns flags
+   * @return column definition
+   */
+  public static ColumnDefinitionPacket create(String name, DataType type, int flags) {
     byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
     byte[] arr = new byte[9 + 2 * nameBytes.length];
     arr[0] = 3;
@@ -146,40 +176,33 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         len = 1;
         break;
     }
-
     return new ColumnDefinitionPacket(
-        new StandardReadableByteBuf(null, arr, arr.length),
-        33,
-        len,
-        type,
-        (byte) 0,
-        ColumnFlags.PRIMARY_KEY,
-        stringPos);
+        new StandardReadableByteBuf(arr, arr.length), len, type, stringPos, flags);
   }
 
   public String getSchema() {
     buf.pos(stringPos[0]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTableAlias() {
     buf.pos(stringPos[1]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getTable() {
     buf.pos(stringPos[useAliasAsName ? 1 : 2]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnAlias() {
     buf.pos(stringPos[3]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public String getColumnName() {
     buf.pos(stringPos[4]);
-    return buf.readString(buf.readLength());
+    return buf.readString(buf.readIntLengthEncodedNotNull());
   }
 
   public long getLength() {
@@ -190,8 +213,26 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     return dataType;
   }
 
-  public String getTypeName() {
+  public String getTypeName(Configuration conf) {
     switch (dataType) {
+      case TINYINT:
+        if (conf.tinyInt1isBit()) {
+          return conf.transformedBitIsBoolean() ? "BOOLEAN" : "BIT";
+        }
+        if (!isSigned()) {
+          return dataType.name() + " UNSIGNED";
+        } else {
+          return dataType.name();
+        }
+      case SMALLINT:
+      case MEDIUMINT:
+      case INT:
+      case BIGINT:
+        if (!isSigned()) {
+          return dataType.name() + " UNSIGNED";
+        } else {
+          return dataType.name();
+        }
       case VARCHAR:
         return isBinary() ? "VARBINARY" : "VARCHAR";
       case CHAR:
@@ -220,6 +261,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     return (flags & ColumnFlags.UNSIGNED) == 0;
   }
 
+  @Override
   public int getDisplaySize() {
     switch (dataType) {
       case VARCHAR:
@@ -285,10 +327,12 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     return charset == 63;
   }
 
+  @Override
   public int getFlags() {
     return flags;
   }
 
+  @Override
   public String getExtTypeName() {
     return extTypeName;
   }
@@ -298,7 +342,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    *
    * @return precision
    */
-  public long getPrecision() {
+  @Override
+  public int getPrecision() {
     switch (dataType) {
       case OLDDECIMAL:
       case DECIMAL:
@@ -307,9 +352,9 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         // - if can be signed, 1 byte is saved for sign
         // - if decimal > 0, one byte more for dot
         if (isSigned()) {
-          return length - ((decimals > 0) ? 2 : 1);
+          return (int) length - ((decimals > 0) ? 2 : 1);
         } else {
-          return length - ((decimals > 0) ? 1 : 0);
+          return (int) length - ((decimals > 0) ? 1 : 0);
         }
 
       case FLOAT:
@@ -344,16 +389,17 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         return getDisplaySize();
 
       default:
-        return Math.max(length, 0);
+        return (int) Math.max(length, 0);
     }
   }
 
+  @Override
   public int getColumnType(Configuration conf) {
     switch (dataType) {
       case TINYINT:
         // S2 always returns length 4 for TINYINT, so can't check it here
         if (conf.tinyInt1isBit()) {
-          return Types.BIT;
+          return conf.transformedBitIsBoolean() ? Types.BOOLEAN : Types.BIT;
         }
         return isSigned() ? Types.TINYINT : Types.SMALLINT;
       case BIT:
@@ -415,6 +461,9 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case NULL:
         return StringCodec.INSTANCE;
       case TINYINT:
+        if (conf.tinyInt1isBit() && conf.transformedBitIsBoolean()) {
+          return BooleanCodec.INSTANCE;
+        }
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
       case SMALLINT:
         return isSigned() ? ShortCodec.INSTANCE : IntCodec.INSTANCE;

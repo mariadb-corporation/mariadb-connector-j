@@ -64,22 +64,27 @@ public class VarcharCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from StringCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -877,6 +882,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE StringParamCodec");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO StringParamCodec(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -1100,6 +1106,7 @@ public class VarcharCodecTest extends CommonCodecTest {
     assertEquals("08b669ae-ff94-11ed-be56-0242ac120002", rs.getString(2));
     assertEquals(
         UUID.fromString("08b669ae-ff94-11ed-be56-0242ac120002"), rs.getObject(2, UUID.class));
+    con.commit();
   }
 
   @Test

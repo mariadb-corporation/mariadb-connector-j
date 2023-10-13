@@ -11,18 +11,42 @@ import java.sql.SQLException;
 
 public interface CredentialPlugin {
 
+  /**
+   * credential identifier
+   *
+   * @return type
+   */
   String type();
 
-  Credential get() throws SQLException;
-
+  /**
+   * Indicate if plugin must throw an error if SSL is not enabled
+   *
+   * @return if ssl is required
+   */
   default boolean mustUseSsl() {
     return false;
   }
 
+  /**
+   * Indicate authentication plugin type to use for authentication
+   *
+   * @return plugin type to use for authentication, or null for default
+   */
   default String defaultAuthenticationPluginType() {
     return null;
   }
 
+  Credential get() throws SQLException;
+
+  /**
+   * Permit initializing plugin if overridden
+   *
+   * @param conf configuration
+   * @param userName user
+   * @param hostAddress host information
+   * @return credential plugin
+   * @throws SQLException if any error occurs
+   */
   default CredentialPlugin initialize(Configuration conf, String userName, HostAddress hostAddress)
       throws SQLException {
     return this;

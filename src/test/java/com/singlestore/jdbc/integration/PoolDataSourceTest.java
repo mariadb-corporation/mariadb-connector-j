@@ -23,6 +23,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionPoolDataSource;
 import javax.sql.PooledConnection;
+import javax.sql.XAConnection;
 import org.junit.jupiter.api.*;
 
 public class PoolDataSourceTest extends Common {
@@ -49,6 +50,111 @@ public class PoolDataSourceTest extends Common {
     try (Statement stmt = sharedConn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS testResetRollback");
     }
+  }
+
+  @Test
+  public void basic() throws SQLException {
+    SingleStorePoolDataSource ds = new SingleStorePoolDataSource(mDefUrl);
+    testDs(ds);
+    ds.close();
+
+    ds = new SingleStorePoolDataSource();
+    ds.setUrl(mDefUrl);
+    testDs(ds);
+    ds.close();
+  }
+
+  private void testDs(SingleStorePoolDataSource ds) throws SQLException {
+    try (Connection con1 = ds.getConnection()) {
+      try (Connection con2 = ds.getConnection()) {
+
+        ResultSet rs1 = con1.createStatement().executeQuery("SELECT 1");
+        ResultSet rs2 = con2.createStatement().executeQuery("SELECT 2");
+        while (rs1.next()) {
+          assertEquals(1, rs1.getInt(1));
+        }
+        while (rs2.next()) {
+          assertEquals(2, rs2.getInt(1));
+        }
+      }
+    }
+
+    PooledConnection con1 = null;
+    PooledConnection con2 = null;
+    try {
+      con1 = ds.getPooledConnection();
+      con2 = ds.getPooledConnection();
+
+      ResultSet rs1 = con1.getConnection().createStatement().executeQuery("SELECT 1");
+      ResultSet rs2 = con2.getConnection().createStatement().executeQuery("SELECT 2");
+      while (rs1.next()) {
+        assertEquals(1, rs1.getInt(1));
+      }
+      while (rs2.next()) {
+        assertEquals(2, rs2.getInt(1));
+      }
+
+    } finally {
+      if (con1 != null) con1.getConnection().close();
+      if (con2 != null) con2.getConnection().close();
+    }
+
+    XAConnection conx1 = null;
+    XAConnection conx2 = null;
+    try {
+      conx1 = ds.getXAConnection();
+      conx2 = ds.getXAConnection();
+
+      ResultSet rs1 = conx1.getConnection().createStatement().executeQuery("SELECT 1");
+      ResultSet rs2 = conx2.getConnection().createStatement().executeQuery("SELECT 2");
+      while (rs1.next()) {
+        assertEquals(1, rs1.getInt(1));
+      }
+      while (rs2.next()) {
+        assertEquals(2, rs2.getInt(1));
+      }
+
+    } finally {
+      if (conx1 != null) conx1.close();
+      if (conx2 != null) conx2.close();
+    }
+  }
+
+  @Test
+  public void basic2() throws SQLException {
+    SingleStorePoolDataSource ds = new SingleStorePoolDataSource();
+    assertNull(ds.getUrl());
+    assertNull(ds.getUser());
+    assertNull(ds.getPassword());
+    assertEquals(30, ds.getLoginTimeout());
+    DriverManager.setLoginTimeout(40);
+    assertEquals(40, ds.getLoginTimeout());
+    DriverManager.setLoginTimeout(0);
+    ds.setLoginTimeout(50);
+    assertEquals(50, ds.getLoginTimeout());
+
+    assertThrows(SQLException.class, () -> ds.getConnection());
+    assertThrows(SQLException.class, () -> ds.getConnection("user", "password"));
+    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+    assertThrows(SQLException.class, () -> ds.getPooledConnection("user", "password"));
+    assertThrows(SQLException.class, () -> ds.getXAConnection());
+    assertThrows(SQLException.class, () -> ds.getXAConnection("user", "password"));
+
+    ds.setUser("dd");
+    assertEquals("dd", ds.getUser());
+
+    ds.setPassword("pwd");
+    assertEquals("pwd", ds.getPassword());
+    assertThrows(SQLException.class, () -> ds.getConnection());
+    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+
+    assertThrows(SQLException.class, () -> ds.setUrl("jdbc:wrong://d"));
+
+    ds.setUrl("jdbc:singlestore://myhost:5500/db?someOption=val");
+    assertEquals(
+        "jdbc:singlestore://myhost:5500/db?user=dd&password=***&someOption=val&connectTimeout=50000",
+        ds.getUrl());
+    ds.close();
   }
 
   @Test

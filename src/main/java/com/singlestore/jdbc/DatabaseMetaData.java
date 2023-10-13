@@ -2981,7 +2981,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     };
 
-    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext());
+    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext(), 0);
   }
 
   /**
@@ -3478,7 +3478,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
         };
 
-    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext());
+    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext(), 0);
   }
 
   /**

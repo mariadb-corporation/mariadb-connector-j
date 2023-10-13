@@ -18,6 +18,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+/** Packet reader */
 public class PacketReader implements Reader {
 
   private static final int REUSABLE_BUFFER_LENGTH = 1024;
@@ -201,7 +202,7 @@ public class PacketReader implements Reader {
       } while (packetLength == MAX_PACKET_SIZE);
     }
 
-    return new StandardReadableByteBuf(sequence, rawBytes, lastPacketLength);
+    return new StandardReadableByteBuf(rawBytes, lastPacketLength);
   }
 
   public MutableInt getSequence() {

@@ -44,13 +44,26 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class MultiPrimaryClient implements Client {
 
+  /** temporary blacklisted hosts */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
+  /** denied timeout */
   protected final long deniedListTimeout;
+  /** configuration */
   protected final Configuration conf;
+  /** is connections explicitly closed */
   protected boolean closed = false;
+  /** thread locker */
   protected final ReentrantLock lock;
+  /** current client */
   protected Client currentClient;
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param lock thread locker
+   * @throws SQLException if fail to connect
+   */
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
@@ -66,7 +79,7 @@ public class MultiPrimaryClient implements Client {
    * searching in temporary denied host if not succeed, until reaching `retriesAllDown` attempts.
    *
    * @param readOnly must connect a replica / primary
-   * @param failFast must try only not denyed server
+   * @param failFast must try only not denied server
    * @return a valid connection client
    * @throws SQLException if not succeed to create a connection.
    */
@@ -93,7 +106,7 @@ public class MultiPrimaryClient implements Client {
     if (failFast) {
       throw (lastSqle != null)
           ? lastSqle
-          : new SQLNonTransientConnectionException("No host not blacklisted");
+          : new SQLNonTransientConnectionException("all hosts are blacklisted");
     }
 
     // All server corresponding to type are in deny list
@@ -141,7 +154,13 @@ public class MultiPrimaryClient implements Client {
     throw lastSqle;
   }
 
-  protected void reConnect() throws SQLException {
+  /**
+   * Connection loop
+   *
+   * @return client connection
+   * @throws SQLException if fail to connect
+   */
+  protected Client reConnect() throws SQLException {
 
     denyList.putIfAbsent(
         currentClient.getHostAddress(), System.currentTimeMillis() + deniedListTimeout);
@@ -154,22 +173,7 @@ public class MultiPrimaryClient implements Client {
 
       currentClient = connectHost(false, false);
       syncNewState(oldClient);
-
-      if (conf.transactionReplay()) {
-        executeTransactionReplay(oldClient);
-      } else if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-        // transaction is lost, but connection is now up again.
-        // changing exception to SQLTransientConnectionException
-        throw new SQLTransientConnectionException(
-            String.format(
-                "Driver has reconnect connection after a "
-                    + "communications "
-                    + "link "
-                    + "failure with %s. In progress transaction was lost",
-                oldClient.getHostAddress()),
-            "25S03");
-      }
-
+      return oldClient;
     } catch (SQLNonTransientConnectionException sqle) {
       currentClient = null;
       closed = true;
@@ -177,14 +181,66 @@ public class MultiPrimaryClient implements Client {
     }
   }
 
-  protected void executeTransactionReplay(Client oldCli) throws SQLException {
-    // transaction replay
-    if ((oldCli.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
-      RedoContext ctx = (RedoContext) oldCli.getContext();
-      ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+  /**
+   * Execute transaction replay if in transaction and configured for it, throw an exception if not
+   *
+   * @param oldClient previous client
+   * @param canRedo if command can be redo even if not in transaction
+   * @throws SQLException if not able to replay
+   */
+  protected void replayIfPossible(Client oldClient, boolean canRedo) throws SQLException {
+    // oldClient is only valued if this occurs on master.
+    if (oldClient != null) {
+      if ((oldClient.getContext().getServerStatus() & ServerStatus.IN_TRANSACTION) > 0) {
+        if (conf.transactionReplay()) {
+          executeTransactionReplay(oldClient);
+        } else {
+          // transaction is lost, but connection is now up again.
+          // changing exception to SQLTransientConnectionException
+          throw new SQLTransientConnectionException(
+              String.format(
+                  "Driver has reconnect connection after a communications link failure with %s. In progress transaction was lost",
+                  oldClient.getHostAddress()),
+              "25S03");
+        }
+      } else if (!canRedo) {
+        // no transaction, but connection is now up again.
+        // changing exception to SQLTransientConnectionException
+        throw new SQLTransientConnectionException(
+            String.format(
+                "Driver has reconnect connection after a communications link failure with %s",
+                oldClient.getHostAddress()),
+            "25S03");
+      }
     }
   }
 
+  /**
+   * Execute transaction replay
+   *
+   * @param oldCli previous client
+   * @throws SQLException if not able to replay
+   */
+  protected void executeTransactionReplay(Client oldCli) throws SQLException {
+    // transaction replay
+    RedoContext ctx = (RedoContext) oldCli.getContext();
+    if (ctx.getTransactionSaver().isDirty()) {
+      ctx.getTransactionSaver().clear();
+      throw new SQLTransientConnectionException(
+          String.format(
+              "Driver has reconnect connection after a communications link failure with %s. In progress transaction was too big to be replayed, and was lost",
+              oldCli.getHostAddress()),
+          "25S03");
+    }
+    ((ReplayClient) currentClient).transactionReplay(ctx.getTransactionSaver());
+  }
+
+  /**
+   * Synchronized previous and new client states.
+   *
+   * @param oldCli previous client
+   * @throws SQLException if error occurs
+   */
   public void syncNewState(Client oldCli) throws SQLException {
     Context oldCtx = oldCli.getContext();
     currentClient.getExceptionFactory().setConnection(oldCli.getExceptionFactory());
@@ -195,14 +251,20 @@ public class MultiPrimaryClient implements Client {
         currentClient.execute(
             new QueryPacket(
                 "set autocommit="
-                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) ? "1" : "0")));
+                    + (((oldCtx.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0)
+                        ? "true"
+                        : "false")),
+            true);
       }
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_DATABASE) > 0
         && !Objects.equals(currentClient.getContext().getDatabase(), oldCtx.getDatabase())) {
       currentClient.getContext().addStateFlag(ConnectionState.STATE_DATABASE);
-      currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()));
+      if (oldCtx.getDatabase() != null) {
+        currentClient.execute(new ChangeDbPacket(oldCtx.getDatabase()), true);
+      }
+      currentClient.getContext().setDatabase(oldCtx.getDatabase());
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_NETWORK_TIMEOUT) > 0) {
@@ -226,27 +288,40 @@ public class MultiPrimaryClient implements Client {
         case java.sql.Connection.TRANSACTION_SERIALIZABLE:
           query += " SERIALIZABLE";
           break;
-        default:
-          throw new SQLException("Unsupported transaction isolation level");
       }
       currentClient
           .getContext()
           .setTransactionIsolationLevel(oldCtx.getTransactionIsolationLevel());
-      currentClient.execute(new QueryPacket(query));
+      currentClient.execute(new QueryPacket(query), true);
     }
   }
 
   @Override
-  public List<Completion> execute(ClientMessage message) throws SQLException {
+  public List<Completion> execute(ClientMessage message, boolean canRedo) throws SQLException {
     return execute(
-        message, null, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        null,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   @Override
-  public List<Completion> execute(ClientMessage message, com.singlestore.jdbc.Statement stmt)
+  public List<Completion> execute(
+      ClientMessage message, com.singlestore.jdbc.Statement stmt, boolean canRedo)
       throws SQLException {
     return execute(
-        message, stmt, 0, 0L, ResultSet.CONCUR_READ_ONLY, ResultSet.TYPE_FORWARD_ONLY, false);
+        message,
+        stmt,
+        0,
+        0L,
+        ResultSet.CONCUR_READ_ONLY,
+        ResultSet.TYPE_FORWARD_ONLY,
+        false,
+        canRedo);
   }
 
   @Override
@@ -257,7 +332,8 @@ public class MultiPrimaryClient implements Client {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
 
     if (closed) {
@@ -272,10 +348,11 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     } catch (SQLNonTransientConnectionException e) {
       HostAddress hostAddress = currentClient.getHostAddress();
-      reConnect();
+      Client oldClient = reConnect();
 
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
@@ -287,6 +364,8 @@ public class MultiPrimaryClient implements Client {
             "25S03");
       }
 
+      replayIfPossible(oldClient, canRedo);
+
       if (message instanceof RedoableWithPrepareClientMessage) {
         ((RedoableWithPrepareClientMessage) message).rePrepare(currentClient);
       }
@@ -297,7 +376,8 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     }
   }
 
@@ -309,7 +389,8 @@ public class MultiPrimaryClient implements Client {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     if (closed) {
       throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
@@ -323,11 +404,13 @@ public class MultiPrimaryClient implements Client {
           maxRows,
           resultSetConcurrency,
           resultSetType,
-          closeOnCompletion);
+          closeOnCompletion,
+          canRedo);
     } catch (SQLException e) {
       if (e instanceof SQLNonTransientConnectionException
           || (e.getCause() != null && e.getCause() instanceof SQLNonTransientConnectionException)) {
-        reConnect();
+        Client oldClient = reConnect();
+        replayIfPossible(oldClient, canRedo);
         Arrays.stream(messages)
             .filter(RedoableWithPrepareClientMessage.class::isInstance)
             .map(RedoableWithPrepareClientMessage.class::cast)
@@ -346,7 +429,8 @@ public class MultiPrimaryClient implements Client {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
       }
       throw e;
     }
@@ -369,8 +453,13 @@ public class MultiPrimaryClient implements Client {
       currentClient.readStreamingResults(
           completions, fetchSize, maxRows, resultSetConcurrency, resultSetType, closeOnCompletion);
     } catch (SQLNonTransientConnectionException e) {
-      reConnect();
-      throw getExceptionFactory().create("Socket error during result streaming", "HY000");
+      try {
+        reConnect();
+      } catch (SQLException e2) {
+        throw getExceptionFactory()
+            .create("Socket error during result streaming", e2.getSQLState(), e2);
+      }
+      throw getExceptionFactory().create("Socket error during result streaming", "HY000", e);
     }
   }
 
@@ -389,17 +478,11 @@ public class MultiPrimaryClient implements Client {
 
   @Override
   public void abort(Executor executor) throws SQLException {
-    if (closed) {
-      throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
-    }
     currentClient.abort(executor);
   }
 
   @Override
   public void close() throws SQLException {
-    if (closed) {
-      throw new SQLNonTransientConnectionException("Connection is closed", "08000", 1220);
-    }
     closed = true;
     currentClient.close();
   }
@@ -428,11 +511,6 @@ public class MultiPrimaryClient implements Client {
       reConnect();
       currentClient.setSocketTimeout(milliseconds);
     }
-  }
-
-  @Override
-  public int getWaitTimeout() {
-    return currentClient.getWaitTimeout();
   }
 
   @Override

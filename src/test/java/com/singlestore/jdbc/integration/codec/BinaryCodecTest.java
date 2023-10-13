@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
@@ -51,22 +52,27 @@ public class BinaryCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BinaryCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement prepareStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BinaryCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    prepareStatement.closeOnCompletion();
+    prepareStatement.setInt(1, 0);
+    ResultSet rs = prepareStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -497,6 +503,24 @@ public class BinaryCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+  }
+
+  @Test
   public void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }
@@ -745,6 +769,7 @@ public class BinaryCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BinaryCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BinaryCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -817,5 +842,6 @@ public class BinaryCodecTest extends CommonCodecTest {
     assertNull(rs.getClob(2));
     assertTrue(rs.next());
     assertNull(rs.getClob(2));
+    con.commit();
   }
 }

@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.ServiceLoader;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * parse and verification of URL.
@@ -58,8 +56,6 @@ import java.util.regex.Pattern;
 public class Configuration {
 
   private final Logger logger;
-  private static final Pattern URL_PARAMETER =
-      Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
 
   // standard options
   private String user = null;
@@ -78,6 +74,7 @@ public class Configuration {
   private TransactionIsolation transactionIsolation = TransactionIsolation.READ_COMMITTED;
   private int defaultFetchSize = 0;
   private int maxQuerySizeToLog = 1024;
+  private Integer maxAllowedPacket = null;
   private String geometryDefaultType = null;
   private String restrictedAuth = null;
   // socket
@@ -130,6 +127,7 @@ public class Configuration {
   // meta
   private boolean blankTableNameMeta = false;
   private boolean tinyInt1isBit = true;
+  private boolean transformedBitIsBoolean = false;
   private boolean yearIsDateType = true;
   private boolean dumpQueriesOnException = false;
   private boolean includeThreadDumpInDeadlockExceptions = false;
@@ -137,6 +135,7 @@ public class Configuration {
   // HA options
   private int retriesAllDown = 120;
   private boolean transactionReplay = false;
+  private int transactionReplaySize = 64;
 
   // Pool options
   private boolean pool = false;
@@ -174,6 +173,7 @@ public class Configuration {
       TransactionIsolation transactionIsolation,
       int defaultFetchSize,
       int maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       String geometryDefaultType,
       String restrictedAuth,
       String socketFactory,
@@ -214,11 +214,13 @@ public class Configuration {
       String jaasApplicationName,
       boolean blankTableNameMeta,
       boolean tinyInt1isBit,
+      boolean transformedBitIsBoolean,
       boolean yearIsDateType,
       boolean dumpQueriesOnException,
       boolean includeThreadDumpInDeadlockExceptions,
       int retriesAllDown,
       boolean transactionReplay,
+      int transactionReplaySize,
       boolean pool,
       String poolName,
       int maxPoolSize,
@@ -245,6 +247,7 @@ public class Configuration {
     this.transactionIsolation = transactionIsolation;
     this.defaultFetchSize = defaultFetchSize;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
+    this.maxAllowedPacket = maxAllowedPacket;
     this.geometryDefaultType = geometryDefaultType;
     this.restrictedAuth = restrictedAuth;
     this.socketFactory = socketFactory;
@@ -285,11 +288,13 @@ public class Configuration {
     this.jaasApplicationName = jaasApplicationName;
     this.blankTableNameMeta = blankTableNameMeta;
     this.tinyInt1isBit = tinyInt1isBit;
+    this.transformedBitIsBoolean = transformedBitIsBoolean;
     this.yearIsDateType = yearIsDateType;
     this.dumpQueriesOnException = dumpQueriesOnException;
     this.includeThreadDumpInDeadlockExceptions = includeThreadDumpInDeadlockExceptions;
     this.retriesAllDown = retriesAllDown;
     this.transactionReplay = transactionReplay;
+    this.transactionReplaySize = transactionReplaySize;
     this.pool = pool;
     this.poolName = poolName;
     this.maxPoolSize = maxPoolSize;
@@ -336,6 +341,7 @@ public class Configuration {
       String enabledSslCipherSuites,
       String sessionVariables,
       Boolean tinyInt1isBit,
+      Boolean transformedBitIsBoolean,
       Boolean yearIsDateType,
       Boolean dumpQueriesOnException,
       Integer prepStmtCacheSize,
@@ -352,6 +358,7 @@ public class Configuration {
       Integer defaultFetchSize,
       String tlsSocketType,
       Integer maxQuerySizeToLog,
+      Integer maxAllowedPacket,
       Integer retriesAllDown,
       Boolean pool,
       String poolName,
@@ -371,6 +378,7 @@ public class Configuration {
       Boolean useReadAheadInput,
       Boolean cachePrepStmts,
       Boolean transactionReplay,
+      Integer transactionReplaySize,
       String geometryDefaultType,
       String restrictedAuth,
       Properties nonMappedOptions,
@@ -432,6 +440,7 @@ public class Configuration {
     this.enabledSslCipherSuites = enabledSslCipherSuites;
     this.sessionVariables = sessionVariables;
     if (tinyInt1isBit != null) this.tinyInt1isBit = tinyInt1isBit;
+    if (transformedBitIsBoolean != null) this.transformedBitIsBoolean = transformedBitIsBoolean;
     if (yearIsDateType != null) this.yearIsDateType = yearIsDateType;
     if (dumpQueriesOnException != null) this.dumpQueriesOnException = dumpQueriesOnException;
     if (prepStmtCacheSize != null) this.prepStmtCacheSize = prepStmtCacheSize;
@@ -449,6 +458,7 @@ public class Configuration {
     if (defaultFetchSize != null) this.defaultFetchSize = defaultFetchSize;
     if (tlsSocketType != null) this.tlsSocketType = tlsSocketType;
     if (maxQuerySizeToLog != null) this.maxQuerySizeToLog = maxQuerySizeToLog;
+    if (maxAllowedPacket != null) this.maxAllowedPacket = maxAllowedPacket;
     if (retriesAllDown != null) this.retriesAllDown = retriesAllDown;
     if (pool != null) this.pool = pool;
     if (poolName != null) this.poolName = poolName;
@@ -473,6 +483,7 @@ public class Configuration {
     if (useReadAheadInput != null) this.useReadAheadInput = useReadAheadInput;
     if (cachePrepStmts != null) this.cachePrepStmts = cachePrepStmts;
     if (transactionReplay != null) this.transactionReplay = transactionReplay;
+    if (transactionReplaySize != null) this.transactionReplaySize = transactionReplaySize;
     if (geometryDefaultType != null) this.geometryDefaultType = geometryDefaultType;
     if (restrictedAuth != null) this.restrictedAuth = restrictedAuth;
     if (serverSslCert != null) this.serverSslCert = serverSslCert;
@@ -585,25 +596,31 @@ public class Configuration {
       }
 
       if (additionalParameters != null) {
-        //noinspection Annotator
-        Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
-        matcher.find();
-        String database = matcher.group(2);
-        if (database != null && !database.isEmpty()) {
-          builder.database(database);
-        }
-        String urlParameters = matcher.group(4);
-        if (urlParameters != null && !urlParameters.isEmpty()) {
-          String[] parameters = urlParameters.split("&");
-          for (String parameter : parameters) {
-            int pos = parameter.indexOf('=');
-            if (pos == -1) {
-              properties.setProperty(parameter, "");
-            } else {
-              properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+        int optIndex = additionalParameters.indexOf("?");
+        String database;
+        if (optIndex < 0) {
+          database = (additionalParameters.length() > 1) ? additionalParameters.substring(1) : null;
+        } else {
+          if (optIndex == 0) {
+            database = null;
+          } else {
+            database = additionalParameters.substring(1, optIndex);
+            if (database.isEmpty()) database = null;
+          }
+          String urlParameters = additionalParameters.substring(optIndex + 1);
+          if (urlParameters != null && !urlParameters.isEmpty()) {
+            String[] parameters = urlParameters.split("&");
+            for (String parameter : parameters) {
+              int pos = parameter.indexOf('=');
+              if (pos == -1) {
+                properties.setProperty(parameter, "");
+              } else {
+                properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+              }
             }
           }
         }
+        builder.database(database);
       } else {
         builder.database(null);
       }
@@ -626,51 +643,53 @@ public class Configuration {
       // - check DefaultOption to check that property value correspond to type (and range)
       // - set values
       for (final Object keyObj : properties.keySet()) {
-        String realKey = OptionAliases.OPTIONS_ALIASES.get(keyObj);
+        String realKey =
+            OptionAliases.OPTIONS_ALIASES.get(keyObj.toString().toLowerCase(Locale.ROOT));
         if (realKey == null) realKey = keyObj.toString();
         final Object propertyValue = properties.get(keyObj);
-
         if (propertyValue != null && realKey != null) {
-          try {
-            final Field field = Builder.class.getDeclaredField(realKey);
-            field.setAccessible(true);
-            if (field.getGenericType().equals(String.class)
-                && !propertyValue.toString().isEmpty()) {
-              field.set(builder, propertyValue);
-            } else if (field.getGenericType().equals(Boolean.class)) {
-              switch (propertyValue.toString().toLowerCase()) {
-                case "":
-                case "1":
-                case "true":
-                  field.set(builder, Boolean.TRUE);
-                  break;
+          boolean used = false;
+          for (Field field : Builder.class.getDeclaredFields()) {
+            if (realKey.toLowerCase(Locale.ROOT).equals(field.getName().toLowerCase(Locale.ROOT))) {
+              field.setAccessible(true);
+              used = true;
 
-                case "0":
-                case "false":
-                  field.set(builder, Boolean.FALSE);
-                  break;
+              if (field.getGenericType().equals(String.class)
+                  && !propertyValue.toString().isEmpty()) {
+                field.set(builder, propertyValue);
+              } else if (field.getGenericType().equals(Boolean.class)) {
+                switch (propertyValue.toString().toLowerCase()) {
+                  case "":
+                  case "1":
+                  case "true":
+                    field.set(builder, Boolean.TRUE);
+                    break;
 
-                default:
+                  case "0":
+                  case "false":
+                    field.set(builder, Boolean.FALSE);
+                    break;
+
+                  default:
+                    throw new IllegalArgumentException(
+                        String.format(
+                            "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                            keyObj, propertyValue));
+                }
+              } else if (field.getGenericType().equals(Integer.class)) {
+                try {
+                  final Integer value = Integer.parseInt(propertyValue.toString());
+                  field.set(builder, value);
+                } catch (NumberFormatException n) {
                   throw new IllegalArgumentException(
                       String.format(
-                          "Optional parameter %s must be boolean (true/false or 0/1) was '%s'",
+                          "Optional parameter %s must be Integer, was '%s'",
                           keyObj, propertyValue));
-              }
-            } else if (field.getGenericType().equals(Integer.class)) {
-              try {
-                final Integer value = Integer.parseInt(propertyValue.toString());
-                field.set(builder, value);
-              } catch (NumberFormatException n) {
-                throw new IllegalArgumentException(
-                    String.format(
-                        "Optional parameter %s must be Integer, was '%s'", keyObj, propertyValue));
+                }
               }
             }
-          } catch (NoSuchFieldException nfe) {
-            // keep unknown option:
-            // those might be used in authentication or identity plugin
-            nonMappedOptions.put(keyObj, propertyValue);
           }
+          if (!used) nonMappedOptions.put(realKey, propertyValue);
         }
       }
 
@@ -734,6 +753,7 @@ public class Configuration {
         this.transactionIsolation,
         this.defaultFetchSize,
         this.maxQuerySizeToLog,
+        this.maxAllowedPacket,
         this.geometryDefaultType,
         this.restrictedAuth,
         this.socketFactory,
@@ -774,11 +794,13 @@ public class Configuration {
         this.jaasApplicationName,
         this.blankTableNameMeta,
         this.tinyInt1isBit,
+        this.transformedBitIsBoolean,
         this.yearIsDateType,
         this.dumpQueriesOnException,
         this.includeThreadDumpInDeadlockExceptions,
         this.retriesAllDown,
         this.transactionReplay,
+        this.transactionReplaySize,
         this.pool,
         this.poolName,
         this.maxPoolSize,
@@ -795,163 +817,375 @@ public class Configuration {
         this.maxPrintStackSizeToLog);
   }
 
+  /**
+   * Connection default database
+   *
+   * @return database
+   */
   public String database() {
     return database;
   }
 
+  /**
+   * addresses
+   *
+   * @return addresses
+   */
   public List<HostAddress> addresses() {
     return addresses;
   }
 
+  /**
+   * High availability mode
+   *
+   * @return configuration HA mode
+   */
   public HaMode haMode() {
     return haMode;
   }
 
+  /**
+   * credential plugin to use
+   *
+   * @return credential plugin to use, null of none
+   */
   public CredentialPlugin credentialPlugin() {
     return credentialType;
   }
 
+  /**
+   * configuration user
+   *
+   * @return user
+   */
   public String user() {
     return user;
   }
 
+  /**
+   * configuration password
+   *
+   * @return password
+   */
   public String password() {
     return password;
   }
 
+  /**
+   * Configuration generated URL depending on current configuration option. Password will be hidden
+   * by "***"
+   *
+   * @return generated url
+   */
   public String initialUrl() {
     return initialUrl;
   }
 
+  /**
+   * server ssl certificate (file path / certificat content)
+   *
+   * @return server ssl certificate
+   */
   public String serverSslCert() {
     return serverSslCert;
   }
 
+  /**
+   * trust store
+   *
+   * @return trust store
+   */
   public String trustStore() {
     return trustStore;
   }
 
+  /**
+   * trust store password
+   *
+   * @return trust store password
+   */
   public String trustStorePassword() {
     return trustStorePassword;
   }
 
+  /**
+   * trust store type
+   *
+   * @return trust store type
+   */
   public String trustStoreType() {
     return trustStoreType;
   }
 
+  /**
+   * key store
+   *
+   * @return key store
+   */
   public String keyStore() {
     return keyStore;
   }
 
+  /**
+   * key store password
+   *
+   * @return key store password
+   */
   public String keyStorePassword() {
     return keyStorePassword;
   }
 
+  /**
+   * key store type (to replace default javax.net.ssl.keyStoreType system property)
+   *
+   * @return key store type
+   */
   public String keyStoreType() {
     return keyStoreType;
   }
 
+  /**
+   * permitted ssl protocol list (comma separated)
+   *
+   * @return enabled ssl protocol list
+   */
   public String enabledSslProtocolSuites() {
     return enabledSslProtocolSuites;
   }
 
+  /**
+   * Socket factory class name
+   *
+   * @return socket factory
+   */
   public String socketFactory() {
     return socketFactory;
   }
 
+  /**
+   * socket connect timeout
+   *
+   * @return connect timeout
+   */
   public int connectTimeout() {
     return connectTimeout;
   }
 
+  /**
+   * Set connect timeout
+   *
+   * @param connectTimeout timeout value
+   * @return current configuration
+   */
   public Configuration connectTimeout(int connectTimeout) {
     this.connectTimeout = connectTimeout;
     return this;
   }
 
+  /**
+   * Pipe path
+   *
+   * @return pipe value
+   */
   public String pipe() {
     return pipe;
   }
 
+  /**
+   * local socket configuration
+   *
+   * @return local socket path
+   */
   public String localSocket() {
     return localSocket;
   }
 
+  /**
+   * socket tcp keep alive
+   *
+   * @return socket tcp keep alive value
+   */
   public boolean tcpKeepAlive() {
     return tcpKeepAlive;
   }
 
+  /**
+   * socket tcp keep idle (java 11+ only)
+   *
+   * @return socket tcp keep idle
+   */
   public int tcpKeepIdle() {
     return tcpKeepIdle;
   }
 
+  /**
+   * socket tcp keep count (java 11+ only)
+   *
+   * @return socket tcp keep count
+   */
   public int tcpKeepCount() {
     return tcpKeepCount;
   }
 
+  /**
+   * socket tcp keep interval (java 11+ only)
+   *
+   * @return socket tcp keep interval
+   */
   public int tcpKeepInterval() {
     return tcpKeepInterval;
   }
 
+  /**
+   * close using TCP abortive close (RST TCP packet, in place or FIN packet)
+   *
+   * @return close using TCP abortive close
+   */
   public boolean tcpAbortiveClose() {
     return tcpAbortiveClose;
   }
 
+  /**
+   * local socket address path
+   *
+   * @return local socket address
+   */
   public String localSocketAddress() {
     return localSocketAddress;
   }
 
+  /**
+   * socket timeout
+   *
+   * @return socket timeout
+   */
   public int socketTimeout() {
     return socketTimeout;
   }
 
+  /**
+   * permit using multi queries command
+   *
+   * @return permit using multi queries command
+   */
   public boolean allowMultiQueries() {
     return allowMultiQueries;
   }
 
+  /**
+   * permits LOAD LOCAL INFILE commands
+   *
+   * @return allow LOAD LOCAL INFILE
+   */
   public boolean allowLocalInfile() {
     return allowLocalInfile;
   }
 
+  /**
+   * Enable compression if server has compression capability
+   *
+   * @return use compression
+   */
   public boolean useCompression() {
     return useCompression;
   }
 
+  /**
+   * force returning blank table metadata (for old oracle compatibility)
+   *
+   * @return metadata table return blank
+   */
   public boolean blankTableNameMeta() {
     return blankTableNameMeta;
   }
 
+  /**
+   * SSl mode
+   *
+   * @return ssl mode
+   */
   public SslMode sslMode() {
     return sslMode;
   }
 
+  /**
+   * Default transaction isolation
+   *
+   * @return default transaction isolation.
+   */
   public TransactionIsolation transactionIsolation() {
     return transactionIsolation;
   }
 
+  /**
+   * autorized cipher list.
+   *
+   * @return list of permitted ciphers
+   */
   public String enabledSslCipherSuites() {
     return enabledSslCipherSuites;
   }
 
+  /**
+   * coma separated Session variable list
+   *
+   * @return session variable
+   */
   public String sessionVariables() {
     return sessionVariables;
   }
 
+  /**
+   * Must tinyint be considered as Bit
+   *
+   * @apiNote TINYINT is always has reserved length = 4
+   * @return true if tinyint must be considered as Bit
+   */
   public boolean tinyInt1isBit() {
     return tinyInt1isBit;
   }
 
+  /**
+   * Must tinyint(1) be considered as Boolean or Bit
+   *
+   * @return true if tinyint(1) must be considered as Boolean
+   */
+  public boolean transformedBitIsBoolean() {
+    return transformedBitIsBoolean;
+  }
+
+  /**
+   * Must year be return by default as Date in result-set
+   *
+   * @return year is Date type
+   */
   public boolean yearIsDateType() {
     return yearIsDateType;
   }
 
+  /**
+   * Must query by logged on exception.
+   *
+   * @return dump queries on exception
+   */
   public boolean dumpQueriesOnException() {
     return dumpQueriesOnException;
   }
 
+  /**
+   * Prepare statement cache size.
+   *
+   * @return Prepare statement cache size
+   */
   public int prepStmtCacheSize() {
     return prepStmtCacheSize;
   }
 
+  /**
+   * Use affected row
+   *
+   * @return use affected rows
+   */
   public boolean useAffectedRows() {
     return useAffectedRows;
   }
@@ -960,6 +1194,11 @@ public class Configuration {
     return disablePipeline;
   }
 
+  /**
+   * Use server prepared statement. IF false, using client prepared statement.
+   *
+   * @return use server prepared statement
+   */
   public boolean useServerPrepStmts() {
     return useServerPrepStmts;
   }
@@ -1023,6 +1262,16 @@ public class Configuration {
     return maxQuerySizeToLog;
   }
 
+  /**
+   * max_allowed_packet value to avoid sending packet with non supported size, droping the
+   * connection without reason.
+   *
+   * @return max_allowed_packet value
+   */
+  public Integer maxAllowedPacket() {
+    return maxAllowedPacket;
+  }
+
   public int retriesAllDown() {
     return retriesAllDown;
   }
@@ -1069,6 +1318,15 @@ public class Configuration {
 
   public boolean transactionReplay() {
     return transactionReplay;
+  }
+
+  /**
+   * transaction replay maximum number of saved command.
+   *
+   * @return transaction replay buffer size.
+   */
+  public int transactionReplaySize() {
+    return transactionReplaySize;
   }
 
   public String geometryDefaultType() {
@@ -1140,13 +1398,22 @@ public class Configuration {
       if (i > 0) {
         sb.append(",");
       }
-      sb.append("address=(host=")
-          .append(hostAddress.host)
-          .append(")")
-          .append("(port=")
-          .append(hostAddress.port)
-          .append(")");
-      sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
+          || (conf.haMode == HaMode.REPLICATION
+              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
+        sb.append(hostAddress.host);
+        if (hostAddress.port != 3306) {
+          sb.append(":").append(hostAddress.port);
+        }
+      } else {
+        sb.append("address=(host=")
+            .append(hostAddress.host)
+            .append(")")
+            .append("(port=")
+            .append(hostAddress.port)
+            .append(")");
+        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      }
     }
 
     sb.append("/");
@@ -1172,7 +1439,13 @@ public class Configuration {
         Object obj = field.get(conf);
 
         if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
-
+          if ("password".equals(field.getName())) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(field.getName()).append('=');
+            sb.append("***");
+            continue;
+          }
           if (field.getType().equals(String.class)) {
             sb.append(first ? '?' : '&');
             first = false;
@@ -1273,6 +1546,7 @@ public class Configuration {
     private String initSql;
     private Integer defaultFetchSize;
     private Integer maxQuerySizeToLog;
+    private Integer maxAllowedPacket;
     private String geometryDefaultType;
     private String restrictedAuth;
     private String transactionIsolation;
@@ -1326,6 +1600,8 @@ public class Configuration {
     // meta
     private Boolean blankTableNameMeta;
     private Boolean tinyInt1isBit;
+
+    private Boolean transformedBitIsBoolean;
     private Boolean yearIsDateType;
     private Boolean dumpQueriesOnException;
     private Boolean includeThreadDumpInDeadlockExceptions;
@@ -1333,6 +1609,7 @@ public class Configuration {
     // HA options
     private Integer retriesAllDown;
     private Boolean transactionReplay;
+    private Integer transactionReplaySize;
 
     // Pool options
     private Boolean pool;
@@ -1662,8 +1939,25 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * TinyInt(1) to be considered as bit
+     *
+     * @param tinyInt1isBit Indicate if Tinyint(1) to be considered as bit
+     * @return this {@link Builder}
+     */
     public Builder tinyInt1isBit(Boolean tinyInt1isBit) {
       this.tinyInt1isBit = tinyInt1isBit;
+      return this;
+    }
+
+    /**
+     * TinyInt(1) to be considered as boolean
+     *
+     * @param transformedBitIsBoolean Indicate if Tinyint(1) to be considered as boolean
+     * @return this {@link Builder}
+     */
+    public Builder transformedBitIsBoolean(Boolean transformedBitIsBoolean) {
+      this.transformedBitIsBoolean = transformedBitIsBoolean;
       return this;
     }
 
@@ -1767,6 +2061,18 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Indicate to driver server max_allowed_packet. This permit to driver to avoid sending commands
+     * too big, that would have make server to drop connection
+     *
+     * @param maxAllowedPacket indicate server max_allowed_packet value
+     * @return this {@link Builder}
+     */
+    public Builder maxAllowedPacket(Integer maxAllowedPacket) {
+      this.maxAllowedPacket = maxAllowedPacket;
+      return this;
+    }
+
     public Builder retriesAllDown(Integer retriesAllDown) {
       this.retriesAllDown = retriesAllDown;
       return this;
@@ -1812,18 +2118,47 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Cache all socket available information.
+     *
+     * @param useReadAheadInput cache available socket data when reading socket.
+     * @return this {@link Builder}
+     */
     public Builder useReadAheadInput(Boolean useReadAheadInput) {
       this.useReadAheadInput = useReadAheadInput;
       return this;
     }
 
+    /**
+     * Cache server prepare result
+     *
+     * @param cachePrepStmts cache server prepared result
+     * @return this {@link Builder}
+     */
     public Builder cachePrepStmts(Boolean cachePrepStmts) {
       this.cachePrepStmts = cachePrepStmts;
       return this;
     }
 
+    /**
+     * Must cache commands in transaction and replay transaction on failover.
+     *
+     * @param transactionReplay cache transaction and replay on failover
+     * @return this {@link Builder}
+     */
     public Builder transactionReplay(Boolean transactionReplay) {
       this.transactionReplay = transactionReplay;
+      return this;
+    }
+
+    /**
+     * Transaction replay cache size
+     *
+     * @param transactionReplaySize transaction replay cache size
+     * @return this {@link Builder}
+     */
+    public Builder transactionReplaySize(Integer transactionReplaySize) {
+      this.transactionReplaySize = transactionReplaySize;
       return this;
     }
 
@@ -1857,6 +2192,12 @@ public class Configuration {
       return this;
     }
 
+    /**
+     * Build a configuration
+     *
+     * @return a Configuration object
+     * @throws SQLException if option data type doesn't correspond
+     */
     public Configuration build() throws SQLException {
       Configuration conf =
           new Configuration(
@@ -1887,6 +2228,7 @@ public class Configuration {
               this.enabledSslCipherSuites,
               this.sessionVariables,
               this.tinyInt1isBit,
+              this.transformedBitIsBoolean,
               this.yearIsDateType,
               this.dumpQueriesOnException,
               this.prepStmtCacheSize,
@@ -1903,6 +2245,7 @@ public class Configuration {
               this.defaultFetchSize,
               this.tlsSocketType,
               this.maxQuerySizeToLog,
+              this.maxAllowedPacket,
               this.retriesAllDown,
               this.pool,
               this.poolName,
@@ -1922,6 +2265,7 @@ public class Configuration {
               this.useReadAheadInput,
               this.cachePrepStmts,
               this.transactionReplay,
+              this.transactionReplaySize,
               this.geometryDefaultType,
               this.restrictedAuth,
               this._nonMappedOptions,

@@ -44,26 +44,6 @@ public class LongCodec implements Codec<Long> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  public static long parseNotEmpty(ReadableByteBuf buf, int length) {
-
-    boolean negate = false;
-    int idx = 0;
-    long result = 0;
-
-    if (length > 0 && buf.getByte() == 45) { // minus sign
-      negate = true;
-      buf.skip();
-      idx++;
-    }
-
-    while (idx++ < length) {
-      result = result * 10 + buf.readByte() - 48;
-    }
-
-    if (negate) result = -1 * result;
-    return result;
-  }
-
   public String className() {
     return Long.class.getName();
   }
@@ -94,11 +74,11 @@ public class LongCodec implements Codec<Long> {
       case MEDIUMINT:
       case INT:
       case YEAR:
-        return parseNotEmpty(buf, length);
+        return buf.atoi(length);
 
       case BIGINT:
-        if (column.isSigned()) {
-          return parseNotEmpty(buf, length);
+        if (column.isSigned() || length < 10) {
+          return buf.atoi(length);
         } else {
           BigInteger val = new BigInteger(buf.readAscii(length));
           try {
@@ -161,6 +141,15 @@ public class LongCodec implements Codec<Long> {
     return decodeBinaryLong(buffer, length, column);
   }
 
+  /**
+   * Decode long from binary row.
+   *
+   * @param buf packet buffer
+   * @param length data length
+   * @param column column metadata
+   * @return long value
+   * @throws SQLDataException if type doesn't correspond / wrong data
+   */
   @SuppressWarnings("fallthrough")
   public long decodeBinaryLong(ReadableByteBuf buf, int length, Column column)
       throws SQLDataException {

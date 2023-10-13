@@ -74,7 +74,7 @@ public class ShortCodec implements Codec<Short> {
       case INT:
       case BIGINT:
       case YEAR:
-        result = LongCodec.parseNotEmpty(buf, length);
+        result = buf.atoi(length);
         break;
 
       case BIT:
@@ -157,9 +157,6 @@ public class ShortCodec implements Codec<Short> {
 
       case BIGINT:
         result = buf.readLong();
-        if (result < 0 & !column.isSigned()) {
-          throw new SQLDataException("int overflow");
-        }
         break;
 
       case BIT:

@@ -13,13 +13,47 @@ import javax.sql.*;
 
 public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
 
-  private final Configuration conf;
+  private Configuration conf = null;
+
+  /** url permitting creating configuration */
+  private String url = null;
+
+  /** username */
+  private String user = null;
+
+  /** password */
+  private String password = null;
+
+  /** connect timeout */
+  private Integer loginTimeout = null;
+
+  public SingleStoreDataSource() {}
 
   public SingleStoreDataSource(String url) throws SQLException {
     if (Configuration.acceptsUrl(url)) {
-      conf = Configuration.parse(url);
+      this.url = url;
     } else {
       throw new SQLException(String.format("Wrong SingleStoreDB url: %s", url));
+    }
+  }
+
+  /**
+   * Create configuration from url/user/password/loginTimeout
+   *
+   * @throws SQLException if not supported
+   */
+  private void config() throws SQLException {
+    if (url == null) throw new SQLException("url not set");
+    conf = Configuration.parse(url);
+    if (loginTimeout != null) conf.connectTimeout(loginTimeout * 1000);
+    if (user != null || password != null) {
+      conf = conf.clone(user, password);
+    }
+    if (user != null) {
+      user = conf.user();
+    }
+    if (password != null) {
+      password = conf.password();
     }
   }
 
@@ -35,6 +69,7 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
    */
   @Override
   public Connection getConnection() throws SQLException {
+    if (conf == null) config();
     return Driver.connect(conf);
   }
 
@@ -52,6 +87,7 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
    */
   @Override
   public Connection getConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return Driver.connect(conf);
   }
@@ -130,7 +166,9 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
    */
   @Override
   public int getLoginTimeout() {
-    return conf.connectTimeout() / 1000;
+    if (loginTimeout != null) return loginTimeout;
+    if (conf != null) return conf.connectTimeout() / 1000;
+    return DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() : 30;
   }
 
   /**
@@ -140,12 +178,14 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
    * is created, the login timeout is initially 30s.
    *
    * @param seconds the data source login time limit
+   * @throws SQLException if wrong configuration set
    * @see #getLoginTimeout
    * @since 1.4
    */
   @Override
-  public void setLoginTimeout(int seconds) {
-    conf.connectTimeout(seconds * 1000);
+  public void setLoginTimeout(int seconds) throws SQLException {
+    loginTimeout = seconds;
+    if (conf != null) config();
   }
 
   /**
@@ -160,24 +200,71 @@ public class SingleStoreDataSource implements DataSource, ConnectionPoolDataSour
 
   @Override
   public PooledConnection getPooledConnection() throws SQLException {
+    if (conf == null) config();
     return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public PooledConnection getPooledConnection(String username, String password)
       throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection() throws SQLException {
+    if (conf == null) config();
     return new SingleStorePoolConnection(Driver.connect(conf));
   }
 
   @Override
   public XAConnection getXAConnection(String username, String password) throws SQLException {
+    if (conf == null) config();
     Configuration conf = this.conf.clone(username, password);
     return new SingleStorePoolConnection(Driver.connect(conf));
+  }
+
+  /**
+   * Sets the URL for this datasource
+   *
+   * @param url connection string
+   * @throws SQLException if url is not accepted
+   */
+  public void setUrl(String url) throws SQLException {
+    if (Configuration.acceptsUrl(url)) {
+      this.url = url;
+      config();
+    } else {
+      throw new SQLException(String.format("Wrong singleStoreDB url: %s", url));
+    }
+  }
+
+  /**
+   * Returns the URL for this datasource
+   *
+   * @return the URL for this datasource
+   */
+  public String getUrl() {
+    if (conf == null) return url;
+    return conf.initialUrl();
+  }
+
+  public String getUser() {
+    return user;
+  }
+
+  public void setUser(String user) throws SQLException {
+    this.user = user;
+    if (conf != null) config();
+  }
+
+  public String getPassword() {
+    return password;
+  }
+
+  public void setPassword(String password) throws SQLException {
+    this.password = password;
+    if (conf != null) config();
   }
 }

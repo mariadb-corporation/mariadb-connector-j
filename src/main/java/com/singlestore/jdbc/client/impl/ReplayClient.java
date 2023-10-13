@@ -21,8 +21,18 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** Replay client wrapper */
 public class ReplayClient extends StandardClient {
 
+  /**
+   * Constructor
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @param lock thread lock object
+   * @param skipPostCommands must skip connection post commands
+   * @throws SQLException if connection fails
+   */
   public ReplayClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -73,7 +83,8 @@ public class ReplayClient extends StandardClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> res =
         super.executePipeline(
@@ -83,7 +94,8 @@ public class ReplayClient extends StandardClient {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
     ((RedoContext) context).saveRedo(messages);
     return res;
   }
@@ -96,7 +108,8 @@ public class ReplayClient extends StandardClient {
       long maxRows,
       int resultSetConcurrency,
       int resultSetType,
-      boolean closeOnCompletion)
+      boolean closeOnCompletion,
+      boolean canRedo)
       throws SQLException {
     List<Completion> completions =
         super.execute(
@@ -106,17 +119,25 @@ public class ReplayClient extends StandardClient {
             maxRows,
             resultSetConcurrency,
             resultSetType,
-            closeOnCompletion);
+            closeOnCompletion,
+            canRedo);
     ((RedoContext) context).saveRedo(message);
     return completions;
   }
 
+  /**
+   * Replay transaction, re-prepare server command if needed
+   *
+   * @param transactionSaver transaction cache
+   * @throws SQLException if any error occurs
+   */
   public void transactionReplay(TransactionSaver transactionSaver) throws SQLException {
-    List<RedoableClientMessage> buffers = transactionSaver.getBuffers();
+    RedoableClientMessage[] buffers = transactionSaver.getBuffers();
     try {
       // replay all but last
       Prepare prepare;
-      for (RedoableClientMessage querySaver : buffers) {
+      for (int i = 0; i < transactionSaver.getIdx(); i++) {
+        RedoableClientMessage querySaver = buffers[i];
         int responseNo;
         if (querySaver instanceof RedoableWithPrepareClientMessage) {
           // command is a prepare statement query

@@ -11,9 +11,11 @@ import com.singlestore.jdbc.client.socket.Writer;
 import com.singlestore.jdbc.client.util.Parameter;
 import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.export.Prepare;
+import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.server.PrepareResultPacket;
 import com.singlestore.jdbc.plugin.codec.ByteArrayCodec;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
@@ -21,13 +23,27 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   private final String command;
   private final ServerPreparedStatement prep;
   private Prepare prepareResult;
+  private InputStream localInfileInputStream;
 
+  /**
+   * Constructor
+   *
+   * @param prepareResult prepare result
+   * @param parameters parameter
+   * @param command sql command
+   * @param prep prepared statement
+   */
   public ExecutePacket(
-      Prepare prepareResult, Parameters parameters, String command, ServerPreparedStatement prep) {
+      Prepare prepareResult,
+      Parameters parameters,
+      String command,
+      ServerPreparedStatement prep,
+      InputStream localInfileInputStream) {
     this.parameters = parameters;
     this.prepareResult = prepareResult;
     this.command = command;
     this.prep = prep;
+    this.localInfileInputStream = localInfileInputStream;
   }
 
   public void saveParameters() {
@@ -120,6 +136,10 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
     return command;
   }
 
+  public InputStream getLocalInfileInputStream() {
+    return localInfileInputStream;
+  }
+
   public ServerPreparedStatement prep() {
     return prep;
   }
@@ -129,7 +149,11 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
   }
 
   public String description() {
-    return command;
+    return "EXECUTE " + command;
+  }
+
+  public boolean validateLocalFileName(String fileName, Context context) {
+    return ClientMessage.validateLocalFileName(command, parameters, fileName, context);
   }
 
   public void setPrepareResult(PrepareResultPacket prepareResult) {

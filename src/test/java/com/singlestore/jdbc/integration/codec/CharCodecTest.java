@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
@@ -38,34 +39,37 @@ public class CharCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE CharCodec (t1 CHAR(25), t2 CHAR(25), t3 CHAR(25), t4 CHAR(25), id INT) CHARACTER "
+        "CREATE TABLE CharCodec (t1 CHAR(30), t2 CHAR(25), t3 CHAR(25), t4 CHAR(25), id INT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO CharCodec VALUES ('0', '1', 'some"
-            + fourByteUnicode
-            + "', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null, 2)");
+        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null, 1), ('2011-01-01', '2010-12-31 23:59:59.152',"
+            + " '23:54:51.840010', null, 2),('2010-12-31T23:59:59.152+01:00', '2010-12-31T23:59:59.152Z', null, null, 3)");
     stmt.execute("FLUSH TABLES");
   }
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from CharCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from CharCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -485,6 +489,31 @@ public class CharCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    assertTrue(rs.next());
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+    assertTrue(rs.next());
+    assertEquals(
+        OffsetDateTime.parse("2010-12-31T23:59:59.152+01:00"),
+        rs.getObject(1, OffsetDateTime.class));
+    assertEquals(
+        OffsetDateTime.parse("2010-12-31T23:59:59.152Z"), rs.getObject(2, OffsetDateTime.class));
+  }
+
+  @Test
   public void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }
@@ -710,7 +739,7 @@ public class CharCodecTest extends CommonCodecTest {
     assertEquals(4, meta.getColumnCount());
     assertEquals(0, meta.getScale(1));
     assertEquals("", meta.getSchemaName(1));
-    int prec = minVersion(7, 5, 0) && !minVersion(7, 8, 0) ? 33 : 25;
+    int prec = minVersion(7, 5, 0) && !minVersion(7, 8, 0) ? 40 : 30;
     assertEquals(prec, meta.getPrecision(1));
     assertEquals(prec, meta.getColumnDisplaySize(1));
   }

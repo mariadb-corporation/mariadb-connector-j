@@ -11,15 +11,31 @@ public class Credential {
   private final String password;
   private final String user;
 
+  /**
+   * Constructor of basic credential
+   *
+   * @param user user
+   * @param password password
+   */
   public Credential(@JsonProperty("user") String user, @JsonProperty("password") String password) {
     this.user = user;
     this.password = password;
   }
 
+  /**
+   * Get user
+   *
+   * @return user
+   */
   public String getUser() {
     return user;
   }
 
+  /**
+   * Get password
+   *
+   * @return password
+   */
   public String getPassword() {
     return password;
   }

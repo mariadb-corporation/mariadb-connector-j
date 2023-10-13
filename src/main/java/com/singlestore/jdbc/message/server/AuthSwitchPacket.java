@@ -14,11 +14,23 @@ public class AuthSwitchPacket implements ServerMessage {
   private final String plugin;
   private final byte[] seed;
 
+  /**
+   * Authentication switch constructor
+   *
+   * @param plugin plugin requested
+   * @param seed plugin seed
+   */
   public AuthSwitchPacket(String plugin, byte[] seed) {
     this.plugin = plugin;
     this.seed = seed;
   }
 
+  /**
+   * Decode an AUTH_SWITCH_PACKET from a MYSQL packet.
+   *
+   * @param buf packet
+   * @return Authentication switch packet.
+   */
   public static AuthSwitchPacket decode(ReadableByteBuf buf) {
     buf.skip(1);
     String plugin = buf.readStringNullEnd();
@@ -28,14 +40,30 @@ public class AuthSwitchPacket implements ServerMessage {
     return new AuthSwitchPacket(plugin, seed);
   }
 
+  /**
+   * Get authentication switch plugin information
+   *
+   * @return plugin
+   */
   public String getPlugin() {
     return plugin;
   }
 
+  /**
+   * Get authentication switch seed information
+   *
+   * @return seed
+   */
   public byte[] getSeed() {
     return seed;
   }
 
+  /**
+   * Get truncated seed (seed without ending 0x00 byte)
+   *
+   * @param seed connection seed
+   * @return truncated seed
+   */
   public static byte[] getTruncatedSeed(byte[] seed) {
     return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
   }

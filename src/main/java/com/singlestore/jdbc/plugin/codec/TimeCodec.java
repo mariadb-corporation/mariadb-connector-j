@@ -174,8 +174,9 @@ public class TimeCodec implements Codec<Time> {
       case TIMESTAMP:
       case DATETIME:
         if (length == 0) return null;
-        buf.skip(3); // year + month
-        buf.readByte(); // day of month
+        int year = buf.readUnsignedShort();
+        int month = buf.readByte();
+        dayOfMonth = buf.readByte();
 
         if (length > 4) {
           hour = buf.readByte();
@@ -185,6 +186,15 @@ public class TimeCodec implements Codec<Time> {
           if (length > 7) {
             microseconds = buf.readUnsignedInt();
           }
+        }
+
+        if (year == 0
+            && month == 0
+            && dayOfMonth == 0
+            && hour == 0
+            && minutes == 0
+            && seconds == 0) {
+          return null;
         }
 
         synchronized (cal) {

@@ -23,6 +23,7 @@ import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 
+/** SSL host verification */
 public class HostnameVerifier {
 
   private static final Pattern IP_V4 =
@@ -151,10 +152,22 @@ public class HostnameVerifier {
     return msg.toString();
   }
 
+  /**
+   * check if ip correspond to IPV4
+   *
+   * @param ip ip value
+   * @return if ip is using IPV4 format
+   */
   public static boolean isIPv4(final String ip) {
     return IP_V4.matcher(ip).matches();
   }
 
+  /**
+   * check if ip correspond to IPV6
+   *
+   * @param ip ip value
+   * @return if ip is using IPV6 format
+   */
   public static boolean isIPv6(final String ip) {
     return IP_V6.matcher(ip).matches() || IP_V6_COMPRESSED.matcher(ip).matches();
   }

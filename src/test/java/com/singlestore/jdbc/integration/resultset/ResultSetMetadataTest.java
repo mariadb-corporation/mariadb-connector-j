@@ -94,7 +94,7 @@ public class ResultSetMetadataTest extends Common {
     assertEquals("VARCHAR", rsmd.getColumnTypeName(2));
     assertEquals("INT", rsmd.getColumnTypeName(3));
     assertEquals("CHAR", rsmd.getColumnTypeName(4));
-    assertEquals("SMALLINT", rsmd.getColumnTypeName(5));
+    assertEquals("SMALLINT UNSIGNED", rsmd.getColumnTypeName(5));
     assertEquals(Types.BIGINT, rsmd.getColumnType(1));
     assertEquals(Types.VARCHAR, rsmd.getColumnType(2));
     assertEquals(Types.INTEGER, rsmd.getColumnType(3));

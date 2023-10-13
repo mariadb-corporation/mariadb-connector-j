@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -126,6 +127,46 @@ public class Common {
 
   public static Connection createCon() throws SQLException {
     return (Connection) DriverManager.getConnection(mDefUrl);
+  }
+
+  public static void createSequenceTables() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    boolean seq10_ok = false;
+    boolean seq10_000_ok = false;
+    try {
+      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sequence_1_to_10");
+      if (rs.next() && rs.getInt(1) == 10) {
+        seq10_ok = true;
+      }
+    } catch (SQLException e) {
+      // eat
+    }
+    if (!seq10_ok) {
+      stmt.execute("DROP TABLE IF EXISTS sequence_1_to_10");
+      stmt.execute("CREATE TABLE sequence_1_to_10 (t1 int)");
+      stmt.execute("insert into sequence_1_to_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+    }
+
+    try {
+      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM sequence_1_to_10000");
+      if (rs.next() && rs.getInt(1) == 10_000) {
+        seq10_000_ok = true;
+      }
+    } catch (SQLException e) {
+      // eat
+    }
+    if (!seq10_000_ok) {
+      stmt.execute("DROP TABLE IF EXISTS sequence_1_to_10000");
+      stmt.execute("CREATE TABLE sequence_1_to_10000 (t1 int)");
+      try (PreparedStatement prep =
+          sharedConnBinary.prepareStatement("INSERT INTO sequence_1_to_10000 VALUES (?)")) {
+        for (int i = 1; i <= 10_000; i++) {
+          prep.setInt(1, i);
+          prep.addBatch();
+        }
+        prep.executeBatch();
+      }
+    }
   }
 
   public Connection createProxyCon(HaMode mode, String opts) throws SQLException {

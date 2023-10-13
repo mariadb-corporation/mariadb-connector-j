@@ -121,18 +121,19 @@ public class LoggingTest extends Common {
           contents);
 
       Assertions.assertTrue(
-          contents.contains(
-              "pool SingleStore-pool new physical connection created (total:1, active:0, pending:0)"),
+          contents.contains("pool SingleStore-pool new physical connection ")
+              && contents.contains("created (total:1, active:0, pending:0)"),
           contents);
       Assertions.assertTrue(
-          contents.contains("pool SingleStore-pool connection removed due to inactivity"),
+          contents.contains("pool SingleStore-pool connection ")
+              && contents.contains("removed due to inactivity"),
           contents);
-
-      logger.setLevel(initialLevel);
-      logger.detachAppender(fa);
     } catch (IOException e) {
       e.printStackTrace();
       Assertions.fail();
+    } finally {
+      logger.setLevel(initialLevel);
+      logger.detachAppender(fa);
     }
   }
 

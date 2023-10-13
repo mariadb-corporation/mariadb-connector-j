@@ -18,10 +18,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+/** Result-set that will retrieve all rows immediately before returning the result-set. */
 public class CompleteResult extends Result {
 
+  /** before first row position = initial position */
   protected static final int BEFORE_FIRST_POS = -1;
 
+  /**
+   * Constructor from exchanges
+   *
+   * @param stmt current statement
+   * @param binaryProtocol does exchanges uses binary protocol
+   * @param maxRows maximum number of rows
+   * @param metadataList metadata
+   * @param reader packet reader
+   * @param context connection context
+   * @param resultSetType result set type
+   * @param closeOnCompletion close statement on completion
+   * @param traceEnable network trace exchange possible
+   * @throws IOException if Socket error occurs
+   * @throws SQLException for all other kind of errors
+   */
   public CompleteResult(
       Statement stmt,
       boolean binaryProtocol,
@@ -54,13 +71,32 @@ public class CompleteResult extends Result {
     loaded = true;
   }
 
+  /**
+   * Specific constructor for internal build result-set, empty resultset, or generated key
+   * result-set.
+   *
+   * @param metadataList metadata
+   * @param data result-set data
+   * @param context connection context
+   */
   public CompleteResult(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
     super(metadataList, data, context);
   }
 
+  /**
+   * Specific constructor for generating generated key result-set.
+   *
+   * @param columnName column key
+   * @param columnType column key type
+   * @param data values
+   * @param context connection context
+   * @param flags column flags
+   * @return result-set
+   */
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[][] data, Context context) {
-    return createResultSet(new String[] {columnName}, new DataType[] {columnType}, data, context);
+      String columnName, DataType columnType, String[][] data, Context context, int flags) {
+    return createResultSet(
+        new String[] {columnName}, new DataType[] {columnType}, data, context, flags);
   }
 
   /**
@@ -73,16 +109,17 @@ public class CompleteResult extends Result {
    *     is given in its string representation, as in SingleStore text protocol, except boolean
    *     (BIT(1)) values that are represented as "1" or "0" strings
    * @param context connection context
+   * @param flags column flags
    * @return resultset
    */
   public static ResultSet createResultSet(
-      String[] columnNames, DataType[] columnTypes, String[][] data, Context context) {
+      String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
 
     int columnNameLength = columnNames.length;
     ColumnDefinitionPacket[] columns = new ColumnDefinitionPacket[columnNameLength];
 
     for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i]);
+      columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i], flags);
     }
 
     List<byte[]> rows = new ArrayList<>();

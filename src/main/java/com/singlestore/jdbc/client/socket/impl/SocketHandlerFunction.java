@@ -11,8 +11,18 @@ import java.io.IOException;
 import java.net.Socket;
 import java.sql.SQLException;
 
+/** Construct socket depending on configuration helper */
 @FunctionalInterface
 public interface SocketHandlerFunction {
 
+  /**
+   * Create socket
+   *
+   * @param conf configuration
+   * @param hostAddress host
+   * @return socket
+   * @throws IOException if any socket issue occurs
+   * @throws SQLException for other kind of error
+   */
   Socket apply(Configuration conf, HostAddress hostAddress) throws IOException, SQLException;
 }

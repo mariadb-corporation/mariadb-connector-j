@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.client.result.CompleteResult;
+import com.singlestore.jdbc.integration.Common;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -59,6 +60,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec ORDER BY id");
@@ -67,14 +69,17 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   private CompleteResult getPrepare(com.singlestore.jdbc.Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BlobCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    CompleteResult rs = (CompleteResult) stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -115,7 +120,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class);
-    testErrObject(rs, String.class);
+    testObject(rs, String.class, "0");
     testErrObject(rs, Long.class);
     testErrObject(rs, Short.class);
     testErrObject(rs, BigDecimal.class);
@@ -154,19 +159,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getString(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(1),
-        "Data type TINYBLOB cannot be decoded as String");
+    assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(2),
-        "Data type TINYBLOB cannot be decoded as String");
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString("t2alias"),
-        "Data type TINYBLOB cannot be decoded as String");
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("some🌟", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -184,19 +182,12 @@ public class BlobCodecTest extends CommonCodecTest {
   }
 
   public void getNString(ResultSet rs) throws SQLException {
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(1),
-        "Data type TINYBLOB cannot be decoded as String");
+    assertEquals("0", rs.getString(1));
     assertFalse(rs.wasNull());
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString(2),
-        "Data type TINYBLOB cannot be decoded as String");
-    assertThrowsContains(
-        SQLDataException.class,
-        () -> rs.getNString("t2alias"),
-        "Data type TINYBLOB cannot be decoded as String");
+    assertEquals("1", rs.getString(2));
+    assertEquals("1", rs.getString("t2alias"));
+    assertFalse(rs.wasNull());
+    assertEquals("some🌟", rs.getString(3));
     assertFalse(rs.wasNull());
     assertNull(rs.getNString(4));
     assertTrue(rs.wasNull());
@@ -437,6 +428,24 @@ public class BlobCodecTest extends CommonCodecTest {
   @Test
   public void getTimestamp() throws SQLException {
     getTimestamp(get());
+  }
+
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
   }
 
   @Test
@@ -688,6 +697,7 @@ public class BlobCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws Exception {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BlobCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BlobCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -1035,6 +1045,7 @@ public class BlobCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertArrayEquals("2g🌟4".getBytes(StandardCharsets.UTF_8), rs.getBytes(2));
+    con.commit();
   }
 
   private class BlobInputStream implements Blob {

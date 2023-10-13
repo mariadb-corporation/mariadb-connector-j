@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.SingleStoreClob;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
@@ -56,22 +57,27 @@ public class ClobCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from ClobCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -504,6 +510,24 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "cannot be decoded as OffsetDateTime");
+  }
+
+  @Test
   public void getAsciiStream() throws Exception {
     getAsciiStream(get());
   }
@@ -763,6 +787,7 @@ public class ClobCodecTest extends CommonCodecTest {
     Clob longData = new SingleStoreClob(longDataSb.toString().getBytes(StandardCharsets.UTF_8));
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE ClobParamCodec");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO ClobParamCodec(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -1058,5 +1083,6 @@ public class ClobCodecTest extends CommonCodecTest {
     assertEquals("e" + fourByteUnicode + "5789", rs.getString(2));
     assertTrue(rs.next());
     assertEquals("e" + fourByteUnicode + "57", rs.getString(2));
+    con.commit();
   }
 }

@@ -14,6 +14,11 @@ public final class ClosePreparePacket implements ClientMessage {
 
   private final int statementId;
 
+  /**
+   * Constructor for a prepare statement id
+   *
+   * @param statementId statement identifier
+   */
   public ClosePreparePacket(int statementId) {
     this.statementId = statementId;
   }

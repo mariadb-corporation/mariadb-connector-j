@@ -7,7 +7,6 @@ package com.singlestore.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,7 +27,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLPermission;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Locale;
@@ -37,12 +35,18 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("Connection Test")
 public class ConnectionTest extends Common {
+
+  @BeforeAll
+  public static void beforeAll2() throws SQLException {
+    createSequenceTables();
+  }
 
   @Test
   public void isValid() throws SQLException {
@@ -60,6 +64,25 @@ public class ConnectionTest extends Common {
     } catch (SQLException e) {
       assertTrue(e.getMessage().contains("the value supplied for timeout is negative"));
     }
+  }
+
+  @Test
+  public void tcpKeepAlive() throws SQLException {
+    try (Connection con = createCon("&tcpKeepAlive=false")) {
+      con.isValid(1);
+    }
+  }
+
+  @Test
+  void missingHost() {
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:singlestore:///db"),
+        "hostname must be set to connect socket if not using local socket or pipe");
+    assertThrowsContains(
+        SQLException.class,
+        () -> DriverManager.getConnection("jdbc:singlestore:///db?socketFactory=test"),
+        "hostname must be set to connect socket");
   }
 
   @Test
@@ -352,7 +375,12 @@ public class ConnectionTest extends Common {
         assertEquals("_test_db", connection.getCatalog());
         stmt.execute("USE _test_db");
         assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog(null);
+        assertEquals("_test_db", connection.getCatalog());
+        connection.setCatalog("_test_db");
+        assertEquals("_test_db", connection.getCatalog());
         stmt.execute("drop database _test_db");
+        assertTrue(connection.getCatalog() == null || "_test_db".equals(connection.getCatalog()));
       }
     }
   }
@@ -458,16 +486,6 @@ public class ConnectionTest extends Common {
     try (Connection connection = createCon()) {
       assertEquals(0, connection.getNetworkTimeout());
       int timeout = 1000;
-      SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-      SecurityManager securityManager = System.getSecurityManager();
-      if (securityManager != null) {
-        try {
-          securityManager.checkPermission(sqlPermission);
-        } catch (SecurityException se) {
-          System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
-          return;
-        }
-      }
       Executor executor = Runnable::run;
       connection.setNetworkTimeout(executor, timeout);
       connection.isValid(2);
@@ -650,7 +668,6 @@ public class ConnectionTest extends Common {
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
     sharedConn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
     assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConn.getHoldability());
-    assertNotEquals(0, sharedConn.getWaitTimeout());
   }
 
   @Test
@@ -735,9 +752,9 @@ public class ConnectionTest extends Common {
   @Test
   public void testNoUseReadAheadInputConnection() throws Exception {
     try (Connection connection = createCon("useReadAheadInput=false")) {
-      // must have succeed
+      // must have succeeded
       Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM information_schema.users");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM sequence_1_to_10");
       int i = 0;
       while (rs.next()) i++;
       assertTrue(i > 0);
@@ -747,9 +764,9 @@ public class ConnectionTest extends Common {
   @Test
   public void useNoDatabase() throws SQLException {
     try (Connection con = createCon()) {
-      String db = con.getCatalog();
+      con.getCatalog();
       Statement stmt = con.createStatement();
-      stmt.execute("CREATE DATABASE someDb");
+      stmt.execute("CREATE DATABASE IF NOT EXISTS someDb");
       con.setCatalog("someDb");
       stmt.execute("DROP DATABASE someDb");
       assertNull(con.getCatalog());
@@ -941,10 +958,9 @@ public class ConnectionTest extends Common {
     assertEquals(0, (capabilities & Capabilities.CLIENT_DEPRECATE_EOF));
     assertEquals(0, (capabilities & Capabilities.COMPRESS));
 
-    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_PROGRESS));
-    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_COM_MULTI));
-    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_EXTENDED_TYPE_INFO));
-    assertEquals(0, (capabilities & Capabilities.MARIADB_CLIENT_CACHE_METADATA));
+    assertEquals(0, (capabilities & Capabilities.PROGRESS));
+    assertEquals(0, (capabilities & Capabilities.EXTENDED_TYPE_INFO));
+    assertEquals(0, (capabilities & Capabilities.CACHE_METADATA));
 
     if (minVersion(8, 1, 0)) {
       assertTrue((capabilities & Capabilities.CONNECT_ATTRS) > 0);

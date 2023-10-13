@@ -62,25 +62,30 @@ public class LongCodecTest extends CommonCodecTest {
 
   private ResultSet get(String table) throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con, String table) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from "
                 + table
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -947,7 +952,7 @@ public class LongCodecTest extends CommonCodecTest {
 
     rs = getUnsigned();
     meta = rs.getMetaData();
-    assertEquals("BIGINT", meta.getColumnTypeName(1));
+    assertEquals("BIGINT UNSIGNED", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
     assertEquals("java.math.BigInteger", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
@@ -969,6 +974,7 @@ public class LongCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE LongCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO LongCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -1071,5 +1077,6 @@ public class LongCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     assertEquals(180L, rs.getLong(2));
     assertFalse(rs.wasNull());
+    con.commit();
   }
 }

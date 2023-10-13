@@ -7,7 +7,6 @@ package com.singlestore.jdbc.codec;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.Column;
-import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
 import com.singlestore.jdbc.plugin.Codec;
 import java.sql.SQLDataException;
@@ -17,7 +16,7 @@ import java.util.*;
 public abstract class RowDecoder {
   protected static final int NULL_LENGTH = -1;
   private final Configuration conf;
-  protected final ReadableByteBuf readBuf = new StandardReadableByteBuf(null, null, 0);
+  protected final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   protected final Column[] columns;
 
   protected int length;
@@ -32,7 +31,7 @@ public abstract class RowDecoder {
   }
 
   public void setRow(byte[] buf) {
-    this.readBuf.buf(buf, buf == null ? 0 : buf.length).pos(0);
+    this.readBuf.buf(buf, buf == null ? 0 : buf.length, 0);
     index = -1;
   }
 
@@ -47,6 +46,8 @@ public abstract class RowDecoder {
   public abstract short decodeShort() throws SQLException;
 
   public abstract int decodeInt() throws SQLException;
+
+  public abstract String decodeString() throws SQLException;
 
   public abstract long decodeLong() throws SQLException;
 
@@ -91,7 +92,7 @@ public abstract class RowDecoder {
           String.format(
               "Wrong index position. Is %s but must be in 1-%s range", index, columnCount));
     }
-    if (readBuf.buf() == null) {
+    if (readBuf.buf == null) {
       throw new SQLDataException("wrong row position", "22023");
     }
 
@@ -146,6 +147,14 @@ public abstract class RowDecoder {
     return decodeInt();
   }
 
+  public String getStringValue(int index) throws SQLException {
+    checkIndexAndSetPosition(index);
+    if (length == NULL_LENGTH) {
+      return null;
+    }
+    return decodeString();
+  }
+
   public long getLongValue(int index) throws SQLException {
     checkIndexAndSetPosition(index);
     if (length == NULL_LENGTH) {
@@ -184,16 +193,9 @@ public abstract class RowDecoder {
         if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
           mapper.putIfAbsent(columnAlias, i + 1);
-
           String tableAlias = ci.getTableAlias();
-          if (tableAlias != null) {
-            mapper.putIfAbsent(tableAlias.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-          } else {
-            String table = ci.getTable();
-            if (table != null) {
-              mapper.putIfAbsent(table.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
-            }
-          }
+          String tableLabel = tableAlias != null ? tableAlias : ci.getTable();
+          mapper.putIfAbsent(tableLabel.toLowerCase(Locale.ROOT) + "." + columnAlias, i + 1);
         }
       }
     }

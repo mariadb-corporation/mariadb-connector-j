@@ -34,8 +34,18 @@ public interface Reader {
    */
   ReadableByteBuf readPacket(boolean reUsable, boolean traceEnable) throws IOException;
 
+  /**
+   * Get current sequence object
+   *
+   * @return current sequence
+   */
   MutableInt getSequence();
 
+  /**
+   * Close stream
+   *
+   * @throws IOException if any error occurs
+   */
   void close() throws IOException;
 
   /**

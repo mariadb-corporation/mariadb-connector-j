@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -42,22 +43,27 @@ public class BitCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BitCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from BitCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -412,6 +418,24 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "Type class java.time.OffsetDateTime not supported type for BIT type");
+  }
+
+  @Test
   public void getAsciiStream() throws SQLException {
     getAsciiStream(get());
   }
@@ -658,6 +682,7 @@ public class BitCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE BitCodec2");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO BitCodec2(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -671,6 +696,12 @@ public class BitCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 4);
       prep.setObject(2, null, Types.BINARY);
+      prep.execute();
+      prep.setInt(1, 5);
+      prep.setObject(2, 0, Types.BIT);
+      prep.execute();
+      prep.setInt(1, 6);
+      prep.setObject(2, 1, Types.BIT);
       prep.execute();
     }
 
@@ -700,6 +731,10 @@ public class BitCodecTest extends CommonCodecTest {
     rs.updateObject("t1", BitSet.valueOf(new byte[] {0x04, 0x00}), Types.BINARY);
     rs.updateRow();
     assertEquals("b'100'", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("b''", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("b'1'", rs.getString(2));
 
     rs = stmt.executeQuery("SELECT * FROM BitCodec2 ORDER BY id");
     assertTrue(rs.next());
@@ -710,5 +745,6 @@ public class BitCodecTest extends CommonCodecTest {
     assertNull(rs.getBytes(2));
     assertTrue(rs.next());
     assertEquals("b'100'", rs.getString(2));
+    con.commit();
   }
 }

@@ -6,12 +6,31 @@
 package com.singlestore.jdbc.pool;
 
 public interface PoolMBean {
-
+  /**
+   * get pool active connection number
+   *
+   * @return pool active connection number
+   */
   long getActiveConnections();
 
+  /**
+   * get pool total connection
+   *
+   * @return pool total connection number
+   */
   long getTotalConnections();
 
+  /**
+   * get idle connection number
+   *
+   * @return idle connection number
+   */
   long getIdleConnections();
 
+  /**
+   * get connection waiting request number
+   *
+   * @return request number
+   */
   long getConnectionRequests();
 }

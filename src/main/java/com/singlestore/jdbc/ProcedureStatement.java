@@ -13,6 +13,21 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ProcedureStatement extends BaseCallableStatement implements CallableStatement {
 
+  /**
+   * Constructor
+   *
+   * @param con connection
+   * @param sql sql
+   * @param databaseName database
+   * @param procedureName procedure
+   * @param lock thread locker
+   * @param canUseServerTimeout can use server timeout
+   * @param canUseServerMaxRows can use server max rows
+   * @param canCachePrepStmts can cache server prepared result
+   * @param resultSetType result-set type
+   * @param resultSetConcurrency concurrency
+   * @throws SQLException if any exception occurs
+   */
   public ProcedureStatement(
       Connection con,
       String sql,
@@ -21,6 +36,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
       ReentrantLock lock,
       boolean canUseServerTimeout,
       boolean canUseServerMaxRows,
+      boolean canCachePrepStmts,
       int resultSetType,
       int resultSetConcurrency)
       throws SQLException {
@@ -32,6 +48,7 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
         procedureName,
         canUseServerTimeout,
         canUseServerMaxRows,
+        canCachePrepStmts,
         resultSetType,
         resultSetConcurrency,
         0);
@@ -52,5 +69,25 @@ public class ProcedureStatement extends BaseCallableStatement implements Callabl
         outputResultFromRes(i);
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("ProcedureStatement{sql:'" + sql + "'");
+    sb.append(", parameters:[");
+    for (int i = 0; i < parameters.size(); i++) {
+      com.singlestore.jdbc.client.util.Parameter param = parameters.get(i);
+      if (outputParameters.contains(i + 1)) sb.append("<OUT>");
+      if (param == null) {
+        sb.append("null");
+      } else {
+        sb.append(param.bestEffortStringValue(con.getContext()));
+      }
+      if (i != parameters.size() - 1) {
+        sb.append(",");
+      }
+    }
+    sb.append("]}");
+    return sb.toString();
   }
 }

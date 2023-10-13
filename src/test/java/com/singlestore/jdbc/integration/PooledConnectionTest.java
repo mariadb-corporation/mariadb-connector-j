@@ -5,6 +5,7 @@
 
 package com.singlestore.jdbc.integration;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -317,8 +318,8 @@ public class PooledConnectionTest extends Common {
     Connection con =
         DriverManager.getConnection(
             String.format(
-                "jdbc:singlestore://localhost:5506/?user=%s&password=%s&pool=True&maxPoolSize=1",
-                user, password));
+                "jdbc:singlestore://localhost:%s/?user=%s&password=%s&pool=True&maxPoolSize=1",
+                port, user, password));
 
     Statement stmt = con.createStatement();
     try {
@@ -326,7 +327,7 @@ public class PooledConnectionTest extends Common {
     } catch (SQLException ignored) {
     }
 
-    assertTrue(con.isValid(1));
+    assertFalse(con.isValid(1));
   }
 
   public class MyEventListener implements ConnectionEventListener, StatementEventListener {

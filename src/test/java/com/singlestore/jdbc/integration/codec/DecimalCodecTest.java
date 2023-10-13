@@ -8,6 +8,7 @@ package com.singlestore.jdbc.integration.codec;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.singlestore.jdbc.Statement;
+import com.singlestore.jdbc.integration.Common;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -45,22 +46,27 @@ public class DecimalCodecTest extends CommonCodecTest {
 
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec ORDER BY id");
     assertTrue(rs.next());
+    sharedConn.commit();
     return rs;
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
-    PreparedStatement stmt =
+    java.sql.Statement stmt = con.createStatement();
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+    PreparedStatement preparedStatement =
         con.prepareStatement(
             "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from DecimalCodec"
                 + " WHERE 1 > ? ORDER BY id");
-    stmt.closeOnCompletion();
-    stmt.setInt(1, 0);
-    ResultSet rs = stmt.executeQuery();
+    preparedStatement.closeOnCompletion();
+    preparedStatement.setInt(1, 0);
+    ResultSet rs = preparedStatement.executeQuery();
     assertTrue(rs.next());
+    con.commit();
     return rs;
   }
 
@@ -499,6 +505,24 @@ public class DecimalCodecTest extends CommonCodecTest {
     getUnicodeStream(getPrepare(sharedConnBinary));
   }
 
+  @Test
+  public void getOffsetDateTime() throws SQLException {
+    getOffsetDateTime(get());
+  }
+
+  @Test
+  public void getOffsetDateTimePrepare() throws SQLException {
+    getOffsetDateTime(getPrepare(sharedConn));
+    getOffsetDateTime(getPrepare(sharedConnBinary));
+  }
+
+  public void getOffsetDateTime(ResultSet rs) throws SQLException {
+    Common.assertThrowsContains(
+        SQLException.class,
+        () -> rs.getObject(1, OffsetDateTime.class),
+        "Type class java.time.OffsetDateTime not supported type for DECIMAL type");
+  }
+
   @SuppressWarnings("deprecation")
   public void getUnicodeStream(ResultSet rs) throws SQLException {
     assertThrowsContains(
@@ -754,6 +778,7 @@ public class DecimalCodecTest extends CommonCodecTest {
   private void sendParam(Connection con) throws SQLException {
     java.sql.Statement stmt = con.createStatement();
     stmt.execute("TRUNCATE TABLE DecimalCodec3");
+    stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     try (PreparedStatement prep =
         con.prepareStatement("INSERT INTO DecimalCodec3(id, t1) VALUES (?, ?)")) {
       prep.setInt(1, 1);
@@ -773,6 +798,18 @@ public class DecimalCodecTest extends CommonCodecTest {
       prep.execute();
       prep.setInt(1, 6);
       prep.setObject(2, null, Types.DECIMAL);
+      prep.execute();
+      prep.setInt(1, 7);
+      prep.setObject(2, "4", Types.DECIMAL);
+      prep.execute();
+      prep.setInt(1, 8);
+      prep.setObject(2, "5", Types.NUMERIC);
+      prep.execute();
+      prep.setInt(1, 9);
+      prep.setObject(2, 7D, JDBCType.NUMERIC);
+      prep.execute();
+      prep.setInt(1, 10);
+      prep.setObject(2, "6", Types.BIGINT);
       prep.execute();
     }
 
@@ -816,6 +853,18 @@ public class DecimalCodecTest extends CommonCodecTest {
     rs.updateRow();
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
 
+    assertTrue(rs.next());
+    assertEquals("4", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("5", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("7", rs.getBigDecimal(2).toString());
+
+    assertTrue(rs.next());
+    assertEquals("6", rs.getBigDecimal(2).toString());
+
     rs = stmt.executeQuery("SELECT * FROM DecimalCodec3 ORDER BY id");
 
     assertTrue(rs.next());
@@ -835,5 +884,15 @@ public class DecimalCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(30), rs.getBigDecimal(2));
+
+    assertTrue(rs.next());
+    assertEquals("4", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("5", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("7", rs.getBigDecimal(2).toString());
+    assertTrue(rs.next());
+    assertEquals("6", rs.getBigDecimal(2).toString());
+    con.commit();
   }
 }

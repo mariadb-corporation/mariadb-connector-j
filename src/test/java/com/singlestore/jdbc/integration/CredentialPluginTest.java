@@ -47,8 +47,16 @@ public class CredentialPluginTest extends Common {
   @AfterAll
   public static void drop() throws SQLException {
     Statement stmt = sharedConn.createStatement();
-    stmt.execute("DROP USER IF EXISTS 'identityUser'@'%'");
-    stmt.execute("DROP USER IF EXISTS 'identityUser'@'localhost'");
+    try {
+      stmt.execute("DROP USER 'identityUser'@'%'");
+    } catch (SQLException e) {
+      // eat
+    }
+    try {
+      stmt.execute("DROP USER 'identityUser'@'localhost'");
+    } catch (SQLException e) {
+      // eat
+    }
   }
 
   @Test

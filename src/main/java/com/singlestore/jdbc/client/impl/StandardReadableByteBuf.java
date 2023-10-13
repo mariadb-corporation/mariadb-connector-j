@@ -7,62 +7,74 @@ package com.singlestore.jdbc.client.impl;
 
 import com.singlestore.jdbc.SingleStoreBlob;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.util.MutableInt;
 import java.nio.charset.StandardCharsets;
 
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-  private final MutableInt sequence;
-  private int limit;
-  private byte[] buf;
-  private int pos;
-  private int mark;
 
-  public StandardReadableByteBuf(MutableInt sequence, byte[] buf, int limit) {
-    this.sequence = sequence;
+  private int limit;
+  public byte[] buf;
+  private int pos;
+
+  public StandardReadableByteBuf(byte[] buf, int limit) {
     this.pos = 0;
     this.buf = buf;
     this.limit = limit;
-    this.mark = -1;
   }
 
   public int readableBytes() {
     return limit - pos;
   }
 
+  @Override
   public int pos() {
     return pos;
   }
 
+  @Override
   public byte[] buf() {
     return buf;
   }
 
-  public StandardReadableByteBuf buf(byte[] buf, int limit) {
+  @Override
+  public void buf(byte[] buf, int limit, int pos) {
     this.buf = buf;
     this.limit = limit;
-    return this;
+    this.pos = pos;
   }
 
+  @Override
   public void pos(int pos) {
     this.pos = pos;
   }
 
-  public void mark() {
-    mark = pos;
-  }
-
-  public void reset() {
-    if (mark == -1) throw new IllegalStateException("mark was not set");
-    pos = mark;
-  }
-
+  @Override
   public void skip() {
     pos++;
   }
 
-  public StandardReadableByteBuf skip(int length) {
+  @Override
+  public void skip(int length) {
     pos += length;
-    return this;
+  }
+
+  @Override
+  public void skipLengthEncoded() {
+    int len = buf[pos++] & 0xff;
+    if (len < 251) {
+      pos += len;
+    } else {
+      switch (len) {
+        case 252:
+          skip(readUnsignedShort());
+          break;
+        case 253:
+          skip(readUnsignedMedium());
+          break;
+        case 254:
+          skip((int) (4 + readUnsignedInt()));
+          break;
+      }
+    }
   }
 
   public SingleStoreBlob readBlob(int length) {
@@ -70,8 +82,23 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return SingleStoreBlob.safeSingleStoreBlob(buf, pos - length, length);
   }
 
-  public MutableInt getSequence() {
-    return sequence;
+  @Override
+  public long atoi(int length) {
+    boolean negate = false;
+    int idx = 0;
+    long result = 0;
+
+    if (length > 0 && buf[pos] == 45) { // minus sign
+      negate = true;
+      pos++;
+      idx++;
+    }
+
+    while (idx++ < length) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+
+    return (negate) ? -1 * result : result;
   }
 
   public byte getByte() {
@@ -86,8 +113,24 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     return (short) (buf[pos] & 0xff);
   }
 
-  public int readLengthNotNull() {
+  @Override
+  public long readLongLengthEncodedNotNull() {
     int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
+    switch (type) {
+      case 252: // 0xfc
+        return readUnsignedShort();
+      case 253: // 0xfd
+        return readUnsignedMedium();
+      default: // 0xfe
+        return readLong();
+    }
+  }
+
+  @Override
+  public int readIntLengthEncodedNotNull() {
+    int type = (buf[pos++] & 0xff);
+    if (type < 251) return type;
     switch (type) {
       case 252:
         return readUnsignedShort();
@@ -106,7 +149,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
    * @return current pos
    */
   public int skipIdentifier() {
-    int len = readLength();
+    int len = readIntLengthEncodedNotNull();
     pos += len;
     return pos;
   }
@@ -136,11 +179,11 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public short readShort() {
-    return (short) ((buf[pos++] & 0xff) | (buf[pos++] << 8));
+    return (short) ((buf[pos++] & 0xff) + (buf[pos++] << 8));
   }
 
   public int readUnsignedShort() {
-    return ((buf[pos++] & 0xff) | (buf[pos++] << 8)) & 0xffff;
+    return ((buf[pos++] & 0xff) + (buf[pos++] << 8)) & 0xffff;
   }
 
   public int readMedium() {
@@ -199,10 +242,10 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
         + (buf[pos++] & 0xffL));
   }
 
-  public ReadableByteBuf readBytes(byte[] dst) {
+  @Override
+  public void readBytes(byte[] dst) {
     System.arraycopy(buf, pos, dst, 0, dst.length);
     pos += dst.length;
-    return this;
   }
 
   public byte[] readBytesNullEnd() {
@@ -217,10 +260,10 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   public StandardReadableByteBuf readLengthBuffer() {
-    int len = readLengthNotNull();
+    int len = this.readIntLengthEncodedNotNull();
     byte[] tmp = new byte[len];
     readBytes(tmp);
-    return new StandardReadableByteBuf(sequence, tmp, len);
+    return new StandardReadableByteBuf(tmp, len);
   }
 
   public String readString(int length) {

@@ -1,23 +1,27 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
-// Copyright (c) 2015-2021 MariaDB Corporation Ab
-// Copyright (c) 2021 SingleStore, Inc.
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.Column;
-import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import java.sql.SQLException;
 
-public class ParameterMetaData implements java.sql.ParameterMetaData {
+/** Simple parameter metadata, when the only reliable think is the number of parameter */
+public class SimpleParameterMetaData implements java.sql.ParameterMetaData {
 
-  private final Column[] params;
+  private final int paramCount;
   private final ExceptionFactory exceptionFactory;
 
-  protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
-    this.params = params;
+  /**
+   * Constructor
+   *
+   * @param exceptionFactory connection exception factory
+   * @param paramCount parameter count
+   */
+  protected SimpleParameterMetaData(ExceptionFactory exceptionFactory, int paramCount) {
     this.exceptionFactory = exceptionFactory;
+    this.paramCount = paramCount;
   }
 
   /**
@@ -28,14 +32,14 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
    */
   @Override
   public int getParameterCount() {
-    return params.length;
+    return paramCount;
   }
 
   private void checkIndex(int index) throws SQLException {
-    if (index < 1 || index > params.length) {
-      throw new SQLException(
+    if (index < 1 || index > paramCount) {
+      throw exceptionFactory.create(
           String.format(
-              "Wrong index position. Is %s but must be in 1-%s range", index, params.length));
+              "Wrong index position. Is %s but must be in 1-%s range", index, paramCount));
     }
   }
 
@@ -63,7 +67,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public boolean isSigned(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].isSigned();
+    return true;
   }
 
   /**
@@ -83,12 +87,14 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getPrecision(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getPrecision();
+    throw exceptionFactory.create("Unknown parameter metadata precision");
   }
 
   /**
    * Retrieves the designated parameter's number of digits to right of the decimal point. 0 is
-   * returned for data types where the scale is not applicable.
+   * returned for data types where the scale is not applicable. Parameter type are not sent by
+   * server. See * https://jira.mariadb.org/browse/CONJ-568 and
+   * https://jira.mariadb.org/browse/MDEV-15031
    *
    * @param idx the first parameter is 1, the second is 2, ...
    * @return scale
@@ -97,20 +103,21 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public int getScale(int idx) throws SQLException {
     checkIndex(idx);
-    return params[idx - 1].getDecimals();
+    throw exceptionFactory.create("Unknown parameter metadata scale");
   }
 
   /**
-   * Retrieves the designated parameter's SQL type.
+   * Retrieves the designated parameter's SQL type. Parameter type are not sent by server. See
+   * https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
    *
-   * @param param the first parameter is 1, the second is 2, ...
-   * @return SQL type from <code>java.sql.Types</code>
+   * @param idx the first parameter is 1, the second is 2, ...
+   * @return SQL types from <code>java.sql.Types</code>
    * @throws SQLException because not supported
    */
   @Override
   public int getParameterType(int idx) throws SQLException {
     checkIndex(idx);
-    throw exceptionFactory.create("Getting parameter type metadata are not supported", "0A000", -1);
+    throw exceptionFactory.create("Getting parameter type metadata is not supported", "0A000", -1);
   }
 
   /**
@@ -124,8 +131,7 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
   @Override
   public String getParameterTypeName(int idx) throws SQLException {
     checkIndex(idx);
-    DataType type = params[idx - 1].getType();
-    return type == null ? null : type.name();
+    throw exceptionFactory.create("Unknown parameter metadata type name");
   }
 
   /**
@@ -164,13 +170,13 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
    *
    * <p>If the receiver implements the interface then the result is the receiver or a proxy for the
    * receiver. If the receiver is a wrapper and the wrapped object implements the interface then the
-   * result is the wrapped object or a proxy for the wrapped object. Otherwise return the the result
-   * of calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
+   * result is the wrapped object or a proxy for the wrapped object. Otherwise, return the result of
+   * calling <code>unwrap</code> recursively on the wrapped object or a proxy for that result. If
    * the receiver is not a wrapper and does not implement the interface, then an <code>SQLException
    * </code> is thrown.
    *
    * @param iface A Class defining an interface that the result must implement.
-   * @return an object that implements the interface. May be a proxy for the actual implementing
+   * @return an object that implements the interface. Maybe a proxy for the actual implementing
    *     object.
    * @throws SQLException If no object found that implements the interface
    */
