@@ -1146,9 +1146,9 @@ public class Configuration {
   }
 
   /**
-   * Must tinyint(1) be considered as Boolean or Bit
+   * Must tinyint be considered as Boolean or Bit
    *
-   * @return true if tinyint(1) must be considered as Boolean
+   * @return true if tinyint must be considered as Boolean
    */
   public boolean transformedBitIsBoolean() {
     return transformedBitIsBoolean;

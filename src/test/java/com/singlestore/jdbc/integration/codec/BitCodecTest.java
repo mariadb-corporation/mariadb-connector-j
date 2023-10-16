@@ -79,7 +79,7 @@ public class BitCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals(BitSet.valueOf(new byte[] {(byte) 0}), rs.getObject(1));
+    assertEquals(false, rs.getObject(1));
     assertFalse(rs.wasNull());
     assertEquals(BitSet.valueOf(new byte[] {(byte) 1}), rs.getObject(2));
     assertEquals(BitSet.valueOf(new byte[] {(byte) 1}), rs.getObject("t2alias"));
@@ -662,10 +662,10 @@ public class BitCodecTest extends CommonCodecTest {
     ResultSetMetaData meta = rs.getMetaData();
     assertEquals("BIT", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));
-    assertEquals("java.util.BitSet", meta.getColumnClassName(1));
+    assertEquals("java.lang.Boolean", meta.getColumnClassName(1));
     assertEquals("t1alias", meta.getColumnLabel(1));
     assertEquals("t1", meta.getColumnName(1));
-    assertEquals(Types.BIT, meta.getColumnType(1));
+    assertEquals(Types.BOOLEAN, meta.getColumnType(1));
     assertEquals(4, meta.getColumnCount());
     assertEquals(1, meta.getPrecision(1));
     assertEquals(0, meta.getScale(1));

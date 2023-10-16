@@ -605,7 +605,7 @@ public class DatabaseMetadataTest extends Common {
       assertTrue(rs.next());
       assertEquals(Types.BIT, rs.getInt(5));
       assertTrue(rs.next());
-      assertEquals(Types.TINYINT, rs.getInt(5));
+      assertEquals(Types.BIT, rs.getInt(5));
 
       dbmd = con.getMetaData();
       rs = dbmd.getColumns(null, null, "tinyInt1IsBitCols", null);
@@ -621,39 +621,114 @@ public class DatabaseMetadataTest extends Common {
   }
 
   @Test
-  public void testTransformedBitIsBoolean() throws SQLException {
-    try (Connection con = createCon("transformedBitIsBoolean=true")) {
-      testTransformedBitIsBoolean(con);
+  public void testResultSetMetaDataTransformedBitIsBoolean() throws SQLException {
+    try (Connection con = createCon("tinyInt1isBit=false")) {
+      testResultSetMetaDataTransformedBitIsBoolean(con);
     }
-    try (Connection con = createCon("transformedBitIsBoolean=true&tinyInt1isBit=true")) {
-      testTransformedBitIsBoolean(con);
+    try (Connection con = createCon("tinyInt1isBit=true")) {
+      testResultSetMetaDataTransformedBitIsBoolean(con);
+    }
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=true")) {
+      testResultSetMetaDataTransformedBitIsBoolean(con);
     }
   }
 
-  private void testTransformedBitIsBoolean(Connection con) throws SQLException {
+  private void testResultSetMetaDataTransformedBitIsBoolean(Connection con) throws SQLException {
     try {
       Configuration conf = ((com.singlestore.jdbc.Connection) con).getContext().getConf();
       java.sql.Statement stmt = con.createStatement();
       stmt.execute(
           "CREATE TABLE IF NOT EXISTS `tinyInt1IsBitCols`(id1 TINYINT, id2 TINYINT UNSIGNED)");
       stmt.execute("INSERT INTO `tinyInt1IsBitCols` VALUES (2,0)");
-
       ResultSet rs1 = con.createStatement().executeQuery("SELECT * FROM `tinyInt1IsBitCols`");
       assertTrue(rs1.next());
       if (conf.tinyInt1isBit()) {
-        assertEquals(true, rs1.getObject(1));
-        assertEquals(false, rs1.getObject(2));
-        ResultSetMetaData rsm = rs1.getMetaData();
-        assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
-        assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
+        if (conf.transformedBitIsBoolean()) {
+          assertEquals(true, rs1.getObject(1));
+          assertEquals(false, rs1.getObject(2));
+          ResultSetMetaData rsm = rs1.getMetaData();
+          assertEquals(Types.BOOLEAN, rsm.getColumnType(1));
+          assertEquals("BOOLEAN", rsm.getColumnTypeName(1));
+          assertEquals(Types.BOOLEAN, rsm.getColumnType(2));
+          assertEquals("BOOLEAN", rsm.getColumnTypeName(2));
+        } else {
+          assertEquals((byte) 2, rs1.getObject(1));
+          assertEquals((short) 0, rs1.getObject(2));
+          ResultSetMetaData rsm = rs1.getMetaData();
+          assertEquals(Types.BIT, rsm.getColumnType(1));
+          assertEquals("BIT", rsm.getColumnTypeName(1));
+          assertEquals(Types.BIT, rsm.getColumnType(2));
+          assertEquals("BIT", rsm.getColumnTypeName(2));
+        }
       } else {
-        assertEquals(2, rs1.getObject(1));
-        assertEquals(0, rs1.getObject(2));
+        assertEquals((byte) 2, rs1.getObject(1));
+        assertEquals((short) 0, rs1.getObject(2));
         ResultSetMetaData rsm = rs1.getMetaData();
         assertEquals(Types.TINYINT, rsm.getColumnType(1));
         assertEquals("TINYINT", rsm.getColumnTypeName(1));
         assertEquals(Types.SMALLINT, rsm.getColumnType(2));
         assertEquals("TINYINT UNSIGNED", rsm.getColumnTypeName(2));
+      }
+    } finally {
+      con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1IsBitCols`");
+    }
+  }
+
+  @Test
+  public void testDataBaseMetadataTransformedBitIsBoolean() throws SQLException {
+    try (Connection con = createCon("tinyInt1isBit=false")) {
+      testDataBaseMetaDataTransformedBitIsBoolean(con);
+    }
+    try (Connection con = createCon("tinyInt1isBit=true")) {
+      testDataBaseMetaDataTransformedBitIsBoolean(con);
+    }
+    try (Connection con = createCon("tinyInt1isBit=true&transformedBitIsBoolean=true")) {
+      testDataBaseMetaDataTransformedBitIsBoolean(con);
+    }
+  }
+
+  private void testDataBaseMetaDataTransformedBitIsBoolean(Connection con) throws SQLException {
+    try {
+      Configuration conf = ((com.singlestore.jdbc.Connection) con).getContext().getConf();
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute(
+          "CREATE TABLE IF NOT EXISTS `tinyInt1IsBitCols`(id1 TINYINT, id2 TINYINT UNSIGNED)");
+      stmt.execute("INSERT INTO `tinyInt1IsBitCols` VALUES (2,0)");
+      DatabaseMetaData databaseMetaData = con.getMetaData();
+      ResultSet rs2 = databaseMetaData.getColumns(conf.database(), null, "tinyInt1IsBitCols", null);
+      String id1TypeName = null;
+      String id2TypeName = null;
+      int id1Type = Types.NULL;
+      int id2Type = Types.NULL;
+      while (rs2.next()) {
+        String name = rs2.getString(4);
+        if ("id1".equals(name)) {
+          id1Type = rs2.getInt(5);
+          id1TypeName = rs2.getString(6);
+        } else if ("id2".equals(name)) {
+          id2Type = rs2.getInt(5);
+          id2TypeName = rs2.getString(6);
+        } else {
+          Assertions.fail("Wrong metadata column name " + name);
+        }
+      }
+      if (conf.tinyInt1isBit()) {
+        if (conf.transformedBitIsBoolean()) {
+          assertEquals(Types.BOOLEAN, id1Type);
+          assertEquals("BOOLEAN", id1TypeName);
+          assertEquals(Types.BOOLEAN, id2Type);
+          assertEquals("BOOLEAN", id2TypeName);
+        } else {
+          assertEquals(Types.BIT, id1Type);
+          assertEquals("BIT", id1TypeName);
+          assertEquals(Types.BIT, id2Type);
+          assertEquals("BIT", id2TypeName);
+        }
+      } else {
+        assertEquals(Types.TINYINT, id1Type);
+        assertEquals("TINYINT", id1TypeName);
+        assertEquals(Types.TINYINT, id2Type);
+        assertEquals("TINYINT UNSIGNED", id2TypeName);
       }
     } finally {
       con.createStatement().execute("DROP TABLE IF EXISTS `tinyInt1IsBitCols`");
@@ -1209,8 +1284,8 @@ public class DatabaseMetadataTest extends Common {
             c == ' ' || Character.isUpperCase(c) || !Character.isAlphabetic(c),
             "bad typename " + typeName);
       }
-      checkType(columnName, type, "tiny", Types.TINYINT);
-      checkType(columnName, type, "tiny_uns", Types.TINYINT);
+      checkType(columnName, type, "tiny", Types.BIT);
+      checkType(columnName, type, "tiny_uns", Types.BIT);
       checkType(columnName, type, "small", Types.SMALLINT);
       checkType(columnName, type, "small_uns", Types.SMALLINT);
       checkType(columnName, type, "medium", Types.INTEGER);

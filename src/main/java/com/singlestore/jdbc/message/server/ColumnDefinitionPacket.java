@@ -404,7 +404,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         return isSigned() ? Types.TINYINT : Types.SMALLINT;
       case BIT:
         if (length == 1) {
-          return Types.BIT;
+          return Types.BOOLEAN;
         }
         return Types.VARBINARY;
       case SMALLINT:
@@ -465,6 +465,11 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
           return BooleanCodec.INSTANCE;
         }
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
+      case BIT:
+        if (length == 1) {
+          return BooleanCodec.INSTANCE;
+        }
+        return BitSetCodec.INSTANCE;
       case SMALLINT:
         return isSigned() ? ShortCodec.INSTANCE : IntCodec.INSTANCE;
       case INT:
@@ -508,8 +513,6 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case YEAR:
         if (conf.yearIsDateType()) return DateCodec.INSTANCE;
         return ShortCodec.INSTANCE;
-      case BIT:
-        return BitSetCodec.INSTANCE;
     }
     throw new IllegalArgumentException(String.format("Unexpected datatype %s", dataType));
   }
