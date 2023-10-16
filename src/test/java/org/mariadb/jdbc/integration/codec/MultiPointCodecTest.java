@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -307,7 +306,7 @@ public class MultiPointCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO MultiPointCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (MultiPoint) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -350,8 +349,8 @@ public class MultiPointCodecTest extends CommonCodecTest {
         new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)})
             .hashCode(),
         mp.hashCode());
-    assertFalse(mp.equals(null));
-    assertFalse(mp.equals(""));
+    assertNotEquals(null, mp);
+    assertNotEquals("", mp);
     assertNotEquals(
         new MultiPoint(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 20)}), mp);
     assertNotEquals(

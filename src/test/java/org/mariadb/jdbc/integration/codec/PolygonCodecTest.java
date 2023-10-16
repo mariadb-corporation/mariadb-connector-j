@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -380,7 +379,7 @@ public class PolygonCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO PolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (Polygon) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -439,8 +438,8 @@ public class PolygonCodecTest extends CommonCodecTest {
             });
     assertEquals(testPoly, ls2);
     assertEquals(testPoly.hashCode(), ls2.hashCode());
-    assertFalse(ls2.equals(null));
-    assertFalse(ls2.equals(""));
+    assertNotEquals(null, ls2);
+    assertNotEquals("", ls2);
     assertNotEquals(
         new Polygon(
             new LineString[] {

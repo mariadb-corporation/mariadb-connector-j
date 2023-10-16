@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -211,9 +210,9 @@ public class DateTimeCodecTest extends CommonCodecTest {
     assertEquals("2010-01-12 01:55:12", rs.getNString(1));
     assertFalse(rs.wasNull());
     String s = rs.getNString(2);
-    assertTrue(s.equals("1000-01-01 01:55:13.212345"));
+    assertEquals("1000-01-01 01:55:13.212345", s);
     s = rs.getNString("t2alias");
-    assertTrue(s.equals("1000-01-01 01:55:13.212345"));
+    assertEquals("1000-01-01 01:55:13.212345", s);
     assertFalse(rs.wasNull());
     s = rs.getNString(3);
     assertTrue(s.equals("9999-12-31 18:30:12.550000") || s.equals("9999-12-31 18:30:12.550"));

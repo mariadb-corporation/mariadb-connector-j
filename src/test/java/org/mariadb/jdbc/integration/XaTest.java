@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,8 +61,8 @@ public class XaTest extends Common {
             new MariaDbXid(-1010695802, new byte[] {0x00}, new byte[] {0x00, 0x01, 0x00})));
     assertEquals(xid, xid);
     assertEquals(xid, new MariaDbXid(1575, new byte[] {0x00}, new byte[] {0x01}));
-    assertFalse(xid.equals("dd"));
-    assertFalse(xid.equals(null));
+    assertNotEquals("dd", xid);
+    assertNotEquals(null, xid);
     assertEquals(1544359, xid.hashCode());
   }
 
@@ -233,7 +232,7 @@ public class XaTest extends Common {
       xaResource.end(xid, XAResource.TMSUCCESS);
       xaResource.prepare(xid);
       Xid[] recoveredXids = xaResource.recover(XAResource.TMSTARTRSCAN | XAResource.TMENDRSCAN);
-      assertTrue(recoveredXids != null);
+      assertNotNull(recoveredXids);
       assertTrue(recoveredXids.length > 0);
       boolean found = false;
 

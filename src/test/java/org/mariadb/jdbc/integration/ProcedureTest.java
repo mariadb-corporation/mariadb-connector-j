@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -298,7 +297,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as byte[]");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getDate(2, (Calendar) null),
+        () -> callableStatement.getDate(2, null),
         "Data type INTEGER cannot be decoded as Date");
     Common.assertThrowsContains(
         SQLException.class,
@@ -306,7 +305,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as Time");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getTime(2, (Calendar) null),
+        () -> callableStatement.getTime(2, null),
         "Data type INTEGER cannot be decoded as Time");
     Common.assertThrowsContains(
         SQLException.class,
@@ -314,7 +313,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as Timestamp");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getTimestamp(2, (Calendar) null),
+        () -> callableStatement.getTimestamp(2, null),
         "Data type INTEGER cannot be decoded as Timestamp");
     assertEquals(6L, callableStatement.getObject(2));
     Map<String, Class<?>> map = new HashMap<>();
@@ -412,7 +411,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as Date");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getDate("t2", (Calendar) null),
+        () -> callableStatement.getDate("t2", null),
         "Data type INTEGER cannot be decoded as Date");
     Common.assertThrowsContains(
         SQLException.class,
@@ -420,7 +419,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as Time");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getTime("t2", (Calendar) null),
+        () -> callableStatement.getTime("t2", null),
         "Data type INTEGER cannot be decoded as Time");
     Common.assertThrowsContains(
         SQLException.class,
@@ -428,7 +427,7 @@ public class ProcedureTest extends Common {
         "Data type INTEGER cannot be decoded as Timestamp");
     Common.assertThrowsContains(
         SQLException.class,
-        () -> callableStatement.getTimestamp("t2", (Calendar) null),
+        () -> callableStatement.getTimestamp("t2", null),
         "Data type INTEGER cannot be decoded as Timestamp");
     assertEquals(6L, callableStatement.getObject("t2"));
     Common.assertThrowsContains(

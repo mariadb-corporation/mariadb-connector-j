@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -193,9 +192,9 @@ public class NullCodecTest extends CommonCodecTest {
   }
 
   private void getBoolean(ResultSet rs) throws SQLException {
-    assertEquals(false, rs.getBoolean(1));
+    assertFalse(rs.getBoolean(1));
     assertTrue(rs.wasNull());
-    assertEquals(false, rs.getBoolean("t1alias"));
+    assertFalse(rs.getBoolean("t1alias"));
     assertTrue(rs.wasNull());
   }
 

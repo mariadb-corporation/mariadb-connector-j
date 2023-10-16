@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -143,22 +142,6 @@ public class PooledConnectionTest extends Common {
       conn = pc.getConnection();
       assertNotEquals(threadId, conn.getThreadId());
       pc.close();
-    } finally {
-
-      //      String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      //      assertTrue(
-      //          contents.contains(
-      //              "removed from pool MariaDB-pool due to error during reset (total:0, active:0,
-      // pending:0)"),
-      //          contents);
-      //      assertTrue(contents.contains("pool MariaDB-pool new physical connection created"),
-      // contents);
-      //
-      //      assertTrue(
-      //          contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"),
-      // contents);
-      //      logger.setLevel(initialLevel);
-      //      logger.detachAppender(fa);
     }
   }
 

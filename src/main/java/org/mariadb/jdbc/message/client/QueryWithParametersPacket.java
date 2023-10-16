@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
@@ -24,7 +23,7 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
   private final String preSqlCmd;
   private final ClientParser parser;
   private Parameters parameters;
-  private InputStream localInfileInputStream;
+  private final InputStream localInfileInputStream;
 
   /**
    * Constructor

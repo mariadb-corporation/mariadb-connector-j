@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.sql.*;
@@ -201,7 +200,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    */
   private ResultSet getImportedKeys(
       String tableDef, String tableName, String database, org.mariadb.jdbc.Connection connection)
-      throws Exception, SQLException {
+      throws Exception {
     boolean importedKeysWithConstraintNames =
         Boolean.parseBoolean(
             conf.nonMappedOptions().getProperty("importedKeysWithConstraintNames", "true"));
@@ -300,7 +299,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     break;
                   }
                 }
-                if (!foundKey) foundAll = false;
+                if (!foundKey) {
+                  foundAll = false;
+                  break;
+                }
               }
               if (foundAll) {
                 row[12] = entry.getValue();

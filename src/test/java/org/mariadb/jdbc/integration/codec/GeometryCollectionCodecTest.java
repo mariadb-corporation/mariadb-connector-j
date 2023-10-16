@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -270,7 +269,7 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO GeometryCollectionCodec2(t1) VALUES (?)")) {
       prep.setObject(1, geo1);
       prep.execute();
-      prep.setObject(1, (GeometryCollection) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, geo2);
@@ -336,8 +335,8 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
                 })
             .hashCode(),
         geo1.hashCode());
-    assertFalse(geo1.equals(null));
-    assertFalse(geo1.equals(""));
+    assertNotEquals(null, geo1);
+    assertNotEquals("", geo1);
     assertNotEquals(
         new GeometryCollection(
             new Geometry[] {

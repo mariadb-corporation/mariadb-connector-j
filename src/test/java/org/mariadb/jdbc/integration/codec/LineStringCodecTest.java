@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -296,7 +295,7 @@ public class LineStringCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO LineStringCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (LineString) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -341,8 +340,8 @@ public class LineStringCodecTest extends CommonCodecTest {
         new LineString(new Point[] {new Point(0, 0), new Point(0, 10), new Point(10, 0)}, true)
             .hashCode(),
         ls.hashCode());
-    assertFalse(ls.equals(null));
-    assertFalse(ls.equals(""));
+    assertNotEquals(null, ls);
+    assertNotEquals("", ls);
     assertNotEquals(
         new LineString(new Point[] {new Point(0, 0), new Point(0, 20), new Point(20, 0)}, true),
         ls);

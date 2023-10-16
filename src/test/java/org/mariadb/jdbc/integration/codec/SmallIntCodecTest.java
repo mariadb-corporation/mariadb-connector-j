@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -972,7 +971,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(2, rs.getShort(2));
-    rs.updateObject("t1", (Short) null);
+    rs.updateObject("t1", null);
     rs.updateRow();
     assertEquals(0, rs.getShort(2));
     assertTrue(rs.wasNull());
