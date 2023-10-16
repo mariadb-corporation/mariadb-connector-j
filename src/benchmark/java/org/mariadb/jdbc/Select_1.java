@@ -4,10 +4,9 @@
 
 package org.mariadb.jdbc;
 
-import org.openjdk.jmh.annotations.Benchmark;
-
 import java.sql.ResultSet;
 import java.sql.Statement;
+import org.openjdk.jmh.annotations.Benchmark;
 
 public class Select_1 extends Common {
 

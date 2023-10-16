@@ -4,14 +4,13 @@
 
 package org.mariadb.jdbc;
 
-import org.openjdk.jmh.annotations.*;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import org.openjdk.jmh.annotations.*;
 
 @State(Scope.Benchmark)
 @Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)

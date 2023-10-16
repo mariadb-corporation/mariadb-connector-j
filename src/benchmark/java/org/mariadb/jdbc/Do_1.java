@@ -11,11 +11,10 @@ import java.sql.Statement;
 
 public class Do_1 extends Common {
 
-    @Benchmark
-    public int run(MyState state) throws Throwable {
-        try (Statement st = state.connectionText.createStatement()) {
-            return st.executeUpdate("DO 1");
-        }
+  @Benchmark
+  public int run(MyState state) throws Throwable {
+    try (Statement st = state.connectionText.createStatement()) {
+      return st.executeUpdate("DO 1");
     }
-
+  }
 }

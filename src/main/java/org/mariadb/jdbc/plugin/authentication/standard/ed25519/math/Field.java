@@ -19,8 +19,10 @@ public class Field implements Serializable {
 
   private final int b;
   private final FieldElement q;
+
   /** q-2 */
   private final FieldElement qm2;
+
   /** (q-5) / 8 */
   private final FieldElement qm5d8;
 

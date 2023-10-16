@@ -31,24 +31,29 @@ public class PacketWriter implements Writer {
   private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
   private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
+
+  /** packet sequence */
+  protected final MutableByte sequence;
+
+  /** compressed packet sequence */
+  protected final MutableByte compressSequence;
+
   private final int maxQuerySizeToLog;
   private final OutputStream out;
-  private int maxPacketLength = MAX_PACKET_LENGTH;
-  private Integer maxAllowedPacket;
+  private final int maxPacketLength = MAX_PACKET_LENGTH;
+  private final Integer maxAllowedPacket;
+
+  /** internal buffer */
+  protected byte[] buf;
+
+  /** buffer position */
+  protected int pos = 4;
+
   private long cmdLength;
   private boolean permitTrace = true;
   private String serverThreadLog = "";
   private int mark = -1;
   private boolean bufContainDataAfterMark = false;
-
-  /** internal buffer */
-  protected byte[] buf;
-  /** buffer position */
-  protected int pos = 4;
-  /** packet sequence */
-  protected final MutableByte sequence;
-  /** compressed packet sequence */
-  protected final MutableByte compressSequence;
 
   /**
    * Common feature to write data into socket, creating MariaDB Packet.

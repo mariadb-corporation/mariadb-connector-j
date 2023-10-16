@@ -20,18 +20,15 @@ import org.mariadb.jdbc.util.log.Loggers;
 /** Packet reader */
 public class PacketReader implements Reader {
 
-  private StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
-
   private static final int REUSABLE_BUFFER_LENGTH = 1024;
   private static final int MAX_PACKET_SIZE = 0xffffff;
   private static final Logger logger = Loggers.getLogger(PacketReader.class);
-
   private final byte[] header = new byte[4];
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
-
   private final MutableByte sequence;
+  private final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   private String serverThreadLog = "";
 
   /**

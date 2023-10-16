@@ -36,10 +36,10 @@ import org.mariadb.jdbc.util.log.Loggers;
  * supported proxy class.
  */
 public class MultiPrimaryClient implements Client {
-  private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
-
   /** temporary blacklisted hosts */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
+
+  private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
   /** denied timeout */
   protected final long deniedListTimeout;
@@ -47,11 +47,11 @@ public class MultiPrimaryClient implements Client {
   /** configuration */
   protected final Configuration conf;
 
-  /** is connections explicitly closed */
-  protected boolean closed = false;
-
   /** thread locker */
   protected final ReentrantLock lock;
+
+  /** is connections explicitly closed */
+  protected boolean closed = false;
 
   /** current client */
   protected Client currentClient;

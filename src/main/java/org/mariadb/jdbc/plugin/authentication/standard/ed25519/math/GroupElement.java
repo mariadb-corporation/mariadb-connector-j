@@ -26,165 +26,24 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.Utils;
  */
 public class GroupElement implements Serializable {
   private static final long serialVersionUID = 2395879087349587L;
-
-  /**
-   * Available representations for a group element.
-   *
-   * <ul>
-   *   <li>P2: Projective representation $(X:Y:Z)$ satisfying $x=X/Z, y=Y/Z$.
-   *   <li>P3: Extended projective representation $(X:Y:Z:T)$ satisfying $x=X/Z, y=Y/Z, XY=ZT$.
-   *   <li>P3PrecomputedDouble: P3 but with dblPrecmp populated.
-   *   <li>P1P1: Completed representation $((X:Z), (Y:T))$ satisfying $x=X/Z, y=Y/T$.
-   *   <li>PRECOMP: Precomputed representation $(y+x, y-x, 2dxy)$.
-   *   <li>CACHED: Cached representation $(Y+X, Y-X, Z, 2dT)$
-   * </ul>
-   */
-  public enum Representation {
-    /** Projective ($P^2$): $(X:Y:Z)$ satisfying $x=X/Z, y=Y/Z$ */
-    P2,
-    /** Extended ($P^3$): $(X:Y:Z:T)$ satisfying $x=X/Z, y=Y/Z, XY=ZT$ */
-    P3,
-    /** Can only be requested. Results in P3 representation but also populates dblPrecmp. */
-    P3PrecomputedDouble,
-    /** Completed ($P \times P$): $((X:Z),(Y:T))$ satisfying $x=X/Z, y=Y/T$ */
-    P1P1,
-    /** Precomputed (Duif): $(y+x,y-x,2dxy)$ */
-    PRECOMP,
-    /** Cached: $(Y+X,Y-X,Z,2dT)$ */
-    CACHED
-  }
-
-  /**
-   * Creates a new group element in P2 representation.
-   *
-   * @param curve The curve.
-   * @param X The $X$ coordinate.
-   * @param Y The $Y$ coordinate.
-   * @param Z The $Z$ coordinate.
-   * @return The group element in P2 representation.
-   */
-  public static GroupElement p2(
-      final Curve curve, final FieldElement X, final FieldElement Y, final FieldElement Z) {
-    return new GroupElement(curve, Representation.P2, X, Y, Z, null);
-  }
-
-  /**
-   * Creates a new group element in P3 representation, without pre-computation.
-   *
-   * @param curve The curve.
-   * @param X The $X$ coordinate.
-   * @param Y The $Y$ coordinate.
-   * @param Z The $Z$ coordinate.
-   * @param T The $T$ coordinate.
-   * @return The group element in P3 representation.
-   */
-  public static GroupElement p3(
-      final Curve curve,
-      final FieldElement X,
-      final FieldElement Y,
-      final FieldElement Z,
-      final FieldElement T) {
-    return p3(curve, X, Y, Z, T, false);
-  }
-
-  /**
-   * Creates a new group element in P3 representation, potentially with pre-computation.
-   *
-   * @param curve The curve.
-   * @param X The $X$ coordinate.
-   * @param Y The $Y$ coordinate.
-   * @param Z The $Z$ coordinate.
-   * @param T The $T$ coordinate.
-   * @param precomputeDoubleOnly If true, populate dblPrecmp, else set to null.
-   * @return The group element in P3 representation.
-   */
-  public static GroupElement p3(
-      final Curve curve,
-      final FieldElement X,
-      final FieldElement Y,
-      final FieldElement Z,
-      final FieldElement T,
-      final boolean precomputeDoubleOnly) {
-    return new GroupElement(curve, Representation.P3, X, Y, Z, T, precomputeDoubleOnly);
-  }
-
-  /**
-   * Creates a new group element in P1P1 representation.
-   *
-   * @param curve The curve.
-   * @param X The $X$ coordinate.
-   * @param Y The $Y$ coordinate.
-   * @param Z The $Z$ coordinate.
-   * @param T The $T$ coordinate.
-   * @return The group element in P1P1 representation.
-   */
-  public static GroupElement p1p1(
-      final Curve curve,
-      final FieldElement X,
-      final FieldElement Y,
-      final FieldElement Z,
-      final FieldElement T) {
-    return new GroupElement(curve, Representation.P1P1, X, Y, Z, T);
-  }
-
-  /**
-   * Creates a new group element in PRECOMP representation.
-   *
-   * @param curve The curve.
-   * @param ypx The $y + x$ value.
-   * @param ymx The $y - x$ value.
-   * @param xy2d The $2 * d * x * y$ value.
-   * @return The group element in PRECOMP representation.
-   */
-  public static GroupElement precomp(
-      final Curve curve, final FieldElement ypx, final FieldElement ymx, final FieldElement xy2d) {
-    return new GroupElement(curve, Representation.PRECOMP, ypx, ymx, xy2d, null);
-  }
-
-  /**
-   * Creates a new group element in CACHED representation.
-   *
-   * @param curve The curve.
-   * @param YpX The $Y + X$ value.
-   * @param YmX The $Y - X$ value.
-   * @param Z The $Z$ coordinate.
-   * @param T2d The $2 * d * T$ value.
-   * @return The group element in CACHED representation.
-   */
-  public static GroupElement cached(
-      final Curve curve,
-      final FieldElement YpX,
-      final FieldElement YmX,
-      final FieldElement Z,
-      final FieldElement T2d) {
-    return new GroupElement(curve, Representation.CACHED, YpX, YmX, Z, T2d);
-  }
-
   /** Variable is package private only so that tests run. */
   final Curve curve;
-
   /** Variable is package private only so that tests run. */
   final Representation repr;
-
   /** Variable is package private only so that tests run. */
   final FieldElement X;
-
   /** Variable is package private only so that tests run. */
   final FieldElement Y;
-
   /** Variable is package private only so that tests run. */
   final FieldElement Z;
-
   /** Variable is package private only so that tests run. */
   final FieldElement T;
-
   /**
    * Precomputed table for {@link #scalarMultiply(byte[])}, filled if necessary.
    *
    * <p>Variable is package private only so that tests run.
    */
   final GroupElement[][] precmp;
-
   /**
    * Precomputed table for , filled if necessary.
    *
@@ -332,6 +191,189 @@ public class GroupElement implements Serializable {
       precmp = null;
       dblPrecmp = null;
     }
+  }
+
+  /**
+   * Creates a new group element in P2 representation.
+   *
+   * @param curve The curve.
+   * @param X The $X$ coordinate.
+   * @param Y The $Y$ coordinate.
+   * @param Z The $Z$ coordinate.
+   * @return The group element in P2 representation.
+   */
+  public static GroupElement p2(
+      final Curve curve, final FieldElement X, final FieldElement Y, final FieldElement Z) {
+    return new GroupElement(curve, Representation.P2, X, Y, Z, null);
+  }
+
+  /**
+   * Creates a new group element in P3 representation, without pre-computation.
+   *
+   * @param curve The curve.
+   * @param X The $X$ coordinate.
+   * @param Y The $Y$ coordinate.
+   * @param Z The $Z$ coordinate.
+   * @param T The $T$ coordinate.
+   * @return The group element in P3 representation.
+   */
+  public static GroupElement p3(
+      final Curve curve,
+      final FieldElement X,
+      final FieldElement Y,
+      final FieldElement Z,
+      final FieldElement T) {
+    return p3(curve, X, Y, Z, T, false);
+  }
+
+  /**
+   * Creates a new group element in P3 representation, potentially with pre-computation.
+   *
+   * @param curve The curve.
+   * @param X The $X$ coordinate.
+   * @param Y The $Y$ coordinate.
+   * @param Z The $Z$ coordinate.
+   * @param T The $T$ coordinate.
+   * @param precomputeDoubleOnly If true, populate dblPrecmp, else set to null.
+   * @return The group element in P3 representation.
+   */
+  public static GroupElement p3(
+      final Curve curve,
+      final FieldElement X,
+      final FieldElement Y,
+      final FieldElement Z,
+      final FieldElement T,
+      final boolean precomputeDoubleOnly) {
+    return new GroupElement(curve, Representation.P3, X, Y, Z, T, precomputeDoubleOnly);
+  }
+
+  /**
+   * Creates a new group element in P1P1 representation.
+   *
+   * @param curve The curve.
+   * @param X The $X$ coordinate.
+   * @param Y The $Y$ coordinate.
+   * @param Z The $Z$ coordinate.
+   * @param T The $T$ coordinate.
+   * @return The group element in P1P1 representation.
+   */
+  public static GroupElement p1p1(
+      final Curve curve,
+      final FieldElement X,
+      final FieldElement Y,
+      final FieldElement Z,
+      final FieldElement T) {
+    return new GroupElement(curve, Representation.P1P1, X, Y, Z, T);
+  }
+
+  /**
+   * Creates a new group element in PRECOMP representation.
+   *
+   * @param curve The curve.
+   * @param ypx The $y + x$ value.
+   * @param ymx The $y - x$ value.
+   * @param xy2d The $2 * d * x * y$ value.
+   * @return The group element in PRECOMP representation.
+   */
+  public static GroupElement precomp(
+      final Curve curve, final FieldElement ypx, final FieldElement ymx, final FieldElement xy2d) {
+    return new GroupElement(curve, Representation.PRECOMP, ypx, ymx, xy2d, null);
+  }
+
+  /**
+   * Creates a new group element in CACHED representation.
+   *
+   * @param curve The curve.
+   * @param YpX The $Y + X$ value.
+   * @param YmX The $Y - X$ value.
+   * @param Z The $Z$ coordinate.
+   * @param T2d The $2 * d * T$ value.
+   * @return The group element in CACHED representation.
+   */
+  public static GroupElement cached(
+      final Curve curve,
+      final FieldElement YpX,
+      final FieldElement YmX,
+      final FieldElement Z,
+      final FieldElement T2d) {
+    return new GroupElement(curve, Representation.CACHED, YpX, YmX, Z, T2d);
+  }
+
+  /**
+   * Convert a to radix 16.
+   *
+   * <p>Method is package private only so that tests run.
+   *
+   * @param a $= a[0]+256*a[1]+...+256^{31} a[31]$
+   * @return 64 bytes, each between -8 and 7
+   */
+  static byte[] toRadix16(final byte[] a) {
+    final byte[] e = new byte[64];
+    int i;
+    // Radix 16 notation
+    for (i = 0; i < 32; i++) {
+      e[2 * i] = (byte) (a[i] & 15);
+      e[2 * i + 1] = (byte) ((a[i] >> 4) & 15);
+    }
+    /* each e[i] is between 0 and 15 */
+    /* e[63] is between 0 and 7 */
+    int carry = 0;
+    for (i = 0; i < 63; i++) {
+      e[i] += carry;
+      carry = e[i] + 8;
+      carry >>= 4;
+      e[i] -= carry << 4;
+    }
+    e[63] += carry;
+    /* each e[i] is between -8 and 7 */
+    return e;
+  }
+
+  /**
+   * Calculates a sliding-windows base 2 representation for a given value $a$. To learn more about
+   * it see [6] page 8.
+   *
+   * <p>Output: $r$ which satisfies $a = r0 * 2^0 + r1 * 2^1 + \dots + r255 * 2^{255}$ with $ri$ in
+   * $\{-15, -13, -11, -9, -7, -5, -3, -1, 0, 1, 3, 5, 7, 9, 11, 13, 15\}$
+   *
+   * <p>Method is package private only so that tests run.
+   *
+   * @param a $= a[0]+256*a[1]+\dots+256^{31} a[31]$.
+   * @return The byte array $r$ in the above described form.
+   */
+  static byte[] slide(final byte[] a) {
+    byte[] r = new byte[256];
+
+    // Put each bit of 'a' into a separate byte, 0 or 1
+    for (int i = 0; i < 256; ++i) {
+      r[i] = (byte) (1 & (a[i >> 3] >> (i & 7)));
+    }
+
+    // Note: r[i] will always be odd.
+    for (int i = 0; i < 256; ++i) {
+      if (r[i] != 0) {
+        for (int b = 1; b <= 6 && i + b < 256; ++b) {
+          // Accumulate bits if possible
+          if (r[i + b] != 0) {
+            if (r[i] + (r[i + b] << b) <= 15) {
+              r[i] += r[i + b] << b;
+              r[i + b] = 0;
+            } else if (r[i] - (r[i + b] << b) >= -15) {
+              r[i] -= r[i + b] << b;
+              for (int k = i + b; k < 256; ++k) {
+                if (r[k] == 0) {
+                  r[k] = 1;
+                  break;
+                }
+                r[k] = 0;
+              }
+            } else break;
+          }
+        }
+      }
+    }
+
+    return r;
   }
 
   /**
@@ -812,36 +854,6 @@ public class GroupElement implements Serializable {
   }
 
   /**
-   * Convert a to radix 16.
-   *
-   * <p>Method is package private only so that tests run.
-   *
-   * @param a $= a[0]+256*a[1]+...+256^{31} a[31]$
-   * @return 64 bytes, each between -8 and 7
-   */
-  static byte[] toRadix16(final byte[] a) {
-    final byte[] e = new byte[64];
-    int i;
-    // Radix 16 notation
-    for (i = 0; i < 32; i++) {
-      e[2 * i] = (byte) (a[i] & 15);
-      e[2 * i + 1] = (byte) ((a[i] >> 4) & 15);
-    }
-    /* each e[i] is between 0 and 15 */
-    /* e[63] is between 0 and 7 */
-    int carry = 0;
-    for (i = 0; i < 63; i++) {
-      e[i] += carry;
-      carry = e[i] + 8;
-      carry >>= 4;
-      e[i] -= carry << 4;
-    }
-    e[63] += carry;
-    /* each e[i] is between -8 and 7 */
-    return e;
-  }
-
-  /**
    * Constant-time conditional move.
    *
    * <p>Replaces this with $u$ if $b == 1$.<br>
@@ -927,53 +939,6 @@ public class GroupElement implements Serializable {
   }
 
   /**
-   * Calculates a sliding-windows base 2 representation for a given value $a$. To learn more about
-   * it see [6] page 8.
-   *
-   * <p>Output: $r$ which satisfies $a = r0 * 2^0 + r1 * 2^1 + \dots + r255 * 2^{255}$ with $ri$ in
-   * $\{-15, -13, -11, -9, -7, -5, -3, -1, 0, 1, 3, 5, 7, 9, 11, 13, 15\}$
-   *
-   * <p>Method is package private only so that tests run.
-   *
-   * @param a $= a[0]+256*a[1]+\dots+256^{31} a[31]$.
-   * @return The byte array $r$ in the above described form.
-   */
-  static byte[] slide(final byte[] a) {
-    byte[] r = new byte[256];
-
-    // Put each bit of 'a' into a separate byte, 0 or 1
-    for (int i = 0; i < 256; ++i) {
-      r[i] = (byte) (1 & (a[i >> 3] >> (i & 7)));
-    }
-
-    // Note: r[i] will always be odd.
-    for (int i = 0; i < 256; ++i) {
-      if (r[i] != 0) {
-        for (int b = 1; b <= 6 && i + b < 256; ++b) {
-          // Accumulate bits if possible
-          if (r[i + b] != 0) {
-            if (r[i] + (r[i + b] << b) <= 15) {
-              r[i] += r[i + b] << b;
-              r[i + b] = 0;
-            } else if (r[i] - (r[i + b] << b) >= -15) {
-              r[i] -= r[i + b] << b;
-              for (int k = i + b; k < 256; ++k) {
-                if (r[k] == 0) {
-                  r[k] = 1;
-                  break;
-                }
-                r[k] = 0;
-              }
-            } else break;
-          }
-        }
-      }
-    }
-
-    return r;
-  }
-
-  /**
    * Verify that a point is on the curve.
    *
    * @param curve The curve to check.
@@ -999,5 +964,32 @@ public class GroupElement implements Serializable {
   @Override
   public String toString() {
     return "[GroupElement\nX=" + X + "\nY=" + Y + "\nZ=" + Z + "\nT=" + T + "\n]";
+  }
+
+  /**
+   * Available representations for a group element.
+   *
+   * <ul>
+   *   <li>P2: Projective representation $(X:Y:Z)$ satisfying $x=X/Z, y=Y/Z$.
+   *   <li>P3: Extended projective representation $(X:Y:Z:T)$ satisfying $x=X/Z, y=Y/Z, XY=ZT$.
+   *   <li>P3PrecomputedDouble: P3 but with dblPrecmp populated.
+   *   <li>P1P1: Completed representation $((X:Z), (Y:T))$ satisfying $x=X/Z, y=Y/T$.
+   *   <li>PRECOMP: Precomputed representation $(y+x, y-x, 2dxy)$.
+   *   <li>CACHED: Cached representation $(Y+X, Y-X, Z, 2dT)$
+   * </ul>
+   */
+  public enum Representation {
+    /** Projective ($P^2$): $(X:Y:Z)$ satisfying $x=X/Z, y=Y/Z$ */
+    P2,
+    /** Extended ($P^3$): $(X:Y:Z:T)$ satisfying $x=X/Z, y=Y/Z, XY=ZT$ */
+    P3,
+    /** Can only be requested. Results in P3 representation but also populates dblPrecmp. */
+    P3PrecomputedDouble,
+    /** Completed ($P \times P$): $((X:Z),(Y:T))$ satisfying $x=X/Z, y=Y/T$ */
+    P1P1,
+    /** Precomputed (Duif): $(y+x,y-x,2dxy)$ */
+    PRECOMP,
+    /** Cached: $(Y+X,Y-X,Z,2dT)$ */
+    CACHED
   }
 }

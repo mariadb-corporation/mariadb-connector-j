@@ -17,6 +17,13 @@ public interface Context {
   long getThreadId();
 
   /**
+   * Indicate server connection Id (not truncated)
+   *
+   * @param connectionId connection id
+   */
+  void setThreadId(long connectionId);
+
+  /**
    * Get connection initial seed
    *
    * @return initial seed
@@ -171,20 +178,6 @@ public interface Context {
    */
   void addStateFlag(int state);
 
-  /**
-   * Indicate server charset change
-   *
-   * @param charset server charset
-   */
-  void setCharset(String charset);
-
-  /**
-   * Indicate server connection Id (not truncated)
-   *
-   * @param connectionId connection id
-   */
-  void setThreadId(long connectionId);
-
   /** Indicate the number of connection on this server */
   void setTreadsConnected(long threadsConnected);
 
@@ -194,4 +187,11 @@ public interface Context {
    * @return current charset
    */
   String getCharset();
+
+  /**
+   * Indicate server charset change
+   *
+   * @param charset server charset
+   */
+  void setCharset(String charset);
 }

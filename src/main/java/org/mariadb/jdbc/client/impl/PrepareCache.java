@@ -16,8 +16,10 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     implements org.mariadb.jdbc.client.PrepareCache {
 
   private static final long serialVersionUID = -8922905563713952695L;
+
   /** cache maximum size */
   private final int maxSize;
+
   /** client */
   private final StandardClient con;
 

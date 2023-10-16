@@ -9,8 +9,10 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.message.ServerMessage;
 
 /**
- * Authentication switch packet. See
- * https://mariadb.com/kb/en/connection/#authentication-switch-request
+ * Authentication switch packet.
+ *
+ * @see <a href="https://mariadb.com/kb/en/connection/#authentication-switch-request">Authentication
+ *     switch packet</a>
  */
 public class AuthSwitchPacket implements ServerMessage {
 
@@ -44,6 +46,16 @@ public class AuthSwitchPacket implements ServerMessage {
   }
 
   /**
+   * Get truncated seed (seed without ending 0x00 byte)
+   *
+   * @param seed connection seed
+   * @return truncated seed
+   */
+  public static byte[] getTruncatedSeed(byte[] seed) {
+    return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
+  }
+
+  /**
    * Get authentication switch plugin information
    *
    * @return plugin
@@ -59,15 +71,5 @@ public class AuthSwitchPacket implements ServerMessage {
    */
   public byte[] getSeed() {
     return seed;
-  }
-
-  /**
-   * Get truncated seed (seed without ending 0x00 byte)
-   *
-   * @param seed connection seed
-   * @return truncated seed
-   */
-  public static byte[] getTruncatedSeed(byte[] seed) {
-    return (seed.length > 0) ? Arrays.copyOfRange(seed, 0, seed.length - 1) : new byte[0];
   }
 }

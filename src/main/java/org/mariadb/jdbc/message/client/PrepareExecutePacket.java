@@ -28,14 +28,16 @@ import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
 /**
  * Send a client COM_STMT_PREPARE + COM_STMT_EXECUTE packets see
- * https://mariadb.com/kb/en/com_stmt_prepare/
+ *
+ * @see <a href="https://mariadb.com/kb/en/com_stmt_prepare/">Prepare packet</a>
  */
 public final class PrepareExecutePacket implements RedoableWithPrepareClientMessage {
   private final String sql;
-  private Parameters parameters;
   private final ServerPreparedStatement prep;
+  private final InputStream localInfileInputStream;
   private PrepareResultPacket prepareResult;
-  private InputStream localInfileInputStream;
+  private Parameters parameters;
+
   /**
    * Construct prepare packet
    *

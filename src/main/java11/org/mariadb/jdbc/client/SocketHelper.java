@@ -4,12 +4,11 @@
 
 package org.mariadb.jdbc.client;
 
-import jdk.net.ExtendedSocketOptions;
-import org.mariadb.jdbc.Configuration;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import jdk.net.ExtendedSocketOptions;
+import org.mariadb.jdbc.Configuration;
 
 public class SocketHelper {
     public static void setSocketOption(final Configuration conf, final Socket socket) throws IOException {

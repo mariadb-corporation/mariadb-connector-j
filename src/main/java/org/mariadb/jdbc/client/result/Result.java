@@ -31,15 +31,11 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Result-set common */
 public abstract class Result implements ResultSet, Completion {
-  private static BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
-  private static TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
   /** null length value */
   public static final int NULL_LENGTH = -1;
 
-  private final int maxIndex;
-  private final boolean closeOnCompletion;
-  private boolean forceAlias;
-  private final boolean traceEnable;
+  private static final BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
+  private static final TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
 
   /** result-set type */
   protected final int resultSetType;
@@ -59,23 +55,21 @@ public abstract class Result implements ResultSet, Completion {
   /** binary/text row decoder */
   protected final RowDecoder rowDecoder;
 
+  /** reusable row buffer decoder */
+  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+
+  private final int maxIndex;
+  private final boolean closeOnCompletion;
+  private final boolean traceEnable;
+
   /** data size */
   protected int dataSize = 0;
 
   /** rows */
   protected byte[][] data;
 
-  private byte[] nullBitmap;
-
-  /** reusable row buffer decoder */
-  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
-
-  private MutableInt fieldLength = new MutableInt(0);
-
   /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
-
-  private Map<String, Integer> mapper = null;
 
   /** is fully loaded */
   protected boolean loaded;
@@ -94,6 +88,11 @@ public abstract class Result implements ResultSet, Completion {
 
   /** row number limit */
   protected long maxRows;
+
+  private final MutableInt fieldLength = new MutableInt(0);
+  private boolean forceAlias;
+  private byte[] nullBitmap;
+  private Map<String, Integer> mapper = null;
 
   /**
    * Constructor for server's data
@@ -851,6 +850,16 @@ public abstract class Result implements ResultSet, Completion {
 
   @Override
   public abstract int getRow() throws SQLException;
+
+  /**
+   * set row decoder to current row data
+   *
+   * @param row row
+   */
+  public void setRow(byte[] row) {
+    rowBuf.buf(row, row.length, 0);
+    fieldIndex.set(-1);
+  }
 
   @Override
   public abstract boolean absolute(int row) throws SQLException;
@@ -1678,16 +1687,6 @@ public abstract class Result implements ResultSet, Completion {
   /** Set row buffer to null (no row) */
   protected void setNullRowBuf() {
     rowBuf.buf(null, 0, 0);
-  }
-
-  /**
-   * set row decoder to current row data
-   *
-   * @param row row
-   */
-  public void setRow(byte[] row) {
-    rowBuf.buf(row, row.length, 0);
-    fieldIndex.set(-1);
   }
 
   public int findColumn(String label) throws SQLException {

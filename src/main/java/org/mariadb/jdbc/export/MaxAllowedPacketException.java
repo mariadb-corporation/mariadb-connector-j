@@ -13,6 +13,7 @@ import java.io.IOException;
 public class MaxAllowedPacketException extends IOException {
 
   private static final long serialVersionUID = 5669184960442818475L;
+
   /** is connection in wrong state */
   private final boolean mustReconnect;
 

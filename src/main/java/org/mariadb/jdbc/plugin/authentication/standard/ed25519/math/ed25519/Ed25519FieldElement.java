@@ -16,6 +16,8 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement
  */
 public class Ed25519FieldElement extends FieldElement {
   private static final long serialVersionUID = -2455098303824960263L;
+  private static final byte[] ZERO = new byte[32];
+
   /** Variable is package private for encoding. */
   final int[] t;
 
@@ -30,8 +32,6 @@ public class Ed25519FieldElement extends FieldElement {
     if (t.length != 10) throw new IllegalArgumentException("Invalid radix-2^51 representation");
     this.t = t;
   }
-
-  private static final byte[] ZERO = new byte[32];
 
   /**
    * Gets a value indicating whether or not the field element is non-zero.

@@ -57,8 +57,9 @@ public class UnixDomainSocket extends Socket {
 
   /**
    * creates an endpoint for communication and returns a file descriptor that refers to that
-   * endpoint. see https://man7.org/linux/man-pages/man2/socket.2.html
+   * endpoint.
    *
+   * @see <a href="https://man7.org/linux/man-pages/man2/socket.2.html">Socket</a>
    * @param domain domain
    * @param type type
    * @param protocol protocol
@@ -85,7 +86,8 @@ public class UnixDomainSocket extends Socket {
    * @param fd file descriptor
    * @param buffer buffer
    * @param count length
-   * @param flags flag. see https://man7.org/linux/man-pages/man2/recvmsg.2.html
+   * @param flags flag. @see <a
+   *     href="https://man7.org/linux/man-pages/man2/recvmsg.2.html">flags</a>
    * @return zero on success. -1 on error
    * @throws LastErrorException if error occurs
    */
@@ -98,7 +100,8 @@ public class UnixDomainSocket extends Socket {
    * @param fd file descriptor
    * @param buffer buffer
    * @param count length
-   * @param flags flag. see https://man7.org/linux/man-pages/man2/sendmsg.2.html
+   * @param flags flag. @see <a
+   *     href="https://man7.org/linux/man-pages/man2/sendmsg.2.html">flags</a>
    * @return zero on success. -1 on error
    * @throws LastErrorException if error occurs
    */
@@ -158,6 +161,7 @@ public class UnixDomainSocket extends Socket {
       try {
         close();
       } catch (IOException e) {
+        // eat
       }
 
       throw new IOException("native connect() failed : " + formatError(lee));
@@ -200,8 +204,7 @@ public class UnixDomainSocket extends Socket {
 
   /** Socket address */
   public static class SockAddr extends Structure {
-    /** socket family */
-    public short sun_family = AF_UNIX;
+
     /** pathname */
     public byte[] sun_path;
 

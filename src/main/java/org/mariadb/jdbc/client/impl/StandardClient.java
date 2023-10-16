@@ -53,27 +53,29 @@ import org.mariadb.jdbc.util.log.Loggers;
 /** Connection client */
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
+
+  /** connection exception factory */
+  protected final ExceptionFactory exceptionFactory;
+
   private final Socket socket;
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
-  private boolean closed = false;
-  private Reader reader;
-  private org.mariadb.jdbc.Statement streamStmt = null;
-  private ClientMessage streamMsg = null;
-  private int socketTimeout;
   private final boolean disablePipeline;
 
   /** connection context */
   protected Context context;
 
-  /** connection exception factory */
-  protected final ExceptionFactory exceptionFactory;
-
   /** packet writer */
   protected Writer writer;
+
+  private boolean closed = false;
+  private Reader reader;
+  private org.mariadb.jdbc.Statement streamStmt = null;
+  private ClientMessage streamMsg = null;
+  private int socketTimeout;
 
   /**
    * Constructor
@@ -341,9 +343,7 @@ public class StandardClient implements Client, AutoCloseable {
 
     if (conf.nonMappedOptions().containsKey("initSql")) {
       String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
-      for (String cmd : initialCommands) {
-        commands.add(cmd);
-      }
+      Collections.addAll(commands, initialCommands);
     }
 
     if (!commands.isEmpty()) {

@@ -43,6 +43,21 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
+  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) {
+    BigInteger val;
+    if (column.isSigned()) {
+      val = BigInteger.valueOf(buf.readLong());
+    } else {
+      // need BIG ENDIAN, so reverse order
+      byte[] bb = new byte[8];
+      for (int i = 7; i >= 0; i--) {
+        bb[i] = buf.readByte();
+      }
+      val = new BigInteger(1, bb);
+    }
+    return val;
+  }
+
   public String className() {
     return BigDecimal.class.getName();
   }
@@ -194,21 +209,6 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
     }
-  }
-
-  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) {
-    BigInteger val;
-    if (column.isSigned()) {
-      val = BigInteger.valueOf(buf.readLong());
-    } else {
-      // need BIG ENDIAN, so reverse order
-      byte[] bb = new byte[8];
-      for (int i = 7; i >= 0; i--) {
-        bb[i] = buf.readByte();
-      }
-      val = new BigInteger(1, bb);
-    }
-    return val;
   }
 
   @Override

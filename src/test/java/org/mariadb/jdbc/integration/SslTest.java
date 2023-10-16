@@ -22,9 +22,9 @@ import org.mariadb.jdbc.integration.tools.TcpProxy;
 
 @DisplayName("SSL tests")
 public class SslTest extends Common {
-  private static Integer sslPort;
   private static final String baseOptions = "&user=serverAuthUser&password=!Passw0rd3Works";
   private static final String baseMutualOptions = "&user=mutualAuthUser&password=!Passw0rd3Works";
+  private static Integer sslPort;
 
   @AfterAll
   public static void drop() throws SQLException {
@@ -80,6 +80,37 @@ public class SslTest extends Common {
       }
       stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO '" + user + "'@'%' ");
     }
+  }
+
+  public static String retrieveCertificatePath() throws Exception {
+    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
+    }
+
+    // try local server
+    if (serverCertificatePath == null
+        && !"skysql".equals(System.getenv("srv"))
+        && !"skysql-ha".equals(System.getenv("srv"))) {
+
+      try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
+        assertTrue(rs.next());
+        serverCertificatePath = checkFileExists(rs.getString(1));
+      }
+    }
+    if (serverCertificatePath == null) {
+      serverCertificatePath = checkFileExists("../../ssl/server.crt");
+    }
+    return serverCertificatePath;
+  }
+
+  private static String checkFileExists(String path) throws IOException {
+    if (path == null) return null;
+    File f = new File(path);
+    if (f.exists()) {
+      return f.getCanonicalPath().replace("\\", "/");
+    }
+    return null;
   }
 
   private String getSslVersion(Connection con) throws SQLException {
@@ -363,36 +394,5 @@ public class SslTest extends Common {
     } catch (Exception e) {
       throw new SQLException("abnormal exception", e);
     }
-  }
-
-  public static String retrieveCertificatePath() throws Exception {
-    String serverCertificatePath = checkFileExists(System.getProperty("serverCertificatePath"));
-    if (serverCertificatePath == null) {
-      serverCertificatePath = checkFileExists(System.getenv("TEST_DB_SERVER_CERT"));
-    }
-
-    // try local server
-    if (serverCertificatePath == null
-        && !"skysql".equals(System.getenv("srv"))
-        && !"skysql-ha".equals(System.getenv("srv"))) {
-
-      try (ResultSet rs = sharedConn.createStatement().executeQuery("select @@ssl_cert")) {
-        assertTrue(rs.next());
-        serverCertificatePath = checkFileExists(rs.getString(1));
-      }
-    }
-    if (serverCertificatePath == null) {
-      serverCertificatePath = checkFileExists("../../ssl/server.crt");
-    }
-    return serverCertificatePath;
-  }
-
-  private static String checkFileExists(String path) throws IOException {
-    if (path == null) return null;
-    File f = new File(path);
-    if (f.exists()) {
-      return f.getCanonicalPath().replace("\\", "/");
-    }
-    return null;
   }
 }

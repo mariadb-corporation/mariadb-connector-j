@@ -18,15 +18,16 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
 /**
- * Execute command (COM_STMT_EXECUTE) See https://mariadb.com/kb/en/com_stmt_execute/ for
- * documentation
+ * Execute command (COM_STMT_EXECUTE)
+ *
+ * @see <a href="https://mariadb.com/kb/en/com_stmt_execute/">Execute documentation</a>
  */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private Parameters parameters;
   private final String command;
   private final ServerPreparedStatement prep;
+  private final InputStream localInfileInputStream;
   private Prepare prepareResult;
-  private InputStream localInfileInputStream;
+  private Parameters parameters;
 
   /**
    * Constructor

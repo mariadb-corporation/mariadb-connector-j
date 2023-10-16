@@ -101,8 +101,8 @@ public class StatementTest extends Common {
     } else {
       assertEquals(expected.longValueExact(), rs.getLong(1));
     }
-    assertTrue(expected.compareTo(((CompleteResult) rs).getBigInteger(1)) == 0);
-    assertTrue(new BigDecimal(expected).compareTo(rs.getBigDecimal(1)) == 0);
+    assertEquals(0, expected.compareTo(((CompleteResult) rs).getBigInteger(1)));
+    assertEquals(0, new BigDecimal(expected).compareTo(rs.getBigDecimal(1)));
   }
 
   @Test
@@ -936,25 +936,6 @@ public class StatementTest extends Common {
     assertTrue(stmt.isClosed());
   }
 
-  static class CancelThread implements Runnable {
-
-    private final java.sql.Statement stmt;
-
-    public CancelThread(java.sql.Statement stmt) {
-      this.stmt = stmt;
-    }
-
-    @Override
-    public void run() {
-      try {
-        Thread.sleep(100);
-        stmt.cancel();
-      } catch (SQLException | InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
   @Test
   public void testAffectedRow() throws SQLException {
     testAffectedRow(false);
@@ -1094,6 +1075,25 @@ public class StatementTest extends Common {
       assertTrue(rs.next());
       assertEquals(9, rs.getInt(1));
       assertFalse(rs.next());
+    }
+  }
+
+  static class CancelThread implements Runnable {
+
+    private final java.sql.Statement stmt;
+
+    public CancelThread(java.sql.Statement stmt) {
+      this.stmt = stmt;
+    }
+
+    @Override
+    public void run() {
+      try {
+        Thread.sleep(100);
+        stmt.cancel();
+      } catch (SQLException | InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 }

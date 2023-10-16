@@ -22,8 +22,8 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.integration.Common;
 
 public class BlobCodecTest extends CommonCodecTest {
-  private static File tmpFile;
   private static final byte[] fileContent = new byte[11000];
+  private static File tmpFile;
 
   @AfterAll
   public static void drop() throws SQLException {

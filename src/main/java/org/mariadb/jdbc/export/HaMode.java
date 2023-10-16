@@ -64,12 +64,6 @@ public enum HaMode {
     this.value = value;
   }
 
-  /** For testing purpose only */
-  public void resetLast() {
-    lastRoundRobinPrimaryHost = null;
-    lastRoundRobinSecondaryHost = null;
-  }
-
   /**
    * Get HAMode from values or aliases
    *
@@ -199,6 +193,12 @@ public enum HaMode {
       }
     }
     return Optional.empty();
+  }
+
+  /** For testing purpose only */
+  public void resetLast() {
+    lastRoundRobinPrimaryHost = null;
+    lastRoundRobinSecondaryHost = null;
   }
 
   /**

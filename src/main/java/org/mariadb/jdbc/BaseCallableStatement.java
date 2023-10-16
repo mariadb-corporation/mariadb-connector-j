@@ -28,11 +28,11 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   /** Procedure name */
   protected final String procedureName;
 
-  /** parameter metadata */
-  protected CallableParameterMetaData parameterMetaData = null;
-
   /** Declared output parameters */
   protected final Set<Integer> outputParameters = new HashSet<>();
+
+  /** parameter metadata */
+  protected CallableParameterMetaData parameterMetaData = null;
 
   /** output parameter result */
   private Result outputResult = null;

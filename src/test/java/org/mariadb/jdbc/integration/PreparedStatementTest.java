@@ -40,6 +40,17 @@ public class PreparedStatementTest extends Common {
     createSequenceTables();
   }
 
+  public static String generateLongText(int len) {
+    int leftLimit = 97; // letter 'a'
+    int rightLimit = 122; // letter 'z'
+    Random random = new Random();
+    return random
+        .ints(leftLimit, rightLimit)
+        .limit(len)
+        .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+        .toString();
+  }
+
   @Test
   public void prep() throws SQLException {
     try (PreparedStatement stmt = sharedConn.prepareStatement("SELECT ?")) {
@@ -1139,17 +1150,6 @@ public class PreparedStatementTest extends Common {
       }
     }
     assertTrue(sharedConnBinary.isValid(1));
-  }
-
-  public static String generateLongText(int len) {
-    int leftLimit = 97; // letter 'a'
-    int rightLimit = 122; // letter 'z'
-    Random random = new Random();
-    return random
-        .ints(leftLimit, rightLimit)
-        .limit(len)
-        .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
-        .toString();
   }
 
   @Test

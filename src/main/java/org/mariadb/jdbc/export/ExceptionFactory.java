@@ -358,6 +358,7 @@ public class ExceptionFactory {
   public SQLException create(String message, String sqlState, Exception cause) {
     return createException(message, sqlState, -1, cause);
   }
+
   /**
    * Creation of an exception
    *

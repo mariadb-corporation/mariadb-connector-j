@@ -21,6 +21,7 @@ public class TimeCodec implements Codec<Time> {
 
   /** default instance */
   public static final TimeCodec INSTANCE = new TimeCodec();
+
   /** reference local date */
   public static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
 

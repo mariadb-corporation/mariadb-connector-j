@@ -4,11 +4,10 @@
 
 package org.mariadb.jdbc;
 
-import org.openjdk.jmh.annotations.Benchmark;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import org.openjdk.jmh.annotations.Benchmark;
 
 public class Select_1000_Rows extends Common {
   private static final String sql =

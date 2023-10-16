@@ -137,6 +137,32 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     geoConn = (org.mariadb.jdbc.Connection) DriverManager.getConnection(binUrl);
   }
 
+  private static int toDigit(char hexChar) {
+    int digit = Character.digit(hexChar, 16);
+    if (digit == -1) {
+      throw new IllegalArgumentException("Invalid Hexadecimal Character: " + hexChar);
+    }
+    return digit;
+  }
+
+  public static byte hexToByte(String hexString) {
+    int firstDigit = toDigit(hexString.charAt(0));
+    int secondDigit = toDigit(hexString.charAt(1));
+    return (byte) ((firstDigit << 4) + secondDigit);
+  }
+
+  public static byte[] decodeHexString(String hexString) {
+    if (hexString.length() % 2 == 1) {
+      throw new IllegalArgumentException("Invalid hexadecimal String supplied.");
+    }
+
+    byte[] bytes = new byte[hexString.length() / 2];
+    for (int i = 0; i < hexString.length(); i += 2) {
+      bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
+    }
+    return bytes;
+  }
+
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
@@ -208,32 +234,6 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     getObjectType(getPrepare(sharedConnBinary));
   }
 
-  private static int toDigit(char hexChar) {
-    int digit = Character.digit(hexChar, 16);
-    if (digit == -1) {
-      throw new IllegalArgumentException("Invalid Hexadecimal Character: " + hexChar);
-    }
-    return digit;
-  }
-
-  public static byte hexToByte(String hexString) {
-    int firstDigit = toDigit(hexString.charAt(0));
-    int secondDigit = toDigit(hexString.charAt(1));
-    return (byte) ((firstDigit << 4) + secondDigit);
-  }
-
-  public static byte[] decodeHexString(String hexString) {
-    if (hexString.length() % 2 == 1) {
-      throw new IllegalArgumentException("Invalid hexadecimal String supplied.");
-    }
-
-    byte[] bytes = new byte[hexString.length() / 2];
-    for (int i = 0; i < hexString.length(); i += 2) {
-      bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
-    }
-    return bytes;
-  }
-
   public void getObjectType(ResultSet rs) throws Exception {
     testErrObject(rs, Integer.class, 1);
     testErrObject(rs, String.class, 1);
@@ -303,7 +303,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO MultiPolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (MultiPolygon) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -379,8 +379,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
             });
     assertEquals(testPoly, ls1);
     assertEquals(testPoly.hashCode(), ls1.hashCode());
-    assertFalse(ls1.equals(null));
-    assertFalse(ls1.equals(""));
+    assertNotEquals(null, ls1);
+    assertNotEquals("", ls1);
     assertNotEquals(
         new MultiPolygon(
             new Polygon[] {

@@ -120,6 +120,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to Date.
    *
@@ -138,6 +139,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to Time.
    *
@@ -156,6 +158,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to Timestamp.
    *
@@ -174,6 +177,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to short.
    *
@@ -190,6 +194,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to int.
    *
@@ -206,6 +211,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to String.
    *
@@ -222,6 +228,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to long.
    *
@@ -238,6 +245,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to float.
    *
@@ -254,6 +262,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to double.
    *

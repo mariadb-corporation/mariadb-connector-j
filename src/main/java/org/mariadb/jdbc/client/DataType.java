@@ -58,12 +58,12 @@ public enum DataType {
     this.unsignedColumnConstructor = unsignedColumnConstructor;
   }
 
-  public int get() {
-    return mariadbType;
-  }
-
   public static DataType of(int typeValue) {
     return typeMap[typeValue];
+  }
+
+  public int get() {
+    return mariadbType;
   }
 
   public ColumnConstructor getColumnConstructor() {

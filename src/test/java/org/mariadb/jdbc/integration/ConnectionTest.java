@@ -651,138 +651,6 @@ public class ConnectionTest extends Common {
     }
   }
 
-  static class MySavepoint implements Savepoint {
-    @Override
-    public int getSavepointId() throws SQLException {
-      return 0;
-    }
-
-    @Override
-    public String getSavepointName() throws SQLException {
-      return null;
-    }
-  }
-
-  @Nested
-  @DisplayName("Transaction Test")
-  class Transaction {
-
-    @Test
-    public void testProperRollback() throws Exception {
-      java.sql.Statement stmt = sharedConn.createStatement();
-      try {
-        stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key) engine=innodb");
-        stmt.execute(
-            "CREATE TABLE tx_fore_key (id int not null primary key, id_ref int not null, "
-                + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict) "
-                + "engine=innodb");
-        stmt.executeUpdate("insert into tx_prim_key(id) values(32)");
-        stmt.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
-
-        // 2. try to delete entry in Primary table in a transaction - which will fail due
-        // foreign key.
-        sharedConn.setAutoCommit(false);
-        try (java.sql.Statement st = sharedConn.createStatement()) {
-          st.executeUpdate("delete from tx_prim_key where id = 32");
-          sharedConn.commit();
-          fail("Expected SQLException");
-        } catch (SQLException e) {
-          // This exception is expected
-          assertTrue(
-              e.getMessage().contains("a foreign key constraint fails")
-                  || e.getMessage().contains("Foreign key constraint violation"));
-          sharedConn.rollback();
-        }
-
-        try (java.sql.Connection conn2 = createCon();
-            java.sql.Statement st = conn2.createStatement()) {
-          st.setQueryTimeout(30000);
-          st.executeUpdate("delete from tx_fore_key where id = 42");
-          st.executeUpdate("delete from tx_prim_key where id = 32");
-        }
-
-      } finally {
-        stmt.execute("drop table if exists tx_fore_key");
-        stmt.execute("drop table if exists tx_prim_key");
-      }
-    }
-
-    @Test
-    public void transactionTest() throws SQLException {
-      Statement stmt = sharedConn.createStatement();
-      try {
-        stmt.execute(
-            "CREATE TABLE transaction_test "
-                + "(id int not null primary key auto_increment, test varchar(20)) "
-                + "engine=innodb");
-        sharedConn.setAutoCommit(false);
-        stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('heja')");
-        stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('japp')");
-        sharedConn.commit();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_test");
-        assertEquals(true, rs.next());
-        assertEquals("heja", rs.getString("test"));
-        assertEquals(true, rs.next());
-        assertEquals("japp", rs.getString("test"));
-        assertEquals(false, rs.next());
-        stmt.executeUpdate(
-            "INSERT INTO transaction_test (test) VALUES ('rollmeback')",
-            java.sql.Statement.RETURN_GENERATED_KEYS);
-        ResultSet rsGen = stmt.getGeneratedKeys();
-        rsGen.next();
-        int[] autoInc = setAutoInc();
-        assertEquals(autoInc[1] + autoInc[0] * 3, rsGen.getInt(1));
-        sharedConn.rollback();
-        rs = stmt.executeQuery("SELECT * FROM transaction_test WHERE id=3");
-        assertEquals(false, rs.next());
-        sharedConn.setAutoCommit(true);
-      } finally {
-        stmt.execute("DROP TABLE IF EXISTS transaction_test");
-      }
-    }
-
-    /**
-     * Get current autoincrement value, since Galera values are automatically set.
-     *
-     * @throws SQLException if any error occur.
-     */
-    public int[] setAutoInc() throws SQLException {
-      return setAutoInc(1, 0);
-    }
-
-    /**
-     * Get current autoincrement value, since Galera values are automatically set.
-     *
-     * @param autoIncInit default increment
-     * @param autoIncOffsetInit default increment offset
-     * @throws SQLException if any error occur
-     * @see <a
-     *     href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
-     */
-    public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
-
-      // in case of galera
-      //      if (isGalera()) {
-      //        ResultSet rs =
-      //            sharedConn.createStatement().executeQuery("show variables like
-      // '%auto_increment%'");
-      //        while (rs.next()) {
-      //          if ("auto_increment_increment".equals(rs.getString(1))) {
-      //            autoInc = rs.getInt(2);
-      //          }
-      //          if ("auto_increment_offset".equals(rs.getString(1))) {
-      //            autoIncOffset = rs.getInt(2);
-      //          }
-      //        }
-      //        if (autoInc == 1) {
-      //          // galera with one node only, then offset is not used
-      //          autoIncOffset = 0;
-      //        }
-      //      }
-      return new int[] {autoIncInit, autoIncOffsetInit};
-    }
-  }
-
   @Test
   public void various() throws SQLException {
     assertThrows(SQLException.class, () -> sharedConn.setTypeMap(null));
@@ -892,19 +760,6 @@ public class ConnectionTest extends Common {
         "Client restrict authentication plugin to a limited set of authentication");
 
     stmt.execute("drop user " + pamUser + "@'%'");
-  }
-
-  @Nested
-  @DisplayName("Compression Test")
-  class Compression {
-
-    @Test
-    public void testConnection() throws Exception {
-      try (Connection connection = createCon("useCompression")) {
-        // must have succeeded
-        connection.getCatalog();
-      }
-    }
   }
 
   @Test
@@ -1249,6 +1104,151 @@ public class ConnectionTest extends Common {
             hostname, port, database, user, password, defaultOther);
     try (Connection con = DriverManager.getConnection(connStr)) {
       con.createStatement().executeQuery("SELECT 1");
+    }
+  }
+
+  static class MySavepoint implements Savepoint {
+    @Override
+    public int getSavepointId() throws SQLException {
+      return 0;
+    }
+
+    @Override
+    public String getSavepointName() throws SQLException {
+      return null;
+    }
+  }
+
+  @Nested
+  @DisplayName("Transaction Test")
+  class Transaction {
+
+    @Test
+    public void testProperRollback() throws Exception {
+      java.sql.Statement stmt = sharedConn.createStatement();
+      try {
+        stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key) engine=innodb");
+        stmt.execute(
+            "CREATE TABLE tx_fore_key (id int not null primary key, id_ref int not null, "
+                + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict) "
+                + "engine=innodb");
+        stmt.executeUpdate("insert into tx_prim_key(id) values(32)");
+        stmt.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
+
+        // 2. try to delete entry in Primary table in a transaction - which will fail due
+        // foreign key.
+        sharedConn.setAutoCommit(false);
+        try (java.sql.Statement st = sharedConn.createStatement()) {
+          st.executeUpdate("delete from tx_prim_key where id = 32");
+          sharedConn.commit();
+          fail("Expected SQLException");
+        } catch (SQLException e) {
+          // This exception is expected
+          assertTrue(
+              e.getMessage().contains("a foreign key constraint fails")
+                  || e.getMessage().contains("Foreign key constraint violation"));
+          sharedConn.rollback();
+        }
+
+        try (java.sql.Connection conn2 = createCon();
+            java.sql.Statement st = conn2.createStatement()) {
+          st.setQueryTimeout(30000);
+          st.executeUpdate("delete from tx_fore_key where id = 42");
+          st.executeUpdate("delete from tx_prim_key where id = 32");
+        }
+
+      } finally {
+        stmt.execute("drop table if exists tx_fore_key");
+        stmt.execute("drop table if exists tx_prim_key");
+      }
+    }
+
+    @Test
+    public void transactionTest() throws SQLException {
+      Statement stmt = sharedConn.createStatement();
+      try {
+        stmt.execute(
+            "CREATE TABLE transaction_test "
+                + "(id int not null primary key auto_increment, test varchar(20)) "
+                + "engine=innodb");
+        sharedConn.setAutoCommit(false);
+        stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('heja')");
+        stmt.executeUpdate("INSERT INTO transaction_test (test) VALUES ('japp')");
+        sharedConn.commit();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM transaction_test");
+        assertTrue(rs.next());
+        assertEquals("heja", rs.getString("test"));
+        assertTrue(rs.next());
+        assertEquals("japp", rs.getString("test"));
+        assertFalse(rs.next());
+        stmt.executeUpdate(
+            "INSERT INTO transaction_test (test) VALUES ('rollmeback')",
+            java.sql.Statement.RETURN_GENERATED_KEYS);
+        ResultSet rsGen = stmt.getGeneratedKeys();
+        rsGen.next();
+        int[] autoInc = setAutoInc();
+        assertEquals(autoInc[1] + autoInc[0] * 3, rsGen.getInt(1));
+        sharedConn.rollback();
+        rs = stmt.executeQuery("SELECT * FROM transaction_test WHERE id=3");
+        assertFalse(rs.next());
+        sharedConn.setAutoCommit(true);
+      } finally {
+        stmt.execute("DROP TABLE IF EXISTS transaction_test");
+      }
+    }
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     *
+     * @throws SQLException if any error occur.
+     */
+    public int[] setAutoInc() throws SQLException {
+      return setAutoInc(1, 0);
+    }
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     *
+     * @param autoIncInit default increment
+     * @param autoIncOffsetInit default increment offset
+     * @throws SQLException if any error occur
+     * @see <a
+     *     href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
+     */
+    public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
+
+      // in case of galera
+      //      if (isGalera()) {
+      //        ResultSet rs =
+      //            sharedConn.createStatement().executeQuery("show variables like
+      // '%auto_increment%'");
+      //        while (rs.next()) {
+      //          if ("auto_increment_increment".equals(rs.getString(1))) {
+      //            autoInc = rs.getInt(2);
+      //          }
+      //          if ("auto_increment_offset".equals(rs.getString(1))) {
+      //            autoIncOffset = rs.getInt(2);
+      //          }
+      //        }
+      //        if (autoInc == 1) {
+      //          // galera with one node only, then offset is not used
+      //          autoIncOffset = 0;
+      //        }
+      //      }
+      return new int[] {autoIncInit, autoIncOffsetInit};
+    }
+  }
+
+  @Nested
+  @DisplayName("Compression Test")
+  class Compression {
+
+    @Test
+    public void testConnection() throws Exception {
+      try (Connection connection = createCon("useCompression")) {
+        // must have succeeded
+        connection.getCatalog();
+      }
     }
   }
 }

@@ -48,6 +48,39 @@ public final class Loggers {
     return LOGGER_FACTORY.getLogger(cls.getName());
   }
 
+  /** Initialize factory */
+  public static void init() {
+    String name = LoggerFactory.class.getName();
+    LoggerFactory loggerFactory = null;
+    if (Boolean.parseBoolean(System.getProperty(NO_LOGGER_PROPERTY, "false"))) {
+      loggerFactory = new NoLoggerFactory();
+    } else {
+
+      try {
+        if (Boolean.parseBoolean(System.getProperty(TEST_ENABLE_SLF4J, "true"))) {
+          Class.forName("org.slf4j.LoggerFactory");
+          loggerFactory = new Slf4JLoggerFactory();
+        }
+      } catch (ClassNotFoundException cle) {
+        // slf4j not in the classpath
+      }
+      if (loggerFactory == null) {
+        // default to console or use JDK logger if explicitly set by System property
+        if ("JDK".equalsIgnoreCase(System.getProperty(FALLBACK_PROPERTY))) {
+          loggerFactory = new JdkLoggerFactory();
+        } else {
+          loggerFactory = new ConsoleLoggerFactory();
+        }
+      }
+      try {
+        loggerFactory.getLogger(name);
+      } catch (Throwable e) {
+        // eat
+      }
+    }
+    LOGGER_FACTORY = loggerFactory;
+  }
+
   private interface LoggerFactory {
     Logger getLogger(String name);
   }
@@ -83,38 +116,5 @@ public final class Loggers {
       return consoleLoggers.computeIfAbsent(
           name, n -> new ConsoleLogger(n, System.getProperty(CONSOLE_DEBUG_PROPERTY) != null));
     }
-  }
-
-  /** Initialize factory */
-  public static void init() {
-    String name = LoggerFactory.class.getName();
-    LoggerFactory loggerFactory = null;
-    if (Boolean.parseBoolean(System.getProperty(NO_LOGGER_PROPERTY, "false"))) {
-      loggerFactory = new NoLoggerFactory();
-    } else {
-
-      try {
-        if (Boolean.parseBoolean(System.getProperty(TEST_ENABLE_SLF4J, "true"))) {
-          Class.forName("org.slf4j.LoggerFactory");
-          loggerFactory = new Slf4JLoggerFactory();
-        }
-      } catch (ClassNotFoundException cle) {
-        // slf4j not in the classpath
-      }
-      if (loggerFactory == null) {
-        // default to console or use JDK logger if explicitly set by System property
-        if ("JDK".equalsIgnoreCase(System.getProperty(FALLBACK_PROPERTY))) {
-          loggerFactory = new JdkLoggerFactory();
-        } else {
-          loggerFactory = new ConsoleLoggerFactory();
-        }
-      }
-      try {
-        loggerFactory.getLogger(name);
-      } catch (Throwable e) {
-        // eat
-      }
-    }
-    LOGGER_FACTORY = loggerFactory;
   }
 }

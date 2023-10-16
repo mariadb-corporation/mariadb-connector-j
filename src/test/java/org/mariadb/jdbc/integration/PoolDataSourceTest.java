@@ -63,6 +63,25 @@ public class PoolDataSourceTest extends Common {
     }
   }
 
+  /**
+   * List current connections to server.
+   *
+   * @return number of thread connected.
+   */
+  public static int getCurrentConnections() {
+    try {
+      Statement stmt = sharedConn.createStatement();
+      ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
+      if (rs.next()) {
+        System.out.println("threads : " + rs.getInt(2));
+        return rs.getInt(2);
+      }
+      return -1;
+    } catch (SQLException e) {
+      return -1;
+    }
+  }
+
   @Test
   public void basic() throws SQLException {
     MariaDbPoolDataSource ds = new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=2");
@@ -178,18 +197,18 @@ public class PoolDataSourceTest extends Common {
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&allowPublicKeyRetrieval")) {
       try (Connection connection = ds.getConnection()) {
-        assertEquals(connection.isValid(0), true);
+        assertTrue(connection.isValid(0));
       }
 
       try (Connection connection = ds.getConnection("poolUser", "!Passw0rd3Works")) {
-        assertEquals(connection.isValid(0), true);
+        assertTrue(connection.isValid(0));
       }
 
       PooledConnection poolCon = ds.getPooledConnection();
-      assertEquals(poolCon.getConnection().isValid(0), true);
+      assertTrue(poolCon.getConnection().isValid(0));
       poolCon.close();
       poolCon = ds.getPooledConnection("poolUser", "!Passw0rd3Works");
-      assertEquals(poolCon.getConnection().isValid(0), true);
+      assertTrue(poolCon.getConnection().isValid(0));
       poolCon.close();
     }
   }
@@ -663,25 +682,6 @@ public class PoolDataSourceTest extends Common {
         preparedStatement.setString(1, "1");
         preparedStatement.execute();
       }
-    }
-  }
-
-  /**
-   * List current connections to server.
-   *
-   * @return number of thread connected.
-   */
-  public static int getCurrentConnections() {
-    try {
-      Statement stmt = sharedConn.createStatement();
-      ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
-      if (rs.next()) {
-        System.out.println("threads : " + rs.getInt(2));
-        return rs.getInt(2);
-      }
-      return -1;
-    } catch (SQLException e) {
-      return -1;
     }
   }
 

@@ -453,29 +453,6 @@ public class BatchTest extends Common {
     }
   }
 
-  private class TimestampCal {
-    private Timestamp val;
-    private int id;
-
-    public TimestampCal(Timestamp val, int id) {
-      this.val = val;
-      this.id = id;
-    }
-
-    public Timestamp getVal() {
-      return val;
-    }
-
-    public int getId() {
-      return id;
-    }
-
-    @Override
-    public String toString() {
-      return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
-    }
-  }
-
   @Test
   public void ensureCalendarSync() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
@@ -520,6 +497,29 @@ public class BatchTest extends Common {
     } catch (SQLException e) {
       e.printStackTrace();
       return -1;
+    }
+  }
+
+  private class TimestampCal {
+    private final Timestamp val;
+    private final int id;
+
+    public TimestampCal(Timestamp val, int id) {
+      this.val = val;
+      this.id = id;
+    }
+
+    public Timestamp getVal() {
+      return val;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
     }
   }
 }

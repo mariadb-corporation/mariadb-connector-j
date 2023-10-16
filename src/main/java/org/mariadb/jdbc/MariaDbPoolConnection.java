@@ -35,6 +35,21 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     connectionEventListeners = new CopyOnWriteArrayList<>();
   }
 
+  /**
+   * Create XID string
+   *
+   * @param xid xid value
+   * @return XID string
+   */
+  public static String xidToString(Xid xid) {
+    return "0x"
+        + StringUtils.byteArrayToHexString(xid.getGlobalTransactionId())
+        + ",0x"
+        + StringUtils.byteArrayToHexString(xid.getBranchQualifier())
+        + ",0x"
+        + Integer.toHexString(xid.getFormatId());
+  }
+
   @Override
   public Connection getConnection() {
     return connection;
@@ -118,21 +133,6 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     fireConnectionClosed(new ConnectionEvent(this));
     connection.setPoolConnection(null);
     connection.close();
-  }
-
-  /**
-   * Create XID string
-   *
-   * @param xid xid value
-   * @return XID string
-   */
-  public static String xidToString(Xid xid) {
-    return "0x"
-        + StringUtils.byteArrayToHexString(xid.getGlobalTransactionId())
-        + ",0x"
-        + StringUtils.byteArrayToHexString(xid.getBranchQualifier())
-        + ",0x"
-        + Integer.toHexString(xid.getFormatId());
   }
 
   @Override

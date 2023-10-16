@@ -72,6 +72,83 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     }
   }
 
+  /**
+   * Read public Key from file.
+   *
+   * @param serverRsaPublicKeyFile RSA public key file
+   * @return public key
+   * @throws SQLException if having an error reading file or file content is not a public key.
+   */
+  public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
+    byte[] keyBytes;
+    try {
+      keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
+    } catch (IOException ex) {
+      throw new SQLException(
+          "Could not read server RSA public key from file : "
+              + "serverRsaPublicKeyFile="
+              + serverRsaPublicKeyFile,
+          "S1009",
+          ex);
+    }
+    return generatePublicKey(keyBytes);
+  }
+
+  /**
+   * Read public pem key from String.
+   *
+   * @param publicKeyBytes public key bytes value
+   * @return public key
+   * @throws SQLException if key cannot be parsed
+   */
+  public static PublicKey generatePublicKey(byte[] publicKeyBytes) throws SQLException {
+    try {
+      String publicKey =
+          new String(publicKeyBytes, StandardCharsets.US_ASCII)
+              .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
+
+      byte[] keyBytes = Base64.getMimeDecoder().decode(publicKey);
+      X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      return kf.generatePublic(spec);
+    } catch (Exception ex) {
+      throw new SQLException("Could read server RSA public key: " + ex.getMessage(), "S1009", ex);
+    }
+  }
+
+  /**
+   * Encode password with seed and public key.
+   *
+   * @param publicKey public key
+   * @param password password
+   * @param seed seed
+   * @return encoded password
+   * @throws SQLException if cannot encode password
+   */
+  public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed)
+      throws SQLException {
+
+    byte[] correctedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
+    byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
+
+    byte[] nullFinishedPwd = Arrays.copyOf(bytePwd, bytePwd.length + 1);
+    byte[] xorBytes = new byte[nullFinishedPwd.length];
+    int seedLength = correctedSeed.length;
+
+    for (int i = 0; i < xorBytes.length; i++) {
+      xorBytes[i] = (byte) (nullFinishedPwd[i] ^ correctedSeed[i % seedLength]);
+    }
+
+    try {
+      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
+      cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+      return cipher.doFinal(xorBytes);
+    } catch (Exception ex) {
+      throw new SQLException(
+          "Error encoding password with public key : " + ex.getMessage(), "S1009", ex);
+    }
+  }
+
   @Override
   public String type() {
     return TYPE;
@@ -178,83 +255,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 "Protocol exchange error. Expect login success or RSA login request message",
                 "S1009");
         }
-    }
-  }
-
-  /**
-   * Read public Key from file.
-   *
-   * @param serverRsaPublicKeyFile RSA public key file
-   * @return public key
-   * @throws SQLException if having an error reading file or file content is not a public key.
-   */
-  public static PublicKey readPublicKeyFromFile(String serverRsaPublicKeyFile) throws SQLException {
-    byte[] keyBytes;
-    try {
-      keyBytes = Files.readAllBytes(Paths.get(serverRsaPublicKeyFile));
-    } catch (IOException ex) {
-      throw new SQLException(
-          "Could not read server RSA public key from file : "
-              + "serverRsaPublicKeyFile="
-              + serverRsaPublicKeyFile,
-          "S1009",
-          ex);
-    }
-    return generatePublicKey(keyBytes);
-  }
-
-  /**
-   * Read public pem key from String.
-   *
-   * @param publicKeyBytes public key bytes value
-   * @return public key
-   * @throws SQLException if key cannot be parsed
-   */
-  public static PublicKey generatePublicKey(byte[] publicKeyBytes) throws SQLException {
-    try {
-      String publicKey =
-          new String(publicKeyBytes, StandardCharsets.US_ASCII)
-              .replaceAll("(-+BEGIN PUBLIC KEY-+\\r?\\n|\\n?-+END PUBLIC KEY-+\\r?\\n?)", "");
-
-      byte[] keyBytes = Base64.getMimeDecoder().decode(publicKey);
-      X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-      KeyFactory kf = KeyFactory.getInstance("RSA");
-      return kf.generatePublic(spec);
-    } catch (Exception ex) {
-      throw new SQLException("Could read server RSA public key: " + ex.getMessage(), "S1009", ex);
-    }
-  }
-
-  /**
-   * Encode password with seed and public key.
-   *
-   * @param publicKey public key
-   * @param password password
-   * @param seed seed
-   * @return encoded password
-   * @throws SQLException if cannot encode password
-   */
-  public static byte[] encrypt(PublicKey publicKey, String password, byte[] seed)
-      throws SQLException {
-
-    byte[] correctedSeed = Arrays.copyOfRange(seed, 0, seed.length - 1);
-    byte[] bytePwd = password.getBytes(StandardCharsets.UTF_8);
-
-    byte[] nullFinishedPwd = Arrays.copyOf(bytePwd, bytePwd.length + 1);
-    byte[] xorBytes = new byte[nullFinishedPwd.length];
-    int seedLength = correctedSeed.length;
-
-    for (int i = 0; i < xorBytes.length; i++) {
-      xorBytes[i] = (byte) (nullFinishedPwd[i] ^ correctedSeed[i % seedLength]);
-    }
-
-    try {
-      Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-1AndMGF1Padding");
-      cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-      return cipher.doFinal(xorBytes);
-    } catch (Exception ex) {
-      throw new SQLException(
-          "Error encoding password with public key : " + ex.getMessage(), "S1009", ex);
     }
   }
 }

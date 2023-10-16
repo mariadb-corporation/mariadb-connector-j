@@ -39,17 +39,17 @@ public class Connection implements java.sql.Connection {
 
   private final ReentrantLock lock;
   private final Configuration conf;
-  private ExceptionFactory exceptionFactory;
   private final Client client;
   private final Properties clientInfo = new Properties();
-  private int lowercaseTableNames = -1;
   private final AtomicInteger savepointId = new AtomicInteger();
-  private boolean readOnly;
   private final boolean canUseServerTimeout;
   private final boolean canCachePrepStmts;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
   private final boolean forceTransactionEnd;
+  private ExceptionFactory exceptionFactory;
+  private int lowercaseTableNames = -1;
+  private boolean readOnly;
   private MariaDbPoolConnection poolConnection;
 
   /**
@@ -803,55 +803,6 @@ public class Connection implements java.sql.Connection {
     return client;
   }
 
-  /** Internal Savepoint implementation */
-  class MariaDbSavepoint implements java.sql.Savepoint {
-
-    private final String name;
-    private final Integer id;
-
-    public MariaDbSavepoint(final String name) {
-      this.name = name;
-      this.id = null;
-    }
-
-    public MariaDbSavepoint(final int savepointId) {
-      this.id = savepointId;
-      this.name = null;
-    }
-
-    /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
-     * represents.
-     *
-     * @return the numeric ID of this savepoint
-     */
-    public int getSavepointId() throws SQLException {
-      if (name != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
-      }
-      return id;
-    }
-
-    /**
-     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the name of this savepoint
-     */
-    public String getSavepointName() throws SQLException {
-      if (id != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint name of an unnamed savepoint");
-      }
-      return name;
-    }
-
-    public String rawValue() {
-      if (id != null) {
-        return "_jid_" + id;
-      }
-      return name;
-    }
-  }
-
   /**
    * Reset connection set has it was after creating a "fresh" new connection.
    * defaultTransactionIsolation must have been initialized.
@@ -891,7 +842,7 @@ public class Connection implements java.sql.Connection {
           setNetworkTimeout(null, conf.socketTimeout());
         }
         if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit() == null ? true : conf.autocommit());
+          setAutoCommit(conf.autocommit() == null || conf.autocommit());
         }
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());
@@ -952,5 +903,54 @@ public class Connection implements java.sql.Connection {
    */
   public String __test_host() {
     return this.client.getHostAddress().toString();
+  }
+
+  /** Internal Savepoint implementation */
+  class MariaDbSavepoint implements java.sql.Savepoint {
+
+    private final String name;
+    private final Integer id;
+
+    public MariaDbSavepoint(final String name) {
+      this.name = name;
+      this.id = null;
+    }
+
+    public MariaDbSavepoint(final int savepointId) {
+      this.id = savepointId;
+      this.name = null;
+    }
+
+    /**
+     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
+     * represents.
+     *
+     * @return the numeric ID of this savepoint
+     */
+    public int getSavepointId() throws SQLException {
+      if (name != null) {
+        throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
+      }
+      return id;
+    }
+
+    /**
+     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
+     *
+     * @return the name of this savepoint
+     */
+    public String getSavepointName() throws SQLException {
+      if (id != null) {
+        throw exceptionFactory.create("Cannot retrieve savepoint name of an unnamed savepoint");
+      }
+      return name;
+    }
+
+    public String rawValue() {
+      if (id != null) {
+        return "_jid_" + id;
+      }
+      return name;
+    }
   }
 }

@@ -27,7 +27,7 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 /** Statement implementation */
 public class Statement implements java.sql.Statement {
   private static final Pattern identifierPattern =
-      Pattern.compile("[0-9a-zA-Z\\$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
+      Pattern.compile("[0-9a-zA-Z$_\\u0080-\\uFFFF]*", Pattern.UNICODE_CASE | Pattern.CANON_EQ);
   private static final Pattern escapePattern = Pattern.compile("[\u0000'\"\b\n\r\t\u001A\\\\]");
   private static final Map<String, String> mapper = new HashMap<>();
 
@@ -42,8 +42,6 @@ public class Statement implements java.sql.Statement {
     mapper.put("\u001A", "\\\\Z");
     mapper.put("\\", "\\\\");
   }
-
-  private List<String> batchQueries;
 
   /** result-set type */
   protected final int resultSetType;
@@ -69,14 +67,20 @@ public class Statement implements java.sql.Statement {
   protected boolean closeOnCompletion;
   /** closed flag */
   protected boolean closed;
+
   /** escape processing */
   protected boolean escape;
+
   /** last execution results */
   protected List<Completion> results;
+
   /** current results */
   protected Completion currResult;
+
   /** streaming load data infile data */
   protected InputStream localInfileInputStream;
+
+  private List<String> batchQueries;
 
   /**
    * Constructor
@@ -731,8 +735,8 @@ public class Statement implements java.sql.Statement {
       boolean possibleLoadLocal = con.getContext().hasClientCapability(LOCAL_FILES);
       if (possibleLoadLocal) {
         possibleLoadLocal = false;
-        for (int i = 0; i < batchQueries.size(); i++) {
-          String sql = batchQueries.get(i).toUpperCase(Locale.ROOT);
+        for (String batchQuery : batchQueries) {
+          String sql = batchQuery.toUpperCase(Locale.ROOT);
           if (sql.contains(" LOCAL ") && sql.contains("LOAD") && sql.contains(" INFILE")) {
             possibleLoadLocal = true;
             break;
@@ -1484,13 +1488,14 @@ public class Statement implements java.sql.Statement {
       // ensure pipelining is possible (no LOAD DATA/XML INFILE commands)
       boolean possibleLoadLocal = con.getContext().hasClientCapability(LOCAL_FILES);
       if (possibleLoadLocal) {
-        for (int i = 0; i < batchQueries.size(); i++) {
-          String sql = batchQueries.get(i).toUpperCase(Locale.ROOT);
+        possibleLoadLocal = false;
+        for (String batchQuery : batchQueries) {
+          String sql = batchQuery.toUpperCase(Locale.ROOT);
           if (sql.contains(" LOCAL ") && sql.contains("LOAD") && sql.contains(" INFILE")) {
+            possibleLoadLocal = true;
             break;
           }
         }
-        possibleLoadLocal = false;
       }
 
       List<Completion> res =
@@ -1578,12 +1583,11 @@ public class Statement implements java.sql.Statement {
    *
    * @param val string value to enquote
    * @return enquoted string value
-   * @throws SQLException -not possible-
    */
   @Override
-  public String enquoteLiteral(String val) throws SQLException {
+  public String enquoteLiteral(String val) {
     Matcher matcher = escapePattern.matcher(val);
-    StringBuffer escapedVal = new StringBuffer("'");
+    StringBuilder escapedVal = new StringBuilder("'");
 
     while (matcher.find()) {
       matcher.appendReplacement(escapedVal, mapper.get(matcher.group()));
@@ -1626,10 +1630,9 @@ public class Statement implements java.sql.Statement {
    * @param identifier identifier
    * @return true if identifier doesn't have to be quoted
    * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
-   * @throws SQLException exception
    */
   @Override
-  public boolean isSimpleIdentifier(String identifier) throws SQLException {
+  public boolean isSimpleIdentifier(String identifier) {
     return identifier != null
         && !identifier.isEmpty()
         && identifierPattern.matcher(identifier).matches();
@@ -1640,10 +1643,9 @@ public class Statement implements java.sql.Statement {
    *
    * @param val value to enquote
    * @return enquoted String value
-   * @throws SQLException - not possible -
    */
   @Override
-  public String enquoteNCharLiteral(String val) throws SQLException {
+  public String enquoteNCharLiteral(String val) {
     return "N'" + val.replace("'", "''") + "'";
   }
 }

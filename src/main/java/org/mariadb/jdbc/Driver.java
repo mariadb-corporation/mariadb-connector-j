@@ -80,11 +80,6 @@ public final class Driver implements java.sql.Driver {
     return new Connection(configuration, lock, client);
   }
 
-  @FunctionalInterface
-  private interface ClientInstance<T, U, V, W, R> {
-    R apply(T t, U u, V v, W w) throws SQLException;
-  }
-
   /**
    * Connect to the given connection string.
    *
@@ -185,5 +180,10 @@ public final class Driver implements java.sql.Driver {
 
   public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException("Use logging parameters for enabling logging.");
+  }
+
+  @FunctionalInterface
+  private interface ClientInstance<T, U, V, W, R> {
+    R apply(T t, U u, V v, W w) throws SQLException;
   }
 }

@@ -26,16 +26,16 @@ import org.mariadb.jdbc.util.ParameterList;
 /** Common methods for prepare statement, for client and server prepare statement. */
 public abstract class BasePreparedStatement extends Statement implements PreparedStatement {
   private static final Pattern INSERT_STATEMENT_PATTERN =
-      Pattern.compile("^(\\s*\\/\\*([^*]|\\*[^/])*\\*\\/)*\\s*(INSERT)", Pattern.CASE_INSENSITIVE);
+      Pattern.compile("^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*(INSERT)", Pattern.CASE_INSENSITIVE);
+
+  /** prepare statement sql command */
+  protected final String sql;
 
   /** parameters */
   protected Parameters parameters;
 
   /** batching parameters */
   protected List<Parameters> batchParameters;
-
-  /** prepare statement sql command */
-  protected final String sql;
 
   /** PREPARE command result */
   protected Prepare prepareResult = null;
@@ -98,7 +98,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
 
   protected void checkIfInsertCommand() {
     if (isCommandInsert == null)
-      isCommandInsert = (sql == null) ? false : INSERT_STATEMENT_PATTERN.matcher(sql).find();
+      isCommandInsert = sql != null && INSERT_STATEMENT_PATTERN.matcher(sql).find();
   }
 
   /**
@@ -1145,13 +1145,13 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
               return;
             case Types.DOUBLE:
             case Types.FLOAT:
-              setDouble(parameterIndex, Double.valueOf(str));
+              setDouble(parameterIndex, Double.parseDouble(str));
               return;
             case Types.REAL:
-              setFloat(parameterIndex, Float.valueOf(str));
+              setFloat(parameterIndex, Float.parseFloat(str));
               return;
             case Types.BIGINT:
-              setLong(parameterIndex, Long.valueOf(str));
+              setLong(parameterIndex, Long.parseLong(str));
               return;
             case Types.DECIMAL:
             case Types.NUMERIC:
@@ -1175,7 +1175,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
               }
               return;
             case Types.TIME:
-              setTime(parameterIndex, Time.valueOf((String) obj));
+              setTime(parameterIndex, Time.valueOf(str));
               return;
             default:
               throw exceptionFactory()
