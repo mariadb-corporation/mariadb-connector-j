@@ -203,6 +203,8 @@ public class UnixDomainSocket extends Socket {
 
   /** Socket address */
   public static class SockAddr extends Structure {
+    /** socket family */
+    public short sun_family = AF_UNIX;
 
     /** pathname */
     public byte[] sun_path;
@@ -214,6 +216,7 @@ public class UnixDomainSocket extends Socket {
      */
     @SuppressWarnings({"this-escape"})
     public SockAddr(String sunPath) {
+
       byte[] arr = sunPath.getBytes();
       sun_path = new byte[arr.length + 1];
       System.arraycopy(arr, 0, sun_path, 0, Math.min(sun_path.length - 1, arr.length));

@@ -7,10 +7,10 @@
 ##### Notable Changes
 
 * CONJ-920 Java batched statements with optimistic locking failing. the option `useBulkStmts` is now disable by default,
-  a new option `useBulkStmtsForInserts` is enabled by default, permitting using bulk for INSERT commands only. This
-  permits optimistic behavior working by default.
+	a new option `useBulkStmtsForInserts` is enabled by default, permitting using bulk for INSERT commands only. This
+	permits optimistic behavior working by default.
 * CONJ-1084 When using maxscale 23.08.0+, and a maxscale node fails, connector will now priorize reconnection to the
-  maxscale node having less connection, to ensure repartition after failover
+	maxscale node having less connection, to ensure repartition after failover
 * CONJ-1088 Implement `databaseTerm` option for mysql compatibility
 * CONJ-1096 adding option `useLocalSessionState` to permit avoiding queries when application only use JDBC methods.
 
@@ -18,7 +18,7 @@
 
 * CONJ-1075 LOAD DATA INFILE is broken on windows
 * CONJ-1079 getGeneratedKeys after batch will not return all generated id's if first batch command return no generated
-  id.
+	id.
 * CONJ-1080 mariadb Java connector sslMode=verify-ca complaining unable to find trust certificate.
 * CONJ-1082 Multiple session system variables parsing fails
 * CONJ-1083 Using /*client prepare*/ prefix to force client side prepared statement
@@ -37,7 +37,7 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.9...2.7.10)
 
 * CONJ-1091 Ensure setting connectTimeout as timeout for socket timeout until connection is done. This permit to set a
-  connectTimeout, while socketTimeout can still be set to 0
+	connectTimeout, while socketTimeout can still be set to 0
 
 ## [3.1.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.4) (Apr 2023)
 
@@ -47,7 +47,7 @@
 * CONJ-1070 getBlob on TEXT columns throw Exception
 * CONJ-1071 Error response during Bulk execution might result in connection wrong state
 * CONJ-1067 When some numeric data types are set to UNSIGNED, ResultSetMetaData.getColumnTypeName() does not return
-  UNSIGNED
+	UNSIGNED
 
 ## [3.1.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.1.3) (Mar 2023)
 
@@ -87,9 +87,9 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.0...3.1.1)
 
 - 3.0.10 bug fix:
-  - CONJ-1023 Connector/J doesn't set SSL cap bit in Handshake Response Packet
-  - CONJ-1026 timezone=auto option failure on non-fixed-offset zone machine
-  - CONJ-1032 Compatibility for deprecated arguments is case sensitive now
+	- CONJ-1023 Connector/J doesn't set SSL cap bit in Handshake Response Packet
+	- CONJ-1026 timezone=auto option failure on non-fixed-offset zone machine
+	- CONJ-1032 Compatibility for deprecated arguments is case sensitive now
 - CONJ-1036 org.mariadb.jdbc.client.socket.impl.PacketWriter.writeAscii() broken in 3.1.0
 
 ## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
@@ -144,7 +144,7 @@
 ##### Notable Changes
 
 * small performance improvement
-  * [CONJ-1010] improve client side prepared parameter parameter substitution
+	* [CONJ-1010] improve client side prepared parameter parameter substitution
 
 ##### Bugs Fixed
 
@@ -207,7 +207,7 @@
 * [CONJ-922] DECIMAL overflow for long/int/short not throwing exception
 * [CONJ-924] NULL column type might result in java.lang.IllegalArgumentException: Unexpected datatype NULL
 * [CONJ-926] Client restrict authentication to 'mysql_native_password,client_ed25519,auth_gssapi_client' if
-  restrictedAuth parameter is not set
+	restrictedAuth parameter is not set
 * [CONJ-924] NULL column test correction
 * [CONJ-923] correctly return 64 bits generated id / updated rows
 * [CONJ-933] load-balancing failover doesn't timeout
@@ -225,14 +225,14 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.2-rc...3.0.3)
 
 * [CONJ-908] correct Connection.prepareStatement(String sql, int[] columnIndexes/String[] columnNames) to return
-  generated keys
+	generated keys
 * [CONJ-909] adding createDatabaseIfNotExist option for 2.x compatibility
 * [CONJ-910] permit jdbc:mysql scheme when connection string contains "permitMysqlScheme" for compatibility
 * [CONJ-913] Avoid executing additional command on connection for faster connection creation
 * [CONJ-912] remove security manager code (JEP 411)
 * [CONJ-911] enable keep-alive by default
 * failover improvement. some specific commands not in transaction are considered to be replayed in case of failover,
-  like PING, PREPARE, ROLLBACK, ...
+	like PING, PREPARE, ROLLBACK, ...
 * CONJ-705 parameter metadata get parameter count even when query cannot be prepared
 * prepareStatement.addBatch must initialize with previous set
 * Connection.prepareStatement(String sql, int[] columnIndexes/String[] columnNames) must return generated keys
@@ -250,7 +250,7 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.1-beta...3.0.2-rc)
 
 * CONJ-879 Java 9 module full support
-  * Aws IAM credential now use sdk v2 authentication that support java 9 modularity
+	* Aws IAM credential now use sdk v2 authentication that support java 9 modularity
 * CONJ-896 Ensure pool connections validation when a socket fail
 * CONJ-897 Ensure having connection's thread id in Exception / debug logs
 
@@ -288,17 +288,17 @@ This version is a total rewrite of java driver.
 
 * complete rewrite, code clarification, reduced size (15%), more than 90% coverage tested.
 * Encoding/decoding implementation are now registred by Codec, permitting codec registry implementation
-  * example support of Geometry Object
+	* example support of Geometry Object
 * Permit authentication plugin restriction by option `restrictedAuth`
 * performance improvement:
-  * Prepare and execution are now using pipelining when using option `useServerPrepStmts`
-  * performance enhancement with MariaDB 10.6 server when using option `useServerPrepStmts`, skipping metadata (
-  see https://jira.mariadb.org/browse/MDEV-19237)
+	* Prepare and execution are now using pipelining when using option `useServerPrepStmts`
+	* performance enhancement with MariaDB 10.6 server when using option `useServerPrepStmts`, skipping metadata (
+	see https://jira.mariadb.org/browse/MDEV-19237)
 
 correction:
 
 * CONJ-864 includeThreadDumpInDeadlockExceptions always includes the thread dump, even when it is not a deadlock
-  exception
+	exception
 * CONJ-858 Properties parameter that differ from string not taken in account
 
 ### Easy logging
@@ -348,7 +348,7 @@ Since available only with java 11, setting this option with java < 11 will have 
 * CONJ-855 throwing more specific exception for updatable result-set that can not be updated by ResultSet
 * CONJ-857 Remove use of mysql.proc table, relying on information_schema.parameters
 * CONJ-864 includeThreadDumpInDeadlockExceptions always includes the thread dump, even when it is not a deadlock
-  exception
+	exception
 * CONJ-866 long binary parsing improvement
 * CONJ-871 OSGi: Missing Import-Package in Connector/J bundle (javax.sql.rowset.serial)
 * CONJ-878 option serverSslCert file location
@@ -363,7 +363,7 @@ Since available only with java 11, setting this option with java < 11 will have 
 
 * CONJ-847 NPE at UpdatableResultSet#close
 * CONJ-849 driver now doesn't close connection caused java.io.NotSerializableException as a result of incorrect data
-  bind to a prepared statement parameter
+	bind to a prepared statement parameter
 * CONJ-850 MariaDbResultSetMetaData#getPrecision(int) now returns correct length for character data
 * CONJ-851 metadata getBestRowIdentifier incompatibility with MySQL 8 correction
 * CONJ-853 Support Aurora cluster custom endpoints
@@ -380,7 +380,7 @@ Since available only with java 11, setting this option with java < 11 will have 
 * CONJ-842 Byte array parameters are now send as long data
 * CONJ-837 prepared statement cache leak on ResultSet CONCUR_UPDATABLE concurrency
 * CONJ-843 ParameterMetaData::getParameterType for CallableStatement parameter return expected "BINARY" value for BINARY
-  type
+	type
 
 minor:
 
@@ -424,7 +424,7 @@ minor:
 * CONJ-776 - Temporal Data Tables are not listed in metadata
 * CONJ-785 - corrected escape sequence for multiple backslash escape
 * CONJ-786 - Connection.setReadOnly(true ) with option `assureReadOnly` now force read only connection even for mono
-  server*
+	server*
 * CONJ-795 - permit resultset.getRow() for TYPE_FORWARD_ONLY when streaming
 * CONJ-797 - Connector set UTF8mb4 equivalent in case of server configured with UTF8mb3 collation
 * CONJ-800 - implement Statement setEscapeProcessing to avoid escape
@@ -441,7 +441,7 @@ minor:
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.5.4...2.6.0)
 
 * CONJ-768 - Check Galera allowed state when connecting when option `galeraAllowedState` is set, and not only on
-  validation
+	validation
 * CONJ-759 - on failover, catalog changed might not be set when automatically recreating a connection.
 * CONJ-761 - remove unnecessary dependencies for fedora tar creation
 * CONJ-763 - Custom SocketFactory now can change options
@@ -489,11 +489,11 @@ minor:
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.4.4...2.5.0)
 
 * CONJ-663 - Client authentication plugins are now defined as services. The driver has 2 new
-  plugins `caching_sha2_password` and `sha256_password plugin` for MySQL compatibility
+	plugins `caching_sha2_password` and `sha256_password plugin` for MySQL compatibility
 * CONJ-733 - Credential service: AWS IAM authentication
 * CONJ-727 - Support configuration of custom SSLSocketFactory
 * CONJ-561 - JDBC 4.3 partial implementation java.sql.Statement methods isSimpleIdentifier, enquoteIdentifier,
-  enquoteLiteral and enquoteNCharLiteral
+	enquoteLiteral and enquoteNCharLiteral
 * CONJ-692 - ConnectionPoolDataSource interface addition to MariaDbPoolDataSource
 * CONJ-563 - closing possible option batch thread on driver registration.
 * CONJ-732 - Driver getPropertyInfo returns no options' information when url is empty
@@ -506,7 +506,7 @@ minor:
 * CONJ-724 - Do not ignore the Calendar parameter in ResultSet#getTime(int, Calendar)
 * CONJ-725 - Connection Failure when using PAM authenticated user on 10.4 MariaDB server
 * CONJ-729 - master-slave regression: commit on read-only server Executed only when there is an active transaction on
-  master connection
+	master connection
 * CONJ-726 - removing possible NPE after failover on aurora cluster
 
 ## [2.4.3](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.3) (02 Jul. 2019)
@@ -532,9 +532,9 @@ Bugs
 * CONJ-711 - Xid format id is unsigned integer, currently sending as signed value.
 * CONJ-700 - autoReconnect=true on Basic Failover doesn't reconnect
 * CONJ-707 - failover might throw an unexpected exception with using "failover"/"sequential" configuration on socket
-  error
+	error
 * CONJ-709 - includeThreadDumpInDeadlockExceptions is thrown only if option includeInnodbStatusInDeadlockExceptions is
-  set
+	set
 * CONJ-710 - Throw complete stackTrace when having an exception on XA Commands
 * CONJ-714 - Error on connection on galera server when in detached mode.
 * CONJ-701 - typo in error message in SelectResultSet.java
@@ -555,7 +555,7 @@ Bugs
 * CONJ-687 - addition of option "useMysqlMetadata" to permit MySQL meta compatibility
 * misc - java PID using java 9 ProcessHandle if existing, relying on JNA if present
 * CONJ-682 - internal pool correction: when receiving an RST during connection validation, the pool will end up throwing
-  connection timeout exception in place of reusing another connection.
+	connection timeout exception in place of reusing another connection.
 
 ## [2.4.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.4.0) (28 Jan. 2019)
 
@@ -633,16 +633,16 @@ This option still makes sense, since for big batch is way faster, but will not b
 
 * CONJ-628 - optimization to read metadata faster
 * CONJ-637 - java.sql.Driver class implement DriverPropertyInfo[] getPropertyInfo, permitting listing options on
-  querying tools
+	querying tools
 * CONJ-639 - enabledSslProtocolSuites does not include TLSv1.2 by default
 * CONJ-641 - update maven test dependencies for java 10 compatibility
 * CONJ-643 - PreparedStatement::getParameterMetaData always returns VARSTRING as type resulting in downstream libraries
-  interpreting values wrongly
+	interpreting values wrongly
 
 ##= Bug correction:
 
 * CONJ-616 - correction on possible NPE on getConnection when using failover configuration and master is down, not
-  throwing a proper exception
+	throwing a proper exception
 * CONJ-636 - Error in batch might throw a NPE and not the proper Exception
 
 ## [2.2.6](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.6) (19 Jul. 2018)
@@ -682,7 +682,7 @@ Bug correction:
 * CONJ-595 - Create option to configure DONOR/DESYNCED Galera nodes to be unavailable for load-balancing
 * CONJ-605 - Newlines where breaking calling stored procedures
 * CONJ-609 - Using getDate with function DATE_ADD() with parameter using string format where return wrong result using
-  binary protocol
+	binary protocol
 * CONJ-610 - Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
 
 ## [2.2.4](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.2.4) (04 May. 2018)
@@ -732,10 +732,10 @@ Bug correction:
 Bug correction:
 
 * CONJ-529 - failover : the driver will pause for 250ms if no servers are available before attempting to reconnect
-  another time
+	another time
 * CONJ-548 - don't use COM_STMT_BULK_EXECUTE for INSERT ... SELECT statements
 * CONJ-549 - correction on connection reset when using MariaDbPoolDataSource with options useServerPrepStmts and
-  useResetConnection enabled
+	useResetConnection enabled
 * CONJ-555 - failover caused by client timeout must not reuse connection
 * CONJ-558 - removing extra ".0" to resultset.getString() value for FLOAT/DOUBLE fields
 * CONJ-550 - fetching state correction when reusing statement without having read all results
@@ -753,7 +753,7 @@ MariaDB has now 2 different Datasource implementation :
 
 * MariaDbDataSource : Basic implementation. A new connection each time method getConnection() is called.
 * MariaDbPoolDataSource : Connection pooling implementation. MariaDB Driver will keep a pool of connection and borrow
-  Connections when asked for it.
+	Connections when asked for it.
 
 New options
 
@@ -779,7 +779,7 @@ Bug :
 
 * CONJ-532 - correction Statement.getMoreResults() for multi-queries
 * CONJ-533 - PrepareStatement.setTime() may insert incorrect time according to current timezone, time and option "
-  useLegacyDatetimeCode"
+	useLegacyDatetimeCode"
 * CONJ-535 - correction on numerical getter for big BIT data type fields
 * CONJ-541 - Fix behavior of ResultSet#relative when crossing result set boundaries
 
@@ -944,7 +944,7 @@ With server with version MariaDB 10.2, MySQL 5.7, ensure driver state :
 
 - driver does now always get current database, even database is changed by query.
 - when using rewriteBatchedStatements does return correct autoincrement ids even when session variable
-  @auto_increment_increment has change during session.
+	@auto_increment_increment has change during session.
 
 ##= CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
 
@@ -1012,7 +1012,7 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 * CONJ-440 : handle very big COM_STMT_SEND_LONG_DATA packet (1Gb)
 * CONJ-429 : ResultSet.getDouble/getFloat may throw a NumberFormatException
 * CONJ-438 : using option rewriteBatchedStatements, permit rewrite when query has column/table that contain 'select'
-  keyword.
+	keyword.
 
 ## 1.5.8
 
@@ -1061,7 +1061,7 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 * CONJ-363 : Connection.getClientInfo implementation correction to follow JDBC rules
 * CONJ-361 : PrepareStatement setString() with empty string correction.
 * CONJ-360 : replacing ManagementFactory.getRuntimeMXBean() that cause possible slow connection depending on JVM /
-  environment
+	environment
 * CONJ-359 : Metadata getColumns(...) resultSet doesnt have "IS_GENERATEDCOLUMN" info
 
 ## 1.5.3
@@ -1133,7 +1133,7 @@ use the new replicas.
 ### Bugfix
 
 * CONJ-329 and CONJ-330 : rewriteBatchedStatements execute single query exceptions correction.
-  <br /><br />
+	<br /><br />
 
 ## 1.5.0
 
@@ -1146,8 +1146,8 @@ CONJ-295.<br />
 Java kerberos implementation is not well implemented with windows :
 
 * need a Windows registry entry (
-  HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared
-  current ticket to java.
+	HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared
+	current ticket to java.
 * java kinit must be executed to create a Ticket.
 * restriction when client with local admin rights
 * ...
@@ -1190,13 +1190,13 @@ TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"<br />/
 Different performance improvement have been done :
 
 * Using PreparedStatement on client side use a simple query parser to identify query parameters. This parsing was taking
-  up to 7% of query time, reduced to 3%.
+	up to 7% of query time, reduced to 3%.
 * Better UTF-8 decoding avoiding memory consumption and gain 1-2% query time for big String.
 * client parsing optimization : rewriteBatchedStatements (insert into ab (i) values (1) and insert into ab (i) values (
-  2) rewritten as insert into ab (i) values (1), (2))
-  is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to
-  contain
-  query).
+	2) rewritten as insert into ab (i) values (1), (2))
+	is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to
+	contain
+	query).
 * there was some memory wastage when query return big resultset (> 10kb), slowing query.
 * ...
 
@@ -1249,9 +1249,9 @@ query [LOAD DATA INFILE](https://mariadb.com/kb/en/mariadb/load-data-infile/).
 <br />Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
 
 * A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
-  this proxy.
+	this proxy.
 * If someone has can execute query from client, he can have access to any file on client (according to the rights of the
-  user running the client process).
+	user running the client process).
 
 See [load-data-infile documentation](./documentation/use-mariadb-connector-j-driver.creole#load-data-infile) for more
 information.
@@ -1261,7 +1261,7 @@ Those interceptors:
 
 * Must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
 * Use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so
-  interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+	interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
 
 Example:
 {{{
@@ -1306,7 +1306,7 @@ return filePath.equals("/var/tmp/exchanges");
 * CONJ-316 : Wrong Exception thrown for ScrollType TYPE_SCROLL_INSENSITIVE
 * CONJ-298 : Error on Callable function exception when no parameter and space before parenthesis
 * CONJ-314 : Permit using Call with Statement / Prepare Statement
-  <br /><br /><br />
+	<br /><br /><br />
 
 ## 1.4.6
 
@@ -1346,7 +1346,7 @@ return filePath.equals("/var/tmp/exchanges");
 * CONJ-270] permit 65535 parameters to server preparedStatement
 * CONJ-268] update license header
 * misc] when option rewriteBatchedStatements is set to true, correction of packet separation when query size >
-  max_allow_packet
+	max_allow_packet
 * misc] performance improvement for select result.
 
 ## 1.4.0
@@ -1417,10 +1417,10 @@ select * from performance_schema.session_connect_attrs where processList_id = 5
 
 * CONJ-210 : adding a "jdbcCompliantTruncation" option to force truncation warning as SQLException.
 * CONJ-211 : when in master/slave configuration, option "assureReadOnly" will ensure that slaves are in read-only mode (
-  forcing transaction by a query "SET SESSION TRANSACTION READ ONLY").
+	forcing transaction by a query "SET SESSION TRANSACTION READ ONLY").
 * CONJ-213 : new option "continueBatchOnError". Permit to continue batch when an exception occur : When executing a
-  batch and an error occur, must the batch stop immediatly (default) or finish remaining batch before throwing
-  exception.
+	batch and an error occur, must the batch stop immediatly (default) or finish remaining batch before throwing
+	exception.
 
 ## Bugfix
 

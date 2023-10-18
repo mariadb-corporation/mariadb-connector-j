@@ -247,9 +247,6 @@
                                 <include>*.md</include>
                                 <include>.gitignore</include>
                             </includes>
-                            <excludes>
-                                <exclude>Ed25519*.java</exclude>
-                            </excludes>
                             <!-- define the steps to apply to those files -->
                             <trimTrailingWhitespace/>
                             <endWithNewline/>
@@ -263,11 +260,8 @@
                         <excludes>
                             <exclude>src/main/java/org/mariadb/jdbc/plugin/authentication/standard/ed25519/**/*.java
                             </exclude>
+                            <exclude>src/main/java/org/mariadb/jdbc/client/socket/impl/UnixDomainSocket.java</exclude>
                         </excludes>
-                        <includes>
-                            <include>src/main/java/**/*.java</include>
-                            <include>src/test/java/**/*.java</include>
-                        </includes>
                         <googleJavaFormat>
                             <version>1.18.1</version>
                             <style>GOOGLE</style>

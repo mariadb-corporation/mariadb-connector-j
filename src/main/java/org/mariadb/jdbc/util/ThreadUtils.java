@@ -8,7 +8,8 @@ import javax.security.auth.Subject;
 
 public class ThreadUtils {
   public static long getId(Thread thread) {
-    // must be return thread.threadId() for java 19+, but since we support java 8, cannot be removed for now
+    // must be return thread.threadId() for java 19+,
+    // but since we support java 8, cannot be removed for now
     return thread.getId();
   }
 
