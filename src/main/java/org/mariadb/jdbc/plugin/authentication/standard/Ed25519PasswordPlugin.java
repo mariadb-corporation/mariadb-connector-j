@@ -46,7 +46,7 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       final byte[] sm = new byte[64 + mlen];
 
       byte[] az = hash.digest(bytePwd);
-      az[0] &= 248;
+      az[0] &= (byte) 248;
       az[31] &= 63;
       az[31] |= 64;
 

@@ -1,7 +1,6 @@
 package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Encoding;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.*;
 
 /**
  * Helper class for encoding/decoding from/to the 32 byte representation.
@@ -34,6 +33,8 @@ public class Ed25519LittleEndianEncoding extends Encoding {
    *
    * <p>The idea for the modulo $p$ reduction algorithm is as follows:
    *
+   * <h2>Assumption:</h2>
+   *
    * <ul>
    *   <li>$p = 2^{255} - 19$
    *   <li>$h = h_0 + 2^{25} * h_1 + 2^{(26+25)} * h_2 + \dots + 2^{230} * h_9$ where $0 \le |h_i|
@@ -44,7 +45,7 @@ public class Ed25519LittleEndianEncoding extends Encoding {
    *
    * <p>Then $q = [2^{-255} * (h + 19 * 2^{-25} * h_9 + 1/2)]$ where $[x] = floor(x)$.
    *
-   * <p>Proof:
+   * <h2>Proof:</h2>
    *
    * <p>We begin with some very raw estimation for the bounds of some expressions:
    *

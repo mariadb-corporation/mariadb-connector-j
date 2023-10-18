@@ -19,6 +19,7 @@ public class Curve implements Serializable {
   private final GroupElement zeroP3PrecomputedDouble;
   private final GroupElement zeroPrecomp;
 
+  @SuppressWarnings({"this-escape"})
   public Curve(Field f, byte[] d, FieldElement I) {
     this.f = f;
     this.d = f.fromByteArray(d);
@@ -76,8 +77,7 @@ public class Curve implements Serializable {
   @Override
   public boolean equals(Object o) {
     if (o == this) return true;
-    if (!(o instanceof Curve)) return false;
-    Curve c = (Curve) o;
+    if (!(o instanceof Curve c)) return false;
     return f.equals(c.getField()) && d.equals(c.getD()) && I.equals(c.getI());
   }
 }

@@ -22,6 +22,7 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ScalarOps;
  *
  * @author str4d
  */
+@SuppressWarnings("all")
 public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable {
   private static final long serialVersionUID = 8274987108472012L;
   private final Curve curve;
@@ -58,6 +59,10 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
 
   public String getHashAlgorithm() {
     return hashAlgo;
+  }
+
+  public ScalarOps getScalarOps() {
+    return sc;
   }
 
   /**
