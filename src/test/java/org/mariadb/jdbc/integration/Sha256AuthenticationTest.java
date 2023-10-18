@@ -76,13 +76,16 @@ public class Sha256AuthenticationTest extends Common {
     }
 
     stmt.execute(
-        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
+        "CREATE USER 'cachingSha256User'@'%' IDENTIFIED WITH caching_sha2_password BY"
+            + " '!Passw0rd3Works'");
     stmt.execute(
         "CREATE USER 'cachingSha256User2'@'%' IDENTIFIED WITH caching_sha2_password BY ''");
     stmt.execute(
-        "CREATE USER 'cachingSha256User3'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
+        "CREATE USER 'cachingSha256User3'@'%' IDENTIFIED WITH caching_sha2_password BY"
+            + " '!Passw0rd3Works'");
     stmt.execute(
-        "CREATE USER 'cachingSha256User4'@'%' IDENTIFIED WITH caching_sha2_password BY '!Passw0rd3Works'");
+        "CREATE USER 'cachingSha256User4'@'%' IDENTIFIED WITH caching_sha2_password BY"
+            + " '!Passw0rd3Works'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User2'@'%'");
     stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'cachingSha256User3'@'%'");

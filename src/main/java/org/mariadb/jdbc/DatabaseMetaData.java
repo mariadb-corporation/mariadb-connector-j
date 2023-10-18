@@ -83,9 +83,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       if (ch == '`') {
         quotes++;
       } else {
-        for (int j = 0; j < quotes / 2; j++) {
-          sb.append('`');
-        }
+        sb.append("`".repeat(quotes / 2));
         if (quotes % 2 == 1) {
           if (ch == '.') {
             if (identifier.schema != null) {
@@ -673,7 +671,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     patternCond(false, sb, "A.TABLE_NAME", table);
     patternCond(false, sb, "B.TABLE_NAME", table);
     sb.append(
-        " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME = B.COLUMN_NAME ORDER BY A.COLUMN_NAME");
+        " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME ="
+            + " B.COLUMN_NAME ORDER BY A.COLUMN_NAME");
 
     return executeQuery(sb.toString());
   }
@@ -722,11 +721,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     StringBuilder sb =
         new StringBuilder(
-            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
-                + " IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
-                + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
-                + " NULL REF_GENERATION"
-                + " FROM INFORMATION_SCHEMA.TABLES");
+            "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE"
+                + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL"
+                + " SELF_REFERENCING_COL_NAME,  NULL REF_GENERATION FROM"
+                + " INFORMATION_SCHEMA.TABLES");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schemaPattern;
     boolean firstCondition =
         databaseCond(
@@ -866,14 +865,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             conf.useCatalogTerm() == CatalogTerm.UseCatalog
                 ? "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM"
                 : "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM")
-        .append(
-            ", TABLE_NAME, COLUMN_NAME,"
-                + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE,"
-                + DataTypeClause(conf)
-                + " TYPE_NAME, "
-                + " CASE DATA_TYPE"
-                + "  WHEN 'date' THEN 10");
+        .append(", TABLE_NAME, COLUMN_NAME,")
+        .append(dataTypeClause("COLUMN_TYPE"))
+        .append(" DATA_TYPE,")
+        .append(DataTypeClause(conf))
+        .append(" TYPE_NAME, CASE DATA_TYPE WHEN 'date' THEN 10");
     if (supportsFractionalSeconds) {
       sb.append(
           "  WHEN 'time' THEN "
@@ -886,35 +882,36 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       // Older versions do not include the DATETIME_PRECISION column in INFORMATION_SCHEMA.COLUMNS.
       sb.append(" WHEN 'time' THEN 10 WHEN 'datetime' THEN 19 WHEN 'timestamp' THEN 19");
     }
-    sb.append(
-        (conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5")
-            + "  ELSE "
-            + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
-            + Integer.MAX_VALUE
-            + "), NUMERIC_PRECISION) "
-            + " END"
-            + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
-            + " CONVERT (CASE DATA_TYPE"
-            + " WHEN 'year' THEN "
-            + (conf.yearIsDateType() ? "NUMERIC_SCALE" : "0")
-            + " WHEN 'tinyint' THEN "
-            + (conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
-            + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
-            + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-            + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-            + " LEAST(CHARACTER_OCTET_LENGTH,"
-            + Integer.MAX_VALUE
-            + ") CHAR_OCTET_LENGTH,"
-            + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-            + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-            + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
-            + " FROM INFORMATION_SCHEMA.COLUMNS");
+    sb.append((conf.yearIsDateType() ? "" : " WHEN 'year' THEN 5"))
+        .append(
+            "  ELSE "
+                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH,"
+                + Integer.MAX_VALUE
+                + "), NUMERIC_PRECISION) "
+                + " END"
+                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
+                + " CONVERT (CASE DATA_TYPE"
+                + " WHEN 'year' THEN ")
+        .append((conf.yearIsDateType() ? "NUMERIC_SCALE" : "0"))
+        .append(" WHEN 'tinyint' THEN ")
+        .append(conf.tinyInt1isBit() ? "0" : "NUMERIC_SCALE")
+        .append(
+            " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+                + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
+                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+                + " LEAST(CHARACTER_OCTET_LENGTH,"
+                + Integer.MAX_VALUE
+                + ") CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL"
+                + " SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE, IF(EXTRA ="
+                + " 'auto_increment','YES','NO') IS_AUTOINCREMENT,  IF(EXTRA in ('VIRTUAL',"
+                + " 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO')"
+                + " IS_GENERATEDCOLUMN  FROM INFORMATION_SCHEMA.COLUMNS");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schemaPattern;
     boolean firstCondition =
         databaseCond(
             true, sb, "TABLE_SCHEMA", database, conf.useCatalogTerm() == CatalogTerm.UseSchema);
     firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
-    firstCondition = patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
+    patternCond(firstCondition, sb, "COLUMN_NAME", columnNamePattern);
     sb.append(" ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION");
     return executeQuery(sb.toString());
   }
@@ -991,7 +988,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             .append(
                 conf.useCatalogTerm() == CatalogTerm.UseCatalog
                     ? "KCU.REFERENCED_TABLE_SCHEMA PKTABLE_CAT, NULL PKTABLE_SCHEM"
-                    : "KCU.CONSTRAINT_CATALOG PKTABLE_CAT, KCU.REFERENCED_TABLE_SCHEMA PKTABLE_SCHEM")
+                    : "KCU.CONSTRAINT_CATALOG PKTABLE_CAT, KCU.REFERENCED_TABLE_SCHEMA"
+                        + " PKTABLE_SCHEM")
             .append(
                 ",  KCU.REFERENCED_TABLE_NAME PKTABLE_NAME,"
                     + " KCU.REFERENCED_COLUMN_NAME PKCOLUMN_NAME, ")
@@ -1000,23 +998,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     ? "KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM"
                     : " TABLE_CATALOG FKTABLE_CAT, KCU.TABLE_SCHEMA FKTABLE_SCHEM")
             .append(
-                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                    + " CASE update_rule "
-                    + "   WHEN 'RESTRICT' THEN 1"
-                    + "   WHEN 'NO ACTION' THEN 3"
-                    + "   WHEN 'CASCADE' THEN 0"
-                    + "   WHEN 'SET NULL' THEN 2"
-                    + "   WHEN 'SET DEFAULT' THEN 4"
-                    + " END UPDATE_RULE,"
-                    + " CASE DELETE_RULE"
-                    + "  WHEN 'RESTRICT' THEN 1"
-                    + "  WHEN 'NO ACTION' THEN 3"
-                    + "  WHEN 'CASCADE' THEN 0"
-                    + "  WHEN 'SET NULL' THEN 2"
-                    + "  WHEN 'SET DEFAULT' THEN 4"
-                    + " END DELETE_RULE,"
-                    + " RC.CONSTRAINT_NAME FK_NAME,"
-                    + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
+                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME,"
+                    + " KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ, CASE update_rule    WHEN"
+                    + " 'RESTRICT' THEN 1   WHEN 'NO ACTION' THEN 3   WHEN 'CASCADE' THEN 0   WHEN"
+                    + " 'SET NULL' THEN 2   WHEN 'SET DEFAULT' THEN 4 END UPDATE_RULE, CASE"
+                    + " DELETE_RULE  WHEN 'RESTRICT' THEN 1  WHEN 'NO ACTION' THEN 3  WHEN"
+                    + " 'CASCADE' THEN 0  WHEN 'SET NULL' THEN 2  WHEN 'SET DEFAULT' THEN 4 END"
+                    + " DELETE_RULE, RC.CONSTRAINT_NAME FK_NAME, RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
                     + importedKeyNotDeferrable
                     + " DEFERRABILITY"
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
@@ -1031,7 +1019,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "KCU.REFERENCED_TABLE_SCHEMA",
             database,
             conf.useCatalogTerm() == CatalogTerm.UseSchema);
-    firstCondition = patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", table);
+    patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", table);
     sb.append(" ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
 
     return executeQuery(sb.toString());
@@ -1064,23 +1052,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     ? "KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM"
                     : "KCU.TABLE_CATALOG FKTABLE_CAT, KCU.TABLE_SCHEMA FKTABLE_SCHEM")
             .append(
-                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                    + " CASE update_rule "
-                    + "   WHEN 'RESTRICT' THEN 1"
-                    + "   WHEN 'NO ACTION' THEN 3"
-                    + "   WHEN 'CASCADE' THEN 0"
-                    + "   WHEN 'SET NULL' THEN 2"
-                    + "   WHEN 'SET DEFAULT' THEN 4"
-                    + " END UPDATE_RULE,"
-                    + " CASE DELETE_RULE"
-                    + "  WHEN 'RESTRICT' THEN 1"
-                    + "  WHEN 'NO ACTION' THEN 3"
-                    + "  WHEN 'CASCADE' THEN 0"
-                    + "  WHEN 'SET NULL' THEN 2"
-                    + "  WHEN 'SET DEFAULT' THEN 4"
-                    + " END DELETE_RULE,"
-                    + " RC.CONSTRAINT_NAME FK_NAME,"
-                    + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
+                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME,"
+                    + " KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ, CASE update_rule    WHEN"
+                    + " 'RESTRICT' THEN 1   WHEN 'NO ACTION' THEN 3   WHEN 'CASCADE' THEN 0   WHEN"
+                    + " 'SET NULL' THEN 2   WHEN 'SET DEFAULT' THEN 4 END UPDATE_RULE, CASE"
+                    + " DELETE_RULE  WHEN 'RESTRICT' THEN 1  WHEN 'NO ACTION' THEN 3  WHEN"
+                    + " 'CASCADE' THEN 0  WHEN 'SET NULL' THEN 2  WHEN 'SET DEFAULT' THEN 4 END"
+                    + " DELETE_RULE, RC.CONSTRAINT_NAME FK_NAME, RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
                     + importedKeyNotDeferrable
                     + " DEFERRABILITY"
                     + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
@@ -1189,8 +1167,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + bestRowSession
                 + " SCOPE, COLUMN_NAME,"
                 + dataTypeClause("COLUMN_TYPE")
-                + " DATA_TYPE, DATA_TYPE TYPE_NAME,"
-                + " IF(NUMERIC_PRECISION IS NULL, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
+                + " DATA_TYPE, DATA_TYPE TYPE_NAME, IF(NUMERIC_PRECISION IS NULL,"
+                + " CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION) COLUMN_SIZE, 0 BUFFER_LENGTH,"
                 + " NUMERIC_SCALE DECIMAL_DIGITS,"
                 + (hasIsGeneratedCol
                     ? ("IF(IS_GENERATED='NEVER'," + bestRowNotPseudo + "," + bestRowPseudo + ")")
@@ -1277,9 +1255,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return connection
         .createStatement()
         .executeQuery(
-            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, "
-                + "0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' ' REMARKS, 0 CHAR_OCTET_LENGTH, "
-                + "'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
+            "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0"
+                + " COLUMN_SIZE, 0 DECIMAL_DIGITS, 10 NUM_PREC_RADIX, ' ' COLUMN_USAGE,  ' '"
+                + " REMARKS, 0 CHAR_OCTET_LENGTH, 'YES' IS_NULLABLE FROM DUAL WHERE 1=0");
   }
 
   public boolean allProceduresAreCallable() {
@@ -1440,9 +1418,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getStringFunctions() {
     return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
-        + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
-        + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
-        + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+        + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,LOWER,LPAD,LTRIM,MAKE_SET,MATCH"
+        + " AGAINST,MID,NOT LIKE,NOT"
+        + " REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS"
+        + " LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
         + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
   }
 
@@ -2072,7 +2051,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     boolean firstCondition =
         databaseCond(
             true, sb, "ROUTINE_SCHEMA", database, conf.useCatalogTerm() == CatalogTerm.UseSchema);
-    firstCondition = patternCond(firstCondition, sb, "ROUTINE_NAME", procedureNamePattern);
+    patternCond(firstCondition, sb, "ROUTINE_NAME", procedureNamePattern);
 
     return executeQuery(sb.toString());
   }
@@ -2178,10 +2157,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
      */
     StringBuilder sb =
         new StringBuilder(
-            "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME PROCEDURE_NAME,"
-                + " PARAMETER_NAME COLUMN_NAME, "
-                + " CASE PARAMETER_MODE "
-                + "  WHEN 'IN' THEN "
+            "SELECT SPECIFIC_SCHEMA PROCEDURE_CAT, NULL PROCEDURE_SCHEM, SPECIFIC_NAME"
+                + " PROCEDURE_NAME, PARAMETER_NAME COLUMN_NAME,  CASE PARAMETER_MODE   WHEN 'IN'"
+                + " THEN "
                 + procedureColumnIn
                 + "  WHEN 'OUT' THEN "
                 + procedureColumnOut
@@ -2230,15 +2208,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 + " END `SCALE`,"
                 + "10 RADIX,"
                 + procedureNullableUnknown
-                + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0 SQL_DATETIME_SUB,"
-                + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                + " FROM INFORMATION_SCHEMA.PARAMETERS");
+                + " NULLABLE,NULL REMARKS,NULL COLUMN_DEF,0 SQL_DATA_TYPE,0"
+                + " SQL_DATETIME_SUB,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, ''"
+                + " IS_NULLABLE, SPECIFIC_NAME  FROM INFORMATION_SCHEMA.PARAMETERS");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schemaPattern;
     boolean firstCondition =
         databaseCond(
             true, sb, "SPECIFIC_SCHEMA", database, conf.useCatalogTerm() == CatalogTerm.UseCatalog);
     firstCondition = patternCond(firstCondition, sb, "SPECIFIC_NAME", procedureNamePattern);
-    firstCondition = patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
+    patternCond(firstCondition, sb, "PARAMETER_NAME", columnNamePattern);
     sb.append(" ORDER BY SPECIFIC_SCHEMA, SPECIFIC_NAME, ORDINAL_POSITION");
 
     return executeQuery(sb.toString());
@@ -2351,14 +2329,15 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + functionColumnInOut
                     + "  ELSE "
                     + functionReturn
-                    + " END COLUMN_TYPE,"
-                    + dataTypeClause("DTD_IDENTIFIER")
-                    + " DATA_TYPE,"
-                    + "DATA_TYPE TYPE_NAME,NUMERIC_PRECISION `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
+                    + " END COLUMN_TYPE,")
+            .append(dataTypeClause("DTD_IDENTIFIER"))
+            .append(
+                " DATA_TYPE,DATA_TYPE TYPE_NAME,NUMERIC_PRECISION"
+                    + " `PRECISION`,CHARACTER_MAXIMUM_LENGTH LENGTH,NUMERIC_SCALE SCALE,10 RADIX,"
                     + procedureNullableUnknown
-                    + " NULLABLE,NULL REMARKS,"
-                    + "CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME "
-                    + " FROM INFORMATION_SCHEMA.PARAMETERS");
+                    + " NULLABLE,NULL REMARKS,CHARACTER_OCTET_LENGTH CHAR_OCTET_LENGTH"
+                    + " ,ORDINAL_POSITION, '' IS_NULLABLE, SPECIFIC_NAME  FROM"
+                    + " INFORMATION_SCHEMA.PARAMETERS");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schemaPattern;
     boolean firstCondition =
         databaseCond(
@@ -2374,7 +2353,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getSchemas() throws SQLException {
     if (conf.useCatalogTerm() == CatalogTerm.UseSchema) {
       return executeQuery(
-          "SELECT SCHEMA_NAME as TABLE_SCHEM, CATALOG_NAME as TABLE_CATALOG FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME");
+          "SELECT SCHEMA_NAME as TABLE_SCHEM, CATALOG_NAME as TABLE_CATALOG FROM"
+              + " information_schema.SCHEMATA ORDER BY SCHEMA_NAME");
     }
     return executeQuery("SELECT '' TABLE_SCHEM, '' TABLE_CATALOG  FROM DUAL WHERE 1=0");
   }
@@ -2383,8 +2363,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     if (conf.useCatalogTerm() == CatalogTerm.UseSchema) {
       StringBuilder sb =
           new StringBuilder(
-              "SELECT SCHEMA_NAME as TABLE_SCHEM, CATALOG_NAME as TABLE_CATALOG FROM information_schema.SCHEMATA ");
-      boolean firstCondition = databaseCond(true, sb, "SCHEMA_NAME", schemaPattern, true);
+              "SELECT SCHEMA_NAME as TABLE_SCHEM, CATALOG_NAME as TABLE_CATALOG FROM"
+                  + " information_schema.SCHEMATA ");
+      databaseCond(true, sb, "SCHEMA_NAME", schemaPattern, true);
       sb.append(" ORDER BY SCHEMA_NAME");
       return executeQuery(sb.toString());
     }
@@ -2401,7 +2382,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
+        "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW'"
+            + " TABLE_TYPE");
   }
 
   /**
@@ -2518,7 +2500,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     boolean firstCondition =
         databaseCond(
             true, sb, "TABLE_SCHEMA", database, conf.useCatalogTerm() == CatalogTerm.UseSchema);
-    firstCondition = patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
+    patternCond(firstCondition, sb, "TABLE_NAME", tableNamePattern);
     sb.append(" ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ");
 
     return executeQuery(sb.toString());
@@ -2673,23 +2655,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     ? "KCU.TABLE_SCHEMA FKTABLE_CAT, NULL FKTABLE_SCHEM"
                     : "KCU.TABLE_CATALOG FKTABLE_CAT, KCU.TABLE_SCHEMA FKTABLE_SCHEM")
             .append(
-                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME, KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ,"
-                    + " CASE update_rule "
-                    + "   WHEN 'RESTRICT' THEN 1"
-                    + "   WHEN 'NO ACTION' THEN 3"
-                    + "   WHEN 'CASCADE' THEN 0"
-                    + "   WHEN 'SET NULL' THEN 2"
-                    + "   WHEN 'SET DEFAULT' THEN 4"
-                    + " END UPDATE_RULE,"
-                    + " CASE DELETE_RULE"
-                    + "  WHEN 'RESTRICT' THEN 1"
-                    + "  WHEN 'NO ACTION' THEN 3"
-                    + "  WHEN 'CASCADE' THEN 0"
-                    + "  WHEN 'SET NULL' THEN 2"
-                    + "  WHEN 'SET DEFAULT' THEN 4"
-                    + " END DELETE_RULE,"
-                    + " RC.CONSTRAINT_NAME FK_NAME,"
-                    + " RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
+                ", KCU.TABLE_NAME FKTABLE_NAME, KCU.COLUMN_NAME FKCOLUMN_NAME,"
+                    + " KCU.POSITION_IN_UNIQUE_CONSTRAINT KEY_SEQ, CASE update_rule    WHEN"
+                    + " 'RESTRICT' THEN 1   WHEN 'NO ACTION' THEN 3   WHEN 'CASCADE' THEN 0   WHEN"
+                    + " 'SET NULL' THEN 2   WHEN 'SET DEFAULT' THEN 4 END UPDATE_RULE, CASE"
+                    + " DELETE_RULE  WHEN 'RESTRICT' THEN 1  WHEN 'NO ACTION' THEN 3  WHEN"
+                    + " 'CASCADE' THEN 0  WHEN 'SET NULL' THEN 2  WHEN 'SET DEFAULT' THEN 4 END"
+                    + " DELETE_RULE, RC.CONSTRAINT_NAME FK_NAME, RC.UNIQUE_CONSTRAINT_NAME PK_NAME,"
                     + importedKeyNotDeferrable
                     + " DEFERRABILITY "
                     + "FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
@@ -2704,7 +2676,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         databaseCond(true, sb, "KCU.REFERENCED_TABLE_SCHEMA", parentDatabase, false);
     firstCondition = databaseCond(firstCondition, sb, "KCU.TABLE_SCHEMA", foreignDatabase, false);
     firstCondition = patternCond(firstCondition, sb, "KCU.REFERENCED_TABLE_NAME", parentTable);
-    firstCondition = patternCond(firstCondition, sb, "KCU.TABLE_NAME", foreignTable);
+    patternCond(firstCondition, sb, "KCU.TABLE_NAME", foreignTable);
     sb.append("ORDER BY FKTABLE_CAT, FKTABLE_SCHEM, FKTABLE_NAME, KEY_SEQ");
 
     return executeQuery(sb.toString());
@@ -3649,8 +3621,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       String catalog, String schemaPattern, String typeNamePattern, int[] types)
       throws SQLException {
     String sql =
-        "SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
-            + " FROM DUAL WHERE 1=0";
+        "SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' '"
+            + " REMARKS, 0 BASE_TYPE FROM DUAL WHERE 1=0";
 
     return executeQuery(sql);
   }
@@ -3712,8 +3684,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern)
       throws SQLException {
     String sql =
-        "SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' ' SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME"
-            + " FROM DUAL WHERE 1=0";
+        "SELECT  ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' SUPERTYPE_CAT, ' '"
+            + " SUPERTYPE_SCHEM, ' '  SUPERTYPE_NAME FROM DUAL WHERE 1=0";
 
     return executeQuery(sql);
   }
@@ -3752,7 +3724,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   public ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern)
       throws SQLException {
     String sql =
-        "SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL WHERE 1=0";
+        "SELECT  ' ' TABLE_CAT, ' ' TABLE_SCHEM, ' ' TABLE_NAME, ' ' SUPERTABLE_NAME FROM DUAL"
+            + " WHERE 1=0";
     return executeQuery(sql);
   }
 
@@ -3829,13 +3802,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       throws SQLException {
 
     String sql =
-        "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
-            + " ' ' ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE,"
-            + " ' ' REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH,"
-            + " 0 ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' ' SCOPE_TABLE,"
-            + " 0 SOURCE_DATA_TYPE"
-            + " FROM DUAL "
-            + " WHERE 1=0";
+        "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE, ' '"
+            + " ATTR_TYPE_NAME, 0 ATTR_SIZE, 0 DECIMAL_DIGITS, 0 NUM_PREC_RADIX, 0 NULLABLE, ' '"
+            + " REMARKS, ' ' ATTR_DEF,  0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB, 0 CHAR_OCTET_LENGTH, 0"
+            + " ORDINAL_POSITION, ' ' IS_NULLABLE, ' ' SCOPE_CATALOG, ' ' SCOPE_SCHEMA, ' '"
+            + " SCOPE_TABLE, 0 SOURCE_DATA_TYPE FROM DUAL  WHERE 1=0";
 
     return executeQuery(sql);
   }
@@ -3926,8 +3897,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             "ClientUser",
             "16777215",
             "",
-            "The name of the user that the application using the connection is performing work for. "
-                + "This may not be the same as the user name that was used in establishing the connection."
+            "The name of the user that the application using the connection is performing work for."
+                + " This may not be the same as the user name that was used in establishing the"
+                + " connection."
           },
           new String[] {
             "ClientHostname",

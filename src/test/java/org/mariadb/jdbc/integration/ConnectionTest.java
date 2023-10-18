@@ -126,7 +126,8 @@ public class ConnectionTest extends Common {
   public void nativeSQL() throws SQLException {
     String[] inputs =
         new String[] {
-          "select {fn TIMESTAMPDIFF ( SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}, {fn TIMESTAMPDIFF (HOUR, {fn convert  ('sQL_'   , SQL_INTEGER)})}",
+          "select {fn TIMESTAMPDIFF ( SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}, {fn"
+              + " TIMESTAMPDIFF (HOUR, {fn convert  ('sQL_'   , SQL_INTEGER)})}",
           "{call foo({fn now()})} //end",
           "{call foo({fn '{' now()} /* {test}# \"'\" */) \"\\\"'#\" '\"\\''} #{test2}",
           "{  call foo({fn now()})}",
@@ -150,7 +151,8 @@ public class ConnectionTest extends Common {
         };
     String[] outputs =
         new String[] {
-          "select TIMESTAMPDIFF ( HOUR, convert('SQL_', INTEGER)), TIMESTAMPDIFF (HOUR, convert  ('sQL_'   , INTEGER))",
+          "select TIMESTAMPDIFF ( HOUR, convert('SQL_', INTEGER)), TIMESTAMPDIFF (HOUR, convert "
+              + " ('sQL_'   , INTEGER))",
           "call foo(now()) //end",
           "call foo('{' now() /* {test}# \"'\" */) \"\\\"'#\" '\"\\'' #{test2}",
           "call foo(now())",
@@ -176,9 +178,11 @@ public class ConnectionTest extends Common {
       assertEquals(outputs[i], sharedConn.nativeSQL(inputs[i]));
     }
     assertEquals(
-        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')",
+        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\":"
+            + " \"test\"}')",
         sharedConn.nativeSQL(
-            "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')"));
+            "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\":"
+                + " \"test\"}')"));
 
     try {
       sharedConn.nativeSQL("{call foo({fn now())}");
@@ -321,7 +325,8 @@ public class ConnectionTest extends Common {
             + "     json_value  MEDIUMTEXT CHARACTER SET utf8mb4 NOT NULL, "
             + "    PRIMARY KEY ( id ))");
     stmt.execute(
-        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\": \"test\"}')");
+        "INSERT INTO TEST_SYNTAX_ERROR(str_value, json_value) VALUES ('abc\\\\', '{\"data\":"
+            + " \"test\"}')");
   }
 
   @Test
@@ -462,7 +467,8 @@ public class ConnectionTest extends Common {
           SQLException.class,
           () ->
               stmt.executeQuery(
-                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2"));
+                  "select * from information_schema.columns as c1,  information_schema.tables,"
+                      + " information_schema.tables as t2"));
     }
   }
 
@@ -499,7 +505,8 @@ public class ConnectionTest extends Common {
         Statement attributeStatement = connection.createStatement();
         ResultSet result =
             attributeStatement.executeQuery(
-                "select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
+                "select * from performance_schema.session_connect_attrs where"
+                    + " ATTR_NAME='_server_host' and processlist_id = connection_id()");
         while (result.next()) {
           String strVal = result.getString("ATTR_VALUE");
           assertEquals(Configuration.parse(mDefUrl).addresses().get(0).host, strVal);
@@ -890,8 +897,8 @@ public class ConnectionTest extends Common {
             () -> {
               exec.execute(new StatementTest.CancelThread(stmt));
               stmt.execute(
-                  "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
-                      + ".tables as t2");
+                  "select * from information_schema.columns as c1,  information_schema.tables,"
+                      + " information_schema.tables as t2");
               exec.shutdown();
             },
             "Query execution was interrupted");
@@ -1128,8 +1135,8 @@ public class ConnectionTest extends Common {
       try {
         stmt.execute("CREATE TABLE tx_prim_key(id int not null primary key) engine=innodb");
         stmt.execute(
-            "CREATE TABLE tx_fore_key (id int not null primary key, id_ref int not null, "
-                + "foreign key (id_ref) references tx_prim_key(id) on delete restrict on update restrict) "
+            "CREATE TABLE tx_fore_key (id int not null primary key, id_ref int not null, foreign"
+                + " key (id_ref) references tx_prim_key(id) on delete restrict on update restrict) "
                 + "engine=innodb");
         stmt.executeUpdate("insert into tx_prim_key(id) values(32)");
         stmt.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");

@@ -78,14 +78,16 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3 MultiLineString, t4 MultiLineString)");
+        "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3"
+            + " MultiLineString, t4 MultiLineString)");
     stmt.execute(
-        "INSERT INTO MultiLineStringCodec VALUES "
-            + "(ST_MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6 9,9 3,7 2))'), "
-            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20))'), "
-            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'), null)");
+        "INSERT INTO MultiLineStringCodec VALUES (ST_MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6"
+            + " 9,9 3,7 2))'), ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20"
+            + " 10,20 20,10 20))'), ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'),"
+            + " null)");
     stmt.execute(
-        "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
+        "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1"
+            + " MultiLineString)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -98,7 +100,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiLineStringCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiLineStringCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -109,8 +112,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiLineStringCodec"
-                + " WHERE 1 > ?");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiLineStringCodec WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();

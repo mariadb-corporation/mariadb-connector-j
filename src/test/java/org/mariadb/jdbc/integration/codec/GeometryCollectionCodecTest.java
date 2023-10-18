@@ -104,15 +104,18 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE GeometryCollectionCodec (t1 GeometryCollection, t2 GeometryCollection, t3 GeometryCollection, t4 GeometryCollection)");
+        "CREATE TABLE GeometryCollectionCodec (t1 GeometryCollection, t2 GeometryCollection, t3"
+            + " GeometryCollection, t4 GeometryCollection)");
     stmt.execute(
-        "INSERT INTO GeometryCollectionCodec VALUES "
-            + "(ST_GeomFromText('GeometryCollection(POINT (0 0), LINESTRING(10 10,20 10,20 20,10 20,10 10))'), "
-            + "ST_GeomFromText('GeometryCollection(POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)), MULTIPOINT(0 0,0 10,10 0))'), "
-            + "ST_GeomFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), "
-            + "null)");
+        "INSERT INTO GeometryCollectionCodec VALUES (ST_GeomFromText('GeometryCollection(POINT (0"
+            + " 0), LINESTRING(10 10,20 10,20 20,10 20,10 10))'),"
+            + " ST_GeomFromText('GeometryCollection(POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20"
+            + " 10,20 20,10 20,10 10)), MULTIPOINT(0 0,0 10,10 0))'),"
+            + " ST_GeomFromText('GeometryCollection(MULTILINESTRING((0 0,50 0,50 50,0 50), (10"
+            + " 10,20 10,20 20,10 20)), MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1))))'), null)");
     stmt.execute(
-        "CREATE TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1 GeometryCollection)");
+        "CREATE TABLE GeometryCollectionCodec2 (id int not null primary key auto_increment, t1"
+            + " GeometryCollection)");
     stmt.execute("FLUSH TABLES");
     String binUrl =
         mDefUrl + (mDefUrl.indexOf("?") > 0 ? "&" : "?") + "geometryDefaultType=default";
@@ -132,7 +135,8 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from GeometryCollectionCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " GeometryCollectionCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -143,8 +147,8 @@ public class GeometryCollectionCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from GeometryCollectionCodec"
-                + " WHERE 1 > ?");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " GeometryCollectionCodec WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();

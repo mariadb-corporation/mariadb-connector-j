@@ -121,14 +121,17 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4 MultiPolygon)");
+        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4"
+            + " MultiPolygon)");
     stmt.execute(
-        "INSERT INTO MultiPolygonCodec VALUES "
-            + "(ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), "
-            + "ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
-            + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null)");
+        "INSERT INTO MultiPolygonCodec VALUES (ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9"
+            + " 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'),"
+            + " ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'),"
+            + " ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10"
+            + " 20,10 10)))'), null)");
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
+        "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1"
+            + " MultiPolygon)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -167,7 +170,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiPolygonCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -178,8 +182,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec"
-                + " WHERE 1 > ?");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiPolygonCodec WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();

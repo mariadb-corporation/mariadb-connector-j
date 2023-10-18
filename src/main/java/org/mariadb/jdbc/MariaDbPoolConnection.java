@@ -27,6 +27,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
    *
    * @param connection connection to retrieve connection options
    */
+  @SuppressWarnings({"this-escape"})
   public MariaDbPoolConnection(Connection connection) {
     this.connection = connection;
     this.connection.setPoolConnection(this);
@@ -231,8 +232,7 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
 
     @Override
     public boolean isSameRM(XAResource xaResource) {
-      if (xaResource instanceof MariaDbXAResource) {
-        MariaDbXAResource other = (MariaDbXAResource) xaResource;
+      if (xaResource instanceof MariaDbXAResource other) {
         return other.getConf().equals(this.getConf());
       }
       return false;

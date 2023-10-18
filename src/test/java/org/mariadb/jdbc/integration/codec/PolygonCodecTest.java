@@ -92,10 +92,9 @@ public class PolygonCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon)");
     stmt.execute(
-        "INSERT INTO PolygonCodec VALUES "
-            + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
+        "INSERT INTO PolygonCodec VALUES (ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1"
+            + " 1))'), ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10"
+            + " 20,10 10))'), ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
     stmt.execute(
         "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");

@@ -34,8 +34,8 @@ public class SmallIntCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE SmallIntCodec2 (id int not null primary key auto_increment, t1 SMALLINT)");
     stmt.execute(
-        "CREATE TABLE SmallIntCodecUnsigned (t1 SMALLINT UNSIGNED, t2 SMALLINT UNSIGNED, t3 SMALLINT UNSIGNED, t4 SMALLINT "
-            + "UNSIGNED)");
+        "CREATE TABLE SmallIntCodecUnsigned (t1 SMALLINT UNSIGNED, t2 SMALLINT UNSIGNED, t3"
+            + " SMALLINT UNSIGNED, t4 SMALLINT UNSIGNED)");
     stmt.execute("INSERT INTO SmallIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO SmallIntCodecUnsigned VALUES (0, 1, 65535, null)");
     stmt.execute("FLUSH TABLES");
@@ -96,7 +96,7 @@ public class SmallIntCodecTest extends CommonCodecTest {
   }
 
   private void getObject(ResultSet rs) throws SQLException {
-    Object o = rs.getObject(1);
+    rs.getObject(1);
     assertEquals(Short.valueOf("0"), rs.getObject(1));
     assertFalse(rs.wasNull());
     assertEquals(Short.valueOf("1"), rs.getObject(2));

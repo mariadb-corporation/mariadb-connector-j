@@ -91,6 +91,7 @@ public class MultiQueriesTest extends Common {
   }
 
   @Test
+  @SuppressWarnings("try")
   public void quitWhileStreaming() throws SQLException {
     // XPAND doesn't support DO command
     Assumptions.assumeFalse(isXpand());
@@ -99,7 +100,8 @@ public class MultiQueriesTest extends Common {
     Statement stmt = connection.createStatement();
     stmt.setFetchSize(1);
     stmt.executeQuery(
-        "DO 2;SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest; DO 1; SELECT 2");
+        "DO 2;SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest; DO 1; SELECT"
+            + " 2");
     connection.abort(Runnable::run);
 
     connection = createCon("&allowMultiQueries=true");

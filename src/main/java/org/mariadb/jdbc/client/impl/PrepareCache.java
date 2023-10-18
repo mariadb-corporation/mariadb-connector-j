@@ -20,7 +20,7 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
   private final int maxSize;
 
   /** client */
-  private final StandardClient con;
+  private final transient StandardClient con;
 
   /**
    * LRU prepare cache constructor

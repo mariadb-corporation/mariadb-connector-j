@@ -10,6 +10,7 @@ import java.sql.*;
 import java.util.Locale;
 import org.junit.jupiter.api.*;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class LocalInfileTest extends Common {
   @BeforeAll
   public static void beforeAll2() throws SQLException {
@@ -21,9 +22,11 @@ public class LocalInfileTest extends Common {
     stmt.execute("CREATE TABLE ttlocal(id int, test varchar(100))");
     stmt.execute("CREATE TABLE ldinfile(a varchar(10))");
     stmt.execute(
-        "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1");
+        "CREATE TABLE `infile`(`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL)"
+            + " ENGINE=InnoDB DEFAULT CHARSET=latin1");
     stmt.execute(
-        "CREATE TABLE big_load_data_infile(id int not null primary key auto_increment, name char(20)) ENGINE=myisam");
+        "CREATE TABLE big_load_data_infile(id int not null primary key auto_increment, name"
+            + " char(20)) ENGINE=myisam");
     stmt.execute("FLUSH TABLES");
   }
 
@@ -73,7 +76,7 @@ public class LocalInfileTest extends Common {
   }
 
   @Test
-  public void streamInBatch() throws SQLException, IOException {
+  public void streamInBatch() throws SQLException {
     Assumptions.assumeFalse((!isMariaDBServer() && minVersion(8, 0, 3)));
     Assumptions.assumeTrue(
         !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
@@ -97,7 +100,8 @@ public class LocalInfileTest extends Common {
 
     try (PreparedStatement prep =
         sharedConn.prepareStatement(
-            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                + " test)")) {
       inputStream = new ByteArrayInputStream(builder.getBytes());
       ((org.mariadb.jdbc.Statement) prep).setLocalInfileInputStream(inputStream);
       prep.addBatch();
@@ -111,7 +115,8 @@ public class LocalInfileTest extends Common {
     }
     try (PreparedStatement prep =
         sharedConnBinary.prepareStatement(
-            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+            "LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                + " test)")) {
       inputStream = new ByteArrayInputStream(builder.getBytes());
       ((org.mariadb.jdbc.Statement) prep).setLocalInfileInputStream(inputStream);
       prep.addBatch();
@@ -142,8 +147,10 @@ public class LocalInfileTest extends Common {
           SQLException.class,
           () ->
               stmt.execute(
-                  "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
-          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
+                  "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                      + " test)"),
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile"
+              + " commands");
       stmt.addBatch(
           "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
       stmt.addBatch("SET UNIQUE_CHECKS=1");
@@ -156,7 +163,8 @@ public class LocalInfileTest extends Common {
         assertTrue(
             e.getMessage()
                 .contains(
-                    "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands"));
+                    "Local infile is disabled by connector. Enable `allowLocalInfile` to allow"
+                        + " local infile commands"));
         assertNotNull(e.getCause());
         assertEquals(e.getCause().getMessage(), e.getMessage());
         assertEquals(((SQLException) e.getCause()).getSQLState(), e.getSQLState());
@@ -170,7 +178,8 @@ public class LocalInfileTest extends Common {
         Common.assertThrowsContains(
             SQLException.class,
             prep::execute,
-            "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands");
+            "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile"
+                + " commands");
       }
     }
   }
@@ -187,7 +196,8 @@ public class LocalInfileTest extends Common {
           SQLException.class,
           () ->
               stmt.execute(
-                  "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id, test)"),
+                  "LOAD DATA LOCAL INFILE 'someFile' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                      + " test)"),
           "Could not send file : someFile");
       assertTrue(con.isValid(1));
     }
@@ -350,13 +360,15 @@ public class LocalInfileTest extends Common {
       }
       try (PreparedStatement prep =
           con.prepareStatement(
-              "/* test */ LOAD  DATA LOCAL INFILE 'j' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+              "/* test */ LOAD  DATA LOCAL INFILE 'j' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                  + " test)")) {
         assertThrowsContains(SQLException.class, () -> prep.execute(), "Could not send file : j");
       }
       // special test comment inside LOAD DATA LOCAL are not checked, resulting in error
       try (PreparedStatement prep =
           con.prepareStatement(
-              "LOAD /**g*/ DATA LOCAL INFILE 'h' INTO TABLE LocalInfileInputStreamTest2 (id, test)")) {
+              "LOAD /**g*/ DATA LOCAL INFILE 'h' INTO TABLE LocalInfileInputStreamTest2 (id,"
+                  + " test)")) {
         assertThrowsContains(
             SQLException.class,
             () -> prep.execute(),

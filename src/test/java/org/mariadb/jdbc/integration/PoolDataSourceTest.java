@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.lang.management.ManagementFactory;
 import java.sql.*;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -50,7 +49,8 @@ public class PoolDataSourceTest extends Common {
       stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'poolUser'@'%'");
     }
     stmt.execute(
-        "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test varchar(20))");
+        "CREATE TABLE testResetRollback(id int not null primary key auto_increment, test"
+            + " varchar(20))");
     stmt.execute("FLUSH TABLES");
     stmt.execute("FLUSH PRIVILEGES");
   }
@@ -117,17 +117,20 @@ public class PoolDataSourceTest extends Common {
     try {
       con1 = ds.getPooledConnection();
       con2 = ds.getPooledConnection();
-
-      ResultSet rs1 = con1.getConnection().createStatement().executeQuery("SELECT 1");
-      ResultSet rs2 = con2.getConnection().createStatement().executeQuery("SELECT 2");
-      while (rs1.next()) {
-        assertEquals(1, rs1.getInt(1));
-      }
-      while (rs2.next()) {
-        assertEquals(2, rs2.getInt(1));
+      try (Statement st1 = con1.getConnection().createStatement()) {
+        try (Statement st2 = con2.getConnection().createStatement()) {
+          ResultSet rs1 = st1.executeQuery("SELECT 1");
+          ResultSet rs2 = st2.executeQuery("SELECT 2");
+          while (rs1.next()) {
+            assertEquals(1, rs1.getInt(1));
+          }
+          while (rs2.next()) {
+            assertEquals(2, rs2.getInt(1));
+          }
+        }
       }
       long threadId = ((org.mariadb.jdbc.Connection) con2.getConnection()).getThreadId();
-      if (con2 != null) con2.getConnection().close();
+      con2.getConnection().close();
       con2 = ds.getPooledConnection();
       assertEquals(threadId, ((org.mariadb.jdbc.Connection) con2.getConnection()).getThreadId());
     } finally {
@@ -140,14 +143,17 @@ public class PoolDataSourceTest extends Common {
     try {
       conx1 = ds.getXAConnection();
       conx2 = ds.getXAConnection();
-
-      ResultSet rs1 = conx1.getConnection().createStatement().executeQuery("SELECT 1");
-      ResultSet rs2 = conx2.getConnection().createStatement().executeQuery("SELECT 2");
-      while (rs1.next()) {
-        assertEquals(1, rs1.getInt(1));
-      }
-      while (rs2.next()) {
-        assertEquals(2, rs2.getInt(1));
+      try (Statement st1 = conx1.getConnection().createStatement()) {
+        try (Statement st2 = conx2.getConnection().createStatement()) {
+          ResultSet rs1 = st1.executeQuery("SELECT 1");
+          ResultSet rs2 = st2.executeQuery("SELECT 2");
+          while (rs1.next()) {
+            assertEquals(1, rs1.getInt(1));
+          }
+          while (rs2.next()) {
+            assertEquals(2, rs2.getInt(1));
+          }
+        }
       }
 
     } finally {
@@ -168,19 +174,19 @@ public class PoolDataSourceTest extends Common {
     ds.setLoginTimeout(50);
     assertEquals(50, ds.getLoginTimeout());
 
-    assertThrows(SQLException.class, () -> ds.getConnection());
+    assertThrows(SQLException.class, ds::getConnection);
     assertThrows(SQLException.class, () -> ds.getConnection("user", "password"));
-    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+    assertThrows(SQLException.class, ds::getPooledConnection);
     assertThrows(SQLException.class, () -> ds.getPooledConnection("user", "password"));
-    assertThrows(SQLException.class, () -> ds.getXAConnection());
+    assertThrows(SQLException.class, ds::getXAConnection);
     assertThrows(SQLException.class, () -> ds.getXAConnection("user", "password"));
 
     ds.setUser("dd");
     assertEquals("dd", ds.getUser());
 
     ds.setPassword("pwd");
-    assertThrows(SQLException.class, () -> ds.getConnection());
-    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+    assertThrows(SQLException.class, ds::getConnection);
+    assertThrows(SQLException.class, ds::getPooledConnection);
 
     assertThrows(SQLException.class, () -> ds.setUrl("jdbc:wrong://d"));
 
@@ -487,7 +493,7 @@ public class PoolDataSourceTest extends Common {
       ObjectName name = objectNames.iterator().next();
       checkJmxInfo(server, name, 0, 3, 3);
 
-      List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
+      pool.testGetConnectionIdleThreadIds();
       Thread.sleep(200);
 
       // must still have 3 connections, but must be other ones
@@ -587,7 +593,6 @@ public class PoolDataSourceTest extends Common {
             new LinkedBlockingQueue<>(5000),
             new PoolThreadFactory("testPool"));
 
-    final long start = System.currentTimeMillis();
     Set<Integer> threadIds = new HashSet<>();
     for (int i = 0; i < 500; i++) {
       connectionAppender.execute(
@@ -659,7 +664,8 @@ public class PoolDataSourceTest extends Common {
         assertTrue(
             sqle.getMessage()
                 .contains(
-                    "No connection available within the specified time (option 'connectTimeout': 500 ms)"));
+                    "No connection available within the specified time (option 'connectTimeout':"
+                        + " 500 ms)"));
       }
     }
   }
@@ -689,7 +695,7 @@ public class PoolDataSourceTest extends Common {
     try (MariaDbPoolDataSource pool =
         new MariaDbPoolDataSource(
             mDefUrl + "&maxPoolSize=1&poolName=myPool&allowPublicKeyRetrieval")) {
-      long threadId = 0;
+      long threadId;
       try (Connection conn = pool.getConnection()) {
         conn.isValid(1);
         threadId = ((org.mariadb.jdbc.Connection) conn).getThreadId();
@@ -707,6 +713,7 @@ public class PoolDataSourceTest extends Common {
   }
 
   @Test
+  @SuppressWarnings("try")
   public void various() throws SQLException {
     Common.assertThrowsContains(
         SQLException.class,
@@ -733,6 +740,7 @@ public class PoolDataSourceTest extends Common {
   }
 
   @Test
+  @SuppressWarnings("try")
   public void pools() throws SQLException {
     // ensure all are closed
     Pools.close();

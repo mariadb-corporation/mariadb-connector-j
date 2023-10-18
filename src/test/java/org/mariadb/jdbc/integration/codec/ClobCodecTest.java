@@ -40,8 +40,8 @@ public class ClobCodecTest extends CommonCodecTest {
         "CREATE TABLE ClobCodec (t1 TINYTEXT, t2 TEXT, t3 MEDIUMTEXT, t4 LONGTEXT) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO ClobCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute(
         "CREATE TABLE ClobParamCodec(id int not null primary key auto_increment, t1 TEXT) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");

@@ -48,6 +48,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @param defaultFetchSize default fetch size
    * @throws SQLException if prepare fails
    */
+  @SuppressWarnings({"this-escape"})
   public ServerPreparedStatement(
       String sql,
       Connection con,

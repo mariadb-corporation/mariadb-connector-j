@@ -25,6 +25,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
    * @param resultSetConcurrency concurrency type
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public FunctionStatement(
       Connection con,
       String databaseName,

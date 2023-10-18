@@ -62,6 +62,7 @@ public class MultiPrimaryClient implements Client {
    * @param lock thread locker
    * @throws SQLException if fail to connect
    */
+  @SuppressWarnings({"this-escape"})
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
@@ -149,8 +150,7 @@ public class MultiPrimaryClient implements Client {
         }
       }
     }
-
-    throw lastSqle;
+    throw (lastSqle != null) ? lastSqle : new SQLNonTransientConnectionException("No host");
   }
 
   /**
@@ -198,7 +198,8 @@ public class MultiPrimaryClient implements Client {
           // changing exception to SQLTransientConnectionException
           throw new SQLTransientConnectionException(
               String.format(
-                  "Driver has reconnect connection after a communications link failure with %s. In progress transaction was lost",
+                  "Driver has reconnect connection after a communications link failure with %s. In"
+                      + " progress transaction was lost",
                   oldClient.getHostAddress()),
               "25S03");
         }
@@ -227,7 +228,8 @@ public class MultiPrimaryClient implements Client {
       ctx.getTransactionSaver().clear();
       throw new SQLTransientConnectionException(
           String.format(
-              "Driver has reconnect connection after a communications link failure with %s. In progress transaction was too big to be replayed, and was lost",
+              "Driver has reconnect connection after a communications link failure with %s. In"
+                  + " progress transaction was too big to be replayed, and was lost",
               oldCli.getHostAddress()),
           "25S03");
     }
@@ -275,8 +277,9 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
-        && currentClient.getContext().getTransactionIsolationLevel()
-            != oldCtx.getTransactionIsolationLevel()) {
+        && !oldCtx
+            .getTransactionIsolationLevel()
+            .equals(currentClient.getContext().getTransactionIsolationLevel())) {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (oldCtx.getTransactionIsolationLevel()) {
         case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -359,7 +362,8 @@ public class MultiPrimaryClient implements Client {
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
             String.format(
-                "Driver has reconnect connection after a communications failure with %s during a COMMIT statement",
+                "Driver has reconnect connection after a communications failure with %s during a"
+                    + " COMMIT statement",
                 hostAddress),
             "25S03");
       }

@@ -107,7 +107,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
         writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
         if (p.isNull()) {
-          nullBitsBuffer[i / 8] |= (1 << (i % 8));
+          nullBitsBuffer[i / 8] |= (byte) (1 << (i % 8));
         }
       }
 

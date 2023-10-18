@@ -51,14 +51,17 @@ public class DataSourceTest extends Common {
     try {
       con1 = ds.getPooledConnection();
       con2 = ds.getPooledConnection();
-
-      ResultSet rs1 = con1.getConnection().createStatement().executeQuery("SELECT 1");
-      ResultSet rs2 = con2.getConnection().createStatement().executeQuery("SELECT 2");
-      while (rs1.next()) {
-        assertEquals(1, rs1.getInt(1));
-      }
-      while (rs2.next()) {
-        assertEquals(2, rs2.getInt(1));
+      try (Statement stmt = con1.getConnection().createStatement()) {
+        ResultSet rs1 = stmt.executeQuery("SELECT 1");
+        try (Statement stmt2 = con2.getConnection().createStatement()) {
+          ResultSet rs2 = stmt2.executeQuery("SELECT 2");
+          while (rs1.next()) {
+            assertEquals(1, rs1.getInt(1));
+          }
+          while (rs2.next()) {
+            assertEquals(2, rs2.getInt(1));
+          }
+        }
       }
 
     } finally {
@@ -72,15 +75,18 @@ public class DataSourceTest extends Common {
       conx1 = ds.getXAConnection();
       conx2 = ds.getXAConnection();
 
-      ResultSet rs1 = conx1.getConnection().createStatement().executeQuery("SELECT 1");
-      ResultSet rs2 = conx2.getConnection().createStatement().executeQuery("SELECT 2");
-      while (rs1.next()) {
-        assertEquals(1, rs1.getInt(1));
+      try (Statement stmt = conx1.getConnection().createStatement()) {
+        ResultSet rs1 = stmt.executeQuery("SELECT 1");
+        try (Statement stmt2 = conx2.getConnection().createStatement()) {
+          ResultSet rs2 = stmt2.executeQuery("SELECT 2");
+          while (rs1.next()) {
+            assertEquals(1, rs1.getInt(1));
+          }
+          while (rs2.next()) {
+            assertEquals(2, rs2.getInt(1));
+          }
+        }
       }
-      while (rs2.next()) {
-        assertEquals(2, rs2.getInt(1));
-      }
-
     } finally {
       if (conx1 != null) con1.close();
       if (conx2 != null) con2.close();
@@ -99,19 +105,19 @@ public class DataSourceTest extends Common {
     ds.setLoginTimeout(50);
     assertEquals(50, ds.getLoginTimeout());
 
-    assertThrows(SQLException.class, () -> ds.getConnection());
+    assertThrows(SQLException.class, ds::getConnection);
     assertThrows(SQLException.class, () -> ds.getConnection("user", "password"));
-    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+    assertThrows(SQLException.class, ds::getPooledConnection);
     assertThrows(SQLException.class, () -> ds.getPooledConnection("user", "password"));
-    assertThrows(SQLException.class, () -> ds.getXAConnection());
+    assertThrows(SQLException.class, ds::getXAConnection);
     assertThrows(SQLException.class, () -> ds.getXAConnection("user", "password"));
 
     ds.setUser("dd");
     assertEquals("dd", ds.getUser());
 
     ds.setPassword("pwd");
-    assertThrows(SQLException.class, () -> ds.getConnection());
-    assertThrows(SQLException.class, () -> ds.getPooledConnection());
+    assertThrows(SQLException.class, ds::getConnection);
+    assertThrows(SQLException.class, ds::getPooledConnection);
 
     assertThrows(SQLException.class, () -> ds.setUrl("jdbc:wrong://d"));
 
@@ -140,7 +146,8 @@ public class DataSourceTest extends Common {
         stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       } else {
         stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
+            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY"
+                + " 'MySup8%rPassw@ord'");
         stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       }
     } else {

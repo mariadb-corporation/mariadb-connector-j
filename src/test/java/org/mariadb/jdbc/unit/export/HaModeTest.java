@@ -1,7 +1,6 @@
-//  SPDX-License-Identifier: LGPL-2.1-or-later
-//  Copyright (c) 2012-2014 Monty Program Ab
-//  Copyright (c) 2023 MariaDB Corporation Ab
-
+// SPDX-License-Identifier: LGPL-2.1-or-later
+// Copyright (c) 2012-2014 Monty Program Ab
+// Copyright (c) 2015-2023 MariaDB Corporation Ab
 package org.mariadb.jdbc.unit.export;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,14 +32,16 @@ public class HaModeTest {
     ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
     HostCounter hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, true).get(), false);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, true);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), false);
     }
     assertEquals("prim1:34,prim2:33,prim3:33", hostCounter.results());
 
     haMode.resetLast();
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, false).get(), false);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, false);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), false);
     }
     assertEquals("slave1:34,slave2:33,slave3:33", hostCounter.results());
 
@@ -50,7 +51,8 @@ public class HaModeTest {
 
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, true).get(), false);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, true);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), false);
     }
     assertEquals("prim1:50,prim3:50", hostCounter.results());
 
@@ -60,7 +62,8 @@ public class HaModeTest {
     denyList.put(hostAddresses.get(4), System.currentTimeMillis() + 1000);
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, false).get(), false);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, false);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), false);
     }
     assertEquals("slave1:50,slave3:50", hostCounter.results());
   }
@@ -96,7 +99,8 @@ public class HaModeTest {
     ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
     HostCounter hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, true).get(), true);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, true);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), true);
     }
     assertEquals("prim2:25,prim3:75", hostCounter.results());
 
@@ -105,7 +109,8 @@ public class HaModeTest {
     host3.setThreadsConnected(100);
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, true).get(), true);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, true);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), true);
     }
     assertEquals("prim1:34,prim2:33,prim3:33", hostCounter.results());
 
@@ -114,7 +119,8 @@ public class HaModeTest {
     slave3.setThreadsConnected(100);
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, false).get(), true);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, false);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), true);
     }
     assertEquals("slave2:25,slave3:75", hostCounter.results());
 
@@ -125,7 +131,8 @@ public class HaModeTest {
     host3.setThreadsConnected(100);
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, true).get(), true);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, true);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), true);
     }
     assertEquals("prim1:25,prim3:75", hostCounter.results());
 
@@ -137,12 +144,13 @@ public class HaModeTest {
     slave3.setThreadsConnected(100);
     hostCounter = new HostCounter();
     for (int i = 0; i < 100; i++) {
-      hostCounter.add(haMode.getAvailableHost(hostAddresses, denyList, false).get(), true);
+      Optional<HostAddress> availHost = haMode.getAvailableHost(hostAddresses, denyList, false);
+      if (availHost.isPresent()) hostCounter.add(availHost.get(), true);
     }
     assertEquals("slave1:25,slave3:75", hostCounter.results());
   }
 
-  private class HostCounter {
+  private static class HostCounter {
     Map<HostAddress, Integer> hosts = new HashMap<>();
 
     public void add(HostAddress hostAddress, boolean increment) {

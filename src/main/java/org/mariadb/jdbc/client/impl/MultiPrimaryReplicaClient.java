@@ -46,6 +46,7 @@ public class MultiPrimaryReplicaClient extends MultiPrimaryClient {
    * @param lock thread locker
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public MultiPrimaryReplicaClient(Configuration conf, ReentrantLock lock) throws SQLException {
     super(conf, lock);
     primaryClient = currentClient;

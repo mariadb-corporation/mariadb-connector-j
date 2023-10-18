@@ -34,11 +34,12 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE VarbinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4 VARBINARY(20))");
+        "CREATE TABLE VarbinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4"
+            + " VARBINARY(20))");
     stmt.execute("CREATE TABLE VarbinaryCodec2 (t1 VARBINARY(20))");
     stmt.execute(
-        "INSERT INTO VarbinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO VarbinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010', null)");
   }
 
   private ResultSet get() throws SQLException {
@@ -47,7 +48,8 @@ public class VarbinaryCodecTest extends CommonCodecTest {
     stmt.closeOnCompletion();
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from VarbinaryCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " VarbinaryCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;

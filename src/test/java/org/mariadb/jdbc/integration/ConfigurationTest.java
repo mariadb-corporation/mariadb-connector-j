@@ -15,7 +15,8 @@ public class ConfigurationTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE testSessionVariable(id int not null primary key auto_increment, test varchar(10))");
+        "CREATE TABLE testSessionVariable(id int not null primary key auto_increment, test"
+            + " varchar(10))");
     stmt.execute("FLUSH TABLES");
   }
 

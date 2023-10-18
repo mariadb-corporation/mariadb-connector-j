@@ -87,9 +87,9 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.0...3.1.1)
 
 - 3.0.10 bug fix:
-  - CONJ-1023 Connector/J doesn't set SSL cap bit in Handshake Response Packet
-  - CONJ-1026 timezone=auto option failure on non-fixed-offset zone machine
-  - CONJ-1032 Compatibility for deprecated arguments is case sensitive now
+    - CONJ-1023 Connector/J doesn't set SSL cap bit in Handshake Response Packet
+    - CONJ-1026 timezone=auto option failure on non-fixed-offset zone machine
+    - CONJ-1032 Compatibility for deprecated arguments is case sensitive now
 - CONJ-1036 org.mariadb.jdbc.client.socket.impl.PacketWriter.writeAscii() broken in 3.1.0
 
 ## [3.0.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.0.10) (Jan 2023)
@@ -144,7 +144,7 @@
 ##### Notable Changes
 
 * small performance improvement
-  * [CONJ-1010] improve client side prepared parameter parameter substitution
+    * [CONJ-1010] improve client side prepared parameter parameter substitution
 
 ##### Bugs Fixed
 
@@ -250,7 +250,7 @@
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.0.1-beta...3.0.2-rc)
 
 * CONJ-879 Java 9 module full support
-  * Aws IAM credential now use sdk v2 authentication that support java 9 modularity
+    * Aws IAM credential now use sdk v2 authentication that support java 9 modularity
 * CONJ-896 Ensure pool connections validation when a socket fail
 * CONJ-897 Ensure having connection's thread id in Exception / debug logs
 
@@ -288,12 +288,12 @@ This version is a total rewrite of java driver.
 
 * complete rewrite, code clarification, reduced size (15%), more than 90% coverage tested.
 * Encoding/decoding implementation are now registred by Codec, permitting codec registry implementation
-  * example support of Geometry Object
+    * example support of Geometry Object
 * Permit authentication plugin restriction by option `restrictedAuth`
 * performance improvement:
-  * Prepare and execution are now using pipelining when using option `useServerPrepStmts`
-  * performance enhancement with MariaDB 10.6 server when using option `useServerPrepStmts`, skipping metadata (
-    see https://jira.mariadb.org/browse/MDEV-19237)
+    * Prepare and execution are now using pipelining when using option `useServerPrepStmts`
+    * performance enhancement with MariaDB 10.6 server when using option `useServerPrepStmts`, skipping metadata (
+      see https://jira.mariadb.org/browse/MDEV-19237)
 
 correction:
 
@@ -1193,10 +1193,10 @@ Different performance improvement have been done :
   up to 7% of query time, reduced to 3%.
 * Better UTF-8 decoding avoiding memory consumption and gain 1-2% query time for big String.
 * client parsing optimization : rewriteBatchedStatements (insert into ab (i) values (1) and insert into ab (i) values (
-  2) rewritten as insert into ab (i) values (1), (2))
-     is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to
-     contain
-     query).
+    2) rewritten as insert into ab (i) values (1), (2))
+       is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to
+       contain
+       query).
 * there was some memory wastage when query return big resultset (> 10kb), slowing query.
 * ...
 

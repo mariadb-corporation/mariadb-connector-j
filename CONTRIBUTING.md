@@ -36,26 +36,26 @@ testj" and a user root without password.
 so you can run
 
 ```script
-    mvn test
+		mvn test
 ```
 
 You can change this parameter by adding -DdbUrl parameter. like :
 
 ```script
-    mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****
+		mvn test -DdbUrl=jdbc:mariadb://127.0.0.1:3306/testj?user=root&password=*****
 ```
 
 You can launch a specific test by adding -Dtest
 
 ```script
-    mvn test -Dtest=org.mariadb.jdbc.JdbcParserTest
+		mvn test -Dtest=org.mariadb.jdbc.JdbcParserTest
 ```
 
 When all test are passing, you can package project.
 Additional tests , like javadoc formatting, code style validation will be done :
 
 ```script
-    mvn package -Dmaven.test.skip=true
+		mvn package -Dmaven.test.skip=true
 ```
 
 If operation succeed, a new mariadb-java-client jar will be on the target folder.

@@ -9,7 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.math.BigDecimal;
-import java.net.URL;
+import java.net.URI;
 import java.sql.*;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -122,7 +122,8 @@ public class ProcedureTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP PROCEDURE IF EXISTS basic_proc");
     stmt.execute(
-        "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT, OUT t5 VARCHAR(20), OUT t6 TIMESTAMP, OUT t7 blob) BEGIN \n"
+        "CREATE PROCEDURE basic_proc (IN t1 INT, INOUT t2 INT unsigned, OUT t3 INT, IN t4 INT, OUT"
+            + " t5 VARCHAR(20), OUT t6 TIMESTAMP, OUT t7 blob) BEGIN \n"
             + "SELECT 1;\n"
             + "set t3 = t1 * t4;\n"
             + "set t2 = t2 * t1;\n"
@@ -511,7 +512,7 @@ public class ProcedureTest extends Common {
       assertEquals("ab", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setURL(1, new URL("http://a"));
+      callableStatement.setURL(1, URI.create("http://a").toURL());
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("http://ab", callableStatement.getString(2));
@@ -795,7 +796,7 @@ public class ProcedureTest extends Common {
       assertEquals("ab", callableStatement.getString(2));
 
       reset(callableStatement);
-      callableStatement.setURL("t1", new URL("http://a"));
+      callableStatement.setURL("t1", URI.create("http://a").toURL());
       callableStatement.setString(2, "b");
       callableStatement.execute();
       assertEquals("http://ab", callableStatement.getString(2));
@@ -1114,12 +1115,14 @@ public class ProcedureTest extends Common {
       callableStatement.registerOutParameter(3, JDBCType.INTEGER);
       callableStatement.registerOutParameter(5, JDBCType.VARCHAR);
       assertEquals(
-          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[null,<OUT>null,<OUT>null,null,<OUT>null]}",
+          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)',"
+              + " parameters:[null,<OUT>null,<OUT>null,null,<OUT>null]}",
           callableStatement.toString());
       callableStatement.setBytes(2, new byte[] {(byte) 'a', (byte) 'b'});
       callableStatement.setLong(1, 10L);
       assertEquals(
-          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[10,<OUT>_binary 'ab',<OUT>null,null,<OUT>null]}",
+          "ProcedureStatement{sql:'call basic_proc(?,?,?,?,?,?,?)', parameters:[10,<OUT>_binary"
+              + " 'ab',<OUT>null,null,<OUT>null]}",
           callableStatement.toString());
     }
   }

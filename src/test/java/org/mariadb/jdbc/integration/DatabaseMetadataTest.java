@@ -52,45 +52,30 @@ public class DatabaseMetadataTest extends Common {
             + "t6 time(6))");
     stmt.execute("CREATE TABLE json_test(t1 JSON)");
     stmt.execute(
-        "CREATE PROCEDURE testMetaCatalog(x int, out y int) COMMENT 'comments' \nBEGIN\nSELECT 1;end\n");
+        "CREATE PROCEDURE testMetaCatalog(x int, out y int) COMMENT 'comments' \n"
+            + "BEGIN\n"
+            + "SELECT 1;end\n");
     stmt.execute(
-        "CREATE TABLE IF NOT EXISTS dbpk_test(val varchar(20), id1 int not null, id2 int not null,primary key(id1, "
-            + "id2)) engine=innodb");
+        "CREATE TABLE IF NOT EXISTS dbpk_test(val varchar(20), id1 int not null, id2 int not"
+            + " null,primary key(id1, id2)) engine=innodb");
     stmt.execute("CREATE TABLE IF NOT EXISTS datetime_test(dt datetime)");
     stmt.execute(
-        "CREATE TABLE IF NOT EXISTS `manycols`("
-            + "  `tiny` tinyint(4) DEFAULT NULL,"
-            + "  `tiny_uns` tinyint(3) unsigned DEFAULT NULL,"
-            + "  `small` smallint(6) DEFAULT NULL,"
-            + "  `small_uns` smallint(5) unsigned DEFAULT NULL,"
-            + "  `medium` mediumint(9) DEFAULT NULL,"
-            + "  `medium_uns` mediumint(8) unsigned DEFAULT NULL,"
-            + "  `int_col` int(11) DEFAULT NULL,"
-            + "  `int_col_uns` int(10) unsigned DEFAULT NULL,"
-            + "  `big` bigint(20) DEFAULT NULL,"
-            + "  `big_uns` bigint(20) unsigned DEFAULT NULL,"
-            + "  `decimal_col` decimal(10,5) DEFAULT NULL,"
-            + "  `fcol` float DEFAULT NULL,"
-            + "  `fcol_uns` float unsigned DEFAULT NULL,"
-            + "  `dcol` double DEFAULT NULL,"
-            + "  `dcol_uns` double unsigned DEFAULT NULL,"
-            + "  `date_col` date DEFAULT NULL,"
-            + "  `time_col` time DEFAULT NULL,"
-            + "  `timestamp_col` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
-            + "  `year_col` year(4) DEFAULT NULL,"
-            + "  `bit_col` bit(5) DEFAULT NULL,"
-            + "  `char_col` char(5) DEFAULT NULL,"
-            + "  `varchar_col` varchar(10) DEFAULT NULL,"
-            + "  `binary_col` binary(10) DEFAULT NULL,"
-            + "  `varbinary_col` varbinary(10) DEFAULT NULL,"
-            + "  `tinyblob_col` tinyblob,"
-            + "  `blob_col` blob,"
-            + "  `mediumblob_col` mediumblob,"
-            + "  `longblob_col` longblob,"
-            + "  `tinytext_col` tinytext,"
-            + "  `text_col` text,"
-            + "  `mediumtext_col` mediumtext,"
-            + "  `longtext_col` longtext)");
+        "CREATE TABLE IF NOT EXISTS `manycols`(  `tiny` tinyint(4) DEFAULT NULL,  `tiny_uns`"
+            + " tinyint(3) unsigned DEFAULT NULL,  `small` smallint(6) DEFAULT NULL,  `small_uns`"
+            + " smallint(5) unsigned DEFAULT NULL,  `medium` mediumint(9) DEFAULT NULL, "
+            + " `medium_uns` mediumint(8) unsigned DEFAULT NULL,  `int_col` int(11) DEFAULT NULL, "
+            + " `int_col_uns` int(10) unsigned DEFAULT NULL,  `big` bigint(20) DEFAULT NULL, "
+            + " `big_uns` bigint(20) unsigned DEFAULT NULL,  `decimal_col` decimal(10,5) DEFAULT"
+            + " NULL,  `fcol` float DEFAULT NULL,  `fcol_uns` float unsigned DEFAULT NULL,  `dcol`"
+            + " double DEFAULT NULL,  `dcol_uns` double unsigned DEFAULT NULL,  `date_col` date"
+            + " DEFAULT NULL,  `time_col` time DEFAULT NULL,  `timestamp_col` timestamp NOT NULL"
+            + " DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,  `year_col` year(4) DEFAULT"
+            + " NULL,  `bit_col` bit(5) DEFAULT NULL,  `char_col` char(5) DEFAULT NULL, "
+            + " `varchar_col` varchar(10) DEFAULT NULL,  `binary_col` binary(10) DEFAULT NULL, "
+            + " `varbinary_col` varbinary(10) DEFAULT NULL,  `tinyblob_col` tinyblob,  `blob_col`"
+            + " blob,  `mediumblob_col` mediumblob,  `longblob_col` longblob,  `tinytext_col`"
+            + " tinytext,  `text_col` text,  `mediumtext_col` mediumtext,  `longtext_col`"
+            + " longtext)");
     stmt.execute("CREATE TABLE IF NOT EXISTS ytab(y year)");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS maxcharlength(maxcharlength char(1)) character set utf8");
@@ -103,19 +88,18 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists cross1");
     stmt.execute("create table cross1 (id int not null primary key, val varchar(20))");
     stmt.execute(
-        "create table cross2 (id int not null, id2 int not null,  "
-            + "id_ref0 int, foreign key (id_ref0) references cross1(id), UNIQUE unik_name (id, id2))");
+        "create table cross2 (id int not null, id2 int not null,  id_ref0 int, foreign key"
+            + " (id_ref0) references cross1(id), UNIQUE unik_name (id, id2))");
     stmt.execute(
-        "create table cross3 (id int not null primary key, "
-            + "id_ref1 int, id_ref2 int, foreign key fk_my_name (id_ref1, id_ref2) references cross2(id, id2) on "
-            + "update cascade)");
+        "create table cross3 (id int not null primary key, id_ref1 int, id_ref2 int, foreign key"
+            + " fk_my_name (id_ref1, id_ref2) references cross2(id, id2) on update cascade)");
     stmt.execute(
-        "create table getBestRowIdentifier1(i int not null primary key auto_increment, id int, "
-            + "id_ref1 int, id_ref2 int, foreign key fk_my_name_1 (id_ref1, id_ref2) references cross2(id, id2) on "
-            + "update cascade, UNIQUE getBestRowIdentifier_unik (id))");
+        "create table getBestRowIdentifier1(i int not null primary key auto_increment, id int,"
+            + " id_ref1 int, id_ref2 int, foreign key fk_my_name_1 (id_ref1, id_ref2) references"
+            + " cross2(id, id2) on update cascade, UNIQUE getBestRowIdentifier_unik (id))");
     stmt.execute(
-        "create table getBestRowIdentifier2(id_ref0 int not null, "
-            + "id_ref1 int, id_ref2 int not null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
+        "create table getBestRowIdentifier2(id_ref0 int not null, id_ref1 int, id_ref2 int not"
+            + " null, UNIQUE (id_ref1, id_ref2) , UNIQUE (id_ref0, id_ref2))");
     stmt.execute(
         "CREATE TABLE IF NOT EXISTS get_index_info(\n"
             + "    no INT NOT NULL AUTO_INCREMENT,\n"
@@ -195,9 +179,9 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists primarykeytest1");
     stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
     stmt.execute(
-        "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
-            + "constraint fk1 foreign key(id2a) references primarykeytest1(id1),  constraint fk2 foreign key(id2b) "
-            + "references primarykeytest1(id1))");
+        "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary key(id2a,"
+            + " id2b), constraint fk1 foreign key(id2a) references primarykeytest1(id1), "
+            + " constraint fk2 foreign key(id2b) references primarykeytest1(id1))");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getPrimaryKeys(sharedConn.getCatalog(), null, "primarykeytest2");
@@ -223,9 +207,10 @@ public class DatabaseMetadataTest extends Common {
       stmt.execute("drop table if exists primarykeytest1");
       stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
       stmt.execute(
-          "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary key(id2a, id2b), "
-              + "constraint fk1 foreign key(id2a) references primarykeytest1(id1),  constraint fk2 foreign key(id2b) "
-              + "references primarykeytest1(id1))");
+          "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary"
+              + " key(id2a, id2b), constraint fk1 foreign key(id2a) references"
+              + " primarykeytest1(id1),  constraint fk2 foreign key(id2b) references"
+              + " primarykeytest1(id1))");
 
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getPrimaryKeys(con.getCatalog(), null, "primarykeytest2");
@@ -388,7 +373,8 @@ public class DatabaseMetadataTest extends Common {
             + " UNIQUE unik_name (category, id) )");
 
     st.execute(
-        "CREATE TABLE `cus``tomer` (id INT NOT NULL, id2 INT NOT NULL, PRIMARY KEY (id), UNIQUE unikConst (id2))");
+        "CREATE TABLE `cus``tomer` (id INT NOT NULL, id2 INT NOT NULL, PRIMARY KEY (id), UNIQUE"
+            + " unikConst (id2))");
     String constraint = "ON UPDATE SET DEFAULT ON DELETE SET DEFAULT";
     if (!isMariaDBServer() || !minVersion(10, 5, 0))
       constraint = "ON UPDATE CASCADE ON DELETE CASCADE";
@@ -753,8 +739,8 @@ public class DatabaseMetadataTest extends Common {
         "create table fore_key0 (id int not null primary key, "
             + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
     stmt.execute(
-        "create table fore_key1 (id int not null primary key, "
-            + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        "create table fore_key1 (id int not null primary key, id_ref1 int, foreign key (id_ref1)"
+            + " references prim_key(id) on update cascade) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getImportedKeys(sharedConn.getCatalog(), null, "fore_key0");
@@ -808,8 +794,8 @@ public class DatabaseMetadataTest extends Common {
         "create table fore_key0 (id int not null primary key, "
             + "id_ref0 int, foreign key (id_ref0) references prim_key(id)) engine=innodb");
     stmt.execute(
-        "create table fore_key1 (id int not null primary key, "
-            + "id_ref1 int, foreign key (id_ref1) references prim_key(id) on update cascade) engine=innodb");
+        "create table fore_key1 (id int not null primary key, id_ref1 int, foreign key (id_ref1)"
+            + " references prim_key(id) on update cascade) engine=innodb");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
@@ -889,14 +875,16 @@ public class DatabaseMetadataTest extends Common {
     Statement stmt = sharedConn.createStatement();
     if (minVersion(10, 2, 0) || !isMariaDBServer()) {
       stmt.execute(
-          "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
-              + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-              + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
+          "CREATE TABLE IF NOT EXISTS `ta\n"
+              + "ble'getcolumns`(a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS"
+              + " (CHAR_LENGTH(b)) VIRTUAL, d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET"
+              + " 'utf8mb4'");
     } else {
       stmt.execute(
-          "CREATE TABLE IF NOT EXISTS `ta\nble'getcolumns`("
-              + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-              + "d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET 'utf8mb4'");
+          "CREATE TABLE IF NOT EXISTS `ta\n"
+              + "ble'getcolumns`(a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS"
+              + " (CHAR_LENGTH(b)) VIRTUAL, d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET"
+              + " 'utf8mb4'");
     }
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
@@ -1018,14 +1006,16 @@ public class DatabaseMetadataTest extends Common {
         stmt.execute(
             "CREATE TABLE IF NOT EXISTS "
                 + database
-                + ".`ta\nble'getcolumns`("
-                + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                + "d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET 'utf8mb4'");
+                + ".`ta\n"
+                + "ble'getcolumns`(a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT"
+                + " AS (CHAR_LENGTH(b)) VIRTUAL, d VARCHAR(5) AS (left(b,5)) STORED) CHARACTER SET"
+                + " 'utf8mb4'");
       } else {
         stmt.execute(
-            "CREATE TABLE IF NOT EXISTS \"+database+\".`ta\nble'getcolumns`("
-                + "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                + "d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER SET 'utf8mb4'");
+            "CREATE TABLE IF NOT EXISTS \"+database+\".`ta\n"
+                + "ble'getcolumns`(a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT"
+                + " AS (CHAR_LENGTH(b)) VIRTUAL, d VARCHAR(5) AS (left(b,5)) PERSISTENT) CHARACTER"
+                + " SET 'utf8mb4'");
       }
 
       DatabaseMetaData dbmd = con.getMetaData();
@@ -1293,7 +1283,10 @@ public class DatabaseMetadataTest extends Common {
                   + ",expected String");
           break;
         case "decimal":
-          assertEquals(Types.DECIMAL, columnType, "invalid type  "
+          assertEquals(
+              Types.DECIMAL,
+              columnType,
+              "invalid type  "
                   + columnType
                   + "( "
                   + rsmd.getColumnTypeName(col)
@@ -1330,7 +1323,10 @@ public class DatabaseMetadataTest extends Common {
 
           break;
         case "null":
-          assertEquals(Types.NULL, columnType, "invalid type  "
+          assertEquals(
+              Types.NULL,
+              columnType,
+              "invalid type  "
                   + columnType
                   + " for "
                   + rsmd.getColumnLabel(col)
@@ -1364,12 +1360,11 @@ public class DatabaseMetadataTest extends Common {
   public void getAttributesBasic() throws Exception {
     testResultSetColumns(
         sharedConn.getMetaData().getAttributes(null, null, null, null),
-        "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,"
-            + "ATTR_NAME String,DATA_TYPE int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,"
-            + "NUM_PREC_RADIX int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,"
-            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,"
-            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-            + "SCOPE_TABLE String,SOURCE_DATA_TYPE short");
+        "TYPE_CAT String,TYPE_SCHEM String,TYPE_NAME String,ATTR_NAME String,DATA_TYPE"
+            + " int,ATTR_TYPE_NAME String,ATTR_SIZE int,DECIMAL_DIGITS int,NUM_PREC_RADIX"
+            + " int,NULLABLE int,REMARKS String,ATTR_DEF String,SQL_DATA_TYPE int,SQL_DATETIME_SUB"
+            + " int, CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE String,SCOPE_CATALOG"
+            + " String,SCOPE_SCHEMA String,SCOPE_TABLE String,SOURCE_DATA_TYPE short");
   }
 
   @Test
@@ -1574,8 +1569,9 @@ public class DatabaseMetadataTest extends Common {
     assertEquals(0x00ffffff, rs.getInt(2));
     assertEquals("", rs.getString(3));
     assertEquals(
-        "The name of the user that the application using the connection is performing work for. "
-            + "This may not be the same as the user name that was used in establishing the connection.",
+        "The name of the user that the application using the connection is performing work for."
+            + " This may not be the same as the user name that was used in establishing the"
+            + " connection.",
         rs.getString(4));
 
     assertTrue(rs.next());
@@ -1628,11 +1624,11 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeTrue(!isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getProcedureColumns(null, null, null, null),
-        "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String ,"
-            + "COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,"
-            + "RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-            + "SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,"
-            + "ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
+        "PROCEDURE_CAT String,PROCEDURE_SCHEM String,PROCEDURE_NAME String,COLUMN_NAME String"
+            + " ,COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE"
+            + " short,RADIX short,NULLABLE short,REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE"
+            + " int,SQL_DATETIME_SUB int ,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,IS_NULLABLE"
+            + " String,SPECIFIC_NAME String");
   }
 
   @Test
@@ -1641,10 +1637,10 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getFunctionColumns(null, null, null, null),
-        "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME String,COLUMN_TYPE short,"
-            + "DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH int,SCALE short,RADIX short,"
-            + "NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH int,ORDINAL_POSITION int,"
-            + "IS_NULLABLE String,SPECIFIC_NAME String");
+        "FUNCTION_CAT String,FUNCTION_SCHEM String,FUNCTION_NAME String,COLUMN_NAME"
+            + " String,COLUMN_TYPE short,DATA_TYPE int,TYPE_NAME String,PRECISION int,LENGTH"
+            + " int,SCALE short,RADIX short,NULLABLE short,REMARKS String,CHAR_OCTET_LENGTH"
+            + " int,ORDINAL_POSITION int,IS_NULLABLE String,SPECIFIC_NAME String");
   }
 
   @Test
@@ -1681,7 +1677,8 @@ public class DatabaseMetadataTest extends Common {
   public void getPrimaryKeysBasic() throws SQLException {
     testResultSetColumns(
         sharedConn.getMetaData().getPrimaryKeys(null, null, null),
-        "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ short,PK_NAME String");
+        "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ"
+            + " short,PK_NAME String");
   }
 
   @Test
@@ -1689,9 +1686,10 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getImportedKeys(null, null, ""),
-        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-            + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-            + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
+            + " String,FKTABLE_CAT String,FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME"
+            + " String,KEY_SEQ short,UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME"
+            + " String,DEFERRABILITY short");
   }
 
   @Test
@@ -1699,9 +1697,10 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getExportedKeys(null, null, ""),
-        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-            + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-            + "UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
+            + " String,FKTABLE_CAT String,FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME"
+            + " String,KEY_SEQ short,UPDATE_RULE short, DELETE_RULE short,FK_NAME String,PK_NAME"
+            + " String,DEFERRABILITY short");
   }
 
   @Test
@@ -1709,9 +1708,10 @@ public class DatabaseMetadataTest extends Common {
     Assumptions.assumeFalse(isXpand());
     testResultSetColumns(
         sharedConn.getMetaData().getCrossReference(null, null, "", null, null, ""),
-        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME String,FKTABLE_CAT String,"
-            + "FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME String,KEY_SEQ short,"
-            + "UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME String,DEFERRABILITY short");
+        "PKTABLE_CAT String,PKTABLE_SCHEM String,PKTABLE_NAME String, PKCOLUMN_NAME"
+            + " String,FKTABLE_CAT String,FKTABLE_SCHEM String,FKTABLE_NAME String,FKCOLUMN_NAME"
+            + " String,KEY_SEQ short,UPDATE_RULE short,DELETE_RULE short,FK_NAME String,PK_NAME"
+            + " String,DEFERRABILITY short");
   }
 
   @Test
@@ -1866,8 +1866,8 @@ public class DatabaseMetadataTest extends Common {
   public void getFunctionsBasic() throws SQLException {
     testResultSetColumns(
         sharedConn.getMetaData().getFunctions(null, null, null),
-        "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS String,FUNCTION_TYPE short, "
-            + "SPECIFIC_NAME String");
+        "FUNCTION_CAT String, FUNCTION_SCHEM String,FUNCTION_NAME String,REMARKS"
+            + " String,FUNCTION_TYPE short, SPECIFIC_NAME String");
   }
 
   @Test
@@ -1906,11 +1906,11 @@ public class DatabaseMetadataTest extends Common {
 
     testResultSetColumns(
         rs,
-        "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,"
-            + "LITERAL_SUFFIX String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,"
-            + "SEARCHABLE short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, "
-            + "AUTO_INCREMENT boolean, LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,"
-            + "SQL_DATA_TYPE int,SQL_DATETIME_SUB int, NUM_PREC_RADIX int");
+        "TYPE_NAME String,DATA_TYPE int,PRECISION int,LITERAL_PREFIX String,LITERAL_SUFFIX"
+            + " String,CREATE_PARAMS String, NULLABLE short,CASE_SENSITIVE boolean,SEARCHABLE"
+            + " short,UNSIGNED_ATTRIBUTE boolean,FIXED_PREC_SCALE boolean, AUTO_INCREMENT boolean,"
+            + " LOCAL_TYPE_NAME String,MINIMUM_SCALE short,MAXIMUM_SCALE short,SQL_DATA_TYPE"
+            + " int,SQL_DATETIME_SUB int, NUM_PREC_RADIX int");
   }
 
   @Test

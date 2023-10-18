@@ -39,8 +39,9 @@ public class CharCodecTest extends CommonCodecTest {
         "CREATE TABLE CharCodec (t1 CHAR(30), t2 CHAR(30), t3 CHAR(25), t4 CHAR(25)) CHARACTER "
             + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null),('2010-12-31T23:59:59.152+01:00', '2010-12-31T23:59:59.152Z', null, null)");
+        "INSERT INTO CharCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010', null),('2010-12-31T23:59:59.152+01:00',"
+            + " '2010-12-31T23:59:59.152Z', null, null)");
     stmt.execute("FLUSH TABLES");
   }
 

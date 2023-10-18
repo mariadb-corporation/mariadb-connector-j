@@ -70,8 +70,10 @@ public class NamedPipeSocket extends Socket {
             if (timeout == 0) {
               throw new FileNotFoundException(
                   fileNotFoundException.getMessage()
-                      + "\nplease consider set connectTimeout option, so connection can retry having access to named pipe. "
-                      + "\n(Named pipe can throw ERROR_PIPE_BUSY error)");
+                      + "\n"
+                      + "please consider set connectTimeout option, so connection can retry having"
+                      + " access to named pipe. \n"
+                      + "(Named pipe can throw ERROR_PIPE_BUSY error)");
             }
             throw fileNotFoundException;
           }

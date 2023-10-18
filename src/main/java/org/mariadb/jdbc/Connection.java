@@ -58,6 +58,7 @@ public class Connection implements java.sql.Connection {
    * @param lock thread safe locker
    * @param client client object
    */
+  @SuppressWarnings({"this-escape"})
   public Connection(Configuration conf, ReentrantLock lock, Client client) {
     this.conf = conf;
     this.forceTransactionEnd =
@@ -329,11 +330,12 @@ public class Connection implements java.sql.Connection {
       return client.getContext().getDatabase();
     }
 
-    Statement stmt = createStatement();
-    ResultSet rs = stmt.executeQuery("select database()");
-    rs.next();
-    client.getContext().setDatabase(rs.getString(1));
-    return client.getContext().getDatabase();
+    try (Statement stmt = createStatement()) {
+      ResultSet rs = stmt.executeQuery("select database()");
+      rs.next();
+      client.getContext().setDatabase(rs.getString(1));
+      return client.getContext().getDatabase();
+    }
   }
 
   private void setDatabase(String database) throws SQLException {
@@ -371,29 +373,31 @@ public class Connection implements java.sql.Connection {
       }
     }
 
-    ResultSet rs = createStatement().executeQuery(sql);
-    if (rs.next()) {
-      final String response = rs.getString(1);
-      switch (response) {
-        case "REPEATABLE-READ":
-          return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
+    try (Statement stmt = createStatement()) {
+      ResultSet rs = stmt.executeQuery(sql);
+      if (rs.next()) {
+        final String response = rs.getString(1);
+        switch (response) {
+          case "REPEATABLE-READ":
+            return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 
-        case "READ-UNCOMMITTED":
-          return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
+          case "READ-UNCOMMITTED":
+            return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 
-        case "READ-COMMITTED":
-          return java.sql.Connection.TRANSACTION_READ_COMMITTED;
+          case "READ-COMMITTED":
+            return java.sql.Connection.TRANSACTION_READ_COMMITTED;
 
-        case "SERIALIZABLE":
-          return java.sql.Connection.TRANSACTION_SERIALIZABLE;
+          case "SERIALIZABLE":
+            return java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
-        default:
-          throw exceptionFactory.create(
-              String.format(
-                  "Could not get transaction isolation level: Invalid value \"%s\"", response));
+          default:
+            throw exceptionFactory.create(
+                String.format(
+                    "Could not get transaction isolation level: Invalid value \"%s\"", response));
+        }
       }
+      throw exceptionFactory.create("Failed to retrieve transaction isolation");
     }
-    throw exceptionFactory.create("Failed to retrieve transaction isolation");
   }
 
   @Override
@@ -499,7 +503,8 @@ public class Connection implements java.sql.Connection {
     Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
     if (!matcher.matches()) {
       throw new SQLSyntaxErrorException(
-          "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+          "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n"
+              + " but was : "
               + sql);
     }
 
@@ -927,7 +932,7 @@ public class Connection implements java.sql.Connection {
      * @return the numeric ID of this savepoint
      */
     public int getSavepointId() throws SQLException {
-      if (name != null) {
+      if (id == null) {
         throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
       }
       return id;

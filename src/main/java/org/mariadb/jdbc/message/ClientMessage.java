@@ -184,7 +184,9 @@ public interface ClientMessage {
                     .withSql(this.description())
                     .create(
                         String.format(
-                            "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to initial query %s. Possible malicious proxy changing server answer ! Command interrupted",
+                            "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to"
+                                + " initial query %s. Possible malicious proxy changing server"
+                                + " answer ! Command interrupted",
                             fileName, this.description()),
                         "HY000");
           } else {

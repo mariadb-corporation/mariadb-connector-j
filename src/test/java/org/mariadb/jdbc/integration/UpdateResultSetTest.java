@@ -38,15 +38,20 @@ public class UpdateResultSetTest extends Common {
     org.mariadb.jdbc.Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE testnoprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL)");
     stmt.execute(
-        "CREATE TABLE testbasicprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL, CONSTRAINT pk PRIMARY KEY (id))");
+        "CREATE TABLE testbasicprimarykey(`id` INT NOT NULL,`t1` VARCHAR(50) NOT NULL, CONSTRAINT"
+            + " pk PRIMARY KEY (id))");
     stmt.execute(
-        "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testMultipleTable1(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50)"
+            + " NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+        "CREATE TABLE testMultipleTable2(`id2` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50)"
+            + " NULL,PRIMARY KEY (`id2`))");
     stmt.execute(
-        "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testOneNoTable(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50)"
+            + " NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testAutoIncrement(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testAutoIncrement(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50)"
+            + " NULL,PRIMARY KEY (`id1`))");
 
     stmt.execute(
         "CREATE TABLE testUpdateWhenFetch("
@@ -68,7 +73,8 @@ public class UpdateResultSetTest extends Common {
               + " PRIMARY KEY (`column1`))");
     }
     stmt.execute(
-        "CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50) NOT NULL)");
+        "CREATE TABLE test_update_max(`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,`t1` VARCHAR(50)"
+            + " NOT NULL)");
   }
 
   /**
@@ -91,7 +97,8 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "1"),
-          "ResultSet cannot be updated. Cannot update rows, since no primary field is present in query");
+          "ResultSet cannot be updated. Cannot update rows, since no primary field is present in"
+              + " query");
     }
     sharedConn.rollback();
   }
@@ -112,7 +119,8 @@ public class UpdateResultSetTest extends Common {
       Common.assertThrowsContains(
           SQLException.class,
           () -> rs.updateString(1, "val"),
-          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present"
+              + " in query");
     }
     sharedConn.rollback();
   }
@@ -219,9 +227,11 @@ public class UpdateResultSetTest extends Common {
     stmt.execute("CREATE DATABASE testConnectorJ");
     stmt.execute("DROP TABLE IF EXISTS testMultipleDatabase");
     stmt.execute(
-        "CREATE TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50) NULL,PRIMARY KEY (`id1`))");
+        "CREATE TABLE testMultipleDatabase(`id1` INT NOT NULL AUTO_INCREMENT,`t1` VARCHAR(50)"
+            + " NULL,PRIMARY KEY (`id1`))");
     stmt.execute(
-        "CREATE TABLE testConnectorJ.testMultipleDatabase(`id2` INT NOT NULL AUTO_INCREMENT,`t2` VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
+        "CREATE TABLE testConnectorJ.testMultipleDatabase(`id2` INT NOT NULL AUTO_INCREMENT,`t2`"
+            + " VARCHAR(50) NULL,PRIMARY KEY (`id2`))");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
 
     stmt.executeQuery("INSERT INTO testMultipleDatabase(t1) values ('1')");
@@ -269,11 +279,13 @@ public class UpdateResultSetTest extends Common {
             rs.updateString(1, "1-1-bis");
             rs.updateRow();
           },
-          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present"
+              + " in query");
       Common.assertThrowsContains(
           SQLException.class,
           rs::deleteRow,
-          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present in query");
+          "ResultSet cannot be updated. Cannot update rows, since primary field id is not present"
+              + " in query");
       ResultSetMetaData rsmd = rs.getMetaData();
       assertFalse(rsmd.isReadOnly(1));
       assertFalse(rsmd.isReadOnly(2));
@@ -586,7 +598,8 @@ public class UpdateResultSetTest extends Common {
             + "PRIMARY KEY (`id`,`id2`))");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute(
-        "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'), (3,-3,'3')");
+        "INSERT INTO testUpdateChangingMultiplePrimaryKey values (1,-1,'1'), (2,-2,'2'),"
+            + " (3,-3,'3')");
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
             "SELECT * FROM testUpdateChangingMultiplePrimaryKey",
@@ -1081,7 +1094,8 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS repeatedFieldUpdatable");
     stmt.execute(
-        "CREATE TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1))");
+        "CREATE TABLE repeatedFieldUpdatable(t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY"
+            + " (t1))");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
@@ -1173,7 +1187,8 @@ public class UpdateResultSetTest extends Common {
     Statement stmt = sharedConn.createStatement();
     sharedConn.createStatement().execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     stmt.execute(
-        "INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'), ('8'), ('9'), ('10')");
+        "INSERT INTO test_update_max(t1) value ('1'), ('2'), ('3'), ('4'), ('5'), ('6'), ('7'),"
+            + " ('8'), ('9'), ('10')");
     try (PreparedStatement preparedStatement =
         sharedConn.prepareStatement(
             "SELECT t1, id FROM test_update_max",

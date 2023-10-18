@@ -37,11 +37,11 @@ public class BinaryCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE BinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4 BINARY(20)) CHARACTER "
-            + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE BinaryCodec (t1 VARBINARY(20), t2 VARBINARY(30), t3 VARBINARY(20), t4"
+            + " BINARY(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO BinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO BinaryCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute(
         "CREATE TABLE BinaryCodec2 (id int not null primary key auto_increment, t1 VARBINARY(20))");
     stmt.execute("FLUSH TABLES");

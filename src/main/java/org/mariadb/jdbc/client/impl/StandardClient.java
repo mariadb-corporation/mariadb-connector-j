@@ -85,6 +85,7 @@ public class StandardClient implements Client, AutoCloseable {
    * @param skipPostCommands must connection post command be skipped
    * @throws SQLException if connection fails
    */
+  @SuppressWarnings({"this-escape"})
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -385,7 +386,9 @@ public class StandardClient implements Client, AutoCloseable {
           // timezone is not valid
           throw exceptionFactory.create(
               String.format(
-                  "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
+                  "Setting configured timezone '%s' fail on server.\n"
+                      + "Look at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on"
+                      + " server, or set timezone=disable to disable setting client timezone.",
                   conf.timezone()),
               "HY000",
               sqlException);

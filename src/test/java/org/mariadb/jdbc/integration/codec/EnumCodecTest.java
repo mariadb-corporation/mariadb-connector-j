@@ -38,14 +38,15 @@ public class EnumCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE EnumCodec (t1 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'),"
-            + " t2 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'), "
-            + " t3 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'),"
-            + " t4 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'))"
-            + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE EnumCodec (t1 ENUM('0', '1', 'some🌟', '2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010'), t2 ENUM('0', '1', 'some🌟', '2011-01-01',"
+            + " '2010-12-31 23:59:59.152', '23:54:51.840010'),  t3 ENUM('0', '1', 'some🌟',"
+            + " '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010'), t4 ENUM('0', '1',"
+            + " 'some🌟', '2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010')) CHARACTER"
+            + " SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "INSERT INTO EnumCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31 23:59:59.152',"
-            + " '23:54:51.840010', null)");
+        "INSERT INTO EnumCodec VALUES ('0', '1', 'some🌟', null), ('2011-01-01', '2010-12-31"
+            + " 23:59:59.152', '23:54:51.840010', null)");
     stmt.execute("CREATE TABLE EnumCodec2 (t1 ENUM('0', '1', '2')) CHARACTER SET binary");
     stmt.execute("INSERT INTO EnumCodec2 VALUES ('0'), ('1'), (null)");
     stmt.execute("FLUSH TABLES");

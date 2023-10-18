@@ -35,8 +35,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE TinyIntCodec2 (id int not null primary key auto_increment, t1 TINYINT)");
     stmt.execute(
-        "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT UNSIGNED, t4 TINYINT "
-            + "UNSIGNED)");
+        "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT"
+            + " UNSIGNED, t4 TINYINT UNSIGNED)");
     stmt.execute("INSERT INTO TinyIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO TinyIntCodecUnsigned VALUES (0, 1, 255, null)");
     stmt.execute("FLUSH TABLES");

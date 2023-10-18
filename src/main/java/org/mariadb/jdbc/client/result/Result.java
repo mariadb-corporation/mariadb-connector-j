@@ -9,7 +9,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
@@ -878,7 +878,8 @@ public abstract class Result implements ResultSet, Completion {
   public void setFetchDirection(int direction) throws SQLException {
     if (direction == FETCH_REVERSE) {
       throw exceptionFactory.create(
-          "Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and ResultSet.FETCH_UNKNOWN");
+          "Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and"
+              + " ResultSet.FETCH_UNKNOWN");
     }
   }
 
@@ -1162,7 +1163,8 @@ public abstract class Result implements ResultSet, Completion {
       return getObject(columnIndex);
     }
     throw exceptionFactory.notSupported(
-        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported for non empty map");
+        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported for"
+            + " non empty map");
   }
 
   @Override
@@ -1296,8 +1298,8 @@ public abstract class Result implements ResultSet, Completion {
             StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
     if (s == null) return null;
     try {
-      return new URL(s);
-    } catch (MalformedURLException e) {
+      return new URI(s).toURL();
+    } catch (Exception e) {
       throw exceptionFactory.create(String.format("Could not parse '%s' as URL", s));
     }
   }

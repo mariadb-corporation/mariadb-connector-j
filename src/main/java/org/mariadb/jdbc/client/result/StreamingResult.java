@@ -59,6 +59,7 @@ public class StreamingResult extends Result {
    * @param traceEnable can network log be logged
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public StreamingResult(
       Statement stmt,
       boolean binaryProtocol,

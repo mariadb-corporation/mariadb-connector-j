@@ -33,8 +33,8 @@ public class LongCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE LongCodec (t1 BIGINT, t2 BIGINT, t3 BIGINT, t4 BIGINT)");
     stmt.execute(
-        "CREATE TABLE LongCodecUnsigned (t1 BIGINT UNSIGNED, t2 BIGINT UNSIGNED, t3 BIGINT UNSIGNED, t4 BIGINT "
-            + "UNSIGNED)");
+        "CREATE TABLE LongCodecUnsigned (t1 BIGINT UNSIGNED, t2 BIGINT UNSIGNED, t3 BIGINT"
+            + " UNSIGNED, t4 BIGINT UNSIGNED)");
     stmt.execute("INSERT INTO LongCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO LongCodecUnsigned VALUES (0, 1, 18446744073709551615, null)");
     stmt.execute("CREATE TABLE LongCodec2 (id int not null primary key auto_increment, t1 BIGINT)");

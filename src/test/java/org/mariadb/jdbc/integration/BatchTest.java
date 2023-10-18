@@ -59,7 +59,8 @@ public class BatchTest extends Common {
             e.getMessage().contains("Parameter at position 2 is not set")
                 || e.getMessage()
                     .contains(
-                        "batch set of parameters differ from previous set. All parameters must be set"));
+                        "batch set of parameters differ from previous set. All parameters must be"
+                            + " set"));
       }
 
       prep.setInt(1, 5);

@@ -13,10 +13,13 @@ import org.mariadb.jdbc.export.HaMode;
 public class HostAddress {
   /** host address */
   public final String host;
+
   /** port */
   public int port;
+
   /** primary node */
   public Boolean primary;
+
   private Long threadsConnected;
   private Long threadConnectedTimeout;
 

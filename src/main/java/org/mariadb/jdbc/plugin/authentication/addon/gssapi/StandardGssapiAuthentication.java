@@ -4,7 +4,6 @@
 package org.mariadb.jdbc.plugin.authentication.addon.gssapi;
 
 import java.io.*;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import javax.security.auth.Subject;
@@ -14,6 +13,7 @@ import org.ietf.jgss.*;
 import org.mariadb.jdbc.client.ReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.client.socket.Writer;
+import org.mariadb.jdbc.util.ThreadUtils;
 
 /** Basic GSSAPI implementation if waffle is not on classpath */
 public class StandardGssapiAuthentication implements GssapiAuth {
@@ -34,8 +34,8 @@ public class StandardGssapiAuthentication implements GssapiAuth {
 
     if ("".equals(servicePrincipalName)) {
       throw new SQLException(
-          "No principal name defined on server. "
-              + "Please set server variable \"gssapi-principal-name\" or set option \"servicePrincipalName\"",
+          "No principal name defined on server. Please set server variable"
+              + " \"gssapi-principal-name\" or set option \"servicePrincipalName\"",
           "28000");
     }
 
@@ -102,8 +102,9 @@ public class StandardGssapiAuthentication implements GssapiAuth {
                 }
                 return null;
               };
-          Subject.doAs(mySubject, action);
-        } catch (PrivilegedActionException exception) {
+
+          ThreadUtils.callAs(mySubject, () -> action);
+        } catch (Exception exception) {
           throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
         }
       } else {

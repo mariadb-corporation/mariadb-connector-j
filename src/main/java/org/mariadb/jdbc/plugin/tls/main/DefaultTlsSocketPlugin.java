@@ -4,8 +4,7 @@
 package org.mariadb.jdbc.plugin.tls.main;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -62,16 +61,16 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
 
   private static InputStream loadFromUrl(String keyStoreUrl) throws FileNotFoundException {
     try {
-      return new URL(keyStoreUrl).openStream();
-    } catch (IOException ioexception) {
+      return new URI(keyStoreUrl).toURL().openStream();
+    } catch (Exception exception) {
       return new FileInputStream(keyStoreUrl);
     }
   }
 
   private static InputStream getInputStreamFromPath(String path) throws IOException {
     try {
-      return new URL(path).openStream();
-    } catch (MalformedURLException e) {
+      return new URI(path).toURL().openStream();
+    } catch (Exception e) {
       if (path.startsWith("-----")) {
         return new ByteArrayInputStream(path.getBytes());
       } else {
@@ -79,9 +78,9 @@ public class DefaultTlsSocketPlugin implements TlsSocketPlugin {
         if (f.exists() && !f.isDirectory()) {
           return f.toURI().toURL().openStream();
         }
+        throw new IOException(
+            String.format("File not found for option `serverSslCert` (value: '%s')", path), e);
       }
-      throw new IOException(
-          String.format("Wrong value for option `serverSslCert` (value: '%s')", path), e);
     }
   }
 

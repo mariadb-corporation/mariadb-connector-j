@@ -60,6 +60,7 @@ public class BaseContext implements Context {
    * @param exceptionFactory connection exception factory
    * @param prepareCache LRU prepare cache
    */
+  @SuppressWarnings({"this-escape"})
   public BaseContext(
       HostAddress hostAddress,
       InitialHandshakePacket handshake,

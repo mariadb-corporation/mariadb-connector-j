@@ -219,7 +219,8 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
                 // read public key from socket
                 if (!conf.allowPublicKeyRetrieval()) {
                   throw new SQLException(
-                      "RSA public key is not available client side (option serverRsaPublicKeyFile not set)",
+                      "RSA public key is not available client side (option serverRsaPublicKeyFile"
+                          + " not set)",
                       "S1009");
                 }
 

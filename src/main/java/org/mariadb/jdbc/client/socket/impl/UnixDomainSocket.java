@@ -212,6 +212,7 @@ public class UnixDomainSocket extends Socket {
      *
      * @param sunPath path
      */
+    @SuppressWarnings({"this-escape"})
     public SockAddr(String sunPath) {
       byte[] arr = sunPath.getBytes();
       sun_path = new byte[arr.length + 1];

@@ -39,12 +39,15 @@ public class MultiPointCodecTest extends CommonCodecTest {
     Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiPointCodec (t1 MultiPoint, t2 MultiPoint, t3 MultiPoint, t4 MultiPoint)");
+        "CREATE TABLE MultiPointCodec (t1 MultiPoint, t2 MultiPoint, t3 MultiPoint, t4"
+            + " MultiPoint)");
     stmt.execute(
-        "INSERT INTO MultiPointCodec VALUES "
-            + "(ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'), ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'), ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null)");
+        "INSERT INTO MultiPointCodec VALUES (ST_MPointFromText('MULTIPOINT(0 0,0 10,10 0)'),"
+            + " ST_MPointFromText('MULTIPOINT(10 10,20 10,20 20,10 20,10 10)'),"
+            + " ST_MPointFromText('MULTIPOINT(-1 0.55, 3 5, 1 1)'), null)");
     stmt.execute(
-        "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1 MultiPoint)");
+        "CREATE TABLE MultiPointCodec2 (id int not null primary key auto_increment, t1"
+            + " MultiPoint)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -57,7 +60,8 @@ public class MultiPointCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPointCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiPointCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;

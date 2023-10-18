@@ -34,10 +34,11 @@ public class DateTimeCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4 DATETIME(6))");
+        "CREATE TABLE DateTimeCodec (t1 DATETIME , t2 DATETIME(6), t3 DATETIME(6), t4"
+            + " DATETIME(6))");
     stmt.execute(
-        "INSERT INTO DateTimeCodec VALUES "
-            + "('2010-01-12 01:55:12', '1000-01-01 01:55:13.212345', '9999-12-31 18:30:12.55', null)"
+        "INSERT INTO DateTimeCodec VALUES ('2010-01-12 01:55:12', '1000-01-01 01:55:13.212345',"
+            + " '9999-12-31 18:30:12.55', null)"
             + (isMariaDBServer()
                 ? ",('0000-00-00 00:00:00', '0000-00-00 00:00:00', '9999-12-31 00:00:00.00', null)"
                 : ""));

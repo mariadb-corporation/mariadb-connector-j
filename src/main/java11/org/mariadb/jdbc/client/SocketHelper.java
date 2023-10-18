@@ -10,6 +10,8 @@ import jdk.net.ExtendedSocketOptions;
 import org.mariadb.jdbc.Configuration;
 
 public class SocketHelper {
+    public SocketHelper() { }
+
     public static void setSocketOption(final Configuration conf, final Socket socket) throws IOException {
         socket.setTcpNoDelay(true);
         socket.setSoTimeout(conf.socketTimeout());

@@ -38,8 +38,8 @@ public class PointCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
     stmt.execute(
-        "INSERT INTO PointCodec VALUES "
-            + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
+        "INSERT INTO PointCodec VALUES (ST_PointFromText('POINT(10 1)'),"
+            + " ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
     stmt.execute("CREATE TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
     stmt.execute("FLUSH TABLES");
 

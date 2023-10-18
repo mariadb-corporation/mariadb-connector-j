@@ -12,13 +12,13 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public class ClientPreparedStatementParsingTest extends Common {
 
-  private void checkParsing(String sql, int paramNumber, String[] partsMulti) throws Exception {
+  private void checkParsing(String sql, int paramNumber, String[] partsMulti) {
     boolean noBackslashEscapes =
         (sharedConn.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0;
     ClientParser parser = ClientParser.parameterParts(sql, noBackslashEscapes);
     assertEquals(paramNumber, parser.getParamCount());
     int pos = 0;
-    int paramPos = parser.getQuery().length;
+    int paramPos;
     for (int i = 0; i < parser.getParamPositions().size(); i++) {
       paramPos = parser.getParamPositions().get(i);
       assertEquals(partsMulti[i], new String(parser.getQuery(), pos, paramPos - pos));
@@ -40,7 +40,8 @@ public class ClientPreparedStatementParsingTest extends Common {
   @Test
   public void testRewritableWithConstantParameter() throws Exception {
     checkParsing(
-        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10",
+        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY"
+            + " UPDATE col2=col2+10",
         2,
         new String[] {
           "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ",
@@ -74,7 +75,8 @@ public class ClientPreparedStatementParsingTest extends Common {
   @Test
   public void testRewritableWithConstantParameterAndParamAfterValue() throws Exception {
     checkParsing(
-        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=?",
+        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY"
+            + " UPDATE col2=?",
         3,
         new String[] {
           "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ",
@@ -267,10 +269,18 @@ public class ClientPreparedStatementParsingTest extends Common {
   @Test
   public void testParse() throws Exception {
     checkParsing(
-        "INSERT INTO `myTable` VALUES ('\\n\"\\'', \"'\\\n\\\"\")  \n // comment\n , ('a', 'b') # EOL comment",
+        "INSERT INTO `myTable` VALUES ('\\n"
+            + "\"\\'', \"'\\\n"
+            + "\\\"\")  \n"
+            + " // comment\n"
+            + " , ('a', 'b') # EOL comment",
         0,
         new String[] {
-          "INSERT INTO `myTable` VALUES ('\\n\"\\'', \"'\\\n\\\"\")  \n // comment\n , ('a', 'b') # EOL comment"
+          "INSERT INTO `myTable` VALUES ('\\n"
+              + "\"\\'', \"'\\\n"
+              + "\\\"\")  \n"
+              + " // comment\n"
+              + " , ('a', 'b') # EOL comment"
         });
   }
 }

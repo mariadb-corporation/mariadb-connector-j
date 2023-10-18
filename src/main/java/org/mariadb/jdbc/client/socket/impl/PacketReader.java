@@ -255,7 +255,7 @@ public class PacketReader implements Reader {
 
     remaining = lastPacketLength;
     do {
-      remaining -= inputStream.skip(remaining);
+      remaining -= (int) inputStream.skip(remaining);
     } while (remaining > 0);
 
     // ***************************************************
@@ -279,7 +279,7 @@ public class PacketReader implements Reader {
 
         remaining = packetLength;
         do {
-          remaining -= inputStream.skip(remaining);
+          remaining -= (int) inputStream.skip(remaining);
         } while (remaining > 0);
 
         lastPacketLength += packetLength;
