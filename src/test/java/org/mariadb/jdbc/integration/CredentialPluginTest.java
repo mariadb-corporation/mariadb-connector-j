@@ -22,7 +22,10 @@ public class CredentialPluginTest extends Common {
   @BeforeAll
   public static void beforeTest() throws SQLException {
     String version = System.getProperty("java.version");
-    int majorVersion = Integer.parseInt(version.substring(0, version.indexOf(".")));
+    int majorVersion =
+        (version.indexOf(".") >= 0)
+            ? Integer.parseInt(version.substring(0, version.indexOf(".")))
+            : Integer.parseInt(version);
     Assumptions.assumeTrue(majorVersion < 17);
 
     Assumptions.assumeTrue(isMariaDBServer());
