@@ -8,6 +8,7 @@ import javax.security.auth.Subject;
 
 public class ThreadUtils {
   public static long getId(Thread thread) {
+    // must be return thread.threadId() for java 19+, but since we support java 8, cannot be removed for now
     return thread.getId();
   }
 
@@ -15,5 +16,7 @@ public class ThreadUtils {
       final Subject subject, final Callable<java.security.PrivilegedExceptionAction<Void>> action)
       throws Exception {
     Subject.doAs(subject, action.call());
+    // must be for java 18+, but since we support java 8, cannot be removed for now
+    // Subject.callAs(subject, action);
   }
 }

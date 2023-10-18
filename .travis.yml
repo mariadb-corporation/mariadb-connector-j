@@ -4,7 +4,7 @@ language: java
 services:
   - docker
   - mysql
-jdk: openjdk11
+jdk: openjdk17
 addons:
   hosts:
     - mariadb.example.com
@@ -102,8 +102,8 @@ jobs:
     - env: srv=mariadb v=11.1 local=1
       name: "CS 11.1"
     - env: srv=mariadb v=10.6 packet=40
-      jdk: openjdk17
-      name: "CS 10.6 - openjdk 17"
+      jdk: openjdk11
+      name: "CS 10.6 - openjdk 11"
     - env: srv=mariadb v=10.6 packet=8
       name: "CS 10.6 - packet 8M"
     - env: srv=mariadb v=10.6 local=1 BENCH=1

@@ -147,22 +147,6 @@
                             <multiReleaseOutput>true</multiReleaseOutput>
                         </configuration>
                     </execution>
-                    <execution>
-                        <id>compile-java-19</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <release>19</release>
-                            <source>19</source>
-                            <target>19</target>
-                            <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java19</compileSourceRoot>
-                            </compileSourceRoots>
-                            <multiReleaseOutput>true</multiReleaseOutput>
-                        </configuration>
-                    </execution>
                 </executions>
             </plugin>
 
