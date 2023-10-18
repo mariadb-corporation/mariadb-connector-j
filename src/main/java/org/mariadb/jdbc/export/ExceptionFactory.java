@@ -14,6 +14,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbPoolConnection;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.util.ThreadUtils;
 
 /**
  * Exception factory. This permit common error logging, with thread id, dump query, and specific
@@ -102,7 +103,7 @@ public class ExceptionFactory {
                 msg.append("\n  name:\"")
                     .append(thread.getName())
                     .append("\" pid:")
-                    .append(thread.getId())
+                    .append(ThreadUtils.getId(thread))
                     .append(" status:")
                     .append(thread.getState());
                 for (StackTraceElement trace : traces) {
@@ -201,7 +202,7 @@ public class ExceptionFactory {
       }
       int MsgResponseNo = responseMsg[i];
       if (MsgResponseNo < 1) {
-        updateCounts[responseIncrement++] = Statement.EXECUTE_FAILED;
+        updateCounts[0] = Statement.EXECUTE_FAILED;
         return new BatchUpdateException(updateCounts, sqle);
       } else if (MsgResponseNo == 1 && res.size() > i && res.get(i) instanceof OkPacket) {
         updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
@@ -260,7 +261,8 @@ public class ExceptionFactory {
     // 3948 : mysql load data infile disable
     if ((errorCode == 4166 || errorCode == 3948 || errorCode == 1148) && !conf.allowLocalInfile()) {
       return new SQLException(
-          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands",
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile"
+              + " commands",
           sqlState,
           errorCode,
           cause);
