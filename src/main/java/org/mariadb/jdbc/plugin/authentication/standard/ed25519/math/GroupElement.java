@@ -885,7 +885,8 @@ public class GroupElement implements Serializable {
   @Override
   public boolean equals(Object obj) {
     if (obj == this) return true;
-    if (!(obj instanceof GroupElement ge)) return false;
+    if (!(obj instanceof GroupElement)) return false;
+    GroupElement ge = (GroupElement) obj;
     if (!this.repr.equals(ge.repr)) {
       try {
         ge = ge.toRep(this.repr);

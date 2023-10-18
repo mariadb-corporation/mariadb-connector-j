@@ -1052,7 +1052,8 @@ public class Ed25519FieldElement extends FieldElement {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof Ed25519FieldElement fe)) return false;
+    if (!(obj instanceof Ed25519FieldElement)) return false;
+    Ed25519FieldElement fe = (Ed25519FieldElement) obj;
     return 1 == Utils.equal(toByteArray(), fe.toByteArray());
   }
 

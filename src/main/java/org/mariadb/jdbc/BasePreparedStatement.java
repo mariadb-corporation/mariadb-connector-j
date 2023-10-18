@@ -1192,7 +1192,8 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
                   "HY000",
                   e);
         }
-      } else if (obj instanceof Number bd) {
+      } else if (obj instanceof Number) {
+        Number bd = (Number) obj;
         switch (targetSqlType) {
           case Types.TINYINT:
             setByte(parameterIndex, bd.byteValue());

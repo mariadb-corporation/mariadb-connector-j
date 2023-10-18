@@ -77,7 +77,8 @@ public class Curve implements Serializable {
   @Override
   public boolean equals(Object o) {
     if (o == this) return true;
-    if (!(o instanceof Curve c)) return false;
+    if (!(o instanceof Curve)) return false;
+    Curve c = (Curve) o;
     return f.equals(c.getField()) && d.equals(c.getD()) && I.equals(c.getI());
   }
 }
