@@ -21,6 +21,7 @@ module org.mariadb.jdbc {
   exports org.mariadb.jdbc.message;
   exports org.mariadb.jdbc.type;
   exports org.mariadb.jdbc.export;
+  exports org.mariadb.jdbc.util.constants;
   exports org.mariadb.jdbc.plugin;
   exports org.mariadb.jdbc.plugin.codec;
   exports org.mariadb.jdbc.plugin.authentication.standard;
