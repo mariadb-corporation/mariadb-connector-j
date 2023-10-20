@@ -227,6 +227,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       case SMALLINT:
       case MEDIUMINT:
       case INT:
+      case DOUBLE:
       case BIGINT:
         if (!isSigned()) {
           return dataType.name() + " UNSIGNED";

@@ -5,11 +5,10 @@
 
 package com.singlestore.jdbc;
 
-import org.openjdk.jmh.annotations.Benchmark;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import org.openjdk.jmh.annotations.Benchmark;
 
 public class Select_1_user extends Common {
 
@@ -18,7 +17,6 @@ public class Select_1_user extends Common {
     return run(state.connectionText);
   }
 
-
   @Benchmark
   public Object[] binary(MyState state) throws Throwable {
     return run(state.connectionBinary);
@@ -26,7 +24,8 @@ public class Select_1_user extends Common {
 
   private Object[] run(Connection con) throws Throwable {
     final int numberOfUserCol = 13;
-    try (PreparedStatement prep = con.prepareStatement("select * FROM information_schema.users LIMIT 1")) {
+    try (PreparedStatement prep = con.prepareStatement(
+        "select * FROM information_schema.users LIMIT 1")) {
       ResultSet rs = prep.executeQuery();
       rs.next();
       Object[] objs = new Object[numberOfUserCol];
