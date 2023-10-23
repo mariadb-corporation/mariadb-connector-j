@@ -6,7 +6,6 @@ package org.mariadb.jdbc.client.socket.impl;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Permit to buf socket data, reading not only asked bytes, but available number of bytes when

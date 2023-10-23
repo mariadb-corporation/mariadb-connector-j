@@ -3,10 +3,8 @@
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
 package org.mariadb.jdbc;
 
-import org.openjdk.jmh.annotations.Benchmark;
-
-import java.sql.ResultSet;
 import java.sql.Statement;
+import org.openjdk.jmh.annotations.Benchmark;
 
 public class Do_1 extends Common {
 
