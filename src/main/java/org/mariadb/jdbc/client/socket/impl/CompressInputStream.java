@@ -24,18 +24,19 @@ public class CompressInputStream extends InputStream {
   private int end;
   private int pos;
   private volatile byte[] buf;
-  private final ReentrantLock lock;
 
   /**
    * Constructor. When this handler is used, driver expect packet with 7 byte compression header
    *
+   * Implementation doesn't use synchronized/semaphore because all used are already locked by
+   * Statement/PreparedStatement Reentrant lock
+   *
    * @param in socket input stream
    * @param compressionSequence compression sequence
    */
-  public CompressInputStream(InputStream in, MutableByte compressionSequence, ReentrantLock lock) {
+  public CompressInputStream(InputStream in, MutableByte compressionSequence) {
     this.in = in;
     this.sequence = compressionSequence;
-    this.lock = lock;
   }
 
   /**
@@ -90,23 +91,18 @@ public class CompressInputStream extends InputStream {
     }
 
     int totalReads = 0;
-    lock.lock();
-    try {
-      do {
-        if (end - pos <= 0) {
-          retrieveBuffer();
-        }
-        // copy internal value to buf.
-        int copyLength = Math.min(len - totalReads, end - pos);
-        System.arraycopy(buf, pos, b, off + totalReads, copyLength);
-        pos += copyLength;
-        totalReads += copyLength;
-      } while (totalReads < len && super.available() > 0);
+    do {
+      if (end - pos <= 0) {
+        retrieveBuffer();
+      }
+      // copy internal value to buf.
+      int copyLength = Math.min(len - totalReads, end - pos);
+      System.arraycopy(buf, pos, b, off + totalReads, copyLength);
+      pos += copyLength;
+      totalReads += copyLength;
+    } while (totalReads < len && super.available() > 0);
 
-      return totalReads;
-    } finally {
-      lock.unlock();
-    }
+    return totalReads;
   }
 
   private void retrieveBuffer() throws IOException {
@@ -225,12 +221,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public int available() throws IOException {
-    lock.lock();
-    try {
-      return in.available();
-    } finally {
-      lock.unlock();
-    }
+    return in.available();
   }
 
   /**
@@ -270,12 +261,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public void mark(int readlimit) {
-    lock.lock();
-    try {
-      in.mark(readlimit);
-    } finally {
-      lock.unlock();
-    }
+    in.mark(readlimit);
   }
 
   /**
@@ -317,12 +303,7 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public void reset() throws IOException {
-    lock.lock();
-    try {
-      in.reset();
-    } finally {
-      lock.unlock();
-    }
+    in.reset();
   }
 
   /**
