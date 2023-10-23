@@ -107,7 +107,7 @@ public class StandardClient implements Client, AutoCloseable {
       OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 16384);
       InputStream in =
           conf.useReadAheadInput()
-              ? new ReadAheadBufferedStream(socket.getInputStream())
+              ? new ReadAheadBufferedStream(socket.getInputStream(), lock)
               : new BufferedInputStream(socket.getInputStream(), 16384);
 
       assignStream(out, in, conf, null);
@@ -165,7 +165,7 @@ public class StandardClient implements Client, AutoCloseable {
         out = new BufferedOutputStream(sslSocket.getOutputStream(), 16384);
         in =
             conf.useReadAheadInput()
-                ? new ReadAheadBufferedStream(sslSocket.getInputStream())
+                ? new ReadAheadBufferedStream(sslSocket.getInputStream(), lock)
                 : new BufferedInputStream(sslSocket.getInputStream(), 16384);
         assignStream(out, in, conf, handshake.getThreadId());
       }
@@ -199,7 +199,7 @@ public class StandardClient implements Client, AutoCloseable {
       if ((clientCapabilities & Capabilities.COMPRESS) != 0) {
         assignStream(
             new CompressOutputStream(out, compressionSequence),
-            new CompressInputStream(in, compressionSequence),
+            new CompressInputStream(in, compressionSequence, lock),
             conf,
             handshake.getThreadId());
       }

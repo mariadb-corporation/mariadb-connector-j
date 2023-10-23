@@ -6,6 +6,7 @@ package org.mariadb.jdbc.client.socket.impl;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 import org.mariadb.jdbc.client.util.MutableByte;
@@ -22,7 +23,8 @@ public class CompressInputStream extends InputStream {
 
   private int end;
   private int pos;
-  private byte[] buf;
+  private volatile byte[] buf;
+  private final ReentrantLock lock;
 
   /**
    * Constructor. When this handler is used, driver expect packet with 7 byte compression header
@@ -30,9 +32,10 @@ public class CompressInputStream extends InputStream {
    * @param in socket input stream
    * @param compressionSequence compression sequence
    */
-  public CompressInputStream(InputStream in, MutableByte compressionSequence) {
+  public CompressInputStream(InputStream in, MutableByte compressionSequence, ReentrantLock lock) {
     this.in = in;
     this.sequence = compressionSequence;
+    this.lock = lock;
   }
 
   /**
@@ -87,19 +90,23 @@ public class CompressInputStream extends InputStream {
     }
 
     int totalReads = 0;
+    lock.lock();
+    try {
+      do {
+        if (end - pos <= 0) {
+          retrieveBuffer();
+        }
+        // copy internal value to buf.
+        int copyLength = Math.min(len - totalReads, end - pos);
+        System.arraycopy(buf, pos, b, off + totalReads, copyLength);
+        pos += copyLength;
+        totalReads += copyLength;
+      } while (totalReads < len && super.available() > 0);
 
-    do {
-      if (end - pos <= 0) {
-        retrieveBuffer();
-      }
-      // copy internal value to buf.
-      int copyLength = Math.min(len - totalReads, end - pos);
-      System.arraycopy(buf, pos, b, off + totalReads, copyLength);
-      pos += copyLength;
-      totalReads += copyLength;
-    } while (totalReads < len && super.available() > 0);
-
-    return totalReads;
+      return totalReads;
+    } finally {
+      lock.unlock();
+    }
   }
 
   private void retrieveBuffer() throws IOException {
@@ -218,7 +225,12 @@ public class CompressInputStream extends InputStream {
    */
   @Override
   public int available() throws IOException {
-    return in.available();
+    lock.lock();
+    try {
+      return in.available();
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -257,8 +269,13 @@ public class CompressInputStream extends InputStream {
    * @see InputStream#reset()
    */
   @Override
-  public synchronized void mark(int readlimit) {
-    in.mark(readlimit);
+  public void mark(int readlimit) {
+    lock.lock();
+    try {
+      in.mark(readlimit);
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
@@ -299,8 +316,13 @@ public class CompressInputStream extends InputStream {
    * @see IOException
    */
   @Override
-  public synchronized void reset() throws IOException {
-    in.reset();
+  public void reset() throws IOException {
+    lock.lock();
+    try {
+      in.reset();
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
