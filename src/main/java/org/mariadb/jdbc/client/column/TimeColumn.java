@@ -316,8 +316,8 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
     Timestamp t;
 
     // specific case for TIME, to handle value not in 00:00:00-23:59:59
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.setLenient(true);
       if (parts[0] == -1) {
@@ -334,6 +334,26 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
         cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
         t = new Timestamp(cal.getTimeInMillis());
         t.setNanos(parts[4]);
+      }
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.setLenient(true);
+        if (parts[0] == -1) {
+          calParam.set(
+              1970,
+              Calendar.JANUARY,
+              1,
+              parts[0] * parts[1],
+              parts[0] * parts[2],
+              parts[0] * parts[3] - 1);
+          t = new Timestamp(calParam.getTimeInMillis());
+          t.setNanos(1_000_000_000 - parts[4]);
+        } else {
+          calParam.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
+          t = new Timestamp(calParam.getTimeInMillis());
+          t.setNanos(parts[4]);
+        }
       }
     }
     return t;

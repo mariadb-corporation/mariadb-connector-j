@@ -259,13 +259,21 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       int year = Integer.parseInt(stDatePart[0]);
       int month = Integer.parseInt(stDatePart[1]);
       int dayOfMonth = Integer.parseInt(stDatePart[2]);
-      Calendar c = cal == null ? Calendar.getInstance() : cal;
-      synchronized (c) {
+      if (cal == null) {
+        Calendar c = Calendar.getInstance();
         c.clear();
         c.set(Calendar.YEAR, year);
         c.set(Calendar.MONTH, month - 1);
         c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
         return new Date(c.getTimeInMillis());
+      } else {
+        synchronized (cal) {
+          cal.clear();
+          cal.set(Calendar.YEAR, year);
+          cal.set(Calendar.MONTH, month - 1);
+          cal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+          return new Date(cal.getTimeInMillis());
+        }
       }
 
     } catch (NumberFormatException nfe) {
@@ -296,26 +304,44 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
   @Override
   public Time decodeTimeBinary(ReadableByteBuf buf, MutableInt length, Calendar calParam)
       throws SQLDataException {
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
     int[] parts = LocalTimeCodec.parseTime(buf, length, this);
     Time t;
 
     // specific case for TIME, to handle value not in 00:00:00-23:59:59
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.setLenient(true);
       if (parts[0] == -1) {
         cal.set(
-            1970,
-            Calendar.JANUARY,
-            1,
-            parts[0] * parts[1],
-            parts[0] * parts[2],
-            parts[0] * parts[3] - 1);
+                1970,
+                Calendar.JANUARY,
+                1,
+                parts[0] * parts[1],
+                parts[0] * parts[2],
+                parts[0] * parts[3] - 1);
         t = new Time(cal.getTimeInMillis() + (1000 - parts[4]));
       } else {
         cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
         t = new Time(cal.getTimeInMillis() + parts[4] / 1_000_000);
+      }
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.setLenient(true);
+        if (parts[0] == -1) {
+          calParam.set(
+                  1970,
+                  Calendar.JANUARY,
+                  1,
+                  parts[0] * parts[1],
+                  parts[0] * parts[2],
+                  parts[0] * parts[3] - 1);
+          t = new Time(calParam.getTimeInMillis() + (1000 - parts[4]));
+        } else {
+          calParam.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
+          t = new Time(calParam.getTimeInMillis() + parts[4] / 1_000_000);
+        }
       }
     }
     return t;
@@ -378,7 +404,6 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
           timestampsPart[4],
           timestampsPart[5]);
       timestamp = new Timestamp(c.getTime().getTime());
-      timestamp.setNanos(timestampsPart[6] * 1000);
     } else {
       synchronized (calParam) {
         calParam.clear();
@@ -390,17 +415,15 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
             timestampsPart[4],
             timestampsPart[5]);
         timestamp = new Timestamp(calParam.getTime().getTime());
-        timestamp.setNanos(timestampsPart[6] * 1000);
       }
     }
+    timestamp.setNanos(timestampsPart[6] * 1000);
     return timestamp;
   }
 
   @Override
   public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar calParam)
       throws SQLDataException {
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-
     String val = buf.readString(length.get());
     try {
       int[] parts = LocalDateTimeCodec.parseTimestamp(val);
@@ -416,10 +439,17 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       int seconds = parts[5];
       int microseconds = parts[6] / 1000;
       Timestamp timestamp;
-      synchronized (cal) {
+      if (calParam == null) {
+        Calendar cal = Calendar.getInstance();
         cal.clear();
         cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
         timestamp = new Timestamp(cal.getTimeInMillis());
+      } else {
+        synchronized (calParam) {
+          calParam.clear();
+          calParam.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
+          timestamp = new Timestamp(calParam.getTimeInMillis());
+        }
       }
       timestamp.setNanos(microseconds * 1000);
       return timestamp;

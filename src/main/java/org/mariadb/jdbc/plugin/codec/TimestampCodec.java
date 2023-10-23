@@ -93,8 +93,8 @@ public class TimestampCodec implements Codec<Timestamp> {
   public void encodeBinary(Writer encoder, Object value, Calendar providedCal, Long maxLength)
       throws IOException {
     Timestamp ts = (Timestamp) value;
-    Calendar cal = providedCal == null ? Calendar.getInstance() : providedCal;
-    synchronized (cal) {
+    if (providedCal == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.setTimeInMillis(ts.getTime());
       if (ts.getNanos() == 0) {
@@ -114,6 +114,29 @@ public class TimestampCodec implements Codec<Timestamp> {
         encoder.writeByte(cal.get(Calendar.MINUTE));
         encoder.writeByte(cal.get(Calendar.SECOND));
         encoder.writeInt(ts.getNanos() / 1000);
+      }
+    } else {
+      synchronized (providedCal) {
+        providedCal.clear();
+        providedCal.setTimeInMillis(ts.getTime());
+        if (ts.getNanos() == 0) {
+          encoder.writeByte(7); // length
+          encoder.writeShort((short) providedCal.get(Calendar.YEAR));
+          encoder.writeByte((providedCal.get(Calendar.MONTH) + 1));
+          encoder.writeByte(providedCal.get(Calendar.DAY_OF_MONTH));
+          encoder.writeByte(providedCal.get(Calendar.HOUR_OF_DAY));
+          encoder.writeByte(providedCal.get(Calendar.MINUTE));
+          encoder.writeByte(providedCal.get(Calendar.SECOND));
+        } else {
+          encoder.writeByte(11); // length
+          encoder.writeShort((short) providedCal.get(Calendar.YEAR));
+          encoder.writeByte((providedCal.get(Calendar.MONTH) + 1));
+          encoder.writeByte(providedCal.get(Calendar.DAY_OF_MONTH));
+          encoder.writeByte(providedCal.get(Calendar.HOUR_OF_DAY));
+          encoder.writeByte(providedCal.get(Calendar.MINUTE));
+          encoder.writeByte(providedCal.get(Calendar.SECOND));
+          encoder.writeInt(ts.getNanos() / 1000);
+        }
       }
     }
   }

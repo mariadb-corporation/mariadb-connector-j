@@ -187,13 +187,22 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       return null;
     }
 
-    Calendar c = cal == null ? Calendar.getInstance() : cal;
-    synchronized (c) {
+    if (cal == null) {
+      Calendar c = Calendar.getInstance();
       c.clear();
       c.set(Calendar.YEAR, year);
       c.set(Calendar.MONTH, month - 1);
       c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
       return new Date(c.getTimeInMillis());
+    } else {
+      synchronized (cal) {
+        cal.clear();
+        cal.set(Calendar.YEAR, year);
+        cal.set(Calendar.MONTH, month - 1);
+        cal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+        return new Date(cal.getTimeInMillis());
+      }
+
     }
   }
 
@@ -205,13 +214,21 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       return null;
     }
 
-    Calendar c = cal == null ? Calendar.getInstance() : cal;
-    synchronized (c) {
+    if (cal == null) {
+      Calendar c = Calendar.getInstance();
       c.clear();
       c.set(Calendar.YEAR, buf.readShort());
       c.set(Calendar.MONTH, buf.readByte() - 1);
       c.set(Calendar.DAY_OF_MONTH, buf.readByte());
       return new Date(c.getTimeInMillis());
+    } else {
+      synchronized (cal) {
+        cal.clear();
+        cal.set(Calendar.YEAR, buf.readShort());
+        cal.set(Calendar.MONTH, buf.readByte() - 1);
+        cal.set(Calendar.DAY_OF_MONTH, buf.readByte());
+        return new Date(cal.getTimeInMillis());
+      }
     }
   }
 
@@ -260,7 +277,6 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       return null;
     }
 
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
     int year;
     int month;
     long dayOfMonth;
@@ -275,10 +291,17 @@ public class DateColumn extends ColumnDefinitionPacket implements ColumnDecoder 
     }
 
     Timestamp timestamp;
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.set(year, month - 1, (int) dayOfMonth, 0, 0, 0);
       timestamp = new Timestamp(cal.getTimeInMillis());
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(year, month - 1, (int) dayOfMonth, 0, 0, 0);
+        timestamp = new Timestamp(calParam.getTimeInMillis());
+      }
     }
     timestamp.setNanos(0);
     return timestamp;

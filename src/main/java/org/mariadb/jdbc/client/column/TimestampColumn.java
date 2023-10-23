@@ -296,8 +296,6 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
   @Override
   public Date decodeDateBinary(ReadableByteBuf buf, MutableInt length, Calendar calParam)
       throws SQLDataException {
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-
     if (length.get() == 0) {
       length.set(NULL_LENGTH);
       return null;
@@ -333,10 +331,17 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
     }
 
     Timestamp timestamp;
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
       timestamp = new Timestamp(cal.getTimeInMillis());
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
+        timestamp = new Timestamp(calParam.getTimeInMillis());
+      }
     }
     timestamp.setNanos((int) (microseconds * 1000));
     String st = timestamp.toString();
@@ -361,7 +366,6 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       length.set(NULL_LENGTH);
       return null;
     }
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
 
     int year = buf.readUnsignedShort();
     int month = buf.readByte();
@@ -387,10 +391,17 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       return null;
     }
 
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.set(1970, Calendar.JANUARY, 1, hour, minutes, seconds);
       return new Time(cal.getTimeInMillis() + microseconds / 1_000);
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(1970, Calendar.JANUARY, 1, hour, minutes, seconds);
+        return new Time(calParam.getTimeInMillis() + microseconds / 1_000);
+      }
     }
   }
 
@@ -476,7 +487,6 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       length.set(NULL_LENGTH);
       return null;
     }
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
 
     int year = buf.readUnsignedShort();
     int month = buf.readByte();
@@ -508,10 +518,17 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       return null;
     }
     Timestamp timestamp;
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
       timestamp = new Timestamp(cal.getTimeInMillis());
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(year, month - 1, dayOfMonth, hour, minutes, seconds);
+        timestamp = new Timestamp(calParam.getTimeInMillis());
+      }
     }
     timestamp.setNanos((int) (microseconds * 1000));
     return timestamp;
