@@ -595,6 +595,7 @@ public class StandardClient implements Client, AutoCloseable {
       return results;
     } catch (SQLException sqlException) {
       if (!closed) {
+        results.add(null);
         // read remaining results
         perMsgCounter++;
         for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
@@ -626,7 +627,7 @@ public class StandardClient implements Client, AutoCloseable {
                       resultSetType,
                       closeOnCompletion));
             } catch (SQLException e) {
-              // eat
+              results.add(null);
             }
           }
         }

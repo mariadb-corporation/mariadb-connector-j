@@ -32,6 +32,29 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void batchError() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS t1");
+    stmt.execute("CREATE TABLE t1(c0 DATE UNIQUE PRIMARY KEY NOT NULL)");
+
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2019-04-11')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2020-04-11')");
+    try {
+      stmt.executeBatch();
+      fail();
+    } catch (BatchUpdateException e) {
+      assertTrue(e.getMessage().contains("Duplicate entry"));
+      assertEquals(5, e.getUpdateCounts().length);
+      assertArrayEquals(
+          new int[] {1, java.sql.Statement.EXECUTE_FAILED, 1, java.sql.Statement.EXECUTE_FAILED, 1},
+          e.getUpdateCounts());
+    }
+  }
+
+  @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       wrongParameter(con);

@@ -193,8 +193,6 @@ public class ExceptionFactory {
   public BatchUpdateException createBatchUpdate(
       List<Completion> res, int length, int[] responseMsg, SQLException sqle) {
     int[] updateCounts = new int[length];
-
-    int responseIncrement = 0;
     for (int i = 0; i < length; i++) {
       if (i >= responseMsg.length) {
         Arrays.fill(updateCounts, i, length, Statement.EXECUTE_FAILED);
@@ -204,8 +202,16 @@ public class ExceptionFactory {
       if (MsgResponseNo < 1) {
         updateCounts[0] = Statement.EXECUTE_FAILED;
         return new BatchUpdateException(updateCounts, sqle);
-      } else if (MsgResponseNo == 1 && res.size() > i && res.get(i) instanceof OkPacket) {
-        updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+      } else if (MsgResponseNo == 1) {
+        if (i >= res.size() || res.get(i) == null) {
+          updateCounts[i] = Statement.EXECUTE_FAILED;
+          continue;
+        }
+        if (res.get(i) instanceof OkPacket) {
+          updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+          continue;
+        }
+        updateCounts[i] = Statement.SUCCESS_NO_INFO;
       } else {
         // unknown.
         updateCounts[i] = Statement.SUCCESS_NO_INFO;
