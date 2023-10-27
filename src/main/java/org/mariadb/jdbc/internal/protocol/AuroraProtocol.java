@@ -181,11 +181,11 @@ public class AuroraProtocol extends MastersReplicasProtocol {
           if (searchFilter.isFineIfFoundOnlyMaster()
               && listener.getUrlParser().getHostAddresses().size() <= 1
               && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
-            listener.retrieveAllEndpointsAndSet(protocol);
+            List<HostAddress> hostAddresses = listener.retrieveAllEndpointsAndSet(protocol);
 
-            if (listener.getUrlParser().getHostAddresses().size() > 1) {
+            if (hostAddresses.size() > 1) {
               // add newly discovered end-point to loop
-              loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+              loopAddresses.addAll(hostAddresses);
               // since there is more than one end point, reactivate connection to a read-only host
               searchFilter = new SearchFilter(false);
             }
@@ -200,11 +200,11 @@ public class AuroraProtocol extends MastersReplicasProtocol {
             // in case cluster DNS is currently pointing to a replica host
             if (listener.getUrlParser().getHostAddresses().size() <= 1
                 && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
-              listener.retrieveAllEndpointsAndSet(protocol);
+              List<HostAddress> hostAddresses = listener.retrieveAllEndpointsAndSet(protocol);
 
-              if (listener.getUrlParser().getHostAddresses().size() > 1) {
+              if (hostAddresses.size() > 1) {
                 // add newly discovered end-point to loop
-                loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                loopAddresses.addAll(hostAddresses);
                 // since there is more than one end point, reactivate connection to a read-only host
                 searchFilter = new SearchFilter(false);
               }

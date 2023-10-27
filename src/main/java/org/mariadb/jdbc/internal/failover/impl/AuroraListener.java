@@ -223,7 +223,7 @@ public class AuroraListener extends MastersReplicasListener {
               || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
     }
 
-    // When reconnecting, search if replicas list has change since first initialisation
+    // When reconnecting, search if replicas list has changed since first initialisation
     if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
       retrieveAllEndpointsAndSet(getCurrentProtocol());
     }
@@ -239,14 +239,16 @@ public class AuroraListener extends MastersReplicasListener {
    * instance identifiers and sets urlParser accordingly.
    *
    * @param protocol current protocol connected to
+   * @return host address list
    * @throws SQLException if connection error occur
    */
-  public void retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
+  public List<HostAddress> retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
     // For a given cluster, same port for all endpoints and same end host address
     if (clusterDnsSuffix != null) {
       List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
       setUrlParserFromEndpoints(endpoints, protocol.getPort());
     }
+    return hostAddresses;
   }
 
   /**
@@ -304,8 +306,9 @@ public class AuroraListener extends MastersReplicasListener {
    *
    * @param endpoints instance identifiers
    * @param port port that is common to all endpoints
+   * @return list of host addresses
    */
-  private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
+  private List<HostAddress> setUrlParserFromEndpoints(List<String> endpoints, int port) {
     List<HostAddress> addresses = new ArrayList<>();
     for (String endpoint : endpoints) {
       if (endpoint != null) {
@@ -316,6 +319,7 @@ public class AuroraListener extends MastersReplicasListener {
       addresses.addAll(urlParser.getHostAddresses());
     }
     hostAddresses = addresses;
+    return hostAddresses;
   }
 
   /**
