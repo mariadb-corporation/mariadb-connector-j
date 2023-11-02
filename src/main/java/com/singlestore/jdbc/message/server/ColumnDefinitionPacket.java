@@ -404,7 +404,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         return isSigned() ? Types.TINYINT : Types.SMALLINT;
       case BIT:
         if (length == 1) {
-          return Types.BOOLEAN;
+          return Types.BIT;
         }
         return Types.VARBINARY;
       case SMALLINT:
@@ -466,9 +466,6 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
         }
         return isSigned() ? ByteCodec.INSTANCE : ShortCodec.INSTANCE;
       case BIT:
-        if (length == 1) {
-          return BooleanCodec.INSTANCE;
-        }
         return BitSetCodec.INSTANCE;
       case SMALLINT:
         return isSigned() ? ShortCodec.INSTANCE : IntCodec.INSTANCE;
