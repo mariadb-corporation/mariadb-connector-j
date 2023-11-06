@@ -728,7 +728,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             "SELECT TABLE_SCHEMA TABLE_CAT, "
                 + "NULL TABLE_SCHEM, "
                 + "TABLE_NAME, "
-                + "IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE, "
+                + "IF(TABLE_TYPE='BASE TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY', 'LOCAL TEMPORARY', TABLE_TYPE)) as TABLE_TYPE, "
                 + "TABLE_COMMENT REMARKS, "
                 + "NULL TYPE_CAT, "
                 + "NULL TYPE_SCHEM, "
@@ -742,19 +742,26 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     if (types != null && types.length > 0) {
       sb.append(firstCondition ? " WHERE " : " AND ").append(" TABLE_TYPE IN (");
-
+      boolean mustAddType = false;
       for (int i = 0; i < types.length; i++) {
         if (types[i] == null) {
           continue;
         }
-        sb.append(
-            "TABLE".equals(types[i]) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(types[i]));
-        if (i == types.length - 1) {
-          sb.append(")");
-        } else {
-          sb.append(",");
+        if (mustAddType) sb.append(",");
+        mustAddType = true;
+        switch (types[i]) {
+          case "TABLE":
+            sb.append("'BASE TABLE','SYSTEM VERSIONED'");
+            break;
+          case "LOCAL TEMPORARY":
+            sb.append("'TEMPORARY'");
+            break;
+          default:
+            sb.append(escapeQuote(types[i]));
+            break;
         }
       }
+      sb.append(")");
     }
 
     sb.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
@@ -2432,7 +2439,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
+        "SELECT 'TABLE' TABLE_TYPE "
+            + "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE "
+            + "UNION SELECT 'VIEW' TABLE_TYPE "
+            + "UNION SELECT 'LOCAL TEMPORARY' TABLE_TYPE");
   }
 
   /**

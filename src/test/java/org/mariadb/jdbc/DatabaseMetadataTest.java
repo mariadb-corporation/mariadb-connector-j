@@ -1682,4 +1682,64 @@ public class DatabaseMetadataTest extends BaseTest {
     DatabaseMetaData meta = sharedConnection.getMetaData();
     assertEquals(64, meta.getMaxProcedureNameLength());
   }
+
+  @Test
+  public void databaseResultsetMeta() throws SQLException {
+    DatabaseMetaData meta = sharedConnection.getMetaData();
+    ResultSet rs = meta.getTableTypes();
+    assertTrue(rs.next());
+    ResultSetMetaData rsMeta = rs.getMetaData();
+    assertEquals("TABLE_TYPE", rsMeta.getColumnName(1));
+    assertEquals("", rsMeta.getTableName(1));
+    assertEquals("TABLE", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("SYSTEM VIEW", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("VIEW", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("LOCAL TEMPORARY", rs.getString(1));
+    assertFalse(rs.next());
+  }
+
+  @Test
+  public void testTemporaryTables() throws SQLException {
+    Assume.assumeTrue(isMariadbServer() && minVersion(11, 2, 0));
+    Assume.assumeTrue(
+        !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
+
+    java.sql.Statement stmt = sharedConnection.createStatement();
+    stmt.execute("create temporary table testTemporaryTables (b int)");
+    try (Connection con = setConnection()) {
+      java.sql.Statement ss = con.createStatement();
+      ResultSet rr =
+          ss.executeQuery(
+              "select table_schema, table_name, table_type, temporary "
+                  + "from information_schema.tables "
+                  + "where TABLE_NAME = 'testTemporaryTables'");
+      assertFalse(rr.next());
+    }
+    DatabaseMetaData dbmd = sharedConnection.getMetaData();
+
+    ResultSet rs = dbmd.getTables(null, null, "testTemporary%", null);
+    assertTrue(rs.next());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
+    assertFalse(rs.next());
+
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"LOCAL TEMPORARY"});
+    assertTrue(rs.next());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
+    assertFalse(rs.next());
+
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TEMPORARY"});
+    assertTrue(rs.next());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
+    assertFalse(rs.next());
+
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TABLE"});
+    assertFalse(rs.next());
+  }
 }
