@@ -92,6 +92,15 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
   }
 
+  private static boolean checkLocal() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT @@local_infile");
+    if (rs.next()) {
+      return rs.getInt(1) == 1;
+    }
+    return false;
+  }
+
   @Test
   public void loadDataInBatch() throws SQLException {
     Assume.assumeFalse((!isMariadbServer() && minVersion(8, 0, 3)));
@@ -409,5 +418,39 @@ public class LocalInfileInputStreamTest extends BaseTest {
     long maxAllowedPacket = rs.getLong(1);
     Assume.assumeTrue(maxAllowedPacket < 100_000_000);
     checkBigLocalInfile(maxAllowedPacket + 1024);
+  }
+
+  @Test
+  public void loadDataBasicWindows() throws Exception {
+    Assume.assumeTrue(checkLocal());
+    Assume.assumeTrue(
+        !"skysql".equals(System.getenv("srv")) && !"skysql-ha".equals(System.getenv("srv")));
+    File temp = File.createTempFile("validateInfiledummyloadDataBasic", ".txt");
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+      bw.write("1\thello2\n2\tworld\n");
+    }
+
+    try (Connection con = setConnection("allowLocalInfile")) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE LocalInfileInputStreamTest2");
+      stmt.execute(
+          "LOAD DATA LOCAL INFILE '"
+              + temp.getCanonicalPath().replace("\\", "\\\\")
+              + "' INTO TABLE LocalInfileInputStreamTest2 (id, test)");
+      ResultSet rs = stmt.executeQuery("SELECT * FROM LocalInfileInputStreamTest2");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertEquals("hello2", rs.getString(2));
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertEquals("world", rs.getString(2));
+      while (rs.next()) {
+        System.out.println(rs.getString(2));
+      }
+      assertFalse(rs.next());
+
+    } finally {
+      temp.delete();
+    }
   }
 }

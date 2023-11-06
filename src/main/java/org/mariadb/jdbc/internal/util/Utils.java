@@ -1006,12 +1006,12 @@ public class Utils {
    */
   public static boolean validateFileName(
       String sql, ParameterHolder[] parameters, String fileName) {
-    Pattern pattern =
-        Pattern.compile(
-            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-                + fileName
-                + "'",
-            Pattern.CASE_INSENSITIVE);
+    String reg =
+        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + "'";
+
+    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
     if (pattern.matcher(sql).find()) {
       return true;
     }
@@ -1019,10 +1019,13 @@ public class Utils {
     if (parameters != null) {
       pattern =
           Pattern.compile(
-              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
               Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.length > 0) {
-        return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+        return parameters[0]
+            .toString()
+            .toLowerCase()
+            .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
       }
     }
     return false;
