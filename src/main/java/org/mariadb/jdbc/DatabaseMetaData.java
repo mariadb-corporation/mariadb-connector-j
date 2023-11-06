@@ -722,7 +722,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     StringBuilder sb =
         new StringBuilder(
             "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE"
-                + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                + " TABLE' or TABLE_TYPE='SYSTEM VERSIONED', 'TABLE', IF(TABLE_TYPE='TEMPORARY', 'LOCAL TEMPORARY', TABLE_TYPE)) as TABLE_TYPE,"
                 + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL"
                 + " SELF_REFERENCING_COL_NAME,  NULL REF_GENERATION FROM"
                 + " INFORMATION_SCHEMA.TABLES");
@@ -744,8 +744,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           mustAddType = false;
           continue;
         }
-        String type = "TABLE".equals(s) ? "'BASE TABLE','SYSTEM VERSIONED'" : escapeQuote(s);
-        sqlType.append(type);
+        switch (s) {
+          case "TABLE":
+            sqlType.append("'BASE TABLE','SYSTEM VERSIONED'");
+            break;
+          case "LOCAL TEMPORARY":
+            sqlType.append("'TEMPORARY'");
+            break;
+          default:
+            sqlType.append(escapeQuote(s));
+            break;
+        }
       }
       sqlType.append(")");
       if (mustAddType) sb.append(sqlType);
@@ -2382,8 +2391,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW'"
-            + " TABLE_TYPE");
+        "SELECT 'TABLE' TABLE_TYPE " +
+                "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE " +
+                "UNION SELECT 'VIEW' TABLE_TYPE " +
+                "UNION SELECT 'LOCAL TEMPORARY' TABLE_TYPE");
   }
 
   /**
