@@ -7,13 +7,13 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jmh.version>1.34</jmh.version>
+        <jmh.version>1.37</jmh.version>
         <junit.version>5.8.2</junit.version>
         <junit-pioneer.version>1.5.0</junit-pioneer.version>
         <assertj.version>3.22.0</assertj.version>
@@ -21,10 +21,11 @@
         <osgi.compendium.version>5.0.0</osgi.compendium.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <logback.version>1.4.4</logback.version>
-        <jacoco.version>0.8.8</jacoco.version>
-        <waffle-jna.version>3.2.0</waffle-jna.version>
-        <mysql-connector-java.version>8.0.31</mysql-connector-java.version>
+        <jacoco.version>0.8.10</jacoco.version>
+        <waffle-jna.version>3.3.0</waffle-jna.version>
+        <mysql-connector-java.version>8.1.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.3.1</bnd-maven-plugin.version>
+        <spotless.version>2.40.0</spotless.version>
     </properties>
 
     <licenses>
@@ -79,7 +80,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.18.10</version>
+                <version>2.21.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -231,24 +232,53 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
-                <groupId>com.coveo</groupId>
-                <artifactId>fmt-maven-plugin</artifactId>
-                <version>2.13</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>format</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <!-- optional: limit format enforcement to just the files changed by this feature branch -->
+                    <!--                    <ratchetFrom>origin/src</ratchetFrom>-->
+                    <formats>
+                        <!-- you can define as many formats as you want, each is independent -->
+                        <format>
+                            <!-- define the files to apply to -->
+                            <includes>
+                                <include>*.md</include>
+                                <include>.gitignore</include>
+                            </includes>
+                            <!-- define the steps to apply to those files -->
+                            <trimTrailingWhitespace/>
+                            <endWithNewline/>
+                            <indent>
+                                <tabs>true</tabs>
+                                <spacesPerTab>2</spacesPerTab>
+                            </indent>
+                        </format>
+                    </formats>
+                    <java>
+                        <excludes>
+                            <exclude>src/main/java/org/mariadb/jdbc/plugin/authentication/standard/ed25519/**/*.java
+                            </exclude>
+                            <exclude>src/main/java/org/mariadb/jdbc/client/socket/impl/UnixDomainSocket.java</exclude>
+                        </excludes>
+                        <googleJavaFormat>
+                            <version>1.18.1</version>
+                            <style>GOOGLE</style>
+                            <reflowLongStrings>true</reflowLongStrings>
+                            <formatJavadoc>true</formatJavadoc>
+                            <groupArtifact>com.google.googlejavaformat:google-java-format</groupArtifact>
+                        </googleJavaFormat>
+                        <licenseHeader>
+                            <file>${project.basedir}/licenseheader.txt</file>
+                        </licenseHeader>
+                    </java>
+                </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M7</version>
+                <version>3.1.2</version>
             </plugin>
 
             <plugin>
@@ -390,11 +420,15 @@
                 </dependency>
 
                 <dependency>
-                    <groupId>mysql</groupId>
-                    <artifactId>mysql-connector-java</artifactId>
+                    <groupId>com.mysql</groupId>
+                    <artifactId>mysql-connector-j</artifactId>
                     <version>${mysql-connector-java.version}</version>
                 </dependency>
-
+                <dependency>
+                    <groupId>com.zaxxer</groupId>
+                    <artifactId>HikariCP</artifactId>
+                    <version>5.0.1</version>
+                </dependency>
             </dependencies>
 
             <build>

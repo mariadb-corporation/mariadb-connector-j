@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.io.InputStream;
@@ -28,11 +27,11 @@ public abstract class BaseCallableStatement extends ServerPreparedStatement
   /** Procedure name */
   protected final String procedureName;
 
-  /** parameter metadata */
-  protected CallableParameterMetaData parameterMetaData = null;
-
   /** Declared output parameters */
   protected final Set<Integer> outputParameters = new HashSet<>();
+
+  /** parameter metadata */
+  protected CallableParameterMetaData parameterMetaData = null;
 
   /** output parameter result */
   private Result outputResult = null;

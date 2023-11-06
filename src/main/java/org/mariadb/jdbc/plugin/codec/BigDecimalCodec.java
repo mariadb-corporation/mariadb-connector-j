@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
@@ -42,6 +41,21 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
           DataType.TINYBLOB,
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
+
+  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) {
+    BigInteger val;
+    if (column.isSigned()) {
+      val = BigInteger.valueOf(buf.readLong());
+    } else {
+      // need BIG ENDIAN, so reverse order
+      byte[] bb = new byte[8];
+      for (int i = 7; i >= 0; i--) {
+        bb[i] = buf.readByte();
+      }
+      val = new BigInteger(1, bb);
+    }
+    return val;
+  }
 
   public String className() {
     return BigDecimal.class.getName();
@@ -194,21 +208,6 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
     }
-  }
-
-  static BigInteger getBigInteger(ReadableByteBuf buf, ColumnDecoder column) {
-    BigInteger val;
-    if (column.isSigned()) {
-      val = BigInteger.valueOf(buf.readLong());
-    } else {
-      // need BIG ENDIAN, so reverse order
-      byte[] bb = new byte[8];
-      for (int i = 7; i >= 0; i--) {
-        bb[i] = buf.readByte();
-      }
-      val = new BigInteger(1, bb);
-    }
-    return val;
   }
 
   @Override

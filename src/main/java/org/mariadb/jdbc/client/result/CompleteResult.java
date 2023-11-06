@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.result;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +37,7 @@ public class CompleteResult extends Result {
    * @throws IOException if Socket error occurs
    * @throws SQLException for all other kind of errors
    */
+  @SuppressWarnings({"this-escape"})
   public CompleteResult(
       Statement stmt,
       boolean binaryProtocol,

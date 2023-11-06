@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,8 +21,8 @@ import org.mariadb.jdbc.client.result.CompleteResult;
 import org.mariadb.jdbc.integration.Common;
 
 public class BlobCodecTest extends CommonCodecTest {
-  private static File tmpFile;
   private static final byte[] fileContent = new byte[11000];
+  private static File tmpFile;
 
   @AfterAll
   public static void drop() throws SQLException {

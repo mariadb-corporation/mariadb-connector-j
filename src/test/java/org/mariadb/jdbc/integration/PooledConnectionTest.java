@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -102,30 +101,7 @@ public class PooledConnectionTest extends Common {
             && !"galera".equals(System.getenv("srv"))
             && !isXpand());
 
-    File tempFile = File.createTempFile("log", ".tmp");
-    //
-    //    Logger logger = (Logger) LoggerFactory.getLogger("org.mariadb.jdbc");
-    //    Level initialLevel = logger.getLevel();
-    //    logger.setLevel(Level.TRACE);
-    //    logger.setAdditive(false);
-    //    logger.detachAndStopAllAppenders();
-    //
-    //    LoggerContext context = new LoggerContext();
-    //    FileAppender<ILoggingEvent> fa = new FileAppender<>();
-    //    fa.setName("FILE");
-    //    fa.setImmediateFlush(true);
-    //    PatternLayoutEncoder pa = new PatternLayoutEncoder();
-    //    pa.setPattern("%r %5p %c [%t] - %m%n");
-    //    pa.setContext(context);
-    //    pa.start();
-    //    fa.setEncoder(pa);
-    //
-    //    fa.setFile(tempFile.getPath());
-    //    fa.setAppend(true);
-    //    fa.setContext(context);
-    //    fa.start();
-    //
-    //    logger.addAppender(fa);
+    File.createTempFile("log", ".tmp");
 
     try (MariaDbPoolDataSource ds =
         new MariaDbPoolDataSource(mDefUrl + "&maxPoolSize=1&allowPublicKeyRetrieval")) {
@@ -143,22 +119,6 @@ public class PooledConnectionTest extends Common {
       conn = pc.getConnection();
       assertNotEquals(threadId, conn.getThreadId());
       pc.close();
-    } finally {
-
-      //      String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
-      //      assertTrue(
-      //          contents.contains(
-      //              "removed from pool MariaDB-pool due to error during reset (total:0, active:0,
-      // pending:0)"),
-      //          contents);
-      //      assertTrue(contents.contains("pool MariaDB-pool new physical connection created"),
-      // contents);
-      //
-      //      assertTrue(
-      //          contents.contains("closing pool MariaDB-pool (total:1, active:0, pending:0)"),
-      // contents);
-      //      logger.setLevel(initialLevel);
-      //      logger.detachAppender(fa);
     }
   }
 
@@ -230,7 +190,8 @@ public class PooledConnectionTest extends Common {
         stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       } else {
         stmt.execute(
-            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY 'MySup8%rPassw@ord'");
+            "CREATE USER 'dsUser'@'%' IDENTIFIED WITH mysql_native_password BY"
+                + " 'MySup8%rPassw@ord'");
         stmt.execute("GRANT SELECT ON " + sharedConn.getCatalog() + ".* TO 'dsUser'@'%'");
       }
     } else {

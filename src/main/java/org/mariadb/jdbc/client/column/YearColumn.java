@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.column;
 
 import java.sql.*;
@@ -122,30 +121,41 @@ public class YearColumn extends UnsignedSmallIntColumn {
   @Override
   public Timestamp decodeTimestampText(ReadableByteBuf buf, MutableInt length, Calendar calParam)
       throws SQLDataException {
-    Calendar cal1 = calParam == null ? Calendar.getInstance() : calParam;
-
     int year = Integer.parseInt(buf.readAscii(length.get()));
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
-    synchronized (cal1) {
+
+    if (calParam == null) {
+      Calendar cal1 = Calendar.getInstance();
       cal1.clear();
       cal1.set(year, Calendar.JANUARY, 1);
       return new Timestamp(cal1.getTimeInMillis());
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(year, Calendar.JANUARY, 1);
+        return new Timestamp(calParam.getTimeInMillis());
+      }
     }
   }
 
   @Override
   public Timestamp decodeTimestampBinary(ReadableByteBuf buf, MutableInt length, Calendar calParam)
       throws SQLDataException {
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-
     int year = buf.readUnsignedShort();
     if (columnLength <= 2) year += year >= 70 ? 1900 : 2000;
 
     Timestamp timestamp;
-    synchronized (cal) {
+    if (calParam == null) {
+      Calendar cal = Calendar.getInstance();
       cal.clear();
       cal.set(year, 0, 1, 0, 0, 0);
       timestamp = new Timestamp(cal.getTimeInMillis());
+    } else {
+      synchronized (calParam) {
+        calParam.clear();
+        calParam.set(year, 0, 1, 0, 0, 0);
+        timestamp = new Timestamp(calParam.getTimeInMillis());
+      }
     }
     timestamp.setNanos(0);
     return timestamp;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.result;
 
 import java.io.IOException;
@@ -10,7 +9,7 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
@@ -31,15 +30,11 @@ import org.mariadb.jdbc.util.constants.ServerStatus;
 
 /** Result-set common */
 public abstract class Result implements ResultSet, Completion {
-  private static BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
-  private static TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
   /** null length value */
   public static final int NULL_LENGTH = -1;
 
-  private final int maxIndex;
-  private final boolean closeOnCompletion;
-  private boolean forceAlias;
-  private final boolean traceEnable;
+  private static final BinaryRowDecoder BINARY_ROW_DECODER = new BinaryRowDecoder();
+  private static final TextRowDecoder TEXT_ROW_DECODER = new TextRowDecoder();
 
   /** result-set type */
   protected final int resultSetType;
@@ -59,23 +54,21 @@ public abstract class Result implements ResultSet, Completion {
   /** binary/text row decoder */
   protected final RowDecoder rowDecoder;
 
+  /** reusable row buffer decoder */
+  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+
+  private final int maxIndex;
+  private final boolean closeOnCompletion;
+  private final boolean traceEnable;
+
   /** data size */
   protected int dataSize = 0;
 
   /** rows */
   protected byte[][] data;
 
-  private byte[] nullBitmap;
-
-  /** reusable row buffer decoder */
-  protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
-
-  private MutableInt fieldLength = new MutableInt(0);
-
   /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
-
-  private Map<String, Integer> mapper = null;
 
   /** is fully loaded */
   protected boolean loaded;
@@ -94,6 +87,11 @@ public abstract class Result implements ResultSet, Completion {
 
   /** row number limit */
   protected long maxRows;
+
+  private final MutableInt fieldLength = new MutableInt(0);
+  private boolean forceAlias;
+  private byte[] nullBitmap;
+  private Map<String, Integer> mapper = null;
 
   /**
    * Constructor for server's data
@@ -852,6 +850,16 @@ public abstract class Result implements ResultSet, Completion {
   @Override
   public abstract int getRow() throws SQLException;
 
+  /**
+   * set row decoder to current row data
+   *
+   * @param row row
+   */
+  public void setRow(byte[] row) {
+    rowBuf.buf(row, row.length, 0);
+    fieldIndex.set(-1);
+  }
+
   @Override
   public abstract boolean absolute(int row) throws SQLException;
 
@@ -870,7 +878,8 @@ public abstract class Result implements ResultSet, Completion {
   public void setFetchDirection(int direction) throws SQLException {
     if (direction == FETCH_REVERSE) {
       throw exceptionFactory.create(
-          "Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and ResultSet.FETCH_UNKNOWN");
+          "Invalid operation. Allowed direction are ResultSet.FETCH_FORWARD and"
+              + " ResultSet.FETCH_UNKNOWN");
     }
   }
 
@@ -1154,7 +1163,8 @@ public abstract class Result implements ResultSet, Completion {
       return getObject(columnIndex);
     }
     throw exceptionFactory.notSupported(
-        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported for non empty map");
+        "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported for"
+            + " non empty map");
   }
 
   @Override
@@ -1288,8 +1298,8 @@ public abstract class Result implements ResultSet, Completion {
             StringCodec.INSTANCE, null, rowBuf, fieldLength, metadataList, fieldIndex);
     if (s == null) return null;
     try {
-      return new URL(s);
-    } catch (MalformedURLException e) {
+      return new URI(s).toURL();
+    } catch (Exception e) {
       throw exceptionFactory.create(String.format("Could not parse '%s' as URL", s));
     }
   }
@@ -1678,16 +1688,6 @@ public abstract class Result implements ResultSet, Completion {
   /** Set row buffer to null (no row) */
   protected void setNullRowBuf() {
     rowBuf.buf(null, 0, 0);
-  }
-
-  /**
-   * set row decoder to current row data
-   *
-   * @param row row
-   */
-  public void setRow(byte[] row) {
-    rowBuf.buf(row, row.length, 0);
-    fieldIndex.set(-1);
   }
 
   public int findColumn(String label) throws SQLException {

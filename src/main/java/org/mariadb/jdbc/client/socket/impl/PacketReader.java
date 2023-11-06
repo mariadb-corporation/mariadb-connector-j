@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.socket.impl;
 
 import java.io.EOFException;
@@ -20,18 +19,15 @@ import org.mariadb.jdbc.util.log.Loggers;
 /** Packet reader */
 public class PacketReader implements Reader {
 
-  private StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
-
   private static final int REUSABLE_BUFFER_LENGTH = 1024;
   private static final int MAX_PACKET_SIZE = 0xffffff;
   private static final Logger logger = Loggers.getLogger(PacketReader.class);
-
   private final byte[] header = new byte[4];
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
-
   private final MutableByte sequence;
+  private final StandardReadableByteBuf readBuf = new StandardReadableByteBuf(null, 0);
   private String serverThreadLog = "";
 
   /**
@@ -259,7 +255,7 @@ public class PacketReader implements Reader {
 
     remaining = lastPacketLength;
     do {
-      remaining -= inputStream.skip(remaining);
+      remaining -= (int) inputStream.skip(remaining);
     } while (remaining > 0);
 
     // ***************************************************
@@ -283,7 +279,7 @@ public class PacketReader implements Reader {
 
         remaining = packetLength;
         do {
-          remaining -= inputStream.skip(remaining);
+          remaining -= (int) inputStream.skip(remaining);
         } while (remaining > 0);
 
         lastPacketLength += packetLength;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -12,7 +11,6 @@ import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
@@ -330,21 +328,21 @@ public class LocalDateTimeCodec implements Codec<LocalDateTime> {
     int nano = val.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 11);
-      encoder.writeShort((short) val.get(ChronoField.YEAR));
-      encoder.writeByte(val.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(val.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(val.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(val.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(val.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) val.getYear());
+      encoder.writeByte(val.getMonthValue());
+      encoder.writeByte(val.getDayOfMonth());
+      encoder.writeByte(val.getHour());
+      encoder.writeByte(val.getMinute());
+      encoder.writeByte(val.getSecond());
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 7);
-      encoder.writeShort((short) val.get(ChronoField.YEAR));
-      encoder.writeByte(val.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(val.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(val.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(val.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(val.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) val.getYear());
+      encoder.writeByte(val.getMonthValue());
+      encoder.writeByte(val.getDayOfMonth());
+      encoder.writeByte(val.getHour());
+      encoder.writeByte(val.getMinute());
+      encoder.writeByte(val.getSecond());
     }
   }
 

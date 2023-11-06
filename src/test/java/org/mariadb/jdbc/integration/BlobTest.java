@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -304,8 +303,8 @@ public class BlobTest extends Common {
     MariaDbBlob blob = new MariaDbBlob(bytes);
     assertEquals(blob, blob);
     assertEquals(new MariaDbBlob(bytes), blob);
-    assertFalse(blob.equals(null));
-    assertFalse(blob.equals(""));
+    assertNotEquals(null, blob);
+    assertNotEquals("", blob);
     byte[] bytes = new byte[] {5, 1, 2, 3, 4, 5};
     assertNotEquals(new MariaDbBlob(bytes), blob);
     assertNotEquals(new MariaDbBlob(new byte[] {5, 1}), blob);

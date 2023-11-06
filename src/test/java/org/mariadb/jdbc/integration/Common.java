@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,6 +67,8 @@ public class Common {
       io.printStackTrace();
     }
   }
+
+  @RegisterExtension public Extension watcher = new Follow();
 
   private static String get(String name, Properties prop) {
     String val = System.getenv("TEST_" + name);
@@ -173,28 +174,6 @@ public class Common {
     }
   }
 
-  public Connection createProxyCon(HaMode mode, String opts) throws SQLException {
-    Configuration conf = Configuration.parse(mDefUrl);
-    HostAddress hostAddress = conf.addresses().get(0);
-    try {
-      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
-    } catch (IOException i) {
-      throw new SQLException("proxy error", i);
-    }
-
-    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
-    if (mode != HaMode.NONE) {
-      url =
-          url.replaceAll(
-              "jdbc:mariadb:", "jdbc:mariadb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
-    }
-    if (conf.sslMode() == SslMode.VERIFY_FULL) {
-      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
-    }
-
-    return (Connection) DriverManager.getConnection(url + opts);
-  }
-
   public static boolean haveSsl() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     ResultSet rs = stmt.executeQuery("show variables like '%ssl%'");
@@ -208,15 +187,6 @@ public class Common {
     } catch (SQLException e) {
       return false;
     }
-  }
-
-  public boolean isWindows() {
-    return System.getProperty("os.name").toLowerCase().contains("win");
-  }
-
-  public void cancelForVersion(int major, int minor) {
-    String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
-    Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
   }
 
   public static Connection createCon(String option) throws SQLException {
@@ -244,12 +214,6 @@ public class Common {
     return Driver.connect(conf);
   }
 
-  @AfterEach
-  public void afterEach1() throws SQLException {
-    sharedConn.isValid(2000);
-    sharedConnBinary.isValid(2000);
-  }
-
   public static int getMaxAllowedPacket() throws SQLException {
     java.sql.Statement st = sharedConn.createStatement();
     ResultSet rs = st.executeQuery("select @@max_allowed_packet");
@@ -263,7 +227,42 @@ public class Common {
     Assertions.assertTrue(e.getMessage().contains(expected), "real message:" + e.getMessage());
   }
 
-  @RegisterExtension public Extension watcher = new Follow();
+  public Connection createProxyCon(HaMode mode, String opts) throws SQLException {
+    Configuration conf = Configuration.parse(mDefUrl);
+    HostAddress hostAddress = conf.addresses().get(0);
+    try {
+      proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+    } catch (IOException i) {
+      throw new SQLException("proxy error", i);
+    }
+
+    String url = mDefUrl.replaceAll("//([^/]*)/", "//localhost:" + proxy.getLocalPort() + "/");
+    if (mode != HaMode.NONE) {
+      url =
+          url.replaceAll(
+              "jdbc:mariadb:", "jdbc:mariadb:" + mode.name().toLowerCase(Locale.ROOT) + ":");
+    }
+    if (conf.sslMode() == SslMode.VERIFY_FULL) {
+      url = url.replaceAll("sslMode=verify-full", "sslMode=verify-ca");
+    }
+
+    return (Connection) DriverManager.getConnection(url + opts);
+  }
+
+  public boolean isWindows() {
+    return System.getProperty("os.name").toLowerCase().contains("win");
+  }
+
+  public void cancelForVersion(int major, int minor) {
+    String dbVersion = sharedConn.getMetaData().getDatabaseProductVersion();
+    Assumptions.assumeFalse(dbVersion.startsWith(major + "." + minor));
+  }
+
+  @AfterEach
+  public void afterEach1() throws SQLException {
+    sharedConn.isValid(2000);
+    sharedConnBinary.isValid(2000);
+  }
 
   private static class Follow implements TestWatcher, BeforeEachCallback {
     @Override

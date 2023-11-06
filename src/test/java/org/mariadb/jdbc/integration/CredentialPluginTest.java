@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,7 +22,10 @@ public class CredentialPluginTest extends Common {
   @BeforeAll
   public static void beforeTest() throws SQLException {
     String version = System.getProperty("java.version");
-    int majorVersion = Integer.parseInt(version.substring(0, version.indexOf(".")));
+    int majorVersion =
+        (version.indexOf(".") >= 0)
+            ? Integer.parseInt(version.substring(0, version.indexOf(".")))
+            : Integer.parseInt(version);
     Assumptions.assumeTrue(majorVersion < 17);
 
     Assumptions.assumeTrue(isMariaDBServer());

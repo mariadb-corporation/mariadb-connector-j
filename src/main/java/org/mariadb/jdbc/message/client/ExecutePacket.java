@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
@@ -18,15 +17,16 @@ import org.mariadb.jdbc.message.server.PrepareResultPacket;
 import org.mariadb.jdbc.plugin.codec.ByteArrayCodec;
 
 /**
- * Execute command (COM_STMT_EXECUTE) See https://mariadb.com/kb/en/com_stmt_execute/ for
- * documentation
+ * Execute command (COM_STMT_EXECUTE)
+ *
+ * @see <a href="https://mariadb.com/kb/en/com_stmt_execute/">Execute documentation</a>
  */
 public final class ExecutePacket implements RedoableWithPrepareClientMessage {
-  private Parameters parameters;
   private final String command;
   private final ServerPreparedStatement prep;
+  private final InputStream localInfileInputStream;
   private Prepare prepareResult;
-  private InputStream localInfileInputStream;
+  private Parameters parameters;
 
   /**
    * Constructor
@@ -107,7 +107,7 @@ public final class ExecutePacket implements RedoableWithPrepareClientMessage {
         writer.writeByte(p.getBinaryEncodeType());
         writer.writeByte(0);
         if (p.isNull()) {
-          nullBitsBuffer[i / 8] |= (1 << (i % 8));
+          nullBitsBuffer[i / 8] |= (byte) (1 << (i % 8));
         }
       }
 

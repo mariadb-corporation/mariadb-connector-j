@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.message.client;
 
 import java.io.IOException;
@@ -19,13 +18,14 @@ import org.mariadb.jdbc.export.Prepare;
 import org.mariadb.jdbc.message.server.PrepareResultPacket;
 
 /**
- * batch execution. This relies on COM_STMT_BULK_EXECUTE see
- * https://mariadb.com/kb/en/com_stmt_bulk_execute/
+ * batch execution. This relies on COM_STMT_BULK_EXECUTE
+ *
+ * @see <a href="https://mariadb.com/kb/en/com_stmt_bulk_execute/">documentation</a>
  */
 public final class BulkExecutePacket implements RedoableWithPrepareClientMessage {
-  private List<Parameters> batchParameterList;
   private final String command;
   private final ServerPreparedStatement prep;
+  private List<Parameters> batchParameterList;
   private Prepare prepareResult;
 
   /**

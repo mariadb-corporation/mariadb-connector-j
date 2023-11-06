@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,8 +35,8 @@ public class TinyIntCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE TinyIntCodec2 (id int not null primary key auto_increment, t1 TINYINT)");
     stmt.execute(
-        "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT UNSIGNED, t4 TINYINT "
-            + "UNSIGNED)");
+        "CREATE TABLE TinyIntCodecUnsigned (t1 TINYINT UNSIGNED, t2 TINYINT UNSIGNED, t3 TINYINT"
+            + " UNSIGNED, t4 TINYINT UNSIGNED)");
     stmt.execute("INSERT INTO TinyIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO TinyIntCodecUnsigned VALUES (0, 1, 255, null)");
     stmt.execute("FLUSH TABLES");
@@ -1027,7 +1026,7 @@ public class TinyIntCodecTest extends CommonCodecTest {
 
     assertTrue(rs.next());
     assertEquals(2, rs.getByte(2));
-    rs.updateObject(2, (Byte) null);
+    rs.updateObject(2, null);
     rs.updateRow();
     assertEquals(0, rs.getByte(2));
     assertTrue(rs.wasNull());

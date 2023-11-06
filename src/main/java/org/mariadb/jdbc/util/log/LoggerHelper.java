@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.util.log;
 
 /** Logger helper to display network exchange */
@@ -63,7 +62,8 @@ public final class LoggerHelper {
     sb.append(
         "       +--------------------------------------------------+\n"
             + "       |  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f |\n"
-            + "+------+--------------------------------------------------+------------------+\n|000000| ");
+            + "+------+--------------------------------------------------+------------------+\n"
+            + "|000000| ");
 
     while (pos < logLength + offset) {
       int byteValue = bytes[pos] & 0xFF;
@@ -111,9 +111,9 @@ public final class LoggerHelper {
   }
 
   private static String mediumIntTohexa(int value) {
-    String st = Integer.toHexString(value * 16);
-    while (st.length() < 6) st = "0" + st;
-    return st;
+    StringBuilder st = new StringBuilder(Integer.toHexString(value * 16));
+    while (st.length() < 6) st.insert(0, "0");
+    return st.toString();
   }
 
   /**

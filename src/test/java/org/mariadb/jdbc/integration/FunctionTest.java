@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,7 +21,8 @@ public class FunctionTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP FUNCTION IF EXISTS basic_function");
     stmt.execute(
-        "CREATE FUNCTION basic_function (t1 INT, t2 INT unsigned) RETURNS INT DETERMINISTIC RETURN t1 * t2;");
+        "CREATE FUNCTION basic_function (t1 INT, t2 INT unsigned) RETURNS INT DETERMINISTIC RETURN"
+            + " t1 * t2;");
     try (CallableStatement callableStatement =
         sharedConn.prepareCall("{? = call basic_function(?,?)}")) {
       callableStatement.registerOutParameter(1, JDBCType.INTEGER);
@@ -41,7 +41,7 @@ public class FunctionTest extends Common {
       callableStatement.clearParameters();
       assertThrowsContains(
           SQLTransientConnectionException.class,
-          () -> callableStatement.execute(),
+          callableStatement::execute,
           "Parameter at position 1 is not set");
     }
 
@@ -167,7 +167,8 @@ public class FunctionTest extends Common {
       callableStatement.setLong(2, 10L);
       callableStatement.setBytes(3, new byte[] {(byte) 'a', (byte) 'b'});
       assertEquals(
-          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null,10,_binary 'ab']}",
+          "FunctionStatement{sql:'SELECT basic_function(?,?)', parameters:[<OUT>null,10,_binary"
+              + " 'ab']}",
           callableStatement.toString());
     }
   }

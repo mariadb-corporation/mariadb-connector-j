@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
-    <encoder>
-      <pattern>%d{yyyy-MM-dd} | %d{HH:mm:ss.SSS} | %-20.20thread | %5p | %logger{25} | %m%n
-      </pattern>
-    </encoder>
-  </appender>
+    <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd} | %d{HH:mm:ss.SSS} | %-20.20thread | %5p | %logger{25} | %m%n
+            </pattern>
+        </encoder>
+    </appender>
 
-  <logger level="ERROR" name="org.mariadb.jdbc"/>
+    <logger level="ERROR" name="org.mariadb.jdbc"/>
 
-  <root level="WARN">
-    <appender-ref ref="STDOUT"/>
-  </root>
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
 
 </configuration>

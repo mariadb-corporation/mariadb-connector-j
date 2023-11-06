@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.authentication.standard;
 
 import java.io.IOException;
@@ -69,115 +68,6 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
       return returnBytes;
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException("Could not use SHA-256, failing", e);
-    }
-  }
-
-  @Override
-  public String type() {
-    return TYPE;
-  }
-
-  /**
-   * Initialized data.
-   *
-   * @param authenticationData authentication data (password/token)
-   * @param seed server provided seed
-   * @param conf Connection string options
-   */
-  public void initialize(String authenticationData, byte[] seed, Configuration conf) {
-    this.seed = seed;
-    this.authenticationData = authenticationData;
-    this.conf = conf;
-  }
-
-  /**
-   * Process native password plugin authentication. see
-   * https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
-   *
-   * @param out out stream
-   * @param in in stream
-   * @param context connection context
-   * @return response packet
-   * @throws IOException if socket error
-   */
-  public ReadableByteBuf process(Writer out, Reader in, Context context)
-      throws IOException, SQLException {
-    byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
-    new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
-
-    ReadableByteBuf buf = in.readReusablePacket();
-
-    switch (buf.getByte()) {
-      case (byte) 0x00:
-      case (byte) 0xFF:
-        // success or error
-        return buf;
-
-      default:
-        // fast authentication result
-        byte[] authResult = new byte[buf.readIntLengthEncodedNotNull()];
-        buf.readBytes(authResult);
-        switch (authResult[0]) {
-          case 3:
-            return in.readReusablePacket();
-          case 4:
-            if (conf.sslMode() != SslMode.DISABLE) {
-              // send clear password
-
-              byte[] bytePwd = authenticationData.getBytes();
-              byte[] nullEndedValue = new byte[bytePwd.length + 1];
-              System.arraycopy(bytePwd, 0, nullEndedValue, 0, bytePwd.length);
-              new AuthMoreRawPacket(nullEndedValue).encode(out, context);
-              out.flush();
-
-            } else {
-              // retrieve public key from configuration or from server
-              PublicKey publicKey;
-              if (conf.serverRsaPublicKeyFile() != null) {
-                if (conf.serverRsaPublicKeyFile().contains("BEGIN PUBLIC KEY")) {
-                  publicKey = generatePublicKey(conf.serverRsaPublicKeyFile().getBytes());
-                } else {
-                  publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
-                }
-              } else {
-                // read public key from socket
-                if (!conf.allowPublicKeyRetrieval()) {
-                  throw new SQLException(
-                      "RSA public key is not available client side (option serverRsaPublicKeyFile not set)",
-                      "S1009");
-                }
-
-                // ask public Key Retrieval
-                out.writeByte(2);
-                out.flush();
-
-                buf = in.readReusablePacket();
-                switch (buf.getByte(0)) {
-                  case (byte) 0xFF:
-                  case (byte) 0xFE:
-                    return buf;
-
-                  default:
-                    // AuthMoreData packet
-                    buf.skip();
-                    byte[] authMoreData = new byte[buf.readableBytes()];
-                    buf.readBytes(authMoreData);
-                    publicKey = generatePublicKey(authMoreData);
-                }
-              }
-
-              byte[] cipherBytes = encrypt(publicKey, authenticationData, seed);
-              out.writeBytes(cipherBytes);
-              out.flush();
-            }
-
-            return in.readReusablePacket();
-
-          default:
-            throw new SQLException(
-                "Protocol exchange error. Expect login success or RSA login request message",
-                "S1009");
-        }
     }
   }
 
@@ -255,6 +145,116 @@ public class CachingSha2PasswordPlugin implements AuthenticationPlugin {
     } catch (Exception ex) {
       throw new SQLException(
           "Error encoding password with public key : " + ex.getMessage(), "S1009", ex);
+    }
+  }
+
+  @Override
+  public String type() {
+    return TYPE;
+  }
+
+  /**
+   * Initialized data.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param conf Connection string options
+   */
+  public void initialize(String authenticationData, byte[] seed, Configuration conf) {
+    this.seed = seed;
+    this.authenticationData = authenticationData;
+    this.conf = conf;
+  }
+
+  /**
+   * Process native password plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
+   *
+   * @param out out stream
+   * @param in in stream
+   * @param context connection context
+   * @return response packet
+   * @throws IOException if socket error
+   */
+  public ReadableByteBuf process(Writer out, Reader in, Context context)
+      throws IOException, SQLException {
+    byte[] fastCryptPwd = sha256encryptPassword(authenticationData, seed);
+    new AuthMoreRawPacket(fastCryptPwd).encode(out, context);
+
+    ReadableByteBuf buf = in.readReusablePacket();
+
+    switch (buf.getByte()) {
+      case (byte) 0x00:
+      case (byte) 0xFF:
+        // success or error
+        return buf;
+
+      default:
+        // fast authentication result
+        byte[] authResult = new byte[buf.readIntLengthEncodedNotNull()];
+        buf.readBytes(authResult);
+        switch (authResult[0]) {
+          case 3:
+            return in.readReusablePacket();
+          case 4:
+            if (conf.sslMode() != SslMode.DISABLE) {
+              // send clear password
+
+              byte[] bytePwd = authenticationData.getBytes();
+              byte[] nullEndedValue = new byte[bytePwd.length + 1];
+              System.arraycopy(bytePwd, 0, nullEndedValue, 0, bytePwd.length);
+              new AuthMoreRawPacket(nullEndedValue).encode(out, context);
+              out.flush();
+
+            } else {
+              // retrieve public key from configuration or from server
+              PublicKey publicKey;
+              if (conf.serverRsaPublicKeyFile() != null) {
+                if (conf.serverRsaPublicKeyFile().contains("BEGIN PUBLIC KEY")) {
+                  publicKey = generatePublicKey(conf.serverRsaPublicKeyFile().getBytes());
+                } else {
+                  publicKey = readPublicKeyFromFile(conf.serverRsaPublicKeyFile());
+                }
+              } else {
+                // read public key from socket
+                if (!conf.allowPublicKeyRetrieval()) {
+                  throw new SQLException(
+                      "RSA public key is not available client side (option serverRsaPublicKeyFile"
+                          + " not set)",
+                      "S1009");
+                }
+
+                // ask public Key Retrieval
+                out.writeByte(2);
+                out.flush();
+
+                buf = in.readReusablePacket();
+                switch (buf.getByte(0)) {
+                  case (byte) 0xFF:
+                  case (byte) 0xFE:
+                    return buf;
+
+                  default:
+                    // AuthMoreData packet
+                    buf.skip();
+                    byte[] authMoreData = new byte[buf.readableBytes()];
+                    buf.readBytes(authMoreData);
+                    publicKey = generatePublicKey(authMoreData);
+                }
+              }
+
+              byte[] cipherBytes = encrypt(publicKey, authenticationData, seed);
+              out.writeBytes(cipherBytes);
+              out.flush();
+            }
+
+            return in.readReusablePacket();
+
+          default:
+            throw new SQLException(
+                "Protocol exchange error. Expect login success or RSA login request message",
+                "S1009");
+        }
     }
   }
 }

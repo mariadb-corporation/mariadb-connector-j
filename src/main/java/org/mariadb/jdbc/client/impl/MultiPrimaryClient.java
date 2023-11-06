@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.impl;
 
 import java.sql.*;
@@ -36,10 +35,10 @@ import org.mariadb.jdbc.util.log.Loggers;
  * supported proxy class.
  */
 public class MultiPrimaryClient implements Client {
-  private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
-
   /** temporary blacklisted hosts */
   protected static final ConcurrentMap<HostAddress, Long> denyList = new ConcurrentHashMap<>();
+
+  private static final Logger logger = Loggers.getLogger(MultiPrimaryClient.class);
 
   /** denied timeout */
   protected final long deniedListTimeout;
@@ -47,11 +46,11 @@ public class MultiPrimaryClient implements Client {
   /** configuration */
   protected final Configuration conf;
 
-  /** is connections explicitly closed */
-  protected boolean closed = false;
-
   /** thread locker */
   protected final ReentrantLock lock;
+
+  /** is connections explicitly closed */
+  protected boolean closed = false;
 
   /** current client */
   protected Client currentClient;
@@ -63,6 +62,7 @@ public class MultiPrimaryClient implements Client {
    * @param lock thread locker
    * @throws SQLException if fail to connect
    */
+  @SuppressWarnings({"this-escape"})
   public MultiPrimaryClient(Configuration conf, ReentrantLock lock) throws SQLException {
     this.conf = conf;
     this.lock = lock;
@@ -150,8 +150,7 @@ public class MultiPrimaryClient implements Client {
         }
       }
     }
-
-    throw lastSqle;
+    throw (lastSqle != null) ? lastSqle : new SQLNonTransientConnectionException("No host");
   }
 
   /**
@@ -199,7 +198,8 @@ public class MultiPrimaryClient implements Client {
           // changing exception to SQLTransientConnectionException
           throw new SQLTransientConnectionException(
               String.format(
-                  "Driver has reconnect connection after a communications link failure with %s. In progress transaction was lost",
+                  "Driver has reconnect connection after a communications link failure with %s. In"
+                      + " progress transaction was lost",
                   oldClient.getHostAddress()),
               "25S03");
         }
@@ -228,7 +228,8 @@ public class MultiPrimaryClient implements Client {
       ctx.getTransactionSaver().clear();
       throw new SQLTransientConnectionException(
           String.format(
-              "Driver has reconnect connection after a communications link failure with %s. In progress transaction was too big to be replayed, and was lost",
+              "Driver has reconnect connection after a communications link failure with %s. In"
+                  + " progress transaction was too big to be replayed, and was lost",
               oldCli.getHostAddress()),
           "25S03");
     }
@@ -276,8 +277,9 @@ public class MultiPrimaryClient implements Client {
     }
 
     if ((oldCtx.getStateFlag() & ConnectionState.STATE_TRANSACTION_ISOLATION) > 0
-        && currentClient.getContext().getTransactionIsolationLevel()
-            != oldCtx.getTransactionIsolationLevel()) {
+        && !oldCtx
+            .getTransactionIsolationLevel()
+            .equals(currentClient.getContext().getTransactionIsolationLevel())) {
       String query = "SET SESSION TRANSACTION ISOLATION LEVEL";
       switch (oldCtx.getTransactionIsolationLevel()) {
         case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
@@ -360,7 +362,8 @@ public class MultiPrimaryClient implements Client {
       if (message instanceof QueryPacket && ((QueryPacket) message).isCommit()) {
         throw new SQLTransientConnectionException(
             String.format(
-                "Driver has reconnect connection after a communications failure with %s during a COMMIT statement",
+                "Driver has reconnect connection after a communications failure with %s during a"
+                    + " COMMIT statement",
                 hostAddress),
             "25S03");
       }
@@ -535,6 +538,11 @@ public class MultiPrimaryClient implements Client {
   @Override
   public HostAddress getHostAddress() {
     return currentClient.getHostAddress();
+  }
+
+  @Override
+  public String getSocketIp() {
+    return currentClient.getSocketIp();
   }
 
   public boolean isPrimary() {

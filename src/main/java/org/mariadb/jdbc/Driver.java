@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.io.IOException;
@@ -78,11 +77,6 @@ public final class Driver implements java.sql.Driver {
         break;
     }
     return new Connection(configuration, lock, client);
-  }
-
-  @FunctionalInterface
-  private interface ClientInstance<T, U, V, W, R> {
-    R apply(T t, U u, V v, W w) throws SQLException;
   }
 
   /**
@@ -185,5 +179,10 @@ public final class Driver implements java.sql.Driver {
 
   public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
     throw new SQLFeatureNotSupportedException("Use logging parameters for enabling logging.");
+  }
+
+  @FunctionalInterface
+  private interface ClientInstance<T, U, V, W, R> {
+    R apply(T t, U u, V v, W w) throws SQLException;
   }
 }

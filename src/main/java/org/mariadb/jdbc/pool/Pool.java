@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.pool;
 
 import java.lang.management.ManagementFactory;
@@ -26,7 +25,6 @@ import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
 /** MariaDB Pool */
-@SuppressWarnings({"unchecked"})
 public class Pool implements AutoCloseable, PoolMBean {
 
   private static final Logger logger = Loggers.getLogger(Pool.class);
@@ -57,6 +55,7 @@ public class Pool implements AutoCloseable, PoolMBean {
    * @param poolIndex pool index to permit distinction of thread name
    * @param poolExecutor pools common executor
    */
+  @SuppressWarnings({"this-escape"})
   public Pool(Configuration conf, int poolIndex, ScheduledThreadPoolExecutor poolExecutor) {
 
     this.conf = conf;
@@ -100,9 +99,10 @@ public class Pool implements AutoCloseable, PoolMBean {
       }
       waitTimeout = 28800;
       if (!idleConnections.isEmpty()) {
-        Statement stmt = idleConnections.getFirst().getConnection().createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT @@wait_timeout");
-        if (rs.next()) waitTimeout = rs.getInt(1);
+        try (Statement stmt = idleConnections.getFirst().getConnection().createStatement()) {
+          ResultSet rs = stmt.executeQuery("SELECT @@wait_timeout");
+          if (rs.next()) waitTimeout = rs.getInt(1);
+        }
       }
     } catch (SQLException sqle) {
       logger.error("error initializing pool connection", sqle);
@@ -118,18 +118,17 @@ public class Pool implements AutoCloseable, PoolMBean {
 
       // ensure to have one worker if was timeout
       connectionAppender.prestartCoreThread();
-      boolean unused =
-          connectionAppenderQueue.offer(
-              () -> {
-                if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
-                    && totalConnection.get() < conf.maxPoolSize()) {
-                  try {
-                    addConnection();
-                  } catch (SQLException sqle) {
-                    logger.error("error adding connection to pool", sqle);
-                  }
-                }
-              });
+      connectionAppenderQueue.offer(
+          () -> {
+            if ((totalConnection.get() < conf.minPoolSize() || pendingRequestNumber.get() > 0)
+                && totalConnection.get() < conf.maxPoolSize()) {
+              try {
+                addConnection();
+              } catch (SQLException sqle) {
+                logger.error("error adding connection to pool", sqle);
+              }
+            }
+          });
     }
   }
 
@@ -216,7 +215,8 @@ public class Pool implements AutoCloseable, PoolMBean {
                 totalConnection.decrementAndGet();
                 silentCloseConnection(item.getConnection());
                 logger.debug(
-                    "connection {} removed from pool {} due to error during reset (total:{}, active:{}, pending:{})",
+                    "connection {} removed from pool {} due to error during reset (total:{},"
+                        + " active:{}, pending:{})",
                     item.getConnection().getThreadId(),
                     poolTag,
                     totalConnection.get(),
@@ -239,7 +239,7 @@ public class Pool implements AutoCloseable, PoolMBean {
 
             MariaDbInnerPoolConnection item = ((MariaDbInnerPoolConnection) event.getSource());
             totalConnection.decrementAndGet();
-            boolean unused = idleConnections.remove(item);
+            idleConnections.remove(item);
 
             // ensure that other connection will be validated before being use
             // since one connection failed, better to assume the other might as well
@@ -248,7 +248,8 @@ public class Pool implements AutoCloseable, PoolMBean {
             silentCloseConnection(item.getConnection());
             addConnectionRequest();
             logger.debug(
-                "connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",
+                "connection {} removed from pool {} due to having throw a Connection exception"
+                    + " (total:{}, active:{}, pending:{})",
                 item.getConnection().getThreadId(),
                 poolTag,
                 totalConnection.get(),
@@ -316,7 +317,8 @@ public class Pool implements AutoCloseable, PoolMBean {
         addConnectionRequest();
         if (logger.isDebugEnabled()) {
           logger.debug(
-              "pool {} connection {} removed from pool due to failed validation (total:{}, active:{}, pending:{})",
+              "pool {} connection {} removed from pool due to failed validation (total:{},"
+                  + " active:{}, pending:{})",
               poolTag,
               item.getConnection().getThreadId(),
               totalConnection.get(),
@@ -442,7 +444,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         connectionAppender.shutdown();
 
         try {
-          boolean unused = connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+          connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException i) {
           // eat
         }
@@ -486,7 +488,7 @@ public class Pool implements AutoCloseable, PoolMBean {
         } catch (Exception exception) {
           // eat
         }
-        boolean unused = connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+        connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
       }
     } catch (Exception e) {
       // eat

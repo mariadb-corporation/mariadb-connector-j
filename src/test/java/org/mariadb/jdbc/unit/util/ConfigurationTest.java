@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.unit.util;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,15 +54,15 @@ public class ConfigurationTest {
 
   @Test
   public void testNoAdditionalPart() throws SQLException {
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/").database());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/?socketTimeout=50").user());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost").database());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost").user());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost/").database());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost/?socketTimeout=50").user());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost").database());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost").user());
     assertEquals(
         50,
         Configuration.parse("jdbc:mariadb://localhost?socketTimeout=50&file=/tmp/test")
             .socketTimeout());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost?").user());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost?").user());
   }
 
   @Test
@@ -81,7 +80,7 @@ public class ConfigurationTest {
   @Test
   public void testDatabaseOnly() throws SQLException {
     assertEquals("DB", Configuration.parse("jdbc:mariadb://localhost/DB").database());
-    assertEquals(null, Configuration.parse("jdbc:mariadb://localhost/DB").user());
+    assertNull(Configuration.parse("jdbc:mariadb://localhost/DB").user());
   }
 
   @Test
@@ -167,24 +166,24 @@ public class ConfigurationTest {
   public void testConfigurationIsolation() throws Throwable {
     Configuration conf =
         Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=REPEATABLE-READ");
-    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
+    assertSame(TransactionIsolation.REPEATABLE_READ, conf.transactionIsolation());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test");
     assertNull(conf.transactionIsolation());
 
     conf =
         Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=repeatable-read");
-    assertTrue(TransactionIsolation.REPEATABLE_READ == conf.transactionIsolation());
+    assertSame(TransactionIsolation.REPEATABLE_READ, conf.transactionIsolation());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=readCommitted");
-    assertTrue(TransactionIsolation.READ_COMMITTED == conf.transactionIsolation());
+    assertSame(TransactionIsolation.READ_COMMITTED, conf.transactionIsolation());
 
     conf =
         Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=READ-UNCOMMITTED");
-    assertTrue(TransactionIsolation.READ_UNCOMMITTED == conf.transactionIsolation());
+    assertSame(TransactionIsolation.READ_UNCOMMITTED, conf.transactionIsolation());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=SERIALIZABLE");
-    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
+    assertSame(TransactionIsolation.SERIALIZABLE, conf.transactionIsolation());
 
     try {
       Configuration.parse("jdbc:mariadb://localhost/test?transactionIsolation=wrong_val");
@@ -200,19 +199,19 @@ public class ConfigurationTest {
     conf =
         Configuration.parse(
             "jdbc:mysql://localhost/test?transactionIsolation=SERIALIZABLE&permitMysqlScheme");
-    assertTrue(TransactionIsolation.SERIALIZABLE == conf.transactionIsolation());
+    assertSame(TransactionIsolation.SERIALIZABLE, conf.transactionIsolation());
   }
 
   @Test
   public void testSslAlias() throws Throwable {
     Configuration conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify-full");
-    assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify_full");
-    assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=trust");
-    assertTrue(SslMode.TRUST == conf.sslMode());
+    assertSame(SslMode.TRUST, conf.sslMode());
 
     try {
       Configuration.parse("jdbc:mariadb://localhost/test?sslMode=wrong_trust");
@@ -222,22 +221,22 @@ public class ConfigurationTest {
     }
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=verify-ca");
-    assertTrue(SslMode.VERIFY_CA == conf.sslMode());
+    assertSame(SslMode.VERIFY_CA, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test");
-    assertTrue(SslMode.DISABLE == conf.sslMode());
+    assertSame(SslMode.DISABLE, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode");
-    assertTrue(SslMode.DISABLE == conf.sslMode());
+    assertSame(SslMode.DISABLE, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=0");
-    assertTrue(SslMode.DISABLE == conf.sslMode());
+    assertSame(SslMode.DISABLE, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=1");
-    assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
 
     conf = Configuration.parse("jdbc:mariadb://localhost/test?sslMode=true");
-    assertTrue(SslMode.VERIFY_FULL == conf.sslMode());
+    assertSame(SslMode.VERIFY_FULL, conf.sslMode());
   }
 
   @Test
@@ -400,7 +399,7 @@ public class ConfigurationTest {
   @Test
   public void testJdbcParserSimpleIpv4basicError() throws SQLException {
     Configuration Configuration = org.mariadb.jdbc.Configuration.parse(null);
-    assertTrue(Configuration == null);
+    assertNull(Configuration);
   }
 
   @Test
@@ -489,7 +488,8 @@ public class ConfigurationTest {
       assertTrue(
           sqle.getMessage()
               .contains(
-                  "Optional parameter autoReconnect must be boolean (true/false or 0/1) was \"truee\""));
+                  "Optional parameter autoReconnect must be boolean (true/false or 0/1) was"
+                      + " \"truee\""));
     }
   }
 
@@ -553,8 +553,8 @@ public class ConfigurationTest {
     assertEquals(HostAddress.from("master3", 3308, true), conf.addresses().get(2));
 
     url =
-        "jdbc:mariadb:replication://address=(port=3306)(host=master1),address=(port=3307)"
-            + "(host=slave1) ,address=(host=slave2)(port=3308)(other=5/database?user=greg&password=pass";
+        "jdbc:mariadb:replication://address=(port=3306)(host=master1),address=(port=3307)(host=slave1)"
+            + " ,address=(host=slave2)(port=3308)(other=5/database?user=greg&password=pass";
     conf = org.mariadb.jdbc.Configuration.parse(url);
     assertEquals("database", conf.database());
     assertEquals("greg", conf.user());
@@ -620,14 +620,14 @@ public class ConfigurationTest {
   public void testJdbcParserHaModeNone() throws SQLException {
     String url = "jdbc:mariadb://localhost/database";
     Configuration jdbc = Configuration.parse(url);
-    assertTrue(jdbc.haMode().equals(HaMode.NONE));
+    assertEquals(jdbc.haMode(), HaMode.NONE);
   }
 
   @Test
   public void testJdbcParserHaModeLoadReplication() throws SQLException {
     String url = "jdbc:mariadb:replication://localhost/database";
     Configuration jdbc = Configuration.parse(url);
-    assertTrue(jdbc.haMode().equals(HaMode.REPLICATION));
+    assertEquals(jdbc.haMode(), HaMode.REPLICATION);
   }
 
   @Test
@@ -668,13 +668,13 @@ public class ConfigurationTest {
   @Test
   public void checkOtherDriverCompatibility() throws SQLException {
     Configuration jdbc = Configuration.parse("jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1");
-    assertTrue(jdbc == null);
+    assertNull(jdbc);
   }
 
   @Test
   public void checkDisable() throws SQLException {
     Configuration jdbc = Configuration.parse("jdbc:mysql://localhost/test");
-    assertTrue(jdbc == null);
+    assertNull(jdbc);
   }
 
   @Test
@@ -850,7 +850,8 @@ public class ConfigurationTest {
             .useCatalogTerm("schema")
             .build();
     assertEquals(
-        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=UseSchema&createDatabaseIfNotExist=true&useLocalSessionState=true&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
+        "jdbc:mariadb://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&timezone=UTC&autocommit=false&useCatalogTerm=UseSchema&createDatabaseIfNotExist=true&useLocalSessionState=true&transactionIsolation=REPEATABLE_READ&defaultFetchSize=10&maxQuerySizeToLog=100&maxAllowedPacket=8000&geometryDefaultType=default&restrictedAuth=mysql_native_password,client_ed25519&initSql=SET"
+            + " @@a='10'&socketFactory=someSocketFactory&connectTimeout=22&pipe=pipeName&localSocket=localSocket&uuidAsString=true&tcpKeepAlive=false&tcpKeepIdle=10&tcpKeepCount=50&tcpKeepInterval=50&tcpAbortiveClose=true&localSocketAddress=localSocketAddress&socketTimeout=1000&useReadAheadInput=true&tlsSocketType=TLStype&sslMode=TRUST&serverSslCert=mycertPath&keyStore=/tmp&keyStorePassword=MyPWD&keyStoreType=JKS&trustStoreType=JKS&enabledSslCipherSuites=myCipher,cipher2&enabledSslProtocolSuites=TLSv1.2&allowMultiQueries=true&allowLocalInfile=false&useCompression=true&useAffectedRows=true&disablePipeline=true&cachePrepStmts=false&prepStmtCacheSize=2&useServerPrepStmts=true&credentialType=ENV&sessionVariables=blabla&connectionAttributes=bla=bla&servicePrincipalName=SPN&blankTableNameMeta=true&tinyInt1isBit=false&yearIsDateType=false&dumpQueriesOnException=true&includeInnodbStatusInDeadlockExceptions=true&includeThreadDumpInDeadlockExceptions=true&retriesAllDown=10&galeraAllowedState=A,B&transactionReplay=true&pool=true&poolName=myPool&maxPoolSize=16&minPoolSize=12&maxIdleTime=25000&registerJmxPool=false&poolValidMinDelay=260&useResetConnection=true&serverRsaPublicKeyFile=RSAPath&allowPublicKeyRetrieval=true",
         conf.toString());
   }
 
@@ -920,13 +921,15 @@ public class ConfigurationTest {
                 "jdbc:mariadb:loadbalance://host1:3305,address=(host=host2)(port=3307)(type=replica)/db?nonExisting&nonExistingWithValue=tt&user=me&password=***&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true&")
             .startsWith(
                 "Configuration:\n"
-                    + " * resulting Url : jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true\n"
+                    + " * resulting Url :"
+                    + " jdbc:mariadb:loadbalance://address=(host=host1)(port=3305)(type=primary),address=(host=host2)(port=3307)(type=replica)/db?user=me&password=***&nonExisting=&nonExistingWithValue=tt&timezone=UTC&autocommit=false&createDatabaseIfNotExist=true\n"
                     + "Unknown options : \n"
                     + " * nonExisting : \n"
                     + " * nonExistingWithValue : tt\n"
                     + "\n"
                     + "Non default options : \n"
-                    + " * addresses : [address=(host=host1)(port=3305)(type=primary), address=(host=host2)(port=3307)(type=replica)]\n"
+                    + " * addresses : [address=(host=host1)(port=3305)(type=primary),"
+                    + " address=(host=host2)(port=3307)(type=replica)]\n"
                     + " * autocommit : false\n"
                     + " * createDatabaseIfNotExist : true\n"
                     + " * database : db\n"
@@ -945,7 +948,8 @@ public class ConfigurationTest {
                 "jdbc:mariadb://localhost/test?user=root&sslMode=verify-ca&serverSslCert=/tmp/t.pem&trustStoreType=JKS&keyStore=/tmp/keystore&keyStorePassword=kspass")
             .startsWith(
                 "Configuration:\n"
-                    + " * resulting Url : jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=kspass&trustStoreType=JKS\n"
+                    + " * resulting Url :"
+                    + " jdbc:mariadb://localhost/test?user=root&sslMode=VERIFY_CA&serverSslCert=/tmp/t.pem&keyStore=/tmp/keystore&keyStorePassword=kspass&trustStoreType=JKS\n"
                     + "Unknown options : None\n"
                     + "\n"
                     + "Non default options : \n"

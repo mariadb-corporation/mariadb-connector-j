@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.export;
 
 import java.util.*;
@@ -62,12 +61,6 @@ public enum HaMode {
 
   HaMode(String value) {
     this.value = value;
-  }
-
-  /** For testing purpose only */
-  public void resetLast() {
-    lastRoundRobinPrimaryHost = null;
-    lastRoundRobinSecondaryHost = null;
   }
 
   /**
@@ -199,6 +192,12 @@ public enum HaMode {
       }
     }
     return Optional.empty();
+  }
+
+  /** For testing purpose only */
+  public void resetLast() {
+    lastRoundRobinPrimaryHost = null;
+    lastRoundRobinSecondaryHost = null;
   }
 
   /**

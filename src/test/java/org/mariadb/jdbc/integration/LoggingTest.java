@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -155,8 +154,7 @@ public class LoggingTest extends Common {
     logger.addAppender(fa);
 
     String certString =
-        ""
-            + "-----BEGIN CERTIFICATE-----\n"
+        "-----BEGIN CERTIFICATE-----\n"
             + "MIIDfDCCAmSgAwIBAgIURZJQVOWv+oaj+MLlHWc1B0TnOaowDQYJKoZIhvcNAQEL\n"
             + "BQAwUjELMAkGA1UEBhMCQ04xCzAJBgNVBAgMAkdEMQswCQYDVQQHDAJTWjESMBAG\n"
             + "A1UECgwJQWNtZSxJbmMuMRUwEwYDVQQDDAxBY21lIFJvb3QgQ0EwIBcNMjEwMzMw\n"
@@ -189,22 +187,22 @@ public class LoggingTest extends Common {
     verifyExceptionEqual(
         "local.host",
         cert,
-        "DNS host \"local.host\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+        "DNS host \"local.host\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+            + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("127.0.0.1", cert, -1);
     verifyExceptionEqual(
         "127.0.0.2",
         cert,
-        "IPv4 host \"127.0.0.2\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+        "IPv4 host \"127.0.0.2\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+            + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
 
     HostnameVerifier.verify("2001:db8:3902:3468:0:0:0:443", cert, -1);
     verifyExceptionEqual(
         "2001:db8:1::",
         cert,
-        "IPv6 host \"2001:db8:1::\" doesn't correspond to certificate "
-            + "CN \"*.mariadb.org\" and SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
+        "IPv6 host \"2001:db8:1::\" doesn't correspond to certificate CN \"*.mariadb.org\" and"
+            + " SAN[{DNS:\"localhost.localdomain\"},{DNS:\"localhost\"},{IP:\"127.0.0.1\"},{IP:\"2001:db8:3902:3468:0:0:0:443\"}]");
     try {
       String contents = new String(Files.readAllBytes(Paths.get(tempFile.getPath())));
 
@@ -216,7 +214,8 @@ public class LoggingTest extends Common {
               "IPv4 verification of hostname : type=IP value=127.0.0.1 to 127.0.0.2"));
       assertTrue(
           contents.contains(
-              "IPv6 verification of hostname : type=IP value=2001:db8:3902:3468:0:0:0:443 to 2001:db8:1::"));
+              "IPv6 verification of hostname : type=IP value=2001:db8:3902:3468:0:0:0:443 to"
+                  + " 2001:db8:1::"));
 
       logger.setLevel(initialLevel);
       logger.detachAppender(fa);

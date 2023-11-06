@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -226,8 +225,7 @@ public class PreparedStatementParametersTest extends Common {
         rs -> assertEquals("abcde", rs.getString(1)),
         con);
     final String unicodeString =
-        ""
-            + "\uD83D\uDE0E" // 😎 unicode 6 smiling face with sunglasses
+        "\uD83D\uDE0E" // 😎 unicode 6 smiling face with sunglasses
             + "\uD83C\uDF36" // 🌶 unicode 7 hot pepper
             + "\uD83C\uDFA4" // 🎤 unicode 8 no microphones
             + "\uD83E\uDD42 "; // 🥂 unicode 9 clinking glasses

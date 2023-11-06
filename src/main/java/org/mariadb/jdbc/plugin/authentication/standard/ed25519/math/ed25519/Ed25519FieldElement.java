@@ -2,8 +2,7 @@ package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519;
 
 import java.util.Arrays;
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.Utils;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Field;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.*;
 
 /**
  * Class to represent a field element of the finite field $p = 2^{255} - 19$ elements.
@@ -16,6 +15,8 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement
  */
 public class Ed25519FieldElement extends FieldElement {
   private static final long serialVersionUID = -2455098303824960263L;
+  private static final byte[] ZERO = new byte[32];
+
   /** Variable is package private for encoding. */
   final int[] t;
 
@@ -30,8 +31,6 @@ public class Ed25519FieldElement extends FieldElement {
     if (t.length != 10) throw new IllegalArgumentException("Invalid radix-2^51 representation");
     this.t = t;
   }
-
-  private static final byte[] ZERO = new byte[32];
 
   /**
    * Gets a value indicating whether or not the field element is non-zero.
@@ -286,6 +285,16 @@ public class Ed25519FieldElement extends FieldElement {
     long f9g8_19 = t[9] * (long) g8_19;
     long f9g9_38 = f9_2 * (long) g9_19;
 
+    /**
+     * Remember: 2^255 congruent 19 modulo p. h = h0 * 2^0 + h1 * 2^26 + h2 * 2^(26+25) + h3 *
+     * 2^(26+25+26) + ... + h9 * 2^(5*26+5*25). So to get the real number we would have to multiply
+     * the coefficients with the corresponding powers of 2. To get an idea what is going on below,
+     * look at the calculation of h0: h0 is the coefficient to the power 2^0 so it collects (sums)
+     * all products that have the power 2^0. f0 * g0 really is f0 * 2^0 * g0 * 2^0 = (f0 * g0) *
+     * 2^0. f1 * g9 really is f1 * 2^26 * g9 * 2^230 = f1 * g9 * 2^256 = 2 * f1 * g9 * 2^255
+     * congruent 2 * 19 * f1 * g9 * 2^0 modulo p. f2 * g8 really is f2 * 2^51 * g8 * 2^204 = f2 * g8
+     * * 2^255 congruent 19 * f2 * g8 * 2^0 modulo p. and so on...
+     */
     long h0 =
         f0g0 + f1g9_38 + f2g8_19 + f3g7_38 + f4g6_19 + f5g5_38 + f6g4_19 + f7g3_38 + f8g2_19
             + f9g1_38;
@@ -501,6 +510,11 @@ public class Ed25519FieldElement extends FieldElement {
     long f8f9_38 = f8 * (long) f9_38;
     long f9f9_38 = f9 * (long) f9_38;
 
+    /**
+     * Same procedure as in multiply, but this time we have a higher symmetry leading to less
+     * summands. e.g. f1f9_76 really stands for f1 * 2^26 * f9 * 2^230 + f9 * 2^230 + f1 * 2^26
+     * congruent 2 * 2 * 19 * f1 * f9 2^0 modulo p.
+     */
     long h0 = f0f0 + f1f9_76 + f2f8_38 + f3f7_76 + f4f6_38 + f5f5_38;
     long h1 = f0f1_2 + f2f9_38 + f3f8_38 + f4f7_38 + f5f6_38;
     long h2 = f0f2_2 + f1f1_2 + f3f9_76 + f4f8_38 + f5f7_76 + f6f6_19;

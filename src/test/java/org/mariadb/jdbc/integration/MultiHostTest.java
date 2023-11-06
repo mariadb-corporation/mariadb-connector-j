@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -271,13 +270,13 @@ public class MultiHostTest extends Common {
       con.isValid(1000);
     }
 
-    Thread.sleep(100);
+    Thread.sleep(1000);
     // same in transaction
     try (Connection con =
         (Connection)
             DriverManager.getConnection(
                 url
-                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20&socketTimeout=10")) {
+                    + "&waitReconnectTimeout=300&retriesAllDown=10&connectTimeout=20&deniedListTimeout=20&socketTimeout=100")) {
       Statement stmt = con.createStatement();
       stmt.execute("START TRANSACTION");
       stmt.execute("SET @con=1");
@@ -314,7 +313,7 @@ public class MultiHostTest extends Common {
         assertTrue(e.getMessage().contains("In progress transaction was lost"));
       }
     }
-    Thread.sleep(50);
+    Thread.sleep(100);
     // with transaction replay
     try (Connection con =
         (Connection)

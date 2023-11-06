@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.io.IOException;
@@ -758,6 +757,266 @@ public class Configuration {
       throw new IllegalArgumentException(
           "wrong failover parameter format in connection String " + url);
     }
+  }
+
+  /**
+   * Permit to have string information on how string is parsed. example :
+   * Configuration.toConf("jdbc:mariadb://localhost/test") will return a String containing: <code>
+   * Configuration:
+   *  * resulting Url : jdbc:mariadb://localhost/test
+   * Unknown options : None
+   *
+   * Non default options :
+   *  * database : test
+   *
+   * default options :
+   *  * user : null
+   *  ...
+   * </code>
+   *
+   * @param url url string
+   * @return string describing the configuration parsed from url
+   * @throws SQLException if parsing fails
+   */
+  public static String toConf(String url) throws SQLException {
+    Configuration conf = Configuration.parseInternal(url, new Properties());
+    StringBuilder sb = new StringBuilder();
+    StringBuilder sbUnknownOpts = new StringBuilder();
+
+    if (conf.nonMappedOptions.isEmpty()) {
+      sbUnknownOpts.append("None");
+    } else {
+      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
+        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
+      }
+    }
+    sb.append("Configuration:")
+        .append("\n * resulting Url : ")
+        .append(conf.initialUrl)
+        .append("\nUnknown options : ")
+        .append(sbUnknownOpts)
+        .append("\n")
+        .append("\nNon default options : ");
+
+    Configuration defaultConf = Configuration.parse("jdbc:mariadb://localhost/");
+    StringBuilder sbDefaultOpts = new StringBuilder();
+    StringBuilder sbDifferentOpts = new StringBuilder();
+    try {
+      List<String> propertyToSkip = Arrays.asList("initialUrl", "logger", "codecs", "$jacocoData");
+      Field[] fields = Configuration.class.getDeclaredFields();
+      Arrays.sort(fields, Comparator.comparing(Field::getName));
+
+      for (Field field : fields) {
+        if (!propertyToSkip.contains(field.getName())) {
+          Object fieldValue = field.get(conf);
+          if (fieldValue == null) {
+            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                .append("\n * ")
+                .append(field.getName())
+                .append(" : ")
+                .append(fieldValue);
+          } else {
+            if (field.getName().equals("haMode")) {
+              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
+                  .append("\n * ")
+                  .append(field.getName())
+                  .append(" : ")
+                  .append(fieldValue);
+              continue;
+            }
+            switch (fieldValue.getClass().getSimpleName()) {
+              case "String":
+              case "Boolean":
+              case "HaMode":
+              case "TransactionIsolation":
+              case "Integer":
+              case "SslMode":
+              case "CatalogTerm":
+                (Objects.equals(fieldValue, field.get(defaultConf))
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "ArrayList":
+                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
+                        ? sbDefaultOpts
+                        : sbDifferentOpts)
+                    .append("\n * ")
+                    .append(field.getName())
+                    .append(" : ")
+                    .append(fieldValue);
+                break;
+              case "Properties":
+                break;
+              default:
+                throw new IllegalArgumentException(
+                    "field type not expected for fields " + field.getName());
+            }
+          }
+        }
+      }
+
+      String diff = sbDifferentOpts.toString();
+      if (diff.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(diff);
+      }
+
+      sb.append("\n\ndefault options :");
+      String same = sbDefaultOpts.toString();
+      if (same.isEmpty()) {
+        sb.append("None\n");
+      } else {
+        sb.append(same);
+      }
+
+    } catch (IllegalArgumentException | IllegalAccessException e) {
+      throw new IllegalArgumentException("Wrong parsing", e);
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Generate initialURL property
+   *
+   * @param conf current configuration
+   * @return initialUrl value.
+   */
+  protected static String buildUrl(Configuration conf) {
+    Configuration defaultConf = new Configuration();
+    StringBuilder sb = new StringBuilder();
+    sb.append("jdbc:mariadb:");
+    if (conf.haMode != HaMode.NONE) {
+      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
+    }
+    sb.append("//");
+    for (int i = 0; i < conf.addresses.size(); i++) {
+      HostAddress hostAddress = conf.addresses.get(i);
+      if (i > 0) {
+        sb.append(",");
+      }
+      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
+          || (conf.haMode == HaMode.REPLICATION
+              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
+        sb.append(hostAddress.host);
+        if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
+      } else {
+        sb.append("address=(host=")
+            .append(hostAddress.host)
+            .append(")")
+            .append("(port=")
+            .append(hostAddress.port)
+            .append(")");
+        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
+      }
+    }
+
+    sb.append("/");
+    if (conf.database != null) {
+      sb.append(conf.database);
+    }
+
+    try {
+      // Option object is already initialized to default values.
+      // loop on properties,
+      // - check DefaultOption to check that property value correspond to type (and range)
+      // - set values
+      boolean first = true;
+
+      Field[] fields = Configuration.class.getDeclaredFields();
+      for (Field field : fields) {
+        if ("database".equals(field.getName())
+            || "haMode".equals(field.getName())
+            || "$jacocoData".equals(field.getName())
+            || "addresses".equals(field.getName())) {
+          continue;
+        }
+        Object obj = field.get(conf);
+
+        if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
+
+          if ("password".equals(field.getName())) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(field.getName()).append('=');
+            sb.append("***");
+            continue;
+          }
+
+          if (field.getType().equals(String.class)) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            sb.append(field.getName()).append('=');
+            sb.append((String) obj);
+          } else if (field.getType().equals(boolean.class)) {
+            boolean defaultValue = field.getBoolean(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(obj);
+            }
+          } else if (field.getType().equals(int.class)) {
+            try {
+              int defaultValue = field.getInt(defaultConf);
+              if (!obj.equals(defaultValue)) {
+                sb.append(first ? '?' : '&');
+                sb.append(field.getName()).append('=').append(obj);
+                first = false;
+              }
+            } catch (IllegalAccessException n) {
+              // eat
+            }
+          } else if (field.getType().equals(Properties.class)) {
+            sb.append(first ? '?' : '&');
+            first = false;
+            boolean firstProp = true;
+            Properties properties = (Properties) obj;
+            for (Object key : properties.keySet()) {
+              if (firstProp) {
+                firstProp = false;
+              } else {
+                sb.append('&');
+              }
+              sb.append(key).append('=');
+              sb.append(properties.get(key));
+            }
+          } else if (field.getType().equals(CredentialPlugin.class)) {
+            Object defaultValue = field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(((CredentialPlugin) obj).type());
+            }
+          } else {
+            Object defaultValue = field.get(defaultConf);
+            if (!obj.equals(defaultValue)) {
+              sb.append(first ? '?' : '&');
+              first = false;
+              sb.append(field.getName()).append('=');
+              sb.append(obj);
+            }
+          }
+        }
+      }
+
+    } catch (IllegalAccessException n) {
+      n.printStackTrace();
+    } catch (SecurityException s) {
+      // only for jws, so never thrown
+      throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
+    }
+    conf.loadCodecs();
+    return sb.toString();
+  }
+
+  private static String nullOrEmpty(String val) {
+    return (val == null || val.isEmpty()) ? null : val;
   }
 
   /**
@@ -1585,128 +1844,6 @@ public class Configuration {
     return initialUrl;
   }
 
-  /**
-   * Permit to have string information on how string is parsed. example :
-   * Configuration.toConf("jdbc:mariadb://localhost/test") will return a String containing: <code>
-   * Configuration:
-   *  * resulting Url : jdbc:mariadb://localhost/test
-   * Unknown options : None
-   *
-   * Non default options :
-   *  * database : test
-   *
-   * default options :
-   *  * user : null
-   *  ...
-   * </code>
-   *
-   * @param url url string
-   * @return string describing the configuration parsed from url
-   * @throws SQLException if parsing fails
-   */
-  public static String toConf(String url) throws SQLException {
-    Configuration conf = Configuration.parseInternal(url, new Properties());
-    StringBuilder sb = new StringBuilder();
-    StringBuilder sbUnknownOpts = new StringBuilder();
-
-    if (conf.nonMappedOptions.isEmpty()) {
-      sbUnknownOpts.append("None");
-    } else {
-      for (Map.Entry<Object, Object> entry : conf.nonMappedOptions.entrySet()) {
-        sbUnknownOpts.append("\n * ").append(entry.getKey()).append(" : ").append(entry.getValue());
-      }
-    }
-    sb.append("Configuration:")
-        .append("\n * resulting Url : ")
-        .append(conf.initialUrl)
-        .append("\nUnknown options : ")
-        .append(sbUnknownOpts)
-        .append("\n")
-        .append("\nNon default options : ");
-
-    Configuration defaultConf = Configuration.parse("jdbc:mariadb://localhost/");
-    StringBuilder sbDefaultOpts = new StringBuilder();
-    StringBuilder sbDifferentOpts = new StringBuilder();
-    try {
-      List<String> propertyToSkip =
-          Arrays.asList(new String[] {"initialUrl", "logger", "codecs", "$jacocoData"});
-      Field[] fields = Configuration.class.getDeclaredFields();
-      Arrays.sort(fields, Comparator.comparing(Field::getName));
-
-      for (Field field : fields) {
-        if (!propertyToSkip.contains(field.getName())) {
-          Object fieldValue = field.get(conf);
-          if (fieldValue == null) {
-            (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
-                .append("\n * ")
-                .append(field.getName())
-                .append(" : ")
-                .append(fieldValue);
-          } else {
-            if (field.getName().equals("haMode")) {
-              (Objects.equals(fieldValue, field.get(defaultConf)) ? sbDefaultOpts : sbDifferentOpts)
-                  .append("\n * ")
-                  .append(field.getName())
-                  .append(" : ")
-                  .append(fieldValue);
-              continue;
-            }
-            switch (fieldValue.getClass().getSimpleName()) {
-              case "String":
-              case "Boolean":
-              case "HaMode":
-              case "TransactionIsolation":
-              case "Integer":
-              case "SslMode":
-              case "CatalogTerm":
-                (Objects.equals(fieldValue, field.get(defaultConf))
-                        ? sbDefaultOpts
-                        : sbDifferentOpts)
-                    .append("\n * ")
-                    .append(field.getName())
-                    .append(" : ")
-                    .append(fieldValue);
-                break;
-              case "ArrayList":
-                (Objects.equals(fieldValue.toString(), field.get(defaultConf).toString())
-                        ? sbDefaultOpts
-                        : sbDifferentOpts)
-                    .append("\n * ")
-                    .append(field.getName())
-                    .append(" : ")
-                    .append(fieldValue);
-                break;
-              case "Properties":
-                break;
-              default:
-                throw new IllegalArgumentException(
-                    "field type not expected for fields " + field.getName());
-            }
-          }
-        }
-      }
-
-      String diff = sbDifferentOpts.toString();
-      if (diff.isEmpty()) {
-        sb.append("None\n");
-      } else {
-        sb.append(diff);
-      }
-
-      sb.append("\n\ndefault options :");
-      String same = sbDefaultOpts.toString();
-      if (same.isEmpty()) {
-        sb.append("None\n");
-      } else {
-        sb.append(same);
-      }
-
-    } catch (IllegalArgumentException | IllegalAccessException e) {
-      throw new IllegalArgumentException("Wrong parsing", e);
-    }
-    return sb.toString();
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -1718,141 +1855,6 @@ public class Configuration {
       return initialUrl.equals(that.initialUrl) && that.password == null;
     }
     return initialUrl.equals(that.initialUrl) && password.equals(that.password);
-  }
-
-  /**
-   * Generate initialURL property
-   *
-   * @param conf current configuration
-   * @return initialUrl value.
-   */
-  protected static String buildUrl(Configuration conf) {
-    Configuration defaultConf = new Configuration();
-    StringBuilder sb = new StringBuilder();
-    sb.append("jdbc:mariadb:");
-    if (conf.haMode != HaMode.NONE) {
-      sb.append(conf.haMode.toString().toLowerCase(Locale.ROOT)).append(":");
-    }
-    sb.append("//");
-    for (int i = 0; i < conf.addresses.size(); i++) {
-      HostAddress hostAddress = conf.addresses.get(i);
-      if (i > 0) {
-        sb.append(",");
-      }
-      if ((conf.haMode == HaMode.NONE && hostAddress.primary)
-          || (conf.haMode == HaMode.REPLICATION
-              && ((i == 0 && hostAddress.primary) || (i != 0 && !hostAddress.primary)))) {
-        sb.append(hostAddress.host);
-        if (hostAddress.port != 3306) sb.append(":").append(hostAddress.port);
-      } else {
-        sb.append("address=(host=")
-            .append(hostAddress.host)
-            .append(")")
-            .append("(port=")
-            .append(hostAddress.port)
-            .append(")");
-        sb.append("(type=").append(hostAddress.primary ? "primary" : "replica").append(")");
-      }
-    }
-
-    sb.append("/");
-    if (conf.database != null) {
-      sb.append(conf.database);
-    }
-
-    try {
-      // Option object is already initialized to default values.
-      // loop on properties,
-      // - check DefaultOption to check that property value correspond to type (and range)
-      // - set values
-      boolean first = true;
-
-      Field[] fields = Configuration.class.getDeclaredFields();
-      for (Field field : fields) {
-        if ("database".equals(field.getName())
-            || "haMode".equals(field.getName())
-            || "$jacocoData".equals(field.getName())
-            || "addresses".equals(field.getName())) {
-          continue;
-        }
-        Object obj = field.get(conf);
-
-        if (obj != null && (!(obj instanceof Properties) || ((Properties) obj).size() > 0)) {
-
-          if ("password".equals(field.getName())) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            sb.append(field.getName()).append('=');
-            sb.append("***");
-            continue;
-          }
-
-          if (field.getType().equals(String.class)) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            sb.append(field.getName()).append('=');
-            sb.append((String) obj);
-          } else if (field.getType().equals(boolean.class)) {
-            boolean defaultValue = field.getBoolean(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(obj);
-            }
-          } else if (field.getType().equals(int.class)) {
-            try {
-              int defaultValue = field.getInt(defaultConf);
-              if (!obj.equals(defaultValue)) {
-                sb.append(first ? '?' : '&');
-                sb.append(field.getName()).append('=').append(obj);
-                first = false;
-              }
-            } catch (IllegalAccessException n) {
-              // eat
-            }
-          } else if (field.getType().equals(Properties.class)) {
-            sb.append(first ? '?' : '&');
-            first = false;
-            boolean firstProp = true;
-            Properties properties = (Properties) obj;
-            for (Object key : properties.keySet()) {
-              if (firstProp) {
-                firstProp = false;
-              } else {
-                sb.append('&');
-              }
-              sb.append(key).append('=');
-              sb.append(properties.get(key));
-            }
-          } else if (field.getType().equals(CredentialPlugin.class)) {
-            Object defaultValue = field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(((CredentialPlugin) obj).type());
-            }
-          } else {
-            Object defaultValue = field.get(defaultConf);
-            if (!obj.equals(defaultValue)) {
-              sb.append(first ? '?' : '&');
-              first = false;
-              sb.append(field.getName()).append('=');
-              sb.append(obj);
-            }
-          }
-        }
-      }
-
-    } catch (IllegalAccessException n) {
-      n.printStackTrace();
-    } catch (SecurityException s) {
-      // only for jws, so never thrown
-      throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
-    }
-    conf.loadCodecs();
-    return sb.toString();
   }
 
   @SuppressWarnings("rawtypes")
@@ -2970,9 +2972,5 @@ public class Configuration {
       conf.initialUrl = buildUrl(conf);
       return conf;
     }
-  }
-
-  private static String nullOrEmpty(String val) {
-    return (val == null || val.isEmpty()) ? null : val;
   }
 }

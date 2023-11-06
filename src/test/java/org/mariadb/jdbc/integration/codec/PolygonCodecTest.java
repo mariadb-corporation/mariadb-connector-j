@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -93,10 +92,9 @@ public class PolygonCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PolygonCodec (t1 Polygon, t2 Polygon, t3 Polygon, t4 Polygon)");
     stmt.execute(
-        "INSERT INTO PolygonCodec VALUES "
-            + "(ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1 1))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10))'), "
-            + "ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
+        "INSERT INTO PolygonCodec VALUES (ST_PolygonFromText('POLYGON((1 1,1 5,4 9,6 9,9 3,7 2,1"
+            + " 1))'), ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10"
+            + " 20,10 10))'), ST_PolygonFromText('POLYGON((0 0,50 0,50 50,0 50,0 0))'), null)");
     stmt.execute(
         "CREATE TABLE PolygonCodec2 (id int not null primary key auto_increment, t1 Polygon)");
     stmt.execute("FLUSH TABLES");
@@ -380,7 +378,7 @@ public class PolygonCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO PolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (Polygon) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -439,8 +437,8 @@ public class PolygonCodecTest extends CommonCodecTest {
             });
     assertEquals(testPoly, ls2);
     assertEquals(testPoly.hashCode(), ls2.hashCode());
-    assertFalse(ls2.equals(null));
-    assertFalse(ls2.equals(""));
+    assertNotEquals(null, ls2);
+    assertNotEquals("", ls2);
     assertNotEquals(
         new Polygon(
             new LineString[] {

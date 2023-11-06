@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.result.rowdecoder;
 
 import java.sql.Date;
@@ -120,6 +119,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to Date.
    *
@@ -138,6 +138,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to Time.
    *
@@ -156,6 +157,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to Timestamp.
    *
@@ -174,6 +176,7 @@ public interface RowDecoder {
       MutableInt fieldLength,
       Calendar cal)
       throws SQLException;
+
   /**
    * Decode data according to short.
    *
@@ -190,6 +193,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to int.
    *
@@ -206,6 +210,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to String.
    *
@@ -222,6 +227,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to long.
    *
@@ -238,6 +244,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to float.
    *
@@ -254,6 +261,7 @@ public interface RowDecoder {
       StandardReadableByteBuf rowBuf,
       MutableInt fieldLength)
       throws SQLException;
+
   /**
    * Decode data according to double.
    *

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.socket.impl;
 
 import java.io.FilterInputStream;
@@ -22,6 +21,9 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Constructor
    *
+   * Implementation doesn't use synchronized/semaphore because all used are already locked by
+   * Statement/PreparedStatement Reentrant lock
+   *
    * @param in socket input stream
    */
   public ReadAheadBufferedStream(InputStream in) {
@@ -40,12 +42,11 @@ public class ReadAheadBufferedStream extends FilterInputStream {
    * @return number of added bytes
    * @throws IOException if exception during socket reading
    */
-  public synchronized int read(byte[] externalBuf, int off, int len) throws IOException {
+  public int read(byte[] externalBuf, int off, int len) throws IOException {
 
     if (len == 0) {
       return 0;
     }
-
     int totalReads = 0;
     while (true) {
 
@@ -104,7 +105,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
     pos = 0;
   }
 
-  public synchronized int available() throws IOException {
+  public int available() throws IOException {
     return end - pos + super.available();
   }
 

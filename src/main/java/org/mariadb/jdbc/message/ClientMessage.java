@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.message;
 
 import java.io.FileInputStream;
@@ -28,6 +27,45 @@ import org.mariadb.jdbc.message.server.OkPacket;
 import org.mariadb.jdbc.util.constants.ServerStatus;
 
 public interface ClientMessage {
+
+  /**
+   * Check that file requested correspond to request.
+   *
+   * @param sql current command sql
+   * @param parameters current command parameter
+   * @param fileName file path request
+   * @param context current connection context
+   * @return true if file name correspond to demand and query is a load local infile
+   */
+  static boolean validateLocalFileName(
+      String sql, Parameters parameters, String fileName, Context context) {
+    String reg =
+        "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
+            + Pattern.quote(fileName.replace("\\", "\\\\"))
+            + "'";
+
+    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
+    if (pattern.matcher(sql).find()) {
+      return true;
+    }
+
+    if (parameters != null) {
+      pattern =
+          Pattern.compile(
+              "^(\\s*/\\*([^*]|\\*[^/])*\\*/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              Pattern.CASE_INSENSITIVE);
+      if (pattern.matcher(sql).find() && parameters.size() > 0) {
+        String paramString = parameters.get(0).bestEffortStringValue(context);
+        if (paramString != null) {
+          return paramString
+              .toLowerCase()
+              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
+        }
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**
    * Encode client message to socket.
@@ -146,7 +184,9 @@ public interface ClientMessage {
                     .withSql(this.description())
                     .create(
                         String.format(
-                            "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to initial query %s. Possible malicious proxy changing server answer ! Command interrupted",
+                            "LOAD DATA LOCAL INFILE asked for file '%s' that doesn't correspond to"
+                                + " initial query %s. Possible malicious proxy changing server"
+                                + " answer ! Command interrupted",
                             fileName, this.description()),
                         "HY000");
           } else {
@@ -206,7 +246,7 @@ public interface ClientMessage {
 
         ColumnDecoder[] ci;
         boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
-        boolean skipMeta = canSkipMeta ? buf.readByte() == 0 : false;
+        boolean skipMeta = canSkipMeta && buf.readByte() == 0;
         if (canSkipMeta && skipMeta) {
           ci = ((BasePreparedStatement) stmt).getMeta();
         } else {
@@ -289,45 +329,6 @@ public interface ClientMessage {
    * @return true if file name correspond to demand and query is a load local infile
    */
   default boolean validateLocalFileName(String fileName, Context context) {
-    return false;
-  }
-
-  /**
-   * Check that file requested correspond to request.
-   *
-   * @param sql current command sql
-   * @param parameters current command parameter
-   * @param fileName file path request
-   * @param context current connection context
-   * @return true if file name correspond to demand and query is a load local infile
-   */
-  static boolean validateLocalFileName(
-      String sql, Parameters parameters, String fileName, Context context) {
-    String reg =
-        "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'"
-            + Pattern.quote(fileName.replace("\\", "\\\\"))
-            + "'";
-
-    Pattern pattern = Pattern.compile(reg, Pattern.CASE_INSENSITIVE);
-    if (pattern.matcher(sql).find()) {
-      return true;
-    }
-
-    if (parameters != null) {
-      pattern =
-          Pattern.compile(
-              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+(DATA|XML)\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
-      if (pattern.matcher(sql).find() && parameters.size() > 0) {
-        String paramString = parameters.get(0).bestEffortStringValue(context);
-        if (paramString != null) {
-          return paramString
-              .toLowerCase()
-              .equals("'" + fileName.replace("\\", "\\\\").toLowerCase() + "'");
-        }
-        return true;
-      }
-    }
     return false;
   }
 }

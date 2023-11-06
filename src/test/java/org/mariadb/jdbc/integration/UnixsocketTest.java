@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,8 +20,8 @@ public class UnixsocketTest extends Common {
     sharedConn
         .createStatement()
         .execute(
-            "CREATE TABLE IF NOT EXISTS test_table"
-                + "(int_column int default 100,mediumtext_column mediumtext null) collate = utf8mb3_bin");
+            "CREATE TABLE IF NOT EXISTS test_table(int_column int default 100,mediumtext_column"
+                + " mediumtext null) collate = utf8mb3_bin");
   }
 
   @AfterAll
@@ -88,10 +87,7 @@ public class UnixsocketTest extends Common {
 
     for (int i = 0; i < 10; i++) {
       assertThrows(
-          SQLNonTransientConnectionException.class,
-          () -> {
-            driver.connect(url, new Properties());
-          });
+          SQLNonTransientConnectionException.class, () -> driver.connect(url, new Properties()));
     }
     proc = rt.exec(commands);
     stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));

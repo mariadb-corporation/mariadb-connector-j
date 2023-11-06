@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.*;
@@ -49,6 +48,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
    * @param defaultFetchSize default fetch size
    * @throws SQLException if prepare fails
    */
+  @SuppressWarnings({"this-escape"})
   public ServerPreparedStatement(
       String sql,
       Connection con,

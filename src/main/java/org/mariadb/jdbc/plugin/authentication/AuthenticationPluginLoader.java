@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.authentication;
 
 import java.sql.SQLException;
@@ -32,13 +31,14 @@ public final class AuthenticationPluginLoader {
 
     for (AuthenticationPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
-        if (conf.restrictedAuth() == null || Arrays.stream(authList).anyMatch(type::contains)) {
+        if (authList == null || Arrays.stream(authList).anyMatch(type::contains)) {
           return implClass;
         } else {
           throw new SQLException(
               String.format(
-                  "Client restrict authentication plugin to a limited set of authentication plugin and doesn't permit requested plugin ('%s'). "
-                      + "Current list is `restrictedAuth=%s`",
+                  "Client restrict authentication plugin to a limited set of authentication plugin"
+                      + " and doesn't permit requested plugin ('%s'). Current list is"
+                      + " `restrictedAuth=%s`",
                   type, conf.restrictedAuth()),
               "08004",
               1251);

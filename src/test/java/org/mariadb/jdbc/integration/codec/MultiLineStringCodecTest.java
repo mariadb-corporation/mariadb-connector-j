@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -79,14 +78,16 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     Assumptions.assumeFalse(isXpand());
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3 MultiLineString, t4 MultiLineString)");
+        "CREATE TABLE MultiLineStringCodec (t1 MultiLineString, t2 MultiLineString, t3"
+            + " MultiLineString, t4 MultiLineString)");
     stmt.execute(
-        "INSERT INTO MultiLineStringCodec VALUES "
-            + "(ST_MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6 9,9 3,7 2))'), "
-            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20 10,20 20,10 20))'), "
-            + "ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'), null)");
+        "INSERT INTO MultiLineStringCodec VALUES (ST_MLineFromText('MULTILINESTRING((1 1,1 5,4 9,6"
+            + " 9,9 3,7 2))'), ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50), (10 10,20"
+            + " 10,20 20,10 20))'), ST_MLineFromText('MULTILINESTRING((0 0,50 0,50 50,0 50))'),"
+            + " null)");
     stmt.execute(
-        "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1 MultiLineString)");
+        "CREATE TABLE MultiLineStringCodec2 (id int not null primary key auto_increment, t1"
+            + " MultiLineString)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -99,7 +100,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiLineStringCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiLineStringCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -110,8 +112,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiLineStringCodec"
-                + " WHERE 1 > ?");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiLineStringCodec WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();
@@ -354,7 +356,7 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO MultiLineStringCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (MultiLineString) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -420,8 +422,8 @@ public class MultiLineStringCodecTest extends CommonCodecTest {
                 })
             .hashCode(),
         ls2.hashCode());
-    assertFalse(ls2.equals(null));
-    assertFalse(ls2.equals(""));
+    assertNotEquals(null, ls2);
+    assertNotEquals("", ls2);
     assertNotEquals(ls1, ls2);
     assertNotEquals(
         new MultiLineString(

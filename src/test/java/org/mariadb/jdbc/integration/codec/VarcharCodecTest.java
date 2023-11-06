@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,8 +40,8 @@ public class VarcharCodecTest extends CommonCodecTest {
     after2();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE StringCodec (t1 VARCHAR(255), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20)) CHARACTER "
-            + "SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE StringCodec (t1 VARCHAR(255), t2 VARCHAR(30), t3 VARCHAR(20), t4 VARCHAR(20))"
+            + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
         "INSERT INTO StringCodec VALUES ('0', '1', 'some🌟', null), "
             + "('2011-01-01', '2010-12-31 23:59:59.152', '23:54:51.840010', null), "
@@ -52,7 +51,8 @@ public class VarcharCodecTest extends CommonCodecTest {
         "CREATE TABLE StringParamCodec(id int not null primary key auto_increment, t1 VARCHAR(20)) "
             + "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     stmt.execute(
-        "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        "CREATE TABLE StringCodecWrong (t1 VARCHAR(20)) CHARACTER SET utf8mb4 COLLATE"
+            + " utf8mb4_unicode_ci");
 
     stmt.execute("FLUSH TABLES");
   }
@@ -1058,7 +1058,7 @@ public class VarcharCodecTest extends CommonCodecTest {
   @Test
   public void wrongUtf8String() throws SQLException {
     final byte[] utf8WrongBytes =
-        new byte[] {(byte) 0xc2, (byte) 0f, (byte) 0xDB, (byte) 0, (byte) 0xE1, (byte) 0};
+        new byte[] {(byte) 0xc2, (byte) 0x0f, (byte) 0xDB, (byte) 0x00, (byte) 0xE1, (byte) 0x00};
     String st = new String(utf8WrongBytes);
 
     wrongUtf8(sharedConn, st);

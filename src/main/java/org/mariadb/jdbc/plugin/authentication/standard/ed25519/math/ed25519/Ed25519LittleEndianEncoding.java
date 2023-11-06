@@ -1,7 +1,6 @@
 package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.Encoding;
-import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement;
+import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.*;
 
 /**
  * Helper class for encoding/decoding from/to the 32 byte representation.
@@ -9,6 +8,21 @@ import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.FieldElement
  * <p>Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
 public class Ed25519LittleEndianEncoding extends Encoding {
+  static int load_3(byte[] in, int offset) {
+    int result = in[offset++] & 0xff;
+    result |= (in[offset++] & 0xff) << 8;
+    result |= (in[offset] & 0xff) << 16;
+    return result;
+  }
+
+  static long load_4(byte[] in, int offset) {
+    int result = in[offset++] & 0xff;
+    result |= (in[offset++] & 0xff) << 8;
+    result |= (in[offset++] & 0xff) << 16;
+    result |= in[offset] << 24;
+    return ((long) result) & 0xffffffffL;
+  }
+
   /**
    * Encodes a given field element in its 32 byte representation. This is done in two steps:
    *
@@ -18,6 +32,8 @@ public class Ed25519LittleEndianEncoding extends Encoding {
    * </ol>
    *
    * <p>The idea for the modulo $p$ reduction algorithm is as follows:
+   *
+   * <h2>Assumption:</h2>
    *
    * <ul>
    *   <li>$p = 2^{255} - 19$
@@ -29,7 +45,7 @@ public class Ed25519LittleEndianEncoding extends Encoding {
    *
    * <p>Then $q = [2^{-255} * (h + 19 * 2^{-25} * h_9 + 1/2)]$ where $[x] = floor(x)$.
    *
-   * <p>Proof:
+   * <h2>Proof:</h2>
    *
    * <p>We begin with some very raw estimation for the bounds of some expressions:
    *
@@ -167,21 +183,6 @@ public class Ed25519LittleEndianEncoding extends Encoding {
     return s;
   }
 
-  static int load_3(byte[] in, int offset) {
-    int result = in[offset++] & 0xff;
-    result |= (in[offset++] & 0xff) << 8;
-    result |= (in[offset] & 0xff) << 16;
-    return result;
-  }
-
-  static long load_4(byte[] in, int offset) {
-    int result = in[offset++] & 0xff;
-    result |= (in[offset++] & 0xff) << 8;
-    result |= (in[offset++] & 0xff) << 16;
-    result |= in[offset] << 24;
-    return ((long) result) & 0xffffffffL;
-  }
-
   /**
    * Decodes a given field element in its 10 byte $2^{25.5}$ representation.
    *
@@ -190,14 +191,14 @@ public class Ed25519LittleEndianEncoding extends Encoding {
    */
   public FieldElement decode(byte[] in) {
     long h0 = load_4(in, 0);
-    long h1 = load_3(in, 4) << 6;
-    long h2 = load_3(in, 7) << 5;
-    long h3 = load_3(in, 10) << 3;
-    long h4 = load_3(in, 13) << 2;
+    long h1 = (long) load_3(in, 4) << 6;
+    long h2 = (long) load_3(in, 7) << 5;
+    long h3 = (long) load_3(in, 10) << 3;
+    long h4 = (long) load_3(in, 13) << 2;
     long h5 = load_4(in, 16);
-    long h6 = load_3(in, 20) << 7;
-    long h7 = load_3(in, 23) << 5;
-    long h8 = load_3(in, 26) << 4;
+    long h6 = (long) load_3(in, 20) << 7;
+    long h7 = (long) load_3(in, 23) << 5;
+    long h8 = (long) load_3(in, 26) << 4;
     long h9 = (load_3(in, 29) & 0x7FFFFF) << 2;
     long carry0;
     long carry1;

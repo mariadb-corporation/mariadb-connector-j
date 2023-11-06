@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.util;
 
 import java.nio.charset.StandardCharsets;
@@ -12,8 +11,8 @@ public final class ClientParser implements PrepareResult {
 
   private final String sql;
   private final byte[] query;
-  private List<Integer> paramPositions;
-  private int paramCount;
+  private final List<Integer> paramPositions;
+  private final int paramCount;
 
   private ClientParser(String sql, byte[] query, List<Integer> paramPositions) {
     this.sql = sql;

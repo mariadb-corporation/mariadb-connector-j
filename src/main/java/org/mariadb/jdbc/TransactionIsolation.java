@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.sql.Connection;
@@ -46,24 +45,6 @@ public enum TransactionIsolation {
   }
 
   /**
-   * Get transaction isolation command
-   *
-   * @return transaction isolation command
-   */
-  public String getValue() {
-    return value;
-  }
-
-  /**
-   * Get transaction isolation level
-   *
-   * @return transaction isolation level
-   */
-  public int getLevel() {
-    return level;
-  }
-
-  /**
    * Get TransactionIsolation from value
    *
    * @param value value
@@ -80,5 +61,23 @@ public enum TransactionIsolation {
     }
     throw new IllegalArgumentException(
         String.format("Wrong argument value '%s' for TransactionIsolation", value));
+  }
+
+  /**
+   * Get transaction isolation command
+   *
+   * @return transaction isolation command
+   */
+  public String getValue() {
+    return value;
+  }
+
+  /**
+   * Get transaction isolation level
+   *
+   * @return transaction isolation level
+   */
+  public int getLevel() {
+    return level;
   }
 }

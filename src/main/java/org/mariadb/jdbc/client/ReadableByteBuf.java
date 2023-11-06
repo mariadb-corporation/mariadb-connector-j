@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client;
 
 import org.mariadb.jdbc.MariaDbBlob;
@@ -90,19 +89,20 @@ public interface ReadableByteBuf {
   short getUnsignedByte();
 
   /**
-   * Read encoded length value that cannot be null see
-   * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers
+   * Read encoded length value that cannot be null
    *
+   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
+   *     encoded integer</a>
    * @return encoded length
    */
   long readLongLengthEncodedNotNull();
 
   /**
-   * Read encoded length value that cannot be null see
-   * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers
+   * Read encoded length value that cannot be null
    *
-   * <p>this is readLongLengthEncodedNotNull limited to 32 bits
-   *
+   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
+   *     encoded integer</a>
+   *     <p>this is readLongLengthEncodedNotNull limited to 32 bits
    * @return encoded length
    */
   int readIntLengthEncodedNotNull();
@@ -129,10 +129,12 @@ public interface ReadableByteBuf {
    * @return long value
    */
   long atoull(int length);
+
   /**
-   * Read encoded length value see
-   * https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers
+   * Read encoded length value
    *
+   * @see <a href="https://mariadb.com/kb/en/protocol-data-types/#length-encoded-integers">length
+   *     encoded integer</a>
    * @return encoded length
    */
   Integer readLength();

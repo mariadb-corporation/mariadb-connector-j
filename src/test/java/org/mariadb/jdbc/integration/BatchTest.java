@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +32,29 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void batchError() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS t1");
+    stmt.execute("CREATE TABLE t1(c0 DATE UNIQUE PRIMARY KEY NOT NULL)");
+
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2019-04-11')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2006-04-01')");
+    stmt.addBatch("INSERT INTO t1 VALUES ('2020-04-11')");
+    try {
+      stmt.executeBatch();
+      fail();
+    } catch (BatchUpdateException e) {
+      assertTrue(e.getMessage().contains("Duplicate entry"));
+      assertEquals(5, e.getUpdateCounts().length);
+      assertArrayEquals(
+          new int[] {1, java.sql.Statement.EXECUTE_FAILED, 1, java.sql.Statement.EXECUTE_FAILED, 1},
+          e.getUpdateCounts());
+    }
+  }
+
+  @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       wrongParameter(con);
@@ -60,7 +82,8 @@ public class BatchTest extends Common {
             e.getMessage().contains("Parameter at position 2 is not set")
                 || e.getMessage()
                     .contains(
-                        "batch set of parameters differ from previous set. All parameters must be set"));
+                        "batch set of parameters differ from previous set. All parameters must be"
+                            + " set"));
       }
 
       prep.setInt(1, 5);
@@ -453,29 +476,6 @@ public class BatchTest extends Common {
     }
   }
 
-  private class TimestampCal {
-    private Timestamp val;
-    private int id;
-
-    public TimestampCal(Timestamp val, int id) {
-      this.val = val;
-      this.id = id;
-    }
-
-    public Timestamp getVal() {
-      return val;
-    }
-
-    public int getId() {
-      return id;
-    }
-
-    @Override
-    public String toString() {
-      return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
-    }
-  }
-
   @Test
   public void ensureCalendarSync() throws SQLException {
     Assumptions.assumeTrue(isMariaDBServer() && !isXpand());
@@ -520,6 +520,29 @@ public class BatchTest extends Common {
     } catch (SQLException e) {
       e.printStackTrace();
       return -1;
+    }
+  }
+
+  private class TimestampCal {
+    private final Timestamp val;
+    private final int id;
+
+    public TimestampCal(Timestamp val, int id) {
+      this.val = val;
+      this.id = id;
+    }
+
+    public Timestamp getVal() {
+      return val;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    @Override
+    public String toString() {
+      return "TimestampCal{" + "val=" + val + ", id=" + id + '}';
     }
   }
 }

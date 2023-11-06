@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -396,8 +395,8 @@ public class ClobTest extends Common {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(clob, clob);
     assertEquals(new MariaDbClob(bytes), clob);
-    assertFalse(clob.equals(null));
-    assertFalse(clob.equals(""));
+    assertNotEquals(null, clob);
+    assertNotEquals("", clob);
     byte[] bytes = "Abc£de🙏fgh".getBytes(StandardCharsets.UTF_8);
     assertNotEquals(new MariaDbClob(bytes), clob);
     assertNotEquals(new MariaDbClob("Abc".getBytes(StandardCharsets.UTF_8)), clob);

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,7 +15,8 @@ public class ConfigurationTest extends Common {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE testSessionVariable(id int not null primary key auto_increment, test varchar(10))");
+        "CREATE TABLE testSessionVariable(id int not null primary key auto_increment, test"
+            + " varchar(10))");
     stmt.execute("FLUSH TABLES");
   }
 

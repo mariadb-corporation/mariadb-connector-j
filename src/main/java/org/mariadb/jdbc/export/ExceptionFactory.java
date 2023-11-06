@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.export;
 
 import java.sql.*;
@@ -15,6 +14,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbPoolConnection;
 import org.mariadb.jdbc.client.Completion;
 import org.mariadb.jdbc.message.server.OkPacket;
+import org.mariadb.jdbc.util.ThreadUtils;
 
 /**
  * Exception factory. This permit common error logging, with thread id, dump query, and specific
@@ -103,7 +103,7 @@ public class ExceptionFactory {
                 msg.append("\n  name:\"")
                     .append(thread.getName())
                     .append("\" pid:")
-                    .append(thread.getId())
+                    .append(ThreadUtils.getId(thread))
                     .append(" status:")
                     .append(thread.getState());
                 for (StackTraceElement trace : traces) {
@@ -193,8 +193,6 @@ public class ExceptionFactory {
   public BatchUpdateException createBatchUpdate(
       List<Completion> res, int length, int[] responseMsg, SQLException sqle) {
     int[] updateCounts = new int[length];
-
-    int responseIncrement = 0;
     for (int i = 0; i < length; i++) {
       if (i >= responseMsg.length) {
         Arrays.fill(updateCounts, i, length, Statement.EXECUTE_FAILED);
@@ -202,10 +200,18 @@ public class ExceptionFactory {
       }
       int MsgResponseNo = responseMsg[i];
       if (MsgResponseNo < 1) {
-        updateCounts[responseIncrement++] = Statement.EXECUTE_FAILED;
+        updateCounts[0] = Statement.EXECUTE_FAILED;
         return new BatchUpdateException(updateCounts, sqle);
-      } else if (MsgResponseNo == 1 && res.size() > i && res.get(i) instanceof OkPacket) {
-        updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+      } else if (MsgResponseNo == 1) {
+        if (i >= res.size() || res.get(i) == null) {
+          updateCounts[i] = Statement.EXECUTE_FAILED;
+          continue;
+        }
+        if (res.get(i) instanceof OkPacket) {
+          updateCounts[i] = (int) ((OkPacket) res.get(i)).getAffectedRows();
+          continue;
+        }
+        updateCounts[i] = Statement.SUCCESS_NO_INFO;
       } else {
         // unknown.
         updateCounts[i] = Statement.SUCCESS_NO_INFO;
@@ -261,7 +267,8 @@ public class ExceptionFactory {
     // 3948 : mysql load data infile disable
     if ((errorCode == 4166 || errorCode == 3948 || errorCode == 1148) && !conf.allowLocalInfile()) {
       return new SQLException(
-          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile commands",
+          "Local infile is disabled by connector. Enable `allowLocalInfile` to allow local infile"
+              + " commands",
           sqlState,
           errorCode,
           cause);
@@ -358,6 +365,7 @@ public class ExceptionFactory {
   public SQLException create(String message, String sqlState, Exception cause) {
     return createException(message, sqlState, -1, cause);
   }
+
   /**
    * Creation of an exception
    *

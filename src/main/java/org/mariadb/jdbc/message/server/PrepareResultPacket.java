@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.message.server;
 
 import java.io.IOException;
@@ -15,9 +14,15 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 
-/** Prepare result packet See https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK */
+/**
+ * Prepare result packet
+ *
+ * @see <a href="https://mariadb.com/kb/en/com_stmt_prepare/#COM_STMT_PREPARE_OK">Prepare result
+ *     packet</a> *
+ */
 public class PrepareResultPacket implements Completion, Prepare {
   static final ColumnDecoder CONSTANT_PARAMETER;
+  private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
 
   static {
     byte[] bytes =
@@ -51,12 +56,12 @@ public class PrepareResultPacket implements Completion, Prepare {
         ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length), true);
   }
 
-  private static final Logger logger = Loggers.getLogger(PrepareResultPacket.class);
   private final ColumnDecoder[] parameters;
-  private ColumnDecoder[] columns;
 
   /** prepare statement id */
   protected int statementId;
+
+  private ColumnDecoder[] columns;
 
   /**
    * Prepare packet constructor (parsing)

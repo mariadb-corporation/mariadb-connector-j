@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -122,14 +121,17 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
 
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4 MultiPolygon)");
+        "CREATE TABLE MultiPolygonCodec (t1 MultiPolygon, t2 MultiPolygon, t3 MultiPolygon, t4"
+            + " MultiPolygon)");
     stmt.execute(
-        "INSERT INTO MultiPolygonCodec VALUES "
-            + "(ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), "
-            + "ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'), "
-            + "ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'), null)");
+        "INSERT INTO MultiPolygonCodec VALUES (ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 5,4 9,6 9,9"
+            + " 3,7 2, 1 1)), ((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10 20,10 10)))'),"
+            + " ST_MPolyFromText('MULTIPOLYGON(((1 1, 1 8,4 9,6 9,9 3,7 2, 1 1)))'),"
+            + " ST_MPolyFromText('MULTIPOLYGON(((0 0, 50 0,50 50,0 50,0 0), (10 10,20 10,20 20,10"
+            + " 20,10 10)))'), null)");
     stmt.execute(
-        "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1 MultiPolygon)");
+        "CREATE TABLE MultiPolygonCodec2 (id int not null primary key auto_increment, t1"
+            + " MultiPolygon)");
     stmt.execute("FLUSH TABLES");
 
     String binUrl =
@@ -137,12 +139,39 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     geoConn = (org.mariadb.jdbc.Connection) DriverManager.getConnection(binUrl);
   }
 
+  private static int toDigit(char hexChar) {
+    int digit = Character.digit(hexChar, 16);
+    if (digit == -1) {
+      throw new IllegalArgumentException("Invalid Hexadecimal Character: " + hexChar);
+    }
+    return digit;
+  }
+
+  public static byte hexToByte(String hexString) {
+    int firstDigit = toDigit(hexString.charAt(0));
+    int secondDigit = toDigit(hexString.charAt(1));
+    return (byte) ((firstDigit << 4) + secondDigit);
+  }
+
+  public static byte[] decodeHexString(String hexString) {
+    if (hexString.length() % 2 == 1) {
+      throw new IllegalArgumentException("Invalid hexadecimal String supplied.");
+    }
+
+    byte[] bytes = new byte[hexString.length() / 2];
+    for (int i = 0; i < hexString.length(); i += 2) {
+      bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
+    }
+    return bytes;
+  }
+
   private ResultSet get() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs =
         stmt.executeQuery(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiPolygonCodec");
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
@@ -153,8 +182,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     PreparedStatement preparedStatement =
         con.prepareStatement(
-            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from MultiPolygonCodec"
-                + " WHERE 1 > ?");
+            "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from"
+                + " MultiPolygonCodec WHERE 1 > ?");
     preparedStatement.closeOnCompletion();
     preparedStatement.setInt(1, 0);
     CompleteResult rs = (CompleteResult) preparedStatement.executeQuery();
@@ -206,32 +235,6 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
   public void getObjectTypePrepare() throws Exception {
     getObjectType(getPrepare(sharedConn));
     getObjectType(getPrepare(sharedConnBinary));
-  }
-
-  private static int toDigit(char hexChar) {
-    int digit = Character.digit(hexChar, 16);
-    if (digit == -1) {
-      throw new IllegalArgumentException("Invalid Hexadecimal Character: " + hexChar);
-    }
-    return digit;
-  }
-
-  public static byte hexToByte(String hexString) {
-    int firstDigit = toDigit(hexString.charAt(0));
-    int secondDigit = toDigit(hexString.charAt(1));
-    return (byte) ((firstDigit << 4) + secondDigit);
-  }
-
-  public static byte[] decodeHexString(String hexString) {
-    if (hexString.length() % 2 == 1) {
-      throw new IllegalArgumentException("Invalid hexadecimal String supplied.");
-    }
-
-    byte[] bytes = new byte[hexString.length() / 2];
-    for (int i = 0; i < hexString.length(); i += 2) {
-      bytes[i / 2] = hexToByte(hexString.substring(i, i + 2));
-    }
-    return bytes;
   }
 
   public void getObjectType(ResultSet rs) throws Exception {
@@ -303,7 +306,7 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
         con.prepareStatement("INSERT INTO MultiPolygonCodec2(t1) VALUES (?)")) {
       prep.setObject(1, ls1);
       prep.execute();
-      prep.setObject(1, (MultiPolygon) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, ls2);
@@ -379,8 +382,8 @@ public class MultiPolygonCodecTest extends CommonCodecTest {
             });
     assertEquals(testPoly, ls1);
     assertEquals(testPoly.hashCode(), ls1.hashCode());
-    assertFalse(ls1.equals(null));
-    assertFalse(ls1.equals(""));
+    assertNotEquals(null, ls1);
+    assertNotEquals("", ls1);
     assertNotEquals(
         new MultiPolygon(
             new Polygon[] {

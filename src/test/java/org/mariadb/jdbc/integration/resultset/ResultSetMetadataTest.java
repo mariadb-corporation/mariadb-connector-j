@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.resultset;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,8 +33,8 @@ public class ResultSetMetadataTest extends Common {
     stmt.execute("CREATE TABLE ResultSetTest (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("INSERT INTO ResultSetTest(t2) values (1),(2),(3),(4),(5),(6),(7),(8)");
     stmt.execute(
-        "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, "
-            + "nullable_col varchar(20), unikey_col int unique, char_col char(10), us smallint unsigned)");
+        "CREATE TABLE test_rsmd(id_col int not null primary key auto_increment, nullable_col"
+            + " varchar(20), unikey_col int unique, char_col char(10), us smallint unsigned)");
     stmt.execute("CREATE TABLE resultsetmetadatatest1(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest2(id int, name varchar(20))");
     stmt.execute("CREATE TABLE resultsetmetadatatest3(id int, name varchar(20))");
@@ -128,7 +127,8 @@ public class ResultSetMetadataTest extends Common {
         sharedConn
             .createStatement()
             .executeQuery(
-                "select resultsetmetadatatest1.*, resultsetmetadatatest2.* FROM resultsetmetadatatest1 join resultsetmetadatatest2");
+                "select resultsetmetadatatest1.*, resultsetmetadatatest2.* FROM"
+                    + " resultsetmetadatatest1 join resultsetmetadatatest2");
     assertTrue(rs.next());
     assertEquals(rs.findColumn("id"), 1);
     assertEquals(rs.findColumn("name"), 2);
@@ -199,7 +199,8 @@ public class ResultSetMetadataTest extends Common {
         sharedConn
             .createStatement()
             .executeQuery(
-                "SELECT id AS id_alias FROM resultsetmetadatatest3 AS resultsetmetadatatest1_alias");
+                "SELECT id AS id_alias FROM resultsetmetadatatest3 AS"
+                    + " resultsetmetadatatest1_alias");
     ResultSetMetaData rsmd = rs.getMetaData();
 
     assertEquals("resultsetmetadatatest3", rsmd.getTableName(1));
@@ -211,7 +212,8 @@ public class ResultSetMetadataTest extends Common {
           connection
               .createStatement()
               .executeQuery(
-                  "SELECT id AS id_alias FROM resultsetmetadatatest3 AS resultsetmetadatatest1_alias");
+                  "SELECT id AS id_alias FROM resultsetmetadatatest3 AS"
+                      + " resultsetmetadatatest1_alias");
       rsmd = rs.getMetaData();
 
       assertEquals("", rsmd.getTableName(1));
@@ -242,5 +244,13 @@ public class ResultSetMetadataTest extends Common {
     ResultSetMetaData rsMeta = rs.getMetaData();
     assertEquals("TABLE_TYPE", rsMeta.getColumnName(1));
     assertEquals("", rsMeta.getTableName(1));
+    assertEquals("TABLE", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("SYSTEM VIEW", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("VIEW", rs.getString(1));
+    assertTrue(rs.next());
+    assertEquals("LOCAL TEMPORARY", rs.getString(1));
+    assertFalse(rs.next());
   }
 }

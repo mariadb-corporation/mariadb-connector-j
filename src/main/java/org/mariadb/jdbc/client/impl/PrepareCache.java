@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.impl;
 
 import java.util.LinkedHashMap;
@@ -16,10 +15,12 @@ public final class PrepareCache extends LinkedHashMap<String, CachedPrepareResul
     implements org.mariadb.jdbc.client.PrepareCache {
 
   private static final long serialVersionUID = -8922905563713952695L;
+
   /** cache maximum size */
   private final int maxSize;
+
   /** client */
-  private final StandardClient con;
+  private final transient StandardClient con;
 
   /**
    * LRU prepare cache constructor

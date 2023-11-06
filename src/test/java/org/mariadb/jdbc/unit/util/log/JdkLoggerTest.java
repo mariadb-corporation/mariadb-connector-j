@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.unit.util.log;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,54 +14,6 @@ import org.mariadb.jdbc.util.log.JdkLogger;
 
 public class JdkLoggerTest {
   final ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-  public class BufHandler extends StreamHandler {
-    public BufHandler() {
-      super(out, new MySimpleFormatter());
-    }
-
-    public void publish(LogRecord record) {
-      super.publish(record);
-      this.flush();
-    }
-
-    public void close() {
-      this.flush();
-    }
-  }
-
-  public static class MySimpleFormatter extends Formatter {
-
-    public MySimpleFormatter() {}
-
-    public String format(LogRecord record) {
-      ZonedDateTime zdt = ZonedDateTime.now();
-      String source;
-      if (record.getSourceClassName() != null) {
-        source = record.getSourceClassName();
-        if (record.getSourceMethodName() != null) {
-          source = source + " " + record.getSourceMethodName();
-        }
-      } else {
-        source = record.getLoggerName();
-      }
-
-      String message = this.formatMessage(record);
-      String throwable = "";
-      if (record.getThrown() != null) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        pw.println();
-        record.getThrown().printStackTrace(pw);
-        pw.close();
-        throwable = sw.toString();
-      }
-
-      return String.format(
-          "[%4$-7s] %5$s %n",
-          zdt, source, record.getLoggerName(), Level.FINEST, message, throwable);
-    }
-  }
 
   @Test
   public void logger() {
@@ -115,5 +66,53 @@ public class JdkLoggerTest {
             + "[FINEST ] warn msg3 1 t \n"
             + "[FINEST ] warn msg2 ";
     assertTrue(outSt.contains(expected) || outSt.replace("\r\n", "\n").contains(expected));
+  }
+
+  public static class MySimpleFormatter extends Formatter {
+
+    public MySimpleFormatter() {}
+
+    public String format(LogRecord record) {
+      ZonedDateTime zdt = ZonedDateTime.now();
+      String source;
+      if (record.getSourceClassName() != null) {
+        source = record.getSourceClassName();
+        if (record.getSourceMethodName() != null) {
+          source = source + " " + record.getSourceMethodName();
+        }
+      } else {
+        source = record.getLoggerName();
+      }
+
+      String message = this.formatMessage(record);
+      String throwable = "";
+      if (record.getThrown() != null) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        pw.println();
+        record.getThrown().printStackTrace(pw);
+        pw.close();
+        throwable = sw.toString();
+      }
+
+      return String.format(
+          "[%4$-7s] %5$s %n",
+          zdt, source, record.getLoggerName(), Level.FINEST, message, throwable);
+    }
+  }
+
+  public class BufHandler extends StreamHandler {
+    public BufHandler() {
+      super(out, new MySimpleFormatter());
+    }
+
+    public void publish(LogRecord record) {
+      super.publish(record);
+      this.flush();
+    }
+
+    public void close() {
+      this.flush();
+    }
   }
 }

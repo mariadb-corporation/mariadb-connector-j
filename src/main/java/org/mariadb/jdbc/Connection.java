@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.sql.*;
@@ -39,17 +38,17 @@ public class Connection implements java.sql.Connection {
 
   private final ReentrantLock lock;
   private final Configuration conf;
-  private ExceptionFactory exceptionFactory;
   private final Client client;
   private final Properties clientInfo = new Properties();
-  private int lowercaseTableNames = -1;
   private final AtomicInteger savepointId = new AtomicInteger();
-  private boolean readOnly;
   private final boolean canUseServerTimeout;
   private final boolean canCachePrepStmts;
   private final boolean canUseServerMaxRows;
   private final int defaultFetchSize;
   private final boolean forceTransactionEnd;
+  private ExceptionFactory exceptionFactory;
+  private int lowercaseTableNames = -1;
+  private boolean readOnly;
   private MariaDbPoolConnection poolConnection;
 
   /**
@@ -59,6 +58,7 @@ public class Connection implements java.sql.Connection {
    * @param lock thread safe locker
    * @param client client object
    */
+  @SuppressWarnings({"this-escape"})
   public Connection(Configuration conf, ReentrantLock lock, Client client) {
     this.conf = conf;
     this.forceTransactionEnd =
@@ -94,8 +94,15 @@ public class Connection implements java.sql.Connection {
    * @throws SQLException never thrown
    */
   public void cancelCurrentQuery() throws SQLException {
-    try (Client cli =
-        new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
+    // prefer relying on IP compare to DNS if not using Unix socket/PIPE
+    String currentIp = client.getSocketIp();
+    HostAddress hostAddress =
+        currentIp == null
+            ? client.getHostAddress()
+            : HostAddress.from(
+                currentIp, client.getHostAddress().port, client.getHostAddress().primary);
+
+    try (Client cli = new StandardClient(conf, hostAddress, new ReentrantLock(), true)) {
       cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
     }
   }
@@ -323,11 +330,12 @@ public class Connection implements java.sql.Connection {
       return client.getContext().getDatabase();
     }
 
-    Statement stmt = createStatement();
-    ResultSet rs = stmt.executeQuery("select database()");
-    rs.next();
-    client.getContext().setDatabase(rs.getString(1));
-    return client.getContext().getDatabase();
+    try (Statement stmt = createStatement()) {
+      ResultSet rs = stmt.executeQuery("select database()");
+      rs.next();
+      client.getContext().setDatabase(rs.getString(1));
+      return client.getContext().getDatabase();
+    }
   }
 
   private void setDatabase(String database) throws SQLException {
@@ -365,29 +373,31 @@ public class Connection implements java.sql.Connection {
       }
     }
 
-    ResultSet rs = createStatement().executeQuery(sql);
-    if (rs.next()) {
-      final String response = rs.getString(1);
-      switch (response) {
-        case "REPEATABLE-READ":
-          return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
+    try (Statement stmt = createStatement()) {
+      ResultSet rs = stmt.executeQuery(sql);
+      if (rs.next()) {
+        final String response = rs.getString(1);
+        switch (response) {
+          case "REPEATABLE-READ":
+            return java.sql.Connection.TRANSACTION_REPEATABLE_READ;
 
-        case "READ-UNCOMMITTED":
-          return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
+          case "READ-UNCOMMITTED":
+            return java.sql.Connection.TRANSACTION_READ_UNCOMMITTED;
 
-        case "READ-COMMITTED":
-          return java.sql.Connection.TRANSACTION_READ_COMMITTED;
+          case "READ-COMMITTED":
+            return java.sql.Connection.TRANSACTION_READ_COMMITTED;
 
-        case "SERIALIZABLE":
-          return java.sql.Connection.TRANSACTION_SERIALIZABLE;
+          case "SERIALIZABLE":
+            return java.sql.Connection.TRANSACTION_SERIALIZABLE;
 
-        default:
-          throw exceptionFactory.create(
-              String.format(
-                  "Could not get transaction isolation level: Invalid value \"%s\"", response));
+          default:
+            throw exceptionFactory.create(
+                String.format(
+                    "Could not get transaction isolation level: Invalid value \"%s\"", response));
+        }
       }
+      throw exceptionFactory.create("Failed to retrieve transaction isolation");
     }
-    throw exceptionFactory.create("Failed to retrieve transaction isolation");
   }
 
   @Override
@@ -493,7 +503,8 @@ public class Connection implements java.sql.Connection {
     Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
     if (!matcher.matches()) {
       throw new SQLSyntaxErrorException(
-          "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+          "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n"
+              + " but was : "
               + sql);
     }
 
@@ -796,55 +807,6 @@ public class Connection implements java.sql.Connection {
     return client;
   }
 
-  /** Internal Savepoint implementation */
-  class MariaDbSavepoint implements java.sql.Savepoint {
-
-    private final String name;
-    private final Integer id;
-
-    public MariaDbSavepoint(final String name) {
-      this.name = name;
-      this.id = null;
-    }
-
-    public MariaDbSavepoint(final int savepointId) {
-      this.id = savepointId;
-      this.name = null;
-    }
-
-    /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
-     * represents.
-     *
-     * @return the numeric ID of this savepoint
-     */
-    public int getSavepointId() throws SQLException {
-      if (name != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
-      }
-      return id;
-    }
-
-    /**
-     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the name of this savepoint
-     */
-    public String getSavepointName() throws SQLException {
-      if (id != null) {
-        throw exceptionFactory.create("Cannot retrieve savepoint name of an unnamed savepoint");
-      }
-      return name;
-    }
-
-    public String rawValue() {
-      if (id != null) {
-        return "_jid_" + id;
-      }
-      return name;
-    }
-  }
-
   /**
    * Reset connection set has it was after creating a "fresh" new connection.
    * defaultTransactionIsolation must have been initialized.
@@ -884,7 +846,7 @@ public class Connection implements java.sql.Connection {
           setNetworkTimeout(null, conf.socketTimeout());
         }
         if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
-          setAutoCommit(conf.autocommit() == null ? true : conf.autocommit());
+          setAutoCommit(conf.autocommit() == null || conf.autocommit());
         }
         if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
           setCatalog(conf.database());
@@ -945,5 +907,54 @@ public class Connection implements java.sql.Connection {
    */
   public String __test_host() {
     return this.client.getHostAddress().toString();
+  }
+
+  /** Internal Savepoint implementation */
+  class MariaDbSavepoint implements java.sql.Savepoint {
+
+    private final String name;
+    private final Integer id;
+
+    public MariaDbSavepoint(final String name) {
+      this.name = name;
+      this.id = null;
+    }
+
+    public MariaDbSavepoint(final int savepointId) {
+      this.id = savepointId;
+      this.name = null;
+    }
+
+    /**
+     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
+     * represents.
+     *
+     * @return the numeric ID of this savepoint
+     */
+    public int getSavepointId() throws SQLException {
+      if (id == null) {
+        throw exceptionFactory.create("Cannot retrieve savepoint id of a named savepoint");
+      }
+      return id;
+    }
+
+    /**
+     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
+     *
+     * @return the name of this savepoint
+     */
+    public String getSavepointName() throws SQLException {
+      if (id != null) {
+        throw exceptionFactory.create("Cannot retrieve savepoint name of an unnamed savepoint");
+      }
+      return name;
+    }
+
+    public String rawValue() {
+      if (id != null) {
+        return "_jid_" + id;
+      }
+      return name;
+    }
   }
 }

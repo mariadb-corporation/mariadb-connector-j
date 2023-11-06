@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,7 +43,8 @@ public class StatementTest extends Common {
         "CREATE TABLE executeGenerated2 (t1 int not null primary key auto_increment, t2 int)");
     stmt.execute("CREATE TABLE testAffectedRow(id int)");
     stmt.execute(
-        "CREATE TABLE bigIntId(`id` bigint(20) unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT, val VARCHAR(256))");
+        "CREATE TABLE bigIntId(`id` bigint(20) unsigned NOT NULL PRIMARY KEY AUTO_INCREMENT, val"
+            + " VARCHAR(256))");
     createSequenceTables();
     stmt.execute("FLUSH TABLES");
   }
@@ -101,8 +101,8 @@ public class StatementTest extends Common {
     } else {
       assertEquals(expected.longValueExact(), rs.getLong(1));
     }
-    assertTrue(expected.compareTo(((CompleteResult) rs).getBigInteger(1)) == 0);
-    assertTrue(new BigDecimal(expected).compareTo(rs.getBigDecimal(1)) == 0);
+    assertEquals(0, expected.compareTo(((CompleteResult) rs).getBigInteger(1)));
+    assertEquals(0, new BigDecimal(expected).compareTo(rs.getBigDecimal(1)));
   }
 
   @Test
@@ -541,8 +541,8 @@ public class StatementTest extends Common {
           stmt.setQueryTimeout(1);
           assertEquals(1, stmt.getQueryTimeout());
           stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
-                  + ".tables as t2");
+              "select * from information_schema.columns as c1,  information_schema.tables,"
+                  + " information_schema.tables as t2");
         },
         "Query execution was interrupted (max_statement_time exceeded)");
   }
@@ -619,8 +619,7 @@ public class StatementTest extends Common {
   @Test
   public void cancel() throws Exception {
     Assumptions.assumeTrue(
-        isMariaDBServer()
-            && !"maxscale".equals(System.getenv("srv"))
+        !"maxscale".equals(System.getenv("srv"))
             && !"skysql".equals(System.getenv("srv"))
             && !"skysql-ha".equals(System.getenv("srv"))
             && !isXpand());
@@ -634,8 +633,8 @@ public class StatementTest extends Common {
         () -> {
           exec.execute(new CancelThread(stmt));
           stmt.execute(
-              "select * from information_schema.columns as c1,  information_schema.tables, information_schema"
-                  + ".tables as t2");
+              "select * from information_schema.columns as c1,  information_schema.tables,"
+                  + " information_schema.tables as t2");
           exec.shutdown();
         },
         "Query execution was interrupted");
@@ -877,7 +876,8 @@ public class StatementTest extends Common {
     stmt.execute("DROP PROCEDURE IF EXISTS multi");
     stmt.setFetchSize(3);
     stmt.execute(
-        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM sequence_1_to_10000;SELECT 2; END");
+        "CREATE PROCEDURE multi() BEGIN SELECT * from sequence_1_to_10; SELECT * FROM"
+            + " sequence_1_to_10000;SELECT 2; END");
     stmt.execute("CALL multi()");
     assertTrue(stmt.getMoreResults());
     ResultSet rs = stmt.getResultSet();
@@ -935,25 +935,6 @@ public class StatementTest extends Common {
     rs.close();
     assertTrue(rs.isClosed());
     assertTrue(stmt.isClosed());
-  }
-
-  private static class CancelThread implements Runnable {
-
-    private final java.sql.Statement stmt;
-
-    public CancelThread(java.sql.Statement stmt) {
-      this.stmt = stmt;
-    }
-
-    @Override
-    public void run() {
-      try {
-        Thread.sleep(100);
-        stmt.cancel();
-      } catch (SQLException | InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
   }
 
   @Test
@@ -1095,6 +1076,25 @@ public class StatementTest extends Common {
       assertTrue(rs.next());
       assertEquals(9, rs.getInt(1));
       assertFalse(rs.next());
+    }
+  }
+
+  static class CancelThread implements Runnable {
+
+    private final java.sql.Statement stmt;
+
+    public CancelThread(java.sql.Statement stmt) {
+      this.stmt = stmt;
+    }
+
+    @Override
+    public void run() {
+      try {
+        Thread.sleep(100);
+        stmt.cancel();
+      } catch (SQLException | InterruptedException e) {
+        e.printStackTrace();
+      }
     }
   }
 }

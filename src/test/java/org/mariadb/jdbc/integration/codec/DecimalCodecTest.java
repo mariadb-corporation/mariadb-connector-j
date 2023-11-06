@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,15 +32,20 @@ public class DecimalCodecTest extends CommonCodecTest {
     drop();
     Statement stmt = sharedConn.createStatement();
     stmt.execute(
-        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(30,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0))");
+        "CREATE TABLE DecimalCodec (t1 DECIMAL(10,0), t2 DECIMAL(30,6), t3 DECIMAL(10,3), t4"
+            + " DECIMAL(10,0))");
     stmt.execute(
-        "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4 DECIMAL(10,0))");
+        "CREATE TABLE DecimalCodec2 (t1 DECIMAL(10,0), t2 DECIMAL(10,6), t3 DECIMAL(10,3), t4"
+            + " DECIMAL(10,0))");
     stmt.execute(
-        "INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null), (0, 9223372036854775808, 0, null)");
+        "INSERT INTO DecimalCodec VALUES (0, 105.21, -1.6, null), (0, 9223372036854775808, 0,"
+            + " null)");
     stmt.execute(
-        "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1 DECIMAL(10,0))");
+        "CREATE TABLE DecimalCodec3 (id int not null primary key auto_increment, t1"
+            + " DECIMAL(10,0))");
     stmt.execute(
-        "CREATE TABLE DecimalCodec4 (t1 DECIMAL(10,0) ZEROFILL, t2 DECIMAL(10,6) ZEROFILL, t3 DECIMAL(10,3) ZEROFILL, t4 DECIMAL(10,0) ZEROFILL)");
+        "CREATE TABLE DecimalCodec4 (t1 DECIMAL(10,0) ZEROFILL, t2 DECIMAL(10,6) ZEROFILL, t3"
+            + " DECIMAL(10,3) ZEROFILL, t4 DECIMAL(10,0) ZEROFILL)");
     stmt.execute("INSERT INTO DecimalCodec4 VALUES (0, 105.21, 1.6, null)");
 
     stmt.execute("FLUSH TABLES");

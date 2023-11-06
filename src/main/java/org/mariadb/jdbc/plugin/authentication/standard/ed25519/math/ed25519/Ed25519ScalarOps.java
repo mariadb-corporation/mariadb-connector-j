@@ -9,6 +9,9 @@
  */
 package org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519;
 
+import static org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_3;
+import static org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_4;
+
 import org.mariadb.jdbc.plugin.authentication.standard.ed25519.math.ScalarOps;
 
 /**
@@ -31,30 +34,30 @@ public class Ed25519ScalarOps implements ScalarOps {
    */
   public byte[] reduce(byte[] s) {
     // s0,..., s22 have 21 bits, s23 has 29 bits
-    long s0 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(s, 0);
-    long s1 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 2) >> 5);
-    long s2 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 5) >> 2);
-    long s3 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 7) >> 7);
-    long s4 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 10) >> 4);
-    long s5 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 13) >> 1);
-    long s6 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 15) >> 6);
-    long s7 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 18) >> 3);
-    long s8 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(s, 21);
-    long s9 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 23) >> 5);
-    long s10 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 26) >> 2);
-    long s11 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 28) >> 7);
-    long s12 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 31) >> 4);
-    long s13 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 34) >> 1);
-    long s14 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 36) >> 6);
-    long s15 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 39) >> 3);
-    long s16 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(s, 42);
-    long s17 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 44) >> 5);
-    long s18 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 47) >> 2);
-    long s19 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 49) >> 7);
-    long s20 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 52) >> 4);
-    long s21 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(s, 55) >> 1);
-    long s22 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(s, 57) >> 6);
-    long s23 = (Ed25519LittleEndianEncoding.load_4(s, 60) >> 3);
+    long s0 = 0x1FFFFF & load_3(s, 0);
+    long s1 = 0x1FFFFF & (load_4(s, 2) >> 5);
+    long s2 = 0x1FFFFF & (load_3(s, 5) >> 2);
+    long s3 = 0x1FFFFF & (load_4(s, 7) >> 7);
+    long s4 = 0x1FFFFF & (load_4(s, 10) >> 4);
+    long s5 = 0x1FFFFF & (load_3(s, 13) >> 1);
+    long s6 = 0x1FFFFF & (load_4(s, 15) >> 6);
+    long s7 = 0x1FFFFF & (load_3(s, 18) >> 3);
+    long s8 = 0x1FFFFF & load_3(s, 21);
+    long s9 = 0x1FFFFF & (load_4(s, 23) >> 5);
+    long s10 = 0x1FFFFF & (load_3(s, 26) >> 2);
+    long s11 = 0x1FFFFF & (load_4(s, 28) >> 7);
+    long s12 = 0x1FFFFF & (load_4(s, 31) >> 4);
+    long s13 = 0x1FFFFF & (load_3(s, 34) >> 1);
+    long s14 = 0x1FFFFF & (load_4(s, 36) >> 6);
+    long s15 = 0x1FFFFF & (load_3(s, 39) >> 3);
+    long s16 = 0x1FFFFF & load_3(s, 42);
+    long s17 = 0x1FFFFF & (load_4(s, 44) >> 5);
+    long s18 = 0x1FFFFF & (load_3(s, 47) >> 2);
+    long s19 = 0x1FFFFF & (load_4(s, 49) >> 7);
+    long s20 = 0x1FFFFF & (load_4(s, 52) >> 4);
+    long s21 = 0x1FFFFF & (load_3(s, 55) >> 1);
+    long s22 = 0x1FFFFF & (load_4(s, 57) >> 6);
+    long s23 = (load_4(s, 60) >> 3);
     long carry0;
     long carry1;
     long carry2;
@@ -73,6 +76,21 @@ public class Ed25519ScalarOps implements ScalarOps {
     long carry15;
     long carry16;
 
+    /**
+     * Lots of magic numbers :) To understand what's going on below, note that
+     *
+     * <p>(1) q = 2^252 + q0 where q0 = 27742317777372353535851937790883648493. (2) s11 is the
+     * coefficient of 2^(11*21), s23 is the coefficient of 2^(^23*21) and 2^252 = 2^((23-11) * 21)).
+     * (3) 2^252 congruent -q0 modulo q. (4) -q0 = 666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21)
+     * - 997805 * 2^(3*21) + 136657 * 2^(4*21) - 683901 * 2^(5*21)
+     *
+     * <p>Thus s23 * 2^(23*11) = s23 * 2^(12*21) * 2^(11*21) = s3 * 2^252 * 2^(11*21) congruent s23
+     * * (666643 * 2^0 + 470296 * 2^21 + 654183 * 2^(2*21) - 997805 * 2^(3*21) + 136657 * 2^(4*21) -
+     * 683901 * 2^(5*21)) * 2^(11*21) modulo q = s23 * (666643 * 2^(11*21) + 470296 * 2^(12*21) +
+     * 654183 * 2^(13*21) - 997805 * 2^(14*21) + 136657 * 2^(15*21) - 683901 * 2^(16*21)).
+     *
+     * <p>The same procedure is then applied for s22,...,s18.
+     */
     s11 += s23 * 666643;
     s12 += s23 * 470296;
     s13 += s23 * 654183;
@@ -127,6 +145,7 @@ public class Ed25519ScalarOps implements ScalarOps {
     // not used again
     // s18 = 0;
 
+    /** Time to reduce the coefficient in order not to get an overflow. */
     carry6 = (s6 + (1 << 20)) >> 21;
     s7 += carry6;
     s6 -= carry6 << 21;
@@ -162,6 +181,7 @@ public class Ed25519ScalarOps implements ScalarOps {
     s16 += carry15;
     s15 -= carry15 << 21;
 
+    /** Continue with above procedure. */
     s5 += s17 * 666643;
     s6 += s17 * 470296;
     s7 += s17 * 654183;
@@ -216,6 +236,7 @@ public class Ed25519ScalarOps implements ScalarOps {
     // set below
     // s12 = 0;
 
+    /** Reduce coefficients again. */
     carry0 = (s0 + (1 << 20)) >> 21;
     s1 += carry0;
     s0 -= carry0 << 21;
@@ -400,42 +421,42 @@ public class Ed25519ScalarOps implements ScalarOps {
    * <p>See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
    */
   public byte[] multiplyAndAdd(byte[] a, byte[] b, byte[] c) {
-    long a0 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(a, 0);
-    long a1 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(a, 2) >> 5);
-    long a2 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(a, 5) >> 2);
-    long a3 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(a, 7) >> 7);
-    long a4 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(a, 10) >> 4);
-    long a5 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(a, 13) >> 1);
-    long a6 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(a, 15) >> 6);
-    long a7 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(a, 18) >> 3);
-    long a8 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(a, 21);
-    long a9 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(a, 23) >> 5);
-    long a10 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(a, 26) >> 2);
-    long a11 = (Ed25519LittleEndianEncoding.load_4(a, 28) >> 7);
-    long b0 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(b, 0);
-    long b1 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(b, 2) >> 5);
-    long b2 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(b, 5) >> 2);
-    long b3 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(b, 7) >> 7);
-    long b4 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(b, 10) >> 4);
-    long b5 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(b, 13) >> 1);
-    long b6 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(b, 15) >> 6);
-    long b7 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(b, 18) >> 3);
-    long b8 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(b, 21);
-    long b9 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(b, 23) >> 5);
-    long b10 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(b, 26) >> 2);
-    long b11 = (Ed25519LittleEndianEncoding.load_4(b, 28) >> 7);
-    long c0 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(c, 0);
-    long c1 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(c, 2) >> 5);
-    long c2 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(c, 5) >> 2);
-    long c3 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(c, 7) >> 7);
-    long c4 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(c, 10) >> 4);
-    long c5 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(c, 13) >> 1);
-    long c6 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(c, 15) >> 6);
-    long c7 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(c, 18) >> 3);
-    long c8 = 0x1FFFFF & Ed25519LittleEndianEncoding.load_3(c, 21);
-    long c9 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_4(c, 23) >> 5);
-    long c10 = 0x1FFFFF & (Ed25519LittleEndianEncoding.load_3(c, 26) >> 2);
-    long c11 = (Ed25519LittleEndianEncoding.load_4(c, 28) >> 7);
+    long a0 = 0x1FFFFF & load_3(a, 0);
+    long a1 = 0x1FFFFF & (load_4(a, 2) >> 5);
+    long a2 = 0x1FFFFF & (load_3(a, 5) >> 2);
+    long a3 = 0x1FFFFF & (load_4(a, 7) >> 7);
+    long a4 = 0x1FFFFF & (load_4(a, 10) >> 4);
+    long a5 = 0x1FFFFF & (load_3(a, 13) >> 1);
+    long a6 = 0x1FFFFF & (load_4(a, 15) >> 6);
+    long a7 = 0x1FFFFF & (load_3(a, 18) >> 3);
+    long a8 = 0x1FFFFF & load_3(a, 21);
+    long a9 = 0x1FFFFF & (load_4(a, 23) >> 5);
+    long a10 = 0x1FFFFF & (load_3(a, 26) >> 2);
+    long a11 = (load_4(a, 28) >> 7);
+    long b0 = 0x1FFFFF & load_3(b, 0);
+    long b1 = 0x1FFFFF & (load_4(b, 2) >> 5);
+    long b2 = 0x1FFFFF & (load_3(b, 5) >> 2);
+    long b3 = 0x1FFFFF & (load_4(b, 7) >> 7);
+    long b4 = 0x1FFFFF & (load_4(b, 10) >> 4);
+    long b5 = 0x1FFFFF & (load_3(b, 13) >> 1);
+    long b6 = 0x1FFFFF & (load_4(b, 15) >> 6);
+    long b7 = 0x1FFFFF & (load_3(b, 18) >> 3);
+    long b8 = 0x1FFFFF & load_3(b, 21);
+    long b9 = 0x1FFFFF & (load_4(b, 23) >> 5);
+    long b10 = 0x1FFFFF & (load_3(b, 26) >> 2);
+    long b11 = (load_4(b, 28) >> 7);
+    long c0 = 0x1FFFFF & load_3(c, 0);
+    long c1 = 0x1FFFFF & (load_4(c, 2) >> 5);
+    long c2 = 0x1FFFFF & (load_3(c, 5) >> 2);
+    long c3 = 0x1FFFFF & (load_4(c, 7) >> 7);
+    long c4 = 0x1FFFFF & (load_4(c, 10) >> 4);
+    long c5 = 0x1FFFFF & (load_3(c, 13) >> 1);
+    long c6 = 0x1FFFFF & (load_4(c, 15) >> 6);
+    long c7 = 0x1FFFFF & (load_3(c, 18) >> 3);
+    long c8 = 0x1FFFFF & load_3(c, 21);
+    long c9 = 0x1FFFFF & (load_4(c, 23) >> 5);
+    long c10 = 0x1FFFFF & (load_3(c, 26) >> 2);
+    long c11 = (load_4(c, 28) >> 7);
     long s0;
     long s1;
     long s2;

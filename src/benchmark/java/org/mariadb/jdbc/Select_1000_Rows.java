@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
-
-import org.openjdk.jmh.annotations.Benchmark;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import org.openjdk.jmh.annotations.Benchmark;
 
 public class Select_1000_Rows extends Common {
   private static final String sql =

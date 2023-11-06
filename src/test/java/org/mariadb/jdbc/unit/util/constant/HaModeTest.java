@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.unit.util.constant;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -124,7 +123,7 @@ public class HaModeTest {
     denyList.putIfAbsent(host1, System.currentTimeMillis() + 1000000);
 
     res = loopPercReturn(available, denyList, true);
-    Assertions.assertEquals(null, res.get(host1));
+    Assertions.assertNull(res.get(host1));
     Assertions.assertEquals(500, res.get(host2));
     Assertions.assertEquals(500, res.get(host3));
 

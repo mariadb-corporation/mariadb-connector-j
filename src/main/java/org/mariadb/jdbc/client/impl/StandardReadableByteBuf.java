@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.impl;
 
 import java.nio.charset.StandardCharsets;
@@ -10,14 +9,14 @@ import org.mariadb.jdbc.client.ReadableByteBuf;
 
 /** Packet buffer */
 public final class StandardReadableByteBuf implements ReadableByteBuf {
-  /** row data limit */
-  private int limit;
-
   /** buffer */
   public byte[] buf;
 
   /** current position reading buffer */
   public int pos;
+
+  /** row data limit */
+  private int limit;
 
   /**
    * Packet buffer constructor
@@ -88,7 +87,6 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
         return;
       default:
         pos += len & 0xff;
-        return;
     }
   }
 

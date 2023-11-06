@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.impl;
 
 import java.io.*;
@@ -53,27 +52,29 @@ import org.mariadb.jdbc.util.log.Loggers;
 /** Connection client */
 public class StandardClient implements Client, AutoCloseable {
   private static final Logger logger = Loggers.getLogger(StandardClient.class);
+
+  /** connection exception factory */
+  protected final ExceptionFactory exceptionFactory;
+
   private final Socket socket;
   private final MutableByte sequence = new MutableByte();
   private final MutableByte compressionSequence = new MutableByte();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;
-  private boolean closed = false;
-  private Reader reader;
-  private org.mariadb.jdbc.Statement streamStmt = null;
-  private ClientMessage streamMsg = null;
-  private int socketTimeout;
   private final boolean disablePipeline;
 
   /** connection context */
   protected Context context;
 
-  /** connection exception factory */
-  protected final ExceptionFactory exceptionFactory;
-
   /** packet writer */
   protected Writer writer;
+
+  private boolean closed = false;
+  private Reader reader;
+  private org.mariadb.jdbc.Statement streamStmt = null;
+  private ClientMessage streamMsg = null;
+  private int socketTimeout;
 
   /**
    * Constructor
@@ -84,6 +85,7 @@ public class StandardClient implements Client, AutoCloseable {
    * @param skipPostCommands must connection post command be skipped
    * @throws SQLException if connection fails
    */
+  @SuppressWarnings({"this-escape"})
   public StandardClient(
       Configuration conf, HostAddress hostAddress, ReentrantLock lock, boolean skipPostCommands)
       throws SQLException {
@@ -102,7 +104,7 @@ public class StandardClient implements Client, AutoCloseable {
       // **********************************************************************
       // creating socket
       // **********************************************************************
-      OutputStream out = new BufferedOutputStream(socket.getOutputStream(), 16384);
+      OutputStream out = socket.getOutputStream();
       InputStream in =
           conf.useReadAheadInput()
               ? new ReadAheadBufferedStream(socket.getInputStream())
@@ -341,9 +343,7 @@ public class StandardClient implements Client, AutoCloseable {
 
     if (conf.nonMappedOptions().containsKey("initSql")) {
       String[] initialCommands = conf.nonMappedOptions().get("initSql").toString().split(";");
-      for (String cmd : initialCommands) {
-        commands.add(cmd);
-      }
+      Collections.addAll(commands, initialCommands);
     }
 
     if (!commands.isEmpty()) {
@@ -386,7 +386,9 @@ public class StandardClient implements Client, AutoCloseable {
           // timezone is not valid
           throw exceptionFactory.create(
               String.format(
-                  "Setting configured timezone '%s' fail on server.\nLook at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on server, or set timezone=disable to disable setting client timezone.",
+                  "Setting configured timezone '%s' fail on server.\n"
+                      + "Look at https://mariadb.com/kb/en/mysql_tzinfo_to_sql/ to load tz data on"
+                      + " server, or set timezone=disable to disable setting client timezone.",
                   conf.timezone()),
               "HY000",
               sqlException);
@@ -593,6 +595,7 @@ public class StandardClient implements Client, AutoCloseable {
       return results;
     } catch (SQLException sqlException) {
       if (!closed) {
+        results.add(null);
         // read remaining results
         perMsgCounter++;
         for (; perMsgCounter < responseMsg[readCounter - 1]; perMsgCounter++) {
@@ -624,7 +627,7 @@ public class StandardClient implements Client, AutoCloseable {
                       resultSetType,
                       closeOnCompletion));
             } catch (SQLException e) {
-              // eat
+              results.add(null);
             }
           }
         }
@@ -1021,6 +1024,12 @@ public class StandardClient implements Client, AutoCloseable {
     if (locked) {
       lock.unlock();
     }
+  }
+
+  public String getSocketIp() {
+    return this.socket.getInetAddress() == null
+        ? null
+        : this.socket.getInetAddress().getHostAddress();
   }
 
   public boolean isPrimary() {

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -10,7 +9,6 @@ import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
@@ -276,9 +274,9 @@ public class LocalDateCodec implements Codec<LocalDate> {
       throws IOException {
     LocalDate val = (LocalDate) value;
     encoder.writeByte(7); // length
-    encoder.writeShort((short) val.get(ChronoField.YEAR));
-    encoder.writeByte(val.get(ChronoField.MONTH_OF_YEAR));
-    encoder.writeByte(val.get(ChronoField.DAY_OF_MONTH));
+    encoder.writeShort((short) val.getYear());
+    encoder.writeByte(val.getMonthValue());
+    encoder.writeByte(val.getDayOfMonth());
     encoder.writeBytes(new byte[] {0, 0, 0});
   }
 

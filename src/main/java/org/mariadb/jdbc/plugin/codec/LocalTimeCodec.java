@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.codec;
 
 import static org.mariadb.jdbc.client.result.Result.NULL_LENGTH;
@@ -12,7 +11,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
 import java.util.TimeZone;
@@ -316,17 +314,17 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       encoder.writeByte((byte) 12);
       encoder.writeByte((byte) 0);
       encoder.writeInt(0);
-      encoder.writeByte((byte) val.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte((byte) val.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte((byte) val.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeByte((byte) val.getHour());
+      encoder.writeByte((byte) val.getMinute());
+      encoder.writeByte((byte) val.getSecond());
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 8);
       encoder.writeByte((byte) 0);
       encoder.writeInt(0);
-      encoder.writeByte((byte) val.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte((byte) val.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte((byte) val.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeByte((byte) val.getHour());
+      encoder.writeByte((byte) val.getMinute());
+      encoder.writeByte((byte) val.getSecond());
     }
   }
 

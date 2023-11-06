@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.socket.impl;
 
 import com.sun.jna.platform.win32.Kernel32;
@@ -71,8 +70,10 @@ public class NamedPipeSocket extends Socket {
             if (timeout == 0) {
               throw new FileNotFoundException(
                   fileNotFoundException.getMessage()
-                      + "\nplease consider set connectTimeout option, so connection can retry having access to named pipe. "
-                      + "\n(Named pipe can throw ERROR_PIPE_BUSY error)");
+                      + "\n"
+                      + "please consider set connectTimeout option, so connection can retry having"
+                      + " access to named pipe. \n"
+                      + "(Named pipe can throw ERROR_PIPE_BUSY error)");
             }
             throw fileNotFoundException;
           }

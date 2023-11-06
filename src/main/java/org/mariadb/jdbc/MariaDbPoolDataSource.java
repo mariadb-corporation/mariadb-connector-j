@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.io.Closeable;
@@ -228,6 +227,16 @@ public class MariaDbPoolDataSource
   }
 
   /**
+   * Returns the URL for this datasource
+   *
+   * @return the URL for this datasource
+   */
+  public String getUrl() {
+    if (conf == null) return url;
+    return conf.initialUrl();
+  }
+
+  /**
    * Sets the URL for this datasource
    *
    * @param url connection string
@@ -240,16 +249,6 @@ public class MariaDbPoolDataSource
     } else {
       throw new SQLException(String.format("Wrong mariaDB url: %s", url));
     }
-  }
-
-  /**
-   * Returns the URL for this datasource
-   *
-   * @return the URL for this datasource
-   */
-  public String getUrl() {
-    if (conf == null) return url;
-    return conf.initialUrl();
   }
 
   /**

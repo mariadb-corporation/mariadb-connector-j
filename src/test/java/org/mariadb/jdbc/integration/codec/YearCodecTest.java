@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,11 +33,13 @@ public class YearCodecTest extends CommonCodecTest {
     if (isMariaDBServer() && !isXpand()) {
       stmt.execute("CREATE TABLE YearCodec (t1 YEAR(2), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
       stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (80, '1901', '2155', null)");
+          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (80, '1901', '2155',"
+              + " null)");
     } else {
       stmt.execute("CREATE TABLE YearCodec (t1 YEAR(4), t2 YEAR(4), t3 YEAR(4), t4 YEAR(4))");
       stmt.execute(
-          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155', null)");
+          "INSERT INTO YearCodec VALUES ('2010', '1901', '2155', null), (1980, '1901', '2155',"
+              + " null)");
     }
     stmt.execute("FLUSH TABLES");
   }
@@ -253,14 +254,14 @@ public class YearCodecTest extends CommonCodecTest {
   }
 
   public void getBoolean(ResultSet rs) throws SQLException {
-    assertEquals(true, rs.getBoolean(1));
+    assertTrue(rs.getBoolean(1));
     assertFalse(rs.wasNull());
-    assertEquals(true, rs.getBoolean(2));
-    assertEquals(true, rs.getBoolean("t2alias"));
+    assertTrue(rs.getBoolean(2));
+    assertTrue(rs.getBoolean("t2alias"));
     assertFalse(rs.wasNull());
-    assertEquals(true, rs.getBoolean(3));
+    assertTrue(rs.getBoolean(3));
     assertFalse(rs.wasNull());
-    assertEquals(false, rs.getBoolean(4));
+    assertFalse(rs.getBoolean(4));
     assertTrue(rs.wasNull());
   }
 

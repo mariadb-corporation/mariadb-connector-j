@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client;
-
-import jdk.net.ExtendedSocketOptions;
-import org.mariadb.jdbc.Configuration;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import jdk.net.ExtendedSocketOptions;
+import org.mariadb.jdbc.Configuration;
 
 public class SocketHelper {
+    public SocketHelper() { }
+
     public static void setSocketOption(final Configuration conf, final Socket socket) throws IOException {
         socket.setTcpNoDelay(true);
         socket.setSoTimeout(conf.socketTimeout());

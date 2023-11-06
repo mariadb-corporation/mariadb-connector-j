@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,14 +35,15 @@ public class MediumIntCodecTest extends CommonCodecTest {
     stmt.execute(
         "CREATE TABLE MediumIntCodec (t1 MEDIUMINT, t2 MEDIUMINT, t3 MEDIUMINT, t4 MEDIUMINT)");
     stmt.execute(
-        "CREATE TABLE MediumIntCodecUnsigned (t1 MEDIUMINT UNSIGNED, t2 MEDIUMINT UNSIGNED, t3 MEDIUMINT UNSIGNED, t4 MEDIUMINT "
-            + "UNSIGNED)");
+        "CREATE TABLE MediumIntCodecUnsigned (t1 MEDIUMINT UNSIGNED, t2 MEDIUMINT UNSIGNED, t3"
+            + " MEDIUMINT UNSIGNED, t4 MEDIUMINT UNSIGNED)");
     stmt.execute("INSERT INTO MediumIntCodec VALUES (0, 1, -1, null)");
     stmt.execute("INSERT INTO MediumIntCodecUnsigned VALUES (0, 1, 16777215, null)");
     stmt.execute(
         "CREATE TABLE MediumIntCodec2 (id int not null primary key auto_increment, t1 MEDIUMINT)");
     stmt.execute(
-        "CREATE TABLE MediumIntCodec3 (id int not null, id2 int not null, t1 MEDIUMINT, PRIMARY KEY (id, id2))");
+        "CREATE TABLE MediumIntCodec3 (id int not null, id2 int not null, t1 MEDIUMINT, PRIMARY KEY"
+            + " (id, id2))");
     stmt.execute("FLUSH TABLES");
   }
 

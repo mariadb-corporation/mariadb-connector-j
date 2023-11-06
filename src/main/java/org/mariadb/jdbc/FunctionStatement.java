@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.sql.*;
@@ -26,6 +25,7 @@ public class FunctionStatement extends BaseCallableStatement implements Callable
    * @param resultSetConcurrency concurrency type
    * @throws SQLException if any error occurs
    */
+  @SuppressWarnings({"this-escape"})
   public FunctionStatement(
       Connection con,
       String databaseName,

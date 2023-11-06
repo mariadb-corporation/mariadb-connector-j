@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc;
 
 import java.sql.PreparedStatement;
@@ -28,11 +27,27 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
    *
    * @param connection connection to retrieve connection options
    */
+  @SuppressWarnings({"this-escape"})
   public MariaDbPoolConnection(Connection connection) {
     this.connection = connection;
     this.connection.setPoolConnection(this);
     statementEventListeners = new CopyOnWriteArrayList<>();
     connectionEventListeners = new CopyOnWriteArrayList<>();
+  }
+
+  /**
+   * Create XID string
+   *
+   * @param xid xid value
+   * @return XID string
+   */
+  public static String xidToString(Xid xid) {
+    return "0x"
+        + StringUtils.byteArrayToHexString(xid.getGlobalTransactionId())
+        + ",0x"
+        + StringUtils.byteArrayToHexString(xid.getBranchQualifier())
+        + ",0x"
+        + Integer.toHexString(xid.getFormatId());
   }
 
   @Override
@@ -118,21 +133,6 @@ public class MariaDbPoolConnection implements PooledConnection, XAConnection {
     fireConnectionClosed(new ConnectionEvent(this));
     connection.setPoolConnection(null);
     connection.close();
-  }
-
-  /**
-   * Create XID string
-   *
-   * @param xid xid value
-   * @return XID string
-   */
-  public static String xidToString(Xid xid) {
-    return "0x"
-        + StringUtils.byteArrayToHexString(xid.getGlobalTransactionId())
-        + ",0x"
-        + StringUtils.byteArrayToHexString(xid.getBranchQualifier())
-        + ",0x"
-        + Integer.toHexString(xid.getFormatId());
   }
 
   @Override

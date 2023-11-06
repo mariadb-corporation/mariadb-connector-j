@@ -19,6 +19,7 @@ public class Curve implements Serializable {
   private final GroupElement zeroP3PrecomputedDouble;
   private final GroupElement zeroPrecomp;
 
+  @SuppressWarnings({"this-escape"})
   public Curve(Field f, byte[] d, FieldElement I) {
     this.f = f;
     this.d = f.fromByteArray(d);

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
@@ -18,7 +17,6 @@ import org.mariadb.jdbc.util.constants.Capabilities;
 /** Context (current connection state) of a connection */
 public class BaseContext implements Context {
 
-  private long threadId;
   private final long serverCapabilities;
   private final long clientCapabilities;
   private final byte[] seed;
@@ -29,10 +27,16 @@ public class BaseContext implements Context {
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
 
-  private String charset;
+  /** LRU prepare cache object */
+  private final PrepareCache prepareCache;
+
+  private final HostAddress hostAddress;
 
   /** Server status context */
   protected int serverStatus;
+
+  private long threadId;
+  private String charset;
 
   /** Server current database */
   private String database;
@@ -43,13 +47,8 @@ public class BaseContext implements Context {
   /** Server current warning count */
   private int warning;
 
-  /** LRU prepare cache object */
-  private final PrepareCache prepareCache;
-
   /** Connection state use flag */
   private int stateFlag = 0;
-
-  private final HostAddress hostAddress;
 
   /**
    * Constructor of connection context
@@ -61,6 +60,7 @@ public class BaseContext implements Context {
    * @param exceptionFactory connection exception factory
    * @param prepareCache LRU prepare cache
    */
+  @SuppressWarnings({"this-escape"})
   public BaseContext(
       HostAddress hostAddress,
       InitialHandshakePacket handshake,
@@ -86,6 +86,10 @@ public class BaseContext implements Context {
 
   public long getThreadId() {
     return threadId;
+  }
+
+  public void setThreadId(long connectionId) {
+    threadId = connectionId;
   }
 
   public byte[] getSeed() {
@@ -180,19 +184,15 @@ public class BaseContext implements Context {
     stateFlag |= state;
   }
 
-  public void setCharset(String charset) {
-    this.charset = charset;
-  }
-
-  public void setThreadId(long connectionId) {
-    threadId = connectionId;
-  }
-
   public void setTreadsConnected(long threadsConnected) {
     if (hostAddress != null) hostAddress.setThreadsConnected(threadsConnected);
   }
 
   public String getCharset() {
     return charset;
+  }
+
+  public void setCharset(String charset) {
+    this.charset = charset;
   }
 }

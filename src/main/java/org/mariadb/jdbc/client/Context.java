@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client;
 
 import org.mariadb.jdbc.Configuration;
@@ -15,6 +14,13 @@ public interface Context {
    * @return current server thread id
    */
   long getThreadId();
+
+  /**
+   * Indicate server connection Id (not truncated)
+   *
+   * @param connectionId connection id
+   */
+  void setThreadId(long connectionId);
 
   /**
    * Get connection initial seed
@@ -171,20 +177,6 @@ public interface Context {
    */
   void addStateFlag(int state);
 
-  /**
-   * Indicate server charset change
-   *
-   * @param charset server charset
-   */
-  void setCharset(String charset);
-
-  /**
-   * Indicate server connection Id (not truncated)
-   *
-   * @param connectionId connection id
-   */
-  void setThreadId(long connectionId);
-
   /** Indicate the number of connection on this server */
   void setTreadsConnected(long threadsConnected);
 
@@ -194,4 +186,11 @@ public interface Context {
    * @return current charset
    */
   String getCharset();
+
+  /**
+   * Indicate server charset change
+   *
+   * @param charset server charset
+   */
+  void setCharset(String charset);
 }

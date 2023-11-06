@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.client;
 
 import java.sql.SQLException;
@@ -190,4 +189,11 @@ public interface Client extends AutoCloseable {
    * @return connection host
    */
   HostAddress getHostAddress();
+
+  /**
+   * Get current socket IP or null (for Pipe / unix socket)
+   *
+   * @return Socket current IP
+   */
+  String getSocketIp();
 }

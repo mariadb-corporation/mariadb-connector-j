@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +40,9 @@ public class UuidCodecTest extends CommonCodecTest {
     stmt.execute("CREATE TABLE UuidCodec (t1 UUID, t2 UUID, t3 UUID, t4 UUID)");
     stmt.execute("CREATE TABLE UuidCodec2 (t1 UUID)");
     stmt.execute(
-        "INSERT INTO UuidCodec VALUES ('123e4567-e89b-12d3-a456-426655440000', '93aac041-1a14-11ec-ab4e-f859713e4be4', 'ffffffff-ffff-ffff-ffff-fffffffffffe', null)");
+        "INSERT INTO UuidCodec VALUES ('123e4567-e89b-12d3-a456-426655440000',"
+            + " '93aac041-1a14-11ec-ab4e-f859713e4be4', 'ffffffff-ffff-ffff-ffff-fffffffffffe',"
+            + " null)");
   }
 
   private ResultSet get() throws SQLException {
@@ -54,20 +55,6 @@ public class UuidCodecTest extends CommonCodecTest {
     assertTrue(rs.next());
     sharedConn.commit();
     return rs;
-  }
-
-  private ResultSet getAdd(String additional) throws SQLException {
-    try (Connection con = createCon(additional)) {
-      java.sql.Statement stmt = con.createStatement();
-      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
-      stmt.closeOnCompletion();
-      ResultSet rs =
-          stmt.executeQuery(
-              "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from UuidCodec");
-      assertTrue(rs.next());
-      con.commit();
-      return rs;
-    }
   }
 
   private ResultSet getPrepare(Connection con) throws SQLException {
@@ -350,7 +337,17 @@ public class UuidCodecTest extends CommonCodecTest {
     assertEquals("", meta.getSchemaName(1));
     assertEquals(36, meta.getColumnDisplaySize(1));
 
-    rs = getAdd("&uuidAsString=True");
+    try (Connection con = createCon("&uuidAsString=True")) {
+      java.sql.Statement stmt = con.createStatement();
+      stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
+      stmt.closeOnCompletion();
+      rs =
+          stmt.executeQuery(
+              "select t1 as t1alias, t2 as t2alias, t3 as t3alias, t4 as t4alias from UuidCodec");
+      assertTrue(rs.next());
+      con.commit();
+    }
+
     meta = rs.getMetaData();
     assertEquals("uuid", meta.getColumnTypeName(1));
     assertEquals(sharedConn.getCatalog(), meta.getCatalogName(1));

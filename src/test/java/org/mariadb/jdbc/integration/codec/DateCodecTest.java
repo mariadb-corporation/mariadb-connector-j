@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -165,7 +164,7 @@ public class DateCodecTest extends CommonCodecTest {
     assertTrue(rs.wasNull());
     if (isMariaDBServer()) {
       rs.next();
-      assertTrue("0000-00-00".equals(rs.getString(1)));
+      assertEquals("0000-00-00", rs.getString(1));
     }
   }
 

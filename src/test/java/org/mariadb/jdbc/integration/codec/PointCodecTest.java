@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.integration.codec;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,8 +38,8 @@ public class PointCodecTest extends CommonCodecTest {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("CREATE TABLE PointCodec (t1 POINT, t2 POINT, t3 POINT, t4 POINT)");
     stmt.execute(
-        "INSERT INTO PointCodec VALUES "
-            + "(ST_PointFromText('POINT(10 1)'), ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
+        "INSERT INTO PointCodec VALUES (ST_PointFromText('POINT(10 1)'),"
+            + " ST_PointFromText('POINT(1.5 18)'), ST_PointFromText('POINT(-1 0.55)'), null)");
     stmt.execute("CREATE TABLE PointCodec2 (id int not null primary key auto_increment, t1 POINT)");
     stmt.execute("FLUSH TABLES");
 
@@ -214,7 +213,7 @@ public class PointCodecTest extends CommonCodecTest {
     try (PreparedStatement prep = con.prepareStatement("INSERT INTO PointCodec2(t1) VALUES (?)")) {
       prep.setObject(1, new Point(52.1, 12.8));
       prep.execute();
-      prep.setObject(1, (Point) null);
+      prep.setObject(1, null);
       prep.execute();
 
       prep.setObject(1, new Point(2.2, 3.3));
@@ -251,8 +250,8 @@ public class PointCodecTest extends CommonCodecTest {
     assertEquals(pt, pt);
     assertEquals(new Point(0, 10), pt);
     assertEquals(new Point(0, 10).hashCode(), pt.hashCode());
-    assertFalse(pt.equals(null));
-    assertFalse(pt.equals(""));
+    assertNotEquals(null, pt);
+    assertNotEquals("", pt);
     assertNotEquals(new Point(0, 20), pt);
     assertNotEquals(new Point(10, 10), pt);
   }

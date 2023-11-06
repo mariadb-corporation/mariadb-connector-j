@@ -42,6 +42,11 @@ public class EdDSANamedCurveTable {
 
   private static volatile HashMap<String, EdDSANamedCurveSpec> curves = new HashMap<>();
 
+  static {
+    // RFC 8032
+    defineCurve(ED_25519_CURVE_SPEC);
+  }
+
   private static synchronized void putCurve(String name, EdDSANamedCurveSpec curve) {
     HashMap<String, EdDSANamedCurveSpec> newCurves = new HashMap<>(curves);
     newCurves.put(name, curve);
@@ -50,11 +55,6 @@ public class EdDSANamedCurveTable {
 
   public static void defineCurve(EdDSANamedCurveSpec curve) {
     putCurve(curve.getName().toLowerCase(Locale.ENGLISH), curve);
-  }
-
-  static {
-    // RFC 8032
-    defineCurve(ED_25519_CURVE_SPEC);
   }
 
   public static EdDSANamedCurveSpec getByName(String name) {

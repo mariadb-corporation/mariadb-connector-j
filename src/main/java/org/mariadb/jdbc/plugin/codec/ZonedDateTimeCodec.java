@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: LGPL-2.1-or-later
 // Copyright (c) 2012-2014 Monty Program Ab
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
-
 package org.mariadb.jdbc.plugin.codec;
 
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoField;
 import java.util.Calendar;
 import java.util.EnumSet;
 import org.mariadb.jdbc.client.*;
@@ -97,21 +95,21 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
     int nano = convertedZdt.getNano();
     if (nano > 0) {
       encoder.writeByte((byte) 11);
-      encoder.writeShort((short) convertedZdt.get(ChronoField.YEAR));
-      encoder.writeByte(convertedZdt.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(convertedZdt.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(convertedZdt.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(convertedZdt.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(convertedZdt.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) convertedZdt.getYear());
+      encoder.writeByte(convertedZdt.getMonthValue());
+      encoder.writeByte(convertedZdt.getDayOfMonth());
+      encoder.writeByte(convertedZdt.getHour());
+      encoder.writeByte(convertedZdt.getMinute());
+      encoder.writeByte(convertedZdt.getSecond());
       encoder.writeInt(nano / 1000);
     } else {
       encoder.writeByte((byte) 7);
-      encoder.writeShort((short) convertedZdt.get(ChronoField.YEAR));
-      encoder.writeByte(convertedZdt.get(ChronoField.MONTH_OF_YEAR));
-      encoder.writeByte(convertedZdt.get(ChronoField.DAY_OF_MONTH));
-      encoder.writeByte(convertedZdt.get(ChronoField.HOUR_OF_DAY));
-      encoder.writeByte(convertedZdt.get(ChronoField.MINUTE_OF_HOUR));
-      encoder.writeByte(convertedZdt.get(ChronoField.SECOND_OF_MINUTE));
+      encoder.writeShort((short) convertedZdt.getYear());
+      encoder.writeByte(convertedZdt.getMonthValue());
+      encoder.writeByte(convertedZdt.getDayOfMonth());
+      encoder.writeByte(convertedZdt.getHour());
+      encoder.writeByte(convertedZdt.getMinute());
+      encoder.writeByte(convertedZdt.getSecond());
     }
   }
 
