@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.3.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.0) (Nov 2023)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.2.0...3.3.0)
+
+##### Notable Changes
+
+* CONJ-1115 Make connector become more virtual-thread friendly
+* CONJ-1108 Database metadata listing TEMPORARY tables/sequences
+* CONJ-1113 update ed25519 to recent version
+* CONJ-1116 Avoid unnecessary synchronization on calendar when no calendar parameter
+
+##### Bugs Fixed
+
+* CONJ-1102 BatchUpdateException.getUpdateCounts() returns SUCCESS_NO_INFO but expects EXECUTE_FAILED
+
+
 ## [3.2.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.2.0) (Aug 2023)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.1.4...3.2.0)
