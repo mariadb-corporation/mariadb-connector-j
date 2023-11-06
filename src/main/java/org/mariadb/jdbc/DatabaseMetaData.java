@@ -738,12 +738,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       StringBuilder sqlType =
           new StringBuilder(((firstCondition) ? " WHERE " : " AND ") + " TABLE_TYPE IN (");
       for (String s : types) {
-        if (mustAddType) sqlType.append(",");
-        mustAddType = true;
         if (s == null) {
-          mustAddType = false;
           continue;
         }
+        if (mustAddType) sqlType.append(",");
+        mustAddType = true;
         switch (s) {
           case "TABLE":
             sqlType.append("'BASE TABLE','SYSTEM VERSIONED'");

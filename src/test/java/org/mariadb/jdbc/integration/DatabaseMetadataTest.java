@@ -2749,7 +2749,6 @@ public class DatabaseMetadataTest extends Common {
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
 
-
     rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY"});
     assertTrue(rs.next());
     assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
@@ -2757,6 +2756,18 @@ public class DatabaseMetadataTest extends Common {
     assertFalse(rs.next());
 
     rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TABLE"});
+    assertFalse(rs.next());
+
+    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY", "TABLE"});
+    assertTrue(rs.next());
+    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
+    assertFalse(rs.next());
+
+    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY", null, "TABLE"});
+    assertTrue(rs.next());
+    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
   }
 
