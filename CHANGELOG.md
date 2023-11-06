@@ -1,4 +1,12 @@
 # Change Log
+
+## [2.7.11](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.11) (Nov 2023)
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.10...2.7.11)
+
+* CONJ-1075	LOAD DATA INFILE is broken on windows
+* CONJ-1108	Database metadata listing TEMPORARY tables/sequences
+* CONJ-1118	Aurora Single Write Cluster Endpoint can't make Read DB Connection for readonly transaction
+
 ## [2.7.10](https://github.com/mariadb-corporation/mariadb-connector-j/tree/2.7.10) (Aug 2023)
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/2.7.9...2.7.10)
 
