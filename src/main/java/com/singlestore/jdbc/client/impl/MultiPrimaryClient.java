@@ -21,6 +21,7 @@ import com.singlestore.jdbc.message.client.RedoableWithPrepareClientMessage;
 import com.singlestore.jdbc.util.constants.ConnectionState;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import com.singlestore.jdbc.util.log.Loggers;
+import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -531,6 +532,11 @@ public class MultiPrimaryClient implements Client {
   @Override
   public HostAddress getHostAddress() {
     return currentClient.getHostAddress();
+  }
+
+  @Override
+  public BigInteger getAggregatorId() {
+    return currentClient.getAggregatorId();
   }
 
   public boolean isPrimary() {

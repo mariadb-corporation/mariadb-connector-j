@@ -17,6 +17,7 @@ import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.Capabilities;
 import com.singlestore.jdbc.util.constants.ConnectionState;
 import com.singlestore.jdbc.util.constants.ServerStatus;
+import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -92,7 +93,10 @@ public class Connection implements java.sql.Connection {
   public void cancelCurrentQuery() throws SQLException {
     try (Client cli =
         new StandardClient(conf, client.getHostAddress(), new ReentrantLock(), true)) {
-      cli.execute(new QueryPacket("KILL QUERY " + client.getContext().getThreadId()), false);
+      BigInteger aggregatorId = client.getAggregatorId();
+      String killQuery =
+          String.format("KILL QUERY %d %d", client.getContext().getThreadId(), aggregatorId);
+      cli.execute(new QueryPacket(killQuery), false);
     }
   }
 

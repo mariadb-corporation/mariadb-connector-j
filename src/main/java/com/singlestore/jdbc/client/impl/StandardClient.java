@@ -46,6 +46,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.net.SocketException;
 import java.sql.ResultSet;
@@ -79,6 +80,7 @@ public class StandardClient implements Client, AutoCloseable {
   private ClientMessage streamMsg = null;
   private int socketTimeout;
   protected boolean timeOut;
+  private BigInteger aggregatorId;
 
   private TimerTask getTimerTask() {
     return new TimerTask() {
@@ -370,7 +372,7 @@ public class StandardClient implements Client, AutoCloseable {
       commands.addAll(Arrays.asList(initialCommands));
       resInd += initialCommands.length;
     }
-    commands.add("SELECT @@max_allowed_packet, @@wait_timeout");
+    commands.add("SELECT @@max_allowed_packet, @@wait_timeout, @@aggregator_id");
     try {
       List<Completion> res;
       ClientMessage[] msgs = new ClientMessage[commands.size()];
@@ -391,6 +393,7 @@ public class StandardClient implements Client, AutoCloseable {
       // read max allowed packet
       Result result = (Result) res.get(resInd);
       result.next();
+      this.aggregatorId = result.getBigInteger(3);
     } catch (SQLException sqlException) {
       throw exceptionFactory.create("Initialization command fail", "08000", sqlException);
     }
@@ -937,6 +940,11 @@ public class StandardClient implements Client, AutoCloseable {
 
   public HostAddress getHostAddress() {
     return hostAddress;
+  }
+
+  @Override
+  public BigInteger getAggregatorId() {
+    return this.aggregatorId;
   }
 
   public void reset() {

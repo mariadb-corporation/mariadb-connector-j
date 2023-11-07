@@ -10,6 +10,7 @@ import com.singlestore.jdbc.Statement;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.export.Prepare;
 import com.singlestore.jdbc.message.ClientMessage;
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -191,4 +192,11 @@ public interface Client extends AutoCloseable {
    * @return connection host
    */
   HostAddress getHostAddress();
+
+  /**
+   * Get aggregator id
+   *
+   * @return aggregator id
+   */
+  BigInteger getAggregatorId();
 }
