@@ -1563,8 +1563,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return Integer.MAX_VALUE;
   }
 
-  public int getMaxColumnNameLength() {
-    return 64;
+  public int getMaxColumnNameLength() throws SQLException {
+    boolean isVersionGreaterThan8_5_0 = getSingleStoreVersion().versionGreaterOrEqual(8, 5, 0);
+    return isVersionGreaterThan8_5_0 ? 256 : 64;
   }
 
   public int getMaxColumnsInGroupBy() {
@@ -1603,8 +1604,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return 0;
   }
 
-  public int getMaxProcedureNameLength() {
-    return 64;
+  public int getMaxProcedureNameLength() throws SQLException {
+    boolean isVersionGreaterThan8_5_0 = getSingleStoreVersion().versionGreaterOrEqual(8, 5, 0);
+    return isVersionGreaterThan8_5_0 ? 256 : 64;
   }
 
   public int getMaxCatalogNameLength() {
@@ -1627,8 +1629,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return 0;
   }
 
-  public int getMaxTableNameLength() {
-    return 64;
+  public int getMaxTableNameLength() throws SQLException {
+    boolean isVersionGreaterThan8_5_0 = getSingleStoreVersion().versionGreaterOrEqual(8, 5, 0);
+    return isVersionGreaterThan8_5_0 ? 256 : 64;
   }
 
   public int getMaxTablesInSelect() {
