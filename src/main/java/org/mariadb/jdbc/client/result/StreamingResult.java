@@ -121,9 +121,11 @@ public class StreamingResult extends Result {
           (maxRows <= 0)
               ? fetchSize
               : Math.min(fetchSize, Math.max(0, (int) (maxRows - dataFetchTime * fetchSize)));
-      while (fetchSizeTmp > 0 && readNext()) {
+      do {
+        byte[] buf = reader.readPacket(traceEnable);
+        readNext(buf);
         fetchSizeTmp--;
-      }
+      } while (fetchSizeTmp > 0 && !loaded);
       dataFetchTime++;
       if (maxRows > 0 && (long) dataFetchTime * fetchSize >= maxRows && !loaded) skipRemaining();
     } catch (IOException ioe) {

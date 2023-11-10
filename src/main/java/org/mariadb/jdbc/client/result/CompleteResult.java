@@ -60,14 +60,39 @@ public class CompleteResult extends Result {
         resultSetType,
         closeOnCompletion,
         traceEnable);
-    this.data = new byte[10][];
     if (maxRows > 0) {
-      while (readNext() && dataSize < maxRows) {}
+      this.data = new byte[10][];
+      do {
+        readNext(reader.readPacket(traceEnable));
+      } while (!loaded || dataSize >= maxRows);
       if (!loaded) skipRemaining();
     } else {
-      while (readNext()) {}
+      // avoiding creating array of array since
+      byte[] buf = reader.readPacket(traceEnable);
+      if (buf[0] == (byte) 0xFF || (buf[0] == (byte) 0xFE && buf.length < 16777215)) {
+        // no rows
+        this.data = new byte[0][];
+        readNext(buf);
+      } else {
+        byte[] buf2 = reader.readPacket(traceEnable);
+        if (buf2[0] == (byte) 0xFF || (buf2[0] == (byte) 0xFE && buf2.length < 16777215)) {
+          // one row
+          this.data = new byte[1][];
+          this.data[0] = buf;
+          dataSize = 1;
+          readNext(buf2);
+        } else {
+          // multiple rows
+          this.data = new byte[10][];
+          this.data[0] = buf;
+          this.data[1] = buf2;
+          dataSize = 2;
+          do {
+            readNext(reader.readPacket(traceEnable));
+          } while (!loaded);
+        }
+      }
     }
-    loaded = true;
   }
 
   /**
