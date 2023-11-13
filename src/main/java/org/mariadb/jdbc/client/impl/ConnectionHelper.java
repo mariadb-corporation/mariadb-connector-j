@@ -163,8 +163,7 @@ public final class ConnectionHelper {
             | Capabilities.PLUGIN_AUTH
             | Capabilities.CONNECT_ATTRS
             | Capabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-            | Capabilities.CLIENT_SESSION_TRACK
-            | Capabilities.EXTENDED_TYPE_INFO;
+            | Capabilities.CLIENT_SESSION_TRACK;
 
     // since skipping metadata is only available when using binary protocol,
     // only set it when server permit it and using binary protocol
@@ -194,6 +193,13 @@ public final class ConnectionHelper {
 
     if (configuration.allowLocalInfile()) {
       capabilities |= Capabilities.LOCAL_FILES;
+    }
+
+    // extendedTypeInfo is a technical option
+    boolean extendedTypeInfo =
+            Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
+    if (extendedTypeInfo) {
+      capabilities |= Capabilities.EXTENDED_TYPE_INFO;
     }
 
     // useEof is a technical option
