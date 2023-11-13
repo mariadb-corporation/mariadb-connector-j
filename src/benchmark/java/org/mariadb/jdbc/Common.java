@@ -45,7 +45,7 @@ public class Common {
 
 
     @Param({
-            //"mysql",
+            "mysql",
             "mariadb"})
     String driver;
     @Setup(Level.Trial)
