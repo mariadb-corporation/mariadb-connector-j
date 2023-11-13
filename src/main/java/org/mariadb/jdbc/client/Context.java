@@ -6,6 +6,8 @@ package org.mariadb.jdbc.client;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
+import java.util.function.Function;
+
 public interface Context {
 
   /**
@@ -102,11 +104,11 @@ public interface Context {
   boolean canSkipMeta();
 
   /**
-   * Does server metadata exchange extended information
+   * Column decoder function
    *
-   * @return use metadata extended information
+   * @return Column decoder function
    */
-  boolean isExtendedInfo();
+  Function<ReadableByteBuf,ColumnDecoder> getColumnDecoderFunction();
 
   /**
    * has server warnings

@@ -45,9 +45,16 @@ public class TimestampColumn extends ColumnDefinitionPacket implements ColumnDec
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+  }
+  protected TimestampColumn(TimestampColumn prev) {
+    super(prev, true);
   }
 
+  @Override
+  public TimestampColumn useAliasAsName() {
+    return new TimestampColumn(this);
+  }
   public String defaultClassname(Configuration conf) {
     return Timestamp.class.getName();
   }

@@ -47,9 +47,17 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
   }
 
+  protected StringColumn(StringColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public StringColumn useAliasAsName() {
+    return new StringColumn(this);
+  }
   public String defaultClassname(Configuration conf) {
     return isBinary() ? "byte[]" : String.class.getName();
   }

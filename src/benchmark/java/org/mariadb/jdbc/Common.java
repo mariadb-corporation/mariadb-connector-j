@@ -23,8 +23,8 @@ public class Common {
   // conf
   public final static String host = System.getProperty("TEST_HOST", "localhost");
   public final static int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
-  public final static String username = System.getProperty("TEST_USERNAME", "root");
-  public final static String password = System.getProperty("TEST_PASSWORD", "");
+  public final static String username = System.getProperty("TEST_USERNAME", "diego");
+  public final static String password = System.getProperty("TEST_PASSWORD", "password");
   public final static String database = System.getProperty("TEST_DATABASE", "testj");
   public final static String other = System.getProperty("TEST_OTHER", "");
   static {
@@ -44,7 +44,9 @@ public class Common {
     protected Connection connectionBinaryNoCache;
 
 
-    @Param({"mysql", "mariadb"})
+    @Param({
+            //"mysql",
+            "mariadb"})
     String driver;
     @Setup(Level.Trial)
     public void createConnections() throws Exception {

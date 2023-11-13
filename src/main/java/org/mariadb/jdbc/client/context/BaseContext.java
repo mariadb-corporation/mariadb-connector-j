@@ -7,12 +7,12 @@ import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.client.Context;
-import org.mariadb.jdbc.client.PrepareCache;
-import org.mariadb.jdbc.client.ServerVersion;
+import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
+
+import java.util.function.Function;
 
 /** Context (current connection state) of a connection */
 public class BaseContext implements Context {
@@ -23,7 +23,7 @@ public class BaseContext implements Context {
   private final ServerVersion version;
   private final boolean eofDeprecated;
   private final boolean skipMeta;
-  private final boolean extendedInfo;
+  private final Function<ReadableByteBuf,ColumnDecoder> columnDecoderFunction;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
 
@@ -77,7 +77,7 @@ public class BaseContext implements Context {
     this.clientCapabilities = clientCapabilities;
     this.eofDeprecated = hasClientCapability(Capabilities.CLIENT_DEPRECATE_EOF);
     this.skipMeta = hasClientCapability(Capabilities.CACHE_METADATA);
-    this.extendedInfo = hasClientCapability(Capabilities.EXTENDED_TYPE_INFO);
+    this.columnDecoderFunction = hasClientCapability(Capabilities.EXTENDED_TYPE_INFO) ? ColumnDecoder::decode : ColumnDecoder::decodeStd;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
@@ -132,8 +132,8 @@ public class BaseContext implements Context {
     return eofDeprecated;
   }
 
-  public boolean isExtendedInfo() {
-    return extendedInfo;
+  public Function<ReadableByteBuf,ColumnDecoder> getColumnDecoderFunction() {
+    return columnDecoderFunction;
   }
 
   public boolean canSkipMeta() {

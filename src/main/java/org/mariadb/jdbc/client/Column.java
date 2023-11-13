@@ -124,7 +124,4 @@ public interface Column {
    * @return extended metadata name
    */
   String getExtTypeName();
-
-  /** Use column alias as name */
-  void useAliasAsName();
 }

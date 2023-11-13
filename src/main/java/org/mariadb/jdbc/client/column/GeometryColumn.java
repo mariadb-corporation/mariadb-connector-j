@@ -41,7 +41,14 @@ public class GeometryColumn extends BlobColumn {
       String extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
+  protected GeometryColumn(GeometryColumn prev) {
+    super(prev);
+  }
 
+  @Override
+  public GeometryColumn useAliasAsName() {
+    return new GeometryColumn(this);
+  }
   public String defaultClassname(Configuration conf) {
     if (conf.geometryDefaultType() != null && "default".equals(conf.geometryDefaultType())) {
       if (extTypeName != null) {

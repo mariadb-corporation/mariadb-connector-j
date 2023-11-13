@@ -38,9 +38,16 @@ public class UnsignedMediumIntColumn extends ColumnDefinitionPacket implements C
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+  }
+  protected UnsignedMediumIntColumn(UnsignedMediumIntColumn prev) {
+    super(prev, true);
   }
 
+  @Override
+  public UnsignedMediumIntColumn useAliasAsName() {
+    return new UnsignedMediumIntColumn(this);
+  }
   public String defaultClassname(Configuration conf) {
     return Integer.class.getName();
   }

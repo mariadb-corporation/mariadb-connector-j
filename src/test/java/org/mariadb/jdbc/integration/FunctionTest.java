@@ -13,6 +13,14 @@ import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
 public class FunctionTest extends Common {
+  @Test
+  public void tt() throws SQLException {
+    try (java.sql.Statement st = sharedConn.createStatement()) {
+      ResultSet rs = st.executeQuery("select 1");
+      rs.next();
+      rs.getInt(1);
+    }
+  }
 
   @Test
   public void basicFunction() throws SQLException {

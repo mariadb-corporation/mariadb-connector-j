@@ -59,7 +59,7 @@ public class CompleteResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable);
+        traceEnable, false);
     this.data = new byte[10][];
     if (maxRows > 0) {
       while (readNext() && dataSize < maxRows) {}
@@ -68,6 +68,17 @@ public class CompleteResult extends Result {
       while (readNext()) {}
     }
     loaded = true;
+  }
+  private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
+    super(metadataList, prev);
+  }
+
+  public CompleteResult useAliasAsName() {
+    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
+    for (int i = 0; i < metadataList.length; i++) {
+      newMeta[i] = metadataList[i].useAliasAsName();
+    }
+    return new CompleteResult(newMeta, this);
   }
 
   /**

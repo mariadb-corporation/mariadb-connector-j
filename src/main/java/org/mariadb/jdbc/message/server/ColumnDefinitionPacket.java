@@ -46,7 +46,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   private final int[] stringPos;
 
   /** configuration: use alias as name */
-  private boolean useAliasAsName;
+  private final boolean useAliasAsName;
 
   /**
    * Column definition constructor
@@ -60,6 +60,7 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
    * @param stringPos string position indexes
    * @param extTypeName extended type name
    * @param extTypeFormat extended type format
+   * @param useAliasAsName use alias as name
    */
   public ColumnDefinitionPacket(
       ReadableByteBuf buf,
@@ -70,7 +71,8 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
       int flags,
       int[] stringPos,
       String extTypeName,
-      String extTypeFormat) {
+      String extTypeFormat,
+      boolean useAliasAsName) {
     this.buf = buf;
     this.charset = charset;
     this.columnLength = columnLength;
@@ -80,6 +82,20 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     this.stringPos = stringPos;
     this.extTypeName = extTypeName;
     this.extTypeFormat = extTypeFormat;
+    this.useAliasAsName = useAliasAsName;
+  }
+
+  protected ColumnDefinitionPacket(ColumnDefinitionPacket prev, boolean useAliasAsName) {
+    this.buf = prev.buf;
+    this.charset = prev.charset;
+    this.columnLength = prev.columnLength;
+    this.dataType = prev.dataType;
+    this.decimals = prev.decimals;
+    this.flags = prev.flags;
+    this.stringPos = prev.stringPos;
+    this.extTypeName = prev.extTypeName;
+    this.extTypeFormat = prev.extTypeFormat;
+    this.useAliasAsName = useAliasAsName;
   }
 
   public String getCatalog() {
@@ -189,7 +205,4 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
     return Objects.hash(charset, columnLength, dataType, decimals, flags);
   }
 
-  public void useAliasAsName() {
-    useAliasAsName = true;
-  }
 }

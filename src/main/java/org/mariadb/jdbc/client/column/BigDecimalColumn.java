@@ -41,7 +41,15 @@ public class BigDecimalColumn extends ColumnDefinitionPacket implements ColumnDe
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+  }
+  protected BigDecimalColumn(BigDecimalColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public BigDecimalColumn useAliasAsName() {
+    return new BigDecimalColumn(this);
   }
 
   public String defaultClassname(Configuration conf) {

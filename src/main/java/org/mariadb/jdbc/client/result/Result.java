@@ -89,8 +89,8 @@ public abstract class Result implements ResultSet, Completion {
   protected long maxRows;
 
   private final MutableInt fieldLength = new MutableInt(0);
-  private boolean forceAlias;
-  private byte[] nullBitmap;
+  private final boolean forceAlias;
+  private final byte[] nullBitmap;
   private Map<String, Integer> mapper = null;
 
   /**
@@ -105,6 +105,7 @@ public abstract class Result implements ResultSet, Completion {
    * @param resultSetType result-set type
    * @param closeOnCompletion close statement on completion
    * @param traceEnable logger enabled
+   * @param forceAlias forced alias
    */
   public Result(
       org.mariadb.jdbc.Statement stmt,
@@ -115,7 +116,8 @@ public abstract class Result implements ResultSet, Completion {
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
-      boolean traceEnable) {
+      boolean traceEnable,
+      boolean forceAlias) {
     this.maxRows = maxRows;
     this.statement = stmt;
     this.closeOnCompletion = closeOnCompletion;
@@ -126,12 +128,30 @@ public abstract class Result implements ResultSet, Completion {
     this.context = context;
     this.resultSetType = resultSetType;
     this.traceEnable = traceEnable;
+    this.forceAlias = forceAlias;
     if (binaryProtocol) {
       rowDecoder = BINARY_ROW_DECODER;
       nullBitmap = new byte[(maxIndex + 9) / 8];
     } else {
       rowDecoder = TEXT_ROW_DECODER;
+      nullBitmap = null;
     }
+  }
+
+  protected Result(ColumnDecoder[] metadataList, Result prev) {
+    this.maxRows = prev.maxRows;
+    this.statement = prev.statement;
+    this.closeOnCompletion = prev.closeOnCompletion;
+    this.metadataList = metadataList;
+    this.maxIndex = metadataList.length;
+    this.reader = prev.reader;
+    this.exceptionFactory = prev.exceptionFactory;
+    this.context = prev.context;
+    this.resultSetType = prev.resultSetType;
+    this.traceEnable = prev.traceEnable;
+    this.forceAlias = true;
+    this.rowDecoder = prev.rowDecoder;
+    this.nullBitmap = prev.nullBitmap;
   }
 
   /**
@@ -154,7 +174,9 @@ public abstract class Result implements ResultSet, Completion {
     this.resultSetType = TYPE_FORWARD_ONLY;
     this.closeOnCompletion = false;
     this.traceEnable = false;
-    rowDecoder = TEXT_ROW_DECODER;
+    this.rowDecoder = TEXT_ROW_DECODER;
+    this.nullBitmap = null;
+    this.forceAlias = false;
   }
 
   /**
@@ -1149,14 +1171,6 @@ public abstract class Result implements ResultSet, Completion {
     statement = stmt;
   }
 
-  /** Force using alias as name */
-  public void useAliasAsName() {
-    for (Column packet : metadataList) {
-      packet.useAliasAsName();
-    }
-    forceAlias = true;
-  }
-
   @Override
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     if (map == null || map.isEmpty()) {
@@ -1713,4 +1727,5 @@ public abstract class Result implements ResultSet, Completion {
     }
     return ind;
   }
+
 }
