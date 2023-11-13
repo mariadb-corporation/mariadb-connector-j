@@ -38,8 +38,19 @@ public class SignedSmallIntColumn extends ColumnDefinitionPacket implements Colu
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected SignedSmallIntColumn(SignedSmallIntColumn prev) {
     super(prev, true);
   }
@@ -48,6 +59,7 @@ public class SignedSmallIntColumn extends ColumnDefinitionPacket implements Colu
   public SignedSmallIntColumn useAliasAsName() {
     return new SignedSmallIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Short.class.getName();
   }

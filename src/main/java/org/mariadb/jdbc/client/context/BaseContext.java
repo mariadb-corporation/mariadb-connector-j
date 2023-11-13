@@ -5,14 +5,13 @@ package org.mariadb.jdbc.client.context;
 
 import static org.mariadb.jdbc.util.constants.Capabilities.STMT_BULK_OPERATIONS;
 
+import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.export.ExceptionFactory;
 import org.mariadb.jdbc.message.server.InitialHandshakePacket;
 import org.mariadb.jdbc.util.constants.Capabilities;
-
-import java.util.function.Function;
 
 /** Context (current connection state) of a connection */
 public class BaseContext implements Context {

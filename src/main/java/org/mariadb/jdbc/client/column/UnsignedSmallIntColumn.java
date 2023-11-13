@@ -38,7 +38,17 @@ public class UnsignedSmallIntColumn extends ColumnDefinitionPacket implements Co
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
 
   protected UnsignedSmallIntColumn(UnsignedSmallIntColumn prev) {
@@ -49,6 +59,7 @@ public class UnsignedSmallIntColumn extends ColumnDefinitionPacket implements Co
   public UnsignedSmallIntColumn useAliasAsName() {
     return new UnsignedSmallIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Integer.class.getName();
   }

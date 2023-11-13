@@ -38,8 +38,19 @@ public class SignedTinyIntColumn extends ColumnDefinitionPacket implements Colum
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected SignedTinyIntColumn(SignedTinyIntColumn prev) {
     super(prev, true);
   }
@@ -48,6 +59,7 @@ public class SignedTinyIntColumn extends ColumnDefinitionPacket implements Colum
   public SignedTinyIntColumn useAliasAsName() {
     return new SignedTinyIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     if (conf.tinyInt1isBit() && columnLength == 1) return Boolean.class.getName();
     return Integer.class.getName();

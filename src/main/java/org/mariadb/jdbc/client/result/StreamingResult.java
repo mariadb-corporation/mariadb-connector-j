@@ -83,7 +83,8 @@ public class StreamingResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable, false);
+        traceEnable,
+        false);
     this.lock = lock;
     this.dataFetchTime = 0;
     this.fetchSize = fetchSize;

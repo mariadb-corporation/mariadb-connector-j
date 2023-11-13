@@ -39,8 +39,19 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected TimeColumn(TimeColumn prev) {
     super(prev, true);
   }
@@ -49,6 +60,7 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
   public TimeColumn useAliasAsName() {
     return new TimeColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Time.class.getName();
   }

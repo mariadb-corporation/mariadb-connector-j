@@ -3,10 +3,9 @@
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
-
-import java.util.function.Function;
 
 public interface Context {
 

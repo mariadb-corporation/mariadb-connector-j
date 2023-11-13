@@ -38,8 +38,19 @@ public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDec
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected SignedIntColumn(SignedIntColumn prev) {
     super(prev, true);
   }
@@ -48,6 +59,7 @@ public class SignedIntColumn extends ColumnDefinitionPacket implements ColumnDec
   public SignedIntColumn useAliasAsName() {
     return new SignedIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Integer.class.getName();
   }

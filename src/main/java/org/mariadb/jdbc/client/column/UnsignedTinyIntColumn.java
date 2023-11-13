@@ -38,8 +38,19 @@ public class UnsignedTinyIntColumn extends ColumnDefinitionPacket implements Col
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected UnsignedTinyIntColumn(UnsignedTinyIntColumn prev) {
     super(prev, true);
   }
@@ -48,6 +59,7 @@ public class UnsignedTinyIntColumn extends ColumnDefinitionPacket implements Col
   public UnsignedTinyIntColumn useAliasAsName() {
     return new UnsignedTinyIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     if (conf.tinyInt1isBit() && columnLength == 1) return Boolean.class.getName();
     return Integer.class.getName();

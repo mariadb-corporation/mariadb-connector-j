@@ -38,8 +38,19 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected SignedMediumIntColumn(SignedMediumIntColumn prev) {
     super(prev, true);
   }
@@ -48,6 +59,7 @@ public class SignedMediumIntColumn extends ColumnDefinitionPacket implements Col
   public SignedMediumIntColumn useAliasAsName() {
     return new SignedMediumIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Integer.class.getName();
   }

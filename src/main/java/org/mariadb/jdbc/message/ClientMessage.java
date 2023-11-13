@@ -253,7 +253,10 @@ public interface ClientMessage {
             // can skip meta, but meta might have changed
             ci = new ColumnDecoder[fieldCount];
             for (int i = 0; i < fieldCount; i++) {
-              ci[i] = context.getColumnDecoderFunction().apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+              ci[i] =
+                  context
+                      .getColumnDecoderFunction()
+                      .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
             }
             ((BasePreparedStatement) stmt).updateMeta(ci);
           }
@@ -261,7 +264,10 @@ public interface ClientMessage {
           // always read meta
           ci = new ColumnDecoder[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
-            ci[i] = context.getColumnDecoderFunction().apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+            ci[i] =
+                context
+                    .getColumnDecoderFunction()
+                    .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
           }
         }
 

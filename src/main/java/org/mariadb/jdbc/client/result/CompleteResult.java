@@ -59,7 +59,8 @@ public class CompleteResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable, false);
+        traceEnable,
+        false);
     this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
@@ -95,16 +96,9 @@ public class CompleteResult extends Result {
       }
     }
   }
+
   private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
     super(metadataList, prev);
-  }
-
-  public CompleteResult useAliasAsName() {
-    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
-    for (int i = 0; i < metadataList.length; i++) {
-      newMeta[i] = metadataList[i].useAliasAsName();
-    }
-    return new CompleteResult(newMeta, this);
   }
 
   /**
@@ -184,6 +178,14 @@ public class CompleteResult extends Result {
       rows.add(bb);
     }
     return new CompleteResult(columns, rows.toArray(new byte[0][0]), context);
+  }
+
+  public CompleteResult useAliasAsName() {
+    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
+    for (int i = 0; i < metadataList.length; i++) {
+      newMeta[i] = metadataList[i].useAliasAsName();
+    }
+    return new CompleteResult(newMeta, this);
   }
 
   @Override

@@ -47,7 +47,17 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
 
   protected StringColumn(StringColumn prev) {
@@ -58,6 +68,7 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
   public StringColumn useAliasAsName() {
     return new StringColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return isBinary() ? "byte[]" : String.class.getName();
   }
@@ -322,12 +333,12 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
       cal.setLenient(true);
       if (parts[0] == -1) {
         cal.set(
-                1970,
-                Calendar.JANUARY,
-                1,
-                parts[0] * parts[1],
-                parts[0] * parts[2],
-                parts[0] * parts[3] - 1);
+            1970,
+            Calendar.JANUARY,
+            1,
+            parts[0] * parts[1],
+            parts[0] * parts[2],
+            parts[0] * parts[3] - 1);
         t = new Time(cal.getTimeInMillis() + (1000 - parts[4]));
       } else {
         cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
@@ -339,12 +350,12 @@ public class StringColumn extends ColumnDefinitionPacket implements ColumnDecode
         calParam.setLenient(true);
         if (parts[0] == -1) {
           calParam.set(
-                  1970,
-                  Calendar.JANUARY,
-                  1,
-                  parts[0] * parts[1],
-                  parts[0] * parts[2],
-                  parts[0] * parts[3] - 1);
+              1970,
+              Calendar.JANUARY,
+              1,
+              parts[0] * parts[1],
+              parts[0] * parts[2],
+              parts[0] * parts[3] - 1);
           t = new Time(calParam.getTimeInMillis() + (1000 - parts[4]));
         } else {
           calParam.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);

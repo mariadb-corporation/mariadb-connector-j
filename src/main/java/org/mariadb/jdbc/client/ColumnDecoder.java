@@ -41,11 +41,11 @@ public interface ColumnDecoder extends Column {
     int flags = buf.readUnsignedShort();
     byte decimals = buf.readByte();
     DataType.ColumnConstructor constructor =
-                    (flags & ColumnFlags.UNSIGNED) == 0
-                    ? dataType.getColumnConstructor()
-                    : dataType.getUnsignedColumnConstructor();
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? dataType.getColumnConstructor()
+            : dataType.getUnsignedColumnConstructor();
     return constructor.create(
-            buf, charset, length, dataType, decimals, flags, stringPos, null, null);
+        buf, charset, length, dataType, decimals, flags, stringPos, null, null);
   }
 
   /**

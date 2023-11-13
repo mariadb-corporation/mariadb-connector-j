@@ -204,5 +204,4 @@ public class ColumnDefinitionPacket implements Column, ServerMessage {
   public int hashCode() {
     return Objects.hash(charset, columnLength, dataType, decimals, flags);
   }
-
 }

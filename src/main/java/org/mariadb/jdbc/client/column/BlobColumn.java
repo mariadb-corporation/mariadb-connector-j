@@ -43,6 +43,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
       String extTypeFormat) {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
+
   protected BlobColumn(BlobColumn prev) {
     super(prev);
   }
@@ -51,6 +52,7 @@ public class BlobColumn extends StringColumn implements ColumnDecoder {
   public BlobColumn useAliasAsName() {
     return new BlobColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return isBinary() ? Blob.class.getName() : String.class.getName();
   }

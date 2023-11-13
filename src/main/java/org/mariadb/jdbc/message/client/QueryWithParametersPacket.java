@@ -22,8 +22,8 @@ public final class QueryWithParametersPacket implements RedoableClientMessage {
 
   private final String preSqlCmd;
   private final ClientParser parser;
-  private Parameters parameters;
   private final InputStream localInfileInputStream;
+  private Parameters parameters;
 
   /**
    * Constructor

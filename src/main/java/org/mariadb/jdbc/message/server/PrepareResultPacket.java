@@ -10,7 +10,6 @@ import org.mariadb.jdbc.client.*;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.socket.Reader;
 import org.mariadb.jdbc.export.Prepare;
-import org.mariadb.jdbc.util.constants.Capabilities;
 import org.mariadb.jdbc.util.log.Logger;
 import org.mariadb.jdbc.util.log.Loggers;
 

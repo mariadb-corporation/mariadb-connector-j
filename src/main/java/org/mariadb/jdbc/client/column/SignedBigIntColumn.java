@@ -39,8 +39,19 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat, false);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
   }
+
   protected SignedBigIntColumn(SignedBigIntColumn prev) {
     super(prev, true);
   }
@@ -49,6 +60,7 @@ public class SignedBigIntColumn extends ColumnDefinitionPacket implements Column
   public SignedBigIntColumn useAliasAsName() {
     return new SignedBigIntColumn(this);
   }
+
   public String defaultClassname(Configuration conf) {
     return Long.class.getName();
   }

@@ -27,7 +27,7 @@ public class CompressInputStream extends InputStream {
   /**
    * Constructor. When this handler is used, driver expect packet with 7 byte compression header
    *
-   * Implementation doesn't use synchronized/semaphore because all used are already locked by
+   * <p>Implementation doesn't use synchronized/semaphore because all used are already locked by
    * Statement/PreparedStatement Reentrant lock
    *
    * @param in socket input stream
