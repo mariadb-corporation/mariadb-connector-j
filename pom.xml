@@ -7,7 +7,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>3.3.0</version>
+    <version>3.3.1-SNAPSHOT</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -23,7 +23,7 @@
         <logback.version>1.4.4</logback.version>
         <jacoco.version>0.8.10</jacoco.version>
         <waffle-jna.version>3.3.0</waffle-jna.version>
-        <mysql-connector-java.version>8.1.0</mysql-connector-java.version>
+        <mysql-connector-java.version>8.2.0</mysql-connector-java.version>
         <bnd-maven-plugin.version>6.3.1</bnd-maven-plugin.version>
         <spotless.version>2.40.0</spotless.version>
     </properties>

@@ -59,7 +59,7 @@ public abstract class Result implements ResultSet, Completion {
 
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  private final boolean traceEnable;
+  protected final boolean traceEnable;
 
   /** data size */
   protected int dataSize = 0;
@@ -182,13 +182,13 @@ public abstract class Result implements ResultSet, Completion {
   /**
    * Read new row
    *
+   * @param buf packet buffer
    * @return true if fully loaded
    * @throws IOException if any socket error occurs
    * @throws SQLException for all other type of errors
    */
   @SuppressWarnings("fallthrough")
-  protected boolean readNext() throws IOException, SQLException {
-    byte[] buf = reader.readPacket(traceEnable);
+  protected boolean readNext(byte[] buf) throws IOException, SQLException {
     switch (buf[0]) {
       case (byte) 0xFF:
         loaded = true;
