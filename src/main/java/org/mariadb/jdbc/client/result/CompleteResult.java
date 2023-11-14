@@ -66,8 +66,8 @@ public class CompleteResult extends Result {
       this.data = new byte[10][];
       do {
         readNext(reader.readPacket(traceEnable));
-      } while (!loaded || dataSize >= maxRows);
-      if (!loaded) skipRemaining();
+      } while (!this.loaded && this.dataSize < maxRows);
+      if (!this.loaded) skipRemaining();
     } else {
       // avoiding creating array of array since
       byte[] buf = reader.readPacket(traceEnable);
@@ -81,17 +81,17 @@ public class CompleteResult extends Result {
           // one row
           this.data = new byte[1][];
           this.data[0] = buf;
-          dataSize = 1;
+          this.dataSize = 1;
           readNext(buf2);
         } else {
           // multiple rows
           this.data = new byte[10][];
           this.data[0] = buf;
           this.data[1] = buf2;
-          dataSize = 2;
+          this.dataSize = 2;
           do {
             readNext(reader.readPacket(traceEnable));
-          } while (!loaded);
+          } while (!this.loaded);
         }
       }
     }
