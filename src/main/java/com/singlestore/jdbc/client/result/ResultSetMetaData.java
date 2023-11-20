@@ -7,6 +7,7 @@ package com.singlestore.jdbc.client.result;
 
 import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.util.constants.ColumnFlags;
@@ -17,7 +18,7 @@ import java.util.Locale;
 public class ResultSetMetaData implements java.sql.ResultSetMetaData {
 
   private final ExceptionFactory exceptionFactory;
-  private final Column[] fieldPackets;
+  private final ColumnDecoder[] fieldPackets;
   private final Configuration conf;
   private final boolean forceAlias;
 
@@ -31,7 +32,7 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    */
   public ResultSetMetaData(
       final ExceptionFactory exceptionFactory,
-      final Column[] fieldPackets,
+      final ColumnDecoder[] fieldPackets,
       final Configuration conf,
       final boolean forceAlias) {
     this.exceptionFactory = exceptionFactory;
@@ -241,11 +242,11 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnTypeName(final int index) throws SQLException {
-    Column column = getColumn(index);
+    ColumnDecoder column = getColumn(index);
     if (column.getType() == DataType.GEOMETRY && column.getExtTypeName() != null) {
       return column.getExtTypeName().toUpperCase(Locale.ROOT);
     }
-    return column.getTypeName(conf);
+    return column.getColumnTypeName(conf);
   }
 
   /**
@@ -294,10 +295,10 @@ public class ResultSetMetaData implements java.sql.ResultSetMetaData {
    * @throws SQLException if a database access error occurs
    */
   public String getColumnClassName(int column) throws SQLException {
-    return getColumn(column).getDefaultCodec(conf).className();
+    return getColumn(column).defaultClassname(conf);
   }
 
-  private Column getColumn(int column) throws SQLException {
+  private ColumnDecoder getColumn(int column) throws SQLException {
     if (column >= 1 && column <= fieldPackets.length) {
       return fieldPackets[column - 1];
     }

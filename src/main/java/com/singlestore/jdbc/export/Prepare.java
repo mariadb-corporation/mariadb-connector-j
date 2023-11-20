@@ -7,7 +7,7 @@ package com.singlestore.jdbc.export;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.client.Client;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import java.sql.SQLException;
 
 /** Prepare packet COM_STMT_PREPARE (see https://mariadb.com/kb/en/com_stmt_prepare/) */
@@ -37,9 +37,9 @@ public interface Prepare {
    */
   int getStatementId();
 
-  Column[] getParameters();
+  ColumnDecoder[] getParameters();
 
-  Column[] getColumns();
+  ColumnDecoder[] getColumns();
 
-  void setColumns(Column[] columns);
+  void setColumns(ColumnDecoder[] columns);
 }

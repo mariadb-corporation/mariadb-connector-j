@@ -7,7 +7,7 @@ package com.singlestore.jdbc.client.socket;
 
 import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.client.ReadableByteBuf;
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import java.io.IOException;
 
 /** Packet Reader */
@@ -39,7 +39,7 @@ public interface Reader {
    *
    * @return current sequence
    */
-  MutableInt getSequence();
+  MutableByte getSequence();
 
   /**
    * Close stream

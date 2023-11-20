@@ -1,8 +1,5 @@
 package com.singlestore.jdbc.client;
 
-import com.singlestore.jdbc.Configuration;
-import com.singlestore.jdbc.plugin.Codec;
-
 public interface Column {
 
   /**
@@ -45,7 +42,7 @@ public interface Column {
    *
    * @return column maximum length
    */
-  long getLength();
+  long getColumnLength();
 
   /**
    * server data type
@@ -53,8 +50,6 @@ public interface Column {
    * @return server data type
    */
   DataType getType();
-
-  String getTypeName(Configuration conf);
 
   /**
    * get number of decimal
@@ -119,29 +114,6 @@ public interface Column {
    * @return extended metadata name
    */
   String getExtTypeName();
-
-  /**
-   * Return metadata precision.
-   *
-   * @return precision
-   */
-  int getPrecision();
-
-  /**
-   * return column type from column server type
-   *
-   * @param conf configuration
-   * @return column type
-   */
-  int getColumnType(Configuration conf);
-
-  /**
-   * return column codec from column server type
-   *
-   * @param conf configuration
-   * @return decoding codec
-   */
-  Codec<?> getDefaultCodec(Configuration conf);
 
   /** Use column alias as name */
   void useAliasAsName();

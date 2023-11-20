@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -37,12 +38,12 @@ public class LocalDateCodec implements Codec<LocalDate> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  public static int[] parseDate(ReadableByteBuf buf, int length) {
+  public static int[] parseDate(ReadableByteBuf buf, MutableInt length) {
     int[] datePart = new int[] {0, 0, 0};
     int partIdx = 0;
     int idx = 0;
 
-    while (idx++ < length) {
+    while (idx++ < length.get()) {
       byte b = buf.readByte();
       if (b == '-') {
         partIdx++;
@@ -61,7 +62,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
     return LocalDate.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(LocalDate.class);
   }
 
@@ -71,15 +72,16 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDate decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalDate decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case YEAR:
-        short y = (short) buf.atoi(length);
+        short y = (short) buf.atoll(length.get());
 
-        if (length == 2 && column.getLength() == 2) {
+        if (length.get() == 2 && column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (y <= 69) {
             y += 2000;
@@ -96,7 +98,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length));
+        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
         break;
 
       case BLOB:
@@ -104,7 +106,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
@@ -113,7 +115,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case VARCHAR:
       case CHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
@@ -132,7 +134,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Date", column.getType()));
     }
@@ -142,7 +144,8 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalDate decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalDate decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int year;
@@ -152,13 +155,13 @@ public class LocalDateCodec implements Codec<LocalDate> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        if (length == 0) return null;
+        if (length.get() == 0) return null;
         year = buf.readUnsignedShort();
         month = buf.readByte();
         dayOfMonth = buf.readByte();
 
-        if (length > 4) {
-          buf.skip(length - 4);
+        if (length.get() > 4) {
+          buf.skip(length.get() - 4);
         }
         return LocalDate.of(year, month, dayOfMonth);
 
@@ -167,7 +170,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Date", column.getType()));
         }
@@ -176,7 +179,7 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case CHAR:
       case VARCHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         String[] stDatePart = val.split("-| ");
         if (stDatePart.length < 3) {
           throw new SQLDataException(
@@ -196,10 +199,10 @@ public class LocalDateCodec implements Codec<LocalDate> {
 
       case DATE:
       case YEAR:
-        if (length == 0) return null;
+        if (length.get() == 0) return null;
         year = buf.readUnsignedShort();
 
-        if (column.getLength() == 2) {
+        if (column.getColumnLength() == 2) {
           // YEAR(2) - deprecated
           if (year <= 69) {
             year += 2000;
@@ -208,14 +211,14 @@ public class LocalDateCodec implements Codec<LocalDate> {
           }
         }
 
-        if (length >= 4) {
+        if (length.get() >= 4) {
           month = buf.readByte();
           dayOfMonth = buf.readByte();
         }
         return LocalDate.of(year, month, dayOfMonth);
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Date", column.getType()));
     }

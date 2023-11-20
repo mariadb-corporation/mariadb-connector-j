@@ -151,8 +151,8 @@ public class ResultSetMetadataTest extends Common {
       cols.next();
       // TODO PLAT-6202: remove the if
       if (i < 14 || i > 16) {
-        assertEquals(rsmd.getColumnType(i), cols.getInt("DATA_TYPE"));
         assertEquals(rsmd.getColumnTypeName(i), cols.getString("TYPE_NAME"));
+        assertEquals(rsmd.getColumnType(i), cols.getInt("DATA_TYPE"));
       }
     }
 

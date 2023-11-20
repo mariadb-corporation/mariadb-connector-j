@@ -7,7 +7,7 @@ package com.singlestore.jdbc.client.socket.impl;
 
 import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.client.socket.Writer;
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import com.singlestore.jdbc.export.MaxAllowedPacketException;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.LoggerHelper;
@@ -47,9 +47,9 @@ public class PacketWriter implements Writer {
   /** buffer position */
   protected int pos = 4;
   /** packet sequence */
-  protected final MutableInt sequence;
+  protected final MutableByte sequence;
   /** compressed packet sequence */
-  protected final MutableInt compressSequence;
+  protected final MutableByte compressSequence;
 
   /**
    * Common feature to write data into socket, creating SingleStore Packet.
@@ -64,8 +64,8 @@ public class PacketWriter implements Writer {
       OutputStream out,
       int maxQuerySizeToLog,
       Integer maxAllowedPacket,
-      MutableInt sequence,
-      MutableInt compressSequence) {
+      MutableByte sequence,
+      MutableByte compressSequence) {
     this.out = out;
     this.buf = new byte[SMALL_BUFFER_SIZE];
     this.maxQuerySizeToLog = maxQuerySizeToLog;

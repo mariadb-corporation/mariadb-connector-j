@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.type.Polygon;
 import java.io.IOException;
@@ -24,7 +25,7 @@ public class PolygonCodec implements Codec<Polygon> {
     return Polygon.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.CHAR && type.isAssignableFrom(Polygon.class);
   }
 
@@ -33,23 +34,25 @@ public class PolygonCodec implements Codec<Polygon> {
   }
 
   @Override
-  public Polygon decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Polygon decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
-  public Polygon decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Polygon decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     if (column.getType() == DataType.CHAR) {
-      String s = buf.readString(length);
+      String s = buf.readString(length.get());
       try {
         return new Polygon(s);
       } catch (IllegalArgumentException ex) {
         throw new SQLDataException(String.format("Failed to decode '%s' as Polygon", s));
       }
     }
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Polygon", column.getType()));
   }

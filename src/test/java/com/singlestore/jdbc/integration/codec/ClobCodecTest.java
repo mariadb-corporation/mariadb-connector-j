@@ -93,12 +93,14 @@ public class ClobCodecTest extends CommonCodecTest {
   }
 
   public void getObject(ResultSet rs) throws SQLException {
-    assertEquals("0", rs.getObject(1));
+    assertEquals(new SingleStoreClob("0".getBytes()), rs.getObject(1, Clob.class));
     assertFalse(rs.wasNull());
-    assertEquals("1", rs.getObject(2));
-    assertEquals("1", rs.getObject("t2alias"));
+    assertEquals(new SingleStoreClob("1".getBytes()), rs.getObject(2, Clob.class));
+    assertEquals(new SingleStoreClob("1".getBytes()), rs.getObject("t2alias", Clob.class));
     assertFalse(rs.wasNull());
-    assertEquals(("some" + fourByteUnicode), rs.getObject(3));
+    assertEquals(
+        new SingleStoreClob(("some" + fourByteUnicode).getBytes(StandardCharsets.UTF_8)),
+        rs.getObject(3, Clob.class));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());

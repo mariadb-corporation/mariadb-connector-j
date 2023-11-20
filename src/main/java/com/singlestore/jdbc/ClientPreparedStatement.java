@@ -5,13 +5,13 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.ClientMessage;
 import com.singlestore.jdbc.message.client.PreparePacket;
 import com.singlestore.jdbc.message.client.QueryWithParametersPacket;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.ClientParser;
 import com.singlestore.jdbc.util.ParameterList;
@@ -300,7 +300,7 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (currResult instanceof Result) {
       return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   private ExceptionFactory exceptionFactory() {

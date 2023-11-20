@@ -117,7 +117,7 @@ public final class Loggers {
       slf4jEnabled = level == null && path == null;
       consoleLogLevel = CONSOLE_LOG_LEVEL.fromLevelName(level);
       String error = null;
-      if (path != null && !path.isBlank() && !path.equals(consoleLogFilepath)) {
+      if (path != null && path.length() > 0 && !path.equals(consoleLogFilepath)) {
         consoleLogFilepath = path;
         try {
           filePrintStream = new PrintStream(new FileOutputStream(consoleLogFilepath, true), true);

@@ -6,7 +6,7 @@
 package com.singlestore.jdbc.client.result;
 
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -38,7 +38,7 @@ public class StreamingResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      Column[] metadataList,
+      ColumnDecoder[] metadataList,
       com.singlestore.jdbc.client.socket.Reader reader,
       Context context,
       int fetchSize,
@@ -127,7 +127,7 @@ public class StreamingResult extends Result {
     checkClose();
     if (rowPointer < dataSize - 1) {
       rowPointer++;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     } else {
       if (!loaded) {
@@ -144,7 +144,7 @@ public class StreamingResult extends Result {
           // resultSet has been cleared. next value is pointer 0.
           rowPointer = 0;
           if (dataSize > 0) {
-            row.setRow(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         } else {
@@ -152,17 +152,17 @@ public class StreamingResult extends Result {
           // results have been added to current resultSet
           rowPointer++;
           if (dataSize > rowPointer) {
-            row.setRow(data[rowPointer]);
+            setRow(data[rowPointer]);
             return true;
           }
         }
-        row.setRow(null);
+        setNullRowBuf();
         return false;
       }
 
       // all data are reads and pointer is after last
       rowPointer = dataSize;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
   }
@@ -217,7 +217,7 @@ public class StreamingResult extends Result {
   public void beforeFirst() throws SQLException {
     checkClose();
     checkNotForwardOnly();
-    row.setRow(null);
+    setNullRowBuf();
     rowPointer = -1;
   }
 
@@ -226,7 +226,7 @@ public class StreamingResult extends Result {
     checkClose();
     checkNotForwardOnly();
     fetchRemaining();
-    row.setRow(null);
+    setNullRowBuf();
     rowPointer = dataSize;
   }
 
@@ -237,10 +237,10 @@ public class StreamingResult extends Result {
 
     rowPointer = 0;
     if (dataSize > 0) {
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 
@@ -250,10 +250,10 @@ public class StreamingResult extends Result {
     fetchRemaining();
     rowPointer = dataSize - 1;
     if (dataSize > 0) {
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 
@@ -273,13 +273,13 @@ public class StreamingResult extends Result {
 
     if (idx == 0) {
       rowPointer = -1;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
 
     if (idx > 0 && idx <= dataSize) {
       rowPointer = idx - 1;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
 
@@ -289,22 +289,22 @@ public class StreamingResult extends Result {
     if (idx > 0) {
       if (idx <= dataSize) {
         rowPointer = idx - 1;
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
 
       rowPointer = dataSize; // go to afterLast() position
-      row.setRow(null);
+      setNullRowBuf();
 
     } else {
 
       if (dataSize + idx >= 0) {
         // absolute position reverse from ending resultSet
         rowPointer = dataSize + idx;
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
-      row.setRow(null);
+      setNullRowBuf();
       rowPointer = -1; // go to before first position
     }
     return false;
@@ -317,21 +317,21 @@ public class StreamingResult extends Result {
     if (newPos <= -1) {
       checkNotForwardOnly();
       rowPointer = -1;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
 
     while (newPos >= dataSize) {
       if (loaded) {
         rowPointer = dataSize;
-        row.setRow(null);
+        setNullRowBuf();
         return false;
       }
       addStreamingValue();
     }
 
     rowPointer = newPos;
-    row.setRow(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -342,11 +342,11 @@ public class StreamingResult extends Result {
     if (rowPointer > -1) {
       rowPointer--;
       if (rowPointer != -1) {
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 

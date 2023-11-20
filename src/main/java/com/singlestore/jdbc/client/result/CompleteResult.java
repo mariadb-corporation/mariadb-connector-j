@@ -6,10 +6,9 @@
 package com.singlestore.jdbc.client.result;
 
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -43,7 +42,7 @@ public class CompleteResult extends Result {
       Statement stmt,
       boolean binaryProtocol,
       long maxRows,
-      Column[] metadataList,
+      ColumnDecoder[] metadataList,
       com.singlestore.jdbc.client.socket.Reader reader,
       Context context,
       int resultSetType,
@@ -79,7 +78,7 @@ public class CompleteResult extends Result {
    * @param data result-set data
    * @param context connection context
    */
-  public CompleteResult(ColumnDefinitionPacket[] metadataList, byte[][] data, Context context) {
+  public CompleteResult(ColumnDecoder[] metadataList, byte[][] data, Context context) {
     super(metadataList, data, context);
   }
 
@@ -116,10 +115,10 @@ public class CompleteResult extends Result {
       String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
 
     int columnNameLength = columnNames.length;
-    ColumnDefinitionPacket[] columns = new ColumnDefinitionPacket[columnNameLength];
+    ColumnDecoder[] columns = new ColumnDecoder[columnNameLength];
 
     for (int i = 0; i < columnNameLength; i++) {
-      columns[i] = ColumnDefinitionPacket.create(columnNames[i], columnTypes[i], flags);
+      columns[i] = ColumnDecoder.create(columnNames[i], columnTypes[i], flags);
     }
 
     List<byte[]> rows = new ArrayList<>();
@@ -153,11 +152,11 @@ public class CompleteResult extends Result {
   @Override
   public boolean next() throws SQLException {
     if (rowPointer < dataSize - 1) {
-      row.setRow(data[++rowPointer]);
+      setRow(data[++rowPointer]);
       return true;
     } else {
       // all data are reads and pointer is after last
-      row.setRow(null);
+      setNullRowBuf();
       rowPointer = dataSize;
       return false;
     }
@@ -207,13 +206,13 @@ public class CompleteResult extends Result {
   public void beforeFirst() throws SQLException {
     checkClose();
     rowPointer = BEFORE_FIRST_POS;
-    row.setRow(null);
+    setNullRowBuf();
   }
 
   @Override
   public void afterLast() throws SQLException {
     checkClose();
-    row.setRow(null);
+    setNullRowBuf();
     rowPointer = dataSize;
   }
 
@@ -222,10 +221,10 @@ public class CompleteResult extends Result {
     checkClose();
     rowPointer = 0;
     if (dataSize == 0) {
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
-    row.setRow(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -234,10 +233,10 @@ public class CompleteResult extends Result {
     checkClose();
     rowPointer = dataSize - 1;
     if (rowPointer == BEFORE_FIRST_POS) {
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
-    row.setRow(data[rowPointer]);
+    setRow(data[rowPointer]);
     return true;
   }
 
@@ -252,23 +251,23 @@ public class CompleteResult extends Result {
     checkClose();
     if (idx == 0 || idx > dataSize) {
       rowPointer = idx == 0 ? BEFORE_FIRST_POS : dataSize;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
 
     if (idx > 0) {
       rowPointer = idx - 1;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     } else {
       if (dataSize + idx >= 0) {
         // absolute position reverse from ending resultSet
         rowPointer = dataSize + idx;
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
       rowPointer = BEFORE_FIRST_POS;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     }
   }
@@ -279,15 +278,15 @@ public class CompleteResult extends Result {
     int newPos = rowPointer + rows;
     if (newPos <= -1) {
       rowPointer = BEFORE_FIRST_POS;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     } else if (newPos >= dataSize) {
       rowPointer = dataSize;
-      row.setRow(null);
+      setNullRowBuf();
       return false;
     } else {
       rowPointer = newPos;
-      row.setRow(data[rowPointer]);
+      setRow(data[rowPointer]);
       return true;
     }
   }
@@ -298,11 +297,11 @@ public class CompleteResult extends Result {
     if (rowPointer > BEFORE_FIRST_POS) {
       rowPointer--;
       if (rowPointer != BEFORE_FIRST_POS) {
-        row.setRow(data[rowPointer]);
+        setRow(data[rowPointer]);
         return true;
       }
     }
-    row.setRow(null);
+    setNullRowBuf();
     return false;
   }
 

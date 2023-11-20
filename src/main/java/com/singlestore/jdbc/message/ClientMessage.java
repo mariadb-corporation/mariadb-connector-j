@@ -7,7 +7,7 @@ package com.singlestore.jdbc.message;
 
 import com.singlestore.jdbc.BasePreparedStatement;
 import com.singlestore.jdbc.Statement;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
@@ -17,7 +17,6 @@ import com.singlestore.jdbc.client.result.UpdatableResult;
 import com.singlestore.jdbc.client.socket.Writer;
 import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.export.ExceptionFactory;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import com.singlestore.jdbc.message.server.ErrorPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.constants.ServerStatus;
@@ -207,17 +206,17 @@ public interface ClientMessage {
       default:
         int fieldCount = buf.readIntLengthEncodedNotNull();
 
-        Column[] ci;
+        ColumnDecoder[] ci;
         boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
         boolean skipMeta = canSkipMeta ? buf.readByte() == 0 : false;
         if (canSkipMeta && skipMeta) {
           ci = ((BasePreparedStatement) stmt).getMeta();
         } else {
           // read columns information's
-          ci = new Column[fieldCount];
+          ci = new ColumnDecoder[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
-                new ColumnDefinitionPacket(
+                ColumnDecoder.decode(
                     reader.readPacket(false, traceEnable), context.isExtendedInfo());
           }
         }

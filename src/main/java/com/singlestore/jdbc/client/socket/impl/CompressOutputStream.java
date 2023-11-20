@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.client.socket.impl;
 
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -15,11 +15,11 @@ public class CompressOutputStream extends OutputStream {
 
   private static final int MIN_COMPRESSION_SIZE = 1536; // TCP-IP single packet
   private final OutputStream out;
-  private final MutableInt sequence;
+  private final MutableByte sequence;
   private final byte[] header = new byte[7];
   private byte[] longPacketBuffer = null;
 
-  public CompressOutputStream(OutputStream out, MutableInt compressionSequence) {
+  public CompressOutputStream(OutputStream out, MutableByte compressionSequence) {
     this.out = out;
     this.sequence = compressionSequence;
   }

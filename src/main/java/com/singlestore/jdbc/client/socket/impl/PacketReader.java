@@ -10,7 +10,7 @@ import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.impl.StandardReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Reader;
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import com.singlestore.jdbc.util.log.Logger;
 import com.singlestore.jdbc.util.log.LoggerHelper;
 import com.singlestore.jdbc.util.log.Loggers;
@@ -29,7 +29,7 @@ public class PacketReader implements Reader {
   private final InputStream inputStream;
   private final int maxQuerySizeToLog;
 
-  private final MutableInt sequence;
+  private final MutableByte sequence;
   private String serverThreadLog = "";
 
   /**
@@ -39,7 +39,7 @@ public class PacketReader implements Reader {
    * @param conf connection options
    * @param sequence current increment sequence
    */
-  public PacketReader(InputStream in, Configuration conf, MutableInt sequence) {
+  public PacketReader(InputStream in, Configuration conf, MutableByte sequence) {
     this.inputStream = in;
     this.maxQuerySizeToLog = conf.maxQuerySizeToLog();
     this.sequence = sequence;
@@ -205,7 +205,7 @@ public class PacketReader implements Reader {
     return new StandardReadableByteBuf(rawBytes, lastPacketLength);
   }
 
-  public MutableInt getSequence() {
+  public MutableByte getSequence() {
     return sequence;
   }
 

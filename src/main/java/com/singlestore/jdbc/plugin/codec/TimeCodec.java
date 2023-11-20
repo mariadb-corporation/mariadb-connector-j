@@ -5,25 +5,25 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.EnumSet;
 
 public class TimeCodec implements Codec<Time> {
+
   public static final TimeCodec INSTANCE = new TimeCodec();
-  private static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
+  public static final LocalDate EPOCH_DATE = LocalDate.of(1970, 1, 1);
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
       EnumSet.of(
           DataType.TIME,
@@ -40,7 +40,7 @@ public class TimeCodec implements Codec<Time> {
     return Time.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && type.isAssignableFrom(Time.class)
         && !type.equals(java.util.Date.class);
@@ -52,162 +52,17 @@ public class TimeCodec implements Codec<Time> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Time decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Time decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
-
-    switch (column.getType()) {
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Time", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-      case TIME:
-        Calendar c = cal == null ? Calendar.getInstance() : cal;
-        int offset = c.getTimeZone().getOffset(0);
-        int[] parts = LocalTimeCodec.parseTime(buf, length, column);
-        long timeInMillis =
-            (parts[1] * 3_600_000L + parts[2] * 60_000L + parts[3] * 1_000L + parts[4] / 1_000_000)
-                    * parts[0]
-                - offset;
-        return new Time(timeInMillis);
-
-      case TIMESTAMP:
-      case DATETIME:
-        LocalDateTime lt = LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, cal);
-        if (lt == null) return null;
-        Calendar cc = cal == null ? Calendar.getInstance() : cal;
-        ZonedDateTime d = EPOCH_DATE.atTime(lt.toLocalTime()).atZone(cc.getTimeZone().toZoneId());
-        return new Time(d.toEpochSecond() * 1000 + d.getNano() / 1_000_000);
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Time", column.getType()));
-    }
+    return column.decodeTimeText(buf, length, cal);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Time decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public Time decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
-
-    Calendar cal = calParam == null ? Calendar.getInstance() : calParam;
-    long dayOfMonth;
-    int hour = 0;
-    int minutes = 0;
-    int seconds = 0;
-    long microseconds = 0;
-
-    switch (column.getType()) {
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Time", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-        int[] parts = LocalTimeCodec.parseTime(buf, length, column);
-        Time t;
-
-        // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        synchronized (cal) {
-          cal.clear();
-          cal.setLenient(true);
-          if (parts[0] == -1) {
-            cal.set(
-                1970,
-                Calendar.JANUARY,
-                1,
-                parts[0] * parts[1],
-                parts[0] * parts[2],
-                parts[0] * parts[3] - 1);
-            t = new Time(cal.getTimeInMillis() + (1000 - parts[4]));
-          } else {
-            cal.set(1970, Calendar.JANUARY, 1, parts[1], parts[2], parts[3]);
-            t = new Time(cal.getTimeInMillis() + parts[4] / 1_000_000);
-          }
-        }
-        return t;
-      case TIME:
-        // specific case for TIME, to handle value not in 00:00:00-23:59:59
-        int offset = cal.getTimeZone().getOffset(0);
-
-        if (buf.pos() >= buf.buf().length - 1) {
-          // If time is coming as '00:00:00' then corresponding byte value is null. Hence need to
-          // pass default Time value in this case.
-          return new Time(-offset);
-        }
-
-        boolean negate = buf.readByte() == 1;
-        dayOfMonth = buf.readUnsignedInt();
-        hour = buf.readByte();
-        minutes = buf.readByte();
-        seconds = buf.readByte();
-        if (length > 8) {
-          microseconds = buf.readUnsignedInt();
-        }
-        long timeInMillis =
-            ((24 * dayOfMonth + hour) * 3_600_000
-                        + minutes * 60_000
-                        + seconds * 1_000
-                        + microseconds / 1_000)
-                    * (negate ? -1 : 1)
-                - offset;
-        return new Time(timeInMillis);
-
-      case TIMESTAMP:
-      case DATETIME:
-        if (length == 0) return null;
-        int year = buf.readUnsignedShort();
-        int month = buf.readByte();
-        dayOfMonth = buf.readByte();
-
-        if (length > 4) {
-          hour = buf.readByte();
-          minutes = buf.readByte();
-          seconds = buf.readByte();
-
-          if (length > 7) {
-            microseconds = buf.readUnsignedInt();
-          }
-        }
-
-        if (year == 0
-            && month == 0
-            && dayOfMonth == 0
-            && hour == 0
-            && minutes == 0
-            && seconds == 0) {
-          return null;
-        }
-
-        synchronized (cal) {
-          cal.clear();
-          cal.set(1970, Calendar.JANUARY, 1, hour, minutes, seconds);
-          return new Time(cal.getTimeInMillis() + microseconds / 1_000);
-        }
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Time", column.getType()));
-    }
+    return column.decodeTimeBinary(buf, length, calParam);
   }
 
   @Override

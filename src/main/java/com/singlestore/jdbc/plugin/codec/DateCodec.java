@@ -5,22 +5,23 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLDataException;
-import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.EnumSet;
 
 public class DateCodec implements Codec<Date> {
 
+  /** default instance */
   public static final DateCodec INSTANCE = new DateCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -41,7 +42,7 @@ public class DateCodec implements Codec<Date> {
     return Date.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Date.class);
   }
 
@@ -51,146 +52,17 @@ public class DateCodec implements Codec<Date> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Date decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Date decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
-
-    switch (column.getType()) {
-      case YEAR:
-        short y = (short) buf.atoi(length);
-        if (column.getLength() == 2) {
-          // YEAR(2) - deprecated
-          if (y <= 69) {
-            y += 2000;
-          } else {
-            y += 1900;
-          }
-        }
-        return Date.valueOf(y + "-01-01");
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Date", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-      case DATE:
-        String val = buf.readString(length);
-        if ("0000-00-00".equals(val)) return null;
-        String[] stDatePart = val.split("-| ");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
-        return getDate(column, cal, val, stDatePart);
-
-      case TIMESTAMP:
-      case DATETIME:
-        Timestamp lt = TimestampCodec.INSTANCE.decodeText(buf, length, column, cal);
-        String st = lt.toString();
-        return Date.valueOf(st.substring(0, 10));
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Date", column.getType()));
-    }
-  }
-
-  private Date getDate(Column column, Calendar cal, String val, String[] stDatePart)
-      throws SQLDataException {
-    try {
-      int year = Integer.parseInt(stDatePart[0]);
-      int month = Integer.parseInt(stDatePart[1]);
-      int dayOfMonth = Integer.parseInt(stDatePart[2]);
-      Calendar c = cal == null ? Calendar.getInstance() : cal;
-      synchronized (c) {
-        c.clear();
-        c.set(Calendar.YEAR, year);
-        c.set(Calendar.MONTH, month - 1);
-        c.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-        return new Date(c.getTimeInMillis());
-      }
-
-    } catch (NumberFormatException nfe) {
-      throw new SQLDataException(
-          String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-    }
+    return column.decodeDateText(buf, length, cal);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Date decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Date decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
-
-    switch (column.getType()) {
-      case YEAR:
-        int v = buf.readShort();
-
-        if (column.getLength() == 2) {
-          // YEAR(2) - deprecated
-          if (v <= 69) {
-            v += 2000;
-          } else {
-            v += 1900;
-          }
-        }
-        return Date.valueOf(v + "-01-01");
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Date", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-        String val = buf.readString(length);
-        String[] stDatePart = val.split("-| ");
-        if (stDatePart.length < 3) {
-          throw new SQLDataException(
-              String.format("value '%s' (%s) cannot be decoded as Date", val, column.getType()));
-        }
-
-        return getDate(column, cal, val, stDatePart);
-
-      case DATE:
-        if (length == 0) return null;
-        Calendar c = cal == null ? Calendar.getInstance() : cal;
-        synchronized (c) {
-          c.clear();
-          c.set(Calendar.YEAR, buf.readShort());
-          c.set(Calendar.MONTH, buf.readByte() - 1);
-          c.set(Calendar.DAY_OF_MONTH, buf.readByte());
-          return new Date(c.getTimeInMillis());
-        }
-
-      case TIMESTAMP:
-      case DATETIME:
-        Timestamp lt = TimestampCodec.INSTANCE.decodeBinary(buf, length, column, cal);
-        if (lt == null) return null;
-        String st = lt.toString();
-        return Date.valueOf(st.substring(0, 10));
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Date", column.getType()));
-    }
+    return column.decodeDateBinary(buf, length, cal);
   }
 
   @Override

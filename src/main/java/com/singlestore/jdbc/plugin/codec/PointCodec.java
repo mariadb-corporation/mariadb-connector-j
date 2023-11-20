@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.type.Point;
 import java.io.IOException;
@@ -24,7 +25,7 @@ public class PointCodec implements Codec<Point> {
     return Point.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.CHAR && type.isAssignableFrom(Point.class);
   }
 
@@ -33,23 +34,25 @@ public class PointCodec implements Codec<Point> {
   }
 
   @Override
-  public Point decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Point decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeBinary(buf, length, column, cal);
   }
 
   @Override
-  public Point decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Point decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     if (column.getType() == DataType.CHAR) {
-      String s = buf.readString(length);
+      String s = buf.readString(length.get());
       try {
         return new Point(s);
       } catch (IllegalArgumentException ex) {
         throw new SQLDataException(String.format("Failed to decode '%s' as Point", s));
       }
     }
-    buf.skip(length);
+    buf.skip(length.get());
     throw new SQLDataException(
         String.format("Data type %s cannot be decoded as Point", column.getType()));
   }

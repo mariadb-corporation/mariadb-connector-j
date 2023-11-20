@@ -5,6 +5,7 @@
 
 package com.singlestore.jdbc;
 
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
@@ -12,7 +13,6 @@ import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.ExecutePacket;
 import com.singlestore.jdbc.message.client.PreparePacket;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.ParameterList;
 import java.sql.ResultSet;
@@ -244,7 +244,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       if (currResult instanceof Result) return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**

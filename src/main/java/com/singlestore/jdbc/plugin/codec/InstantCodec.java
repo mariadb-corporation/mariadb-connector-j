@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -45,7 +46,7 @@ public class InstantCodec implements Codec<Instant> {
     return Instant.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Instant.class);
   }
 
@@ -55,7 +56,10 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public Instant decodeText(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -67,7 +71,10 @@ public class InstantCodec implements Codec<Instant> {
 
   @Override
   public Instant decodeBinary(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);

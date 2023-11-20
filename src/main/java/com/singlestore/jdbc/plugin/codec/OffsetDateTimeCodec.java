@@ -4,11 +4,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -43,7 +44,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
     return OffsetDateTime.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && type.isAssignableFrom(OffsetDateTime.class);
   }
@@ -54,7 +55,10 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeText(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -69,7 +73,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
         return localDateTime.atZone(cal.getTimeZone().toZoneId()).toOffsetDateTime();
       case VARCHAR:
       case CHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           return OffsetDateTime.parse(val);
         } catch (Throwable e) {
@@ -79,7 +83,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
             String.format(
                 "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format(
                 "value of type %s cannot be decoded as OffsetDateTime", column.getType()));
@@ -88,7 +92,10 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
 
   @Override
   public OffsetDateTime decodeBinary(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar calParam)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar calParam)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -103,7 +110,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
         return localDateTime.atZone(cal.getTimeZone().toZoneId()).toOffsetDateTime();
       case VARCHAR:
       case CHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           return OffsetDateTime.parse(val);
         } catch (Throwable e) {
@@ -114,7 +121,7 @@ public class OffsetDateTimeCodec implements Codec<OffsetDateTime> {
                 "value '%s' (%s) cannot be decoded as OffsetDateTime", val, column.getType()));
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format(
                 "value of type %s cannot be decoded as OffsetDateTime", column.getType()));

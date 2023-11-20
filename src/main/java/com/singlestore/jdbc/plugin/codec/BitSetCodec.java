@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.util.BitSet;
@@ -19,8 +20,8 @@ public class BitSetCodec implements Codec<BitSet> {
 
   public static final BitSetCodec INSTANCE = new BitSetCodec();
 
-  public static BitSet parseBit(ReadableByteBuf buf, int length) {
-    byte[] arr = new byte[length];
+  public static BitSet parseBit(ReadableByteBuf buf, MutableInt length) {
+    byte[] arr = new byte[length.get()];
     buf.readBytes(arr);
     revertOrder(arr);
     return BitSet.valueOf(arr);
@@ -43,17 +44,19 @@ public class BitSetCodec implements Codec<BitSet> {
     return BitSet.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return column.getType() == DataType.BIT && type.isAssignableFrom(BitSet.class);
   }
 
   @Override
-  public BitSet decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal) {
+  public BitSet decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal) {
     return parseBit(buf, length);
   }
 
   @Override
-  public BitSet decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal) {
+  public BitSet decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal) {
     return parseBit(buf, length);
   }
 

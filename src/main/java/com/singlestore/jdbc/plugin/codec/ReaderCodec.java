@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.ByteArrayOutputStream;
@@ -34,7 +35,7 @@ public class ReaderCodec implements Codec<Reader> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Reader.class);
   }
 
@@ -44,7 +45,8 @@ public class ReaderCodec implements Codec<Reader> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Reader decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Reader decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
@@ -52,7 +54,7 @@ public class ReaderCodec implements Codec<Reader> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Reader", column.getType()));
         }
@@ -61,17 +63,18 @@ public class ReaderCodec implements Codec<Reader> {
 
       case CHAR:
       case VARCHAR:
-        return new StringReader(buf.readString(length));
+        return new StringReader(buf.readString(length.get()));
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Reader", column.getType()));
     }
   }
 
   @Override
-  public Reader decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Reader decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return decodeText(buf, length, column, cal);
   }

@@ -7,13 +7,13 @@ package com.singlestore.jdbc;
 
 import static com.singlestore.jdbc.util.constants.Capabilities.LOCAL_FILES;
 
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.result.CompleteResult;
 import com.singlestore.jdbc.client.result.Result;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.message.client.QueryPacket;
-import com.singlestore.jdbc.message.server.ColumnDefinitionPacket;
 import com.singlestore.jdbc.message.server.OkPacket;
 import com.singlestore.jdbc.util.NativeSql;
 import com.singlestore.jdbc.util.constants.ColumnFlags;
@@ -134,7 +134,7 @@ public class Statement implements java.sql.Statement {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
     if (currResult instanceof Result) return (Result) currResult;
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**
@@ -901,7 +901,7 @@ public class Statement implements java.sql.Statement {
       }
     }
 
-    return new CompleteResult(new ColumnDefinitionPacket[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
   }
 
   /**

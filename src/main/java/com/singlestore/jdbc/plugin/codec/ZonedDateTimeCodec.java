@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -41,7 +42,7 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
     return ZonedDateTime.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && type.isAssignableFrom(ZonedDateTime.class);
   }
@@ -51,7 +52,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
   }
 
   @Override
-  public ZonedDateTime decodeText(ReadableByteBuf buf, int length, Column column, Calendar calParam)
+  public ZonedDateTime decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
       throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeText(buf, length, column, calParam);
@@ -62,7 +64,8 @@ public class ZonedDateTimeCodec implements Codec<ZonedDateTime> {
 
   @Override
   public ZonedDateTime decodeBinary(
-      ReadableByteBuf buf, int length, Column column, Calendar calParam) throws SQLDataException {
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar calParam)
+      throws SQLDataException {
     LocalDateTime localDateTime =
         LocalDateTimeCodec.INSTANCE.decodeBinary(buf, length, column, calParam);
     if (localDateTime == null) return null;

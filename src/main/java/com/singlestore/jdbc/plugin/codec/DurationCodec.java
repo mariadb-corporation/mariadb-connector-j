@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -37,7 +38,7 @@ public class DurationCodec implements Codec<Duration> {
     return Duration.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Duration.class);
   }
 
@@ -47,14 +48,15 @@ public class DurationCodec implements Codec<Duration> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Duration decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Duration decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length));
+        parts = LocalDateTimeCodec.parseTimestamp(buf.readAscii(length.get()));
         if (parts == null) return null;
         return Duration.ZERO
             .plusDays(parts[2] - 1)
@@ -68,7 +70,7 @@ public class DurationCodec implements Codec<Duration> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Duration", column.getType()));
         }
@@ -89,7 +91,7 @@ public class DurationCodec implements Codec<Duration> {
         return d;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }
@@ -97,7 +99,8 @@ public class DurationCodec implements Codec<Duration> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Duration decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Duration decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     long days = 0;
@@ -108,15 +111,15 @@ public class DurationCodec implements Codec<Duration> {
     switch (column.getType()) {
       case TIME:
         boolean negate = false;
-        if (length > 0) {
+        if (length.get() > 0) {
           negate = buf.readUnsignedByte() == 0x01;
-          if (length > 4) {
+          if (length.get() > 4) {
             days = buf.readUnsignedInt();
-            if (length > 7) {
+            if (length.get() > 7) {
               hours = buf.readByte();
               minutes = buf.readByte();
               seconds = buf.readByte();
-              if (length > 8) {
+              if (length.get() > 8) {
                 microseconds = buf.readInt();
               }
             }
@@ -135,16 +138,16 @@ public class DurationCodec implements Codec<Duration> {
 
       case TIMESTAMP:
       case DATETIME:
-        if (length == 0) return null;
+        if (length.get() == 0) return null;
         buf.readUnsignedShort(); // skip year
         buf.readByte(); // skip month
         days = buf.readByte();
-        if (length > 4) {
+        if (length.get() > 4) {
           hours = buf.readByte();
           minutes = buf.readByte();
           seconds = buf.readByte();
 
-          if (length > 7) {
+          if (length.get() > 7) {
             microseconds = buf.readUnsignedInt();
           }
         }
@@ -168,7 +171,7 @@ public class DurationCodec implements Codec<Duration> {
         return d;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Duration", column.getType()));
     }

@@ -9,6 +9,7 @@ import com.singlestore.jdbc.Configuration;
 import com.singlestore.jdbc.HostAddress;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
+import com.singlestore.jdbc.client.SocketHelper;
 import com.singlestore.jdbc.client.socket.Reader;
 import com.singlestore.jdbc.client.socket.Writer;
 import com.singlestore.jdbc.client.socket.impl.SocketHandlerFunction;
@@ -122,7 +123,7 @@ public final class ConnectionHelper {
         throw new SQLException(
             "hostname must be set to connect socket if not using local socket or pipe");
       socket = createSocket(conf, hostAddress);
-      setSocketOption(conf, socket);
+      SocketHelper.setSocketOption(conf, socket);
       if (!socket.isConnected()) {
         InetSocketAddress sockAddr =
             conf.pipe() == null && conf.localSocket() == null
@@ -139,32 +140,6 @@ public final class ConnectionHelper {
               hostAddress == null ? conf.localSocket() : hostAddress, ioe.getMessage()),
           "08000",
           ioe);
-    }
-  }
-
-  /**
-   * Set socket option
-   *
-   * @param conf configuration
-   * @param socket socket
-   * @throws IOException if any socket error occurs
-   */
-  public static void setSocketOption(final Configuration conf, final Socket socket)
-      throws IOException {
-    socket.setTcpNoDelay(true);
-    socket.setSoTimeout(conf.socketTimeout());
-    if (conf.tcpKeepAlive()) {
-      socket.setKeepAlive(true);
-    }
-    if (conf.tcpAbortiveClose()) {
-      socket.setSoLinger(true, 0);
-    }
-
-    // Bind the socket to a particular interface if the connection property
-    // localSocketAddress has been defined.
-    if (conf.localSocketAddress() != null) {
-      InetSocketAddress localAddress = new InetSocketAddress(conf.localSocketAddress(), 0);
-      socket.bind(localAddress);
     }
   }
 

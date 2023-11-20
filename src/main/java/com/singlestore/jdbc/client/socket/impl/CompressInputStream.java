@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc.client.socket.impl;
 
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +18,7 @@ import java.util.zip.Inflater;
  */
 public class CompressInputStream extends InputStream {
   private final InputStream in;
-  private final MutableInt sequence;
+  private final MutableByte sequence;
 
   private final byte[] header = new byte[7];
 
@@ -32,7 +32,7 @@ public class CompressInputStream extends InputStream {
    * @param in socket input stream
    * @param compressionSequence compression sequence
    */
-  public CompressInputStream(InputStream in, MutableInt compressionSequence) {
+  public CompressInputStream(InputStream in, MutableByte compressionSequence) {
     this.in = in;
     this.sequence = compressionSequence;
   }

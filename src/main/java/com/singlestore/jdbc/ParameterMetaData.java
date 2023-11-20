@@ -5,17 +5,17 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import java.sql.SQLException;
 
 public class ParameterMetaData implements java.sql.ParameterMetaData {
 
-  private final Column[] params;
+  private final ColumnDecoder[] params;
   private final ExceptionFactory exceptionFactory;
 
-  protected ParameterMetaData(ExceptionFactory exceptionFactory, Column[] params) {
+  protected ParameterMetaData(ExceptionFactory exceptionFactory, ColumnDecoder[] params) {
     this.params = params;
     this.exceptionFactory = exceptionFactory;
   }

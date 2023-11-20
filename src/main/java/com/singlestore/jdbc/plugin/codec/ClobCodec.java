@@ -6,11 +6,12 @@
 package com.singlestore.jdbc.plugin.codec;
 
 import com.singlestore.jdbc.SingleStoreClob;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.ByteArrayOutputStream;
@@ -41,7 +42,7 @@ public class ClobCodec implements Codec<Clob> {
     return Clob.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && (type.isAssignableFrom(Clob.class) || type.isAssignableFrom(NClob.class));
   }
@@ -51,20 +52,21 @@ public class ClobCodec implements Codec<Clob> {
   }
 
   @Override
-  public Clob decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Clob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }
 
   @SuppressWarnings("fallthrough")
-  private Clob getClob(ReadableByteBuf buf, int length, Column column) throws SQLDataException {
+  private Clob getClob(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
+      throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as Clob", column.getType()));
         }
@@ -73,19 +75,20 @@ public class ClobCodec implements Codec<Clob> {
 
       case CHAR:
       case VARCHAR:
-        Clob clob = new SingleStoreClob(buf.buf(), buf.pos(), length);
-        buf.skip(length);
+        Clob clob = new SingleStoreClob(buf.buf(), buf.pos(), length.get());
+        buf.skip(length.get());
         return clob;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Clob", column.getType()));
     }
   }
 
   @Override
-  public Clob decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Clob decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getClob(buf, length, column);
   }

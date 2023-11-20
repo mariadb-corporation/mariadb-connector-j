@@ -5,21 +5,21 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.SQLDataException;
 import java.util.Calendar;
 import java.util.EnumSet;
 
 public class DoubleCodec implements Codec<Double> {
 
+  /** default instance */
   public static final DoubleCodec INSTANCE = new DoubleCodec();
 
   private static final EnumSet<DataType> COMPATIBLE_TYPES =
@@ -45,7 +45,7 @@ public class DoubleCodec implements Codec<Double> {
     return Double.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && ((type.isPrimitive() && type == Double.TYPE) || type.isAssignableFrom(Double.class));
   }
@@ -56,139 +56,18 @@ public class DoubleCodec implements Codec<Double> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Double decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Double decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
-    return decodeTextDouble(buf, length, column);
-  }
-
-  @SuppressWarnings("fallthrough")
-  public double decodeTextDouble(ReadableByteBuf buf, int length, Column column)
-      throws SQLDataException {
-    switch (column.getType()) {
-      case TINYINT:
-      case SMALLINT:
-      case MEDIUMINT:
-      case INT:
-      case BIGINT:
-      case FLOAT:
-      case DOUBLE:
-      case OLDDECIMAL:
-      case DECIMAL:
-      case YEAR:
-        return Double.valueOf(buf.readAscii(length));
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Double", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-        String str2 = buf.readString(length);
-        try {
-          return Double.valueOf(str2);
-        } catch (NumberFormatException nfe) {
-          throw new SQLDataException(String.format("value '%s' cannot be decoded as Double", str2));
-        }
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Double", column.getType()));
-    }
+    return column.decodeDoubleText(buf, length);
   }
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Double decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Double decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
-    return decodeBinaryDouble(buf, length, column);
-  }
-
-  @SuppressWarnings("fallthrough")
-  public double decodeBinaryDouble(ReadableByteBuf buf, int length, Column column)
-      throws SQLDataException {
-    switch (column.getType()) {
-      case TINYINT:
-        if (!column.isSigned()) {
-          return (double) buf.readUnsignedByte();
-        }
-        return (double) buf.readByte();
-
-      case YEAR:
-      case SMALLINT:
-        if (!column.isSigned()) {
-          return (double) buf.readUnsignedShort();
-        }
-        return (double) buf.readShort();
-
-      case MEDIUMINT:
-        double d;
-        d = column.isSigned() ? buf.readMedium() : buf.readUnsignedMedium();
-        buf.skip(); // MEDIUMINT is encoded on 4 bytes in exchanges !
-        return d;
-
-      case INT:
-        if (!column.isSigned()) {
-          return (double) buf.readUnsignedInt();
-        }
-        return (double) buf.readInt();
-
-      case BIGINT:
-        if (column.isSigned()) {
-          return (double) buf.readLong();
-        } else {
-          // need BIG ENDIAN, so reverse order
-          byte[] bb = new byte[8];
-          for (int i = 7; i >= 0; i--) {
-            bb[i] = buf.readByte();
-          }
-          return new BigInteger(1, bb).doubleValue();
-        }
-
-      case FLOAT:
-        return (double) buf.readFloat();
-
-      case DOUBLE:
-        return buf.readDouble();
-
-      case OLDDECIMAL:
-      case DECIMAL:
-        return new BigDecimal(buf.readAscii(length)).doubleValue();
-
-      case BLOB:
-      case TINYBLOB:
-      case MEDIUMBLOB:
-      case LONGBLOB:
-        if (column.isBinary()) {
-          buf.skip(length);
-          throw new SQLDataException(
-              String.format("Data type %s cannot be decoded as Double", column.getType()));
-        }
-        // expected fallthrough
-        // BLOB is considered as String if has a collation (this is TEXT column)
-
-      case VARCHAR:
-      case CHAR:
-        String str2 = buf.readString(length);
-        try {
-          return Double.valueOf(str2);
-        } catch (NumberFormatException nfe) {
-          throw new SQLDataException(String.format("value '%s' cannot be decoded as Double", str2));
-        }
-
-      default:
-        buf.skip(length);
-        throw new SQLDataException(
-            String.format("Data type %s cannot be decoded as Double", column.getType()));
-    }
+    return column.decodeDoubleBinary(buf, length);
   }
 
   @Override

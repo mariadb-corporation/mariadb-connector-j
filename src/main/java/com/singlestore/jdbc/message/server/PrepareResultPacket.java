@@ -7,7 +7,7 @@ package com.singlestore.jdbc.message.server;
 
 import com.singlestore.jdbc.ServerPreparedStatement;
 import com.singlestore.jdbc.client.Client;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Completion;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 public class PrepareResultPacket implements Completion, Prepare {
-  private final Column[] parameters;
-  private Column[] columns;
+  private final ColumnDecoder[] parameters;
+  private ColumnDecoder[] columns;
   /** prepare statement id */
   protected int statementId;
 
@@ -41,12 +41,12 @@ public class PrepareResultPacket implements Completion, Prepare {
     this.statementId = buffer.readInt();
     final int numColumns = buffer.readUnsignedShort();
     final int numParams = buffer.readUnsignedShort();
-    this.parameters = new Column[numParams];
-    this.columns = new Column[numColumns];
+    this.parameters = new ColumnDecoder[numParams];
+    this.columns = new ColumnDecoder[numColumns];
     if (numParams > 0) {
       for (int i = 0; i < numParams; i++) {
         parameters[i] =
-            new ColumnDefinitionPacket(
+            ColumnDecoder.decode(
                 reader.readPacket(false, trace),
                 (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
       }
@@ -57,7 +57,7 @@ public class PrepareResultPacket implements Completion, Prepare {
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
         columns[i] =
-            new ColumnDefinitionPacket(
+            ColumnDecoder.decode(
                 reader.readPacket(false, trace),
                 (context.getServerCapabilities() & Capabilities.EXTENDED_TYPE_INFO) > 0);
       }
@@ -98,15 +98,15 @@ public class PrepareResultPacket implements Completion, Prepare {
     return statementId;
   }
 
-  public Column[] getParameters() {
+  public ColumnDecoder[] getParameters() {
     return parameters;
   }
 
-  public Column[] getColumns() {
+  public ColumnDecoder[] getColumns() {
     return columns;
   }
 
-  public void setColumns(Column[] columns) {
+  public void setColumns(ColumnDecoder[] columns) {
     this.columns = columns;
   }
 }

@@ -5,10 +5,11 @@
 
 package com.singlestore.jdbc.plugin;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLDataException;
@@ -36,7 +37,7 @@ public interface Codec<T> {
    * @param type java return class
    * @return true if codec can decode it
    */
-  boolean canDecode(Column column, Class<?> type);
+  boolean canDecode(ColumnDecoder column, Class<?> type);
 
   /**
    * Can Codec encode the java object type
@@ -50,28 +51,34 @@ public interface Codec<T> {
    * Decode from a mysql packet text encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeText(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt fieldLength,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**
    * Decode from a mysql packet binary encoded a value to codec java type
    *
    * @param buffer mysql packet buffer
-   * @param length encoded value length
+   * @param fieldLength encoded value length
    * @param column server column metadata
    * @param cal calendar
    * @return decoded value
    * @throws SQLDataException if unexpected error occurs during decoding
    */
   T decodeBinary(
-      final ReadableByteBuf buffer, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buffer,
+      final MutableInt fieldLength,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException;
 
   /**

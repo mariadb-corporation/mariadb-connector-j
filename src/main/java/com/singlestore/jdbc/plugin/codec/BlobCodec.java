@@ -6,11 +6,12 @@
 package com.singlestore.jdbc.plugin.codec;
 
 import com.singlestore.jdbc.SingleStoreBlob;
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.ByteArrayOutputStream;
@@ -41,7 +42,7 @@ public class BlobCodec implements Codec<Blob> {
     return Blob.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(Blob.class);
   }
 
@@ -51,13 +52,13 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Blob decodeText(ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case CHAR:
       case VARCHAR:
         if (!column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format(
                   "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
@@ -69,15 +70,15 @@ public class BlobCodec implements Codec<Blob> {
       case BLOB:
       case GEOMETRY:
         if (!column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format(
                   "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
         }
-        return buf.readBlob(length);
+        return buf.readBlob(length.get());
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Blob", column.getType()));
     }
@@ -85,13 +86,14 @@ public class BlobCodec implements Codec<Blob> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public Blob decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public Blob decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case CHAR:
       case VARCHAR:
         if (!column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format(
                   "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
@@ -103,16 +105,16 @@ public class BlobCodec implements Codec<Blob> {
       case BLOB:
       case GEOMETRY:
         if (!column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format(
                   "Data type %s (not binary) cannot be decoded as Blob", column.getType()));
         }
-        buf.skip(length);
-        return new SingleStoreBlob(buf.buf(), buf.pos() - length, length);
+        buf.skip(length.get());
+        return new SingleStoreBlob(buf.buf(), buf.pos() - length.get(), length.get());
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as Blob", column.getType()));
     }

@@ -4,11 +4,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -29,7 +30,7 @@ public class UuidCodec implements Codec<UUID> {
     return UUID.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(UUID.class);
   }
 
@@ -38,9 +39,12 @@ public class UuidCodec implements Codec<UUID> {
   }
 
   public UUID decodeText(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
-    String val = buf.readString(length);
+    String val = buf.readString(length.get());
     try {
       return UUID.fromString(val);
     } catch (Throwable e) {
@@ -51,9 +55,12 @@ public class UuidCodec implements Codec<UUID> {
   }
 
   public UUID decodeBinary(
-      final ReadableByteBuf buf, final int length, final Column column, final Calendar cal)
+      final ReadableByteBuf buf,
+      final MutableInt length,
+      final ColumnDecoder column,
+      final Calendar cal)
       throws SQLDataException {
-    String val = buf.readString(length);
+    String val = buf.readString(length.get());
     try {
       return UUID.fromString(val);
     } catch (Throwable e) {

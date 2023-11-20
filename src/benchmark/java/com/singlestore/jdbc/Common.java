@@ -30,12 +30,12 @@ import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 @State(Scope.Benchmark)
-@Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
-@Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS, time = 1)
+@Warmup(iterations = 10, time = 1)
+@Measurement(iterations = 10, time = 1)
 @Fork(value = 5)
 @Threads(value = -1) // detecting CPU count
-@BenchmarkMode({Mode.All})
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
 public class Common {
 
   @State(Scope.Thread)

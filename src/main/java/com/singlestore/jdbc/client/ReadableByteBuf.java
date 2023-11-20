@@ -114,12 +114,20 @@ public interface ReadableByteBuf {
   int skipIdentifier();
 
   /**
-   * Fast long from text parsing
+   * Fast signed long parsing
    *
    * @param length data length
    * @return long value
    */
-  long atoi(int length);
+  long atoll(int length);
+
+  /**
+   * Fast unsigned long parsing
+   *
+   * @param length data length
+   * @return long value
+   */
+  long atoull(int length);
 
   /** @return encoded length */
   Integer readLength();

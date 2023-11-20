@@ -22,7 +22,7 @@ import com.singlestore.jdbc.client.socket.impl.CompressOutputStream;
 import com.singlestore.jdbc.client.socket.impl.PacketReader;
 import com.singlestore.jdbc.client.socket.impl.PacketWriter;
 import com.singlestore.jdbc.client.socket.impl.ReadAheadBufferedStream;
-import com.singlestore.jdbc.client.util.MutableInt;
+import com.singlestore.jdbc.client.util.MutableByte;
 import com.singlestore.jdbc.export.ExceptionFactory;
 import com.singlestore.jdbc.export.MaxAllowedPacketException;
 import com.singlestore.jdbc.export.Prepare;
@@ -66,8 +66,8 @@ public class StandardClient implements Client, AutoCloseable {
 
   protected final ExceptionFactory exceptionFactory;
   private Socket socket;
-  private final MutableInt sequence = new MutableInt();
-  private final MutableInt compressionSequence = new MutableInt();
+  private final MutableByte sequence = new MutableByte();
+  private final MutableByte compressionSequence = new MutableByte();
   private final ReentrantLock lock;
   private final Configuration conf;
   private final HostAddress hostAddress;

@@ -5,7 +5,7 @@
 
 package com.singlestore.jdbc;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.util.Parameters;
 import com.singlestore.jdbc.codec.NonNullParameter;
 import com.singlestore.jdbc.codec.Parameter;
@@ -134,7 +134,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     this.prepareResult = prepareResult;
   }
 
-  public Column[] getMeta() {
+  public ColumnDecoder[] getMeta() {
     return this.prepareResult.getColumns();
   }
 
@@ -143,7 +143,7 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
    *
    * @param ci metadata columns
    */
-  public void updateMeta(Column[] ci) {
+  public void updateMeta(ColumnDecoder[] ci) {
     this.prepareResult.setColumns(ci);
   }
 

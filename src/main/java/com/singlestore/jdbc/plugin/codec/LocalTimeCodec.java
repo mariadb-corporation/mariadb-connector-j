@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.sql.SQLDataException;
@@ -38,7 +39,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
           DataType.MEDIUMBLOB,
           DataType.LONGBLOB);
 
-  public static int[] parseTime(ReadableByteBuf buf, int length, Column column)
+  public static int[] parseTime(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
       throws SQLDataException {
     int initialPos = buf.pos();
     int[] parts = new int[5];
@@ -47,13 +48,13 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     int partLength = 0;
     byte b;
     int i = 0;
-    if (length > 0 && buf.getByte() == '-') {
+    if (length.get() > 0 && buf.getByte() == '-') {
       buf.skip();
       i++;
       parts[0] = -1;
     }
 
-    for (; i < length; i++) {
+    for (; i < length.get(); i++) {
       b = buf.readByte();
       if (b == ':' || b == '.') {
         idx++;
@@ -62,7 +63,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       }
       if (b < '0' || b > '9') {
         buf.pos(initialPos);
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         throw new SQLDataException(
             String.format("%s value '%s' cannot be decoded as Time", column.getType(), val));
       }
@@ -72,7 +73,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
     if (idx < 2) {
       buf.pos(initialPos);
-      String val = buf.readString(length);
+      String val = buf.readString(length.get());
       throw new SQLDataException(
           String.format("%s value '%s' cannot be decoded as Time", column.getType(), val));
     }
@@ -90,7 +91,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     return LocalTime.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(LocalTime.class);
   }
 
@@ -100,14 +101,15 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalTime decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalTime decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int[] parts;
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        parts = LocalDateTimeCodec.parseTimestamp(buf.readString(length));
+        parts = LocalDateTimeCodec.parseTimestamp(buf.readString(length.get()));
         if (parts == null) return null;
         return LocalTime.of(parts[3], parts[4], parts[5], parts[6]);
 
@@ -126,7 +128,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
@@ -135,7 +137,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
       case VARCHAR:
       case CHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           if (val.contains(" ")) {
             ZoneId tz =
@@ -153,7 +155,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
     }
@@ -161,7 +163,8 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public LocalTime decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public LocalTime decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     int hour = 0;
@@ -171,14 +174,14 @@ public class LocalTimeCodec implements Codec<LocalTime> {
     switch (column.getType()) {
       case TIMESTAMP:
       case DATETIME:
-        if (length == 0) return null;
+        if (length.get() == 0) return null;
         buf.skip(4); // skip year, month and day
-        if (length > 4) {
+        if (length.get() > 4) {
           hour = buf.readByte();
           minutes = buf.readByte();
           seconds = buf.readByte();
 
-          if (length > 7) {
+          if (length.get() > 7) {
             microseconds = buf.readInt();
           }
         }
@@ -186,13 +189,13 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
       case TIME:
         boolean negate = buf.readByte() == 1;
-        if (length > 4) {
+        if (length.get() > 4) {
           buf.skip(4); // skip days
-          if (length > 7) {
+          if (length.get() > 7) {
             hour = buf.readByte();
             minutes = buf.readByte();
             seconds = buf.readByte();
-            if (length > 8) {
+            if (length.get() > 8) {
               microseconds = buf.readInt();
             }
           }
@@ -209,7 +212,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
         }
@@ -218,7 +221,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
 
       case VARCHAR:
       case CHAR:
-        String val = buf.readString(length);
+        String val = buf.readString(length.get());
         try {
           if (val.contains(" ")) {
             ZoneId tz =
@@ -236,7 +239,7 @@ public class LocalTimeCodec implements Codec<LocalTime> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as LocalTime", column.getType()));
     }

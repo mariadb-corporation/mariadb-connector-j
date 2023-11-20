@@ -13,7 +13,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   private int limit;
   public byte[] buf;
-  private int pos;
+  public int pos;
 
   public StandardReadableByteBuf(byte[] buf, int limit) {
     this.pos = 0;
@@ -59,21 +59,22 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
 
   @Override
   public void skipLengthEncoded() {
-    int len = buf[pos++] & 0xff;
-    if (len < 251) {
-      pos += len;
-    } else {
-      switch (len) {
-        case 252:
-          skip(readUnsignedShort());
-          break;
-        case 253:
-          skip(readUnsignedMedium());
-          break;
-        case 254:
-          skip((int) (4 + readUnsignedInt()));
-          break;
-      }
+    byte len = buf[pos++];
+    switch (len) {
+      case (byte) 251:
+        return;
+      case (byte) 252:
+        skip(readUnsignedShort());
+        return;
+      case (byte) 253:
+        skip(readUnsignedMedium());
+        return;
+      case (byte) 254:
+        skip((int) (4 + readUnsignedInt()));
+        return;
+      default:
+        pos += len & 0xff;
+        return;
     }
   }
 
@@ -83,7 +84,7 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
   }
 
   @Override
-  public long atoi(int length) {
+  public long atoll(int length) {
     boolean negate = false;
     int idx = 0;
     long result = 0;
@@ -99,6 +100,14 @@ public final class StandardReadableByteBuf implements ReadableByteBuf {
     }
 
     return (negate) ? -1 * result : result;
+  }
+
+  public long atoull(int length) {
+    long result = 0;
+    for (int idx = 0; idx < length; idx++) {
+      result = result * 10 + buf[pos++] - 48;
+    }
+    return result;
   }
 
   public byte getByte() {

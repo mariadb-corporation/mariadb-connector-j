@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import com.singlestore.jdbc.util.constants.ServerStatus;
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class ByteArrayCodec implements Codec<byte[]> {
     return byte[].class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType())
         && ((type.isPrimitive() && type == Byte.TYPE && type.isArray())
             || type.isAssignableFrom(byte[].class));
@@ -49,12 +50,14 @@ public class ByteArrayCodec implements Codec<byte[]> {
   }
 
   @Override
-  public byte[] decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public byte[] decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }
 
-  private byte[] getBytes(ReadableByteBuf buf, int length, Column column) throws SQLDataException {
+  private byte[] getBytes(ReadableByteBuf buf, MutableInt length, ColumnDecoder column)
+      throws SQLDataException {
     switch (column.getType()) {
       case BLOB:
       case TINYBLOB:
@@ -64,19 +67,20 @@ public class ByteArrayCodec implements Codec<byte[]> {
       case CHAR:
       case VARCHAR:
       case GEOMETRY:
-        byte[] arr = new byte[length];
+        byte[] arr = new byte[length.get()];
         buf.readBytes(arr);
         return arr;
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as byte[]", column.getType()));
     }
   }
 
   @Override
-  public byte[] decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public byte[] decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     return getBytes(buf, length, column);
   }

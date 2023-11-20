@@ -5,11 +5,12 @@
 
 package com.singlestore.jdbc.plugin.codec;
 
-import com.singlestore.jdbc.client.Column;
+import com.singlestore.jdbc.client.ColumnDecoder;
 import com.singlestore.jdbc.client.Context;
 import com.singlestore.jdbc.client.DataType;
 import com.singlestore.jdbc.client.ReadableByteBuf;
 import com.singlestore.jdbc.client.socket.Writer;
+import com.singlestore.jdbc.client.util.MutableInt;
 import com.singlestore.jdbc.plugin.Codec;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -46,7 +47,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
     return BigDecimal.class.getName();
   }
 
-  public boolean canDecode(Column column, Class<?> type) {
+  public boolean canDecode(ColumnDecoder column, Class<?> type) {
     return COMPATIBLE_TYPES.contains(column.getType()) && type.isAssignableFrom(BigDecimal.class);
   }
 
@@ -56,7 +57,8 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public BigDecimal decodeText(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public BigDecimal decodeText(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
     switch (column.getType()) {
       case TINYINT:
@@ -69,14 +71,14 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case DECIMAL:
       case OLDDECIMAL:
       case YEAR:
-        return new BigDecimal(buf.readAscii(length));
+        return new BigDecimal(buf.readAscii(length.get()));
 
       case BLOB:
       case TINYBLOB:
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
         }
@@ -85,7 +87,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
       case VARCHAR:
       case CHAR:
-        String str = buf.readString(length);
+        String str = buf.readString(length.get());
         try {
           return new BigDecimal(str);
         } catch (NumberFormatException nfe) {
@@ -95,14 +97,14 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
       case BIT:
         long result = 0;
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length.get(); i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
         }
         return BigDecimal.valueOf(result);
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
     }
@@ -110,7 +112,8 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
   @Override
   @SuppressWarnings("fallthrough")
-  public BigDecimal decodeBinary(ReadableByteBuf buf, int length, Column column, Calendar cal)
+  public BigDecimal decodeBinary(
+      ReadableByteBuf buf, MutableInt length, ColumnDecoder column, Calendar cal)
       throws SQLDataException {
 
     switch (column.getType()) {
@@ -164,7 +167,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
 
       case BIT:
         long result = 0;
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < length.get(); i++) {
           byte b = buf.readByte();
           result = (result << 8) + (b & 0xff);
         }
@@ -175,7 +178,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case MEDIUMBLOB:
       case LONGBLOB:
         if (column.isBinary()) {
-          buf.skip(length);
+          buf.skip(length.get());
           throw new SQLDataException(
               String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
         }
@@ -186,7 +189,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
       case CHAR:
       case DECIMAL:
       case OLDDECIMAL:
-        String str = buf.readString(length);
+        String str = buf.readString(length.get());
         try {
           return new BigDecimal(str);
         } catch (NumberFormatException nfe) {
@@ -195,7 +198,7 @@ public class BigDecimalCodec implements Codec<BigDecimal> {
         }
 
       default:
-        buf.skip(length);
+        buf.skip(length.get());
         throw new SQLDataException(
             String.format("Data type %s cannot be decoded as BigDecimal", column.getType()));
     }
