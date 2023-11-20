@@ -22,7 +22,7 @@ cache:
     - $HOME/docker
     - $HOME/.m2
 
-env: local=0 RUN_LONG_TEST=true
+env: local=0 RUN_LONG_TEST=true PROFILE=default
 
 install:
   - |-
@@ -55,6 +55,9 @@ jobs:
     - env: srv=mariadb-es
       name: "ES latest"
       if: type = push AND fork = false
+    - env: srv=mariadb v=10.6 packet=40 PROFILE=java8
+      jdk: openjdk8
+      name: "CS 10.6 - openjdk 8"
 
     - stage: Enterprise
       env: srv=mariadb-es v=10.4
@@ -112,10 +115,16 @@ jobs:
       name: "CS build"
 
 script:
-  - mvn clean -Dmaven.test.skip
+  - mvn clean -Dmaven.test.skip -P ${PROFILE}
+  - |- 
+    if [ "java8" == "$PROFILE" ]; then
+      rm -R .mvn
+          java -version
+      mvn -version
+    fi
   - if [ -n "$BENCH" ] ; then mvn package -P bench -Dmaven.test.skip -Dmaven.javadoc.skip=true ; fi
   - if [ -n "$BENCH" ] ; then java -Duser.country=US -Duser.language=en -DTEST_PORT=$TEST_DB_PORT -DTEST_HOST=$TEST_DB_HOST -DTEST_USERNAME=$TEST_DB_USER -DTEST_PASSWORD=$TEST_DB_PASSWORD -jar target/benchmarks.jar; fi
-  - if [ -z "$BENCH" ] ; then MAVEN_SKIP_RC=true MAVEN_OPTS="-Xmx2g" mvn clean test -DjobId=${TRAVIS_JOB_ID}; fi
+  - if [ -z "$BENCH" ] ; then MAVEN_SKIP_RC=true MAVEN_OPTS="-Xmx2g" mvn clean test -P ${PROFILE} -DjobId=${TRAVIS_JOB_ID}; fi
 
 after_script:
   - bash <(curl -s https://codecov.io/bash)

@@ -60,6 +60,12 @@ public class UnixsocketTest extends Common {
     }
   }
 
+  public static long getPID() {
+    String processName =
+            java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+    return Long.parseLong(processName.split("@")[0]);
+  }
+
   @Test
   public void testConnectWithUnixSocketWhenDBNotUp() throws IOException {
     Assumptions.assumeTrue(!isWindows());
@@ -75,7 +81,7 @@ public class UnixsocketTest extends Common {
 
     Runtime rt = Runtime.getRuntime();
     // System.out.println("netstat-apnx | grep " + ProcessHandle.current().pid());
-    String[] commands = {"/bin/sh", "-c", "netstat -apnx | grep " + ProcessHandle.current().pid()};
+    String[] commands = {"/bin/sh", "-c", "netstat -apnx | grep " + getPID()};
     Process proc = rt.exec(commands);
 
     BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
