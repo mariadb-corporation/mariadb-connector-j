@@ -82,7 +82,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       if (ch == '`') {
         quotes++;
       } else {
-        sb.append("`".repeat(quotes / 2));
+        for (int j = 0; j < quotes / 2; j++) {
+          sb.append('`');
+        }
         if (quotes % 2 == 1) {
           if (ch == '.') {
             if (identifier.schema != null) {
