@@ -356,11 +356,11 @@
                         <version>3.10.1</version>
                         <configuration>
                             <showWarnings>true</showWarnings>
+                            <source>1.8</source>
+                            <target>1.8</target>
                             <compilerArgs>
                                 <arg>-Xlint:all,-options,-path,-processing</arg>
                             </compilerArgs>
-                            <source>1.8</source>
-                            <target>1.8</target>
                         </configuration>
                         <executions>
                             <execution>
@@ -379,6 +379,18 @@
                                     <release>9</release>
                                     <source>9</source>
                                     <target>9</target>
+                                    <compilerArgs>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                    </compilerArgs>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                                     </compileSourceRoots>
@@ -500,6 +512,18 @@
                                     <release>9</release>
                                     <source>9</source>
                                     <target>9</target>
+                                    <compilerArgs>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                                        <arg>--add-exports</arg>
+                                        <arg>jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                    </compilerArgs>
                                     <compileSourceRoots>
                                         <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                                     </compileSourceRoots>

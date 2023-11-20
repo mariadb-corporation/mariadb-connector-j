@@ -22,8 +22,6 @@ cache:
     - $HOME/docker
     - $HOME/.m2
 
-env: local=0 RUN_LONG_TEST=true PROFILE=default
-
 install:
   - |-
     case $TRAVIS_OS_NAME in
@@ -36,6 +34,9 @@ install:
         source connector-test-machine/launch.sh -t "$srv" -v "$v" -d testj -l "$local" -p "$packet"
         ;;
     esac
+
+env:
+  global: local=0 RUN_LONG_TEST=true PROFILE=default
 
 stages:
   - Minimal
@@ -115,7 +116,8 @@ jobs:
       name: "CS build"
 
 script:
-  - mvn clean -Dmaven.test.skip -P ${PROFILE}
+  - echo $PROFILE
+  - mvn clean -Dmaven.test.skip -P $PROFILE
   - |- 
     if [ "java8" == "$PROFILE" ]; then
       rm -R .mvn
