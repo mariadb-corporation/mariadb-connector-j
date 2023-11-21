@@ -41,8 +41,6 @@ public class StreamingResult extends Result {
 
   private final ReentrantLock lock;
   private int dataFetchTime;
-  private int fetchSize;
-
   /**
    * Constructor
    *
@@ -84,10 +82,10 @@ public class StreamingResult extends Result {
         resultSetType,
         closeOnCompletion,
         traceEnable,
-        false);
+        false,
+        fetchSize);
     this.lock = lock;
     this.dataFetchTime = 0;
-    this.fetchSize = fetchSize;
     this.data = new byte[Math.max(fetchSize, 10)][];
 
     addStreamingValue();
@@ -120,15 +118,15 @@ public class StreamingResult extends Result {
       // read only fetchSize values
       int fetchSizeTmp =
           (maxRows <= 0)
-              ? fetchSize
-              : Math.min(fetchSize, Math.max(0, (int) (maxRows - dataFetchTime * fetchSize)));
+              ? super.getFetchSize()
+              : Math.min(super.getFetchSize(), Math.max(0, (int) (maxRows - dataFetchTime * super.getFetchSize())));
       do {
         byte[] buf = reader.readPacket(traceEnable);
         readNext(buf);
         fetchSizeTmp--;
       } while (fetchSizeTmp > 0 && !loaded);
       dataFetchTime++;
-      if (maxRows > 0 && (long) dataFetchTime * fetchSize >= maxRows && !loaded) skipRemaining();
+      if (maxRows > 0 && (long) dataFetchTime * super.getFetchSize() >= maxRows && !loaded) skipRemaining();
     } catch (IOException ioe) {
       throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
     } finally {
@@ -380,21 +378,20 @@ public class StreamingResult extends Result {
   }
 
   @Override
-  public int getFetchSize() {
-    return this.fetchSize;
+  public int getFetchSize() throws SQLException {
+    checkClose();
+    return super.getFetchSize();
   }
 
   @Override
   public void setFetchSize(int fetchSize) throws SQLException {
-    if (fetchSize < 0) {
-      throw exceptionFactory.create(String.format("invalid fetch size %s", fetchSize));
-    }
+    super.setFetchSize(fetchSize);
+    checkClose();
     if (fetchSize == 0) {
       // fetch all results
       while (!loaded) {
         addStreamingValue();
       }
     }
-    this.fetchSize = fetchSize;
   }
 }

@@ -81,6 +81,7 @@ public abstract class Result implements ResultSet, Completion {
   /** row number limit */
   protected long maxRows;
   private Map<String, Integer> mapper = null;
+  private int fetchSize;
 
   /**
    * Constructor for server's data
@@ -95,6 +96,7 @@ public abstract class Result implements ResultSet, Completion {
    * @param closeOnCompletion close statement on completion
    * @param traceEnable logger enabled
    * @param forceAlias forced alias
+   * @param fetchSize fetch size
    */
   public Result(
       org.mariadb.jdbc.Statement stmt,
@@ -106,7 +108,8 @@ public abstract class Result implements ResultSet, Completion {
       int resultSetType,
       boolean closeOnCompletion,
       boolean traceEnable,
-      boolean forceAlias) {
+      boolean forceAlias,
+      int fetchSize) {
     this.maxRows = maxRows;
     this.statement = stmt;
     this.closeOnCompletion = closeOnCompletion;
@@ -118,6 +121,7 @@ public abstract class Result implements ResultSet, Completion {
     this.resultSetType = resultSetType;
     this.traceEnable = traceEnable;
     this.forceAlias = forceAlias;
+    this.fetchSize = fetchSize;
     if (binaryProtocol) {
       rowDecoder = BINARY_ROW_DECODER;
       nullBitmap = new byte[(maxIndex + 9) / 8];
@@ -1715,5 +1719,18 @@ public abstract class Result implements ResultSet, Completion {
       throw new SQLException(String.format("Unknown label '%s'. Possible value %s", label, keys));
     }
     return ind;
+  }
+
+  @Override
+  public int getFetchSize() throws SQLException {
+    return this.fetchSize;
+  }
+
+  @Override
+  public void setFetchSize(int fetchSize) throws SQLException {
+    if (fetchSize < 0) {
+      throw exceptionFactory.create(String.format("invalid fetch size %s", fetchSize));
+    }
+    this.fetchSize = fetchSize;
   }
 }

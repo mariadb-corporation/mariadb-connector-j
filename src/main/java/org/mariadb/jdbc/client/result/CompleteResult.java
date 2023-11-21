@@ -60,7 +60,8 @@ public class CompleteResult extends Result {
         resultSetType,
         closeOnCompletion,
         traceEnable,
-        false);
+        false,
+        0);
     this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
@@ -347,11 +348,12 @@ public class CompleteResult extends Result {
   @Override
   public int getFetchSize() throws SQLException {
     checkClose();
-    return 0;
+    return super.getFetchSize();
   }
 
   @Override
   public void setFetchSize(int rows) throws SQLException {
     checkClose();
+    super.setFetchSize(rows);
   }
 }
