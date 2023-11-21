@@ -29,6 +29,12 @@ public class UnixsocketTest extends Common {
     sharedConn.createStatement().execute("DROP TABLE IF  EXISTS test_table;");
   }
 
+  public static long getPID() {
+    String processName =
+            java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+    return Long.parseLong(processName.split("@")[0]);
+  }
+
   @BeforeEach
   void setup() throws SQLException {
     sharedConn.createStatement().execute("delete from test_table");
@@ -58,12 +64,6 @@ public class UnixsocketTest extends Common {
       assertEquals(50000, resultSet.getString("mediumtext_column").length());
       assertEquals(100, resultSet.getInt("int_column"));
     }
-  }
-
-  public static long getPID() {
-    String processName =
-            java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-    return Long.parseLong(processName.split("@")[0]);
   }
 
   @Test

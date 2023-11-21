@@ -1594,7 +1594,7 @@ public class Statement implements java.sql.Statement {
    * @param val string value to enquote
    * @return enquoted string value
    */
-  //@Override when not supporting java 8
+  // @Override when not supporting java 8
   public String enquoteLiteral(String val) {
     Matcher matcher = escapePattern.matcher(val);
     StringBuffer escapedVal = new StringBuffer("'");
@@ -1616,7 +1616,7 @@ public class Statement implements java.sql.Statement {
    * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
    * @throws SQLException if containing u0000 character
    */
-  //@Override when not supporting java 8
+  // @Override when not supporting java 8
   public String enquoteIdentifier(String identifier, boolean alwaysQuote) throws SQLException {
     if (isSimpleIdentifier(identifier)) {
       return alwaysQuote ? "`" + identifier + "`" : identifier;
@@ -1641,7 +1641,7 @@ public class Statement implements java.sql.Statement {
    * @return true if identifier doesn't have to be quoted
    * @see <a href="https://mariadb.com/kb/en/library/identifier-names/">mariadb identifier name</a>
    */
-  //@Override when not supporting java 8
+  // @Override when not supporting java 8
   public boolean isSimpleIdentifier(String identifier) {
     return identifier != null
         && !identifier.isEmpty()
@@ -1654,7 +1654,7 @@ public class Statement implements java.sql.Statement {
    * @param val value to enquote
    * @return enquoted String value
    */
-  //@Override when not supporting java 8
+  // @Override when not supporting java 8
   public String enquoteNCharLiteral(String val) {
     return "N'" + val.replace("'", "''") + "'";
   }

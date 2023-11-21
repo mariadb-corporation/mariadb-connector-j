@@ -9,32 +9,33 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 public class Do_1000_params extends Common {
 
-    private static final String sql;
-    static {
-        StringBuilder sb = new StringBuilder("do ?");
-        for (int i = 1; i < 1000; i++) {
-            sb.append(",?");
-        }
-        sql = sb.toString();
+  private static final String sql;
+
+  static {
+    StringBuilder sb = new StringBuilder("do ?");
+    for (int i = 1; i < 1000; i++) {
+      sb.append(",?");
     }
+    sql = sb.toString();
+  }
 
-    @Benchmark
-    public int text(MyState state) throws Throwable {
-        return run(state.connectionText);
+  @Benchmark
+  public int text(MyState state) throws Throwable {
+    return run(state.connectionText);
+  }
+
+  //    @Benchmark
+  //    public int binary(MyState state) throws Throwable {
+  //        return run(state.connectionBinary);
+  //    }
+
+  private int run(Connection con) throws Throwable {
+
+    try (PreparedStatement st = con.prepareStatement(sql)) {
+      for (int i = 1; i <= 1000; i++) {
+        st.setInt(i, i);
+      }
+      return st.executeUpdate();
     }
-
-//    @Benchmark
-//    public int binary(MyState state) throws Throwable {
-//        return run(state.connectionBinary);
-//    }
-
-    private int run(Connection con) throws Throwable {
-
-        try (PreparedStatement st = con.prepareStatement(sql)) {
-            for (int i = 1; i <= 1000; i++) {
-                st.setInt(i, i);
-            }
-            return st.executeUpdate();
-        }
-    }
+  }
 }

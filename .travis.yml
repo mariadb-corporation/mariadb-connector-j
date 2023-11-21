@@ -118,7 +118,7 @@ jobs:
 script:
   - echo $PROFILE
   - mvn clean -Dmaven.test.skip -P $PROFILE
-  - |- 
+  - |-
     if [ "java8" == "$PROFILE" ]; then
       rm -R .mvn
           java -version

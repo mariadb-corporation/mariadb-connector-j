@@ -56,30 +56,41 @@ public abstract class Result implements ResultSet, Completion {
 
   /** reusable row buffer decoder */
   protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
+
   protected final boolean traceEnable;
   private final int maxIndex;
   private final boolean closeOnCompletion;
   private final MutableInt fieldLength = new MutableInt(0);
   private final boolean forceAlias;
   private final byte[] nullBitmap;
+
   /** data size */
   protected int dataSize = 0;
+
   /** rows */
   protected byte[][] data;
+
   /** mutable field index */
   protected MutableInt fieldIndex = new MutableInt();
+
   /** is fully loaded */
   protected boolean loaded;
+
   /** is an output parameter result-set */
   protected boolean outputParameter;
+
   /** current row pointer */
   protected int rowPointer = -1;
+
   /** is result-set closed */
   protected boolean closed;
+
   /** statement that initiate this result */
   protected Statement statement;
+
   /** row number limit */
   protected long maxRows;
+
   private Map<String, Integer> mapper = null;
   private int fetchSize;
 

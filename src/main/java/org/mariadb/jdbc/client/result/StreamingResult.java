@@ -41,6 +41,7 @@ public class StreamingResult extends Result {
 
   private final ReentrantLock lock;
   private int dataFetchTime;
+
   /**
    * Constructor
    *
@@ -119,14 +120,17 @@ public class StreamingResult extends Result {
       int fetchSizeTmp =
           (maxRows <= 0)
               ? super.getFetchSize()
-              : Math.min(super.getFetchSize(), Math.max(0, (int) (maxRows - dataFetchTime * super.getFetchSize())));
+              : Math.min(
+                  super.getFetchSize(),
+                  Math.max(0, (int) (maxRows - dataFetchTime * super.getFetchSize())));
       do {
         byte[] buf = reader.readPacket(traceEnable);
         readNext(buf);
         fetchSizeTmp--;
       } while (fetchSizeTmp > 0 && !loaded);
       dataFetchTime++;
-      if (maxRows > 0 && (long) dataFetchTime * super.getFetchSize() >= maxRows && !loaded) skipRemaining();
+      if (maxRows > 0 && (long) dataFetchTime * super.getFetchSize() >= maxRows && !loaded)
+        skipRemaining();
     } catch (IOException ioe) {
       throw exceptionFactory.create("Error while streaming resultSet data", "08000", ioe);
     } finally {

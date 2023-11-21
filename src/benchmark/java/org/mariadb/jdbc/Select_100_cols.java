@@ -30,7 +30,6 @@ public class Select_100_cols extends Common {
     run(state.connectionBinaryNoPipeline, blackhole);
   }
 
-
   private void run(Connection con, Blackhole blackhole) throws Throwable {
 
     try (PreparedStatement prep = con.prepareStatement("select * FROM test100")) {
@@ -42,5 +41,4 @@ public class Select_100_cols extends Common {
       }
     }
   }
-
 }

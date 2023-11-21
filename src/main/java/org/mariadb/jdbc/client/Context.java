@@ -107,7 +107,7 @@ public interface Context {
    *
    * @return Column decoder function
    */
-  Function<ReadableByteBuf,ColumnDecoder> getColumnDecoderFunction();
+  Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction();
 
   /**
    * has server warnings

@@ -51,8 +51,7 @@ public class PrepareResultPacket implements Completion, Prepare {
           0x00,
           0x00
         };
-    CONSTANT_PARAMETER =
-        ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length));
+    CONSTANT_PARAMETER = ColumnDecoder.decode(new StandardReadableByteBuf(bytes, bytes.length));
   }
 
   private final ColumnDecoder[] parameters;
@@ -93,7 +92,10 @@ public class PrepareResultPacket implements Completion, Prepare {
     }
     if (numColumns > 0) {
       for (int i = 0; i < numColumns; i++) {
-        columns[i] = context.getColumnDecoderFunction().apply(new StandardReadableByteBuf(reader.readPacket(trace)));
+        columns[i] =
+            context
+                .getColumnDecoderFunction()
+                .apply(new StandardReadableByteBuf(reader.readPacket(trace)));
       }
       if (!context.isEofDeprecated()) {
         reader.skipPacket();

@@ -21,12 +21,13 @@ import org.openjdk.jmh.annotations.*;
 public class Common {
 
   // conf
-  public final static String host = System.getProperty("TEST_HOST", "localhost");
-  public final static int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
-  public final static String username = System.getProperty("TEST_USERNAME", "diego");
-  public final static String password = System.getProperty("TEST_PASSWORD", "password");
-  public final static String database = System.getProperty("TEST_DATABASE", "testj");
-  public final static String other = System.getProperty("TEST_OTHER", "");
+  public static final String host = System.getProperty("TEST_HOST", "localhost");
+  public static final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
+  public static final String username = System.getProperty("TEST_USERNAME", "diego");
+  public static final String password = System.getProperty("TEST_PASSWORD", "password");
+  public static final String database = System.getProperty("TEST_DATABASE", "testj");
+  public static final String other = System.getProperty("TEST_OTHER", "");
+
   static {
     new SetupData();
   }
@@ -43,11 +44,9 @@ public class Common {
     protected Connection connectionBinaryNoPipeline;
     protected Connection connectionBinaryNoCache;
 
-
-    @Param({
-            "mysql",
-            "mariadb"})
+    @Param({"mysql", "mariadb"})
     String driver;
+
     @Setup(Level.Trial)
     public void createConnections() throws Exception {
 
@@ -63,46 +62,69 @@ public class Common {
           throw new RuntimeException("wrong param");
       }
       try {
-        String jdbcBase = "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC%s";
+        String jdbcBase =
+            "jdbc:%s://%s:%s/%s?user=%s&password=%s&sslMode=DISABLED&useServerPrepStmts=%s&cachePrepStmts=%s&serverTimezone=UTC%s";
         String jdbcUrlText =
-                String.format(
-                        jdbcBase,
-                        driver, host, port, database, username, password, false, false, other);
+            String.format(
+                jdbcBase, driver, host, port, database, username, password, false, false, other);
         String jdbcUrlBinary =
-                String.format(
-                        jdbcBase,
-                        driver, host, port, database, username, password, true, true, other);
+            String.format(
+                jdbcBase, driver, host, port, database, username, password, true, true, other);
 
         connectionText =
             ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
                 .connect(jdbcUrlText, new Properties());
         String jdbcUrlTextRewrite =
-                String.format(
-                        jdbcBase,
-                        driver, host, port, database, username, password, false, false, "&rewriteBatchedStatements=true&useBulkStmts=false" + other);
+            String.format(
+                jdbcBase,
+                driver,
+                host,
+                port,
+                database,
+                username,
+                password,
+                false,
+                false,
+                "&rewriteBatchedStatements=true&useBulkStmts=false" + other);
         connectionTextRewrite =
-                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlTextRewrite, new Properties());
+            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                .connect(jdbcUrlTextRewrite, new Properties());
         connectionBinary =
-                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlBinary, new Properties());
+            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                .connect(jdbcUrlBinary, new Properties());
 
         String jdbcUrlBinaryNoCache =
-                String.format(
-                        jdbcBase,
-                        driver, host, port, database, username, password, true, false, "&prepStmtCacheSize=0" + other);
+            String.format(
+                jdbcBase,
+                driver,
+                host,
+                port,
+                database,
+                username,
+                password,
+                true,
+                false,
+                "&prepStmtCacheSize=0" + other);
 
         connectionBinaryNoCache =
-                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlBinaryNoCache, new Properties());
+            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                .connect(jdbcUrlBinaryNoCache, new Properties());
 
         String jdbcUrlBinaryNoCacheNoPipeline =
-                String.format(
-                        jdbcBase,
-                        driver, host, port, database, username, password, true, true, "&prepStmtCacheSize=0&cachePrepStmts=false&disablePipeline=true" + other);
+            String.format(
+                jdbcBase,
+                driver,
+                host,
+                port,
+                database,
+                username,
+                password,
+                true,
+                true,
+                "&prepStmtCacheSize=0&cachePrepStmts=false&disablePipeline=true" + other);
         connectionBinaryNoPipeline =
-                ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
-                        .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
+            ((java.sql.Driver) Class.forName(className).getDeclaredConstructor().newInstance())
+                .connect(jdbcUrlBinaryNoCacheNoPipeline, new Properties());
       } catch (SQLException e) {
         e.printStackTrace();
         throw new RuntimeException(e);
@@ -123,10 +145,10 @@ public class Common {
     static {
       try {
         try (Connection conn =
-                     DriverManager.getConnection(
-                             String.format(
-                                     "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
-                                     host, port, database, username, password))) {
+            DriverManager.getConnection(
+                String.format(
+                    "jdbc:mariadb://%s:%s/%s?user=%s&password=%s",
+                    host, port, database, username, password))) {
           Statement stmt = conn.createStatement();
           try {
             stmt.executeQuery("INSTALL SONAME 'ha_blackhole'");
@@ -137,7 +159,8 @@ public class Common {
           stmt.executeUpdate("DROP TABLE IF EXISTS test100");
 
           try {
-            stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256)) ENGINE = BLACKHOLE");
+            stmt.executeUpdate(
+                "CREATE TABLE testBlackHole (id INT, t VARCHAR(256)) ENGINE = BLACKHOLE");
           } catch (SQLException e) {
             stmt.executeUpdate("CREATE TABLE testBlackHole (id INT, t VARCHAR(256))");
           }
@@ -156,25 +179,20 @@ public class Common {
           stmt.execute("DROP TABLE IF EXISTS perfTestTextBatch");
           try {
             stmt.execute("INSTALL SONAME 'ha_blackhole'");
-          } catch (SQLException e) { }
-
-          String createTable = "CREATE TABLE perfTestTextBatch (id MEDIUMINT NOT NULL AUTO_INCREMENT,t0 text, PRIMARY KEY (id)) COLLATE='utf8mb4_unicode_ci'";
-          try {
-            stmt.execute(createTable + " ENGINE = BLACKHOLE");
-          } catch (SQLException e){
-            stmt.execute(createTable);
+          } catch (SQLException e) {
           }
 
+          String createTable =
+              "CREATE TABLE perfTestTextBatch (id MEDIUMINT NOT NULL AUTO_INCREMENT,t0 text, PRIMARY KEY (id)) COLLATE='utf8mb4_unicode_ci'";
+          try {
+            stmt.execute(createTable + " ENGINE = BLACKHOLE");
+          } catch (SQLException e) {
+            stmt.execute(createTable);
+          }
         }
       } catch (SQLException e) {
         e.printStackTrace();
       }
     }
   }
-
-
-
-
-
-
 }

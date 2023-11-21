@@ -2718,57 +2718,57 @@ public class DatabaseMetadataTest extends Common {
     }
   }
 
-
   @Test
   public void testTemporaryTables() throws SQLException {
-    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11,2,0));
+    Assumptions.assumeTrue(isMariaDBServer() && minVersion(11, 2, 0));
     Assumptions.assumeTrue(
-            !"mariadb-es".equals(System.getenv("srv"))
-    && !"mariadb-es-test".equals(System.getenv("srv")));
+        !"mariadb-es".equals(System.getenv("srv"))
+            && !"mariadb-es-test".equals(System.getenv("srv")));
 
     java.sql.Statement stmt = sharedConn.createStatement();
     stmt.execute("create temporary table testTemporaryTables (b int)");
     try (Connection con = createCon()) {
       java.sql.Statement ss = con.createStatement();
-      ResultSet rr = ss.executeQuery("select table_schema, table_name, table_type, temporary " +
-              "from information_schema.tables " +
-              "where TABLE_NAME = 'testTemporaryTables'");
+      ResultSet rr =
+          ss.executeQuery(
+              "select table_schema, table_name, table_type, temporary "
+                  + "from information_schema.tables "
+                  + "where TABLE_NAME = 'testTemporaryTables'");
       assertFalse(rr.next());
     }
     DatabaseMetaData dbmd = sharedConn.getMetaData();
 
     ResultSet rs = dbmd.getTables(null, null, "testTemporary%", null);
     assertTrue(rs.next());
-    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
 
-    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"LOCAL TEMPORARY"});
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"LOCAL TEMPORARY"});
     assertTrue(rs.next());
-    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
 
-    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY"});
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TEMPORARY"});
     assertTrue(rs.next());
-    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
 
-    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TABLE"});
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TABLE"});
     assertFalse(rs.next());
 
-    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY", "TABLE"});
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TEMPORARY", "TABLE"});
     assertTrue(rs.next());
-    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
 
-    rs = dbmd.getTables(null, null, "testTemporary%",  new String[]{"TEMPORARY", null, "TABLE"});
+    rs = dbmd.getTables(null, null, "testTemporary%", new String[] {"TEMPORARY", null, "TABLE"});
     assertTrue(rs.next());
-    assertEquals("testtemporarytables",rs.getString("TABLE_NAME").toLowerCase());
+    assertEquals("testtemporarytables", rs.getString("TABLE_NAME").toLowerCase());
     assertEquals("LOCAL TEMPORARY", rs.getString("TABLE_TYPE"));
     assertFalse(rs.next());
   }
-
 }

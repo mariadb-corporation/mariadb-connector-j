@@ -10,7 +10,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import org.mariadb.jdbc.Configuration;
-import org.mariadb.jdbc.client.column.BigDecimalColumn;
 import org.mariadb.jdbc.client.column.UuidColumn;
 import org.mariadb.jdbc.client.impl.StandardReadableByteBuf;
 import org.mariadb.jdbc.client.util.MutableInt;

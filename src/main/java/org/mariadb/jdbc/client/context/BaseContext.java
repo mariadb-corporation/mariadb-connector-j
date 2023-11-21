@@ -22,7 +22,7 @@ public class BaseContext implements Context {
   private final ServerVersion version;
   private final boolean eofDeprecated;
   private final boolean skipMeta;
-  private final Function<ReadableByteBuf,ColumnDecoder> columnDecoderFunction;
+  private final Function<ReadableByteBuf, ColumnDecoder> columnDecoderFunction;
   private final Configuration conf;
   private final ExceptionFactory exceptionFactory;
 
@@ -76,7 +76,10 @@ public class BaseContext implements Context {
     this.clientCapabilities = clientCapabilities;
     this.eofDeprecated = hasClientCapability(Capabilities.CLIENT_DEPRECATE_EOF);
     this.skipMeta = hasClientCapability(Capabilities.CACHE_METADATA);
-    this.columnDecoderFunction = hasClientCapability(Capabilities.EXTENDED_TYPE_INFO) ? ColumnDecoder::decode : ColumnDecoder::decodeStd;
+    this.columnDecoderFunction =
+        hasClientCapability(Capabilities.EXTENDED_TYPE_INFO)
+            ? ColumnDecoder::decode
+            : ColumnDecoder::decodeStd;
     this.conf = conf;
     this.database = conf.database();
     this.exceptionFactory = exceptionFactory;
@@ -131,7 +134,7 @@ public class BaseContext implements Context {
     return eofDeprecated;
   }
 
-  public Function<ReadableByteBuf,ColumnDecoder> getColumnDecoderFunction() {
+  public Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction() {
     return columnDecoderFunction;
   }
 
