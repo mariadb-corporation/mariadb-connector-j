@@ -471,6 +471,25 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void testNegativeFetchSize() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testNegativeFetchSize");
+      stmt.execute(
+          "CREATE TABLE testNegativeFetchSize(id INT PRIMARY KEY AUTO_INCREMENT,value FLOAT)");
+      stmt.addBatch("INSERT INTO testNegativeFetchSize (value)  VALUES(0.05)");
+      stmt.addBatch("DELETE FROM testNegativeFetchSize WHERE id <= 2");
+      stmt.addBatch("INSERT INTO testNegativeFetchSize (value) VALUES(0.03)");
+      stmt.executeBatch();
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertThrowsContains(
+            SQLSyntaxErrorException.class,
+            () -> rs.setFetchSize(-2),
+            "invalid fetch size -2");
+      }
+    }
+  }
+
+  @Test
   public void largeMaxRows() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     assertEquals(0L, stmt.getLargeMaxRows());
