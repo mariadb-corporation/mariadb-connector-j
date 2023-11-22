@@ -482,10 +482,27 @@ public class StatementTest extends Common {
       stmt.executeBatch();
       try (ResultSet rs = stmt.getGeneratedKeys()) {
         assertThrowsContains(
-            SQLSyntaxErrorException.class,
-            () -> rs.setFetchSize(-2),
-            "invalid fetch size -2");
+            SQLSyntaxErrorException.class, () -> rs.setFetchSize(-2), "invalid fetch size -2");
       }
+    }
+  }
+
+  @Test
+  public void testHugeFetchSize() throws SQLException {
+    Assumptions.assumeTrue(isMariaDBServer());
+    try (PreparedStatement stmt =
+        sharedConn.prepareStatement(
+            "SELECT seq from seq_1_to_20000",
+            ResultSet.TYPE_SCROLL_SENSITIVE,
+            ResultSet.CONCUR_READ_ONLY,
+            ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+      stmt.setFetchSize(Integer.MAX_VALUE);
+      int i = 0;
+      try (ResultSet rs = stmt.executeQuery()) {
+        rs.setFetchSize(Integer.MAX_VALUE);
+        while (rs.next()) i++;
+      }
+      assertEquals(20000, i);
     }
   }
 

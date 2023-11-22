@@ -38,9 +38,10 @@ import org.mariadb.jdbc.client.socket.Reader;
  * execute the next query. This can lead to OutOfMemoryError if not handled.
  */
 public class StreamingResult extends Result {
-
+  private static final int MAX_FETCH_SIZE = 16384;
   private final ReentrantLock lock;
   private int dataFetchTime;
+  private int requestedFetchSize;
 
   /**
    * Constructor
@@ -87,8 +88,8 @@ public class StreamingResult extends Result {
         fetchSize);
     this.lock = lock;
     this.dataFetchTime = 0;
-    this.data = new byte[Math.max(fetchSize, 10)][];
-
+    this.requestedFetchSize = fetchSize;
+    this.data = new byte[Math.min(MAX_FETCH_SIZE, Math.max(fetchSize, 10))][];
     addStreamingValue();
   }
 
@@ -384,16 +385,22 @@ public class StreamingResult extends Result {
   @Override
   public int getFetchSize() throws SQLException {
     checkClose();
-    return super.getFetchSize();
+    return requestedFetchSize;
   }
 
   @Override
   public void setFetchSize(int fetchSize) throws SQLException {
-    super.setFetchSize(fetchSize);
+    // ensure huge fetch size won't create OOM because of array size exceeding VM limit
+    // when using fetchSize with value different from 0, value must be small because goal is to
+    // ensure not having too
+    // much data in memory
+    // so fetch size when explicitly different from 0 is limited to 16K rows
+    super.setFetchSize(Math.min(MAX_FETCH_SIZE, fetchSize));
+    this.requestedFetchSize = fetchSize;
     checkClose();
     if (fetchSize == 0) {
       // fetch all results
-      while (!loaded) {
+      while (!this.loaded) {
         addStreamingValue();
       }
     }
