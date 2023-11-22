@@ -161,7 +161,7 @@ public class Statement implements java.sql.Statement {
     executeInternal(sql, Statement.NO_GENERATED_KEYS);
     currResult = results.remove(0);
     if (currResult instanceof Result) return (Result) currResult;
-    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
   }
 
   /**
@@ -906,7 +906,8 @@ public class Statement implements java.sql.Statement {
       }
     }
     if (insertIds.isEmpty()) {
-      return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
+      return new CompleteResult(
+          new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
     }
 
     String[][] ids = insertIds.toArray(new String[0][]);
@@ -915,7 +916,8 @@ public class Statement implements java.sql.Statement {
         DataType.BIGINT,
         ids,
         con.getContext(),
-        ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED);
+        ColumnFlags.AUTO_INCREMENT | ColumnFlags.UNSIGNED,
+        resultSetType);
   }
 
   /**

@@ -337,7 +337,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           return result;
         });
     return CompleteResult.createResultSet(
-        columnNames, dataTypes, arr, connection.getContext(), ColumnFlags.PRIMARY_KEY);
+        columnNames,
+        dataTypes,
+        arr,
+        connection.getContext(),
+        ColumnFlags.PRIMARY_KEY,
+        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   private Map<String[], String> getExtImportedKeys(
@@ -547,7 +552,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt = connection.createStatement();
+    Statement stmt =
+        connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     CompleteResult rs = (CompleteResult) stmt.executeQuery(sql);
     rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
     rs.useAliasAsName();
@@ -3406,7 +3412,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     };
 
-    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames,
+        dataTypes,
+        data,
+        connection.getContext(),
+        0,
+        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**
@@ -3920,7 +3932,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
         };
 
-    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames, types, data, connection.getContext(), 0, ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**

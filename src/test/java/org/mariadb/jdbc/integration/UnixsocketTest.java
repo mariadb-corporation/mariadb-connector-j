@@ -30,8 +30,7 @@ public class UnixsocketTest extends Common {
   }
 
   public static long getPID() {
-    String processName =
-            java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+    String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
     return Long.parseLong(processName.split("@")[0]);
   }
 

@@ -140,6 +140,9 @@ public class DatabaseMetadataTest extends Common {
   public void primaryKeysTest() throws SQLException {
     DatabaseMetaData meta = sharedConn.getMetaData();
     ResultSet rs = meta.getPrimaryKeys(sharedConn.getCatalog(), null, "dbpk_test");
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+
     int counter = 0;
     while (rs.next()) {
       counter++;
@@ -253,6 +256,8 @@ public class DatabaseMetadataTest extends Common {
             + "RETURN CONCAT('Hello, ',s,'!')");
     stmt.execute("START TRANSACTION"); // if MAXSCALE ensure using WRITER
     ResultSet rs = meta.getFunctionColumns(null, null, "hello", null);
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
 
     assertTrue(rs.next());
     /* First row is for return value */
@@ -447,7 +452,8 @@ public class DatabaseMetadataTest extends Common {
     for (int i = 0; i < 2; i++) {
       ResultSet rs = i == 0 ? rs1 : rs2;
       assertTrue(rs.next());
-
+      Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+      Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
       assertEquals(useCatalog ? "t1" : "def", rs.getString("PKTABLE_CAT"));
       assertEquals(useCatalog ? null : "t1", rs.getString("PKTABLE_SCHEM"));
       assertEquals("product", rs.getString("PKTABLE_NAME"));
@@ -586,6 +592,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getExportedKeys(sharedConn.getCatalog(), null, "cross%");
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString("PKTABLE_CAT"));
     assertNull(rs.getString("PKTABLE_SCHEM"));
@@ -744,6 +752,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getImportedKeys(sharedConn.getCatalog(), null, "fore_key0");
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     int counter = 0;
     while (rs.next()) {
       assertEquals("id", rs.getString("pkcolumn_name"));
@@ -777,6 +787,8 @@ public class DatabaseMetadataTest extends Common {
     try (Connection con = createCon("&useCatalogTerm=Schema")) {
       dbmd = con.getMetaData();
       rs = dbmd.getCatalogs();
+      Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+      Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
       assertFalse(rs.next());
     }
   }
@@ -799,7 +811,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "prim_key", null);
-
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     assertTrue(rs.next());
     rs = dbmd.getTables("", null, "prim_key", null);
     assertTrue(rs.next());
@@ -889,7 +902,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "ta\nble'getcolumns", null);
-
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     assertTrue(rs.next());
     assertEquals(sharedConn.getCatalog(), rs.getString(1)); // TABLE_CAT
     assertNull(rs.getString(2)); // TABLE_SCHEM
@@ -1258,6 +1272,8 @@ public class DatabaseMetadataTest extends Common {
   }
 
   private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
+    Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
     ResultSetMetaData rsmd = rs.getMetaData();
     String[] tokens = spec.split(",");
 

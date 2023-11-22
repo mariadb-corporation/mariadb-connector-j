@@ -448,6 +448,29 @@ public class StatementTest extends Common {
   }
 
   @Test
+  public void getGeneratedKeysType() throws SQLException {
+    try (java.sql.Statement stmt =
+        sharedConn.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_UPDATABLE,
+            ResultSet.CLOSE_CURSORS_AT_COMMIT)) {
+      stmt.addBatch("DROP TABLE IF EXISTS table0_0;");
+      stmt.addBatch("CREATE TABLE table0_0(id INT AUTO_INCREMENT PRIMARY KEY,value INT);");
+      stmt.addBatch("INSERT INTO table0_0 VALUES(1, -179653912)");
+      stmt.addBatch("INSERT INTO table0_0 VALUES(2, 1207965915)");
+      stmt.executeBatch();
+      stmt.executeUpdate(
+          "INSERT INTO table0_0 (value) VALUES(667711856)", Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+        Assertions.assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+        Assertions.assertEquals(ResultSet.CONCUR_UPDATABLE, stmt.getResultSetConcurrency());
+        Assertions.assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
+      }
+    }
+  }
+
+  @Test
   public void largeMaxRows() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     assertEquals(0L, stmt.getLargeMaxRows());

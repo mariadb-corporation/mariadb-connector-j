@@ -109,9 +109,11 @@ public class CompleteResult extends Result {
    * @param metadataList metadata
    * @param data result-set data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public CompleteResult(ColumnDecoder[] metadataList, byte[][] data, Context context) {
-    super(metadataList, data, context);
+  public CompleteResult(
+      ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
+    super(metadataList, data, context, resultSetType);
   }
 
   /**
@@ -122,12 +124,23 @@ public class CompleteResult extends Result {
    * @param data values
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return result-set
    */
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[][] data, Context context, int flags) {
+      String columnName,
+      DataType columnType,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
     return createResultSet(
-        new String[] {columnName}, new DataType[] {columnType}, data, context, flags);
+        new String[] {columnName},
+        new DataType[] {columnType},
+        data,
+        context,
+        flags,
+        resultSetType);
   }
 
   /**
@@ -141,10 +154,16 @@ public class CompleteResult extends Result {
    *     values that are represented as "1" or "0" strings
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return resultset
    */
   public static ResultSet createResultSet(
-      String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
+      String[] columnNames,
+      DataType[] columnTypes,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
 
     int columnNameLength = columnNames.length;
     ColumnDecoder[] columns = new ColumnDecoder[columnNameLength];
@@ -178,7 +197,7 @@ public class CompleteResult extends Result {
       byte[] bb = baos.toByteArray();
       rows.add(bb);
     }
-    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context);
+    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
   }
 
   public CompleteResult useAliasAsName() {

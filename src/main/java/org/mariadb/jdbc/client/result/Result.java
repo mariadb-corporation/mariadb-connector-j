@@ -164,8 +164,9 @@ public abstract class Result implements ResultSet, Completion {
    * @param metadataList column metadata
    * @param data raw data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context) {
+  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
@@ -175,7 +176,7 @@ public abstract class Result implements ResultSet, Completion {
     this.data = data;
     this.dataSize = data.length;
     this.statement = null;
-    this.resultSetType = TYPE_FORWARD_ONLY;
+    this.resultSetType = resultSetType;
     this.closeOnCompletion = false;
     this.traceEnable = false;
     this.rowDecoder = TEXT_ROW_DECODER;
