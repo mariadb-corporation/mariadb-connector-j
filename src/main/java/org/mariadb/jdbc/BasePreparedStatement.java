@@ -601,6 +601,12 @@ public abstract class BasePreparedStatement extends Statement implements Prepare
     parameters = new ParameterList();
   }
 
+  @Override
+  public void clearBatch() throws SQLException {
+    batchParameters = new ArrayList<>();
+    super.clearBatch();
+  }
+
   /**
    * Sets the value of the designated parameter with the given object.
    *
