@@ -14,8 +14,6 @@
 * CONJ-1127 Statement.getResultSetType () failed to change the result set type
 * CONJ-1128 Setting Negative Fetch Size on ResultSet Without Throwing Error
 
-## [3.2.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.2.0) (Aug 2023)
-
 ## [3.3.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.0) (Nov 2023)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.2.0...3.3.0)
