@@ -480,6 +480,12 @@
                     <artifactId>HikariCP</artifactId>
                     <version>5.0.1</version>
                 </dependency>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>${logback.version}</version>
+                    <scope>test</scope>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>

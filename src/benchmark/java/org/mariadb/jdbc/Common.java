@@ -23,8 +23,8 @@ public class Common {
   // conf
   public static final String host = System.getProperty("TEST_HOST", "localhost");
   public static final int port = Integer.parseInt(System.getProperty("TEST_PORT", "3306"));
-  public static final String username = System.getProperty("TEST_USERNAME", "diego");
-  public static final String password = System.getProperty("TEST_PASSWORD", "password");
+  public static final String username = System.getProperty("TEST_USERNAME", "root");
+  public static final String password = System.getProperty("TEST_PASSWORD", "");
   public static final String database = System.getProperty("TEST_DATABASE", "testj");
   public static final String other = System.getProperty("TEST_OTHER", "");
 
