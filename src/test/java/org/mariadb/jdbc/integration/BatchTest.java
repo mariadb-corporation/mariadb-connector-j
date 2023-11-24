@@ -36,7 +36,8 @@ public class BatchTest extends Common {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS batchClear");
     stmt.execute("CREATE TABLE batchClear(c0 VARCHAR(16))");
-    try (PreparedStatement prep = sharedConn.prepareStatement("INSERT INTO batchClear VALUES (?)")) {
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement("INSERT INTO batchClear VALUES (?)")) {
       prep.setString(1, "1");
       prep.addBatch();
 
