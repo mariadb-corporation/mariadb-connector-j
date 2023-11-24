@@ -1,5 +1,21 @@
 # Change Log
 
+## [3.3.1](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.1) (Nov 2023)
+
+[Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.3.0...3.3.1)
+
+##### Bugs Fixed
+
+* CONJ-1120 java 8 compatibility error in 3.3.0
+* CONJ-1123 missing OSGi javax.crypto dependency
+* CONJ-1124 ensure not having OOM when setting huge fetch size
+* CONJ-1109 Regression in clearBatch() for parameterized statements
+* CONJ-1126 setting fetchSize directly on a ResultSet object does not reflect the expected change
+* CONJ-1127 Statement.getResultSetType () failed to change the result set type
+* CONJ-1128 Setting Negative Fetch Size on ResultSet Without Throwing Error
+
+## [3.2.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.2.0) (Aug 2023)
+
 ## [3.3.0](https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.3.0) (Nov 2023)
 
 [Full Changelog](https://github.com/mariadb-corporation/mariadb-connector-j/compare/3.2.0...3.3.0)
