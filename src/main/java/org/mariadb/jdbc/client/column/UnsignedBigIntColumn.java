@@ -39,7 +39,26 @@ public class UnsignedBigIntColumn extends ColumnDefinitionPacket implements Colu
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected UnsignedBigIntColumn(UnsignedBigIntColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public UnsignedBigIntColumn useAliasAsName() {
+    return new UnsignedBigIntColumn(this);
   }
 
   public String defaultClassname(Configuration conf) {

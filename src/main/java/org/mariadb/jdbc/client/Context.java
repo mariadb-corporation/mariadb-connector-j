@@ -3,6 +3,7 @@
 // Copyright (c) 2015-2023 MariaDB Corporation Ab
 package org.mariadb.jdbc.client;
 
+import java.util.function.Function;
 import org.mariadb.jdbc.Configuration;
 import org.mariadb.jdbc.export.ExceptionFactory;
 
@@ -102,11 +103,11 @@ public interface Context {
   boolean canSkipMeta();
 
   /**
-   * Does server metadata exchange extended information
+   * Column decoder function
    *
-   * @return use metadata extended information
+   * @return Column decoder function
    */
-  boolean isExtendedInfo();
+  Function<ReadableByteBuf, ColumnDecoder> getColumnDecoderFunction();
 
   /**
    * has server warnings

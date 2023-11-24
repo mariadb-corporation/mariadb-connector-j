@@ -40,7 +40,26 @@ public class UuidColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected UuidColumn(UuidColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public UuidColumn useAliasAsName() {
+    return new UuidColumn(this);
   }
 
   public String defaultClassname(Configuration conf) {

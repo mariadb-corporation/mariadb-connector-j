@@ -29,6 +29,11 @@ public class UnixsocketTest extends Common {
     sharedConn.createStatement().execute("DROP TABLE IF  EXISTS test_table;");
   }
 
+  public static long getPID() {
+    String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
+    return Long.parseLong(processName.split("@")[0]);
+  }
+
   @BeforeEach
   void setup() throws SQLException {
     sharedConn.createStatement().execute("delete from test_table");
@@ -75,7 +80,7 @@ public class UnixsocketTest extends Common {
 
     Runtime rt = Runtime.getRuntime();
     // System.out.println("netstat-apnx | grep " + ProcessHandle.current().pid());
-    String[] commands = {"/bin/sh", "-c", "netstat -apnx | grep " + ProcessHandle.current().pid()};
+    String[] commands = {"/bin/sh", "-c", "netstat -apnx | grep " + getPID()};
     Process proc = rt.exec(commands);
 
     BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));

@@ -39,7 +39,26 @@ public class TimeColumn extends ColumnDefinitionPacket implements ColumnDecoder 
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected TimeColumn(TimeColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public TimeColumn useAliasAsName() {
+    return new TimeColumn(this);
   }
 
   public String defaultClassname(Configuration conf) {

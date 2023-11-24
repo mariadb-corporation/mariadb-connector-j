@@ -21,7 +21,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Constructor
    *
-   * Implementation doesn't use synchronized/semaphore because all used are already locked by
+   * <p>Implementation doesn't use synchronized/semaphore because all used are already locked by
    * Statement/PreparedStatement Reentrant lock
    *
    * @param in socket input stream

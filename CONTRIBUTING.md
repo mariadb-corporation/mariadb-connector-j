@@ -14,8 +14,8 @@ them on your own before continuing.
 
 * At least one GPG Key see https://help.github.com/en/articles/generating-a-new-gpg-key
 * [Oracle JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html) (
-	with [JCE policies](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html) if using
-	TLS/SSL)
+  with [JCE policies](http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html) if using
+  TLS/SSL)
 * IDE (eclipse / netbean / intelliJ) with maven and GIT plugins
 
 # Fork source
@@ -69,7 +69,7 @@ parameters :
 jdk:
 
 * oraclejdk8
-	and if your work is on develop-jre6 branch
+  and if your work is on develop-jre6 branch
 * openjdk6
 * openjdk7
 

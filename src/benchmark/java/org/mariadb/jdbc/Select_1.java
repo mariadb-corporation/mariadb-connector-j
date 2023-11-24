@@ -12,9 +12,10 @@ public class Select_1 extends Common {
   @Benchmark
   public int run(MyState state) throws Throwable {
     try (Statement st = state.connectionText.createStatement()) {
-      ResultSet rs = st.executeQuery("select 1");
-      rs.next();
-      return rs.getInt(1);
+      try (ResultSet rs = st.executeQuery("select 1")) {
+        rs.next();
+        return rs.getInt(1);
+      }
     }
   }
 }

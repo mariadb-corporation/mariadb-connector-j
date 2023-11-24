@@ -32,7 +32,13 @@ public class CompleteResultTest extends Common {
           }
         };
     ResultSet rs =
-        CompleteResult.createResultSet(columnNames, columnTypes, data, sharedConn.getContext(), 0);
+        CompleteResult.createResultSet(
+            columnNames,
+            columnTypes,
+            data,
+            sharedConn.getContext(),
+            0,
+            ResultSet.TYPE_SCROLL_INSENSITIVE);
     assertTrue(rs.next());
     assertEquals(data[0][0], rs.getString(1));
     assertEquals(data[0][1], rs.getString(2));

@@ -57,9 +57,12 @@ public abstract class Result implements ResultSet, Completion {
   /** reusable row buffer decoder */
   protected final StandardReadableByteBuf rowBuf = new StandardReadableByteBuf(null, 0);
 
+  protected final boolean traceEnable;
   private final int maxIndex;
   private final boolean closeOnCompletion;
-  protected final boolean traceEnable;
+  private final MutableInt fieldLength = new MutableInt(0);
+  private final boolean forceAlias;
+  private final byte[] nullBitmap;
 
   /** data size */
   protected int dataSize = 0;
@@ -88,10 +91,8 @@ public abstract class Result implements ResultSet, Completion {
   /** row number limit */
   protected long maxRows;
 
-  private final MutableInt fieldLength = new MutableInt(0);
-  private boolean forceAlias;
-  private byte[] nullBitmap;
   private Map<String, Integer> mapper = null;
+  private int fetchSize;
 
   /**
    * Constructor for server's data
@@ -105,6 +106,8 @@ public abstract class Result implements ResultSet, Completion {
    * @param resultSetType result-set type
    * @param closeOnCompletion close statement on completion
    * @param traceEnable logger enabled
+   * @param forceAlias forced alias
+   * @param fetchSize fetch size
    */
   public Result(
       org.mariadb.jdbc.Statement stmt,
@@ -115,7 +118,9 @@ public abstract class Result implements ResultSet, Completion {
       Context context,
       int resultSetType,
       boolean closeOnCompletion,
-      boolean traceEnable) {
+      boolean traceEnable,
+      boolean forceAlias,
+      int fetchSize) {
     this.maxRows = maxRows;
     this.statement = stmt;
     this.closeOnCompletion = closeOnCompletion;
@@ -126,12 +131,31 @@ public abstract class Result implements ResultSet, Completion {
     this.context = context;
     this.resultSetType = resultSetType;
     this.traceEnable = traceEnable;
+    this.forceAlias = forceAlias;
+    this.fetchSize = fetchSize;
     if (binaryProtocol) {
       rowDecoder = BINARY_ROW_DECODER;
       nullBitmap = new byte[(maxIndex + 9) / 8];
     } else {
       rowDecoder = TEXT_ROW_DECODER;
+      nullBitmap = null;
     }
+  }
+
+  protected Result(ColumnDecoder[] metadataList, Result prev) {
+    this.maxRows = prev.maxRows;
+    this.statement = prev.statement;
+    this.closeOnCompletion = prev.closeOnCompletion;
+    this.metadataList = metadataList;
+    this.maxIndex = metadataList.length;
+    this.reader = prev.reader;
+    this.exceptionFactory = prev.exceptionFactory;
+    this.context = prev.context;
+    this.resultSetType = prev.resultSetType;
+    this.traceEnable = prev.traceEnable;
+    this.forceAlias = true;
+    this.rowDecoder = prev.rowDecoder;
+    this.nullBitmap = prev.nullBitmap;
   }
 
   /**
@@ -140,8 +164,9 @@ public abstract class Result implements ResultSet, Completion {
    * @param metadataList column metadata
    * @param data raw data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context) {
+  public Result(ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
     this.metadataList = metadataList;
     this.maxIndex = this.metadataList.length;
     this.reader = null;
@@ -151,10 +176,12 @@ public abstract class Result implements ResultSet, Completion {
     this.data = data;
     this.dataSize = data.length;
     this.statement = null;
-    this.resultSetType = TYPE_FORWARD_ONLY;
+    this.resultSetType = resultSetType;
     this.closeOnCompletion = false;
     this.traceEnable = false;
-    rowDecoder = TEXT_ROW_DECODER;
+    this.rowDecoder = TEXT_ROW_DECODER;
+    this.nullBitmap = null;
+    this.forceAlias = false;
   }
 
   /**
@@ -259,7 +286,7 @@ public abstract class Result implements ResultSet, Completion {
 
   /** Grow data array. */
   private void growDataArray() {
-    int newCapacity = data.length + (data.length >> 1);
+    int newCapacity = Math.max(10, data.length + (data.length >> 1));
     byte[][] newData = new byte[newCapacity][];
     System.arraycopy(data, 0, newData, 0, data.length);
     data = newData;
@@ -1149,14 +1176,6 @@ public abstract class Result implements ResultSet, Completion {
     statement = stmt;
   }
 
-  /** Force using alias as name */
-  public void useAliasAsName() {
-    for (Column packet : metadataList) {
-      packet.useAliasAsName();
-    }
-    forceAlias = true;
-  }
-
   @Override
   public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
     if (map == null || map.isEmpty()) {
@@ -1712,5 +1731,18 @@ public abstract class Result implements ResultSet, Completion {
       throw new SQLException(String.format("Unknown label '%s'. Possible value %s", label, keys));
     }
     return ind;
+  }
+
+  @Override
+  public int getFetchSize() throws SQLException {
+    return this.fetchSize;
+  }
+
+  @Override
+  public void setFetchSize(int fetchSize) throws SQLException {
+    if (fetchSize < 0) {
+      throw exceptionFactory.create(String.format("invalid fetch size %s", fetchSize));
+    }
+    this.fetchSize = fetchSize;
   }
 }

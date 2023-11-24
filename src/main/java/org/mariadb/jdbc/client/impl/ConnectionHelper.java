@@ -197,7 +197,8 @@ public final class ConnectionHelper {
 
     // extendedTypeInfo is a technical option
     boolean extendedTypeInfo =
-            Boolean.parseBoolean(configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
+        Boolean.parseBoolean(
+            configuration.nonMappedOptions().getProperty("extendedTypeInfo", "true"));
     if (extendedTypeInfo) {
       capabilities |= Capabilities.EXTENDED_TYPE_INFO;
     }

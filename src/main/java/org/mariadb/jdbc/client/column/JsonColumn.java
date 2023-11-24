@@ -38,6 +38,15 @@ public class JsonColumn extends StringColumn implements ColumnDecoder {
     super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
   }
 
+  protected JsonColumn(JsonColumn prev) {
+    super(prev);
+  }
+
+  @Override
+  public JsonColumn useAliasAsName() {
+    return new JsonColumn(this);
+  }
+
   public String defaultClassname(Configuration conf) {
     return String.class.getName();
   }

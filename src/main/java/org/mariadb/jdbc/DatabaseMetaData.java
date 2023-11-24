@@ -10,7 +10,6 @@ import java.util.*;
 import org.mariadb.jdbc.client.DataType;
 import org.mariadb.jdbc.client.ServerVersion;
 import org.mariadb.jdbc.client.result.CompleteResult;
-import org.mariadb.jdbc.client.result.Result;
 import org.mariadb.jdbc.util.VersionFactory;
 import org.mariadb.jdbc.util.constants.CatalogTerm;
 import org.mariadb.jdbc.util.constants.ColumnFlags;
@@ -83,7 +82,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       if (ch == '`') {
         quotes++;
       } else {
-        sb.append("`".repeat(quotes / 2));
+        for (int j = 0; j < quotes / 2; j++) {
+          sb.append('`');
+        }
         if (quotes % 2 == 1) {
           if (ch == '.') {
             if (identifier.schema != null) {
@@ -336,7 +337,12 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           return result;
         });
     return CompleteResult.createResultSet(
-        columnNames, dataTypes, arr, connection.getContext(), ColumnFlags.PRIMARY_KEY);
+        columnNames,
+        dataTypes,
+        arr,
+        connection.getContext(),
+        ColumnFlags.PRIMARY_KEY,
+        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   private Map<String[], String> getExtImportedKeys(
@@ -546,8 +552,9 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   }
 
   private ResultSet executeQuery(String sql) throws SQLException {
-    Statement stmt = connection.createStatement();
-    Result rs = (Result) stmt.executeQuery(sql);
+    Statement stmt =
+        connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    CompleteResult rs = (CompleteResult) stmt.executeQuery(sql);
     rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
     rs.useAliasAsName();
     return rs;
@@ -1394,17 +1401,17 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getSQLKeywords() {
     return "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
-               + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
-               + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
-               + "HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_SERVER_IDS,INDEX,INFILE,INOUT,INT1,INT2,"
-               + "INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,"
-               + "LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,"
-               + "MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
-               + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READ_WRITE,READS,REGEXP,RELEASE,"
-               + "RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,"
-               + "SEPARATOR,SHOW,SIGNAL,SLOW,SPATIAL,SPECIFIC,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,"
-               + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
-               + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL";
+        + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
+        + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,GENERAL,HIGH_PRIORITY,"
+        + "HOUR_MICROSECOND,HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,IGNORE_SERVER_IDS,INDEX,INFILE,INOUT,INT1,INT2,"
+        + "INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,"
+        + "LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,MASTER_HEARTBEAT_PERIOD,MASTER_SSL_VERIFY_SERVER_CERT,"
+        + "MAXVALUE,MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
+        + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READ_WRITE,READS,REGEXP,RELEASE,"
+        + "RENAME,REPEAT,REPLACE,REQUIRE,RESIGNAL,RESTRICT,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,"
+        + "SEPARATOR,SHOW,SIGNAL,SLOW,SPATIAL,SPECIFIC,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,"
+        + "SQLEXCEPTION,SSL,STARTING,STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,"
+        + "UNSIGNED,USE,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,XOR,YEAR_MONTH,ZEROFILL";
   }
 
   /**
@@ -1415,7 +1422,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getNumericFunctions() {
     return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
-               + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
+        + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
   }
 
   /**
@@ -1426,11 +1433,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getStringFunctions() {
     return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
-               + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,LOWER,LPAD,LTRIM,MAKE_SET,MATCH"
-               + " AGAINST,MID,NOT LIKE,NOT"
-               + " REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS"
-               + " LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
-               + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
+        + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,LOWER,LPAD,LTRIM,MAKE_SET,MATCH"
+        + " AGAINST,MID,NOT LIKE,NOT"
+        + " REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS"
+        + " LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+        + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
   }
 
   /**
@@ -1451,11 +1458,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
   @Override
   public String getTimeDateFunctions() {
     return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
-               + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
-               + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
-               + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
-               + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
-               + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
+        + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
+        + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
+        + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
+        + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
+        + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
   }
 
   public String getSearchStringEscape() {
@@ -2390,10 +2397,10 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   public ResultSet getTableTypes() throws SQLException {
     return executeQuery(
-        "SELECT 'TABLE' TABLE_TYPE " +
-                "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE " +
-                "UNION SELECT 'VIEW' TABLE_TYPE " +
-                "UNION SELECT 'LOCAL TEMPORARY' TABLE_TYPE");
+        "SELECT 'TABLE' TABLE_TYPE "
+            + "UNION SELECT 'SYSTEM VIEW' TABLE_TYPE "
+            + "UNION SELECT 'VIEW' TABLE_TYPE "
+            + "UNION SELECT 'LOCAL TEMPORARY' TABLE_TYPE");
   }
 
   /**
@@ -3405,7 +3412,13 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
       }
     };
 
-    return CompleteResult.createResultSet(columnNames, dataTypes, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames,
+        dataTypes,
+        data,
+        connection.getContext(),
+        0,
+        ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**
@@ -3919,7 +3932,8 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
           }
         };
 
-    return CompleteResult.createResultSet(columnNames, types, data, connection.getContext(), 0);
+    return CompleteResult.createResultSet(
+        columnNames, types, data, connection.getContext(), 0, ResultSet.TYPE_SCROLL_INSENSITIVE);
   }
 
   /**

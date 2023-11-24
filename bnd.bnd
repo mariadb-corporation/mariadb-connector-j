@@ -14,6 +14,7 @@ Import-Package: \
     waffle.windows.auth;resolution:=optional,\
     waffle.windows.auth.impl;resolution:=optional,\
     org.ietf.jgss;resolution:=optional,\
+    javax.crypto;resolution:=optional,\
     javax.security.auth.login;resolution:=optional,\
     javax.security.auth.x500;resolution:=optional,\
     software.amazon.awssdk.*;resolution:=optional

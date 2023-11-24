@@ -40,7 +40,26 @@ public class FloatColumn extends ColumnDefinitionPacket implements ColumnDecoder
       int[] stringPos,
       String extTypeName,
       String extTypeFormat) {
-    super(buf, charset, length, dataType, decimals, flags, stringPos, extTypeName, extTypeFormat);
+    super(
+        buf,
+        charset,
+        length,
+        dataType,
+        decimals,
+        flags,
+        stringPos,
+        extTypeName,
+        extTypeFormat,
+        false);
+  }
+
+  protected FloatColumn(FloatColumn prev) {
+    super(prev, true);
+  }
+
+  @Override
+  public FloatColumn useAliasAsName() {
+    return new FloatColumn(this);
   }
 
   public String defaultClassname(Configuration conf) {

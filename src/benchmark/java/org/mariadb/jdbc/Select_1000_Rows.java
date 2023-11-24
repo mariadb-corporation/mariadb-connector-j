@@ -7,30 +7,29 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.infra.Blackhole;
 
 public class Select_1000_Rows extends Common {
   private static final String sql =
       "select seq, 'abcdefghijabcdefghijabcdefghijaa' from seq_1_to_1000";
 
   @Benchmark
-  public int text(MyState state) throws Throwable {
-    return run(state.connectionText);
+  public void text(MyState state, Blackhole blackhole) throws Throwable {
+    run(state.connectionText, blackhole);
   }
 
   @Benchmark
-  public int binary(MyState state) throws Throwable {
-    return run(state.connectionBinary);
+  public void binary(MyState state, Blackhole blackhole) throws Throwable {
+    run(state.connectionBinary, blackhole);
   }
 
-  private int run(Connection con) throws Throwable {
+  private void run(Connection con, Blackhole blackhole) throws Throwable {
     try (PreparedStatement st = con.prepareStatement(sql)) {
       ResultSet rs = st.executeQuery();
-      int i = 0;
       while (rs.next()) {
-        i = rs.getInt(1);
-        rs.getString(2);
+        blackhole.consume(rs.getInt(1));
+        blackhole.consume(rs.getString(2));
       }
-      return i;
     }
   }
 }

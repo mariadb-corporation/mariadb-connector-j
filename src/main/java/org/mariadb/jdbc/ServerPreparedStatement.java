@@ -439,7 +439,7 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       if (currResult instanceof Result) return (Result) currResult;
     }
-    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext());
+    return new CompleteResult(new ColumnDecoder[0], new byte[0][], con.getContext(), resultSetType);
   }
 
   /**

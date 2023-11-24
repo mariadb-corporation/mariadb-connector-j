@@ -245,21 +245,31 @@ public interface ClientMessage {
         int fieldCount = buf.readIntLengthEncodedNotNull();
 
         ColumnDecoder[] ci;
-        boolean canSkipMeta = context.canSkipMeta() && this.canSkipMeta();
-        boolean skipMeta = canSkipMeta && buf.readByte() == 0;
-        if (canSkipMeta && skipMeta) {
-          ci = ((BasePreparedStatement) stmt).getMeta();
+        if (context.canSkipMeta() && this.canSkipMeta()) {
+          if (buf.readByte() == 0) {
+            // skip meta
+            ci = ((BasePreparedStatement) stmt).getMeta();
+          } else {
+            // can skip meta, but meta might have changed
+            ci = new ColumnDecoder[fieldCount];
+            for (int i = 0; i < fieldCount; i++) {
+              ci[i] =
+                  context
+                      .getColumnDecoderFunction()
+                      .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
+            }
+            ((BasePreparedStatement) stmt).updateMeta(ci);
+          }
         } else {
-          // read columns information's
+          // always read meta
           ci = new ColumnDecoder[fieldCount];
           for (int i = 0; i < fieldCount; i++) {
             ci[i] =
-                ColumnDecoder.decode(
-                    new StandardReadableByteBuf(reader.readPacket(traceEnable)),
-                    context.isExtendedInfo());
+                context
+                    .getColumnDecoderFunction()
+                    .apply(new StandardReadableByteBuf(reader.readPacket(traceEnable)));
           }
         }
-        if (canSkipMeta && !skipMeta) ((BasePreparedStatement) stmt).updateMeta(ci);
 
         // intermediate EOF
         if (!context.isEofDeprecated()) {

@@ -21,10 +21,39 @@ public interface ColumnDecoder extends Column {
    * Decode Column from mysql packet
    *
    * @param buf packet
-   * @param extendedInfo is extended datatype information capability enable
    * @return column
    */
-  static ColumnDecoder decode(ReadableByteBuf buf, boolean extendedInfo) {
+  static ColumnDecoder decodeStd(ReadableByteBuf buf) {
+    // skip first strings
+    int[] stringPos = new int[5];
+    stringPos[0] = buf.skipIdentifier(); // schema pos
+    stringPos[1] = buf.skipIdentifier(); // table alias pos
+    stringPos[2] = buf.skipIdentifier(); // table pos
+    stringPos[3] = buf.skipIdentifier(); // column alias pos
+    stringPos[4] = buf.skipIdentifier(); // column pos
+    buf.skipIdentifier();
+
+    buf.skip(); // skip length always 0x0c
+    short charset = buf.readShort();
+    int length = buf.readInt();
+    DataType dataType = DataType.of(buf.readUnsignedByte());
+    int flags = buf.readUnsignedShort();
+    byte decimals = buf.readByte();
+    DataType.ColumnConstructor constructor =
+        (flags & ColumnFlags.UNSIGNED) == 0
+            ? dataType.getColumnConstructor()
+            : dataType.getUnsignedColumnConstructor();
+    return constructor.create(
+        buf, charset, length, dataType, decimals, flags, stringPos, null, null);
+  }
+
+  /**
+   * Decode Column from mysql packet
+   *
+   * @param buf packet
+   * @return column
+   */
+  static ColumnDecoder decode(ReadableByteBuf buf) {
     // skip first strings
     int[] stringPos = new int[5];
     stringPos[0] = buf.skipIdentifier(); // schema pos
@@ -36,25 +65,23 @@ public interface ColumnDecoder extends Column {
 
     String extTypeName = null;
     String extTypeFormat = null;
-    if (extendedInfo) {
-      // fast skipping extended info (usually not set)
-      if (buf.readByte() != 0) {
-        // revert position, because has extended info.
-        buf.pos(buf.pos() - 1);
+    // fast skipping extended info (usually not set)
+    if (buf.readByte() != 0) {
+      // revert position, because has extended info.
+      buf.pos(buf.pos() - 1);
 
-        ReadableByteBuf subPacket = buf.readLengthBuffer();
-        while (subPacket.readableBytes() > 0) {
-          switch (subPacket.readByte()) {
-            case 0:
-              extTypeName = subPacket.readAscii(subPacket.readLength());
-              break;
-            case 1:
-              extTypeFormat = subPacket.readAscii(subPacket.readLength());
-              break;
-            default: // skip data
-              subPacket.skip(subPacket.readLength());
-              break;
-          }
+      ReadableByteBuf subPacket = buf.readLengthBuffer();
+      while (subPacket.readableBytes() > 0) {
+        switch (subPacket.readByte()) {
+          case 0:
+            extTypeName = subPacket.readAscii(subPacket.readLength());
+            break;
+          case 1:
+            extTypeFormat = subPacket.readAscii(subPacket.readLength());
+            break;
+          default: // skip data
+            subPacket.skip(subPacket.readLength());
+            break;
         }
       }
     }
@@ -439,4 +466,6 @@ public interface ColumnDecoder extends Column {
    */
   double decodeDoubleBinary(final ReadableByteBuf buf, final MutableInt length)
       throws SQLDataException;
+
+  ColumnDecoder useAliasAsName();
 }

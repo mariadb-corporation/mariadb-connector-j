@@ -59,13 +59,16 @@ public class CompleteResult extends Result {
         context,
         resultSetType,
         closeOnCompletion,
-        traceEnable);
+        traceEnable,
+        false,
+        0);
+    this.data = new byte[10][];
     if (maxRows > 0) {
       this.data = new byte[10][];
       do {
         readNext(reader.readPacket(traceEnable));
-      } while (!loaded || dataSize >= maxRows);
-      if (!loaded) skipRemaining();
+      } while (!this.loaded && this.dataSize < maxRows);
+      if (!this.loaded) skipRemaining();
     } else {
       // avoiding creating array of array since
       byte[] buf = reader.readPacket(traceEnable);
@@ -79,20 +82,24 @@ public class CompleteResult extends Result {
           // one row
           this.data = new byte[1][];
           this.data[0] = buf;
-          dataSize = 1;
+          this.dataSize = 1;
           readNext(buf2);
         } else {
           // multiple rows
           this.data = new byte[10][];
           this.data[0] = buf;
           this.data[1] = buf2;
-          dataSize = 2;
+          this.dataSize = 2;
           do {
             readNext(reader.readPacket(traceEnable));
-          } while (!loaded);
+          } while (!this.loaded);
         }
       }
     }
+  }
+
+  private CompleteResult(ColumnDecoder[] metadataList, CompleteResult prev) {
+    super(metadataList, prev);
   }
 
   /**
@@ -102,9 +109,11 @@ public class CompleteResult extends Result {
    * @param metadataList metadata
    * @param data result-set data
    * @param context connection context
+   * @param resultSetType result set type
    */
-  public CompleteResult(ColumnDecoder[] metadataList, byte[][] data, Context context) {
-    super(metadataList, data, context);
+  public CompleteResult(
+      ColumnDecoder[] metadataList, byte[][] data, Context context, int resultSetType) {
+    super(metadataList, data, context, resultSetType);
   }
 
   /**
@@ -115,12 +124,23 @@ public class CompleteResult extends Result {
    * @param data values
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return result-set
    */
   public static ResultSet createResultSet(
-      String columnName, DataType columnType, String[][] data, Context context, int flags) {
+      String columnName,
+      DataType columnType,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
     return createResultSet(
-        new String[] {columnName}, new DataType[] {columnType}, data, context, flags);
+        new String[] {columnName},
+        new DataType[] {columnType},
+        data,
+        context,
+        flags,
+        resultSetType);
   }
 
   /**
@@ -134,10 +154,16 @@ public class CompleteResult extends Result {
    *     values that are represented as "1" or "0" strings
    * @param context connection context
    * @param flags column flags
+   * @param resultSetType result set type
    * @return resultset
    */
   public static ResultSet createResultSet(
-      String[] columnNames, DataType[] columnTypes, String[][] data, Context context, int flags) {
+      String[] columnNames,
+      DataType[] columnTypes,
+      String[][] data,
+      Context context,
+      int flags,
+      int resultSetType) {
 
     int columnNameLength = columnNames.length;
     ColumnDecoder[] columns = new ColumnDecoder[columnNameLength];
@@ -171,7 +197,15 @@ public class CompleteResult extends Result {
       byte[] bb = baos.toByteArray();
       rows.add(bb);
     }
-    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context);
+    return new CompleteResult(columns, rows.toArray(new byte[0][0]), context, resultSetType);
+  }
+
+  public CompleteResult useAliasAsName() {
+    ColumnDecoder[] newMeta = new ColumnDecoder[metadataList.length];
+    for (int i = 0; i < metadataList.length; i++) {
+      newMeta[i] = metadataList[i].useAliasAsName();
+    }
+    return new CompleteResult(newMeta, this);
   }
 
   @Override
@@ -333,11 +367,12 @@ public class CompleteResult extends Result {
   @Override
   public int getFetchSize() throws SQLException {
     checkClose();
-    return 0;
+    return super.getFetchSize();
   }
 
   @Override
   public void setFetchSize(int rows) throws SQLException {
     checkClose();
+    super.setFetchSize(rows);
   }
 }

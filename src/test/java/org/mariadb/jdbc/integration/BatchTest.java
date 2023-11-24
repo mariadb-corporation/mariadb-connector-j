@@ -32,6 +32,44 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void batchClear() throws SQLException {
+    Statement stmt = sharedConn.createStatement();
+    stmt.execute("DROP TABLE IF EXISTS batchClear");
+    stmt.execute("CREATE TABLE batchClear(c0 VARCHAR(16))");
+    try (PreparedStatement prep =
+        sharedConn.prepareStatement("INSERT INTO batchClear VALUES (?)")) {
+      prep.setString(1, "1");
+      prep.addBatch();
+
+      prep.setString(1, "2");
+      prep.addBatch();
+
+      prep.setString(1, "3");
+      prep.addBatch();
+
+      prep.executeBatch();
+
+      prep.setString(1, "4");
+      prep.addBatch();
+      prep.clearBatch();
+
+      prep.setString(1, "5");
+      prep.addBatch();
+
+      prep.executeBatch();
+    }
+    ResultSet rs = stmt.executeQuery("SELECT * FROM batchClear");
+    Assertions.assertTrue(rs.next());
+    assertEquals("1", rs.getString(1));
+    Assertions.assertTrue(rs.next());
+    assertEquals("2", rs.getString(1));
+    Assertions.assertTrue(rs.next());
+    assertEquals("3", rs.getString(1));
+    Assertions.assertTrue(rs.next());
+    assertEquals("5", rs.getString(1));
+  }
+
+  @Test
   public void batchError() throws SQLException {
     Statement stmt = sharedConn.createStatement();
     stmt.execute("DROP TABLE IF EXISTS t1");
