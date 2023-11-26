@@ -406,15 +406,25 @@ public class StandardClient implements Client, AutoCloseable {
    * @return sql setting session command
    */
   public String createSessionVariableQuery(String serverTz, Context context) {
-    // In JDBC, connection must start in autocommit mode
-    // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to
-    // avoid this command.
-    // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus
-    // flag
-    // after setting autocommit, we can rely on serverStatus value
     List<String> sessionCommands = new ArrayList<>();
-    if (conf.autocommit() != null) {
-      sessionCommands.add("autocommit=" + (conf.autocommit() ? "1" : "0"));
+
+    // In JDBC, connection must start in autocommit mode
+    boolean canRelyOnConnectionFlag =
+        context.getVersion().isMariaDBServer()
+            && (context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 4, 33)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 5, 24)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 6, 17)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(10, 11, 7)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 0, 5)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 1, 4)
+                || context.getVersion().versionFixedMajorMinorGreaterOrEqual(11, 2, 3));
+    if ((conf.autocommit() == null && (context.getServerStatus() & ServerStatus.AUTOCOMMIT) == 0)
+        || (conf.autocommit() != null && !canRelyOnConnectionFlag)
+        || (conf.autocommit() != null
+            && canRelyOnConnectionFlag
+            && ((context.getServerStatus() & ServerStatus.AUTOCOMMIT) > 0) != conf.autocommit())) {
+      sessionCommands.add(
+          "autocommit=" + ((conf.autocommit() == null || conf.autocommit()) ? "1" : "0"));
     }
 
     // add configured session variable if configured

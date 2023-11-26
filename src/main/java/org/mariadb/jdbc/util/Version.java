@@ -79,6 +79,22 @@ public class Version {
   /**
    * Utility method to check if database version is greater than parameters.
    *
+   * @param major exact major version
+   * @param minor exact minor version
+   * @param patch patch version
+   * @return true if version is greater than parameters
+   */
+  public boolean versionFixedMajorMinorGreaterOrEqual(int major, int minor, int patch) {
+    if (this.majorVersion == major && this.minorVersion == minor && this.patchVersion >= patch) {
+      return true;
+    }
+    return false;
+  }
+
+
+  /**
+   * Utility method to check if database version is greater than parameters.
+   *
    * @param major major version
    * @param minor minor version
    * @param patch patch version

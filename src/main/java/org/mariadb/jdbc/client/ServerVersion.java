@@ -49,6 +49,17 @@ public interface ServerVersion {
    */
   boolean versionGreaterOrEqual(int major, int minor, int patch);
 
+
+  /**
+   * Utility method to check if database version is greater than parameters.
+   *
+   * @param major exact major version
+   * @param minor exact minor version
+   * @param patch minimum patch version
+   * @return true if version is greater than parameters
+   */
+  boolean versionFixedMajorMinorGreaterOrEqual(int major, int minor, int patch);
+
   /**
    * Is server mariadb
    *
