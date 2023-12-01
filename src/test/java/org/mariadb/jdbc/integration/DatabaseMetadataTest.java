@@ -182,8 +182,8 @@ public class DatabaseMetadataTest extends Common {
     stmt.execute("drop table if exists primarykeytest1");
     stmt.execute("CREATE TABLE primarykeytest1 ( id1 integer, constraint pk primary key(id1))");
     stmt.execute(
-        "CREATE TABLE primarykeytest2 (id2a integer, id2b integer, constraint pk primary key(id2a,"
-            + " id2b), constraint fk1 foreign key(id2a) references primarykeytest1(id1), "
+        "CREATE TABLE primarykeytest2 (`id2'a` integer, id2b integer, constraint pk primary key(`id2'a`,"
+            + " id2b), constraint fk1 foreign key(`id2'a`) references primarykeytest1(id1), "
             + " constraint fk2 foreign key(id2b) references primarykeytest1(id1))");
 
     DatabaseMetaData dbmd = sharedConn.getMetaData();
@@ -194,6 +194,7 @@ public class DatabaseMetadataTest extends Common {
       assertEquals(sharedConn.getCatalog(), rs.getString("table_cat"));
       assertNull(rs.getString("table_schem"));
       assertEquals("primarykeytest2", rs.getString("table_name"));
+      assertEquals(counter == 1 ? "id2'a":"id2b", rs.getString("column_name"));
       assertEquals(counter, rs.getShort("key_seq"));
       assertEquals("PRIMARY", rs.getString("pk_name"));
     }
@@ -1691,8 +1692,10 @@ public class DatabaseMetadataTest extends Common {
 
   @Test
   public void getPrimaryKeysBasic() throws SQLException {
+    assertThrowsContains(SQLException.class, () -> sharedConn.getMetaData().getPrimaryKeys(null, null, null), "'table' parameter is mandatory in getPrimaryKeys()");
+    assertThrowsContains(SQLException.class, () -> sharedConn.getMetaData().getPrimaryKeys(null, null, ""), "'table' parameter is mandatory in getPrimaryKeys()");
     testResultSetColumns(
-        sharedConn.getMetaData().getPrimaryKeys(null, null, null),
+        sharedConn.getMetaData().getPrimaryKeys(null, null, "getTimePrecision"),
         "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,KEY_SEQ"
             + " short,PK_NAME String");
   }

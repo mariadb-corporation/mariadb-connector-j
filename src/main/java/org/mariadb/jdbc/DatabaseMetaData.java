@@ -661,25 +661,24 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
    * @throws SQLException if a database access error occurs
    */
   public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
-    // MySQL 8 now use 'PRI' in place of 'pri'
+    if (table == null || table.isEmpty()) {
+      throw new SQLException("'table' parameter is mandatory in getPrimaryKeys()");
+    }
     StringBuilder sb =
         new StringBuilder("SELECT ")
             .append(
                 conf.useCatalogTerm() == CatalogTerm.UseCatalog
-                    ? "A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM"
-                    : "A.TABLE_CATALOG TABLE_CAT, A.TABLE_SCHEMA TABLE_SCHEM")
+                    ? "TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM"
+                    : "TABLE_CATALOG TABLE_CAT, TABLE_SCHEMA TABLE_SCHEM")
             .append(
-                ", A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
-                    + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
-                    + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY'");
+                ", TABLE_NAME, COLUMN_NAME, SEQ_IN_INDEX KEY_SEQ, INDEX_NAME PK_NAME "
+                    + " FROM INFORMATION_SCHEMA.STATISTICS"
+                    + " WHERE INDEX_NAME='PRIMARY'");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
-    databaseCond(false, sb, "A.TABLE_SCHEMA", database, false);
-    databaseCond(false, sb, "B.TABLE_SCHEMA", database, false);
-    patternCond(false, sb, "A.TABLE_NAME", table);
-    patternCond(false, sb, "B.TABLE_NAME", table);
-    sb.append(
-        " AND A.TABLE_SCHEMA = B.TABLE_SCHEMA AND A.TABLE_NAME = B.TABLE_NAME AND A.COLUMN_NAME ="
-            + " B.COLUMN_NAME ORDER BY A.COLUMN_NAME");
+    databaseCond(false, sb, "TABLE_SCHEMA", database, false);
+    sb.append(" AND TABLE_NAME = ")
+            .append(escapeQuote(table))
+            .append(" ORDER BY COLUMN_NAME");
 
     return executeQuery(sb.toString());
   }
