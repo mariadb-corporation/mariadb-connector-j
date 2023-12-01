@@ -1275,7 +1275,8 @@ public class DatabaseMetadataTest extends Common {
 
     DatabaseMetaData dmd = sharedConn.getMetaData();
     ResultSet rs = dmd.getColumns(sharedConn.getCatalog(), null, "manycols", null);
-    while (rs.next()) {
+    assertTrue(rs.next());
+    do {
       String columnName = rs.getString("column_name");
       int type = rs.getInt("data_type");
       String typeName = rs.getString("type_name");
@@ -1315,7 +1316,7 @@ public class DatabaseMetadataTest extends Common {
       checkType(columnName, type, "text_col", Types.LONGVARCHAR);
       checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
       checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);
-    }
+    } while (rs.next());
   }
 
   @Test

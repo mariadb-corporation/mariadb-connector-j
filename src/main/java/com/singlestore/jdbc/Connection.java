@@ -55,7 +55,7 @@ public class Connection implements java.sql.Connection {
   private ExceptionFactory exceptionFactory;
   private final Client client;
   private final Properties clientInfo = new Properties();
-  private int lowercaseTableNames = -1;
+  private Boolean tableNameCaseSensitivity;
   private boolean readOnly;
   private final boolean canCachePrepStmts;
   private final int defaultFetchSize;
@@ -245,25 +245,25 @@ public class Connection implements java.sql.Connection {
   }
 
   /**
-   * Are table case sensitive or not . Default Value: 0 (Unix), 1 (Windows), 2 (Mac OS X). If set to
-   * 0 (the default on Unix-based systems), table names and aliases and database names are compared
-   * in a case-sensitive manner. If set to 1 (the default on Windows), names are stored in lowercase
-   * and not compared in a case-sensitive manner. If set to 2 (the default on Mac OS X), names are
-   * stored as declared, but compared in lowercase.
+   * Are table case sensitive or not.
    *
-   * @return int value.
+   * @return boolean value.
    * @throws SQLException if a connection error occur
    */
-  public int getLowercaseTableNames() throws SQLException {
-    if (lowercaseTableNames == -1) {
-      try (java.sql.Statement st = createStatement()) {
-        try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
-          rs.next();
-          lowercaseTableNames = rs.getInt(1);
+  public boolean getTableNameCaseSensitivity() throws SQLException {
+    if (tableNameCaseSensitivity == null) {
+      if (getMetaData().getSingleStoreVersion().versionGreaterOrEqual(7, 0, 11)) {
+        try (java.sql.Statement st = createStatement()) {
+          try (ResultSet rs = st.executeQuery("select @@table_name_case_sensitivity")) {
+            rs.next();
+            tableNameCaseSensitivity = rs.getBoolean(1);
+          }
         }
+      } else {
+        tableNameCaseSensitivity = Boolean.TRUE;
       }
     }
-    return lowercaseTableNames;
+    return tableNameCaseSensitivity;
   }
 
   @Override

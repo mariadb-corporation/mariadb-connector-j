@@ -426,6 +426,16 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
         + "'";
   }
 
+  private String tableEscapeQuote(String value) throws SQLException {
+    String escapedValue =
+        "'"
+            + escapeString(
+                value,
+                (connection.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) > 0)
+            + "'";
+    return supportsMixedCaseIdentifiers() ? escapedValue : "LOWER(" + escapedValue + ")";
+  }
+
   /**
    * Generate part of the information schema query that restricts catalog names In the driver,
    * catalogs is the equivalent to SingleStore schemas.
@@ -450,21 +460,40 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
   // Helper to generate  information schema queries with "like" or "equals" condition (typically  on
   // table name)
-  private String patternCond(String columnName, String tableName) {
-    if (tableName == null) {
+  private String patternCond(String columnName, String columnValue) {
+    if (columnValue == null) {
       return "";
     }
     String predicate =
-        (tableName.indexOf('%') == -1 && tableName.indexOf('_') == -1) ? "=" : "LIKE";
+        (columnValue.indexOf('%') == -1 && columnValue.indexOf('_') == -1) ? "=" : "LIKE";
     return " AND "
         + columnName
         + " "
         + predicate
         + " '"
         + escapeString(
-            tableName,
+            columnValue,
             (connection.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES) != 0)
         + "' ";
+  }
+
+  private String tablePatternCond(String columnName, String tableNameValue) throws SQLException {
+    if (tableNameValue == null) {
+      return "";
+    }
+    String predicate =
+        (tableNameValue.indexOf('%') == -1 && tableNameValue.indexOf('_') == -1) ? "=" : "LIKE";
+    columnName = supportsMixedCaseIdentifiers() ? columnName : "LOWER(" + columnName + ")";
+    String escapedTableName =
+        "'"
+            + escapeString(
+                tableNameValue,
+                (connection.getContext().getServerStatus() & ServerStatus.NO_BACKSLASH_ESCAPES)
+                    != 0)
+            + "'";
+    String value =
+        supportsMixedCaseIdentifiers() ? escapedTableName : "LOWER(" + escapedTableName + ")";
+    return " AND " + columnName + " " + predicate + " " + value + " ";
   }
 
   /**
@@ -502,7 +531,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "WHERE INDEX_NAME='PRIMARY' "
             + " AND "
             + catalogCond("TABLE_SCHEMA", catalog)
-            + patternCond("TABLE_NAME", table)
+            + tablePatternCond("TABLE_NAME", table)
             + " ORDER BY COLUMN_NAME";
 
     return executeQuery(sql);
@@ -572,7 +601,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     ? "CAST(FLAGS AS UNSIGNED INTEGER) & 1 = 0 AND "
                     : "ROUTINE_NAME IS NULL AND ")
                 + catalogCond("TABLE_SCHEMA", catalog)
-                + patternCond("TABLE_NAME", tableNamePattern));
+                + tablePatternCond("TABLE_NAME", tableNamePattern));
 
     if (types != null && types.length > 0) {
       boolean mustAddType = false;
@@ -741,7 +770,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                 ? "CAST(t.FLAGS AS UNSIGNED INTEGER) & 1 = 0 AND "
                 : "r.ROUTINE_NAME IS NULL AND ")
             + catalogCond("c.TABLE_SCHEMA", catalog)
-            + patternCond("c.TABLE_NAME", tableNamePattern)
+            + tablePatternCond("c.TABLE_NAME", tableNamePattern)
             + patternCond("c.COLUMN_NAME", columnNamePattern)
             + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
@@ -891,11 +920,11 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "'PRI' AND "
             + catalogCond("TABLE_SCHEMA", catalog)
             + " AND TABLE_NAME = "
-            + escapeQuote(table)
+            + tableEscapeQuote(table)
             + " ))) AND "
             + catalogCond("TABLE_SCHEMA", catalog)
             + " AND TABLE_NAME = "
-            + escapeQuote(table)
+            + tableEscapeQuote(table)
             + (nullable ? "" : " AND IS_NULLABLE = 'NO'");
 
     return executeQuery(sql);
@@ -1053,22 +1082,27 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
     return false;
   }
 
+  @Override
   public boolean supportsMixedCaseIdentifiers() throws SQLException {
-    return (connection.getLowercaseTableNames() == 0);
+    return connection.getTableNameCaseSensitivity();
   }
 
+  @Override
   public boolean storesUpperCaseIdentifiers() {
     return false;
   }
 
-  public boolean storesLowerCaseIdentifiers() throws SQLException {
-    return (connection.getLowercaseTableNames() == 1);
+  @Override
+  public boolean storesLowerCaseIdentifiers() {
+    return false;
   }
 
+  @Override
   public boolean storesMixedCaseIdentifiers() throws SQLException {
-    return (connection.getLowercaseTableNames() == 2);
+    return !connection.getTableNameCaseSensitivity();
   }
 
+  @Override
   public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
     return supportsMixedCaseIdentifiers();
   }
@@ -2080,7 +2114,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + catalogCond("TABLE_SCHEMA", catalog)
             + " AND "
             + " TABLE_NAME = "
-            + escapeQuote(table)
+            + tableEscapeQuote(table)
             + patternCond("COLUMN_NAME", columnNamePattern)
             + " ORDER BY COLUMN_NAME, PRIVILEGE_TYPE";
 
@@ -2130,7 +2164,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + "GRANTEE, PRIVILEGE_TYPE  PRIVILEGE, IS_GRANTABLE  FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
             + " WHERE "
             + catalogCond("TABLE_SCHEMA", catalog)
-            + patternCond("TABLE_NAME", tableNamePattern)
+            + tablePatternCond("TABLE_NAME", tableNamePattern)
             + "ORDER BY TABLE_SCHEMA, TABLE_NAME,  PRIVILEGE_TYPE ";
 
     return executeQuery(sql);
@@ -3062,7 +3096,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
             + " CARDINALITY, NULL PAGES, NULL FILTER_CONDITION"
             + " FROM INFORMATION_SCHEMA.STATISTICS"
             + " WHERE TABLE_NAME = "
-            + escapeQuote(table)
+            + tableEscapeQuote(table)
             + " AND "
             + catalogCond("TABLE_SCHEMA", catalog)
             + ((unique) ? " AND NON_UNIQUE = 0" : "")
