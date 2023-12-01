@@ -26,6 +26,9 @@ commands:
       sbt_version:
         type: string
         default: 1.3.5
+      java_version:
+        type: string
+        default: '8'
     steps:
       - run:
           name: Setup Machine
@@ -34,6 +37,8 @@ commands:
             sudo apt-get install -y sbt python3-pip git mariadb-client-core-10.3
             sudo apt-get clean
             sudo apt-get autoclean
+            # Install Java based on the specified version
+            sudo apt-get install -y openjdk-<< parameters.java_version >>-jdk
 jobs:
   test:
     parameters:
@@ -52,7 +57,8 @@ jobs:
       SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
       TEST_ENVIRON: CIRCLE_CI
     steps:
-      - setup_environment
+      - setup_environment:
+          java_version: '8'
       - checkout
       - run:
           name: Setup test cluster
@@ -75,6 +81,44 @@ jobs:
       - store_artifacts:
           path: target/singlestore-jdbc-client-1.2.0-browser-sso-uber.jar
       # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
+  test_jdk:
+    parameters:
+      singlestore_image:
+        type: string
+      singlestore_password:
+        type: string
+      machine_class:
+        type: string
+      java_version:
+        type: string
+    working_directory: ~/singlestore-jdbc-client
+    machine:
+      image: ubuntu-2004:202008-01
+    resource_class: << parameters.machine_class >>
+    environment:
+      SINGLESTORE_IMAGE: << parameters.singlestore_image >>
+      SINGLESTORE_PASSWORD: << parameters.singlestore_password >>
+      TEST_ENVIRON: CIRCLE_CI
+      JAVA_HOME: /usr/lib/jvm/java-<< parameters.java_version >>-openjdk-amd64
+    steps:
+      - setup_environment:
+          java_version: << parameters.java_version >>
+      - checkout
+      - run:
+          name: Setup test cluster
+          command: ./scripts/ensure-test-singlestore-cluster-password.sh
+      - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
+      - run: mvn dependency:go-offline # gets the project dependencies
+      - save_cache: # saves the project dependencies
+          paths:
+            - ~/.m2
+          key: singlestore-jdbc-client-{{ checksum "pom.xml" }}
+      - run: mvn test
+      - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
+          # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: target/surefire-reports
   publish:
     machine:
       image: ubuntu-2004:202008-01
@@ -82,7 +126,8 @@ jobs:
 #      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
       SONATYPE_USERNAME: memsql
     steps:
-      - setup_environment
+      - setup_environment:
+          java_version: '8'
       - checkout
       - run:
           name: Import GPG key
@@ -112,14 +157,33 @@ workflows:
               singlestore_password:
                 - password
               singlestore_image:
-                - singlestore/cluster-in-a-box:centos-7.5.10-d6401ae628-4.0.0-1.12.2
-                - singlestore/cluster-in-a-box:centos-7.6.8-ad67e74046-4.0.1-1.13.2
                 - singlestore/cluster-in-a-box:alma-7.8.5-144b69022c-4.0.6-1.13.7
                 - singlestore/cluster-in-a-box:alma-8.0.14-150dead86e-4.0.11-1.15.2
                 - singlestore/cluster-in-a-box:alma-8.1.8-967dab3a92-4.0.12-1.16.1
+
   publish:
     jobs:
+      - test_jdk:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+          matrix:
+            parameters:
+              machine_class:
+                - large
+              singlestore_password:
+                - password
+              singlestore_image:
+                - singlestore/cluster-in-a-box:alma-8.1.8-967dab3a92-4.0.12-1.16.1
+              java_version:
+                - '8'
+                - '11'
+                - '17'
       - approve-publish:
+          requires:
+            - test_jdk
           type: approval
           filters:
             tags:

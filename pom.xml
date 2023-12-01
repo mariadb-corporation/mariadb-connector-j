@@ -15,6 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jmh.version>1.29</jmh.version>
         <junit.version>5.7.1</junit.version>
+        <junit-pioneer.version>1.9.1</junit-pioneer.version>
         <assertj.version>3.19.0</assertj.version>
         <osgi.version>6.0.0</osgi.version>
         <osgi.compendium.version>5.0.0</osgi.compendium.version>
@@ -296,6 +297,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit-pioneer</groupId>
+            <artifactId>junit-pioneer</artifactId>
+            <version>${junit-pioneer.version}</version>
             <scope>test</scope>
         </dependency>
 
