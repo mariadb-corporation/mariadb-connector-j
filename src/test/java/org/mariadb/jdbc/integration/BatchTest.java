@@ -93,6 +93,47 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void executeBatchAfterError() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      try (Statement stmt = sharedConn.createStatement()) {
+        assertEquals(-1, stmt.getUpdateCount());
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id VARCHAR(5) PRIMARY KEY,value BOOL)");
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+        try {
+          stmt.executeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, stmt.getUpdateCount());
+      } finally {
+        st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      }
+    }
+  }
+
+
+  @Test
+  public void executeLargeBatchAfterError() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      try (Statement stmt = sharedConn.createStatement()) {
+        assertEquals(-1, stmt.getUpdateCount());
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id VARCHAR(5) PRIMARY KEY,value BOOL)");
+        stmt.addBatch("CREATE TABLE executeBatchAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+        try {
+          stmt.executeLargeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, stmt.getUpdateCount());
+      } finally {
+        st.addBatch("DROP TABLE IF EXISTS executeBatchAfterError");
+      }
+    }
+  }
+
+  @Test
   public void batchGeneratedKeys() throws SQLException {
     try (Statement st = sharedConn.createStatement()) {
       st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
