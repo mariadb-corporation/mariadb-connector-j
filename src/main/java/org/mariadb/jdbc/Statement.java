@@ -770,10 +770,9 @@ public class Statement implements java.sql.Statement {
         }
       }
       currResult = results.remove(0);
-      batchQueries.clear();
       return updates;
-
     } finally {
+      batchQueries.clear();
       lock.unlock();
     }
   }
@@ -1527,10 +1526,9 @@ public class Statement implements java.sql.Statement {
         updates[i] = ((OkPacket) res.get(i)).getAffectedRows();
       }
       currResult = results.remove(0);
-      batchQueries.clear();
       return updates;
-
     } finally {
+      batchQueries.clear();
       lock.unlock();
     }
   }

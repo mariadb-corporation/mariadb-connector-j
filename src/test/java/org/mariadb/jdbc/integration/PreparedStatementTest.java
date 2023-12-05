@@ -1307,6 +1307,7 @@ public class PreparedStatementTest extends Common {
       }
     }
   }
+
   @Test
   public void getUpdateCountValueOnFail() throws SQLException {
     getUpdateCountValueOnFail(sharedConn);
@@ -1316,7 +1317,9 @@ public class PreparedStatementTest extends Common {
   private void getUpdateCountValueOnFail(Connection conn) throws SQLException {
     try (Statement st = conn.createStatement()) {
       st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
-      try (PreparedStatement prep = conn.prepareStatement("CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)")) {
+      try (PreparedStatement prep =
+          conn.prepareStatement(
+              "CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)")) {
         assertEquals(-1, prep.getUpdateCount());
         assertEquals(0, prep.executeUpdate());
         assertEquals(0, prep.getUpdateCount());
@@ -1328,6 +1331,66 @@ public class PreparedStatementTest extends Common {
         assertEquals(-1, prep.getUpdateCount());
       } finally {
         st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      }
+    }
+  }
+
+  @Test
+  public void testBatchParameterClearAfterError() throws SQLException {
+    testBatchParameterClearAfterError(sharedConn);
+    testBatchParameterClearAfterError(sharedConnBinary);
+  }
+
+  public void testBatchParameterClearAfterError(Connection conn) throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      try (PreparedStatement prep =
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        assertThrows(BatchUpdateException.class, prep::executeBatch);
+        stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+        prep.executeBatch();
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
+  public void testLargeBatchParameterClearAfterError() throws SQLException {
+    testLargeBatchParameterClearAfterError(sharedConn);
+    testLargeBatchParameterClearAfterError(sharedConnBinary);
+  }
+
+  public void testLargeBatchParameterClearAfterError(Connection conn) throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      try (PreparedStatement prep =
+          conn.prepareStatement("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)")) {
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        prep.setInt(1, 1);
+        prep.setInt(2, 1);
+        prep.addBatch();
+        assertThrows(BatchUpdateException.class, prep::executeLargeBatch);
+        stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+        prep.executeLargeBatch();
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
       }
     }
   }

@@ -112,7 +112,6 @@ public class BatchTest extends Common {
     }
   }
 
-
   @Test
   public void executeLargeBatchAfterError() throws SQLException {
     try (Statement st = sharedConn.createStatement()) {
@@ -159,6 +158,43 @@ public class BatchTest extends Common {
         }
       } finally {
         st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
+      }
+    }
+  }
+
+  @Test
+  public void testBatchParameterClearAfterError() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      stmt.addBatch("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)");
+      stmt.addBatch("INSERT INTO testBatchParameterClearAfterError VALUES(1, 1)");
+
+      assertThrows(BatchUpdateException.class, stmt::executeBatch);
+      stmt.execute("TRUNCATE testBatchParameterClearAfterError");
+      stmt.executeBatch();
+      try (ResultSet rs = stmt.executeQuery("SELECT * FROM testBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
+      }
+    }
+  }
+
+  @Test
+  public void testLargeBatchParameterClearAfterError() throws SQLException {
+    try (Statement stmt = sharedConn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS testLargeBatchParameterClearAfterError");
+      stmt.execute(
+          "CREATE TABLE testLargeBatchParameterClearAfterError(id TINYINT PRIMARY KEY,value SMALLINT)");
+      stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
+      stmt.addBatch("INSERT INTO testLargeBatchParameterClearAfterError VALUES(1, 1)");
+
+      assertThrows(BatchUpdateException.class, stmt::executeLargeBatch);
+      stmt.execute("TRUNCATE testLargeBatchParameterClearAfterError");
+      stmt.executeLargeBatch();
+      try (ResultSet rs =
+          stmt.executeQuery("SELECT * FROM testLargeBatchParameterClearAfterError")) {
+        assertFalse(rs.next());
       }
     }
   }

@@ -77,10 +77,14 @@ public class StatementTest extends Common {
       st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
       try (Statement stmt = sharedConn.createStatement()) {
         assertEquals(-1, stmt.getUpdateCount());
-        assertEquals(0, stmt.executeUpdate("CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)"));
+        assertEquals(
+            0,
+            stmt.executeUpdate(
+                "CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)"));
         assertEquals(0, stmt.getUpdateCount());
         try {
-          stmt.executeUpdate("CREATE TABLE getUpdateCountValueOnFail(id TINYINT PRIMARY KEY,value SMALLINT");
+          stmt.executeUpdate(
+              "CREATE TABLE getUpdateCountValueOnFail(id TINYINT PRIMARY KEY,value SMALLINT");
         } catch (Exception e) {
           // eat
         }
