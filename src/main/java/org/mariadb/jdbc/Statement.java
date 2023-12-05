@@ -900,9 +900,11 @@ public class Statement implements java.sql.Statement {
     if (currResult instanceof OkPacket && ((OkPacket) currResult).getLastInsertId() != 0) {
       insertIds.add(new String[] {String.valueOf(((OkPacket) currResult).getLastInsertId())});
     }
-    for (Completion result : results) {
-      if (result instanceof OkPacket && ((OkPacket) result).getLastInsertId() != 0) {
-        insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
+    if (results != null) {
+      for (Completion result : results) {
+        if (result instanceof OkPacket && ((OkPacket) result).getLastInsertId() != 0) {
+          insertIds.add(new String[] {String.valueOf(((OkPacket) result).getLastInsertId())});
+        }
       }
     }
     if (insertIds.isEmpty()) {

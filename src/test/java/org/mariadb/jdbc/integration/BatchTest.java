@@ -93,6 +93,36 @@ public class BatchTest extends Common {
   }
 
   @Test
+  public void batchGeneratedKeys() throws SQLException {
+    try (Statement st = sharedConn.createStatement()) {
+      st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
+      st.execute("CREATE TABLE batchGeneratedKeys(id SMALLINT PRIMARY KEY,value BIGINT)");
+
+      try (Statement stmt = sharedConn.createStatement()) {
+
+        try (ResultSet rs = stmt.getGeneratedKeys()) {
+          assertFalse(rs.next());
+        }
+
+        stmt.addBatch("INSERT INTO batchGeneratedKeys VALUES(1679640894, -601)");
+        stmt.addBatch("UPDATE batchGeneratedKeys SET value = 226 WHERE id <= 0");
+
+        try {
+          stmt.executeBatch();
+        } catch (Exception e) {
+          // eat
+        }
+
+        try (ResultSet rs = stmt.getGeneratedKeys()) {
+          assertFalse(rs.next());
+        }
+      } finally {
+        st.execute("DROP TABLE IF EXISTS batchGeneratedKeys");
+      }
+    }
+  }
+
+  @Test
   public void wrongParameter() throws SQLException {
     try (Connection con = createCon("&useServerPrepStmts=false")) {
       wrongParameter(con);
