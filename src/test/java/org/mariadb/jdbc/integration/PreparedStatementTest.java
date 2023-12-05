@@ -1307,4 +1307,28 @@ public class PreparedStatementTest extends Common {
       }
     }
   }
+  @Test
+  public void getUpdateCountValueOnFail() throws SQLException {
+    getUpdateCountValueOnFail(sharedConn);
+    getUpdateCountValueOnFail(sharedConnBinary);
+  }
+
+  private void getUpdateCountValueOnFail(Connection conn) throws SQLException {
+    try (Statement st = conn.createStatement()) {
+      st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      try (PreparedStatement prep = conn.prepareStatement("CREATE TABLE getUpdateCountValueOnFail(id VARCHAR(5) PRIMARY KEY,value BOOL)")) {
+        assertEquals(-1, prep.getUpdateCount());
+        assertEquals(0, prep.executeUpdate());
+        assertEquals(0, prep.getUpdateCount());
+        try {
+          prep.executeUpdate();
+        } catch (Exception e) {
+          // eat
+        }
+        assertEquals(-1, prep.getUpdateCount());
+      } finally {
+        st.execute("DROP TABLE IF EXISTS getUpdateCountValueOnFail");
+      }
+    }
+  }
 }

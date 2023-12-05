@@ -84,6 +84,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     validParameters();
     lock.lock();
     try {
+      results = null;
+      currResult = null;
       QueryWithParametersPacket query =
           new QueryWithParametersPacket(preSqlCmd(), parser, parameters, localInfileInputStream);
       results =
@@ -465,6 +467,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
     lock.lock();
     try {
+      results = null;
+      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -510,6 +514,8 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
     lock.lock();
     try {
+      results = null;
+      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
       long[] updates = new long[results.size()];
 
