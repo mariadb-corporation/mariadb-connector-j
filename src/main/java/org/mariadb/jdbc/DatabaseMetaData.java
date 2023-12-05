@@ -676,9 +676,7 @@ public class DatabaseMetaData implements java.sql.DatabaseMetaData {
                     + " WHERE INDEX_NAME='PRIMARY'");
     String database = conf.useCatalogTerm() == CatalogTerm.UseCatalog ? catalog : schema;
     databaseCond(false, sb, "TABLE_SCHEMA", database, false);
-    sb.append(" AND TABLE_NAME = ")
-            .append(escapeQuote(table))
-            .append(" ORDER BY COLUMN_NAME");
+    sb.append(" AND TABLE_NAME = ").append(escapeQuote(table)).append(" ORDER BY COLUMN_NAME");
 
     return executeQuery(sb.toString());
   }
