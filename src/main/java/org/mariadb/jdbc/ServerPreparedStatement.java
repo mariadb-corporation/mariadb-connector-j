@@ -92,13 +92,15 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (prepareResult == null)
       if (canCachePrepStmts) prepareResult = con.getContext().getPrepareCache().get(cmd, this);
     try {
-      results = null;
-      currResult = null;
       if (prepareResult == null && con.getContext().permitPipeline()) {
         executePipeline(cmd);
       } else {
         executeStandard(cmd);
       }
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       lock.unlock();
@@ -611,8 +613,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
     lock.lock();
     try {
-      results = null;
-      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -647,6 +647,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
 
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       batchParameters.clear();
@@ -660,8 +664,6 @@ public class ServerPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
     lock.lock();
     try {
-      results = null;
-      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       long[] updates = new long[batchParameters.size()];
@@ -697,6 +699,10 @@ public class ServerPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
 
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();

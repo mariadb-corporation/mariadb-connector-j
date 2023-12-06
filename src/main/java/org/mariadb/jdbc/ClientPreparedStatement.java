@@ -84,8 +84,6 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     validParameters();
     lock.lock();
     try {
-      results = null;
-      currResult = null;
       QueryWithParametersPacket query =
           new QueryWithParametersPacket(preSqlCmd(), parser, parameters, localInfileInputStream);
       results =
@@ -99,6 +97,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
                   resultSetType,
                   closeOnCompletion,
                   false);
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       localInfileInputStream = null;
       lock.unlock();
@@ -467,8 +469,6 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new int[0];
     lock.lock();
     try {
-      results = null;
-      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
 
       int[] updates = new int[batchParameters.size()];
@@ -502,6 +502,11 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       }
       currResult = results.remove(0);
       return updates;
+
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();
@@ -514,8 +519,6 @@ public class ClientPreparedStatement extends BasePreparedStatement {
     if (batchParameters == null || batchParameters.isEmpty()) return new long[0];
     lock.lock();
     try {
-      results = null;
-      currResult = null;
       boolean wasBulkInsert = executeInternalPreparedBatch();
       long[] updates = new long[results.size()];
 
@@ -539,6 +542,10 @@ public class ClientPreparedStatement extends BasePreparedStatement {
       currResult = results.remove(0);
       return updates;
 
+    } catch (SQLException e) {
+      results = null;
+      currResult = null;
+      throw e;
     } finally {
       batchParameters.clear();
       lock.unlock();
