@@ -78,9 +78,11 @@ public class BitCodecTest extends CommonCodecTest {
     assertEquals(false, rs.getObject(1));
     assertFalse(rs.wasNull());
     assertArrayEquals(new byte[] {(byte) 1}, (byte[]) rs.getObject(2));
+    assertEquals((byte) 1, (byte) rs.getObject(2, Byte.class));
     assertArrayEquals(new byte[] {(byte) 1}, (byte[]) rs.getObject("t2alias"));
     assertFalse(rs.wasNull());
     assertArrayEquals(new byte[] {(byte) 15, (byte) 4}, (byte[]) rs.getObject(3));
+    assertEquals((byte) 15, (byte) rs.getObject(3, Byte.class));
     assertFalse(rs.wasNull());
     assertNull(rs.getObject(4));
     assertTrue(rs.wasNull());
